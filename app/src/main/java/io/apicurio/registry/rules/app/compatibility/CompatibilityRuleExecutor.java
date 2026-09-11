@@ -56,7 +56,7 @@ public class CompatibilityRuleExecutor implements RuleExecutor {
                 existingArtifacts, context.getUpdatedContent(), context.getResolvedReferences());
         if (!compatibilityExecutionResult.isCompatible()) {
             throw new RuleViolationException(String.format(
-                    "Incompatible artifact: %s [%s], num of incompatible diffs: {%s}, list of diff types: %s",
+                    "Incompatible artifact: %s [%s], num of incompatible diffs: %s, list of diff types: %s",
                     context.getArtifactId(), context.getArtifactType(),
                     compatibilityExecutionResult.getIncompatibleDifferences().size(),
                     outputReadableCompatabilityDiffs(

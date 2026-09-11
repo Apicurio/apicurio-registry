@@ -102,7 +102,7 @@ public class ProtobufCompatibilityCheckerLibrary {
                 if (!intersection.isEmpty()) {
                     issues.add(ProtobufDifference
                             .from(String.format("Conflict of reserved %d fields, message %s",
-                                    intersection.size(), entry.getKey())));
+                                    intersection.size(), entry.getKey()), ProtobufDifference.DifferenceType.RESERVED_FIELD_USED));
                 }
             }
         }
@@ -134,12 +134,14 @@ public class ProtobufCompatibilityCheckerLibrary {
                 int diff = entry.getValue().size() - intersection.size();
                 if (diff != 0) {
                     issues.add(ProtobufDifference.from(String
-                            .format("%d reserved fields were removed, message %s", diff, entry.getKey())));
+                            .format("%d reserved fields were removed, message %s", diff, entry.getKey()),
+                            ProtobufDifference.DifferenceType.RESERVED_FIELD_REMOVED));
                 }
             } else {
                 issues.add(
                         ProtobufDifference.from(String.format("%d reserved fields were removed, message %s",
-                                entry.getValue().size(), entry.getKey())));
+                                entry.getValue().size(), entry.getKey()),
+                                ProtobufDifference.DifferenceType.RESERVED_FIELD_REMOVED));
             }
         }
 
@@ -191,7 +193,8 @@ public class ProtobufCompatibilityCheckerLibrary {
 
             if (issuesCount > 0) {
                 issues.add(ProtobufDifference.from(String.format(
-                        "%d fields removed without reservation, message %s", issuesCount, entry.getKey())));
+                        "%d fields removed without reservation, message %s", issuesCount, entry.getKey()),
+                        ProtobufDifference.DifferenceType.FIELD_REMOVED_WITHOUT_RESERVE));
             }
         }
 
@@ -219,7 +222,8 @@ public class ProtobufCompatibilityCheckerLibrary {
                     if (afterFE != null && beforeKV.getValue().getTag() != afterFE.getTag()) {
                         issues.add(ProtobufDifference.from(String.format(
                                 "Conflict, field id changed, message %s , before: %s , after %s",
-                                entry.getKey(), beforeKV.getValue().getTag(), afterFE.getTag())));
+                                entry.getKey(), beforeKV.getValue().getTag(), afterFE.getTag()),
+                                ProtobufDifference.DifferenceType.FIELD_ID_CHANGED));
                     }
                 }
             }
@@ -237,7 +241,8 @@ public class ProtobufCompatibilityCheckerLibrary {
                     if (afterECE != null && beforeKV.getValue().getTag() != afterECE.getTag()) {
                         issues.add(ProtobufDifference.from(String.format(
                                 "Conflict, field id changed, message %s , before: %s , after %s",
-                                entry.getKey(), beforeKV.getValue().getTag(), afterECE.getTag())));
+                                entry.getKey(), beforeKV.getValue().getTag(), afterECE.getTag()),
+                                ProtobufDifference.DifferenceType.FIELD_ID_CHANGED));
                     }
                 }
             }
@@ -274,14 +279,16 @@ public class ProtobufCompatibilityCheckerLibrary {
                         if (afterFE != null && !beforeType.equals(afterType)) {
                             issues.add(ProtobufDifference.from(String.format(
                                     "Field type changed, message %s , before: %s , after %s", entry.getKey(),
-                                    beforeKV.getValue().getType(), afterFE.getType())));
+                                    beforeKV.getValue().getType(), afterFE.getType()),
+                                    ProtobufDifference.DifferenceType.FIELD_TYPE_CHANGED));
                         }
 
                         if (afterFE != null
                                 && !Objects.equals(beforeKV.getValue().getLabel(), afterFE.getLabel())) {
                             issues.add(ProtobufDifference.from(String.format(
                                     "Field label changed, message %s , before: %s , after %s", entry.getKey(),
-                                    beforeKV.getValue().getLabel(), afterFE.getLabel())));
+                                    beforeKV.getValue().getLabel(), afterFE.getLabel()),
+                                    ProtobufDifference.DifferenceType.FIELD_LABEL_CHANGED));
                         }
                     }
                 }
@@ -451,8 +458,6 @@ public class ProtobufCompatibilityCheckerLibrary {
         Map<String, Map<Integer, String>> after = new HashMap<>(fileAfter.getFieldsById());
         after.putAll(fileAfter.getEnumFieldsById());
 
-        Map<String, Set<Object>> afterReservedFields = fileAfter.getReservedFields();
-
         for (Map.Entry<String, Map<Integer, String>> entry : before.entrySet()) {
             Map<Integer, String> afterMap = after.get(entry.getKey());
 
@@ -460,21 +465,11 @@ public class ProtobufCompatibilityCheckerLibrary {
                 for (Map.Entry<Integer, String> beforeKV : entry.getValue().entrySet()) {
                     String nameAfter = afterMap.get(beforeKV.getKey());
 
-                    if (!beforeKV.getValue().equals(nameAfter)) {
-                        // Check if this is a properly reserved field (removed and reserved)
-                        if (nameAfter == null) {
-                            Set<Object> reserved = afterReservedFields.getOrDefault(entry.getKey(),
-                                    Collections.emptySet());
-                            // If the field ID or name is reserved, it's a valid removal, not a rename
-                            if (reserved.contains(beforeKV.getKey())
-                                    || reserved.contains(beforeKV.getValue())) {
-                                continue; // Skip - this is a properly reserved field
-                            }
-                        }
-
+                    if (nameAfter != null && !beforeKV.getValue().equals(nameAfter)) {
                         issues.add(ProtobufDifference
                                 .from(String.format("Field name changed, message %s , before: %s , after %s",
-                                        entry.getKey(), beforeKV.getValue(), nameAfter)));
+                                        entry.getKey(), beforeKV.getValue(), nameAfter),
+                                        ProtobufDifference.DifferenceType.FIELD_NAME_CHANGED));
                     }
                 }
             }
@@ -505,7 +500,8 @@ public class ProtobufCompatibilityCheckerLibrary {
 
             if (diff.size() > 0) {
                 issues.add(ProtobufDifference.from(
-                        String.format("%d rpc services removed, message %s", diff.size(), entry.getKey())));
+                        String.format("%d rpc services removed, message %s", diff.size(), entry.getKey()),
+                        ProtobufDifference.DifferenceType.SERVICE_RPC_REMOVED));
             }
 
         }
@@ -534,7 +530,8 @@ public class ProtobufCompatibilityCheckerLibrary {
                     if (!beforeKV.getValue().equals(afterSig)) {
                         issues.add(ProtobufDifference.from(String.format(
                                 "rpc service signature changed, message %s , before %s , after %s",
-                                entry.getKey(), beforeKV.getValue(), afterSig)));
+                                entry.getKey(), beforeKV.getValue(), afterSig),
+                                ProtobufDifference.DifferenceType.SERVICE_RPC_SIGNATURE_CHANGED));
 
                     }
                 }
@@ -566,7 +563,8 @@ public class ProtobufCompatibilityCheckerLibrary {
                             && afterKV.getValue().getLabel().equals(Field.Label.REQUIRED)) {
                         issues.add(ProtobufDifference.from(
                                 String.format("required field added in new version, message %s, after %s",
-                                        entry.getKey(), afterKV.getValue())));
+                                        entry.getKey(), afterKV.getValue()),
+                                ProtobufDifference.DifferenceType.REQUIRED_FIELD_ADDED));
                     }
                 }
             }

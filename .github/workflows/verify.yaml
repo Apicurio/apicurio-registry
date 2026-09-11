@@ -289,7 +289,7 @@ jobs:
           # below cannot drift if upstream changes it.
           # wagon flags: same transient-failure hardening as the other CI jobs.
           # The log is kept because the report carries no reactor size; the
-          # next step reads it from the Reactor Summary.
+          # next step reads it from the Reactor Build Order block.
           ./mvnw validate --no-transfer-progress \
             -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Dscalpel.enabled=true \
@@ -301,70 +301,23 @@ jobs:
 
       # affectedModules is not the build set. Upstream prerequisites are dropped
       # from the report, not from the build, so a reader who takes
-      # affectedModules as "what gets built" understates it. This step does the
-      # arithmetic once, into the run summary and into the artifact.
+      # affectedModules as "what gets built" understates it. The script does the
+      # arithmetic once, into the run summary and into the artifact. It lives
+      # under .github/scripts so it can be unit tested; see scripts-tests.yaml.
       - name: Summarize Scalpel report
         if: ${{ !cancelled() }}
         run: |
-          report=target/scalpel-report.json
           summary=target/scalpel-report-summary.md
-          # 0.3.10 reports schema version 1, which has no reactor total and no
-          # skippedModules. The Reactor Summary is the only source for it.
-          reactor=$(grep -c 'SUCCESS \[' target/scalpel-build.log 2>/dev/null) || reactor=0
-
-          {
-            echo "## Scalpel report"
-            echo
-            echo "This job runs \`mode=report\`. Scalpel trimmed nothing here, and no"
-            echo "other job in this run was trimmed either. Anything below is a"
-            echo "projection of what a trimming build would have done, not a saving"
-            echo "this run made."
-            echo
-            # Scalpel returns before writing anything on two of its paths, so an
-            # absent report is a result and not an error. Explain it rather than
-            # bailing out. The same check covers an unreadable report: this step
-            # only reports, so it should not redden the job over one.
-            if ! jq -e 'type == "object"' "$report" > /dev/null 2>&1; then
-              echo "Scalpel left no usable report, so the projection is a **full build**."
-              echo
-              echo "That is an outcome and not a failure. Scalpel returns before writing"
-              echo "anything when a changed file matches \`scalpel.disableTriggers\`"
-              echo "(\`.github/**\`, \`.mvn/**\`, \`mvnw*\`) or when \`scalpel.excludePaths\`"
-              echo "removes every changed file, and both are common here. A Maven failure"
-              echo "before the session starts leaves the same empty state, so check the"
-              echo "Generate step when the run is red."
-            elif [ "$(jq -r '.fullBuildTriggered // false' "$report")" = "true" ]; then
-              trigger=$(jq -r '.triggerFile // "not recorded"' "$report")
-              echo "A changed file matched \`scalpel.fullBuildTriggers\`, so the projection"
-              echo "is a **full build** with no reduced build set. Trigger: \`$trigger\`."
-            else
-              affected=$(jq '.affectedModules | length' "$report")
-              upstream=$(jq '.excludedUpstreamCount // 0' "$report")
-              build_set=$(( affected + upstream ))
-              echo "| | modules |"
-              echo "| --- | ---: |"
-              echo "| \`affectedModules\`, listed in the report | $affected |"
-              echo "| \`excludedUpstreamCount\`, omitted from the report but still built | $upstream |"
-              echo "| projected build set | $build_set |"
-              # A build that died partway still has a report, because Scalpel
-              # writes it at session start. Its Reactor Summary is truncated, so
-              # the count would be below the build set and the subtraction would
-              # go negative. Omit the rows rather than publish a wrong number.
-              if [ "$reactor" -ge "$build_set" ] && [ "$reactor" -gt 0 ]; then
-                echo "| reactor | $reactor |"
-                echo "| projected modules not built | $(( reactor - build_set )) |"
-              fi
-              echo
-              echo "The build set is \`affectedModules + excludedUpstreamCount\`. Upstream"
-              echo "build prerequisites are dropped from the report and not from the"
-              echo "build, so reading \`affectedModules\` on its own understates what"
-              echo "compiles."
-            fi
-            echo
-            echo "See \`.github/workflows/README.md\`, \"Reading the Scalpel report\"."
-          } > "$summary"
-
-          cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+          mkdir -p target
+          # Written aside and moved into place. A redirect straight onto the
+          # final path truncates it before the script starts, so a script that
+          # died partway would upload a header and nothing else. A missing file
+          # is the honest outcome, and the upload step only warns on one.
+          bash .github/scripts/scalpel-summary.sh \
+            target/scalpel-report.json \
+            target/scalpel-build.log > "$summary.tmp"
+          mv "$summary.tmp" "$summary"
+          cat "$summary" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
       # A failed build is when the offline artifact is wanted most: Scalpel
       # writes the report at session start, so it survives a later failure.
@@ -376,6 +329,7 @@ jobs:
           path: |
             target/scalpel-report.json
             target/scalpel-report-summary.md
+            target/scalpel-build.log
           retention-days: 30
           if-no-files-found: warn
 

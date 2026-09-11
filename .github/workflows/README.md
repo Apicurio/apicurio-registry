@@ -267,21 +267,37 @@ Read naively, "5 affected out of 57" looks like a 91% saving. The projection is
 
 The job writes `scalpel-report-summary.md` next to the JSON and into the run
 summary, so this arithmetic is already done for the run you are looking at. The
-reactor and modules-not-built rows are left out when the Maven log gives no
-usable reactor count, which happens when the build died partway.
+artifact also carries `scalpel-build.log`, the Maven log the reactor count comes
+from, so the count can be rechecked without rerunning the job. The arithmetic
+lives in [`scalpel-summary.sh`](../scripts/scalpel-summary.sh) and is unit
+tested by [`scalpel-summary.test.sh`](../scripts/scalpel-summary.test.sh) in the
+`scripts-tests.yaml` workflow. The reactor and modules-not-built rows are left
+out when the Maven log holds no readable `Reactor Build Order` block, or when
+the count it gives is below the build set, which means the log came from a
+different run than the report.
 
 An artifact with no `scalpel-report.json` in it is a result rather than a broken
 job. Scalpel returns before writing anything when a changed file matches
 `scalpel.disableTriggers` or when `scalpel.excludePaths` removes every changed
 file, and a PR that touches both Java and `.github/**` reaches the job and then
-hits the first of those. The summary file says so in that case.
+hits the first of those. The summary file says so in that case. Both patterns
+are set in `.mvn/maven.config`.
 
-One limit of the pinned 0.3.10 is worth knowing: it writes schema version 1,
-which has no `skippedModules` field and no reactor total, so the summary step
-counts the reactor from the Maven build log instead. The job passes no
-`scalpel.baseBranch`, so Scalpel derives it from `GITHUB_BASE_REF` and diffs
-against `origin/<base branch>`, which is `origin/main` for most PRs but is
-whatever branch a PR actually targets.
+The summary understands report schema version 1, which is what the version
+pinned in `.mvn/extensions.xml` writes today. Version 1 carries no
+`skippedModules` field and no reactor total, which is why the reactor is counted
+from the Maven build log instead. On any other schema the summary prints the
+version it found and does no arithmetic, rather than reading absent fields as
+zero and claiming the whole reactor as a saving. That refusal is safe but quiet,
+so `scalpel-summary.test.sh` also asserts that the pinned version is one that
+writes schema 1. A pull request to `main` moving the pin fails those tests until
+the script learns the newer schema. `scripts-tests.yaml` triggers on
+`pull_request` against `main`, so a bump that lands any other way skips the
+check.
+
+The job passes no `scalpel.baseBranch`, so Scalpel derives it from
+`GITHUB_BASE_REF` and diffs against `origin/<base branch>`, which is
+`origin/main` for most PRs but is whatever branch a PR actually targets.
 
 #### Measured baseline
 
@@ -296,11 +312,13 @@ this project's `.mvn/maven.config`, on 2026-09-11:
 | full build, `disableTriggers` matched | 6 | 15.0% |
 
 Mean modules not built over all 40 runs: 5.8%. Over the 10 trimmed runs alone:
-23.3%. Mean modules that would compile with `maven.test.skip=true` on those
-trimmed runs: 55.8%.
+23.3%.
 
-The replay ran on 0.4.0 and not on the pinned 0.3.10, so read the distribution
-as indicative rather than as a measurement of the version running in CI today.
+Two caveats on those numbers. The replay ran on 0.4.0 rather than on the version
+pinned in `.mvn/extensions.xml`, so read the distribution as indicative rather
+than as a measurement of what CI runs today. And the replay harness is not in
+this repository, so the table cannot be regenerated from a checkout; treat it as
+a dated observation and re-measure rather than trusting it indefinitely.
 
 Most of those full builds come from two upstream defects:
 [maveniverse/scalpel#184](https://github.com/maveniverse/scalpel/issues/184),

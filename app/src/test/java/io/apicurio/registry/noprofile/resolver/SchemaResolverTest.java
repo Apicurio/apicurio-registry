@@ -92,8 +92,7 @@ public class SchemaResolverTest extends AbstractClientFacadeTestBase {
                 () -> resolver.resolveSchema(new CustomResolverRecord(avroRecord,
                         ArtifactReference.builder().groupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString())
                                 .artifactId("foo").build())));
-        var error = runtimeException.getCause();
-
+        var error = runtimeException instanceof io.apicurio.registry.rest.client.v2.models.Error || runtimeException instanceof io.apicurio.registry.rest.client.models.ProblemDetails ? runtimeException : runtimeException.getCause();
         // Note: a different error/problem object will exist depending on if we're using
         // v2 or v3 client facade.  This is probably something we should encapsulate in
         // the ClientFacade interface.

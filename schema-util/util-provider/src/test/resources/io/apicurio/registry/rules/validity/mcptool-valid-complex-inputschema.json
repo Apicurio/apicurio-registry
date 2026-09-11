@@ -1,0 +1,22 @@
+{
+  "name": "complex_schema_tool",
+  "description": "inputSchema uses nesting, arrays and a nullable union",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "user": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "nickname": { "type": ["string", "null"] }
+        },
+        "required": ["id"]
+      },
+      "tags": {
+        "type": "array",
+        "items": { "type": "string" }
+      }
+    },
+    "required": ["user"]
+  }
+}

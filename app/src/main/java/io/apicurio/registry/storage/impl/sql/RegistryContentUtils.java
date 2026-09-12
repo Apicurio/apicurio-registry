@@ -252,7 +252,7 @@ public class RegistryContentUtils {
                                                    Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
         try {
             return canonicalizeContent(artifactTypeUtilProviderFactory, artifactType,
-                    TypedContent.create(data.getContent(), data.getArtifactType()),
+                    TypedContent.create(data.getContent(), data.getContentType()),
                     recursivelyResolveReferences(data.getReferences(), loader));
         } catch (RegistryException ex) {
             // Already wrapped (e.g. by the canonicalizer invocation above) - propagate as-is

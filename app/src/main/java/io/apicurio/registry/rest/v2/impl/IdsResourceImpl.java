@@ -13,6 +13,7 @@ import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.rest.impl.shared.CommonResourceOperations;
 import io.apicurio.registry.rest.v2.IdsResource;
 import io.apicurio.registry.rest.v2.beans.ArtifactReference;
+import io.apicurio.registry.storage.ReferenceResolutionConfigProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
@@ -48,6 +49,9 @@ public class IdsResourceImpl implements IdsResource {
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
+
+    @Inject
+    ReferenceResolutionConfigProperties referenceResolutionConfig;
 
     @Inject
     RestConfig restConfig;
@@ -97,14 +101,15 @@ public class IdsResourceImpl implements IdsResource {
             if (artifactTypeProvider.supportsReferencesWithContext()) {
                 RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
                         .recursivelyResolveReferencesWithContext(factory, contentToReturn, metaData.getArtifactType(),
-                                artifact.getReferences(), storage::getContentByReference);
+                                artifact.getReferences(), storage::getContentByReference,
+                                referenceResolutionConfig.maxDepth);
 
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
                         rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
             } else {
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(contentToReturn,
                         RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(),
-                                storage::getContentByReference));
+                                storage::getContentByReference, referenceResolutionConfig.maxDepth));
             }
         }
 

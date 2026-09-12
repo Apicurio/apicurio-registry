@@ -4,6 +4,7 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.content.util.ContentTypeUtil;
+import io.apicurio.registry.storage.ReferenceResolutionConfigProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.polling.model.Type;
 import io.apicurio.registry.storage.impl.polling.model.v0.Artifact;
@@ -52,6 +53,9 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
     @Inject
     RulesService rulesService;
 
+    @Inject
+    ReferenceResolutionConfigProperties referenceResolutionConfig;
+
     private PollingStorageConfig pollingConfig;
 
     /**
@@ -76,7 +80,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
 
         // Validate loaded data against configured rules (before blue-green swap)
         if (state.isSuccessful()) {
-            var validator = new PollingDataValidator(rulesService);
+            var validator = new PollingDataValidator(rulesService, referenceResolutionConfig.maxDepth);
             validator.validate(state, storage, pollingConfig);
         }
 

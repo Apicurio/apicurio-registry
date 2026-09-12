@@ -6,6 +6,7 @@ import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
+import io.apicurio.registry.storage.ReferenceResolutionConfigProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
@@ -41,6 +42,9 @@ public abstract class AbstractResourceImpl {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
+    @Inject
+    ReferenceResolutionConfigProperties referenceResolutionConfig;
+
     @Context
     HttpServletRequest request;
 
@@ -62,14 +66,14 @@ public abstract class AbstractResourceImpl {
                 if (artifactTypeProvider.supportsReferencesWithContext()) {
                     RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
                             .recursivelyResolveReferencesWithContext(factory, content, artifactType, references,
-                                    storage::getContentByReference);
+                                    storage::getContentByReference, referenceResolutionConfig.maxDepth);
 
                     content = artifactTypeProvider.getContentDereferencer().dereference(
                             rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
                 } else {
                     content = artifactTypeProvider.getContentDereferencer().dereference(content,
                             RegistryContentUtils.recursivelyResolveReferences(references,
-                                    storage::getContentByReference));
+                                    storage::getContentByReference, referenceResolutionConfig.maxDepth));
                 }
             } else if (referencesType == HandleReferencesType.REWRITE) {
                 ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);

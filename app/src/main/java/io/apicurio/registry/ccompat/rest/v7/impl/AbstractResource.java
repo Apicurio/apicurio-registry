@@ -13,6 +13,7 @@ import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.storage.ReferenceResolutionConfigProperties;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -80,6 +81,9 @@ public abstract class AbstractResource {
     @Inject
     RestConfig restConfig;
 
+    @Inject
+    ReferenceResolutionConfigProperties referenceResolutionConfig;
+
     protected String toSubjectWithGroupConcat(String groupId, String artifactId) {
         return (groupId == null ? "" : groupId) + cconfig.groupConcatSeparator + artifactId;
     }
@@ -119,7 +123,8 @@ public abstract class AbstractResource {
                         .artifactId(dto.getArtifactId()).version(dto.getVersion()).build())
                 .collect(Collectors.toList());
         final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                .recursivelyResolveReferences(parsedReferences, storage::getContentByReference);
+                .recursivelyResolveReferences(parsedReferences, storage::getContentByReference,
+                        referenceResolutionConfig.maxDepth);
 
         String owner = securityIdentity.getPrincipal().getName();
 
@@ -250,7 +255,7 @@ public abstract class AbstractResource {
                         .create(artifactVersion.getContent(), artifactVersion.getContentType());
                 Map<String, TypedContent> artifactVersionReferences = RegistryContentUtils
                         .recursivelyResolveReferences(artifactVersion.getReferences(),
-                                storage::getContentByReference);
+                                storage::getContentByReference, referenceResolutionConfig.maxDepth);
                 String dereferencedExistingContentSha = DigestUtils
                         .sha256Hex(artifactTypeProvider.getContentDereferencer()
                                 .dereference(typedArtifactVersion, artifactVersionReferences)
@@ -294,7 +299,7 @@ public abstract class AbstractResource {
         Map<String, TypedContent> resolvedReferences = Collections.emptyMap();
         if (referencesAsDtos != null && !referencesAsDtos.isEmpty()) {
             resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(referencesAsDtos,
-                    storage::getContentByReference);
+                    storage::getContentByReference, referenceResolutionConfig.maxDepth);
 
             if (referencesAsDtos.size() > resolvedReferences.size()) {
                 // There are unresolvable references, which is not allowed.

@@ -18,7 +18,7 @@ public class VersionSortKeyUpgrader implements IDbUpgrader {
     private static final Logger log = LoggerFactory.getLogger(VersionSortKeyUpgrader.class);
 
     @Override
-    public void upgrade(Handle handle) throws Exception {
+    public void upgrade(Handle handle, int maxReferenceDepth) throws Exception {
         String countSql = "SELECT COUNT(globalId) FROM versions WHERE versionSortKey IS NULL";
         long totalRows = handle.createQuery(countSql).mapTo(Long.class).one();
 

@@ -220,16 +220,16 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @PreDestroy
     void onDestroy() {
         stopped = true;
-        // Use wakeup() instead of close() because KafkaConsumer is not thread-safe.
-        // wakeup() is the only method safe to call from another thread. It causes
-        // poll() to throw WakeupException, and the consumer thread handles that by
-        // exiting its loop and calling close() on its own thread.
-        try {
-            journalConsumer.wakeup();
-        } catch (Exception e) {
-            log.debug("Ignoring journal consumer wakeup error during shutdown: {}", e.getMessage());
-        }
         if (consumerThread != null) {
+            // The consumer thread owns journalConsumer. KafkaConsumer is not thread-safe,
+            // and wakeup() is the only method safe to call from another thread. It causes
+            // poll() to throw WakeupException, and the consumer thread handles that by
+            // exiting its loop and calling close() on its own thread.
+            try {
+                journalConsumer.wakeup();
+            } catch (Exception e) {
+                log.debug("Ignoring journal consumer wakeup error during shutdown: {}", e.getMessage());
+            }
             try {
                 consumerThread.join(joinTimeoutMillis);
                 if (consumerThread.isAlive()) {
@@ -239,6 +239,17 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+            }
+        } else {
+            // initialize() failed before startConsumerThread(), so no consumer thread exists
+            // to close journalConsumer, and it currently has no CDI disposer either. Quarkus
+            // serializes startup against shutdown, so nothing is polling the consumer here
+            // and close() is safe on this thread. Without it a failed startup leaks the
+            // consumer, and @PreDestroy runs on every test-profile teardown, not just at exit.
+            try {
+                journalConsumer.close();
+            } catch (Exception e) {
+                log.debug("Ignoring journal consumer close error during shutdown: {}", e.getMessage());
             }
         }
         try {

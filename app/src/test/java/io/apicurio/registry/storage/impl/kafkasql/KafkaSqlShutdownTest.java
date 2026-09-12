@@ -18,7 +18,7 @@ class KafkaSqlShutdownTest {
 
     @SuppressWarnings("unchecked")
     @Test
-    void onDestroyCallsWakeupNotClose() throws Exception {
+    void onDestroyClosesJournalConsumerWhenConsumerThreadNeverStarted() throws Exception {
         KafkaSqlRegistryStorage storage = new KafkaSqlRegistryStorage();
         storage.log = mock(Logger.class);
 
@@ -30,10 +30,13 @@ class KafkaSqlShutdownTest {
 
         setPrivateField(storage, "stopped", false);
 
+        // consumerThread stays null: the state after initialize() fails before it reaches
+        // startConsumerThread().
         storage.onDestroy();
 
-        verify(journalConsumer).wakeup();
-        verify(journalConsumer, never()).close();
+        verify(journalConsumer).close();
+        // Nothing is polling, so there is nothing to wake up.
+        verify(journalConsumer, never()).wakeup();
 
         // The snapshots consumer is closed directly (it is not used from another thread)
         verify(snapshotsConsumer).close();
@@ -55,9 +58,10 @@ class KafkaSqlShutdownTest {
         storage.snapshotsConsumer = snapshotsConsumer;
 
         // A thread that exits immediately
-        Thread quickThread = new Thread(() -> { });
+        RecordingThread quickThread = new RecordingThread(() -> { });
         quickThread.start();
-        quickThread.join(); // ensure it has finished before we set it
+        quickThread.join(1_000);
+        assertFalse(quickThread.isAlive(), "test setup: the quick thread should have exited");
 
         setPrivateField(storage, "consumerThread", quickThread);
         setPrivateField(storage, "stopped", false);
@@ -67,10 +71,10 @@ class KafkaSqlShutdownTest {
         verify(journalConsumer).wakeup();
         verify(journalConsumer, never()).close();
 
-        // The thread exited before join; interrupt should not have been called.
-        // Thread.interrupt() on an already-dead thread is a no-op, but the production
-        // code guards with isAlive(), so we verify the thread is no longer alive.
-        assertFalse(quickThread.isAlive(), "consumer thread should not be alive after join");
+        // The thread had already exited, so the isAlive() guard in onDestroy() must have
+        // skipped interrupt() entirely.
+        assertFalse(quickThread.wasInterrupted(),
+                "onDestroy() should not interrupt a thread that already exited");
     }
 
     @SuppressWarnings("unchecked")
@@ -91,7 +95,7 @@ class KafkaSqlShutdownTest {
         // A latch that blocks the thread until interrupted or the test ends
         CountDownLatch blockLatch = new CountDownLatch(1);
 
-        Thread blockingThread = new Thread(() -> {
+        RecordingThread blockingThread = new RecordingThread(() -> {
             try {
                 blockLatch.await(30, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
@@ -109,14 +113,44 @@ class KafkaSqlShutdownTest {
         verify(journalConsumer).wakeup();
         verify(journalConsumer, never()).close();
 
-        // The thread was still alive after the 50ms join timeout, so onDestroy()
-        // should have called interrupt().
-        assertTrue(blockingThread.isInterrupted() || !blockingThread.isAlive(),
-                "consumer thread should have been interrupted");
+        // The thread was still alive when the 50ms join expired, so onDestroy() must have
+        // called interrupt(). Assert on the recorded call rather than on isInterrupted():
+        // if the join stopped honouring joinTimeoutMillis, the thread would sit on the
+        // latch for its full 30s, exit on its own, and leave isInterrupted() false with
+        // isAlive() false too, which an "interrupted or dead" disjunction would accept.
+        assertTrue(blockingThread.wasInterrupted(),
+                "onDestroy() should interrupt a consumer thread that does not exit");
 
         // Clean up: release the latch so the thread exits
         blockLatch.countDown();
         blockingThread.join(1_000);
+    }
+
+    /**
+     * A Thread that records whether interrupt() was called on it.
+     *
+     * The recorded call is the assertable signal, not Thread.isInterrupted(). The JVM
+     * clears the interrupt flag when it delivers InterruptedException to a blocked call,
+     * so the flag is only set again if the thread's own catch block re-interrupts, and it
+     * is not reliably readable once the thread has terminated.
+     */
+    private static final class RecordingThread extends Thread {
+
+        private volatile boolean interruptCalled = false;
+
+        RecordingThread(Runnable target) {
+            super(target);
+        }
+
+        @Override
+        public void interrupt() {
+            interruptCalled = true;
+            super.interrupt();
+        }
+
+        boolean wasInterrupted() {
+            return interruptCalled;
+        }
     }
 
     private static void setPrivateField(Object target, String fieldName, Object value) throws Exception {

@@ -18,4 +18,6 @@ public class Rule {
     private String ruleType;
 
     private String config;
+
+    private String onFailure;
 }

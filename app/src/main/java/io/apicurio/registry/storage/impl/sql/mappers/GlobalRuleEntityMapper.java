@@ -25,6 +25,7 @@ public class GlobalRuleEntityMapper implements RowMapper<GlobalRuleEntity> {
         GlobalRuleEntity entity = new GlobalRuleEntity();
         entity.ruleType = RuleType.fromValue(rs.getString("type"));
         entity.configuration = rs.getString("configuration");
+        entity.onFailure = rs.getString("onFailure");
         return entity;
     }
 

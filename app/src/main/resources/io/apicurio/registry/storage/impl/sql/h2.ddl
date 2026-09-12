@@ -20,7 +20,7 @@ CREATE TABLE downloads (downloadId VARCHAR(128) NOT NULL, expires BIGINT NOT NUL
 ALTER TABLE downloads ADD PRIMARY KEY (downloadId);
 CREATE HASH INDEX IDX_down_1 ON downloads(expires);
 
-CREATE TABLE global_rules (type VARCHAR(32) NOT NULL, configuration TEXT NOT NULL);
+CREATE TABLE global_rules (type VARCHAR(32) NOT NULL, configuration TEXT NOT NULL, onFailure VARCHAR(32) NOT NULL DEFAULT 'ERROR');
 ALTER TABLE global_rules ADD PRIMARY KEY (type);
 
 CREATE TABLE content (contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, contentType VARCHAR(64) NOT NULL, content BYTEA NOT NULL, refs TEXT);
@@ -42,7 +42,7 @@ ALTER TABLE group_labels ADD CONSTRAINT FK_glabels_1 FOREIGN KEY (groupId) REFER
 CREATE INDEX IDX_glabels_1 ON group_labels(labelKey);
 CREATE INDEX IDX_glabels_2 ON group_labels(labelValue);
 
-CREATE TABLE group_rules (groupId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
+CREATE TABLE group_rules (groupId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL, onFailure VARCHAR(32) NOT NULL DEFAULT 'ERROR');
 ALTER TABLE group_rules ADD PRIMARY KEY (groupId, type);
 ALTER TABLE group_rules ADD CONSTRAINT FK_grules_1 FOREIGN KEY (groupId) REFERENCES groups(groupId) ON DELETE CASCADE;
 
@@ -60,7 +60,7 @@ ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, ar
 CREATE INDEX IDX_alabels_1 ON artifact_labels(labelKey);
 CREATE INDEX IDX_alabels_2 ON artifact_labels(labelValue);
 
-CREATE TABLE artifact_rules (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
+CREATE TABLE artifact_rules (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL, onFailure VARCHAR(32) NOT NULL DEFAULT 'ERROR');
 ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);
 -- Note: no FK constraint between artifact_rules and artifacts because the Confluent API allows
 --       rules to be configured for Artifacts that do not yet exist.

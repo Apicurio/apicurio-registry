@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Paging } from "@models/Paging.ts";
+import { HeadersInspectionOptions } from "@microsoft/kiota-http-fetchlibrary";
+import { HandleReferencesTypeObject } from "@sdk/lib/generated-client/models";
 
 const { axiosGetMock, createAuthOptionsMock, getRegistryClientMock } = vi.hoisted(() => {
     // useConfigService.ts reads this global at module load time (normally injected
@@ -152,29 +154,30 @@ describe("useGroupsService pagination", () => {
 
 describe("useGroupsService content loading", () => {
     it("returns artifact version content with the response content type", async () => {
-        createAuthOptionsMock.mockResolvedValue({
-            headers: {
-                Authorization: "Bearer test-token"
+        const get = vi.fn().mockImplementation((options: any) => {
+            const headerOption = options?.options?.[0];
+            if (headerOption) {
+                headerOption.getResponseHeaders().add("content-type", "application/x-yaml; charset=utf-8");
             }
+            return Promise.resolve(new TextEncoder().encode("templateId: prompt\ntemplate: Hello {{name}}\n").buffer);
         });
-        axiosGetMock.mockResolvedValue({
-            data: "templateId: prompt\ntemplate: Hello {{name}}\n",
-            headers: {
-                "content-type": "application/x-yaml; charset=utf-8"
-            }
-        });
+        const byVersionExpression = vi.fn(() => ({ content: { get } }));
+        const byArtifactId = vi.fn(() => ({ versions: { byVersionExpression } }));
+        const byGroupId = vi.fn(() => ({ artifacts: { byArtifactId } }));
+        getRegistryClientMock.mockReturnValue({ groups: { byGroupId } });
 
         const service = useGroupsService();
         const result = await service.getArtifactVersionContentWithType("default", "my-prompt", "1");
 
-        expect(axiosGetMock).toHaveBeenCalledWith(
-            "http://localhost:8080/apis/registry/v3/groups/default/artifacts/my-prompt/versions/1/content",
+        expect(byGroupId).toHaveBeenCalledWith("default");
+        expect(byArtifactId).toHaveBeenCalledWith("my-prompt");
+        expect(byVersionExpression).toHaveBeenCalledWith("1");
+        expect(get).toHaveBeenCalledWith(
             expect.objectContaining({
                 headers: {
-                    Authorization: "Bearer test-token",
                     Accept: "*"
                 },
-                responseType: "text"
+                options: [expect.any(HeadersInspectionOptions)]
             })
         );
         expect(result).toEqual({
@@ -184,42 +187,81 @@ describe("useGroupsService content loading", () => {
     });
 
     it("normalizes latest to the latest branch when loading content with type", async () => {
-        createAuthOptionsMock.mockResolvedValue({});
-        axiosGetMock.mockResolvedValue({
-            data: "{}",
-            headers: {}
+        const get = vi.fn().mockImplementation(() => {
+            return Promise.resolve(new TextEncoder().encode("{}").buffer);
         });
+        const byVersionExpression = vi.fn(() => ({ content: { get } }));
+        const byArtifactId = vi.fn(() => ({ versions: { byVersionExpression } }));
+        const byGroupId = vi.fn(() => ({ artifacts: { byArtifactId } }));
+        getRegistryClientMock.mockReturnValue({ groups: { byGroupId } });
 
         const service = useGroupsService();
         await service.getArtifactVersionContentWithType(null, "my-prompt", "latest");
 
-        expect(axiosGetMock.mock.calls[0][0]).toBe(
-            "http://localhost:8080/apis/registry/v3/groups/default/artifacts/my-prompt/versions/branch%3Dlatest/content"
-        );
+        expect(byGroupId).toHaveBeenCalledWith("default");
+        expect(byVersionExpression).toHaveBeenCalledWith("branch=latest");
     });
 
     it("returns non-prompt content without transforming the response body", async () => {
         const xmlContent = "<?xml version=\"1.0\"?>\n<schema>\n    <element name=\"example\" />\n</schema>\n";
-        createAuthOptionsMock.mockResolvedValue({});
-        axiosGetMock.mockResolvedValue({
-            data: xmlContent,
-            headers: {
-                "content-type": "application/xml"
+        const get = vi.fn().mockImplementation((options: any) => {
+            const headerOption = options?.options?.[0];
+            if (headerOption) {
+                headerOption.getResponseHeaders().add("content-type", "application/xml");
             }
+            return Promise.resolve(new TextEncoder().encode(xmlContent).buffer);
         });
+        const byVersionExpression = vi.fn(() => ({ content: { get } }));
+        const byArtifactId = vi.fn(() => ({ versions: { byVersionExpression } }));
+        const byGroupId = vi.fn(() => ({ artifacts: { byArtifactId } }));
+        getRegistryClientMock.mockReturnValue({ groups: { byGroupId } });
 
         const service = useGroupsService();
         const result = await service.getArtifactVersionContentWithType("default", "my-xsd", "2");
 
-        expect(axiosGetMock).toHaveBeenCalledWith(
-            "http://localhost:8080/apis/registry/v3/groups/default/artifacts/my-xsd/versions/2/content",
-            expect.objectContaining({
-                responseType: "text",
-                transformResponse: [expect.any(Function)]
-            })
-        );
         expect(result.content).toBe(xmlContent);
         expect(result.contentType).toBe("application/xml");
+    });
+
+    it("returns dereferenced artifact version content with references query parameter", async () => {
+        const dereferencedContent = "{\"openapi\": \"3.0.0\", \"info\": { \"title\": \"Dereferenced API\" }}";
+        const get = vi.fn().mockResolvedValue(new TextEncoder().encode(dereferencedContent).buffer);
+        const byVersionExpression = vi.fn(() => ({ content: { get } }));
+        const byArtifactId = vi.fn(() => ({ versions: { byVersionExpression } }));
+        const byGroupId = vi.fn(() => ({ artifacts: { byArtifactId } }));
+        getRegistryClientMock.mockReturnValue({ groups: { byGroupId } });
+
+        const service = useGroupsService();
+        const result = await service.getArtifactVersionContentDereferenced("default", "my-api", "1");
+
+        expect(byGroupId).toHaveBeenCalledWith("default");
+        expect(byArtifactId).toHaveBeenCalledWith("my-api");
+        expect(byVersionExpression).toHaveBeenCalledWith("1");
+        expect(get).toHaveBeenCalledWith(
+            expect.objectContaining({
+                headers: {
+                    Accept: "*"
+                },
+                queryParameters: {
+                    references: HandleReferencesTypeObject.DEREFERENCE
+                }
+            })
+        );
+        expect(result).toBe(dereferencedContent);
+    });
+
+    it("normalizes latest to the latest branch for dereferenced content", async () => {
+        const get = vi.fn().mockResolvedValue(new TextEncoder().encode("{}").buffer);
+        const byVersionExpression = vi.fn(() => ({ content: { get } }));
+        const byArtifactId = vi.fn(() => ({ versions: { byVersionExpression } }));
+        const byGroupId = vi.fn(() => ({ artifacts: { byArtifactId } }));
+        getRegistryClientMock.mockReturnValue({ groups: { byGroupId } });
+
+        const service = useGroupsService();
+        await service.getArtifactVersionContentDereferenced(null, "my-api", "latest");
+
+        expect(byGroupId).toHaveBeenCalledWith("default");
+        expect(byVersionExpression).toHaveBeenCalledWith("branch=latest");
     });
 });
 

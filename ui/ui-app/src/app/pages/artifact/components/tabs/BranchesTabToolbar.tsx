@@ -59,8 +59,8 @@ export const BranchesTabToolbar: FunctionComponent<BranchesToolbarProps> = (prop
                         page={ props.paging.page }
                         onSetPage={ onSetPage }
                         onPerPageSelect={ onPerPageSelect }
-                        widgetId="reference-list-pagination"
-                        className="reference-list-pagination"
+                        widgetId="branches-list-pagination"
+                        className="branches-list-pagination"
                     />
                 </ToolbarItem>
             </ToolbarContent>

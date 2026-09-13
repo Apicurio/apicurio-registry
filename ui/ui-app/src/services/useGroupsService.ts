@@ -347,7 +347,7 @@ const deleteArtifactVersionComment = async (config: ConfigService, auth: AuthSer
 };
 
 
-const getArtifactBranches = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, paging: Paging): Promise<VersionSearchResults> => {
+const getArtifactBranches = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, paging: Paging): Promise<BranchSearchResults> => {
     groupId = normalizeGroupId(groupId);
     const start: number = (paging.page - 1) * paging.pageSize;
     const queryParams: any = {
@@ -701,7 +701,7 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
             return deleteArtifactVersionComment(config, auth, groupId, artifactId, version, commentId);
         },
 
-        getArtifactBranches(groupId: string|null, artifactId: string, paging: Paging): Promise<VersionSearchResults> {
+        getArtifactBranches(groupId: string|null, artifactId: string, paging: Paging): Promise<BranchSearchResults> {
             return getArtifactBranches(config, auth, groupId, artifactId, paging);
         },
         createArtifactBranch(groupId: string|null, artifactId: string, data: CreateBranch): Promise<BranchMetaData> {

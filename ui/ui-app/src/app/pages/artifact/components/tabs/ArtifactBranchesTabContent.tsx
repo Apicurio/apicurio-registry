@@ -14,6 +14,7 @@ import {
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
 import { IfAuth, IfFeature } from "@app/components";
+import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { ArtifactMetaData, BranchSearchResults, SearchedBranch, } from "@sdk/lib/generated-client/models";
 import { BranchesTable, BranchesTabToolbar } from "@app/pages/artifact";
@@ -47,9 +48,14 @@ export const ArtifactBranchesTabContent: FunctionComponent<ArtifactBranchesTabCo
     const logger: LoggerService = useLoggerService();
 
     const refresh = (): void => {
+        if (!props.artifact?.artifactId) {
+            return;
+        }
         setLoading(true);
+        setError(false);
 
-        groups.getArtifactBranches(props.artifact.groupId!, props.artifact.artifactId!, paging).then(sr => {
+        const groupId: string = props.artifact.groupId || "default";
+        groups.getArtifactBranches(groupId, props.artifact.artifactId, paging).then(sr => {
             setResults(sr);
             setLoading(false);
         }).catch(error => {
@@ -66,8 +72,32 @@ export const ArtifactBranchesTabContent: FunctionComponent<ArtifactBranchesTabCo
     };
 
     useEffect(() => {
-        refresh();
-    }, [props.artifact, paging]);
+        if (!props.artifact?.artifactId) {
+            return;
+        }
+
+        const guard: LoaderGuard = newLoaderGuard();
+        setLoading(true);
+        setError(false);
+
+        const groupId: string = props.artifact.groupId || "default";
+        groups.getArtifactBranches(groupId, props.artifact.artifactId, paging)
+            .then(guard.wrap((sr: BranchSearchResults) => {
+                setResults(sr);
+                setLoading(false);
+            }))
+            .catch(guard.wrap((error: unknown) => {
+                logger.error(error);
+                setLoading(false);
+                setError(true);
+            }));
+
+        return () => guard.cancel();
+    }, [props.artifact?.groupId, props.artifact?.artifactId, paging]);
+
+    useEffect(() => {
+        setPaging(prev => prev.page === 1 ? prev : { ...prev, page: 1 });
+    }, [props.artifact?.artifactId]);
 
     const toolbar = (
         <BranchesTabToolbar artifact={props.artifact} results={results} paging={paging} onPageChange={setPaging} onCreateBranch={props.onCreateBranch} />
@@ -80,10 +110,10 @@ export const ArtifactBranchesTabContent: FunctionComponent<ArtifactBranchesTabCo
             </EmptyStateBody>
             <EmptyStateFooter>
                 <EmptyStateActions>
-                    <IfAuth isDeveloper={true}>
+                    <IfAuth isDeveloper={true} owner={props.artifact?.owner}>
                         <IfFeature feature="readOnly" isNot={true}>
                             <Button className="empty-btn-create" variant="primary"
-                                data-testid="empty-btn-create" onClick={props.onCreateBranch}>Create version</Button>
+                                data-testid="empty-btn-create" onClick={props.onCreateBranch}>Create branch</Button>
                         </IfFeature>
                     </IfAuth>
                 </EmptyStateActions>

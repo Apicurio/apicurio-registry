@@ -181,6 +181,59 @@ public class McpToolContentValidatorTest extends ArtifactUtilProviderTestBase {
     }
 
     @Test
+    public void testMcpToolBooleanOutputSchemaIsRejected() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-boolean-outputschema.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertEquals(1, error.getCauses().size());
+        RuleViolation violation = error.getCauses().iterator().next();
+        Assertions.assertEquals("/outputSchema", violation.getContext());
+        Assertions.assertEquals("'outputSchema' field must be an object", violation.getDescription());
+    }
+
+    @Test
+    public void testMcpToolOutputSchemaIsNotValidJsonSchema() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-invalid-outputschema-jsonschema.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertEquals(1, error.getCauses().size());
+        RuleViolation violation = error.getCauses().iterator().next();
+        Assertions.assertEquals("/outputSchema/properties/total/type", violation.getContext());
+    }
+
+    @Test
+    public void testMcpToolOutputSchemaIsNotValidJsonSchemaPassesSyntaxOnly() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-invalid-outputschema-jsonschema.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testMcpToolOutputSchemaWithoutTypeIsValid() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-outputschema-without-type.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testMcpToolOutputSchemaDeclaringUnsupportedDialectIsRejected() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-outputschema-unsupported-dialect.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertEquals(1, error.getCauses().size());
+        RuleViolation violation = error.getCauses().iterator().next();
+        Assertions.assertEquals("/outputSchema/$schema", violation.getContext());
+        Assertions.assertEquals("Unsupported JSON Schema dialect 'https://example.invalid/custom-dialect'",
+                violation.getDescription());
+    }
+
+    @Test
     public void testMcpToolInvalidAnnotations() throws Exception {
         TypedContent content = resourceToTypedContentHandle("mcptool-invalid-annotations.json");
         McpToolContentValidator validator = new McpToolContentValidator();

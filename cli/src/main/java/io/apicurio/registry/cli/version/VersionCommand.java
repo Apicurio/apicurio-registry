@@ -1,14 +1,18 @@
 package io.apicurio.registry.cli.version;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.ColumnsMixin;
 import io.apicurio.registry.cli.common.IdUtil;
+import io.apicurio.registry.cli.common.OutputType;
 import io.apicurio.registry.cli.common.OutputTypeMixin;
 import io.apicurio.registry.cli.common.PaginationMixin;
 import io.apicurio.registry.cli.common.VersionOrderMixin;
 import io.apicurio.registry.cli.utils.Mapper;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.cli.utils.TableBuilder;
+import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
+import java.util.List;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Mixin;
 import picocli.CommandLine.Option;
@@ -82,8 +86,20 @@ public class VersionCommand extends AbstractCommand {
                     r.queryParameters.orderby = ordering.getOrderBy();
                     r.queryParameters.order = ordering.getOrder();
                 }));
+        printVersions(output, versions, outputType.getOutputType(),
+                pagination.getPage(), pagination.getSize(), columns.getColumns());
+    }
+
+    /**
+     * Renders a page of version search results as JSON or as a table, applying the given
+     * pagination footer and column selection. Shared by the artifact and branch version
+     * listing commands.
+     */
+    public static void printVersions(final OutputBuffer output, final VersionSearchResults versions,
+                                     final OutputType outputType, final int page, final int size,
+                                     final List<String> selectedColumns) throws JsonProcessingException {
         output.writeStdOutChunkWithException(out -> {
-            switch (outputType.getOutputType()) {
+            switch (outputType) {
                 case json -> {
                     out.append(Mapper.MAPPER.writeValueAsString(versions));
                     out.append('\n');
@@ -116,8 +132,8 @@ public class VersionCommand extends AbstractCommand {
                                 v.getOwner()
                         );
                     });
-                    table.setPagination(pagination.getPage(), pagination.getSize(), versions.getCount());
-                    table.setSelectedColumns(columns.getColumns());
+                    table.setPagination(page, size, versions.getCount());
+                    table.setSelectedColumns(selectedColumns);
                     table.print(out);
                 }
             }

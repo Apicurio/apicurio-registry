@@ -1,0 +1,684 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "MCP Registry API",
+    "version": "0.1.0",
+    "description": "Apicurio Registry implementation of the official Model Context Protocol (MCP) Registry API. Clients that speak the official API can be pointed at the base URL '/apis/mcp-registry', keeping the specified '/v0.1/...' paths intact.",
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0"
+    }
+  },
+  "paths": {
+    "/apis/mcp-registry/v0.1/servers": {
+      "get": {
+        "operationId": "listServers",
+        "tags": [
+          "Servers"
+        ],
+        "summary": "List servers",
+        "description": "List the latest version of every MCP server in the registry, with optional search and filtering. Results are paginated with an opaque cursor.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "description": "Opaque cursor returned as 'nextCursor' by a previous call. Must be used with the same filters as the call that produced it.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of servers to return.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "description": "Free-text search over the server name and description.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "updated_since",
+            "in": "query",
+            "required": false,
+            "description": "Only return servers modified at or after this RFC 3339 timestamp.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "required": false,
+            "description": "Return the given version of each server instead of the latest. The value 'latest' is equivalent to omitting the parameter.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of MCP servers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerList"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          }
+        }
+      }
+    },
+    "/apis/mcp-registry/v0.1/servers/{namespace}/{server_id}": {
+      "get": {
+        "operationId": "getServer",
+        "tags": [
+          "Servers"
+        ],
+        "summary": "Get a server",
+        "description": "Get the latest version of a single MCP server.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/server_id"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The latest version of the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Server"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/apis/mcp-registry/v0.1/servers/{namespace}/{server_id}/versions": {
+      "get": {
+        "operationId": "listServerVersions",
+        "tags": [
+          "Servers"
+        ],
+        "summary": "List server versions",
+        "description": "List all versions of a single MCP server.",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/server_id"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of server versions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerList"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/apis/mcp-registry/v0.1/servers/{namespace}/{server_id}/versions/{version}": {
+      "get": {
+        "operationId": "getServerVersion",
+        "tags": [
+          "Servers"
+        ],
+        "summary": "Get a server version",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/server_id"
+          },
+          {
+            "$ref": "#/components/parameters/version"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested version of the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Server"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteServerVersion",
+        "tags": [
+          "Servers"
+        ],
+        "summary": "Delete a server version",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/server_id"
+          },
+          {
+            "$ref": "#/components/parameters/version"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The server version was deleted"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/apis/mcp-registry/v0.1/servers/{namespace}/{server_id}/versions/{version}/status": {
+      "patch": {
+        "operationId": "updateServerVersionStatus",
+        "tags": [
+          "Servers"
+        ],
+        "summary": "Update the status of a server version",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/server_id"
+          },
+          {
+            "$ref": "#/components/parameters/version"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated server version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Server"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/apis/mcp-registry/v0.1/servers/{namespace}/{server_id}/status": {
+      "patch": {
+        "operationId": "updateServerStatus",
+        "tags": [
+          "Servers"
+        ],
+        "summary": "Update the status of every version of a server",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/namespace"
+          },
+          {
+            "$ref": "#/components/parameters/server_id"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The latest version of the updated server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Server"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/apis/mcp-registry/v0.1/publish": {
+      "post": {
+        "operationId": "publishServer",
+        "tags": [
+          "Publish"
+        ],
+        "summary": "Publish a server version",
+        "description": "Publish a new MCP server, or a new version of an existing one.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Server"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The published server version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Server"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "409": {
+            "$ref": "#/components/responses/ConflictError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "namespace": {
+        "name": "namespace",
+        "in": "path",
+        "required": true,
+        "description": "The reverse-DNS namespace half of the server name, e.g. 'io.github.user'.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "server_id": {
+        "name": "server_id",
+        "in": "path",
+        "required": true,
+        "description": "The server id half of the server name, e.g. 'weather'.",
+        "schema": {
+          "type": "string"
+        }
+      },
+      "version": {
+        "name": "version",
+        "in": "path",
+        "required": true,
+        "description": "The server version, or 'latest' for the most recently published one.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "responses": {
+      "BadRequestError": {
+        "description": "The request was malformed",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "No such server or version",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "ConflictError": {
+        "description": "The server version already exists",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Server": {
+        "description": "An MCP server definition (server.json), including the registry metadata under '_meta'.",
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name",
+          "version"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Reverse-DNS server name, e.g. 'io.github.user/weather'."
+          },
+          "version": {
+            "type": "string",
+            "description": "The version of this server definition."
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "website_url": {
+            "type": "string"
+          },
+          "repository": {
+            "$ref": "#/components/schemas/Repository"
+          },
+          "packages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Package"
+            }
+          },
+          "remotes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Remote"
+            }
+          },
+          "icons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Icon"
+            }
+          },
+          "_meta": {
+            "$ref": "#/components/schemas/Meta"
+          }
+        }
+      },
+      "Repository": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "subfolder": {
+            "type": "string"
+          }
+        }
+      },
+      "Package": {
+        "description": "How to install and run the server. Fields beyond those named here are preserved verbatim.",
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "registryType": {
+            "type": "string"
+          },
+          "registryBaseUrl": {
+            "type": "string"
+          },
+          "identifier": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "fileSha256": {
+            "type": "string"
+          },
+          "runtimeHint": {
+            "type": "string"
+          },
+          "transport": {
+            "$ref": "#/components/schemas/Transport"
+          }
+        }
+      },
+      "Remote": {
+        "description": "A remote transport endpoint the server can be reached at.",
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "type",
+          "url"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "streamable-http",
+              "sse"
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "Transport": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "stdio",
+              "streamable-http",
+              "sse"
+            ]
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "Icon": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "src"
+        ],
+        "properties": {
+          "src": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "sizes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "theme": {
+            "type": "string"
+          }
+        }
+      },
+      "Meta": {
+        "description": "Extension metadata. Registry-managed fields live under the 'io.modelcontextprotocol.registry/official' key.",
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {}
+      },
+      "RegistryMeta": {
+        "description": "The registry-managed metadata block stored under '_meta[\"io.modelcontextprotocol.registry/official\"]'.",
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isLatest": {
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ServerStatus"
+          }
+        }
+      },
+      "ServerStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "deprecated",
+          "deleted"
+        ]
+      },
+      "StatusUpdate": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ServerStatus"
+          },
+          "statusMessage": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional human-readable reason for the status change. Not permitted when status is 'active'."
+          }
+        }
+      },
+      "ServerList": {
+        "type": "object",
+        "required": [
+          "servers"
+        ],
+        "properties": {
+          "servers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Server"
+            }
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/ListMetadata"
+          }
+        }
+      },
+      "ListMetadata": {
+        "type": "object",
+        "properties": {
+          "nextCursor": {
+            "type": "string",
+            "description": "Cursor to pass to the next call. Absent when this is the last page."
+          },
+          "count": {
+            "type": "integer",
+            "description": "Number of servers in this page."
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

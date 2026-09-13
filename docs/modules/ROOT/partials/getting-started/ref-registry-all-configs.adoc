@@ -873,6 +873,16 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.mcp-registry.enabled`
+|`boolean`
+|`false`
+|`3.3.0`
+|Enable the MCP Registry API _(experimental)_
+|`apicurio.mcp-registry.max-page-size`
+|`int`
+|`100`
+|`3.3.0`
+|Maximum number of MCP servers returned by a single list request
 |`apicurio.mcp-tools.enabled`
 |`boolean`
 |`false`

@@ -10,9 +10,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MessageIndexesUtil {
+
+    // Mirrors Confluent's MessageIndexes.DEFAULT_INDEX: the index of the first message type.
+    public static final List<Integer> DEFAULT_INDEX = Collections.singletonList(0);
 
     private static IllegalArgumentException illegalVarintException(int value) {
         throw new IllegalArgumentException("Varint is too long, the most significant bit in the 5th byte is set, " +
@@ -53,6 +57,12 @@ public class MessageIndexesUtil {
     }
 
     public static void writeTo(List<Integer> indexes, OutputStream out) throws IOException {
+        if (indexes.equals(DEFAULT_INDEX)) {
+            // Confluent-compatible optimization: the default index [0] (the first message
+            // type) is encoded as a single 0x00 var-int instead of [size][indexes].
+            writeVarInt(0, out);
+            return;
+        }
         writeVarInt(indexes.size(), out);
 
         for (Integer index : indexes) {
@@ -96,6 +106,8 @@ public class MessageIndexesUtil {
     public static List<Integer> readFrom(InputStream in) throws IOException {
         int size = readVarInt(in);
         if (size == 0) {
+            // A bare 0x00 var-int is Confluent's optimized encoding for the default
+            // index [0] (the first message type), so it must map to [0], not an empty list.
             return List.of(0);
         }
         List<Integer> indexes = new ArrayList<>(size);

@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * kubernetesops storage with the MCP Registry API enabled - used to confirm that a write against this
- * read-only storage backend returns a clean 403, the same as gitops does, since both share
+ * read-only storage backend returns a clean 501, the same as gitops does, since both share
  * {@code AbstractPollingRegistryStorage} / {@code AbstractReadOnlyRegistryStorage} and neither overrides
  * {@code isReadOnly()} or the write methods.
  */

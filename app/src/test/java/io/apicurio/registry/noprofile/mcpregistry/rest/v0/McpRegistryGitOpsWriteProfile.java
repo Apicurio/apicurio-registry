@@ -8,7 +8,7 @@ import java.util.Map;
 
 /**
  * gitops storage with the MCP Registry API enabled - used to confirm that a write against a read-only
- * storage backend returns a clean 403 rather than an unmapped 500.
+ * storage backend returns a clean 501 rather than an unmapped 500.
  */
 public class McpRegistryGitOpsWriteProfile implements QuarkusTestProfile {
 

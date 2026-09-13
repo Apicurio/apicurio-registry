@@ -1,0 +1,8 @@
+{
+  "name": "weather-mcp",
+  "version": "1.2.3",
+  "description": "A weather MCP server",
+  "main": "dist/index.js",
+  "bin": { "weather-mcp": "dist/index.js" },
+  "dependencies": { "@modelcontextprotocol/sdk": "^1.0.0" }
+}

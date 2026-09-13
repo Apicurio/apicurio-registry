@@ -257,6 +257,133 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .body("version", equalTo("1.0.0"));
     }
 
+    @Test
+    public void testDeleteRejectsLatestAsAVersion() {
+        String namespace = uniqueNamespace();
+        String versions = BASE + "/servers/" + namespace + "/pinned/versions";
+
+        publish(namespace + "/pinned", "1.0.0", "v1");
+        publish(namespace + "/pinned", "2.0.0", "v2");
+
+        // 'latest' is whatever was published most recently when the request runs, which need not be the
+        // version the caller looked at, so a mutation must name the version exactly.
+        given()
+                .when()
+                .delete(versions + "/latest")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("A concrete version is required: 'latest' may name a different"
+                        + " version by the time the change is applied"));
+
+        // Nothing was deleted.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .get(versions)
+                .then()
+                .statusCode(200)
+                .body("servers", hasSize(2));
+    }
+
+    @Test
+    public void testVersionStatusUpdateRejectsLatestAsAVersion() {
+        String namespace = uniqueNamespace();
+        String versions = BASE + "/servers/" + namespace + "/pinned/versions";
+
+        publish(namespace + "/pinned", "1.0.0", "v1");
+        publish(namespace + "/pinned", "2.0.0", "v2");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"status\":\"deprecated\"}")
+                .patch(versions + "/latest/status")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("A concrete version is required: 'latest' may name a different"
+                        + " version by the time the change is applied"));
+
+        // The version 'latest' would have resolved to is untouched.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .get(versions + "/2.0.0")
+                .then()
+                .statusCode(200)
+                .body("_meta.'" + REGISTRY_META + "'.status", equalTo("active"));
+    }
+
+    // === Error responses ===
+    // The spec's error body is {"error": "..."}. The v3 ProblemDetails shape, which every MCP error used to
+    // fall through to, adds title, detail and status, and names the Java exception class.
+
+    @Test
+    public void testNotFoundUsesTheSpecErrorShape() {
+        String namespace = uniqueNamespace();
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .get(BASE + "/servers/" + namespace + "/missing")
+                .then()
+                .statusCode(404)
+                .body("error", equalTo("No active version of MCP server '" + namespace + "/missing' exists"))
+                .body("name", nullValue())
+                .body("title", nullValue())
+                .body("detail", nullValue());
+    }
+
+    @Test
+    public void testConflictUsesTheSpecErrorShape() {
+        String name = uniqueNamespace() + "/twice";
+        publish(name, "1.0.0", "v1");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body(serverJson(name, "1.0.0", "v1"))
+                .post(BASE + "/publish")
+                .then()
+                .statusCode(409)
+                .body("error", equalTo("Version '1.0.0' of MCP server '" + name + "' already exists"))
+                .body("name", nullValue());
+    }
+
+    @Test
+    public void testMalformedBodyUsesTheSpecErrorShape() {
+        // Body deserialization errors are mapped by JacksonJsonMappingExceptionMapper, which is chosen by
+        // exception type and never reaches the path dispatch in RegistryExceptionMapper.
+        String namespace = uniqueNamespace();
+        publish(namespace + "/badstatus", "1.0.0", "v1");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"status\":\"archived\"}")
+                .patch(BASE + "/servers/" + namespace + "/badstatus/versions/1.0.0/status")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("Not able to deserialize data provided."))
+                .body("name", nullValue());
+    }
+
+    @Test
+    public void testUnsupportedMethodDoesNotLeakFrameworkDetail() {
+        String namespace = uniqueNamespace();
+        publish(namespace + "/noput", "1.0.0", "v1");
+
+        // RESTEasy's own message for this starts with a diagnostic code; only the reason phrase is returned.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body(serverJson(namespace + "/noput", "1.0.0", "v1"))
+                .put(BASE + "/servers/" + namespace + "/noput/versions/1.0.0")
+                .then()
+                .statusCode(405)
+                .header("Allow", notNullValue())
+                .body("error", equalTo("Method Not Allowed"));
+    }
+
     // === Status ===
 
     @Test
@@ -755,6 +882,192 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(400);
+    }
+
+    // === Paging and parameter edge cases ===
+
+    @Test
+    public void testListServersWithNoMatchesReturnsAnEmptyPage() {
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("search", "no-such-server-" + UUID.randomUUID())
+                .get(BASE + "/servers")
+                .then()
+                .statusCode(200)
+                .body("servers", hasSize(0))
+                .body("metadata.count", equalTo(0))
+                .body("metadata.nextCursor", nullValue());
+    }
+
+    @Test
+    public void testCursorPaginationOnVersions() {
+        String namespace = uniqueNamespace();
+        String versions = BASE + "/servers/" + namespace + "/paged/versions";
+        publish(namespace + "/paged", "1.0.0", "v1");
+        publish(namespace + "/paged", "2.0.0", "v2");
+        publish(namespace + "/paged", "3.0.0", "v3");
+
+        String cursor = given()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("limit", 2)
+                .get(versions)
+                .then()
+                .statusCode(200)
+                .body("servers.version", equalTo(List.of("1.0.0", "2.0.0")))
+                .body("metadata.nextCursor", notNullValue())
+                .extract().path("metadata.nextCursor");
+
+        // The second page holds exactly the one version left: nothing skipped, nothing repeated.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("limit", 2)
+                .queryParam("cursor", cursor)
+                .get(versions)
+                .then()
+                .statusCode(200)
+                .body("servers.version", equalTo(List.of("3.0.0")))
+                .body("metadata.nextCursor", nullValue());
+    }
+
+    @Test
+    public void testVersionCursorIsRejectedOnAnotherServer() {
+        String namespace = uniqueNamespace();
+        publish(namespace + "/first", "1.0.0", "v1");
+        publish(namespace + "/first", "2.0.0", "v2");
+        publish(namespace + "/second", "1.0.0", "v1");
+
+        String cursor = given()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("limit", 1)
+                .get(BASE + "/servers/" + namespace + "/first/versions")
+                .then()
+                .statusCode(200)
+                .extract().path("metadata.nextCursor");
+
+        // An offset into one server's versions means nothing for another server's.
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("cursor", cursor)
+                .get(BASE + "/servers/" + namespace + "/second/versions")
+                .then()
+                .statusCode(400)
+                .body("error", notNullValue());
+    }
+
+    @Test
+    public void testServerWideStatusRejectsAnUnknownStatusValue() {
+        String namespace = uniqueNamespace();
+        publish(namespace + "/archived", "1.0.0", "v1");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"status\":\"archived\"}")
+                .patch(BASE + "/servers/" + namespace + "/archived/status")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("Not able to deserialize data provided."));
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .get(BASE + "/servers/" + namespace + "/archived/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .body("_meta.'" + REGISTRY_META + "'.status", equalTo("active"));
+    }
+
+    @Test
+    public void testLimitBelowOneIsRejected() {
+        String namespace = uniqueNamespace();
+        publish(namespace + "/limits", "1.0.0", "v1");
+        List<String> paths = List.of(BASE + "/servers", BASE + "/servers/" + namespace + "/limits/versions");
+
+        for (String path : paths) {
+            for (String limit : List.of("0", "-1")) {
+                given()
+                        .when()
+                        .contentType(CT_JSON)
+                        .queryParam("limit", limit)
+                        .get(path)
+                        .then()
+                        .statusCode(400)
+                        .body("error", equalTo("'limit' must be at least 1"));
+            }
+        }
+    }
+
+    @Test
+    public void testLimitBeyondTheIntRangeIsCappedNotTruncated() {
+        // BigInteger.intValue() keeps only the low 32 bits, so 2^32 + 2 used to become a page size of 2.
+        String namespace = uniqueNamespace();
+        String versions = BASE + "/servers/" + namespace + "/huge/versions";
+        publish(namespace + "/huge", "1.0.0", "v1");
+        publish(namespace + "/huge", "2.0.0", "v2");
+        publish(namespace + "/huge", "3.0.0", "v3");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .queryParam("limit", "4294967298")
+                .get(versions)
+                .then()
+                .statusCode(200)
+                .body("servers", hasSize(3))
+                .body("metadata.nextCursor", nullValue());
+    }
+
+    @Test
+    public void testStatusMessageOverTheSpecLimitIsRejectedForEveryStatus() {
+        String namespace = uniqueNamespace();
+        String server = BASE + "/servers/" + namespace + "/longreason";
+        publish(namespace + "/longreason", "1.0.0", "v1");
+        String tooLong = "x".repeat(501);
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"status\":\"deprecated\",\"statusMessage\":\"" + tooLong + "\"}")
+                .patch(server + "/versions/1.0.0/status")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("'statusMessage' must be at most 500 characters"));
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"status\":\"deleted\",\"statusMessage\":\"" + tooLong + "\"}")
+                .patch(server + "/status")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("'statusMessage' must be at most 500 characters"));
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .get(server + "/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .body("_meta.'" + REGISTRY_META + "'.status", equalTo("active"));
+    }
+
+    @Test
+    public void testStatusMessageAtTheSpecLimitIsAccepted() {
+        String namespace = uniqueNamespace();
+        publish(namespace + "/maxreason", "1.0.0", "v1");
+
+        given()
+                .when()
+                .contentType(CT_JSON)
+                .body("{\"status\":\"deprecated\",\"statusMessage\":\"" + "x".repeat(500) + "\"}")
+                .patch(BASE + "/servers/" + namespace + "/maxreason/versions/1.0.0/status")
+                .then()
+                .statusCode(200)
+                .body("_meta.'" + REGISTRY_META + "'.status", equalTo("deprecated"));
     }
 
     @Test

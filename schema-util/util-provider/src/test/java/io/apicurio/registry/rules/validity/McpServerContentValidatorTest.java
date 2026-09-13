@@ -144,6 +144,30 @@ public class McpServerContentValidatorTest extends ArtifactUtilProviderTestBase 
                 new McpToolContentAccepter().acceptsContent(content, Collections.emptyMap()));
     }
 
+    @Test
+    public void testAccepterRejectsAPackageJson() throws Exception {
+        // name + version with no inputSchema is also the shape of an npm package.json; only the reverse-DNS
+        // name tells the two apart.
+        assertNotAccepted("mcpserver-accepter-package-json.json");
+    }
+
+    @Test
+    public void testAccepterRejectsAScopedPackageJson() throws Exception {
+        // A scoped npm name contains a slash, so checking only that the name contains '/' would accept it.
+        assertNotAccepted("mcpserver-accepter-scoped-package-json.json");
+    }
+
+    @Test
+    public void testAccepterRejectsAHelmChart() throws Exception {
+        assertNotAccepted("mcpserver-accepter-helm-chart.json");
+    }
+
+    private void assertNotAccepted(String resource) throws Exception {
+        TypedContent content = resourceToTypedContentHandle(resource);
+        Assertions.assertFalse(
+                new McpServerContentAccepter().acceptsContent(content, Collections.emptyMap()));
+    }
+
     // === Extractors ===
 
     @Test

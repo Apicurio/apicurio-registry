@@ -89,9 +89,9 @@ at first publish while `updatedAt` moves on each mutation.
 against the upstream OpenAPI document, since an earlier snake_case draft would have silently broken
 compatibility with real clients despite passing every local test. Query parameters stay snake_case
 (`updated_since`, `include_deleted`), matching the official convention of camelCase bodies over
-snake_case query strings. `StatusUpdate` also carries an optional `statusMessage` (≤500 chars,
-rejected with 400 if sent alongside `status: "active"`) — accepted and validated, but **not yet
-persisted or returned**; there's no slot for it in version metadata today. Real gap, not a lie: don't
+snake_case query strings. `StatusUpdate` also carries an optional `statusMessage` — at most 500 characters for every status,
+and not allowed at all with `status: "active"`, both rejected with 400. It is accepted and validated,
+but **not yet persisted or returned**; there's no slot for it in version metadata today. Real gap, not a lie: don't
 claim round-trip support for it without adding storage.
 
 Generated beans initialise list fields to empty lists, which would emit `"packages": []` for a server
@@ -116,7 +116,11 @@ storage layer, which is a cross-variant change.
 
 **`listServers` is N+1.** Each row costs ~3 storage round-trips (branch tip, version metadata,
 content) on top of the search. The page cap is what bounds the blast radius — do not remove it, and
-be aware that raising `apicurio.mcp-registry.max-page-size` multiplies storage load.
+be aware that raising `apicurio.mcp-registry.max-page-size` multiplies storage load. Marked with a
+`TODO` at the loop.
+
+`limit` below 1 is a 400; above `max-page-size` it is capped. The comparison is done as a `BigInteger`,
+because `intValue()` keeps only the low 32 bits — `limit=4294967298` used to become a page of 2.
 
 ## Authorization
 
@@ -147,6 +151,34 @@ already happened: `"identifier": 123` arrives as `"123"` and is legitimately val
 catches structural problems that survive deserialization (missing required fields, bad URL strings),
 not type mismatches.
 
+Auto-detection is a separate path. `McpServerContentAccepter` decides whether JSON uploaded without an
+explicit type is an `MCP_SERVER`, and requires `name` to match `SERVER_NAME_PATTERN`: a textual `name`
+plus a `version` is also an npm `package.json` or a Helm chart. Checking only that the name contains a
+`/` is not enough — a scoped npm name (`@scope/pkg`) has one.
+
+## Version addressing
+
+Reads accept `latest` (or no version) and resolve it to the branch tip. Mutations do not:
+`requireConcreteVersion()` rejects `latest` and blank with 400 on `deleteServerVersion` and
+`updateServerVersionStatus`, as `publishServer` already did. `latest` is resolved when the request runs,
+so a publish landing between a client reading a version and changing it would redirect the change to a
+version the client never saw.
+
+## Error responses
+
+The spec's error body is exactly `{"error": "..."}` as `application/json` — confirmed against the
+upstream generic spec, which has no other error field. The vendored `Error` schema matches it, and every
+declared error response references it. `McpRegistryExceptionMapperService` produces it, following the
+Iceberg precedent. Status codes come from the same `HttpStatusCodeMap` the core mapper uses, so only
+the body differs from v3. 5xx responses, and framework messages carrying a RESTEasy diagnostic code
+(`RESTEASY003650: ...`), return the reason phrase only.
+
+**It is dispatched from two places.** `RegistryExceptionMapper.isMcpRegistryEndpoint()` covers
+everything that reaches it, including 401 and 403, whose mappers delegate to it.
+`JacksonJsonMappingExceptionMapper` is chosen by exception type and never reaches that dispatch, so it
+repeats the check through `McpRegistryExceptionMapperService.handles()`. Any other `ExceptionMapper`
+that can fire on an MCP path needs the same.
+
 ## Feature gating
 
 Both properties live in `McpRegistryConfig`; `enabled` is `@Info(experimental = true)`, so it also
@@ -158,7 +190,9 @@ apicurio.mcp-registry.max-page-size  default 100
 ```
 
 Every endpoint calls `requireEnabled()` first, which 404s when off — the API is invisible, not
-forbidden. After touching either property, regenerate the config docs:
+forbidden. There is no central filter, so `McpRegistryFeatureGateTest` covers all eight endpoints and
+asserts the `MCP Registry API is disabled` message, not only the 404 a missing server also returns.
+After touching either property, regenerate the config docs:
 `./mvnw clean install -pl :apicurio-registry-config-generator -am -DskipTests` and commit
 `ref-registry-all-configs.adoc`.
 
@@ -169,8 +203,9 @@ forbidden. After touching either property, regenerate the config docs:
 | `McpRegistryApiTest` | experimental on, no auth | publish/read/list/versions/status/delete, cursor, validation |
 | ↳ `testCursorPaginationAcrossNamespacesSharingAServerId` | | regression: paging must not skip or repeat when server ids tie |
 | ↳ `testPublishRejectsRepositoryWithoutUrl` / `...RemoteWithNonHttpUrl` | | regression: the validator actually runs on publish |
-| `McpRegistryAuthTest` | RBAC + owner-only, basic auth | ownership on publish, admin exemption, anonymous |
-| `McpRegistryFeatureGateTest` | defaults | endpoints 404 when disabled |
+| ↳ `test*UsesTheSpecErrorShape`, `testUnsupportedMethodDoesNotLeakFrameworkDetail` | | error body is `{"error"}` with no class name, on both dispatch paths |
+| `McpRegistryAuthTest` | RBAC + owner-only, basic auth | ownership on publish, delete and both status updates; admin exemption; anonymous |
+| `McpRegistryFeatureGateTest` | defaults | all 8 endpoints 404 with the "disabled" message |
 | `McpRegistryCursorTest` | plain JUnit | cursor encode/decode/tamper |
 | `McpServerContentValidatorTest` | plain JUnit | validator, accepter, extractors (fixtures in `src/test/resources/.../mcpserver-*.json`) |
 
@@ -206,6 +241,12 @@ Open questions for maintainers rather than settled decisions — raise on #7763,
   request and falls back to `globalId` only for versions published before this label existed, so old
   data doesn't break. See `McpRegistryApiResourceImpl.serverVersionId()`.
 - **`metadata.count` is the page size, not total matches.** The spec does not pin this down.
+- **No compatibility checker for `MCP_SERVER`, deliberately for now.** It gets the builder default,
+  `NoopCompatibilityChecker`, like eight other types (AsyncAPI, GraphQL, WSDL, XML, …), so a
+  COMPATIBILITY rule on an `MCP_SERVER` artifact accepts every change. Designing the rules is tracked in
+  #9913, for a separate PR. Note for that PR: MCP publish does not run configured rules at all — it calls
+  the content validator directly (see Content validation) — so a checker takes effect on MCP publish
+  only once publish also applies configured rules.
 - **`PATCH /{name}/status` is not atomic.** No bulk state change exists in `RegistryStorage`, and a
   REST-level transaction would not span the Kafka-backed variants. It loops; a mid-loop failure leaves
   earlier versions changed. Safe to retry — setting an already-set state is a no-op.
@@ -213,8 +254,9 @@ Open questions for maintainers rather than settled decisions — raise on #7763,
   read, list, versions, status, soft-delete/restore, hard delete). All four variants route artifact
   search through `SqlSearchRepository` — kafkasql via `ReadOnlyDelegatingStorage`, gitops and
   kubernetesops via `Blue`/`GreenSqlStorage`, both `extends AbstractSqlRegistryStorage` — so
-  `OrderBy.name` resolves identically everywhere. Write-rejection is verified (403, not an unmapped
-  500) on both gitops and kubernetesops.
+  `OrderBy.name` resolves identically everywhere. Write-rejection is verified on both gitops and
+  kubernetesops: 501, which the spec declares for a registry that does not support deletion or
+  publishing — not 403, since an admin is refused too, and not an unmapped 500.
 
   **Reads are confirmed broken, not just untested, on gitops and kubernetesops.** Every MCP read that
   resolves "latest" (`GET /servers/{namespace}/{server_id}` with no version, `listServerVersions`'s
@@ -251,6 +293,5 @@ Open questions for maintainers rather than settled decisions — raise on #7763,
 - **`updated_since` paging can still skip or repeat.** See the warning under Pagination: that branch
   orders by `modifiedOn`, which ties for servers published together. The default branch was fixed by
   ordering on `name`; this one needs a secondary sort key in the storage layer.
-- **Error responses expose exception class names**, e.g. `"detail": "BadRequestException: ..."` and
-  `"NotAllowedException: RESTEASY003650..."`. CLAUDE.md forbids exposing class names to API clients.
-  Pre-existing across the whole MCP surface, from the default JAX-RS exception mapping.
+- ~~**Error responses expose exception class names.**~~ **Resolved.** MCP requests have their own
+  mapper and return the spec's error body; see Error responses.

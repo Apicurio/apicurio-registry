@@ -58,6 +58,7 @@ import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.ServerErrorException;
 import jakarta.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,6 +110,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     private static final String LATEST_VERSION = "latest";
     private static final int DEFAULT_PAGE_SIZE = 30;
+    private static final int STATUS_MESSAGE_MAX_LENGTH = 500;
 
     @Inject
     @Current
@@ -139,12 +141,15 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     }
 
     /**
-     * Report a clean 403 before a read-only backend throws an internal error.
+     * gitops and kubernetesops storage is read-only by design. That is a property of the deployment, not of
+     * the caller - an admin is refused too - so this is a 501, which is what the spec declares for a
+     * registry that does not support deletion or publishing, rather than a 403.
      */
     private void requireWritable() {
         if (storage.isReadOnly()) {
-            throw new ForbiddenException(
-                    "The MCP Registry API does not support publishing on a read-only storage backend.");
+            throw new ServerErrorException(
+                    "Modifying MCP servers is not supported by this registry: its storage is read-only",
+                    Response.Status.NOT_IMPLEMENTED);
         }
     }
 
@@ -172,6 +177,10 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                 byModifiedOn ? OrderBy.modifiedOn : OrderBy.name,
                 byModifiedOn ? OrderDirection.desc : OrderDirection.asc, offset, pageSize, false);
 
+        // TODO: N+1. Each row costs three storage calls (branch tip, version metadata, content), so a page is
+        // 1 + 3 * pageSize round trips, bounded by apicurio.mcp-registry.max-page-size. Unlike
+        // listServerVersions the rows are different servers, so no lookup can be shared; a fix needs a
+        // batched "latest version with content" read on RegistryStorage, which touches every storage variant.
         List<Server> servers = new ArrayList<>();
         boolean reachedCutoff = false;
         for (SearchedArtifactDto artifact : results.getArtifacts()) {
@@ -253,7 +262,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         requireEnabled();
         requireWritable();
         McpServerName name = McpServerName.of(namespace, serverId);
-        storage.deleteArtifactVersion(name.namespace(), name.serverId(), resolveVersion(name, version));
+        storage.deleteArtifactVersion(name.namespace(), name.serverId(), requireConcreteVersion(version));
     }
 
     @Override
@@ -264,7 +273,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         requireEnabled();
         requireWritable();
         McpServerName name = McpServerName.of(namespace, serverId);
-        String resolved = resolveVersion(name, version);
+        String resolved = requireConcreteVersion(version);
         storage.updateArtifactVersionState(name.namespace(), name.serverId(), resolved,
                 toVersionState(requireStatus(data)), false);
         return loadServer(name, resolved);
@@ -462,14 +471,15 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         }
     }
 
-    /** Null and 'latest' both mean the latest branch tip, skipping versions marked deleted. */
-    private String resolveVersion(McpServerName name, String version) {
+    /**
+     * Mutations take a concrete version only. 'latest' names whichever version was published most recently
+     * at the moment the request runs, so a publish landing between a client reading a version and changing it
+     * would redirect the change to a version the client never saw. Reads keep 'latest'; see loadServer.
+     */
+    private String requireConcreteVersion(String version) {
         if (version == null || version.isBlank() || LATEST_VERSION.equals(version)) {
-            String latest = latestVersionOrNull(name);
-            if (latest == null) {
-                throw new NotFoundException("No active version of MCP server '" + name.full() + "' exists");
-            }
-            return latest;
+            throw new BadRequestException("A concrete version is required: 'latest' may name a different"
+                    + " version by the time the change is applied");
         }
         return version;
     }
@@ -582,20 +592,26 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         if (limit == null) {
             return DEFAULT_PAGE_SIZE;
         }
-        int value = limit.intValue();
-        if (value < 1) {
+        if (limit.signum() <= 0) {
             throw new BadRequestException("'limit' must be at least 1");
         }
-        return Math.min(value, config.getMaxPageSize());
+        // Capped as a BigInteger: intValue() keeps only the low 32 bits, so 2^32 + 2 would become 2.
+        return limit.min(BigInteger.valueOf(config.getMaxPageSize())).intValue();
     }
 
     private ServerStatus requireStatus(StatusUpdate data) {
         if (data == null || data.getStatus() == null) {
             throw new BadRequestException("The 'status' field is required");
         }
-        if (data.getStatus() == ServerStatus.active && data.getStatusMessage() != null
-                && !data.getStatusMessage().isBlank()) {
+        String message = data.getStatusMessage();
+        if (data.getStatus() == ServerStatus.active && message != null && !message.isBlank()) {
             throw new BadRequestException("'statusMessage' is not allowed when status is 'active'");
+        }
+        // The spec's maxLength, for every status. The message is not stored yet, but enforcing the limit now
+        // means adding storage later cannot start rejecting requests that used to succeed.
+        if (message != null && message.length() > STATUS_MESSAGE_MAX_LENGTH) {
+            throw new BadRequestException(
+                    "'statusMessage' must be at most " + STATUS_MESSAGE_MAX_LENGTH + " characters");
         }
         return data.getStatus();
     }

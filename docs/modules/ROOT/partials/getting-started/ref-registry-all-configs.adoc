@@ -1653,6 +1653,11 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`3.0.0`
 |Enabled to show the Settings tab in the UI
+|`apicurio.ui.features.url-import.max-content-length`
+|`long`
+|`5242880`
+|`3.3.3`
+|Maximum content length (in bytes) for UI 'Import from URL' responses
 |`apicurio.ui.navPrefixPath`
 |`string`
 |`/`

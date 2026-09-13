@@ -29,7 +29,7 @@ stale:
   stale_message: |
     This PR has been inactive. @{author}, please update or comment
     to keep it open. It will be closed {close_window} if no activity occurs.
-    Use `/unstale` to remove this label.
+    Use `/unstale` to remove this label.{assignees}
   close_message: |
     Closing this PR due to inactivity. Feel free to reopen if you
     want to continue working on it.

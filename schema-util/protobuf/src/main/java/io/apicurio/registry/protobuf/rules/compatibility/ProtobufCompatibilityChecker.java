@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
@@ -61,35 +62,84 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
         }
     }
 
+    public enum ViolationClassification {
+        BACKWARD_ONLY,
+        FORWARD_ONLY,
+        BOTH;
+
+        public boolean appliesToBackward() {
+            return this == BACKWARD_ONLY || this == BOTH;
+        }
+
+        public boolean appliesToForward() {
+            return this == FORWARD_ONLY || this == BOTH;
+        }
+    }
+
+    /**
+     * Classification table of Protobuf difference violation types based on Protobuf wire-format compatibility semantics:
+     *
+     * | DifferenceType                 | Classification  | Rationale                                                                                  |
+     * | :----------------------------- | :-------------- | :----------------------------------------------------------------------------------------- |
+     * | REQUIRED_FIELD_ADDED           | BACKWARD_ONLY   | Proto2: new reader (v2) fails when parsing old data (v1) missing the required field.       |
+     * | FIELD_REMOVED_WITHOUT_RESERVE  | FORWARD_ONLY    | Unreserved field removal endangers old readers (v1) if tag is reused in future schemas.   |
+     * | RESERVED_FIELD_REMOVED         | FORWARD_ONLY    | Un-reserving a tag permits tag reuse in future schemas, breaking old readers (v1).         |
+     * | RESERVED_FIELD_USED            | BOTH            | Reusing a reserved tag breaks wire contracts for both reader directions.                   |
+     * | FIELD_ID_CHANGED               | BOTH            | Changing tag numbers breaks binary wire decoding in both directions.                       |
+     * | FIELD_TYPE_CHANGED             | BOTH            | Changing field type breaks wire parsing/deserialization in both directions.                |
+     * | FIELD_LABEL_CHANGED            | BOTH            | Changing field label breaks wire parsing/deserialization in both directions.               |
+     * | FIELD_NAME_CHANGED             | BOTH            | Changing field names breaks DTO/JSON deserialization in both directions.                   |
+     * | SERVICE_RPC_REMOVED            | BOTH            | Removing an RPC endpoint breaks client-server contract in both directions.                |
+     * | SERVICE_RPC_SIGNATURE_CHANGED  | BOTH            | Changing RPC request/response types breaks API contract in both directions.                |
+     */
+    public static ViolationClassification classifyDifference(ProtobufDifference difference) {
+        ProtobufDifference.DifferenceType type = difference.getType();
+        if (type == null) {
+            throw new IllegalArgumentException("DifferenceType must not be null for difference: " + difference.getMessage());
+        }
+
+        return switch (type) {
+            case REQUIRED_FIELD_ADDED -> ViolationClassification.BACKWARD_ONLY;
+            case FIELD_REMOVED_WITHOUT_RESERVE, RESERVED_FIELD_REMOVED -> ViolationClassification.FORWARD_ONLY;
+            case RESERVED_FIELD_USED, FIELD_ID_CHANGED, FIELD_TYPE_CHANGED, FIELD_LABEL_CHANGED,
+                 FIELD_NAME_CHANGED, SERVICE_RPC_REMOVED, SERVICE_RPC_SIGNATURE_CHANGED -> ViolationClassification.BOTH;
+        };
+    }
+
+    private Set<CompatibilityDifference> collectDirectionalDifferences(ProtobufFile fileBefore, ProtobufFile fileAfter,
+            Predicate<ViolationClassification> filter) {
+        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
+        List<ProtobufDifference> differences = checker.findDifferences();
+        return differences.stream()
+                .filter(diff -> filter.test(classifyDifference(diff)))
+                .map(this::toCompatibilityDifference)
+                .collect(Collectors.toSet());
+    }
+
+    private Set<CompatibilityDifference> checkBackwardCompatible(ProtobufFile fileBefore, ProtobufFile fileAfter) {
+        return collectDirectionalDifferences(fileBefore, fileAfter, ViolationClassification::appliesToBackward);
+    }
+
+    private Set<CompatibilityDifference> checkForwardCompatible(ProtobufFile fileBefore, ProtobufFile fileAfter) {
+        return collectDirectionalDifferences(fileBefore, fileAfter, ViolationClassification::appliesToForward);
+    }
+
     @NotNull
     private CompatibilityExecutionResult testFullTransitive(List<TypedContent> existingSchemas,
             ProtobufFile fileAfter) {
         Set<CompatibilityDifference> allDifferences = new HashSet<>();
         for (TypedContent existing : existingSchemas) {
             ProtobufFile fileBefore = new ProtobufFile(existing.getContent().content());
-            // Collect backward differences
-            ProtobufCompatibilityCheckerLibrary backwardChecker = new ProtobufCompatibilityCheckerLibrary(
-                    fileBefore, fileAfter);
-            allDifferences.addAll(collectDifferences(backwardChecker));
-            // Collect forward differences
-            ProtobufCompatibilityCheckerLibrary forwardChecker = new ProtobufCompatibilityCheckerLibrary(
-                    fileAfter, fileBefore);
-            allDifferences.addAll(collectDifferences(forwardChecker));
+            allDifferences.addAll(collectDirectionalDifferences(fileBefore, fileAfter,
+                    classification -> classification.appliesToBackward() || classification.appliesToForward()));
         }
         return CompatibilityExecutionResult.incompatibleOrEmpty(allDifferences);
     }
 
     @NotNull
     private CompatibilityExecutionResult testFull(ProtobufFile fileBefore, ProtobufFile fileAfter) {
-        Set<CompatibilityDifference> allDifferences = new HashSet<>();
-        // Collect backward differences
-        ProtobufCompatibilityCheckerLibrary backwardChecker = new ProtobufCompatibilityCheckerLibrary(
-                fileBefore, fileAfter);
-        allDifferences.addAll(collectDifferences(backwardChecker));
-        // Collect forward differences
-        ProtobufCompatibilityCheckerLibrary forwardChecker = new ProtobufCompatibilityCheckerLibrary(
-                fileAfter, fileBefore);
-        allDifferences.addAll(collectDifferences(forwardChecker));
+        Set<CompatibilityDifference> allDifferences = collectDirectionalDifferences(fileBefore, fileAfter,
+                classification -> classification.appliesToBackward() || classification.appliesToForward());
         return CompatibilityExecutionResult.incompatibleOrEmpty(allDifferences);
     }
 
@@ -99,18 +149,14 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
         Set<CompatibilityDifference> allDifferences = new HashSet<>();
         for (TypedContent existing : existingSchemas) {
             ProtobufFile fileBefore = new ProtobufFile(existing.getContent().content());
-            ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileAfter,
-                    fileBefore);
-            allDifferences.addAll(collectDifferences(checker));
+            allDifferences.addAll(checkForwardCompatible(fileBefore, fileAfter));
         }
         return CompatibilityExecutionResult.incompatibleOrEmpty(allDifferences);
     }
 
     @NotNull
     private CompatibilityExecutionResult testForward(ProtobufFile fileBefore, ProtobufFile fileAfter) {
-        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileAfter,
-                fileBefore);
-        Set<CompatibilityDifference> differences = collectDifferences(checker);
+        Set<CompatibilityDifference> differences = checkForwardCompatible(fileBefore, fileAfter);
         return CompatibilityExecutionResult.incompatibleOrEmpty(differences);
     }
 
@@ -120,18 +166,14 @@ public class ProtobufCompatibilityChecker implements CompatibilityChecker {
         Set<CompatibilityDifference> allDifferences = new HashSet<>();
         for (TypedContent existing : existingSchemas) {
             ProtobufFile fileBefore = new ProtobufFile(existing.getContent().content());
-            ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore,
-                    fileAfter);
-            allDifferences.addAll(collectDifferences(checker));
+            allDifferences.addAll(checkBackwardCompatible(fileBefore, fileAfter));
         }
         return CompatibilityExecutionResult.incompatibleOrEmpty(allDifferences);
     }
 
     @NotNull
     private CompatibilityExecutionResult testBackward(ProtobufFile fileBefore, ProtobufFile fileAfter) {
-        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore,
-                fileAfter);
-        Set<CompatibilityDifference> differences = collectDifferences(checker);
+        Set<CompatibilityDifference> differences = checkBackwardCompatible(fileBefore, fileAfter);
         return CompatibilityExecutionResult.incompatibleOrEmpty(differences);
     }
 

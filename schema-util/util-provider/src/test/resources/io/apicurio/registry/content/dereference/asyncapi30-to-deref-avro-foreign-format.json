@@ -3,7 +3,7 @@
     "info": {
         "title": "Event Service API",
         "version": "1.0.0",
-        "description": "API for event processing with Avro schemas"
+        "description": "API whose payload declares a schemaFormat from another format family"
     },
     "channels": {
         "userEvents": {
@@ -19,7 +19,7 @@
         "messages": {
             "UserEventMessage": {
                 "payload": {
-                    "schemaFormat": "application/vnd.apache.avro+json;version=1.11.0",
+                    "schemaFormat": "application/schema+json",
                     "schema": {
                         "$ref": "http://schemas.example.org/user-event.avsc"
                     }

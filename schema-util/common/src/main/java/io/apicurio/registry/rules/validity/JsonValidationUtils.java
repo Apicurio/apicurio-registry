@@ -7,6 +7,7 @@ import com.networknt.schema.PathType;
 import com.networknt.schema.SchemaLocation;
 import com.networknt.schema.SchemaValidatorsConfig;
 import com.networknt.schema.SpecVersion;
+import com.networknt.schema.SpecVersionDetector;
 import com.networknt.schema.ValidationMessage;
 import io.apicurio.registry.rules.violation.RuleViolation;
 
@@ -14,6 +15,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -24,8 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class JsonValidationUtils {
 
     /**
-     * Dialect used when a schema does not declare {@code $schema}. The MCP specification is written
-     * against JSON Schema without pinning a draft, so the most recent one is assumed.
+     * Dialect used when a schema does not declare {@code $schema}, which is the default the MCP
+     * specification defines for tool schemas.
      */
     private static final SpecVersion.VersionFlag DEFAULT_SCHEMA_DIALECT = SpecVersion.VersionFlag.V202012;
 
@@ -131,14 +133,31 @@ public final class JsonValidationUtils {
      * the JSON Schema meta-schema. Violations are reported under {@code basePath}, the JSON Pointer
      * of the field holding the schema.
      *
-     * <p>The dialect is taken from the schema's own {@code $schema} when it declares a recognised
-     * one, and is {@link #DEFAULT_SCHEMA_DIALECT} otherwise. A single malformed keyword can fail
-     * several meta-schema branches at once, so at most one violation is reported per location.
+     * <p>The dialect is the one the schema declares in {@code $schema}, or
+     * {@link #DEFAULT_SCHEMA_DIALECT} when it declares none. A {@code $schema} that is not a string,
+     * or that names a dialect the validator library does not support, is reported as a violation
+     * and the schema is not validated against any other dialect. A single malformed keyword can
+     * fail several meta-schema branches at once, so at most one violation is reported per location.
      */
     public static void validateJsonSchema(JsonNode schemaNode, String basePath,
             Set<RuleViolation> violations) {
+        JsonNode declaredDialect = schemaNode.get("$schema");
+        if (declaredDialect != null && !declaredDialect.isTextual()) {
+            violations.add(new RuleViolation("'$schema' field must be a string", basePath + "/$schema"));
+            return;
+        }
+
+        Optional<SpecVersion.VersionFlag> dialect = SpecVersionDetector.detectOptionalVersion(
+                schemaNode, false);
+        if (declaredDialect != null && dialect.isEmpty()) {
+            violations.add(new RuleViolation("Unsupported JSON Schema dialect '"
+                    + declaredDialect.asText() + "'", basePath + "/$schema"));
+            return;
+        }
+
+        JsonSchema metaSchema = metaSchemaFor(dialect.orElse(DEFAULT_SCHEMA_DIALECT));
         Set<String> reportedLocations = new HashSet<>();
-        for (ValidationMessage message : metaSchemaFor(schemaNode).validate(schemaNode)) {
+        for (ValidationMessage message : metaSchema.validate(schemaNode)) {
             String location = message.getInstanceLocation().toString();
             if (reportedLocations.add(location)) {
                 violations.add(new RuleViolation(messageWithoutLocation(message, location),
@@ -147,11 +166,7 @@ public final class JsonValidationUtils {
         }
     }
 
-    private static JsonSchema metaSchemaFor(JsonNode schemaNode) {
-        JsonNode declaredDialect = schemaNode.get("$schema");
-        SpecVersion.VersionFlag dialect = declaredDialect != null && declaredDialect.isTextual()
-                ? SpecVersion.VersionFlag.fromId(declaredDialect.asText()).orElse(DEFAULT_SCHEMA_DIALECT)
-                : DEFAULT_SCHEMA_DIALECT;
+    private static JsonSchema metaSchemaFor(SpecVersion.VersionFlag dialect) {
         return META_SCHEMAS.computeIfAbsent(dialect, version -> JsonSchemaFactory.getInstance(version)
                 .getSchema(SchemaLocation.of(version.getId()), META_VALIDATION_CONFIG));
     }

@@ -113,6 +113,61 @@ public class McpToolContentValidatorTest extends ArtifactUtilProviderTestBase {
     }
 
     @Test
+    public void testMcpToolInputSchemaDeclaringDraft07WithoutTrailingHashIsValid() throws Exception {
+        TypedContent content = resourceToTypedContentHandle(
+                "mcptool-draft07-inputschema-without-trailing-hash.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testMcpToolInputSchemaWithoutDialectIsValidatedAsDraft202012() throws Exception {
+        TypedContent content = resourceToTypedContentHandle(
+                "mcptool-inputschema-tuple-items-without-dialect.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertEquals(1, error.getCauses().size());
+        RuleViolation violation = error.getCauses().iterator().next();
+        Assertions.assertEquals("/inputSchema/properties/coordinate/items", violation.getContext());
+    }
+
+    @Test
+    public void testMcpToolInputSchemaDeclaringUnsupportedDialectIsRejected() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-inputschema-unsupported-dialect.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertEquals(1, error.getCauses().size());
+        RuleViolation violation = error.getCauses().iterator().next();
+        Assertions.assertEquals("/inputSchema/$schema", violation.getContext());
+        Assertions.assertEquals("Unsupported JSON Schema dialect 'https://example.invalid/custom-dialect'",
+                violation.getDescription());
+    }
+
+    @Test
+    public void testMcpToolInputSchemaDeclaringUnsupportedDialectPassesSyntaxOnly() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-inputschema-unsupported-dialect.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testMcpToolInputSchemaDeclaringNonTextualDialectIsRejected() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("mcptool-inputschema-non-textual-dialect.json");
+        McpToolContentValidator validator = new McpToolContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+        Assertions.assertEquals(1, error.getCauses().size());
+        RuleViolation violation = error.getCauses().iterator().next();
+        Assertions.assertEquals("/inputSchema/$schema", violation.getContext());
+        Assertions.assertEquals("'$schema' field must be a string", violation.getDescription());
+    }
+
+    @Test
     public void testMcpToolMalformedInputSchemaReportsStructuralViolationOnly() throws Exception {
         TypedContent content = resourceToTypedContentHandle("mcptool-inputschema-bad-required.json");
         McpToolContentValidator validator = new McpToolContentValidator();

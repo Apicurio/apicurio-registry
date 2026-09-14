@@ -2,17 +2,22 @@ package io.apicurio.registry.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.util.PromptTemplateFormats;
 import io.apicurio.registry.content.util.PromptTemplateVariableUtil;
 import io.apicurio.registry.rest.v3.beans.RenderPromptResponse;
 import io.apicurio.registry.rest.v3.beans.RenderValidationError;
 import io.apicurio.registry.storage.error.InvalidContentException;
 import jakarta.enterprise.context.ApplicationScoped;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,6 +42,19 @@ import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
 @ApplicationScoped
 public class PromptRenderingService {
 
+    private static final Logger log = LoggerFactory.getLogger(PromptRenderingService.class);
+
+    /**
+     * Upper bound on {@link #warnedUnsupportedFormats}, so that a registry holding many templates
+     * with an unsupported format cannot grow the set without limit.
+     */
+    private static final int MAX_WARNED_UNSUPPORTED_FORMATS = 1000;
+
+    /**
+     * Artifact versions already warned about, as {@code groupId/artifactId/version}. Keeps the
+     * warning to once per version instead of once per render call.
+     */
+    private final Set<String> warnedUnsupportedFormats = ConcurrentHashMap.newKeySet();
 
     /**
      * Matches {{#if var}} ... {{/if}} blocks, including multi-line content.
@@ -81,6 +99,8 @@ public class PromptRenderingService {
         String templateText = extractTemplateText(templateNode);
         JsonNode variablesSchema = templateNode.path("variables");
 
+        warnOnUnsupportedTemplateFormat(templateNode, groupId, artifactId, version);
+
         // Validate variables against schema. Validation intentionally runs against the
         // caller-supplied variables, so that a missing required variable is still reported
         // even when the schema declares a default for it.
@@ -104,6 +124,45 @@ public class PromptRenderingService {
                 .version(version)
                 .validationErrors(validationErrors)
                 .build();
+    }
+
+    /**
+     * Logs when a template declares a format this service cannot render.
+     * <p>
+     * The VALIDITY rule rejects such templates at write time, but that rule is optional and can be
+     * disabled, and artifacts stored before it was enabled are still rendered. Rendering continues
+     * with this service's own syntax so those artifacts keep working, and the log records that the
+     * output is unlikely to be what the template intended.
+     * <p>
+     * The condition does not change between renders, so a template polled on every request would
+     * otherwise produce one WARN per request. The first render of a given version warns and the
+     * rest drop to DEBUG. The set of already-warned versions is capped so that a registry holding
+     * many such templates cannot grow it without bound; past the cap everything logs at DEBUG.
+     */
+    private void warnOnUnsupportedTemplateFormat(JsonNode templateNode, String groupId,
+            String artifactId, String version) {
+        JsonNode templateFormat = templateNode.path("templateFormat");
+        if (!templateFormat.isTextual()) {
+            return;
+        }
+
+        String format = templateFormat.asText();
+        if (PromptTemplateFormats.isSupported(format)) {
+            return;
+        }
+
+        String message = "Prompt template {}/{}/{} declares templateFormat '{}', which is not "
+                + "supported. Rendering with the built-in placeholder syntax instead. "
+                + "Supported formats: {}.";
+
+        if (warnedUnsupportedFormats.size() < MAX_WARNED_UNSUPPORTED_FORMATS
+                && warnedUnsupportedFormats.add(groupId + "/" + artifactId + "/" + version)) {
+            log.warn(message, groupId, artifactId, version, format,
+                    PromptTemplateFormats.supported());
+        } else {
+            log.debug(message, groupId, artifactId, version, format,
+                    PromptTemplateFormats.supported());
+        }
     }
 
     /**

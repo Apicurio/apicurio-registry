@@ -31,6 +31,8 @@ on:
         value: ${{ jobs.decide.outputs.run-operator }}
       run-console-plugin:
         value: ${{ jobs.decide.outputs.run-console-plugin }}
+      run-docs:
+        value: ${{ jobs.decide.outputs.run-docs }}
       scalpel-enabled:
         value: ${{ jobs.decide.outputs.scalpel-enabled }}
 
@@ -54,6 +56,7 @@ jobs:
       run-go-sdk-freshness: ${{ steps.decide.outputs.run-go-sdk-freshness }}
       run-operator: ${{ steps.decide.outputs.run-operator }}
       run-console-plugin: ${{ steps.decide.outputs.run-console-plugin }}
+      run-docs: ${{ steps.decide.outputs.run-docs }}
       scalpel-enabled: ${{ steps.decide.outputs.scalpel-enabled }}
     steps:
       - name: Checkout Code
@@ -107,6 +110,11 @@ jobs:
               - 'operator/**'
             console-plugin:
               - 'console-plugin/**'
+            docs:
+              - 'docs/modules/**'
+              - 'docs/scripts/**'
+              - '.vale.ini'
+              - '.github/workflows/verify-docs.yaml'
             ci:
               - '.github/workflows/**'
             ci-operator:
@@ -141,7 +149,7 @@ jobs:
               LABEL='${{ github.event.label.name }}'
               if [ "$LABEL" != "orchestrator/disabled" ]; then
                 echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
-                for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
+                for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness run-docs; do
                   echo "$out=false" >> "$GITHUB_OUTPUT"
                 done
                 echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
@@ -163,7 +171,7 @@ jobs:
             # to draft (the orchestrator strips them, but that races with this).
             if [ "$IS_DRAFT" = "true" ]; then
               echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
-              for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
+              for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness run-docs; do
                 echo "$out=false" >> "$GITHUB_OUTPUT"
               done
               echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
@@ -202,6 +210,7 @@ jobs:
           GO_SDK_GEN='${{ steps.filter.outputs.go-sdk-gen }}'
           CI='${{ steps.filter.outputs.ci }}'
           CI_OPERATOR='${{ steps.filter.outputs.ci-operator }}'
+          DOCS='${{ steps.filter.outputs.docs }}'
 
           # ── Phase 3: Combine scope + changes into per-phase decisions ─
           # decide <output-name> <scope-flag> <change-flags...>
@@ -234,6 +243,10 @@ jobs:
           decide run-operator        "$run_tests" "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
           decide run-console-plugin  "$run_tests" "$IS_PUSH" "$CONSOLE_PLUGIN" "$CI"
           decide run-go-sdk-freshness "$run_tests" "$GO_SDK_GEN" "$CI"
+          # Docs: the assembly lint. Deliberately not tied to $CI — the docs filter
+          # already names verify-docs.yaml; a change to any other workflow file has
+          # nothing to verify here.
+          decide run-docs        "$run_tests" "$IS_PUSH" "$DOCS"
 
           # Scalpel (affected-module detection) can be disabled via PR label
           if [ "$EVENT" != "push" ] && has_label "ci/disable-scalpel"; then
@@ -258,6 +271,7 @@ jobs:
             "run-operator": "${{ steps.decide.outputs.run-operator }}",
             "run-console-plugin": "${{ steps.decide.outputs.run-console-plugin }}",
             "run-go-sdk-freshness": "${{ steps.decide.outputs.run-go-sdk-freshness }}",
+            "run-docs": "${{ steps.decide.outputs.run-docs }}",
             "scalpel-enabled": "${{ steps.decide.outputs.scalpel-enabled }}"
           }
           ARTIFACT_EOF
@@ -271,6 +285,7 @@ jobs:
             "go-sdk-gen": "${{ steps.filter.outputs.go-sdk-gen }}",
             "operator": "${{ steps.filter.outputs.operator }}",
             "console-plugin": "${{ steps.filter.outputs.console-plugin }}",
+            "docs": "${{ steps.filter.outputs.docs }}",
             "ci": "${{ steps.filter.outputs.ci }}"
           }
           ARTIFACT_EOF

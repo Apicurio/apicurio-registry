@@ -1,8 +1,8 @@
 name: Verify
 
-# The full test suite: lint, build, unit tests, CLI, SDKs, console plugin,
-# integration tests, extra tests, operator tests, and (on push to main) image
-# publishing. One Decide job, computed once, shared by every job below via
+# The full test suite: lint, build, unit tests, CLI, SDKs, console plugin, docs
+# lint, integration tests, extra tests, operator tests, and (on push to main)
+# image publishing. One Decide job, computed once, shared by every job below via
 # needs: — there is exactly one answer to "is the full suite required for this
 # SHA" per run, so nothing here can disagree with anything else about it.
 #
@@ -349,6 +349,12 @@ jobs:
     uses: ./.github/workflows/verify-console-plugin.yaml
     secrets: inherit
 
+  docs-verify:
+    name: Docs Verification
+    needs: [decide]
+    if: needs.decide.outputs.run-docs == 'true'
+    uses: ./.github/workflows/verify-docs.yaml
+
   integration-tests:
     name: Integration Tests
     needs: [decide, build-java]
@@ -386,7 +392,7 @@ jobs:
     name: Verification Gate
     if: always() && github.repository_owner == 'Apicurio'
     needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
-            cli-verify, go-sdk-freshness, sdk, console-plugin,
+            cli-verify, go-sdk-freshness, sdk, console-plugin, docs-verify,
             integration-tests, extras, operator]
     runs-on: ubuntu-latest
     steps:

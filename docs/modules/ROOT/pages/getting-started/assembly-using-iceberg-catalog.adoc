@@ -602,6 +602,125 @@ When {registry} is configured with authentication enabled, the Iceberg REST Cata
 |
 |===
 
+// proc-monitoring-iceberg-catalog-metrics
+[id="monitoring-iceberg-catalog-metrics_{context}"]
+== Collecting Iceberg catalog metrics
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can collect Iceberg catalog metrics to monitor namespace, table, and view operations, commit duration, conflicts, and errors.
+
+.Prerequisites
+* The {registry} Iceberg REST Catalog is enabled.
+* You can access the server's management interface, which uses port `9000` by default.
+* You have permission to create and delete an Iceberg namespace for verification.
+
+.Procedure
+. Configure `apicurio.metrics.iceberg.enabled=true` in the server configuration if the setting is currently disabled.
++
+[source,properties]
+----
+apicurio.metrics.iceberg.enabled=true
+----
++
+The default value is `true`.
+The equivalent environment variable is `APICURIO_METRICS_ICEBERG_ENABLED=true`.
+Restart the deployment if you change the setting.
+. Configure your Prometheus-compatible monitoring system to collect the `/metrics` endpoint on the management interface.
++
+For a server running locally with the default management port, the endpoint is `http://localhost:9000/metrics`.
+Metrics for an operation appear after the server records that operation.
+
+.Verification
+. Create a namespace with a unique name to generate a namespace operation metric:
++
+[source,bash]
+----
+curl -X POST "http://localhost:8080/apis/iceberg/v1/default/namespaces" \
+  -H "Content-Type: application/json" \
+  -d '{"namespace":["metrics_check"],"properties":{}}'
+----
++
+Replace the URL, catalog prefix, and namespace with values for your deployment, and supply authentication if required.
+. Retrieve the management metrics:
++
+[source,bash]
+----
+curl --fail "http://localhost:9000/metrics"
+----
++
+Check that `iceberg_namespace_operations_total` includes a sample with `operation="created"` and `result="success"`.
+. Remove the empty verification namespace when you no longer need it:
++
+[source,bash]
+----
+curl -X DELETE "http://localhost:8080/apis/iceberg/v1/default/namespaces/metrics_check"
+----
++
+Namespace deletion requires administrator authorization when authentication is enabled.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:iceberg-catalog-metrics-reference_{context}[Iceberg catalog metrics reference]
+* {registry-config-reference}
+
+
+// ref-iceberg-catalog-metrics-reference
+[id="iceberg-catalog-metrics-reference_{context}"]
+== Iceberg catalog metrics reference
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The Iceberg catalog publishes the following Micrometer metrics in Prometheus format on the management `/metrics` endpoint.
+
+.Iceberg catalog metrics
+[cols="2,1,3",options="header"]
+|===
+|Prometheus metric
+|Labels
+|Description
+
+|`iceberg_namespace_operations_total`
+|`operation`, `result`
+|Successful namespace creation, deletion, and property updates.
+
+|`iceberg_table_operations_total`
+|`operation`, `result`
+|Successful table creation, deletion, renaming, and commits.
+
+|`iceberg_view_operations_total`
+|`operation`, `result`
+|Successful view creation, deletion, renaming, and replacement.
+
+|`iceberg_commit_conflicts_total`
+|`entity_type`
+|Commit conflicts for tables or views detected by optimistic concurrency checks.
+
+|`iceberg_commit_duration_seconds_count`, `iceberg_commit_duration_seconds_sum`, `iceberg_commit_duration_seconds_max`
+|`entity_type`, `result`
+|Successful commit timer samples, total duration, and maximum duration in seconds.
+
+|`iceberg_errors_total`
+|`error_type`
+|Errors handled by the Iceberg API error mapper, grouped by error type.
+|===
+
+The `operation` label identifies the completed operation, such as `created`, `deleted`, or `committed`.
+The `entity_type` label identifies `table` or `view`.
+Operation counters and commit timers use `result="success"`.
+Use the error and conflict counters to monitor failures.
+
+Setting `apicurio.metrics.iceberg.enabled=false` disables collection of these Micrometer metrics.
+OpenTelemetry export uses the separate OpenTelemetry configuration.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-configuring-the-registry.adoc#configuring-registry-observability_{context}[OpenTelemetry configuration]
+* {registry-config-reference}
+
+
 // ref-registry-iceberg-catalog-query-engines
 [id="registry-iceberg-catalog-query-engines_{context}"]
 == Query engine configuration for {registry}

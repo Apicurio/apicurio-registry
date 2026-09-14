@@ -17,7 +17,7 @@ public class McpToolsConfig {
     boolean enabled;
 
     @ConfigProperty(name = "apicurio.mcp-tools.entitlements.enabled", defaultValue = "true")
-    @Info(category = CATEGORY_MCP, description = "Enable entitlement-based MCP tool filtering", availableSince = "3.0.0")
+    @Info(category = CATEGORY_MCP, description = "Enable entitlement-based MCP tool filtering", availableSince = "3.3.4")
     boolean entitlementsEnabled;
 
     public boolean isEnabled() {

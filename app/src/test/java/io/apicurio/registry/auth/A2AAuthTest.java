@@ -330,9 +330,7 @@ public class A2AAuthTest extends AbstractResourceTestBase {
     public void testMcpToolsSearchReturns401WhenUnauthenticated() {
         givenAtRoot()
                 .when()
-                .contentType(ContentType.JSON)
-                .body("{\"limit\": 10}")
-                .post("/.well-known/mcp/tools/search")
+                .get("/.well-known/mcp-tools")
                 .then()
                 .statusCode(401);
     }
@@ -353,19 +351,11 @@ public class A2AAuthTest extends AbstractResourceTestBase {
         createMcpTool(developerClient(), groupId, artifactId, mcpToolContent);
         setVisibility(adminClient(), groupId, artifactId, "private");
 
-        String searchBody = """
-                {
-                    "limit": 50,
-                    "offset": 0
-                }
-                """;
 
         // Developer (owner) can see it via MCP search
         givenAsDeveloper()
                 .when()
-                .contentType(ContentType.JSON)
-                .body(searchBody)
-                .post("/.well-known/mcp/tools/search")
+                .get("/.well-known/mcp-tools")
                 .then()
                 .statusCode(200)
                 .body("tools.artifactId", hasItem(artifactId));
@@ -373,9 +363,7 @@ public class A2AAuthTest extends AbstractResourceTestBase {
         // Admin can see it via MCP search
         givenAsAdmin()
                 .when()
-                .contentType(ContentType.JSON)
-                .body(searchBody)
-                .post("/.well-known/mcp/tools/search")
+                .get("/.well-known/mcp-tools")
                 .then()
                 .statusCode(200)
                 .body("tools.artifactId", hasItem(artifactId));
@@ -383,9 +371,7 @@ public class A2AAuthTest extends AbstractResourceTestBase {
         // Readonly user (non-owner, non-admin) cannot see private MCP tool
         givenAsReadonly()
                 .when()
-                .contentType(ContentType.JSON)
-                .body(searchBody)
-                .post("/.well-known/mcp/tools/search")
+                .get("/.well-known/mcp-tools")
                 .then()
                 .statusCode(200)
                 .body("tools.artifactId", not(hasItem(artifactId)));
@@ -401,8 +387,8 @@ public class A2AAuthTest extends AbstractResourceTestBase {
         createArtifact(client, groupId, artifactId, ArtifactType.MCP_TOOL, content);
     }
 
-    private void createArtifact(RegistryClient client, String groupId, String artifactId, 
-            ArtifactType artifactType, String content) {
+    private void createArtifact(RegistryClient client, String groupId, String artifactId,
+            String artifactType, String content) {
         CreateArtifact createArtifact = new CreateArtifact();
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(artifactType);

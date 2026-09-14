@@ -836,6 +836,11 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.0`
 |Enable MCP tool definition discovery endpoints _(experimental)_
+|`apicurio.mcp-tools.entitlements.enabled`
+|`boolean`
+|`true`
+|`3.3.4`
+|Enable entitlement-based MCP tool filtering
 |===
 
 == observability

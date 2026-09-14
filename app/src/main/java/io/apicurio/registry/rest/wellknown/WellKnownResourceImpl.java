@@ -422,7 +422,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 ? results.getArtifacts()
                 : Collections.emptyList();
 
-        int count = results != null && results.getCount() != null ? (int) results.getCount() : artifacts.size();
+        int count = results != null ? (int) results.getCount() : artifacts.size();
 
         List<AgentSearchResult> agents = new ArrayList<>();
         for (SearchedArtifactDto artifact : artifacts) {
@@ -644,7 +644,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 ? results.getArtifacts()
                 : Collections.emptyList();
 
-        int count = results != null && results.getCount() != null ? (int) results.getCount() : artifacts.size();
+        int count = results != null ? (int) results.getCount() : artifacts.size();
 
         List<McpToolSearchResult> tools = new ArrayList<>();
         for (SearchedArtifactDto artifact : artifacts) {
@@ -966,7 +966,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
     }
 
     private void warnIfTruncated(ArtifactSearchResultsDto results, String resourceName) {
-        if (results != null && results.getCount() != null && results.getCount() >= MAX_VISIBILITY_FILTER_RESULTS) {
+        if (results != null && results.getCount() >= MAX_VISIBILITY_FILTER_RESULTS) {
             log.warn("{} visibility filtering may be incomplete: total count ({}) "
                     + "reached the in-memory limit of {}. Results beyond this limit are not included.",
                     resourceName, results.getCount(), MAX_VISIBILITY_FILTER_RESULTS);

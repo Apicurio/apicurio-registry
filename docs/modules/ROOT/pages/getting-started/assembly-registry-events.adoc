@@ -6,7 +6,8 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-{registry} emits change events whenever artifacts, versions, groups, or rules are created, updated, or deleted. These events enable integration with external systems for auditing, automation, and event-driven workflows.
+{registry} emits change events for artifact, version, group, rule, and contract operations.
+You can consume these events to audit changes and automate workflows in external systems.
 
 This chapter explains the event system architecture, available event types, and how to configure event delivery for your storage variant.
 
@@ -32,6 +33,9 @@ Cache invalidation:: Notify downstream services when a schema changes.
 Event-driven architectures:: React to registry state changes in real time.
 
 NOTE: Event publishing is supported only with PostgreSQL and MSSQL when using SQL storage. MySQL and H2 do not support the outbox table. KafkaSQL supports events natively.
+
+Event delivery uses Kafka, with Debezium for SQL storage and direct publishing for KafkaSQL storage.
+{registry} does not currently provide an HTTP webhook subscription API or a webhook delivery service.
 
 
 [id="registry-event-types-reference_{context}"]
@@ -117,6 +121,27 @@ Rule changes produce the following event types:
 |An artifact-level rule was created, updated, or deleted.
 |===
 
+Contract operations produce the following event types:
+
+.Contract event types
+[cols="1,2",options="header"]
+|===
+|Event type
+|Description
+
+|`CONTRACT_RULESET_CONFIGURED`
+|A global, artifact, or version contract ruleset is set or deleted.
+
+|`CONTRACT_METADATA_UPDATED`
+|Contract metadata labels are updated.
+
+|`CONTRACT_STATUS_CHANGED`
+|The contract lifecycle status changes, for example, from `DRAFT` to `STABLE`.
+|===
+
+Contract events use the same delivery mechanism as the other change events for your storage variant.
+The internal `READY` startup signal is not a published change event.
+
 
 [id="registry-event-payload-structure_{context}"]
 == Event payload structure
@@ -124,9 +149,10 @@ Rule changes produce the following event types:
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-All {registry} change events share a common JSON payload structure, with additional fields depending on the event type.
+Each {registry} change event has a JSON payload with an `id` and an `eventType`.
+Additional fields identify the affected resource and describe the change.
 
-All events share a common base structure:
+Artifact events include the following identifying fields:
 
 [source,json]
 ----
@@ -140,10 +166,15 @@ All events share a common base structure:
 
 Additional fields vary by event type:
 
-* *Version events* include a `version` field.
-* *State change events* include `oldState` and `newState` fields.
+* *Group events* include `groupId` and omit `artifactId`.
+* *Global rule events* omit both `groupId` and `artifactId`.
+* *Artifact version events* include a `version` field.
+* *Artifact version state change events* include `oldState` and `newState` fields.
 * *Metadata update events* include `name`, `description`, and `owner` fields where applicable.
 * *Rule events* include `ruleType` and `rule` (the rule configuration) fields.
+
+For artifacts in the default group, the payload omits `groupId`.
+Optional metadata fields with no value are also omitted.
 
 .Example: ARTIFACT_VERSION_CREATED payload
 [source,json]
@@ -170,6 +201,67 @@ Additional fields vary by event type:
   "version": "1.0.0",
   "oldState": "ENABLED",
   "newState": "DEPRECATED"
+}
+----
+
+Contract events have the following payload fields in addition to `id` and `eventType`:
+
+.Contract event payload fields
+[cols="1,2",options="header"]
+|===
+|Event type
+|Fields and behavior
+
+|`CONTRACT_RULESET_CONFIGURED`
+|`groupId`, `artifactId`, and `action`, which is `SET` or `DELETE`.
+Version rulesets also include `version`.
+Global rulesets use `__GLOBAL__` for both `groupId` and `artifactId` and omit `version`.
+The payload does not include the ruleset content.
+
+|`CONTRACT_METADATA_UPDATED`
+|`groupId` and `artifactId` identify the affected contract.
+The payload does not include the updated labels.
+
+|`CONTRACT_STATUS_CHANGED`
+|`groupId`, `artifactId`, `fromStatus`, and `toStatus`.
+If the contract had no previous status, `fromStatus` is an empty string.
+The payload does not include the transition effective date.
+|===
+
+.Example: Version contract ruleset update
+[source,json]
+----
+{
+  "id": "550e8400-e29b-41d4-a716-446655440002",
+  "eventType": "CONTRACT_RULESET_CONFIGURED",
+  "groupId": "com.example",
+  "artifactId": "orders",
+  "version": "1.0.0",
+  "action": "SET"
+}
+----
+
+.Example: Contract metadata update
+[source,json]
+----
+{
+  "id": "550e8400-e29b-41d4-a716-446655440003",
+  "eventType": "CONTRACT_METADATA_UPDATED",
+  "groupId": "com.example",
+  "artifactId": "orders"
+}
+----
+
+.Example: Contract status change
+[source,json]
+----
+{
+  "id": "550e8400-e29b-41d4-a716-446655440004",
+  "eventType": "CONTRACT_STATUS_CHANGED",
+  "groupId": "com.example",
+  "artifactId": "orders",
+  "fromStatus": "DRAFT",
+  "toStatus": "STABLE"
 }
 ----
 

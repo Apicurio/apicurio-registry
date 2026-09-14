@@ -18,7 +18,7 @@
     "components": {
         "schemas": {
             "UserEvent": {
-                "schemaFormat": "application/vnd.apache.avro+json;version=1.9.0",
+                "schemaFormat": "application/vnd.apache.avro+json;version=1.11.0",
                 "schema": {
                     "type": "record",
                     "name": "UserEvent",
@@ -43,7 +43,7 @@
         "messages": {
             "UserEventMessage": {
                 "payload": {
-                    "schemaFormat": "application/vnd.apache.avro+json;version=1.9.0",
+                    "schemaFormat": "application/vnd.apache.avro+json;version=1.11.0",
                     "schema": {
                         "$ref": "#/components/schemas/UserEvent"
                     }

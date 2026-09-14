@@ -191,6 +191,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Inject
     io.apicurio.registry.contracts.audit.ContractAuditService contractAuditService;
 
+    @Inject
+    io.apicurio.registry.promotion.CrossRegistryPromotionService crossRegistryPromotionService;
+
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
      *      java.lang.String, java.lang.String, io.apicurio.registry.types.ReferenceType)
@@ -2604,6 +2607,28 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         var result = promotionService.promote(rawGroupId, artifactId,
                 contractId, targetStage);
         return Response.ok(Map.of("stage", result.name())).build();
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#compareArtifactPromotion(java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.PromoteArtifact)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
+    public PromotionCompareResult compareArtifactPromotion(String groupId, String artifactId,
+            PromoteArtifact data) {
+        return crossRegistryPromotionService.compare(groupId, artifactId, data);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#promoteArtifact(java.lang.String, java.lang.String, java.lang.Boolean, io.apicurio.registry.rest.v3.beans.PromoteArtifact)
+     */
+    @Override
+    @Audited
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", "dryRun"})
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write, dryRunParam = 2)
+    public PromotionResult promoteArtifact(String groupId, String artifactId, Boolean dryRun,
+            PromoteArtifact data) {
+        return crossRegistryPromotionService.promote(groupId, artifactId, dryRun, data);
     }
 
     @Override

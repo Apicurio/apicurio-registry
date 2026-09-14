@@ -1,6 +1,7 @@
 package io.apicurio.deployment;
 
 import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.PodList;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
@@ -284,9 +285,25 @@ public class RegistryDeploymentManager implements TestExecutionListener {
     }
 
     static final int POD_WAIT_TIMEOUT_SECONDS = 360;
-    static final int POD_WAIT_MAX_ATTEMPTS = 2;
+    static final int POD_WAIT_MAX_ATTEMPTS = 5;
 
+    /**
+     * Waits for every pod in the test namespace to become ready.
+     * <p>
+     * A fixed number of fixed-length attempts conflates two different situations. In the
+     * KafkaSQL snapshotting job the pods were not stuck, they were slow: after the first 360s
+     * attempt none of the three registry replicas were ready, and after the second, two of
+     * three were - so the deployment was progressing steadily and the wait simply ran out of
+     * budget while replaying the snapshot topic on a contended runner. Meanwhile a genuinely
+     * wedged deployment burned the full budget before reporting anything.
+     * <p>
+     * So this keeps waiting while the number of ready pods is still climbing, and gives up as
+     * soon as a whole attempt passes with no additional pod becoming ready. That makes the
+     * slow case pass and the stuck case fail sooner, instead of trading one against the other
+     * by tuning a timeout.
+     */
     static void waitForAllPodsReady() {
+        int previousReadyCount = -1;
         for (int attempt = 1; attempt <= POD_WAIT_MAX_ATTEMPTS; attempt++) {
             try {
                 kubernetesClient.pods().inNamespace(TEST_NAMESPACE)
@@ -294,16 +311,55 @@ public class RegistryDeploymentManager implements TestExecutionListener {
                 return;
             } catch (KubernetesClientTimeoutException e) {
                 logPodStatus();
+                int readyCount = countReadyPods();
+
+                // A failed listing (-1) means "unknown", not "no progress" - treating it as a
+                // regression would abort a run that was in fact still coming up.
+                boolean progressUnknown = readyCount < 0 || previousReadyCount < 0;
+                if (attempt > 1 && !progressUnknown && readyCount <= previousReadyCount) {
+                    throw new RuntimeException(
+                            "Pods not ready and no longer making progress: " + readyCount
+                                    + " ready after attempt " + attempt + " of "
+                                    + POD_WAIT_MAX_ATTEMPTS + " (" + POD_WAIT_TIMEOUT_SECONDS
+                                    + "s each), unchanged from the previous attempt",
+                            e);
+                }
                 if (attempt == POD_WAIT_MAX_ATTEMPTS) {
                     throw new RuntimeException(
                             "Pods not ready after " + POD_WAIT_MAX_ATTEMPTS + " attempts ("
-                                    + POD_WAIT_TIMEOUT_SECONDS + "s each)",
+                                    + POD_WAIT_TIMEOUT_SECONDS + "s each), still making progress "
+                                    + "at the last attempt (" + readyCount + " ready)",
                             e);
                 }
-                LOGGER.warn("Pod wait attempt {}/{} timed out, retrying: {}",
-                        attempt, POD_WAIT_MAX_ATTEMPTS, e.getMessage());
+
+                LOGGER.warn("Pod wait attempt {}/{} timed out with {} pod(s) ready "
+                        + "(previously {}), still progressing - retrying: {}",
+                        attempt, POD_WAIT_MAX_ATTEMPTS, readyCount, previousReadyCount,
+                        e.getMessage());
+                previousReadyCount = readyCount;
             }
         }
+    }
+
+    /**
+     * Number of pods currently reporting a true Ready condition, or -1 if they could not be
+     * listed. A transient listing failure must not fail the run, so it is reported as unknown
+     * and the caller keeps waiting rather than mistaking it for a lack of progress.
+     */
+    static int countReadyPods() {
+        try {
+            return (int) kubernetesClient.pods().inNamespace(TEST_NAMESPACE).list().getItems()
+                    .stream().filter(RegistryDeploymentManager::isPodReady).count();
+        } catch (Exception ex) {
+            LOGGER.warn("Could not count ready pods: {}", ex.getMessage());
+            return -1;
+        }
+    }
+
+    private static boolean isPodReady(Pod pod) {
+        return pod.getStatus() != null && pod.getStatus().getConditions() != null
+                && pod.getStatus().getConditions().stream()
+                        .anyMatch(c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus()));
     }
 
     static void logPodStatus() {
@@ -312,10 +368,7 @@ public class RegistryDeploymentManager implements TestExecutionListener {
             pods.getItems().forEach(pod -> {
                 String name = pod.getMetadata().getName();
                 String phase = pod.getStatus() != null ? pod.getStatus().getPhase() : "unknown";
-                boolean ready = pod.getStatus() != null && pod.getStatus().getConditions() != null
-                        && pod.getStatus().getConditions().stream()
-                                .anyMatch(c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus()));
-                LOGGER.info("Pod {}: phase={}, ready={}", name, phase, ready);
+                LOGGER.info("Pod {}: phase={}, ready={}", name, phase, isPodReady(pod));
             });
         } catch (Exception e) {
             LOGGER.warn("Could not list pods for diagnostics: {}", e.getMessage());

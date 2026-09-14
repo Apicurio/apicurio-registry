@@ -154,6 +154,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     io.apicurio.registry.services.EmbeddedSchemaService embeddedSchemaService;
 
     @Inject
+    io.apicurio.registry.a2a.openapi.OpenApiAgentCardService openApiAgentCardService;
+
+    @Inject
     ProtobufExporter protobufExporter;
 
 
@@ -1501,6 +1504,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             EditableVersionMetaDataDto firstVersionMetaData = null;
             List<String> firstVersionBranches = null;
             boolean firstVersionIsDraft = false;
+            String openApiAgentCardJson = null;
             if (data.getFirstVersion() != null) {
                 // Convert references to DTOs and merge with auto-extracted references
                 final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
@@ -1522,11 +1526,18 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
 
                 // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
+                TypedContent effectiveTypedContent = TypedContent.create(effectiveContent, effectiveContentType);
                 if (!firstVersionIsDraft || restConfig.isDraftProductionModeEnabled()) {
-                    TypedContent effectiveTypedContent = TypedContent.create(effectiveContent, effectiveContentType);
                     rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
                             artifactType, effectiveTypedContent, RuleApplicationType.CREATE, references,
                             resolvedReferences);
+                }
+                // Validate the 'x-agent-card' extension (if any) BEFORE the artifact is persisted, so a
+                // malformed extension rejects this write exactly like any other content validation
+                // failure, rather than leaving a persisted OPENAPI artifact behind a 400 response.
+                if (ArtifactType.OPENAPI.equals(artifactType)) {
+                    openApiAgentCardJson = openApiAgentCardService.validateAndAssemble(effectiveTypedContent,
+                            false);
                 }
             }
 
@@ -1540,6 +1551,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 otelMetrics.recordArtifactCreated(rawGroupId, artifactType);
                 if (storageResult.getRight() != null) {
                     otelMetrics.recordVersionCreated(rawGroupId, artifactType);
+                }
+                if (openApiAgentCardJson != null) {
+                    openApiAgentCardService.createOrSyncCompanion(storage, rawGroupId, artifactId,
+                            openApiAgentCardJson, owner);
                 }
             }
 
@@ -1664,6 +1679,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     resolvedReferences);
         }
 
+        // Validate the 'x-agent-card' extension (if any) BEFORE the version is persisted, so a
+        // malformed extension rejects this write exactly like any other content validation failure.
+        String openApiAgentCardJson = null;
+        if (ArtifactType.OPENAPI.equals(artifactType)) {
+            openApiAgentCardJson = openApiAgentCardService.validateAndAssemble(
+                    TypedContent.create(effectiveContent, effectiveContentType), true);
+        }
+
         EditableVersionMetaDataDto metaDataDto = EditableVersionMetaDataDto.builder()
                 .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
         ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(effectiveContentType).content(effectiveContent)
@@ -1675,6 +1698,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         if (dryRun == null || !dryRun) {
             otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
+            if (openApiAgentCardJson != null) {
+                openApiAgentCardService.createOrSyncCompanion(storage,
+                        new GroupId(groupId).getRawGroupIdWithNull(), artifactId, openApiAgentCardJson, owner);
+            }
         }
 
         return V3ApiUtil.dtoToVersionMetaData(vmd);
@@ -1944,6 +1971,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
         }
 
+        // Validate the 'x-agent-card' extension (if any) BEFORE the version is persisted, so a
+        // malformed extension rejects this write exactly like any other content validation failure.
+        String openApiAgentCardJson = null;
+        if (ArtifactType.OPENAPI.equals(artifactType)) {
+            openApiAgentCardJson = openApiAgentCardService.validateAndAssemble(
+                    TypedContent.create(content, contentType), true);
+        }
+
         EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder().name(name)
                 .description(description).labels(labels).build();
         ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(contentType).content(content)
@@ -1953,6 +1988,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         if (dryRun == null || !dryRun) {
             otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
+            if (openApiAgentCardJson != null) {
+                openApiAgentCardService.createOrSyncCompanion(storage, groupId, artifactId,
+                        openApiAgentCardJson, owner);
+            }
         }
 
         VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);

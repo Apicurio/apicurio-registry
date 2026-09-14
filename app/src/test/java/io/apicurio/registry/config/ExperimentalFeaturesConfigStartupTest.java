@@ -1,9 +1,12 @@
 package io.apicurio.registry.config;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import io.apicurio.registry.logging.LoggerProducer;
 import io.quarkus.test.QuarkusUnitTest;
+import io.quarkus.runtime.Startup;
+import jakarta.interceptor.Interceptor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
@@ -20,7 +23,8 @@ class ExperimentalFeaturesConfigStartupTest {
 
     @Test
     void startupFailsWhenExperimentalStorageIsEnabledWithoutGate() {
-        // QuarkusUnitTest performs the assertion while starting the application.
+        assertEquals(Interceptor.Priority.PLATFORM_BEFORE,
+                ExperimentalFeaturesConfig.class.getAnnotation(Startup.class).value());
     }
 
     private static void assertGateFailure(Throwable failure) {

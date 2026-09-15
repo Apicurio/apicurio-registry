@@ -103,7 +103,9 @@ public class K8sCell<T extends HasMetadata> {
     /**
      * Deletes the resource and waits for it to disappear. If it is still present after
      * {@code gracefulTimeout} (e.g. blocked by a finalizer), force-clears its finalizers and
-     * waits again up to {@code forceTimeout}. A no-op if the resource does not exist.
+     * waits again up to {@code forceTimeout}. A no-op if the resource does not exist, whether that
+     * is discovered before the delete call or via a 404 from the delete call itself (a benign race
+     * with another process deleting the same resource first).
      * <p>
      * Both waits ignore exceptions: reading a resource that is being torn down races with the API
      * server dropping its endpoint, so transient read failures are expected while polling for
@@ -114,7 +116,14 @@ public class K8sCell<T extends HasMetadata> {
         if (current.isEmpty()) {
             return;
         }
-        client.resource(current.get()).delete();
+        try {
+            client.resource(current.get()).delete();
+        } catch (KubernetesClientException ex) {
+            if (ex.getCode() == 404) {
+                return;
+            }
+            throw ex;
+        }
         try {
             await().atMost(gracefulTimeout).ignoreExceptions().until(() -> getOptional().isEmpty());
         } catch (ConditionTimeoutException ex) {

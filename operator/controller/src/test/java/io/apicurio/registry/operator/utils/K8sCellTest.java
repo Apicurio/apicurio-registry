@@ -180,6 +180,49 @@ class K8sCellTest {
     }
 
     @Test
+    void deleteTreats404FromDeleteCallAsAlreadyGone() {
+        var item = configMap("cm");
+        var notFound = new KubernetesClientException("configmaps \"cm\" not found", 404,
+                new StatusBuilder().withCode(404).build());
+
+        AtomicInteger getCalls = new AtomicInteger();
+        KubernetesClient client = stubClient(new StubBehavior() {
+            @Override
+            public HasMetadata get(HasMetadata resource) {
+                getCalls.incrementAndGet();
+                return resource;
+            }
+
+            @Override
+            public void delete(HasMetadata resource) {
+                throw notFound;
+            }
+        });
+
+        k8sCell(client, () -> item).delete(Duration.ofSeconds(1), Duration.ofSeconds(1));
+
+        // Returns immediately on the 404 -- no polling for a disappearance that already happened.
+        assertThat(getCalls.get()).isZero();
+    }
+
+    @Test
+    void deleteRethrowsNon404FailuresFromDeleteCall() {
+        var item = configMap("cm");
+        var forbidden = new KubernetesClientException("forbidden", 403,
+                new StatusBuilder().withReason("Forbidden").withCode(403).build());
+
+        KubernetesClient client = stubClient(new StubBehavior() {
+            @Override
+            public void delete(HasMetadata resource) {
+                throw forbidden;
+            }
+        });
+
+        assertThatThrownBy(() -> k8sCell(client, () -> item).delete(Duration.ofSeconds(1), Duration.ofSeconds(1)))
+                .isSameAs(forbidden);
+    }
+
+    @Test
     void deleteIsNoOpWhenResourceAlreadyGone() {
         AtomicInteger deleteCalls = new AtomicInteger();
         KubernetesClient client = stubClient(new StubBehavior() {

@@ -143,6 +143,24 @@ are in a separate module and need to be explicitly enabled:
 See the [integration tests module](integration-tests/) for test groups, deployment
 modes, and detailed usage instructions.
 
+### Byteman concurrency tests
+
+Tests that use Byteman to force a specific thread interleaving live in
+`app/src/test-byteman/java` and are opt-in via `-Pbyteman`:
+
+```bash
+./mvnw test -pl :apicurio-registry-app -Pbyteman
+```
+
+They sit in their own source root because Byteman is LGPL and may not appear in the
+default build. Only the profile adds that root, so a new test put anywhere else will
+either fail the license scan or not compile. Put new Byteman tests in
+`app/src/test-byteman/java` and nothing else is needed.
+
+Two things to expect. An IDE that has not enabled the profile shows these files as
+non-source with every symbol unresolved. And no CI workflow activates `-Pbyteman`, so
+these tests run locally only.
+
 ## Running with Postgres (docker-compose)
 
 Run Apicurio Registry with Postgres:

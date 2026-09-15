@@ -67,11 +67,13 @@ import java.math.BigInteger;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -166,40 +168,65 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_SERVER));
-        if (search != null && !search.isBlank()) {
-            filters.add(SearchFilter.ofPartialName(search));
+        if ((search == null || search.isBlank()) && updatedSince == null) {
+            ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.name,
+                    OrderDirection.asc, offset, pageSize, false);
+            List<Server> servers = new ArrayList<>();
+            for (SearchedArtifactDto artifact : results.getArtifacts()) {
+                Server server = tryLoadServer(new McpServerName(artifact.getGroupId(), artifact.getArtifactId()),
+                        version);
+                if (server != null) {
+                    servers.add(server);
+                }
+            }
+            boolean hasMore = (long) offset + pageSize < results.getCount();
+            return buildServerList(servers, hasMore ? offset + pageSize : -1, fingerprint);
         }
-
-        // Order by modifiedOn for updated_since pagination; otherwise name-order paging can break
-        // on namespace ties.
-        boolean byModifiedOn = updatedSince != null;
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters,
-                byModifiedOn ? OrderBy.modifiedOn : OrderBy.name,
-                byModifiedOn ? OrderDirection.desc : OrderDirection.asc, offset, pageSize, false);
-
-        // TODO: N+1. Each row costs three storage calls (branch tip, version metadata, content), so a page is
-        // 1 + 3 * pageSize round trips, bounded by apicurio.mcp-registry.max-page-size. Unlike
-        // listServerVersions the rows are different servers, so no lookup can be shared; a fix needs a
-        // batched "latest version with content" read on RegistryStorage, which touches every storage variant.
+        // Artifact metadata is not the version exposed by this API: status changes update only the
+        // version timestamp, and descriptions can differ across versions. Filter the resolved server
+        // documents before slicing the response, rather than dropping rows from an artifact page.
+        // TODO: Push this projection/filter/sort into a batched storage operation. Until then this is
+        // an O(N) scan; the page cap bounds the response and each storage batch, not total scan work.
         List<Server> servers = new ArrayList<>();
-        boolean reachedCutoff = false;
-        for (SearchedArtifactDto artifact : results.getArtifacts()) {
-            // modifiedOn has no tiebreaker, so an exact cutoff can silently stop one page early.
-            // null modifiedOn is kept, which should not happen for published MCP servers.
-            if (byModifiedOn && artifact.getModifiedOn() != null
-                    && artifact.getModifiedOn().before(updatedSince)) {
-                reachedCutoff = true;
+        String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
+        int scanOffset = 0;
+        while (true) {
+            ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.name,
+                    OrderDirection.asc, scanOffset, pageSize, false);
+            for (SearchedArtifactDto artifact : results.getArtifacts()) {
+                McpServerName name = new McpServerName(artifact.getGroupId(), artifact.getArtifactId());
+                Server server = tryLoadServer(name, version);
+                if (server != null && matchesSearch(server, query)
+                        && (updatedSince == null || !updatedAt(server).isBefore(updatedSince.toInstant()))) {
+                    servers.add(server);
+                }
+            }
+            scanOffset += results.getArtifacts().size();
+            if (results.getArtifacts().isEmpty() || scanOffset >= results.getCount()) {
                 break;
             }
-            McpServerName name = new McpServerName(artifact.getGroupId(), artifact.getArtifactId());
-            Server server = tryLoadServer(name, version);
-            if (server != null) {
-                servers.add(server);
-            }
         }
 
-        boolean hasMore = !reachedCutoff && offset + pageSize < results.getCount();
-        return buildServerList(servers, hasMore ? offset + pageSize : -1, fingerprint);
+        Comparator<Server> order = Comparator.comparing(Server::getName);
+        if (updatedSince != null) {
+            order = Comparator.comparing(this::updatedAt).reversed().thenComparing(order);
+        }
+        servers.sort(order);
+        int start = Math.min(offset, servers.size());
+        int end = start + Math.min(pageSize, servers.size() - start);
+        return buildServerList(new ArrayList<>(servers.subList(start, end)),
+                end < servers.size() ? end : -1, fingerprint);
+    }
+
+    private boolean matchesSearch(Server server, String query) {
+        return query.isEmpty() || server.getName().toLowerCase(Locale.ROOT).contains(query)
+                || nullSafe(server.getDescription()).toLowerCase(Locale.ROOT).contains(query);
+    }
+
+    private Instant updatedAt(Server server) {
+        // decorate() always replaces this block using the resolved version's metadata.
+        Map<?, ?> metadata = (Map<?, ?>) server.getMeta().getAdditionalProperties().get(REGISTRY_META_KEY);
+        return Instant.parse((String) metadata.get(META_UPDATED_AT));
     }
 
     @Override
@@ -590,7 +617,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     private int pageSize(BigInteger limit) {
         if (limit == null) {
-            return DEFAULT_PAGE_SIZE;
+            return Math.min(DEFAULT_PAGE_SIZE, config.getMaxPageSize());
         }
         if (limit.signum() <= 0) {
             throw new BadRequestException("'limit' must be at least 1");

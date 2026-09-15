@@ -109,17 +109,19 @@ server id half, so `io.github.alice/weather` and `io.github.bob/weather` tie, an
 silently skips some rows and repeats others. `listServerVersions` orders by `globalId` for the same
 reason — `createdOn` ties for versions published in the same millisecond.
 
-`updated_since` switches the sort to `modifiedOn desc` so everything at or after the cutoff forms a
-prefix and the scan stops at the first older row. ⚠️ **That branch still has the tie exposure above** —
-servers published in bulk share a `modifiedOn`. Not fixed; fixing it needs a secondary sort key in the
-storage layer, which is a cross-variant change.
+`updated_since` is parsed as an RFC 3339 timestamp by a query-specific converter. It filters and
+sorts by the resolved version's `_meta.updatedAt`, not the artifact timestamp (status changes only
+update the former). Equal timestamps are ordered by full server name. `search` matches the resolved
+document's name OR description, case-insensitively, before pagination and page counting.
 
-**`listServers` is N+1.** Each row costs ~3 storage round-trips (branch tip, version metadata,
-content) on top of the search. The page cap is what bounds the blast radius — do not remove it, and
-be aware that raising `apicurio.mcp-registry.max-page-size` multiplies storage load. Marked with a
-`TODO` at the loop.
+**Filtered `listServers` is an O(N), N+1 scan.** Existing storage queries cannot express this version
+projection and predicate. Candidate artifacts are read in capped batches, filtered, sorted and then
+paged in memory. The page cap bounds the response and each batch, not total work or memory. Unfiltered
+listing keeps the existing storage-page path. A batched storage projection is a performance follow-up;
+do not restore artifact-timestamp filtering as an optimization. Offset cursors are not snapshots and
+can still skip/repeat rows when records change between requests.
 
-`limit` below 1 is a 400; above `max-page-size` it is capped. The comparison is done as a `BigInteger`,
+`limit` below 1 is a 400; both explicit and omitted limits are capped at `max-page-size`. The comparison is done as a `BigInteger`,
 because `intValue()` keeps only the low 32 bits — `limit=4294967298` used to become a page of 2.
 
 ## Authorization
@@ -226,14 +228,8 @@ namespaces — vary the namespace, hold the server id fixed.
 
 Open questions for maintainers rather than settled decisions — raise on #7763, don't quietly pick:
 
-- **`listServers`'s `updated_since` ordering has no tiebreaker.** The `byModifiedOn` branch sorts on
-  `OrderBy.modifiedOn` alone; two servers touched in the same millisecond can land in either relative
-  order, and if a tie sits exactly at the cutoff, the scan stops on the first of them and reports
-  `hasMore=false` — ending a polling client's incremental sync a page early rather than just
-  skipping/repeating one row. The versions path avoids this by ordering on `OrderBy.globalId`, but
-  `SearchedArtifactDto` (what `searchArtifacts` returns) carries no `globalId`, and `searchArtifacts`
-  only accepts one `OrderBy` — there's no compound sort key to break the tie without a storage-layer
-  change. Documented at the cutoff check in `listServers`; not fixed.
+- **Filtered list scalability.** Name/description and version timestamp filtering currently require
+  the scan described above. A storage-side projection must preserve those semantics and total ordering.
 
 - ~~**`_meta.id` is the artifact `globalId`, not a UUID.**~~ **Resolved.** A UUID is minted at publish
   time and persisted as an artifact-version label (`SERVER_VERSION_ID_LABEL`), the same pattern the
@@ -290,8 +286,7 @@ Open questions for maintainers rather than settled decisions — raise on #7763,
   spec leaves default behavior for deleted servers unstated. Confirmed by hand: `PUT` returns 405, and
   `include_deleted=true` and `=false` return byte-identical results — the parameter is accepted and
   silently ignored, which is worth deciding on rather than leaving as a no-op.
-- **`updated_since` paging can still skip or repeat.** See the warning under Pagination: that branch
-  orders by `modifiedOn`, which ties for servers published together. The default branch was fixed by
-  ordering on `name`; this one needs a secondary sort key in the storage layer.
+- **Offset paging under concurrent writes can skip or repeat.** Version timestamp ties now have a
+  name tiebreaker, but the cursor does not pin a snapshot across requests.
 - ~~**Error responses expose exception class names.**~~ **Resolved.** MCP requests have their own
   mapper and return the spec's error body; see Error responses.

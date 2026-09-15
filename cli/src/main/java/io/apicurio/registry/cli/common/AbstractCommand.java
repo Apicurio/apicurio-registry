@@ -50,6 +50,10 @@ public abstract class AbstractCommand implements Callable<Integer> {
             configureLogging(verbose);
             client.setHttpLoggingEnabled(verbose);
             updateNotifier.checkAndNotify(getTopLevelCommandName());
+            if (isInteractiveRequested() && supportsInteractive()) {
+                runInteractive(output);
+                return OK_RETURN_CODE;
+            }
             run(output);
             return OK_RETURN_CODE;
         } catch (CliException ex) {
@@ -71,6 +75,26 @@ public abstract class AbstractCommand implements Callable<Integer> {
     }
 
     public abstract void run(OutputBuffer output) throws Exception;
+
+    /**
+     * Commands that support --interactive should override this.
+     * Default: interactive mode isn't available for this command.
+     */
+    public boolean supportsInteractive() {
+        return false;
+    }
+
+    /**
+     * Runs the TUI loop. Only called if supportsInteractive() is true
+     * and the --interactive flag was passed.
+     */
+    public void runInteractive(OutputBuffer output) {
+        throw new UnsupportedOperationException("Interactive mode not implemented for this command.");
+    }
+
+    private boolean isInteractiveRequested() {
+        return InteractiveMixin.isRequested(spec.commandLine().getParseResult());
+    }
 
     private static void handleCliException(final OutputBuffer output, final CliException ex) {
         if (!ex.isQuiet()) {

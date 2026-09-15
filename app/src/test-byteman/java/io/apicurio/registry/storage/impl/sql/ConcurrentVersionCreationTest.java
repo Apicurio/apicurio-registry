@@ -18,7 +18,6 @@ import org.jboss.byteman.contrib.bmunit.WithByteman;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.parallel.Isolated;
 
 import java.util.List;
@@ -38,10 +37,16 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>Run with:
  * {@code ./mvnw test -pl :apicurio-registry-app -Pbyteman -Dtest=ConcurrentVersionCreationTest}.
  * No CI workflow activates {@code -Pbyteman}, so this does not run in the pipeline yet.
+ *
+ * <p>There is deliberately no {@code @EnabledIfSystemProperty} guard on {@code byteman.agent}.
+ * This class lives in {@code src/test-byteman/java}, a source root only the profile adds, so it
+ * cannot compile without the profile, and the profile is what puts the agent flags on the
+ * surefire command line. A guard could only ever turn a broken agent setup into a silent skip,
+ * which every shard would report as green because they all run with
+ * {@code -Dsurefire.failIfNoSpecifiedTests=false}.
  */
 @QuarkusTest
 @WithByteman
-@EnabledIfSystemProperty(named = "byteman.agent", matches = "true")
 // The rule fires only on threads this test names, so it cannot reach another test's calls.
 // @Isolated is belt and braces for any future parallel run.
 @Isolated

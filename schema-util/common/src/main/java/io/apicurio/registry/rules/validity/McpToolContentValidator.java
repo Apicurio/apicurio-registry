@@ -25,6 +25,7 @@ import java.util.Set;
  * - SYNTAX_ONLY: Validates that the content is valid JSON and is an object
  * - FULL: Full schema validation including required fields, type checking, and structure
  *   validation. The 'annotations' object is validated as a closed ToolAnnotations shape.
+ *   The 'inputSchema' and 'outputSchema' objects must themselves be valid JSON Schema documents.
  *
  * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools</a>
  */
@@ -117,6 +118,10 @@ public class McpToolContentValidator implements ContentValidator {
             return;
         }
 
+        // Meta-validation below runs only if the MCP-specific checks pass, so a malformed
+        // 'properties' or 'required' reports one clear violation instead of two at the same location.
+        int violationsBeforeStructuralChecks = violations.size();
+
         // inputSchema must have a "type" field with value "object"
         if (!inputSchema.has("type")) {
             violations.add(new RuleViolation("'inputSchema' must have a 'type' field",
@@ -146,13 +151,25 @@ public class McpToolContentValidator implements ContentValidator {
                         "/inputSchema/required", "required parameter name", violations);
             }
         }
+
+        if (violations.size() == violationsBeforeStructuralChecks) {
+            JsonValidationUtils.validateJsonSchema(inputSchema, "/inputSchema", violations);
+        }
     }
 
     private void validateOutputSchemaField(JsonNode tree, Set<RuleViolation> violations) {
-        if (tree.has("outputSchema") && !tree.get("outputSchema").isObject()) {
+        if (!tree.has("outputSchema")) {
+            return;
+        }
+
+        JsonNode outputSchema = tree.get("outputSchema");
+        if (!outputSchema.isObject()) {
             violations.add(new RuleViolation("'outputSchema' field must be an object",
                     "/outputSchema"));
+            return;
         }
+
+        JsonValidationUtils.validateJsonSchema(outputSchema, "/outputSchema", violations);
     }
 
     private void validateAnnotationsField(JsonNode tree, Set<RuleViolation> violations) {

@@ -1,0 +1,11 @@
+{
+  "name": "unsupported_output_dialect_tool",
+  "description": "outputSchema declares a dialect the validator does not support",
+  "inputSchema": {
+    "type": "object"
+  },
+  "outputSchema": {
+    "$schema": "https://example.invalid/custom-dialect",
+    "type": "object"
+  }
+}

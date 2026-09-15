@@ -48,6 +48,9 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |`KCONNECT`
 |Apache Kafka Connect schema
 |`2.0.0`
+|`MCP_SERVER`
+|MCP server definitions (`server.json`, Model Context Protocol)
+|`v0.1`
 |`MCP_TOOL`
 |MCP tool definitions (Model Context Protocol)
 |`2025-11-25`
@@ -90,6 +93,16 @@ You can store and manage a wide range of schema and API artifact types in {regis
 {registry} includes built-in support for AI/ML artifact types designed for LLMOps and prompt engineering workflows.
 
 {registry} supports the following AI/ML artifact types:
+
+`MCP_SERVER`:: MCP (Model Context Protocol) server definitions, in the `server.json` format published to
+an MCP registry. Use this artifact type to:
++
+* Store the packages, remotes, and transports through which an MCP server can be reached
+* Track server releases with version history
+* Serve the servers through the MCP Registry API, which is enabled with `apicurio.mcp-registry.enabled`
+* Validate server definitions against the MCP registry specification
++
+Content types: `application/json`
 
 `MCP_TOOL`:: MCP (Model Context Protocol) tool definitions. Use this artifact type to:
 +

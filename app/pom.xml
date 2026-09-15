@@ -869,11 +869,8 @@
          src/test-byteman/java, which only this profile adds. Put new Byteman tests there;
          nothing else is needed. byteman-bmunit5 pulls in byteman-bmunit, which brings byteman,
          byteman-submit and byteman-install with it, so it is the only declaration required.
-         Gating the source root on the profile has two consequences worth knowing. An IDE that
-         has not enabled the profile shows these files as non-source, with every symbol
-         unresolved. And checkstyle:check runs at validate, before build-helper adds the root
-         at generate-test-sources, so the checkstyle configuration below has to name both test
-         roots by hand or the Byteman tests are never scanned. -->
+         One consequence worth knowing: an IDE that has not enabled this profile shows these
+         files as non-source, with every symbol unresolved. -->
     <profile>
       <id>byteman</id>
       <dependencies>
@@ -885,16 +882,24 @@
         </dependency>
       </dependencies>
       <properties>
-        <byteman.agent.argLine>-Djdk.attach.allowAttachSelf=true -Dbyteman.agent=true</byteman.agent.argLine>
+        <byteman.agent.argLine>-Djdk.attach.allowAttachSelf=true</byteman.agent.argLine>
       </properties>
       <build>
         <plugins>
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-checkstyle-plugin</artifactId>
+            <!-- checkstyle:check is bound to validate in the root POM, which runs before
+                 build-helper adds the source root at generate-test-sources, so both test roots
+                 have to be listed here by hand or the Byteman tests are never scanned.
+                 testSourceDirectories replaces the default rather than appending to it, which
+                 is why src/test/java has to be restated. Rebinding this execution to a later
+                 phase does not help: within one phase, executions declared in a parent POM run
+                 before child-declared ones, so it would still lose to add-byteman-test-source
+                 below. -->
             <configuration>
               <testSourceDirectories>
-                <testSourceDirectory>${project.basedir}/src/test/java</testSourceDirectory>
+                <testSourceDirectory>${project.build.testSourceDirectory}</testSourceDirectory>
                 <testSourceDirectory>${project.basedir}/src/test-byteman/java</testSourceDirectory>
               </testSourceDirectories>
             </configuration>
@@ -905,13 +910,13 @@
             <executions>
               <execution>
                 <id>add-byteman-test-source</id>
-                <phase>generate-test-sources</phase>
                 <goals>
                   <goal>add-test-source</goal>
                 </goals>
+                <phase>generate-test-sources</phase>
                 <configuration>
                   <sources>
-                    <source>src/test-byteman/java</source>
+                    <source>${project.basedir}/src/test-byteman/java</source>
                   </sources>
                 </configuration>
               </execution>

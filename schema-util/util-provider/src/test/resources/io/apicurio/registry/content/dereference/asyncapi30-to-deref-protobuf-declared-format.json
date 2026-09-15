@@ -16,16 +16,13 @@
         }
     },
     "components": {
-        "schemas": {
-            "UserProfile": {
-                "schemaFormat": "application/vnd.google.protobuf;version=3",
-                "schema": "syntax = \"proto3\";\n\npackage com.example;\n\nmessage UserProfile {\n    string user_id = 1;\n    string first_name = 2;\n    string last_name = 3;\n    string email = 4;\n}"
-            }
-        },
         "messages": {
             "ProfileUpdateMessage": {
                 "payload": {
-                    "$ref": "#/components/schemas/UserProfile"
+                    "schemaFormat": "application/vnd.google.protobuf;version=2",
+                    "schema": {
+                        "$ref": "http://schemas.example.org/user-profile.proto"
+                    }
                 }
             }
         }

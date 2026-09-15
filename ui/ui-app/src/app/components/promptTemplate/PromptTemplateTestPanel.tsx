@@ -13,6 +13,8 @@ import {
     FormGroup,
     FormSelect,
     FormSelectOption,
+    HelperText,
+    HelperTextItem,
     Label,
     Spinner,
     TextArea,
@@ -28,6 +30,7 @@ import {
 import { useGroupsService } from "@services/useGroupsService.ts";
 import {
     coerceEnumValue,
+    parseObjectInput,
     schemaForField,
     toDeclaredMap
 } from "./PromptTemplateTestPanel.utils";
@@ -62,11 +65,13 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
 
     const {
         values,
+        rawTexts,
         renderedOutput,
         validationErrors,
         isLoading,
         error,
         setValue,
+        setRawText,
         doRender
     } = usePromptTemplateTestPanelState({
         groupId: props.groupId,
@@ -133,21 +138,31 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                     />
                 );
             case "array":
-            case "object":
+            case "object": {
+                const rawText = rawTexts[name] ?? "";
+                const { parseError } = parseObjectInput(rawText);
                 return (
-                    <TextArea
-                        value={typeof values[name] === "string" ? values[name] : JSON.stringify(values[name] || "", null, 2)}
-                        onChange={(_event, val) => {
-                            try {
-                                setValue(name, JSON.parse(val));
-                            } catch {
-                                setValue(name, val);
-                            }
-                        }}
-                        aria-label={name}
-                        rows={3}
-                    />
+                    <>
+                        <TextArea
+                            value={rawText}
+                            onChange={(_event, val) => {
+                                setRawText(name, val);
+                                setValue(name, parseObjectInput(val).value);
+                            }}
+                            aria-label={name}
+                            rows={3}
+                            validated={parseError ? "warning" : "default"}
+                        />
+                        {parseError && (
+                            <HelperText>
+                                <HelperTextItem variant="warning">
+                                    Not valid JSON yet. Render will submit this as raw text.
+                                </HelperTextItem>
+                            </HelperText>
+                        )}
+                    </>
                 );
+            }
             default:
                 return (
                     <TextInput

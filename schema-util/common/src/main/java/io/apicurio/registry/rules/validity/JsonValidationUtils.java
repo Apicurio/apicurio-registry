@@ -1,17 +1,48 @@
 package io.apicurio.registry.rules.validity;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.PathType;
+import com.networknt.schema.SchemaLocation;
+import com.networknt.schema.SchemaValidatorsConfig;
+import com.networknt.schema.SpecVersion;
+import com.networknt.schema.SpecVersionDetector;
+import com.networknt.schema.ValidationMessage;
 import io.apicurio.registry.rules.violation.RuleViolation;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Shared JSON validation utility methods used by content validators for JSON-based artifact types
  * such as AGENT_CARD and MCP_TOOL.
  */
 public final class JsonValidationUtils {
+
+    /**
+     * Dialect used when a schema does not declare {@code $schema}, which is the default the MCP
+     * specification defines for tool schemas.
+     */
+    private static final SpecVersion.VersionFlag DEFAULT_SCHEMA_DIALECT = SpecVersion.VersionFlag.V202012;
+
+    /**
+     * Reports validation failures with JSON Pointer locations, so they can be appended to the
+     * field path a {@link RuleViolation} already uses as its context.
+     */
+    private static final SchemaValidatorsConfig META_VALIDATION_CONFIG = SchemaValidatorsConfig.builder()
+            .pathType(PathType.JSON_POINTER).build();
+
+    /**
+     * Meta-schemas are immutable once built, so they are cached per dialect rather than rebuilt per
+     * call. Each is loaded from a document bundled in the validator library, never over the network.
+     */
+    private static final Map<SpecVersion.VersionFlag, JsonSchema> META_SCHEMAS = new ConcurrentHashMap<>();
 
     private JsonValidationUtils() {
         // Utility class
@@ -95,5 +126,58 @@ public final class JsonValidationUtils {
             }
             index++;
         }
+    }
+
+    /**
+     * Validates that a node is itself a well-formed JSON Schema document, by validating it against
+     * the JSON Schema meta-schema. Violations are reported under {@code basePath}, the JSON Pointer
+     * of the field holding the schema.
+     *
+     * <p>The dialect is the one the schema declares in {@code $schema}, or
+     * {@link #DEFAULT_SCHEMA_DIALECT} when it declares none. A {@code $schema} that is not a string,
+     * or that names a dialect the validator library does not support, is reported as a violation
+     * and the schema is not validated against any other dialect. A single malformed keyword can
+     * fail several meta-schema branches at once, so at most one violation is reported per location.
+     */
+    public static void validateJsonSchema(JsonNode schemaNode, String basePath,
+            Set<RuleViolation> violations) {
+        JsonNode declaredDialect = schemaNode.get("$schema");
+        if (declaredDialect != null && !declaredDialect.isTextual()) {
+            violations.add(new RuleViolation("'$schema' field must be a string", basePath + "/$schema"));
+            return;
+        }
+
+        Optional<SpecVersion.VersionFlag> dialect = SpecVersionDetector.detectOptionalVersion(
+                schemaNode, false);
+        if (declaredDialect != null && dialect.isEmpty()) {
+            violations.add(new RuleViolation("Unsupported JSON Schema dialect '"
+                    + declaredDialect.asText() + "'", basePath + "/$schema"));
+            return;
+        }
+
+        JsonSchema metaSchema = metaSchemaFor(dialect.orElse(DEFAULT_SCHEMA_DIALECT));
+        Set<String> reportedLocations = new HashSet<>();
+        for (ValidationMessage message : metaSchema.validate(schemaNode)) {
+            String location = message.getInstanceLocation().toString();
+            if (reportedLocations.add(location)) {
+                violations.add(new RuleViolation(messageWithoutLocation(message, location),
+                        basePath + location));
+            }
+        }
+    }
+
+    private static JsonSchema metaSchemaFor(SpecVersion.VersionFlag dialect) {
+        return META_SCHEMAS.computeIfAbsent(dialect, version -> JsonSchemaFactory.getInstance(version)
+                .getSchema(SchemaLocation.of(version.getId()), META_VALIDATION_CONFIG));
+    }
+
+    /**
+     * The library prefixes every message with the instance location, which the violation already
+     * carries as its context.
+     */
+    private static String messageWithoutLocation(ValidationMessage message, String location) {
+        String text = message.getMessage();
+        String prefix = location + ": ";
+        return text.startsWith(prefix) ? text.substring(prefix.length()) : text;
     }
 }

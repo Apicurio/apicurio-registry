@@ -24,6 +24,7 @@
     <!-- Max heap for the forked surefire JVM that runs the tests. -->
     <surefire.maxHeap>4g</surefire.maxHeap>
     <surefire.forkCount>1</surefire.forkCount>
+    <byteman.agent.argLine/>
   </properties>
 
   <dependencies>
@@ -603,7 +604,7 @@
           <!-- This, not MAVEN_OPTS, is the heap the tests actually run in: surefire forks a JVM and
                MAVEN_OPTS only sizes the Maven process that spawns it. Override per CI shard with
                -Dsurefire.maxHeap=<size>. See issue #9265. -->
-          <argLine>@{argLine} -Xmx${surefire.maxHeap}</argLine>
+          <argLine>@{argLine} -Xmx${surefire.maxHeap} ${byteman.agent.argLine}</argLine>
           <forkedProcessExitTimeoutInSeconds>1800</forkedProcessExitTimeoutInSeconds>
           <systemPropertyVariables>
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
@@ -856,5 +857,71 @@
     </plugins>
   </build>
 
+  <profiles>
+    <!-- Byteman-based concurrency tests. Byteman is LGPL, so neither the dependency nor the
+         test sources may appear in the default build: the license scan reads the POM
+         dependency graph of the profile-less model, and a compiled BMUnit annotation left in
+         target/test-classes would also ride into the test-jar produced at
+         process-test-classes. Those tests therefore live in their own source root,
+         src/test-byteman/java, which only this profile adds. Put new Byteman tests there;
+         nothing else is needed. byteman-bmunit5 pulls in byteman-bmunit, which brings byteman,
+         byteman-submit and byteman-install with it, so it is the only declaration required.
+         One consequence worth knowing: an IDE that has not enabled this profile shows these
+         files as non-source, with every symbol unresolved. -->
+    <profile>
+      <id>byteman</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.jboss.byteman</groupId>
+          <artifactId>byteman-bmunit5</artifactId>
+          <version>4.0.27</version>
+          <scope>test</scope>
+        </dependency>
+      </dependencies>
+      <properties>
+        <byteman.agent.argLine>-Djdk.attach.allowAttachSelf=true</byteman.agent.argLine>
+      </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <!-- checkstyle:check is bound to validate in the root POM, which runs before
+                 build-helper adds the source root at generate-test-sources, so both test roots
+                 have to be listed here by hand or the Byteman tests are never scanned.
+                 testSourceDirectories replaces the default rather than appending to it, which
+                 is why src/test/java has to be restated. Rebinding this execution to a later
+                 phase does not help: within one phase, executions declared in a parent POM run
+                 before child-declared ones, so it would still lose to add-byteman-test-source
+                 below. -->
+            <configuration>
+              <testSourceDirectories>
+                <testSourceDirectory>${project.build.testSourceDirectory}</testSourceDirectory>
+                <testSourceDirectory>${project.basedir}/src/test-byteman/java</testSourceDirectory>
+              </testSourceDirectories>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>add-byteman-test-source</id>
+                <goals>
+                  <goal>add-test-source</goal>
+                </goals>
+                <phase>generate-test-sources</phase>
+                <configuration>
+                  <sources>
+                    <source>${project.basedir}/src/test-byteman/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

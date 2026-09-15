@@ -96,22 +96,22 @@ The following {registry} configuration options are available for each component 
 |`apicurio.ai-catalog.enabled`
 |`boolean`
 |`false`
-|`3.3.2`
+|`3.3.3`
 |Enable the AI Catalog well-known discovery endpoint _(experimental)_
 |`apicurio.ai-catalog.host-name`
 |`string`
 |`Apicurio Registry`
-|`3.3.2`
+|`3.3.3`
 |Display name for this registry instance, reported as the AI Catalog host
 |`apicurio.ai-catalog.publisher-domain`
 |`optional<string>`
 |
-|`3.3.2`
+|`3.3.3`
 |The publisher domain segment used when building 'urn:air:' identifiers for AI Catalog entries. When not configured, the domain is derived from the incoming request's host and port.
 |`apicurio.ai-catalog.spec-version`
 |`string`
 |`1.0`
-|`3.3.2`
+|`3.3.3`
 |The AI Catalog specification version reported in the catalog document
 |===
 
@@ -163,12 +163,12 @@ The following {registry} configuration options are available for each component 
 |`apicurio.ard.enabled`
 |`boolean`
 |`false`
-|`3.3.2`
+|`3.3.3`
 |Enable the ARD (Agentic Resource Discovery) well-known API endpoints _(experimental)_
 |`apicurio.ard.federation.default`
 |`string`
 |`none`
-|`3.3.2`
+|`3.3.3`
 |Default ARD federation mode advertised by this registry. Only 'none' (no federation) is currently implemented.
 |===
 

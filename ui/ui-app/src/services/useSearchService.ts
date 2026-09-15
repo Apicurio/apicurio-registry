@@ -27,6 +27,21 @@ const VERSION_STATES: string[] = [
     "ENABLED", "DISABLED", "DEPRECATED", "DRAFT"
 ];
 
+/**
+ * Wraps a name filter value in wildcards for substring matching unless the user
+ * already supplied a wildcard, matching SearchFilter.ofPartialName backend semantics.
+ */
+export const toPartialNameFilter = (value?: string): string => {
+    const trimmed = value ? value.trim() : "";
+    if (!trimmed) {
+        return "";
+    }
+    if (!trimmed.includes("*")) {
+        return `*${trimmed}*`;
+    }
+    return trimmed;
+};
+
 const searchGroups = async (config: ConfigService, auth: AuthService, filters: SearchFilter[], sortBy: GroupSortBy, sortOrder: SortOrder, paging: Paging): Promise<GroupSearchResults> => {
     console.debug("[SearchService] Searching groups: ", filters, paging);
     const start: number = (paging.page - 1) * paging.pageSize;
@@ -59,6 +74,8 @@ const searchArtifacts = async (config: ConfigService, auth: AuthService, filters
     filters?.forEach(filter => {
         if (filter.by === FilterBy.globalId || filter.by === FilterBy.contentId) {
             queryParams[filter.by] = Number(filter.value);
+        } else if (filter.by === FilterBy.name) {
+            queryParams[filter.by] = toPartialNameFilter(filter.value);
         } else {
             queryParams[filter.by] = filter.value;
         }
@@ -86,6 +103,8 @@ const searchVersions = async (config: ConfigService, auth: AuthService, filters:
             queryParams[filter.by] = Number(filter.value);
         } else if (filter.by === FilterBy.state) {
             queryParams[filter.by] = filter.value.toUpperCase();
+        } else if (filter.by === FilterBy.name) {
+            queryParams[filter.by] = toPartialNameFilter(filter.value);
         } else {
             queryParams[filter.by] = filter.value;
         }

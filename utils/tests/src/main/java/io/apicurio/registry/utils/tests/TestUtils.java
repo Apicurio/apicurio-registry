@@ -33,6 +33,7 @@ import java.util.function.Predicate;
 
 public class TestUtils {
     private static final Logger log = LoggerFactory.getLogger(TestUtils.class);
+    private static final String URL_FORMAT = "http://%s:%s";
 
     private static final String DEFAULT_REGISTRY_HOST = "localhost";
     private static final int DEFAULT_REGISTRY_PORT = 8081;
@@ -90,17 +91,17 @@ public class TestUtils {
 
     public static String getRegistryBaseUrl() {
         if (isExternalRegistry()) {
-            return String.format("http://%s:%s", REGISTRY_HOST, REGISTRY_PORT);
+            return String.format(URL_FORMAT, REGISTRY_HOST, REGISTRY_PORT);
         } else {
-            return String.format("http://%s:%s", DEFAULT_REGISTRY_HOST, DEFAULT_REGISTRY_PORT);
+            return String.format(URL_FORMAT, DEFAULT_REGISTRY_HOST, DEFAULT_REGISTRY_PORT);
         }
     }
 
     public static String getRegistryBaseUrl(int port) {
         if (isExternalRegistry()) {
-            return String.format("http://%s:%s", REGISTRY_HOST, port);
+            return String.format(URL_FORMAT, REGISTRY_HOST, port);
         } else {
-            return String.format("http://%s:%s", DEFAULT_REGISTRY_HOST, port);
+            return String.format(URL_FORMAT, DEFAULT_REGISTRY_HOST, port);
         }
     }
 

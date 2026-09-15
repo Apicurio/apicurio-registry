@@ -70,6 +70,7 @@ import java.util.stream.Collectors;
 public class GenerateAllConfigPartial {
 
     private static final Logger log = LoggerFactory.getLogger(GenerateAllConfigPartial.class);
+    private static final String COL_SEP = "` | `";
 
     private static Map<String, Option> allConfiguration = new HashMap();
     private static Set<String> skipProperties = Set.of("quarkus.oidc.auth-server-url");
@@ -137,7 +138,7 @@ public class GenerateAllConfigPartial {
         public String toMDLine() {
             String af = availableSince == null ? " " : " `" + availableSince + "` ";
             String desc = experimental ? description + " _(experimental)_" : description;
-            return "| `" + name + "` | `" + category + "` | `" + type + "` | `" + defaultValue + "` |" + af + "| " + desc + " |";
+            return "| `" + name + COL_SEP + category + COL_SEP + type + COL_SEP + defaultValue + "` |" + af + "| " + desc + " |";
         }
 
         public String toAdoc() {

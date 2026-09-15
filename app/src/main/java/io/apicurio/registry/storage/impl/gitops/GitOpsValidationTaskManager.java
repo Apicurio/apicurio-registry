@@ -36,6 +36,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "gitops")
 public class GitOpsValidationTaskManager {
 
+    private static final String JSON_EXT = ".json";
+
     @Inject
     Logger log;
 
@@ -71,7 +73,7 @@ public class GitOpsValidationTaskManager {
             return;
         }
         try (var files = Files.list(validateDir)) {
-            files.filter(f -> f.toString().endsWith(".json"))
+            files.filter(f -> f.toString().endsWith(JSON_EXT))
                     .forEach(this::loadTaskFromFile);
         } catch (IOException e) {
             log.warn("Failed to scan validate directory for pending tasks: {}", e.getMessage());
@@ -416,7 +418,7 @@ public class GitOpsValidationTaskManager {
             }
 
             var taskId = new ValidationTaskId(
-                    requestFile.getFileName().toString().replace(".json", ""));
+                    requestFile.getFileName().toString().replace(JSON_EXT, ""));
 
             var taskState = new ValidationTaskState();
             taskState.setTaskId(taskId);
@@ -457,7 +459,7 @@ public class GitOpsValidationTaskManager {
     }
 
     private Path getRequestFilePath(ValidationTaskId taskId) {
-        return getValidateDir().resolve(taskId.value() + ".json");
+        return getValidateDir().resolve(taskId.value() + JSON_EXT);
     }
 
     private Path getCheckoutPath(ValidationTaskState taskState) {

@@ -29,6 +29,10 @@ import java.util.Set;
 public class AgentCardCompatibilityChecker
         extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
+    private static final String FIELD_SUPPORTED_INTERFACES = "supportedInterfaces";
+    private static final String FIELD_PROTOCOL_BINDING = "protocolBinding";
+    private static final String FIELD_PROTOCOL_VERSION = "protocolVersion";
+
     private static final String CONTEXT_INTERFACES = "/supportedInterfaces";
     private static final String CONTEXT_SKILLS = "/skills";
     private static final String CONTEXT_CAPABILITIES = "/capabilities";
@@ -83,8 +87,8 @@ public class AgentCardCompatibilityChecker
 
     private void checkInterfaceProtocolVersionChanges(JsonNode existing, JsonNode proposed,
             Set<SimpleCompatibilityDifference> differences) {
-        JsonNode existingInterfaces = existing.get("supportedInterfaces");
-        JsonNode proposedInterfaces = proposed.get("supportedInterfaces");
+        JsonNode existingInterfaces = existing.get(FIELD_SUPPORTED_INTERFACES);
+        JsonNode proposedInterfaces = proposed.get(FIELD_SUPPORTED_INTERFACES);
 
         if (existingInterfaces == null || proposedInterfaces == null) {
             return;
@@ -92,8 +96,8 @@ public class AgentCardCompatibilityChecker
 
         for (JsonNode existingIface : existingInterfaces) {
             String url = getTextValue(existingIface, "url");
-            String binding = getTextValue(existingIface, "protocolBinding");
-            String existingVersion = getTextValue(existingIface, "protocolVersion");
+            String binding = getTextValue(existingIface, FIELD_PROTOCOL_BINDING);
+            String existingVersion = getTextValue(existingIface, FIELD_PROTOCOL_VERSION);
 
             if (url == null || binding == null || existingVersion == null) {
                 continue;
@@ -101,8 +105,8 @@ public class AgentCardCompatibilityChecker
 
             for (JsonNode proposedIface : proposedInterfaces) {
                 String pUrl = getTextValue(proposedIface, "url");
-                String pBinding = getTextValue(proposedIface, "protocolBinding");
-                String pVersion = getTextValue(proposedIface, "protocolVersion");
+                String pBinding = getTextValue(proposedIface, FIELD_PROTOCOL_BINDING);
+                String pVersion = getTextValue(proposedIface, FIELD_PROTOCOL_VERSION);
 
                 if (url.equals(pUrl) && binding.equals(pBinding)
                         && pVersion != null && !existingVersion.equals(pVersion)) {
@@ -213,11 +217,11 @@ public class AgentCardCompatibilityChecker
 
     private Set<String> extractInterfaceKeys(JsonNode node) {
         Set<String> keys = new HashSet<>();
-        JsonNode interfaces = node.get("supportedInterfaces");
+        JsonNode interfaces = node.get(FIELD_SUPPORTED_INTERFACES);
         if (interfaces != null && interfaces.isArray()) {
             for (JsonNode iface : interfaces) {
                 String url = getTextValue(iface, "url");
-                String binding = getTextValue(iface, "protocolBinding");
+                String binding = getTextValue(iface, FIELD_PROTOCOL_BINDING);
                 if (url != null && binding != null) {
                     keys.add(url + "|" + binding);
                 }

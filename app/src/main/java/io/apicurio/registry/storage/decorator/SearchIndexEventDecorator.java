@@ -39,6 +39,8 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
 
     private static final Logger log = LoggerFactory.getLogger(SearchIndexEventDecorator.class);
 
+    private static final String DEFAULT_GROUP = "default";
+
     @Inject
     ElasticsearchSearchConfig config;
 
@@ -155,7 +157,7 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
         List<String> result = delegate.deleteArtifact(groupId, artifactId);
 
         // Fire event for search index update (remove all versions of this artifact)
-        String normalizedGroupId = groupId != null ? groupId : "default";
+        String normalizedGroupId = groupId != null ? groupId : DEFAULT_GROUP;
         artifactDeletedEvent.fire(new ArtifactDeletedEvent(normalizedGroupId, artifactId));
 
         return result;
@@ -167,7 +169,7 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
         delegate.deleteArtifacts(groupId);
 
         // Fire event for search index update (remove all versions in this group)
-        String normalizedGroupId = groupId != null ? groupId : "default";
+        String normalizedGroupId = groupId != null ? groupId : DEFAULT_GROUP;
         groupDeletedEvent.fire(new GroupDeletedEvent(normalizedGroupId));
     }
 
@@ -178,7 +180,7 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
         delegate.deleteGroup(groupId);
 
         // Fire event for search index update (remove all versions in this group)
-        String normalizedGroupId = groupId != null ? groupId : "default";
+        String normalizedGroupId = groupId != null ? groupId : DEFAULT_GROUP;
         groupDeletedEvent.fire(new GroupDeletedEvent(normalizedGroupId));
     }
 

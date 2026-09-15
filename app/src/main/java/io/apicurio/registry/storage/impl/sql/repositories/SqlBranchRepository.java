@@ -51,6 +51,8 @@ import java.util.stream.Collectors;
  */
 public class SqlBranchRepository {
 
+    private static final String DB_MSSQL = "mssql";
+
     private final Logger log;
     private final SqlStatements sqlStatements;
     private final HandleFactory handles;
@@ -181,7 +183,7 @@ public class SqlBranchRepository {
                 idx++;
             }
 
-            if ("mssql".equals(sqlStatements.dbType())) {
+            if (DB_MSSQL.equals(sqlStatements.dbType())) {
                 branchesQuery.bind(idx++, offset);
                 branchesQuery.bind(idx++, limit);
             } else {
@@ -209,7 +211,7 @@ public class SqlBranchRepository {
         }
 
         handles.withHandleNoException(handle -> {
-            if ("mssql".equals(sqlStatements.dbType())) {
+            if (DB_MSSQL.equals(sqlStatements.dbType())) {
                 handle.createUpdate(sqlStatements.deleteBranchVersions()).bind(0, ga.getRawGroupId())
                         .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId()).execute();
             }
@@ -339,7 +341,7 @@ public class SqlBranchRepository {
 
             orderByQuery.append(" ORDER BY bv.branchOrder DESC");
 
-            if ("mssql".equals(sqlStatements.dbType())) {
+            if (DB_MSSQL.equals(sqlStatements.dbType())) {
                 limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
             } else {
                 limitOffset.append(" LIMIT ? OFFSET ?");
@@ -360,7 +362,7 @@ public class SqlBranchRepository {
                 idx++;
             }
 
-            if ("mssql".equals(sqlStatements.dbType())) {
+            if (DB_MSSQL.equals(sqlStatements.dbType())) {
                 versionsQuery.bind(idx++, offset);
                 versionsQuery.bind(idx, limit);
             } else {

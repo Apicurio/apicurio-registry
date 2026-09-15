@@ -12,6 +12,10 @@ import java.util.Map;
 
 public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecycleManager {
 
+    private static final String STORAGE_SQL_KIND_KEY = "apicurio.storage.sql.kind";
+    private static final String DB_KIND_POSTGRESQL = "postgresql";
+    private static final String DB_USER_POSTGRES = "postgres";
+
     private EmbeddedPostgres database;
 
     /**
@@ -25,7 +29,7 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
 
             if (currentEnv != null && "mas".equals(currentEnv)) {
                 Map<String, String> props = new HashMap<>();
-                props.put("apicurio.storage.sql.kind", "postgresql");
+                props.put(STORAGE_SQL_KIND_KEY, DB_KIND_POSTGRESQL);
                 props.put("apicurio.datasource.url", "jdbc:postgresql://localhost:5432/test");
                 props.put("apicurio.datasource.username", "test");
                 props.put("apicurio.datasource.password", "test");
@@ -38,8 +42,8 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
     }
 
     private static boolean isPostgresqlStorage() {
-        return ConfigProvider.getConfig().getValue("apicurio.storage.sql.kind", String.class)
-                .equals("postgresql");
+        return ConfigProvider.getConfig().getValue(STORAGE_SQL_KIND_KEY, String.class)
+                .equals(DB_KIND_POSTGRESQL);
     }
 
     private Map<String, String> startPostgresql() {
@@ -49,13 +53,13 @@ public class PostgreSqlEmbeddedTestResource implements QuarkusTestResourceLifecy
             throw new UncheckedIOException(e);
         }
 
-        String datasourceUrl = database.getJdbcUrl("postgres", "postgres");
+        String datasourceUrl = database.getJdbcUrl(DB_USER_POSTGRES, DB_USER_POSTGRES);
 
         Map<String, String> props = new HashMap<>();
-        props.put("apicurio.storage.sql.kind", "postgresql");
+        props.put(STORAGE_SQL_KIND_KEY, DB_KIND_POSTGRESQL);
         props.put("apicurio.datasource.url", datasourceUrl);
-        props.put("apicurio.datasource.username", "postgres");
-        props.put("apicurio.datasource.password", "postgres");
+        props.put("apicurio.datasource.username", DB_USER_POSTGRES);
+        props.put("apicurio.datasource.password", DB_USER_POSTGRES);
 
         return props;
     }

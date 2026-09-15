@@ -3,9 +3,13 @@ package io.apicurio.registry.contracts.tags;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.types.ArtifactType;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -80,25 +84,6 @@ class ProtobufTagExtractorTest {
     }
 
     @Test
-    void testOneOfFieldTags() {
-        String proto = """
-                syntax = "proto3";
-                message Event {
-                  oneof payload {
-                    // @tag:PII
-                    string user_data = 1;
-                    string system_data = 2;
-                  }
-                }
-                """;
-
-        Map<String, Set<String>> tags = extractor.extractTags(ContentHandle.create(proto));
-
-        assertEquals(1, tags.size());
-        assertEquals(Set.of("PII"), tags.get("user_data"));
-    }
-
-    @Test
     void testMultipleTagAnnotations() {
         String proto = """
                 syntax = "proto3";
@@ -114,5 +99,76 @@ class ProtobufTagExtractorTest {
 
         assertEquals(1, tags.size());
         assertEquals(Set.of("PII", "SENSITIVE"), tags.get("ssn"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("fieldTagTestCases")
+    void testFieldTags(String testName, String proto, String expectedField, Set<String> expectedTags) {
+        Map<String, Set<String>> tags = extractor.extractTags(ContentHandle.create(proto));
+
+        assertEquals(1, tags.size());
+        assertEquals(expectedTags, tags.get(expectedField));
+    }
+
+    private static Stream<Arguments> fieldTagTestCases() {
+        return Stream.of(
+                Arguments.of(
+                        "oneOfFieldTags",
+                        """
+                        syntax = "proto3";
+                        message Event {
+                          oneof payload {
+                            // @tag:PII
+                            string user_data = 1;
+                            string system_data = 2;
+                          }
+                        }
+                        """,
+                        "user_data",
+                        Set.of("PII")
+                ),
+                Arguments.of(
+                        "repeatedNestedMessageTags",
+                        """
+                        syntax = "proto3";
+                        message UserList {
+                          repeated User items = 1;
+                          message User {
+                            // @tag:PII
+                            string ssn = 1;
+                          }
+                        }
+                        """,
+                        "items[].ssn",
+                        Set.of("PII")
+                ),
+                Arguments.of(
+                        "mapFieldTags",
+                        """
+                        syntax = "proto3";
+                        message Account {
+                          // @tag:SENSITIVE
+                          map<string, string> metadata = 1;
+                        }
+                        """,
+                        "metadata",
+                        Set.of("SENSITIVE")
+                ),
+                Arguments.of(
+                        "mapNestedMessageTags",
+                        """
+                        syntax = "proto3";
+                        message Account {
+                          map<string, User> users = 1;
+                          message User {
+                            // @tag:PII
+                            string ssn = 1;
+                          }
+                        }
+                        """,
+                        "users.values.ssn",
+                        Set.of("PII")
+                )
+        );
     }
 }

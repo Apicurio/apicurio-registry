@@ -241,18 +241,6 @@
       <version>${commons-beanutils.version}</version>
     </dependency>
 
-    <!-- Byteman BMUnit5 annotations on the compile classpath so Byteman
-         test classes compile without -Pbyteman. Provided scope keeps them
-         off the runtime classpath and out of the packaged artifact. The
-         full Byteman agent and submit/install deps are in the -Pbyteman
-         profile below. -->
-    <dependency>
-      <groupId>org.jboss.byteman</groupId>
-      <artifactId>byteman-bmunit5</artifactId>
-      <version>4.0.27</version>
-      <scope>provided</scope>
-    </dependency>
-
     <!-- Test Only -->
     <dependency>
       <groupId>io.confluent</groupId>
@@ -870,30 +858,25 @@
   </build>
 
   <profiles>
+    <!-- Byteman-based concurrency tests. Byteman is LGPL, so neither the dependency nor the
+         test sources may appear in the default build: the license scan reads the POM
+         dependency graph of the profile-less model, and a compiled BMUnit annotation left in
+         target/test-classes would also ride into the test-jar produced at
+         process-test-classes. Those tests therefore live in their own source root,
+         src/test-byteman/java, which only this profile adds. Put new Byteman tests there;
+         nothing else is needed. byteman-bmunit5 pulls in byteman-bmunit, which brings byteman,
+         byteman-submit and byteman-install with it, so it is the only declaration required.
+         Gating the source root on the profile has two consequences worth knowing. An IDE that
+         has not enabled the profile shows these files as non-source, with every symbol
+         unresolved. And checkstyle:check runs at validate, before build-helper adds the root
+         at generate-test-sources, so the checkstyle configuration below has to name both test
+         roots by hand or the Byteman tests are never scanned. -->
     <profile>
       <id>byteman</id>
       <dependencies>
         <dependency>
           <groupId>org.jboss.byteman</groupId>
-          <artifactId>byteman</artifactId>
-          <version>4.0.27</version>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.jboss.byteman</groupId>
           <artifactId>byteman-bmunit5</artifactId>
-          <version>4.0.27</version>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.jboss.byteman</groupId>
-          <artifactId>byteman-submit</artifactId>
-          <version>4.0.27</version>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.jboss.byteman</groupId>
-          <artifactId>byteman-install</artifactId>
           <version>4.0.27</version>
           <scope>test</scope>
         </dependency>
@@ -901,6 +884,38 @@
       <properties>
         <byteman.agent.argLine>-Djdk.attach.allowAttachSelf=true -Dbyteman.agent=true</byteman.agent.argLine>
       </properties>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <configuration>
+              <testSourceDirectories>
+                <testSourceDirectory>${project.basedir}/src/test/java</testSourceDirectory>
+                <testSourceDirectory>${project.basedir}/src/test-byteman/java</testSourceDirectory>
+              </testSourceDirectories>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>add-byteman-test-source</id>
+                <phase>generate-test-sources</phase>
+                <goals>
+                  <goal>add-test-source</goal>
+                </goals>
+                <configuration>
+                  <sources>
+                    <source>src/test-byteman/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 

@@ -15,12 +15,12 @@ public class CloudEventTypeTest {
     @Test
     void testTypeStrings_matchSpecCompliantValues() {
         assertEquals("io.apicurio.registry.artifact.created", CloudEventType.ARTIFACT_CREATED.type());
-        assertEquals("io.apicurio.registry.artifact.updated", CloudEventType.ARTIFACT_UPDATED.type());
+        assertEquals("io.apicurio.registry.artifact.metadata.updated", CloudEventType.ARTIFACT_UPDATED.type());
         assertEquals("io.apicurio.registry.artifact.deprecated", CloudEventType.ARTIFACT_DEPRECATED.type());
         assertEquals("io.apicurio.registry.artifact.deleted", CloudEventType.ARTIFACT_DELETED.type());
-        assertEquals("io.apicurio.registry.artifact.version.published",
+        assertEquals("io.apicurio.registry.artifact.version.created",
                 CloudEventType.ARTIFACT_VERSION_PUBLISHED.type());
-        assertEquals("io.apicurio.registry.artifact.version.state-changed",
+        assertEquals("io.apicurio.registry.artifact.version.state.changed",
                 CloudEventType.ARTIFACT_VERSION_STATE_CHANGED.type());
         assertEquals("io.apicurio.registry.rule.violated", CloudEventType.RULE_VIOLATED.type());
     }

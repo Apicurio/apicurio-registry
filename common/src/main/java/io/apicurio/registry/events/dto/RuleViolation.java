@@ -12,6 +12,14 @@ import java.util.List;
  * validation during a registry operation (e.g. content compatibility or validity check). This is
  * distinct from {@link ArtifactRuleChange}, which describes a rule *configuration* change rather
  * than a validation failure.
+ * <p>
+ * Design note (producer and rollback semantics): the intended producer is the rule-enforcement
+ * layer, at the point where it rejects an incoming write (e.g. a content validation or
+ * compatibility check failure) &mdash; before any storage mutation is attempted. Because the
+ * write was never committed, there is nothing to roll back or compensate: this event is purely
+ * notificational, reporting a rejection that already left no trace in storage. This PR only
+ * defines the payload shape and {@link CloudEventType#RULE_VIOLATED} type string; wiring an
+ * actual producer into the rule-enforcement path is out of scope here.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({ "groupId", "artifactId", "version", "type", "ruleType", "violations" })

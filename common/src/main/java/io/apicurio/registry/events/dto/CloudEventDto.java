@@ -1,5 +1,6 @@
 package io.apicurio.registry.events.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
@@ -42,6 +43,7 @@ public class CloudEventDto {
     private Object data;
 
     @JsonProperty("time")
+    @JsonFormat(shape = JsonFormat.Shape.STRING)
     private Instant time;
 
     public CloudEventDto() {
@@ -153,8 +155,23 @@ public class CloudEventDto {
 
     /**
      * Validates that this event carries all CloudEvents 1.0 required attributes ({@code id},
-     * {@code source}, {@code type}), so callers cannot emit a spec-invalid event whose required
-     * fields silently disappear from the wire output.
+     * {@code source}, {@code type}, {@code specversion}), so callers cannot emit a spec-invalid
+     * event whose required fields silently disappear from the wire output.
+     * <p>
+     * Validation decisions, scoped to what this PR's producers (internal, not user-facing) can
+     * actually emit:
+     * <ul>
+     * <li>{@code specversion}: only checked for non-blank, not pinned to the literal
+     * {@code "1.0"}. Every producer in this codebase uses the field's default value; rejecting
+     * anything other than the exact default would just be re-validating our own constant. If a
+     * future producer needs to emit a different CloudEvents spec version, that becomes a real
+     * value to validate against.</li>
+     * <li>{@code source}: only checked for non-blank. The CloudEvents 1.0 spec requires
+     * {@code source} to be a URI-reference (RFC 3986), but this PR does not add that check —
+     * doing so requires deciding how to handle producers that pass identifiers rather than URIs
+     * (e.g. plain aggregate ids), which is the open question tracked in #9324. Left unvalidated
+     * deliberately rather than silently, pending that decision.</li>
+     * </ul>
      *
      * @throws IllegalArgumentException if any required attribute is null/blank
      */

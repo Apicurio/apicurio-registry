@@ -35,8 +35,20 @@ public class CloudEventDtoTest {
         assertEquals("/apicurio-registry", json.get("source").asText());
         assertEquals(CloudEventType.ARTIFACT_CREATED.type(), json.get("type").asText());
         assertEquals("application/json", json.get("datacontenttype").asText());
+        assertEquals("2026-01-01T00:00:00Z", json.get("time").asText());
         assertFalse(json.has("subject"), "absent optional 'subject' must not be serialized");
         assertFalse(json.has("data"), "absent optional 'data' must not be serialized");
+    }
+
+    @Test
+    void testSerialization_omitsTimeWhenUnset() throws Exception {
+        CloudEventDto event = new CloudEventDto().withId("abc-123")
+                .withSource("/apicurio-registry").withType(CloudEventType.ARTIFACT_CREATED.type());
+
+        ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
+        JsonNode json = mapper.valueToTree(event);
+
+        assertFalse(json.has("time"), "unset 'time' must not be serialized");
     }
 
     @Test

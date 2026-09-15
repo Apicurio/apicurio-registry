@@ -18,6 +18,7 @@ import io.apicurio.registry.mcpregistry.rest.v0.ApisResource;
 import io.apicurio.registry.mcpregistry.rest.v0.beans.ListMetadata;
 import io.apicurio.registry.mcpregistry.rest.v0.beans.Meta;
 import io.apicurio.registry.mcpregistry.rest.v0.beans.Server;
+import io.apicurio.registry.mcpregistry.rest.v0.beans.ServerResponse;
 import io.apicurio.registry.mcpregistry.rest.v0.beans.ServerList;
 import io.apicurio.registry.mcpregistry.rest.v0.beans.ServerStatus;
 import io.apicurio.registry.mcpregistry.rest.v0.beans.StatusUpdate;
@@ -25,6 +26,8 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
+import io.apicurio.registry.rules.RuleApplicationType;
+import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
@@ -60,6 +63,8 @@ import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ServerErrorException;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.UriInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,6 +141,12 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     @Inject
     ArtifactTypeUtilProviderFactory factory;
 
+    @Inject
+    RulesService rulesService;
+
+    @Context
+    UriInfo uriInfo;
+
     private void requireEnabled() {
         if (!config.isEnabled()) {
             throw new NotFoundException("MCP Registry API is disabled");
@@ -158,24 +169,26 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ServerList listServers(String cursor, BigInteger limit, String search, Date updatedSince,
-            String version) {
+            String version, Boolean includeDeletedParam) {
         requireEnabled();
 
         int pageSize = pageSize(limit);
+        boolean includeDeleted = includeDeleted() || updatedSince != null;
         String fingerprint = "servers|" + nullSafe(search) + "|"
-                + (updatedSince == null ? "" : updatedSince.toInstant()) + "|" + nullSafe(version);
+                + (updatedSince == null ? "" : updatedSince.toInstant()) + "|" + nullSafe(version)
+                + "|" + includeDeleted;
         int offset = McpRegistryCursor.decode(cursor, fingerprint);
 
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_SERVER));
-        if ((search == null || search.isBlank()) && updatedSince == null) {
+        if ((search == null || search.isBlank()) && updatedSince == null && !includeDeleted) {
             ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.name,
                     OrderDirection.asc, offset, pageSize, false);
             List<Server> servers = new ArrayList<>();
             for (SearchedArtifactDto artifact : results.getArtifacts()) {
                 Server server = tryLoadServer(new McpServerName(artifact.getGroupId(), artifact.getArtifactId()),
                         version);
-                if (server != null) {
+                if (server != null && !isDeleted(server)) {
                     servers.add(server);
                 }
             }
@@ -195,8 +208,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                     OrderDirection.asc, scanOffset, pageSize, false);
             for (SearchedArtifactDto artifact : results.getArtifacts()) {
                 McpServerName name = new McpServerName(artifact.getGroupId(), artifact.getArtifactId());
-                Server server = tryLoadServer(name, version);
-                if (server != null && matchesSearch(server, query)
+                Server server = tryLoadServer(name, version, latestVersionOrNull(name, includeDeleted));
+                if (server != null && (includeDeleted || !isDeleted(server)) && matchesSearch(server, query)
                         && (updatedSince == null || !updatedAt(server).isBefore(updatedSince.toInstant()))) {
                     servers.add(server);
                 }
@@ -231,36 +244,40 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public Server getServer(String namespace, String serverId) {
+    public ServerResponse getServer(String namespace, String serverId, Boolean includeDeletedParam) {
         requireEnabled();
-        return loadServer(McpServerName.of(namespace, serverId), LATEST_VERSION);
+        return readResponse(McpServerName.of(namespace, serverId), LATEST_VERSION);
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public ServerList listServerVersions(String namespace, String serverId, String cursor,
-            BigInteger limit) {
+            BigInteger limit, Boolean includeDeletedParam) {
         requireEnabled();
 
         McpServerName name = McpServerName.of(namespace, serverId);
         // Surfaces a 404 for an unknown server, rather than an empty page.
-        storage.getArtifactMetaData(name.namespace(), name.serverId());
+        requireServerArtifact(name);
 
         int pageSize = pageSize(limit);
-        String fingerprint = "versions|" + name.full();
+        boolean includeDeleted = includeDeleted();
+        String fingerprint = "versions|" + name.full() + "|" + includeDeleted;
         int offset = McpRegistryCursor.decode(cursor, fingerprint);
 
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroupId(name.namespace()));
         filters.add(SearchFilter.ofArtifactId(name.serverId()));
+        if (!includeDeleted) {
+            filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
+        }
 
         // globalId rather than createdOn: same-millisecond versions tie, and paging needs a total order.
         VersionSearchResultsDto results = storage.searchVersions(filters, OrderBy.globalId,
-                OrderDirection.asc, offset, pageSize, false);
+                OrderDirection.desc, offset, pageSize, false);
 
         // Resolved once: the server name is fixed for the whole page, so every version would otherwise
         // repeat an identical storage.getBranchTip() lookup inside loadServer/decorate.
-        String latestVersion = latestVersionOrNull(name);
+        String latestVersion = latestVersionOrNull(name, includeDeleted);
         List<Server> servers = new ArrayList<>();
         for (SearchedVersionDto searched : results.getVersions()) {
             Server server = tryLoadServer(name, searched.getVersion(), latestVersion);
@@ -277,9 +294,32 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public Server getServerVersion(String namespace, String serverId, String version) {
+    public ServerResponse getServerVersion(String namespace, String serverId, String version,
+            Boolean includeDeletedParam) {
         requireEnabled();
-        return loadServer(McpServerName.of(namespace, serverId), version);
+        return readResponse(McpServerName.of(namespace, serverId), version);
+    }
+
+    private boolean includeDeleted() {
+        String value = uriInfo.getQueryParameters().getFirst("include_deleted");
+        if (value != null && !"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
+            throw new BadRequestException("'include_deleted' must be true or false");
+        }
+        return Boolean.parseBoolean(value);
+    }
+
+    private boolean isDeleted(Server server) {
+        Map<?, ?> meta = (Map<?, ?>) server.getMeta().getAdditionalProperties().get(REGISTRY_META_KEY);
+        return ServerStatus.deleted.value().equals(meta.get(META_STATUS));
+    }
+
+    private ServerResponse readResponse(McpServerName name, String version) {
+        boolean includeDeleted = includeDeleted();
+        Server server = loadServer(name, version, latestVersionOrNull(name, includeDeleted));
+        if (!includeDeleted && isDeleted(server)) {
+            throw new NotFoundException("No MCP server exists at the requested coordinates");
+        }
+        return response(server);
     }
 
     @Override
@@ -289,30 +329,33 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         requireEnabled();
         requireWritable();
         McpServerName name = McpServerName.of(namespace, serverId);
+        requireServerArtifact(name);
         storage.deleteArtifactVersion(name.namespace(), name.serverId(), requireConcreteVersion(version));
     }
 
     @Override
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public Server updateServerVersionStatus(String namespace, String serverId, String version,
+    public ServerResponse updateServerVersionStatus(String namespace, String serverId, String version,
             StatusUpdate data) {
         requireEnabled();
         requireWritable();
         McpServerName name = McpServerName.of(namespace, serverId);
+        requireServerArtifact(name);
         String resolved = requireConcreteVersion(version);
         storage.updateArtifactVersionState(name.namespace(), name.serverId(), resolved,
                 toVersionState(requireStatus(data)), false);
-        return loadServer(name, resolved);
+        return response(loadServer(name, resolved));
     }
 
     @Override
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public Server updateServerStatus(String namespace, String serverId, StatusUpdate data) {
+    public ServerResponse updateServerStatus(String namespace, String serverId, StatusUpdate data) {
         requireEnabled();
         requireWritable();
         McpServerName name = McpServerName.of(namespace, serverId);
+        requireServerArtifact(name);
         VersionState newState = toVersionState(requireStatus(data));
 
         // No bulk state change exists, so versions are updated one at a time; a partial failure is safe to
@@ -329,18 +372,25 @@ public class McpRegistryApiResourceImpl implements ApisResource {
             storage.updateArtifactVersionState(name.namespace(), name.serverId(), version, newState, false);
         }
 
-        return loadServer(name, reportedVersion);
+        return response(loadServer(name, reportedVersion));
     }
 
     @Override
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
-    public Server publishServer(Server data) {
+    public ServerResponse publishServer(Server data) {
         requireEnabled();
         requireWritable();
 
+        if (data == null) {
+            throw new BadRequestException("A server definition is required");
+        }
         McpServerName name = McpServerName.parse(data.getName());
         verifyPublishOwnership(name);
+        boolean exists = artifactExists(name);
+        if (exists) {
+            requireServerArtifact(name);
+        }
 
         String version = data.getVersion();
         if (version == null || version.isBlank()) {
@@ -364,6 +414,9 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         TypedContent typedContent = TypedContent.create(ContentHandle.create(serialize(data)),
                 ContentTypes.APPLICATION_JSON);
         validateServerDefinition(typedContent);
+        rulesService.applyRules(name.namespace(), name.serverId(), ArtifactType.MCP_SERVER, typedContent,
+                exists ? RuleApplicationType.UPDATE : RuleApplicationType.CREATE,
+                Collections.emptyList(), Collections.emptyMap());
 
         ContentWrapperDto content = ContentWrapperDto.builder()
                 .content(typedContent.getContent())
@@ -380,7 +433,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                 .build();
 
         try {
-            if (artifactExists(name)) {
+            if (exists) {
                 storage.createArtifactVersion(name.namespace(), name.serverId(), version,
                         ArtifactType.MCP_SERVER, content, versionMetaData, null, false, false,
                         currentUser());
@@ -399,7 +452,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                     Response.Status.CONFLICT);
         }
 
-        return loadServer(name, version);
+        return response(loadServer(name, version));
     }
 
     /**
@@ -462,6 +515,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
      * @throws NotFoundException if no such server or version exists
      */
     private Server loadServer(McpServerName name, String version, String latestVersion) {
+        requireServerArtifact(name);
         String resolved = version == null || version.isBlank() || LATEST_VERSION.equals(version)
                 ? requireVersion(name, latestVersion)
                 : version;
@@ -518,9 +572,14 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     }
 
     private String latestVersionOrNull(McpServerName name) {
+        return latestVersionOrNull(name, false);
+    }
+
+    private String latestVersionOrNull(McpServerName name, boolean includeDeleted) {
         try {
             return storage.getBranchTip(new GA(name.namespace(), name.serverId()), BranchId.LATEST,
-                    RetrievalBehavior.SKIP_DISABLED_LATEST).getRawVersionId();
+                    includeDeleted ? RetrievalBehavior.ALL_STATES : RetrievalBehavior.SKIP_DISABLED_LATEST)
+                    .getRawVersionId();
         } catch (ArtifactNotFoundException | VersionNotFoundException e) {
             return null;
         }
@@ -533,6 +592,18 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         } catch (ArtifactNotFoundException e) {
             return false;
         }
+    }
+
+    private void requireServerArtifact(McpServerName name) {
+        try {
+            if (ArtifactType.MCP_SERVER.equals(
+                    storage.getArtifactMetaData(name.namespace(), name.serverId()).getArtifactType())) {
+                return;
+            }
+        } catch (ArtifactNotFoundException e) {
+            throw new NotFoundException("No MCP server exists at the requested coordinates");
+        }
+        throw new NotFoundException("No MCP server exists at the requested coordinates");
     }
 
     /** Writes the registry-managed block of '_meta' onto a server loaded from storage. */
@@ -608,9 +679,22 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         }
 
         ServerList list = new ServerList();
-        list.setServers(servers);
+        list.setServers(servers.stream().map(this::response).collect(Collectors.toList()));
         list.setMetadata(metadata);
         return list;
+    }
+
+    private ServerResponse response(Server server) {
+        Meta registryMeta = new Meta();
+        registryMeta.setAdditionalProperty(REGISTRY_META_KEY,
+                server.getMeta().getAdditionalProperties().remove(REGISTRY_META_KEY));
+        if (server.getMeta().getAdditionalProperties().isEmpty()) {
+            server.setMeta(null);
+        }
+        ServerResponse response = new ServerResponse();
+        response.setServer(server);
+        response.setMeta(registryMeta);
+        return response;
     }
 
     // === Small helpers ===

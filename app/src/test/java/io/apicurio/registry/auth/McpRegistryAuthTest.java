@@ -81,7 +81,7 @@ public class McpRegistryAuthTest extends AbstractResourceTestBase {
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(200)
-                .body("version", equalTo("2.0.0"));
+                .body("server.version", equalTo("2.0.0"));
     }
 
     @Test
@@ -193,6 +193,22 @@ public class McpRegistryAuthTest extends AbstractResourceTestBase {
                 .delete(version)
                 .then()
                 .statusCode(204);
+    }
+
+    @Test
+    public void testEncodedServerNamePreservesOwnershipChecks() {
+        String namespace = uniqueNamespace();
+        publishAs("bob1", namespace + "/encoded", "1.0.0");
+        String path = BASE + "/servers/" + namespace + "%2Fencoded/versions/1.0.0/status";
+        given().urlEncodingEnabled(false).auth().preemptive().basic("carol", "carol")
+                .contentType(CT_JSON).body(DEPRECATE).patch(path).then().statusCode(403);
+        given().auth().preemptive().basic("bob1", "bob1")
+                .get(BASE + "/servers/" + namespace + "/encoded/versions/1.0.0").then().statusCode(200)
+                .body("_meta.'io.modelcontextprotocol.registry/official'.status", equalTo("active"));
+        given().urlEncodingEnabled(false).auth().preemptive().basic("bob1", "bob1")
+                .contentType(CT_JSON).body(DEPRECATE).patch(path).then().statusCode(200)
+                .body("server.name", equalTo(namespace + "/encoded"))
+                .body("_meta.'io.modelcontextprotocol.registry/official'.status", equalTo("deprecated"));
     }
 
     @Test

@@ -13,6 +13,32 @@ Implements the official [MCP Registry API](https://github.com/modelcontextprotoc
 speaking the official API works against Apicurio unchanged — with Apicurio's governance on top.
 Tracks issue #7763.
 
+## Contract audit update (2026-09-15)
+
+The following verified behavior supersedes older limitations discussed below:
+
+- Single-server responses and list entries use `{server, _meta}`. Publisher metadata
+  stays in `server._meta`; registry metadata is at the response envelope level.
+- Standard `%2F`-encoded namespace/server names work through a narrowly scoped
+  pre-matching rewrite (`McpRegistryEncodedNameFilter`). There is no global encoded-
+  slash setting; rewritten identities still pass `McpServerName` validation.
+- `websiteUrl` is camelCase. The foreign OpenAPI source generates the JAX-RS models;
+  the generic Registry v3 SDK specification has not changed.
+- Configured global/group/artifact rules run on publish, in addition to mandatory
+  structural validation. The MCP_SERVER compatibility checker itself remains #9913.
+- Reads, status changes, deletes and publishing an additional version verify the
+  artifact type; other artifact families cannot be accessed through these routes.
+- `include_deleted` is implemented on reads/lists, defaults to false, and is
+  effectively true for incremental listing. Version lists are newest-first.
+- Filtered listing retains the documented O(N) scan limitation.
+
+Remaining compatibility limitations: omitted `version` currently selects latest
+rather than all versions, optional PUT is unsupported, hard delete returns 204,
+server-wide status changes are non-atomic and return one representative response
+rather than upstream's aggregate, and statusMessage is validated but not persisted.
+The simplified manifest validator is not complete upstream JSON Schema validation.
+Do not claim unrestricted drop-in compatibility.
+
 Not to be confused with the `mcp/` module, which is an MCP **server** exposing registry operations as
 tools. Different thing entirely; do not touch it from here.
 
@@ -143,10 +169,12 @@ the same treatment.**
 via `ArtifactTypeUtilProviderFactory` at `ValidityLevel.FULL`, mapping `RuleViolationException` to 400
 with the violations joined into the message.
 
-**Do not replace this with `rulesService.applyRules()`.** That path only fires when an operator has
+**Do not replace this with `rulesService.applyRules()` alone.** That path only fires when an operator has
 configured a VALIDITY rule, which is not the default — the validator was originally unreachable from
 publish for exactly that reason, and a `server.json` with a malformed `repository` was accepted with a
 200. A well-formed document is a precondition of publishing, not something a deployment opts into.
+After mandatory validation, publish also calls `rulesService.applyRules()` so configured governance
+is enforced before creating the artifact/version.
 
 Note the validator sees the *re-serialized bean*, not the raw request body, so Jackson coercion has
 already happened: `"identifier": 123` arrives as `"123"` and is legitimately valid. The validator

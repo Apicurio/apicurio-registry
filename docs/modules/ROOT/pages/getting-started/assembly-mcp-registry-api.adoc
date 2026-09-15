@@ -1,0 +1,71 @@
+[id="mcp-registry-api"]
+= MCP Registry API (Developer Preview)
+
+Apicurio Registry exposes an experimental MCP Registry API at
+`/apis/mcp-registry/v0.1`. This is separate from the `mcp/` server module,
+which exposes Registry operations as MCP tools.
+
+Enable both configuration properties:
+
+[source,properties]
+----
+apicurio.features.experimental.enabled=true
+apicurio.mcp-registry.enabled=true
+----
+
+Publish a server definition with `POST /apis/mcp-registry/v0.1/publish`.
+The reverse-DNS name `io.github.example/weather` maps to group
+`io.github.example` and artifact ID `weather`, with type `MCP_SERVER`.
+Publishing applies mandatory structural validation and configured Registry rules.
+Defining semantic compatibility rules for server manifests remains separate work.
+
+Read the published version using either the standard encoded name or the
+two-segment alias:
+
+[source,shell]
+----
+curl 'http://localhost:8080/apis/mcp-registry/v0.1/servers/io.github.example%2Fweather/versions/1.0.0'
+----
+
+Single-version responses and list entries separate the server definition from
+registry-owned metadata:
+
+[source,json]
+----
+{
+  "server": {
+    "name": "io.github.example/weather",
+    "version": "1.0.0",
+    "description": "Weather forecasts"
+  },
+  "_meta": {
+    "io.modelcontextprotocol.registry/official": {
+      "status": "active",
+      "isLatest": true
+    }
+  }
+}
+----
+
+List servers using `GET /apis/mcp-registry/v0.1/servers`.
+`search` matches names or descriptions. `updated_since` accepts RFC 3339 timestamps
+and uses the returned version's modification timestamp, including status changes.
+Incremental listing includes deleted records; other reads exclude them unless
+`include_deleted=true`. Version lists are newest-first. Reuse `metadata.nextCursor`
+with the same filters. Both explicit and default limits respect
+`apicurio.mcp-registry.max-page-size`.
+
+== Current limitations
+
+* This preview is not a fully conformant drop-in implementation of every upstream
+  endpoint and manifest constraint. The default server listing returns latest versions.
+* Filtered lists scan and resolve server versions before pagination. The page-size
+  limit bounds responses and storage batches, not total scanning work or memory.
+  Offset cursors do not provide snapshot consistency across concurrent writes.
+* Optional PUT is unsupported; hard deletion returns HTTP 204. Server-wide status
+  changes are non-atomic and return a representative version instead of an aggregate.
+* `statusMessage` is validated but not persisted. Manifest validation is structural,
+  not complete upstream JSON Schema validation.
+* GitOps/KubernetesOps reject writes with HTTP 501. Their existing loader limitation
+  can prevent latest-version reads when imported versions lack branch entries.
+* Registering a server manifest does not contact the server or import its tools.

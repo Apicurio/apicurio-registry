@@ -37,8 +37,8 @@ class McpRegistryKafkaSqlLifecycleTest {
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(200)
-                .body("name", equalTo(name))
-                .body("version", equalTo("1.0.0"));
+                .body("server.name", equalTo(name))
+                .body("server.version", equalTo("1.0.0"));
 
         given()
                 .when()
@@ -46,7 +46,7 @@ class McpRegistryKafkaSqlLifecycleTest {
                 .get(BASE + "/servers/" + namespace + "/weather")
                 .then()
                 .statusCode(200)
-                .body("description", equalTo("kafkasql check"));
+                .body("server.description", equalTo("kafkasql check"));
 
         given()
                 .when()

@@ -67,7 +67,8 @@
             "schema": {
               "type": "string"
             }
-          }
+          },
+          { "$ref": "#/components/parameters/include_deleted" }
         ],
         "responses": {
           "200": {
@@ -107,7 +108,8 @@
           },
           {
             "$ref": "#/components/parameters/server_id"
-          }
+          },
+          { "$ref": "#/components/parameters/include_deleted" }
         ],
         "responses": {
           "200": {
@@ -115,7 +117,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Server"
+                  "$ref": "#/components/schemas/ServerResponse"
                 }
               }
             }
@@ -140,7 +142,7 @@
           "Servers"
         ],
         "summary": "List server versions",
-        "description": "List all versions of a single MCP server.",
+        "description": "List versions of a single MCP server, newest first. Deleted versions are excluded unless include_deleted is true.",
         "parameters": [
           {
             "$ref": "#/components/parameters/namespace"
@@ -166,7 +168,8 @@
               "maximum": 100,
               "default": 30
             }
-          }
+          },
+          { "$ref": "#/components/parameters/include_deleted" }
         ],
         "responses": {
           "200": {
@@ -218,7 +221,8 @@
           },
           {
             "$ref": "#/components/parameters/version"
-          }
+          },
+          { "$ref": "#/components/parameters/include_deleted" }
         ],
         "responses": {
           "200": {
@@ -226,7 +230,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Server"
+                  "$ref": "#/components/schemas/ServerResponse"
                 }
               }
             }
@@ -361,7 +365,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Server"
+                  "$ref": "#/components/schemas/ServerResponse"
                 }
               }
             }
@@ -450,7 +454,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Server"
+                  "$ref": "#/components/schemas/ServerResponse"
                 }
               }
             }
@@ -532,7 +536,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Server"
+                  "$ref": "#/components/schemas/ServerResponse"
                 }
               }
             }
@@ -603,6 +607,12 @@
   },
   "components": {
     "parameters": {
+      "include_deleted": {
+        "name": "include_deleted",
+        "in": "query",
+        "description": "Include deleted server versions. Always enabled for incremental listing with updated_since.",
+        "schema": { "type": "boolean", "default": false }
+      },
       "namespace": {
         "name": "namespace",
         "in": "path",
@@ -687,7 +697,7 @@
           "description": {
             "type": "string"
           },
-          "website_url": {
+          "websiteUrl": {
             "type": "string"
           },
           "repository": {
@@ -881,6 +891,15 @@
           }
         }
       },
+      "ServerResponse": {
+        "description": "Server definition and registry-owned metadata, as separate objects.",
+        "type": "object",
+        "required": ["server"],
+        "properties": {
+          "server": { "$ref": "#/components/schemas/Server" },
+          "_meta": { "$ref": "#/components/schemas/Meta" }
+        }
+      },
       "ServerList": {
         "type": "object",
         "required": [
@@ -890,7 +909,7 @@
           "servers": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Server"
+              "$ref": "#/components/schemas/ServerResponse"
             }
           },
           "metadata": {

@@ -57,18 +57,18 @@ public class McpRegistryListRegressionTest extends AbstractResourceTestBase {
 
         String cursor = given().queryParam("search", ns).get(BASE + "/servers").then()
                 .statusCode(200).body("servers", hasSize(2)).body("metadata.count", equalTo(2))
-                .body("servers.name", equalTo(List.of(ns + "/server1", ns + "/server2")))
+                .body("servers.server.name", equalTo(List.of(ns + "/server1", ns + "/server2")))
                 .extract().path("metadata.nextCursor");
         given().queryParam("search", ns).queryParam("cursor", cursor).get(BASE + "/servers").then()
-                .statusCode(200).body("servers.name", equalTo(List.of(ns + "/server3")))
+                .statusCode(200).body("servers.server.name", equalTo(List.of(ns + "/server3")))
                 .body("metadata.count", equalTo(1)).body("metadata.nextCursor", nullValue());
 
         String versions = BASE + "/servers/" + ns + "/server1/versions";
         cursor = given().get(versions).then().statusCode(200)
-                .body("servers.version", equalTo(List.of("1.0.0", "2.0.0")))
+                .body("servers.server.version", equalTo(List.of("3.0.0", "2.0.0")))
                 .body("metadata.count", equalTo(2)).extract().path("metadata.nextCursor");
         given().queryParam("cursor", cursor).get(versions).then().statusCode(200)
-                .body("servers.version", equalTo(List.of("3.0.0")))
+                .body("servers.server.version", equalTo(List.of("1.0.0")))
                 .body("metadata.count", equalTo(1)).body("metadata.nextCursor", nullValue());
     }
 
@@ -84,11 +84,11 @@ public class McpRegistryListRegressionTest extends AbstractResourceTestBase {
 
         String cursor = given().queryParam("search", term).get(BASE + "/servers").then()
                 .statusCode(200).body("metadata.count", equalTo(2))
-                .body("servers.name", equalTo(List.of(ns + "/b-" + term, ns + "/c-description")))
+                .body("servers.server.name", equalTo(List.of(ns + "/b-" + term, ns + "/c-description")))
                 .extract().path("metadata.nextCursor");
         given().queryParam("search", term).queryParam("cursor", cursor).get(BASE + "/servers").then()
                 .statusCode(200).body("metadata.count", equalTo(1))
-                .body("servers.name", equalTo(List.of(ns + "/e-" + term)))
+                .body("servers.server.name", equalTo(List.of(ns + "/e-" + term)))
                 .body("metadata.nextCursor", nullValue());
     }
 
@@ -103,8 +103,8 @@ public class McpRegistryListRegressionTest extends AbstractResourceTestBase {
                 .body("servers", hasSize(0)).body("metadata.count", equalTo(0))
                 .body("metadata.nextCursor", nullValue());
         given().queryParam("search", term).queryParam("version", "1.0.0").get(BASE + "/servers")
-                .then().statusCode(200).body("servers.name", equalTo(List.of(ns + "/server")))
-                .body("servers.version", equalTo(List.of("1.0.0"))).body("metadata.count", equalTo(1));
+                .then().statusCode(200).body("servers.server.name", equalTo(List.of(ns + "/server")))
+                .body("servers.server.version", equalTo(List.of("1.0.0"))).body("metadata.count", equalTo(1));
     }
 
     @Test
@@ -122,12 +122,33 @@ public class McpRegistryListRegressionTest extends AbstractResourceTestBase {
 
         String cursor = given().queryParam("search", ns).queryParam("updated_since", older)
                 .queryParam("limit", 1).get(BASE + "/servers").then().statusCode(200)
-                .body("servers.name", equalTo(List.of(ns + "/z-server")))
+                .body("servers.server.name", equalTo(List.of(ns + "/z-server")))
                 .body("metadata.count", equalTo(1)).extract().path("metadata.nextCursor");
         given().queryParam("search", ns).queryParam("updated_since", older).queryParam("limit", 1)
                 .queryParam("cursor", cursor).get(BASE + "/servers").then().statusCode(200)
-                .body("servers.name", equalTo(List.of(ns + "/a-server")))
+                .body("servers.server.name", equalTo(List.of(ns + "/a-server")))
                 .body("metadata.count", equalTo(1)).body("metadata.nextCursor", nullValue());
+    }
+
+    @Test
+    public void incrementalListIncludesDeletionTombstones() {
+        String ns = namespace();
+        String published = publish(ns + "/deleted", "1.0.0", "Deleted server")
+                .extract().path(META + ".updatedAt");
+        given().contentType(CT_JSON).body(Map.of("status", "deleted"))
+                .patch(BASE + "/servers/" + ns + "/deleted/versions/1.0.0/status")
+                .then().statusCode(200);
+        given().queryParam("search", ns).get(BASE + "/servers").then().statusCode(200)
+                .body("servers", hasSize(0));
+        given().queryParam("search", ns).queryParam("updated_since", published)
+                .queryParam("include_deleted", false).get(BASE + "/servers").then().statusCode(200)
+                .body("servers.server.name", equalTo(List.of(ns + "/deleted")))
+                .body("servers[0]." + META + ".status", equalTo("deleted"));
+        String versions = BASE + "/servers/" + ns + "/deleted/versions";
+        given().get(versions).then().statusCode(200).body("metadata.count", equalTo(0));
+        given().queryParam("include_deleted", true).get(versions).then().statusCode(200)
+                .body("servers.server.version", equalTo(List.of("1.0.0")))
+                .body("metadata.count", equalTo(1));
     }
 
     @Test
@@ -152,13 +173,13 @@ public class McpRegistryListRegressionTest extends AbstractResourceTestBase {
 
         given().queryParam("search", ns).queryParam("updated_since", watermark).queryParam("limit", 1)
                 .get(BASE + "/servers").then().statusCode(200)
-                .body("servers.name", equalTo(List.of(ns + "/z-changed")))
+                .body("servers.server.name", equalTo(List.of(ns + "/z-changed")))
                 .body("servers[0]." + META + ".updatedAt", equalTo(changed))
                 .body("servers[0]." + META + ".status", equalTo("deprecated"))
                 .body("metadata.count", equalTo(1)).body("metadata.nextCursor", nullValue());
 
         given().queryParam("search", ns).queryParam("updated_since", changed).get(BASE + "/servers")
-                .then().statusCode(200).body("servers.name", equalTo(List.of(ns + "/z-changed")))
+                .then().statusCode(200).body("servers.server.name", equalTo(List.of(ns + "/z-changed")))
                 .body("metadata.count", equalTo(1));
 
         given().queryParam("search", ns).queryParam("updated_since", Instant.parse(changed).plusSeconds(1).toString())

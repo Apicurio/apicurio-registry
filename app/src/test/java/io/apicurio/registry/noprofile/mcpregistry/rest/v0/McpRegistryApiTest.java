@@ -66,11 +66,50 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(200)
-                .body("name", equalTo(name))
-                .body("version", equalTo(version));
+                .body("server.name", equalTo(name))
+                .body("server.version", equalTo(version));
     }
 
     // === Publish and read back ===
+
+    @Test
+    public void testEncodedServerNameAndResponseEnvelope() {
+        String namespace = uniqueNamespace();
+        String name = namespace + "/encoded";
+        publish(name, "1.0.0", "Encoded name");
+        given().urlEncodingEnabled(false)
+                .get(BASE + "/servers/" + namespace + "%2Fencoded/versions/1.0.0")
+                .then().statusCode(200).body("server.name", equalTo(name))
+                .body("server.version", equalTo("1.0.0"))
+                .body("name", nullValue())
+                .body("server._meta.'" + REGISTRY_META + "'", nullValue())
+                .body("_meta.'" + REGISTRY_META + "'.status", equalTo("active"));
+        given().contentType(CT_JSON).body("{\"status\":\"deleted\"}")
+                .patch(BASE + "/servers/" + namespace + "/encoded/versions/1.0.0/status")
+                .then().statusCode(200);
+        given().urlEncodingEnabled(false)
+                .get(BASE + "/servers/" + namespace + "%2fencoded?include_deleted=true")
+                .then().statusCode(200).body("server.name", equalTo(name))
+                .body("server.version", equalTo("1.0.0"))
+                .body("_meta.'" + REGISTRY_META + "'.status", equalTo("deleted"));
+    }
+
+    @Test
+    public void testWebsiteUrlAndPublisherMetadataRoundTripInEnvelope() {
+        String name = uniqueNamespace() + "/website";
+        given().contentType(CT_JSON).body("""
+                {"name":"%s", "version":"1.0.0", "description":"Website test",
+                 "websiteUrl":"https://example.com/mcp",
+                 "_meta":{"com.example/build":{"revision":"abc"}}}
+                """.formatted(name)).post(BASE + "/publish").then().statusCode(200)
+                .body("server.websiteUrl", equalTo("https://example.com/mcp"))
+                .body("server._meta.'com.example/build'.revision", equalTo("abc"))
+                .body("server._meta.'" + REGISTRY_META + "'", nullValue())
+                .body("_meta.'com.example/build'", nullValue());
+        given().queryParam("search", name).get(BASE + "/servers").then().statusCode(200)
+                .body("servers[0].server.websiteUrl", equalTo("https://example.com/mcp"))
+                .body("servers[0].server._meta.'com.example/build'.revision", equalTo("abc"));
+    }
 
     @Test
     public void testPublishAndGetServer() {
@@ -85,13 +124,13 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/weather")
                 .then()
                 .statusCode(200)
-                .body("name", equalTo(name))
-                .body("version", equalTo("1.0.0"))
-                .body("description", equalTo("A weather server"))
-                .body("repository.url", equalTo("https://github.com/example/weather"))
-                .body("packages", hasSize(1))
-                .body("packages[0].registryType", equalTo("npm"))
-                .body("packages[0].transport.type", equalTo("stdio"))
+                .body("server.name", equalTo(name))
+                .body("server.version", equalTo("1.0.0"))
+                .body("server.description", equalTo("A weather server"))
+                .body("server.repository.url", equalTo("https://github.com/example/weather"))
+                .body("server.packages", hasSize(1))
+                .body("server.packages[0].registryType", equalTo("npm"))
+                .body("server.packages[0].transport.type", equalTo("stdio"))
                 .body("_meta.'" + REGISTRY_META + "'.status", equalTo("active"))
                 .body("_meta.'" + REGISTRY_META + "'.isLatest", equalTo(true))
                 .body("_meta.'" + REGISTRY_META + "'.id", notNullValue())
@@ -123,7 +162,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(200)
-                .body("_meta.'com.example/build'.commit", equalTo("abc123"))
+                .body("server._meta.'com.example/build'.commit", equalTo("abc123"))
                 .body("_meta.'" + REGISTRY_META + "'.status", equalTo("active"));
 
         given()
@@ -132,7 +171,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/annotated")
                 .then()
                 .statusCode(200)
-                .body("_meta.'com.example/build'.commit", equalTo("abc123"))
+                .body("server._meta.'com.example/build'.commit", equalTo("abc123"))
                 .body("_meta.'" + REGISTRY_META + "'.status", equalTo("active"))
                 .body("_meta.'" + REGISTRY_META + "'.id", notNullValue())
                 .body("_meta.'" + REGISTRY_META + "'.id", not(equalTo("spoofed")));
@@ -163,9 +202,9 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/remoteonly")
                 .then()
                 .statusCode(200)
-                .body("remotes", hasSize(1))
-                .body("packages", nullValue())
-                .body("icons", nullValue());
+                .body("server.remotes", hasSize(1))
+                .body("server.packages", nullValue())
+                .body("server.icons", nullValue());
     }
 
     @Test
@@ -202,10 +241,10 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("servers", hasSize(2))
                 .body("metadata.count", equalTo(2))
-                .body("servers[0].version", equalTo("1.0.0"))
-                .body("servers[1].version", equalTo("2.0.0"))
-                .body("servers[0]._meta.'" + REGISTRY_META + "'.isLatest", equalTo(false))
-                .body("servers[1]._meta.'" + REGISTRY_META + "'.isLatest", equalTo(true));
+                .body("servers[0].server.version", equalTo("2.0.0"))
+                .body("servers[1].server.version", equalTo("1.0.0"))
+                .body("servers[0]._meta.'" + REGISTRY_META + "'.isLatest", equalTo(true))
+                .body("servers[1]._meta.'" + REGISTRY_META + "'.isLatest", equalTo(false));
 
         // The bare server endpoint resolves to the most recently published version
         given()
@@ -214,7 +253,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/multi")
                 .then()
                 .statusCode(200)
-                .body("version", equalTo("2.0.0"));
+                .body("server.version", equalTo("2.0.0"));
 
         // ... and an explicit version returns exactly that one
         given()
@@ -223,8 +262,8 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/multi/versions/1.0.0")
                 .then()
                 .statusCode(200)
-                .body("version", equalTo("1.0.0"))
-                .body("description", equalTo("v1"));
+                .body("server.version", equalTo("1.0.0"))
+                .body("server.description", equalTo("v1"));
     }
 
     @Test
@@ -254,7 +293,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/deletable")
                 .then()
                 .statusCode(200)
-                .body("version", equalTo("1.0.0"));
+                .body("server.version", equalTo("1.0.0"));
     }
 
     @Test
@@ -327,7 +366,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/missing")
                 .then()
                 .statusCode(404)
-                .body("error", equalTo("No active version of MCP server '" + namespace + "/missing' exists"))
+                .body("error", equalTo("No MCP server exists at the requested coordinates"))
                 .body("name", nullValue())
                 .body("title", nullValue())
                 .body("detail", nullValue());
@@ -435,7 +474,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/softdeleted")
                 .then()
                 .statusCode(200)
-                .body("version", equalTo("1.0.0"));
+                .body("server.version", equalTo("1.0.0"));
 
         // ... but is still addressable directly, reporting its status.
         given()
@@ -443,7 +482,10 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .contentType(CT_JSON)
                 .get(BASE + "/servers/" + namespace + "/softdeleted/versions/2.0.0")
                 .then()
-                .statusCode(200)
+                .statusCode(404);
+        given().queryParam("include_deleted", true)
+                .get(BASE + "/servers/" + namespace + "/softdeleted/versions/2.0.0")
+                .then().statusCode(200)
                 .body("_meta.'" + REGISTRY_META + "'.status", equalTo("deleted"));
     }
 
@@ -519,7 +561,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/restorable")
                 .then()
                 .statusCode(200)
-                .body("version", equalTo("2.0.0"));
+                .body("server.version", equalTo("2.0.0"));
     }
 
     @Test
@@ -539,14 +581,15 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .patch(BASE + "/servers/" + namespace + "/gone/status")
                 .then()
                 .statusCode(200)
-                .body("name", equalTo(name))
-                .body("version", equalTo("2.0.0"))
+                .body("server.name", equalTo(name))
+                .body("server.version", equalTo("2.0.0"))
                 .body("_meta.'" + REGISTRY_META + "'.status", equalTo("deleted"));
 
         for (String version : new String[] {"1.0.0", "2.0.0"}) {
             given()
                     .when()
                     .contentType(CT_JSON)
+                    .queryParam("include_deleted", true)
                     .get(BASE + "/servers/" + namespace + "/gone/versions/" + version)
                     .then()
                     .statusCode(200)
@@ -576,7 +619,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/gone")
                 .then()
                 .statusCode(200)
-                .body("version", equalTo("2.0.0"));
+                .body("server.version", equalTo("2.0.0"));
     }
 
     @Test
@@ -719,7 +762,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body("servers", hasSize(1))
                 .body("metadata.count", equalTo(1))
-                .body("servers[0].name", equalTo(namespace + "/alpha" + marker));
+                .body("servers[0].server.name", equalTo(namespace + "/alpha" + marker));
     }
 
     @Test
@@ -813,7 +856,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
             }
             var response = request.get(BASE + "/servers").then().statusCode(200)
                     .body("servers", hasSize(1)).extract();
-            seen.add(response.path("servers[0].name"));
+            seen.add(response.path("servers[0].server.name"));
             cursor = response.path("metadata.nextCursor");
         }
 
@@ -915,7 +958,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(versions)
                 .then()
                 .statusCode(200)
-                .body("servers.version", equalTo(List.of("1.0.0", "2.0.0")))
+                .body("servers.server.version", equalTo(List.of("3.0.0", "2.0.0")))
                 .body("metadata.nextCursor", notNullValue())
                 .extract().path("metadata.nextCursor");
 
@@ -928,7 +971,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(versions)
                 .then()
                 .statusCode(200)
-                .body("servers.version", equalTo(List.of("3.0.0")))
+                .body("servers.server.version", equalTo(List.of("1.0.0")))
                 .body("metadata.nextCursor", nullValue());
     }
 

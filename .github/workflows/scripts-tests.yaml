@@ -1,6 +1,6 @@
 name: Scripts Tests
 
-# Unit tests for the Node scripts under .github/scripts.
+# Unit tests for the scripts under .github/scripts, Node and shell alike.
 #
 # These deliberately do NOT live in pr-validation.yml, even though it already
 # had a test step: that workflow runs on pull_request_target and checks out the
@@ -19,6 +19,9 @@ on:
       - '.github/scripts/**'
       - '.github/pr-lifecycle.yml'
       - '.github/workflows/scripts-tests.yaml'
+      # scalpel-summary.test.sh asserts the pinned Scalpel version still writes
+      # the report schema the summary reads, so a bump has to run these tests.
+      - '.mvn/extensions.xml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -46,3 +49,8 @@ jobs:
         run: |
           node --test .github/scripts/pr-validation.test.js \
                       .github/scripts/pr-lifecycle.test.js
+
+      # jq is preinstalled on ubuntu-latest, which is the same assumption the
+      # scalpel-report job in verify.yaml makes.
+      - name: Run shell script tests
+        run: bash .github/scripts/scalpel-summary.test.sh

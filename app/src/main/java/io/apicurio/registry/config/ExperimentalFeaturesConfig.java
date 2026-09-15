@@ -3,9 +3,11 @@ package io.apicurio.registry.config;
 import io.apicurio.common.apps.config.ExperimentalConfigPropertyDef;
 import io.apicurio.common.apps.config.ExperimentalConfigPropertyList;
 import io.apicurio.common.apps.config.Info;
+import io.quarkus.runtime.Startup;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
+import jakarta.interceptor.Interceptor;
 import org.eclipse.microprofile.config.Config;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -25,6 +27,7 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_SYS
  * features (e.g., GitOps storage variant) require special checks below.</p>
  */
 @Singleton
+@Startup(Interceptor.Priority.PLATFORM_BEFORE)
 public class ExperimentalFeaturesConfig {
 
     @Inject
@@ -41,24 +44,28 @@ public class ExperimentalFeaturesConfig {
     boolean experimentalFeaturesEnabled;
 
     @PostConstruct
+    void validateOnStartup() {
+        validate();
+    }
+
     void validate() {
         if (experimentalFeaturesEnabled) {
             log.info("Experimental features gate is enabled.");
             return;
         }
 
-        List<String> violations = new ArrayList<>();
+        final List<String> violations = new ArrayList<>();
 
         // Auto-check all boolean experimental toggle properties discovered at build time
-        for (ExperimentalConfigPropertyDef prop : experimentalProperties.getExperimentalConfigProperties()) {
-            boolean value = config.getOptionalValue(prop.getName(), Boolean.class).orElse(false);
+        for (final ExperimentalConfigPropertyDef prop : experimentalProperties.getExperimentalConfigProperties()) {
+            final boolean value = config.getOptionalValue(prop.getName(), Boolean.class).orElse(false);
             if (value) {
                 violations.add(prop.getName() + " (" + prop.getDescription() + ")");
             }
         }
 
         // Special checks for non-boolean experimental features (e.g., storage variants)
-        String storageKind = config.getOptionalValue("apicurio.storage.kind", String.class).orElse("sql");
+        final String storageKind = config.getOptionalValue("apicurio.storage.kind", String.class).orElse("sql");
         if ("gitops".equals(storageKind)) {
             violations.add("apicurio.storage.kind=gitops (GitOps storage)");
         }

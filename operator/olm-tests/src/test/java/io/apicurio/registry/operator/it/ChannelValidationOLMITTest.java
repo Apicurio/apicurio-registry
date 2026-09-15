@@ -19,8 +19,9 @@ import static org.awaitility.Awaitility.await;
 /**
  * Validates OLM catalog channel configuration.
  * <p>
- * Under OLM v0, uses the PackageManifest API. Under OLM v1, reads the catalog content from the
- * catalogd HTTP API and parses it via {@link CatalogDiscovery#parseFBC} to build a {@link CatalogInfo}.
+ * Under OLM v0, uses the PackageManifest API. Under OLM v1, reads File-Based Catalog (FBC) content
+ * from catalogd (via {@link CatalogdClient}) and parses it via {@link CatalogDiscovery#parseFBC} into a
+ * {@link CatalogInfo}, since PackageManifest may return data from other catalog sources on the cluster.
  */
 @QuarkusTest
 @Tag(OLM)
@@ -168,79 +169,13 @@ public class ChannelValidationOLMITTest extends OLMITBase {
     // ---- OLM v1 catalogd access ----
 
     /**
-     * Reads the catalog content from the catalogd HTTP API and parses it into a CatalogInfo
-     * using the shared FBC parser.
+     * Reads FBC content from catalogd (via {@link CatalogdClient}) and parses it with
+     * {@link CatalogDiscovery#parseFBC}, the same parser {@code CatalogDiscovery} uses for OLM v0's
+     * exec-from-pod FBC content, so channel/version parsing logic lives in exactly one place. The
+     * base URL is discovered from the ClusterCatalog's {@code status.urls.base} field.
      */
-    @SuppressWarnings("unchecked")
     private CatalogInfo getCatalogInfoV1() throws Exception {
-        var content = readCatalogdContent();
+        var content = CatalogdClient.readCatalogContent(client, namespace, CATALOG_NAME);
         return CatalogDiscovery.parseFBC(content);
-    }
-
-    /**
-     * Reads the raw catalog content from the catalogd HTTP API via a curl pod. The base URL is
-     * discovered from the ClusterCatalog's status.urls.base field.
-     */
-    @SuppressWarnings("unchecked")
-    private String readCatalogdContent() throws Exception {
-        var catalogName = "apicurio-registry-operator-catalog";
-
-        var cc = client.genericKubernetesResources("olm.operatorframework.io/v1", "ClusterCatalog")
-                .withName(catalogName)
-                .get();
-        if (cc == null) {
-            throw new IllegalStateException("ClusterCatalog '" + catalogName + "' not found");
-        }
-
-        var urls = (Map<String, Object>) cc.get("status", "urls");
-        String baseUrl;
-        if (urls != null && urls.get("base") != null) {
-            baseUrl = (String) urls.get("base");
-            log.info("Discovered catalogd base URL from ClusterCatalog status: {}", baseUrl);
-        } else {
-            baseUrl = "https://catalogd-service.openshift-catalogd.svc/catalogs/" + catalogName;
-            log.warn("ClusterCatalog status.urls.base not available, using fallback: {}", baseUrl);
-        }
-
-        var podName = "catalog-query-" + namespace.substring(namespace.length() - 7);
-
-        try {
-            client.pods().inNamespace(namespace).withName(podName).delete();
-            Thread.sleep(2000);
-        } catch (Exception e) {
-            // ignore
-        }
-
-        var curlCmd = "curl -sk '" + baseUrl + "/api/v1/all' 2>/dev/null || "
-                + "curl -sk '" + baseUrl + "/all' 2>/dev/null";
-        log.info("Querying catalogd API via curl pod: {}", curlCmd);
-
-        var pod = new io.fabric8.kubernetes.api.model.PodBuilder()
-                .withNewMetadata().withName(podName).withNamespace(namespace).endMetadata()
-                .withNewSpec()
-                .withRestartPolicy("Never")
-                .addNewContainer()
-                .withName("curl")
-                .withImage("registry.access.redhat.com/ubi9/ubi-minimal:latest")
-                .withCommand("sh", "-c", curlCmd)
-                .endContainer()
-                .endSpec()
-                .build();
-        client.pods().inNamespace(namespace).resource(pod).create();
-
-        await().atMost(java.time.Duration.ofMinutes(2)).ignoreExceptions().until(() -> {
-            var p = client.pods().inNamespace(namespace).withName(podName).get();
-            return p != null && ("Succeeded".equals(p.getStatus().getPhase())
-                    || "Failed".equals(p.getStatus().getPhase()));
-        });
-
-        var content = client.pods().inNamespace(namespace).withName(podName).getLog();
-        client.pods().inNamespace(namespace).withName(podName).delete();
-
-        if (content == null || content.isEmpty()) {
-            throw new IllegalStateException("Empty catalog content from catalogd API at " + baseUrl);
-        }
-        log.info("Received {} bytes from catalogd API", content.length());
-        return content;
     }
 }

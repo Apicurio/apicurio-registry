@@ -8316,6 +8316,11 @@
           "searchIndex": {
             "description": "",
             "type": "boolean"
+          },
+          "urlImportMaxContentLength": {
+            "description": "Maximum content length (in bytes) for UI 'Import from URL' responses.",
+            "type": "integer",
+            "format": "int64"
           }
         },
         "example": {

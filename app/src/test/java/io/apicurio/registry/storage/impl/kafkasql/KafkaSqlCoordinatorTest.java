@@ -11,6 +11,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,9 +25,11 @@ class KafkaSqlCoordinatorTest {
 
     private KafkaSqlCoordinator coordinator;
 
+    private KafkaSqlConfiguration configuration;
+
     @BeforeEach
     void setup() {
-        KafkaSqlConfiguration configuration = new KafkaSqlConfiguration();
+        configuration = new KafkaSqlConfiguration();
         configuration.responseTimeout = 30000;
 
         @SuppressWarnings("unchecked")
@@ -39,13 +42,7 @@ class KafkaSqlCoordinatorTest {
 
     @Test
     void testWaitForResponseTimesOut() {
-        KafkaSqlConfiguration shortTimeout = new KafkaSqlConfiguration();
-        shortTimeout.responseTimeout = 1;
-
-        @SuppressWarnings("unchecked")
-        Instance<KafkaSqlConfiguration> configInstance = mock(Instance.class);
-        when(configInstance.get()).thenReturn(shortTimeout);
-        coordinator.configuration = configInstance;
+        configuration.responseTimeout = 1;
 
         UUID uuid = coordinator.createUUID();
 
@@ -101,11 +98,15 @@ class KafkaSqlCoordinatorTest {
     @Test
     void testNotifyForNullUuidIsNoOp() {
         coordinator.notifyResponse(null, "value");
+
+        assertEquals(0, coordinator.pendingCount());
     }
 
     @Test
     void testNotifyForUnknownUuidIsNoOp() {
         coordinator.notifyResponse(UUID.randomUUID(), "value");
+
+        assertEquals(0, coordinator.pendingCount());
     }
 
     @Test
@@ -130,6 +131,8 @@ class KafkaSqlCoordinatorTest {
     @Test
     @Timeout(60)
     void testConcurrentWaitAndNotify() throws Exception {
+        configuration.responseTimeout = 2000;
+
         int threadCount = 20;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         try {
@@ -155,7 +158,8 @@ class KafkaSqlCoordinatorTest {
                 });
             }
 
-            waitersReady.await();
+            assertTrue(waitersReady.await(10, TimeUnit.SECONDS),
+                    "All waiter threads should reach waitForResponse");
             for (int i = 0; i < threadCount; i++) {
                 coordinator.notifyResponse(uuids[i], "result-" + i);
             }
@@ -164,7 +168,7 @@ class KafkaSqlCoordinatorTest {
                 waitFutures[i].get();
             }
 
-            assertNull(error.get(), () -> "Concurrent test failed: " + error.get().getMessage());
+            assertNull(error.get(), () -> "Concurrent test failed: " + error.get());
         } finally {
             executor.shutdownNow();
         }

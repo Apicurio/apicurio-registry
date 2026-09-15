@@ -107,6 +107,17 @@ public class KafkaSqlCoordinator {
         future.complete(returnValue);
     }
 
+    /**
+     * Removes the pending entry for the given UUID without completing it. For use when
+     * the submitted message failed before reaching the journal topic: no response will
+     * ever arrive for it, so the entry must not linger in the pending map. The normal
+     * cleanup path is waitForResponse's finally block, which only runs when a caller
+     * actually waits.
+     */
+    void forget(UUID uuid) {
+        pending.remove(uuid);
+    }
+
     int pendingCount() {
         return pending.size();
     }

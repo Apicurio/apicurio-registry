@@ -117,6 +117,13 @@ public final class IdUtil {
         client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
     }
 
+    // Validates the branch exists for the given artifact.
+    public static void validateBranch(final RegistryClient client, final String groupId,
+                                      final String artifactId, final String branchId) {
+        client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .branches().byBranchId(branchId).get();
+    }
+
     // Validates the version exists for the given artifact.
     public static void validateVersion(final RegistryClient client, final String groupId,
                                        final String artifactId, final String versionExpression) {

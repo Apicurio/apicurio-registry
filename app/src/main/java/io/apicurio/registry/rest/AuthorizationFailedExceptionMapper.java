@@ -23,6 +23,9 @@ public class AuthorizationFailedExceptionMapper implements ExceptionMapper<Forbi
     @Inject
     RegistryExceptionMapper exceptionMapperService;
 
+    @Inject
+    ApiSurfaceResolver apiSurfaceResolver;
+
     @Context
     HttpServletRequest request;
 
@@ -32,7 +35,7 @@ public class AuthorizationFailedExceptionMapper implements ExceptionMapper<Forbi
         Object entity = errorHttpResponse.getEntity();
 
         // Check if this is a V2 API endpoint - if so, we need to handle V2 Error beans
-        if (isV2Endpoint() && entity instanceof AuthError) {
+        if (apiSurfaceResolver.resolve(request) == ApiSurface.V2 && entity instanceof AuthError) {
             return Response.status(403).entity(entity).type(errorHttpResponse.getMediaType()).build();
         } else if (entity instanceof ProblemDetails) {
             // V3 API - use ProblemDetails
@@ -43,15 +46,5 @@ public class AuthorizationFailedExceptionMapper implements ExceptionMapper<Forbi
             // Fallback - just set status to 403 and return the entity as-is
             return Response.status(403).entity(entity).type(errorHttpResponse.getMediaType()).build();
         }
-    }
-
-    /**
-     * Returns true if the endpoint that caused the error is a Core V2 endpoint.
-     */
-    private boolean isV2Endpoint() {
-        if (this.request != null) {
-            return this.request.getRequestURI().contains("/apis/registry/v2");
-        }
-        return false;
     }
 }

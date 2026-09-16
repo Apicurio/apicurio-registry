@@ -27,7 +27,7 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_API
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
 @ApplicationScoped
-public class CoreRegistryExceptionMapperService {
+public class CoreRegistryExceptionMapperService implements ExceptionMapperService {
 
     @Inject
     Logger log;

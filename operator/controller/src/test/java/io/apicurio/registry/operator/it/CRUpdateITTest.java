@@ -13,11 +13,13 @@ import java.time.Duration;
 import java.util.List;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
+import static io.apicurio.registry.operator.Tags.FEATURE_B;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 @Tag(FEATURE)
+@Tag(FEATURE_B)
 public class CRUpdateITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(CRUpdateITTest.class);

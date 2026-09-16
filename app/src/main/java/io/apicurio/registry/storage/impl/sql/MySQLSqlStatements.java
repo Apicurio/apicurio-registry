@@ -62,6 +62,12 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     }
 
     @Override
+    public String upsertConfigProperty() {
+        return "INSERT INTO config (propName, propValue, modifiedOn) VALUES (?, ?, ?) "
+                + "ON DUPLICATE KEY UPDATE propValue = VALUES(propValue), modifiedOn = VALUES(modifiedOn)";
+    }
+
+    @Override
     public String selectCountTableTemplate(String countBy, String tableName, String alias,
             String whereClause) {
         return super.selectCountTableTemplate(countBy, "`" + tableName + "`", alias, whereClause);

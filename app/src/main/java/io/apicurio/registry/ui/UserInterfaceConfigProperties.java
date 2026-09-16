@@ -52,6 +52,10 @@ public class UserInterfaceConfigProperties {
     @Info(category = CATEGORY_UI, description = "Enabled to show the Agents tab in the UI", availableSince = "3.2.0", experimental = true)
     public Supplier<Boolean> featureAgents;
 
+    @ConfigProperty(name = "apicurio.ui.features.url-import.max-content-length", defaultValue = "5242880")
+    @Info(category = CATEGORY_UI, description = "Maximum content length (in bytes) for UI 'Import from URL' responses", availableSince = "3.3.3")
+    public long featureUrlImportMaxContentLength;
+
     @ConfigProperty(name = "apicurio.ui.auth.oidc.scope", defaultValue = "openid profile email")
     @Info(category = CATEGORY_UI, description = "UI auth OIDC scope value", availableSince = "3.0.8")
     public String scope;

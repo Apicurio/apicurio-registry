@@ -7,11 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
-public abstract class AbstractCompatibilityChecker<D> implements CompatibilityChecker {
+public abstract class AbstractCompatibilityChecker<D extends CompatibilityDifference>
+        implements CompatibilityChecker {
 
     @Override
     public CompatibilityExecutionResult testCompatibility(CompatibilityLevel compatibilityLevel,
@@ -67,9 +67,7 @@ public abstract class AbstractCompatibilityChecker<D> implements CompatibilityCh
             case NONE:
                 break;
         }
-        Set<CompatibilityDifference> diffs = incompatibleDiffs.stream().map(this::transform)
-                .collect(Collectors.toSet());
-        return CompatibilityExecutionResult.incompatibleOrEmpty(diffs);
+        return CompatibilityExecutionResult.incompatibleOrEmpty(new HashSet<>(incompatibleDiffs));
     }
 
     /**
@@ -90,10 +88,26 @@ public abstract class AbstractCompatibilityChecker<D> implements CompatibilityCh
         return result;
     }
 
+    /**
+     * Checks whether the proposed artifact content is backwards compatible with the existing artifact
+     * content.
+     * <p>
+     * Implementations should distinguish between two situations:
+     * <ul>
+     * <li>The proposed content is not compatible with the existing content. This is a normal result of the
+     * check, and should be reported by returning a non-empty set of differences.</li>
+     * <li>Compatibility could not be determined at all (e.g. the content could not be parsed). This is a
+     * genuine error, and should be reported by throwing an exception.</li>
+     * </ul>
+     * Note that the differences returned by this method are deduplicated using a {@link Set} (e.g. when
+     * checking {@link CompatibilityLevel#FULL} compatibility), so implementations of
+     * {@link CompatibilityDifference} must provide consistent equals and hashCode methods.
+     *
+     * @return the set of incompatible differences found. An empty set means the proposed content is
+     *         compatible.
+     */
     protected abstract Set<D> isBackwardsCompatibleWith(String existing, String proposed,
             Map<String, TypedContent> resolvedReferences);
-
-    protected abstract CompatibilityDifference transform(D original);
 
     private Set<D> unionOf(Set<D>... from) {
         Set<D> rval = new HashSet<>();

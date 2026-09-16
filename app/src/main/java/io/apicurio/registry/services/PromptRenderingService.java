@@ -410,7 +410,7 @@ public class PromptRenderingService {
     private String processConditionalBlocks(String template, Map<String, Object> variables) {
         // Step 1: resolve if-else blocks first to prevent the plain-if pattern from partially matching them
         Matcher ifElseMatcher = IF_ELSE_BLOCK_PATTERN.matcher(template);
-        StringBuffer ifElseResult = new StringBuffer();
+        StringBuilder ifElseResult = new StringBuilder();
         while (ifElseMatcher.find()) {
             String varName = ifElseMatcher.group(1);
             String truthyBranch = ifElseMatcher.group(2);
@@ -423,7 +423,7 @@ public class PromptRenderingService {
 
         // Step 2: resolve plain if blocks
         Matcher ifMatcher = IF_BLOCK_PATTERN.matcher(template);
-        StringBuffer ifResult = new StringBuffer();
+        StringBuilder ifResult = new StringBuilder();
         while (ifMatcher.find()) {
             String varName = ifMatcher.group(1);
             String content = ifMatcher.group(2);
@@ -435,7 +435,7 @@ public class PromptRenderingService {
 
         // Step 3: resolve unless blocks (logical complement of if)
         Matcher unlessMatcher = UNLESS_BLOCK_PATTERN.matcher(template);
-        StringBuffer unlessResult = new StringBuffer();
+        StringBuilder unlessResult = new StringBuilder();
         while (unlessMatcher.find()) {
             String varName = unlessMatcher.group(1);
             String content = unlessMatcher.group(2);

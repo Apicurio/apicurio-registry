@@ -3,6 +3,7 @@ package io.apicurio.tests.smokeTests.apicurio;
 import io.apicurio.tests.ApicurioRegistryBaseIT;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * Disabled because this is too flaky and it needs to be redesigned to align better with common usage of the
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Disabled;
 // @Tag(SMOKE)
 @Disabled
 @QuarkusIntegrationTest
+@Isolated
 public class LoadIT extends ApicurioRegistryBaseIT {
 
     // private static final Logger LOGGER = LoggerFactory.getLogger(LoadIT.class);

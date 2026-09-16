@@ -80,6 +80,7 @@ public class ArtifactGetCommand extends AbstractCommand {
         } else {
             fetchMetadata(registryClient, resolvedGroupId, output);
         }
+        IdUtil.updateArtifactContext(resolvedGroupId, artifactId, config, output);
     }
 
     // Fetches the raw content of the latest version of the artifact.

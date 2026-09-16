@@ -257,6 +257,47 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final String TLS_CERTIFICATES = "apicurio.registry.tls.certificates";
 
     /**
+     * The location of the key store file for TLS/SSL connections (mTLS). Can be a file path or a resource
+     * on the classpath. Required when connecting to a registry over HTTPS with client certificate authentication.
+     */
+    public static final String TLS_KEYSTORE_LOCATION = "apicurio.registry.tls.keystore.location";
+
+    /**
+     * The password for the key store file specified by {@link #TLS_KEYSTORE_LOCATION}.
+     * Required when using JKS or PKCS12 key stores.
+     * <p>
+     * <b>WARNING:</b> Keystore passwords configured here are stored in memory as part of the
+     * configuration object and registry client options. Ensure proper security controls are in place
+     * to protect configuration data from unauthorized access/memory dumps.
+     */
+    public static final String TLS_KEYSTORE_PASSWORD = "apicurio.registry.tls.keystore.password";
+
+    /**
+     * The type of key store. Valid values are "JKS", "PKCS12" (or "P12"), and "PEM". Defaults to "JKS".
+     */
+    public static final String TLS_KEYSTORE_TYPE = "apicurio.registry.tls.keystore.type";
+    public static final String TLS_KEYSTORE_TYPE_DEFAULT = "JKS";
+
+    /**
+     * PEM client certificate configuration for mutual TLS (mTLS). This property accepts either:
+     * <ul>
+     *   <li>PEM certificate file path (e.g., "/path/to/client-cert.pem")</li>
+     *   <li>PEM certificate content as a string (assuming standard "-----BEGIN CERTIFICATE-----" header)</li>
+     * </ul>
+     * Note: This configuration is ignored if {@link #TLS_KEYSTORE_LOCATION} is also set.
+     */
+    public static final String TLS_CLIENT_CERTIFICATE = "apicurio.registry.tls.client-certificate";
+
+    /**
+     * PEM client private key configuration for mutual TLS (mTLS). This property accepts either:
+     * <ul>
+     *   <li>PEM private key file path (e.g., "/path/to/client-key.pem")</li>
+     *   <li>PEM private key content as a string (with "-----BEGIN PRIVATE KEY-----" markers)</li>
+     * </ul>
+     */
+    public static final String TLS_CLIENT_KEY = "apicurio.registry.tls.client-key";
+
+    /**
      * If true, disables all SSL/TLS certificate verification. This is insecure and should only be used
      * in development/testing environments. Defaults to false.
      */
@@ -474,6 +515,26 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getString(TLS_CERTIFICATES);
     }
 
+    public String getTlsKeystoreLocation() {
+        return getString(TLS_KEYSTORE_LOCATION);
+    }
+
+    public String getTlsKeystorePassword() {
+        return getString(TLS_KEYSTORE_PASSWORD);
+    }
+
+    public String getTlsKeystoreType() {
+        return getString(TLS_KEYSTORE_TYPE);
+    }
+
+    public String getTlsClientCertificate() {
+        return getString(TLS_CLIENT_CERTIFICATE);
+    }
+
+    public String getTlsClientKey() {
+        return getString(TLS_CLIENT_KEY);
+    }
+
     public boolean getTlsTrustAll() {
         return getBooleanOrFalse(TLS_TRUST_ALL);
     }
@@ -571,6 +632,7 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
             entry(DEREFERENCE_SCHEMA, DEREFERENCE_DEFAULT),
             entry(TLS_TRUSTSTORE_TYPE, TLS_TRUSTSTORE_TYPE_DEFAULT),
+            entry(TLS_KEYSTORE_TYPE, TLS_KEYSTORE_TYPE_DEFAULT),
             entry(TLS_TRUST_ALL, TLS_TRUST_ALL_DEFAULT),
             entry(TLS_VERIFY_HOST, TLS_VERIFY_HOST_DEFAULT),
             entry(HTTP_ADAPTER, HTTP_ADAPTER_DEFAULT),

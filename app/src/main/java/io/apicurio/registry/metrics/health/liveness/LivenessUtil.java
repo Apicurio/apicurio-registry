@@ -38,7 +38,7 @@ public class LivenessUtil {
         if (codeMap.isIgnored(ex.getClass())) {
             return true;
         }
-        return this.ignored.isPresent() && this.ignored.get().contains(ex.getClass().getName());
+        return this.ignored.isPresent() && this.ignored.orElseThrow().contains(ex.getClass().getName());
     }
 
 }

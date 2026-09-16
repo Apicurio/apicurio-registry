@@ -21,7 +21,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Locale;
 import java.util.logging.Level;
 
 /**
@@ -37,11 +36,11 @@ public class DynamicLogConfigurationServiceTest {
      */
     @Test
     public void testUppercaseLogLevels() {
-        String[] levels = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "OFF", "ALL",
+        String[] levels = {"TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL", "OFF", "ALL",
                 "SEVERE", "WARNING", "CONFIG", "FINE", "FINER", "FINEST"};
         for (String level : levels) {
             Assertions.assertDoesNotThrow(
-                    () -> Level.parse(level.toUpperCase(Locale.ROOT)),
+                    () -> DynamicLogConfigurationService.parseLogLevel(level),
                     "Should parse uppercase level: " + level);
         }
     }
@@ -52,11 +51,11 @@ public class DynamicLogConfigurationServiceTest {
      */
     @Test
     public void testLowercaseLogLevels() {
-        String[] levels = {"trace", "debug", "info", "warn", "error", "off", "all",
+        String[] levels = {"trace", "debug", "info", "warn", "error", "fatal", "off", "all",
                 "severe", "warning", "config", "fine", "finer", "finest"};
         for (String level : levels) {
             Assertions.assertDoesNotThrow(
-                    () -> Level.parse(level.toUpperCase(Locale.ROOT)),
+                    () -> DynamicLogConfigurationService.parseLogLevel(level),
                     "Should parse lowercase level: " + level);
         }
     }
@@ -67,10 +66,10 @@ public class DynamicLogConfigurationServiceTest {
      */
     @Test
     public void testMixedCaseLogLevels() {
-        String[] levels = {"Debug", "iNfO", "WaRn", "ErRoR", "TrAcE"};
+        String[] levels = {"Debug", "iNfO", "WaRn", "ErRoR", "TrAcE", "FaTaL"};
         for (String level : levels) {
             Assertions.assertDoesNotThrow(
-                    () -> Level.parse(level.toUpperCase(Locale.ROOT)),
+                    () -> DynamicLogConfigurationService.parseLogLevel(level),
                     "Should parse mixed-case level: " + level);
         }
     }
@@ -84,9 +83,30 @@ public class DynamicLogConfigurationServiceTest {
         for (String level : levels) {
             Assertions.assertThrows(
                     IllegalArgumentException.class,
-                    () -> Level.parse(level.toUpperCase(Locale.ROOT)),
+                    () -> DynamicLogConfigurationService.parseLogLevel(level),
                     "Should reject invalid level: " + level);
         }
+    }
+
+    /**
+     * Verifies that log level aliases map to the expected standard JUL Levels.
+     */
+    @Test
+    public void testLogLevelMapping() {
+        Assertions.assertEquals(Level.FINEST, DynamicLogConfigurationService.parseLogLevel("TRACE"));
+        Assertions.assertEquals(Level.FINE, DynamicLogConfigurationService.parseLogLevel("DEBUG"));
+        Assertions.assertEquals(Level.WARNING, DynamicLogConfigurationService.parseLogLevel("WARN"));
+        Assertions.assertEquals(Level.SEVERE, DynamicLogConfigurationService.parseLogLevel("ERROR"));
+        Assertions.assertEquals(Level.SEVERE, DynamicLogConfigurationService.parseLogLevel("FATAL"));
+        Assertions.assertEquals(Level.INFO, DynamicLogConfigurationService.parseLogLevel("INFO"));
+        Assertions.assertEquals(Level.WARNING, DynamicLogConfigurationService.parseLogLevel("WARNING"));
+
+        // Null input should throw NullPointerException
+        Assertions.assertThrows(NullPointerException.class, () -> DynamicLogConfigurationService.parseLogLevel(null));
+
+        // Empty/whitespace-only input should throw IllegalArgumentException
+        Assertions.assertThrows(IllegalArgumentException.class, () -> DynamicLogConfigurationService.parseLogLevel(""));
+        Assertions.assertThrows(IllegalArgumentException.class, () -> DynamicLogConfigurationService.parseLogLevel("   "));
     }
 
     @AfterEach

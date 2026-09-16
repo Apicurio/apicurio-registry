@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Unit tests for ProtobufSchemaParser to verify correct handling of different schema formats.
@@ -348,5 +349,56 @@ public class ProtobufSchemaParserTest {
                 "wire-schema's SchemaException must be absorbed by the typed catch, "
                         + "not propagated to the caller");
         assertNotNull(thrown.getCause(), "Wrapped error from parseDescriptor should expose a cause");
+    }
+
+    /**
+     * A registered schema with a map whose value type carries qualification, plus an
+     * import of another registered artifact. This is the exact shape a client receives
+     * back from the registry since #8771 switched text generation to real map&lt;K, V&gt;
+     * syntax (and the shape protoc-canonical text always had). Before the
+     * FileDescriptorUtils fix, toDescriptor lost the value type's qualification, failed
+     * with '"Value" is not defined', and the fallback then died with 'unable to find
+     * test/common/item.proto' because it parses without the resolved references.
+     */
+    @Test
+    public void testParseSchemaMapWithQualifiedValueTypeAndReferences() throws Exception {
+        String itemSchema = """
+                syntax = "proto3";
+                package test.common;
+                message Item {
+                  string id = 1;
+                }
+                """;
+        String docSchema = """
+                syntax = "proto3";
+                package test.docs;
+                import "google/protobuf/struct.proto";
+                import "test/common/item.proto";
+                message Doc {
+                  map<string, google.protobuf.Value> metadata = 1;
+                  map<string, test.common.Item> items = 2;
+                }
+                """;
+
+        ParsedSchema<ProtobufSchema> itemRef = new ParsedSchemaImpl<ProtobufSchema>()
+                .setParsedSchema(parser.parseSchema(itemSchema.getBytes(), Collections.emptyMap()))
+                .setReferenceName("test/common/item.proto")
+                .setRawSchema(itemSchema.getBytes());
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = new HashMap<>();
+        resolvedReferences.put("test/common/item.proto", itemRef);
+
+        ProtobufSchema result = parser.parseSchema(docSchema.getBytes(), resolvedReferences);
+
+        assertNotNull(result);
+        Descriptors.Descriptor doc = result.getFileDescriptor().findMessageTypeByName("Doc");
+        assertNotNull(doc);
+        Descriptors.FieldDescriptor metadata = doc.findFieldByName("metadata");
+        assertTrue(metadata.isMapField());
+        assertEquals("google.protobuf.Value",
+                metadata.getMessageType().findFieldByName("value").getMessageType().getFullName());
+        Descriptors.FieldDescriptor items = doc.findFieldByName("items");
+        assertTrue(items.isMapField());
+        assertEquals("test.common.Item",
+                items.getMessageType().findFieldByName("value").getMessageType().getFullName());
     }
 }

@@ -2,6 +2,7 @@ package io.apicurio.registry.mcp;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
+import io.quarkiverse.mcp.server.ToolCallException;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.util.TypeLiteral;
 import org.junit.jupiter.api.AfterEach;
@@ -26,10 +27,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class RegistryServiceTest {
 
+    private static final int DEFAULT_PAGING_LIMIT = 200;
+
     private HttpServer server;
     private int port;
     private final Map<String, String> lastHeaders = new ConcurrentHashMap<>();
     private volatile String lastUri;
+    private volatile String lastRequestBody;
 
     @BeforeEach
     public void setUp() throws IOException {
@@ -45,6 +49,7 @@ public class RegistryServiceTest {
             });
 
             String path = exchange.getRequestURI().getPath();
+            String query = exchange.getRequestURI().getQuery();
 
             // Mock OAuth2 token endpoint
             if (path.equals("/oauth/token")) {
@@ -68,8 +73,10 @@ public class RegistryServiceTest {
                 return;
             }
 
+            // "overflow" search name is a signal to the mock server to return count > limit (count=3)
             if (path.endsWith("/well-known/agents") || path.contains("/well-known/agents?")) {
-                String response = "{\"agents\":[{\"name\":\"test-agent\"}],\"count\":1}";
+                int count = (query != null && query.contains("name=overflow")) ? 3 : 1;
+                String response = "{\"agents\":[{\"name\":\"test-agent\"}],\"count\":" + count + "}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
                 try (OutputStream os = exchange.getResponseBody()) {
@@ -89,7 +96,8 @@ public class RegistryServiceTest {
             }
 
             if (path.endsWith("/well-known/mcp-tools") || path.contains("/well-known/mcp-tools?")) {
-                String response = "{\"tools\":[{\"name\":\"test-tool\"}],\"count\":1}";
+                int count = (query != null && query.contains("name=overflow")) ? 3 : 1;
+                String response = "{\"tools\":[{\"name\":\"test-tool\"}],\"count\":" + count + "}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
                 try (OutputStream os = exchange.getResponseBody()) {
@@ -108,9 +116,37 @@ public class RegistryServiceTest {
                 return;
             }
 
+            if (path.endsWith("/well-known/ard/search") && "POST".equals(exchange.getRequestMethod())) {
+                byte[] body = exchange.getRequestBody().readAllBytes();
+                lastRequestBody = new String(body, StandardCharsets.UTF_8);
+                boolean disabled = lastRequestBody.contains("ard-disabled");
+                if (disabled) {
+                    String response = "{\"error_code\":404,\"message\":\"ARD support is disabled\"}";
+                    exchange.getResponseHeaders().set("Content-Type", "application/json");
+                    exchange.sendResponseHeaders(404, response.length());
+                    try (OutputStream os = exchange.getResponseBody()) {
+                        os.write(response.getBytes(StandardCharsets.UTF_8));
+                    }
+                    return;
+                }
+                String response = "{\"results\":[{\"identifier\":\"air://example.com/system/entry-1\","
+                        + "\"displayName\":\"Test Agent\",\"type\":\"application/agent-card+json\","
+                        + "\"url\":\"http://example.com/agent\"}],\"pageToken\":null}";
+                exchange.getResponseHeaders().set("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, response.length());
+                try (OutputStream os = exchange.getResponseBody()) {
+                    os.write(response.getBytes(StandardCharsets.UTF_8));
+                }
+                return;
+            }
+
             if (path.matches(".*/well-known/(agents|mcp-tools)/err/404.*")) {
                 String response = "{\"error_code\":404,\"message\":\"Not Found\"}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
+                if (path.contains("/state") && exchange.getRequestMethod().equals("PUT")) {
+                    exchange.sendResponseHeaders(204, -1);
+                    return;
+                }
                 exchange.sendResponseHeaders(404, response.length());
                 try (OutputStream os = exchange.getResponseBody()) {
                     os.write(response.getBytes(StandardCharsets.UTF_8));
@@ -136,6 +172,10 @@ public class RegistryServiceTest {
     }
 
     private RegistryService createService(String rawUrl, boolean authEnabled) {
+        return createService(rawUrl, authEnabled, DEFAULT_PAGING_LIMIT, true);
+    }
+
+    private RegistryService createService(String rawUrl, boolean authEnabled, int pagingLimit, boolean limitError) {
         McpConfig config = new McpConfig() {
             @Override
             public boolean safeMode() {
@@ -147,12 +187,12 @@ public class RegistryServiceTest {
                 return new Paging() {
                     @Override
                     public int limit() {
-                        return 200;
+                        return pagingLimit;
                     }
 
                     @Override
                     public boolean limitError() {
-                        return false;
+                        return limitError;
                     }
                 };
             }
@@ -321,14 +361,15 @@ public class RegistryServiceTest {
     @Test
     public void testQueryParameterPropagation() throws Exception {
         RegistryService service = createService("http://localhost:" + port, false);
+        int expectedLimit = service.config.paging().limit() + 1;
         service.searchAgentCards("abc", "java", "streaming");
-        assertTrue(lastUri.contains("limit=50"));
+        assertTrue(lastUri.contains("limit=" + expectedLimit));
         assertTrue(lastUri.contains("name=abc"));
         assertTrue(lastUri.contains("skill=java"));
         assertTrue(lastUri.contains("capability=streaming"));
 
         service.searchMcpTools("mytool", "param1");
-        assertTrue(lastUri.contains("limit=50"));
+        assertTrue(lastUri.contains("limit=" + expectedLimit));
         assertTrue(lastUri.contains("name=mytool"));
         assertTrue(lastUri.contains("parameter=param1"));
     }
@@ -351,4 +392,98 @@ public class RegistryServiceTest {
         assertThrows(Exception.class, () -> service.getAgentCard("err", "404"));
         assertThrows(Exception.class, () -> service.getMcpTool("err", "404"));
     }
+
+    @Test
+    public void testSearchAgentCardsThrowsWhenPagingLimitExceeded() {
+        RegistryService service = createService("http://localhost:" + port, false, 2, true);
+        assertThrows(ToolCallException.class, () -> service.searchAgentCards("overflow", null, null));
+    }
+
+    @Test
+    public void testSearchAgentCardsDoesNotThrowWhenCountWithinLimit() throws Exception {
+        RegistryService service = createService("http://localhost:" + port, false, 2, true);
+        String result = service.searchAgentCards("normal", null, null);
+        assertNotNull(result);
+    }
+
+    @Test
+    public void testSearchMcpToolsThrowsWhenPagingLimitExceeded() {
+        RegistryService service = createService("http://localhost:" + port, false, 2, true);
+        assertThrows(ToolCallException.class, () -> service.searchMcpTools("overflow", null));
+    }
+
+    @Test
+    public void testSearchMcpToolsDoesNotThrowWhenCountWithinLimit() throws Exception {
+        RegistryService service = createService("http://localhost:" + port, false, 2, true);
+        String result = service.searchMcpTools("normal", null);
+        assertNotNull(result);
+    }
+      
+    @Test
+    public void testUpdateVersionStateValidation() throws Exception {
+        RegistryService service = createService("http://localhost:" + port, false);
+
+        // Valid lowercase and mixed-case inputs resolve cleanly to VersionState
+        service.updateVersionState("g1", "a1", "1", "enabled");
+        service.updateVersionState("g1", "a1", "1", "Enabled");
+        service.updateVersionState("g1", "a1", "1", "DEPRECATED");
+
+        // Invalid or null state strings throw ToolCallException (not raw IllegalArgumentException / NPE)
+        ToolCallException exInvalid = assertThrows(ToolCallException.class,
+                () -> service.updateVersionState("g1", "a1", "1", "invalid_state"));
+        assertTrue(exInvalid.getMessage().contains("Invalid version state: 'invalid_state'"));
+        assertTrue(exInvalid.getMessage().contains("Accepted values (case-insensitive):"));
+
+        ToolCallException exNull = assertThrows(ToolCallException.class,
+                () -> service.updateVersionState("g1", "a1", "1", null));
+        assertTrue(exNull.getMessage().contains("Invalid version state: 'null'"));
+
+        ToolCallException exEmpty = assertThrows(ToolCallException.class,
+                () -> service.updateVersionState("g1", "a1", "1", "  "));
+        assertTrue(exEmpty.getMessage().contains("Invalid version state: '  '"));
+    }
+
+    @Test
+    public void testArdSearchSendsQueryTextAndFilters() throws Exception {
+        RegistryService service = createService("http://localhost:" + port, false);
+        String result = service.ardSearch("discover agents", "application/agent-card+json",
+                "streaming,production", "java", "example.com", null, 5);
+
+        assertNotNull(result);
+        assertTrue(result.contains("Test Agent"));
+        assertTrue(result.contains("air://example.com/system/entry-1"));
+
+        assertNotNull(lastRequestBody);
+        assertTrue(lastRequestBody.contains("\"text\":\"discover agents\""));
+        assertTrue(lastRequestBody.contains("\"type\""));
+        assertTrue(lastRequestBody.contains("application/agent-card+json"));
+        assertTrue(lastRequestBody.contains("\"tags\""));
+        assertTrue(lastRequestBody.contains("streaming"));
+        assertTrue(lastRequestBody.contains("production"));
+        assertTrue(lastRequestBody.contains("\"capabilities\""));
+        assertTrue(lastRequestBody.contains("java"));
+        assertTrue(lastRequestBody.contains("\"publisher\""));
+        assertTrue(lastRequestBody.contains("example.com"));
+        assertTrue(lastRequestBody.contains("\"pageSize\":5"));
+    }
+
+    @Test
+    public void testArdSearchOmitsFilterWhenNoStructuredFiltersProvided() throws Exception {
+        RegistryService service = createService("http://localhost:" + port, false);
+        String result = service.ardSearch("discover agents", null, null, null, null, null, null);
+
+        assertNotNull(result);
+        assertNotNull(lastRequestBody);
+        assertTrue(lastRequestBody.contains("\"text\":\"discover agents\""));
+        assertTrue(!lastRequestBody.contains("\"filter\""));
+    }
+
+    @Test
+    public void testArdSearchThrowsWhenArdDisabled() {
+        RegistryService service = createService("http://localhost:" + port, false);
+        assertThrows(Exception.class,
+                () -> service.ardSearch("ard-disabled", null, null, null, null, null, null));
+    }
 }
+
+

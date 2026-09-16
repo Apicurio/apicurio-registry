@@ -127,9 +127,9 @@ public class GroupsResourceImpl implements GroupsResource {
         if (dereference == null) {
             // Check if admin has configured a default reference handling behavior
             java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
+            if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()) {
                 // Convert v3 enum value to v2 boolean (DEREFERENCE -> true, others -> false)
-                dereference = "DEREFERENCE".equals(configuredDefault.get());
+                dereference = "DEREFERENCE".equals(configuredDefault.orElseThrow());
             } else {
                 // No configuration - use existing default (no behavior change)
                 dereference = Boolean.FALSE;
@@ -649,9 +649,9 @@ public class GroupsResourceImpl implements GroupsResource {
         if (dereference == null) {
             // Check if admin has configured a default reference handling behavior
             java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
+            if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()) {
                 // Convert v3 enum value to v2 boolean (DEREFERENCE -> true, others -> false)
-                dereference = "DEREFERENCE".equals(configuredDefault.get());
+                dereference = "DEREFERENCE".equals(configuredDefault.orElseThrow());
             } else {
                 // No configuration - use existing default (no behavior change)
                 dereference = Boolean.FALSE;

@@ -442,7 +442,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                         ReferenceIndex index = createIndex(artifact);
                         addExistingReferencesToIndex(registryClient, index, existingReferences);
                         addExistingReferencesToIndex(registryClient, index, artifact.getExistingReferences());
-                        Stack<RegisterArtifact> registrationStack = new Stack<>();
+                        Deque<RegisterArtifact> registrationStack = new ArrayDeque<>();
 
                         this.avroAutoRefsNamingStrategy = artifact.getAvroAutoRefsNamingStrategy();
                         registerWithAutoRefs(registryClient, artifact, index, registrationStack);
@@ -469,7 +469,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     }
 
     private VersionMetaData registerWithAutoRefs(RegistryClient registryClient, RegisterArtifact artifact,
-                                                 ReferenceIndex index, Stack<RegisterArtifact> registrationStack) throws IOException,
+                                                 ReferenceIndex index, Deque<RegisterArtifact> registrationStack) throws IOException,
             ExecutionException, InterruptedException, MojoExecutionException, MojoFailureException {
         if (loopDetected(artifact, registrationStack)) {
             throw new MojoExecutionException(
@@ -505,7 +505,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 Optional<ArtifactReference> registryReference = resolveRegistryReference(registryClient,
                         externalRef, resolvedRegistryReferences);
                 if (registryReference.isPresent()) {
-                    registeredReferences.add(registryReference.get());
+                    registeredReferences.add(registryReference.orElseThrow());
                     continue;
                 }
 
@@ -569,7 +569,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             return Optional.empty();
         }
 
-        RegistryReferenceLocation ref = location.get();
+        RegistryReferenceLocation ref = location.orElseThrow();
         VersionMetaData vmd = resolvedRegistryReferences.get(externalRef.getResource());
         if (vmd == null) {
             vmd = getRegistryReferenceMetadata(registryClient, ref);
@@ -981,7 +981,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
      * @param registrationStack
      */
     private static boolean loopDetected(RegisterArtifact artifact,
-                                        Stack<RegisterArtifact> registrationStack) {
+                                        Deque<RegisterArtifact> registrationStack) {
         for (RegisterArtifact stackArtifact : registrationStack) {
             if (artifact.getFile().equals(stackArtifact.getFile())) {
                 return true;
@@ -990,9 +990,19 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return false;
     }
 
-    private static String printLoop(Stack<RegisterArtifact> registrationStack) {
-        return registrationStack.stream().map(artifact -> artifact.getFile().getName())
-                .collect(Collectors.joining(" -> "));
+    private static String printLoop(Deque<RegisterArtifact> registrationStack) {
+        // descendingIterator: bottom-to-top (root → leaf), matching the original
+        // Stack iteration order. ArrayDeque.stream() iterates head-to-tail
+        // (most-recently-pushed first), which would reverse the chain.
+        var sb = new StringBuilder();
+        var it = registrationStack.descendingIterator();
+        while (it.hasNext()) {
+            if (sb.length() > 0) {
+                sb.append(" -> ");
+            }
+            sb.append(it.next().getFile().getName());
+        }
+        return sb.toString();
     }
 
 }

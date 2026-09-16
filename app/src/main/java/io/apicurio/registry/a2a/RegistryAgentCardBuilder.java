@@ -13,7 +13,7 @@ import jakarta.inject.Inject;
 import java.util.List;
 /**
  * Builds the Agent Card that represents Apicurio Registry as an A2A agent.
- * This agent card is served at /.well-known/a2a per the A2A v1.0 protocol.
+ * This agent card is served at /.well-known/agent.json per the A2A protocol.
  */
 @ApplicationScoped
 public class RegistryAgentCardBuilder {

@@ -92,10 +92,10 @@ public class DynamicLogConfigurationService {
             }
 
             // Only update if the level has changed
-            if (!targetLevel.get().equals(currentAppliedLevel)) {
-                applyLogLevel(targetLevel.get());
-                currentAppliedLevel = targetLevel.get();
-                log.info("Applied dynamic log level configuration: {} = {}", APICURIO_LOGGER_NAME, targetLevel.get());
+            if (!targetLevel.orElseThrow().equals(currentAppliedLevel)) {
+                applyLogLevel(targetLevel.orElseThrow());
+                currentAppliedLevel = targetLevel.orElseThrow();
+                log.info("Applied dynamic log level configuration: {} = {}", APICURIO_LOGGER_NAME, targetLevel.orElseThrow());
             }
         } catch (Exception ex) {
             log.error("Exception thrown when applying dynamic log level configuration", ex);

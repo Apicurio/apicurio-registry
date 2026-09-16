@@ -1,0 +1,26 @@
+{
+  "_comment": "Baseline for the *external* high-concurrency read validation in perf-main (run-external-load.sh at PERF_EXTERNAL_USERS clients, from outside the cluster). Separate from baseline.json, which covers the in-cluster Gatling Job: the two runs use different concurrency and a different load path, so their numbers are not comparable. Per storage because the backends differ by roughly 3-4x in throughput. Update deliberately, in its own PR, with a comment explaining why - not as a drive-by alongside unrelated work.",
+
+  "_methodology": "Values are drawn from six consecutive green main runs on 2026-09-09/10 at 50 concurrent clients. Latency was stable across those runs (postgresql mean 98-104ms, kafkasql 26-34ms) but throughput varied by roughly 25% run to run (postgresql 351-483 rps, kafkasql 1371-1822 rps) because GitHub-hosted runners differ in hardware and noisy-neighbour conditions. The tolerances below are set so that none of those six runs would have alerted: the point is to catch a real step change, not to relitigate runner variance.",
+
+  "_gating": "Informational only, like check-thresholds.py. perf-main runs after a merge has already landed, so this cannot block anything; it exists to surface a trend in the job summary. Run *validity* is gated separately and hard - see check-external-validity.py.",
+
+  "regressionToleranceFactor": 1.25,
+  "throughputFloorFactor": 0.7,
+
+  "storage": {
+    "postgresql": {
+      "_comment": "Reads are served through Toxiproxy, which injects ~15ms +/- 5ms of latency to approximate a real managed-DB deployment - see k8s/postgresql/toxiproxy.yaml. That is why mean latency is an order of magnitude above kafkasql's.",
+      "throughputRps": 460,
+      "meanResponseTimeMs": 105,
+      "p95ResponseTimeMs": 120,
+      "p99ResponseTimeMs": 135
+    },
+    "kafkasql": {
+      "throughputRps": 1690,
+      "meanResponseTimeMs": 32,
+      "p95ResponseTimeMs": 72,
+      "p99ResponseTimeMs": 95
+    }
+  }
+}

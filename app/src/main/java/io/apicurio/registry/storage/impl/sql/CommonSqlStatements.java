@@ -1164,6 +1164,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertConfigProperty()
+     */
+    @Override
+    public String upsertConfigProperty() {
+        return "MERGE INTO config (propName, propValue, modifiedOn) KEY (propName) VALUES (?, ?, ?)";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteAllConfigProperties()
      */
     @Override

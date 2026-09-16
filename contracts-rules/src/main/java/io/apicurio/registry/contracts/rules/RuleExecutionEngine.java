@@ -55,7 +55,7 @@ public class RuleExecutionEngine {
             }
 
             var context = new ContractRuleContext(rule, current, null);
-            ContractRuleResult result = executor.get().execute(context);
+            ContractRuleResult result = executor.orElseThrow().execute(context);
             executed++;
 
             if (!result.isPassed()) {

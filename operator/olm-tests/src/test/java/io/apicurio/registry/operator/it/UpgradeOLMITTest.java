@@ -26,6 +26,7 @@ import org.awaitility.core.ConditionFactory;
 import static io.apicurio.registry.operator.Tags.OLM;
 import static io.apicurio.registry.operator.it.ITBase.setDefaultAwaitilityTimings;
 import static io.apicurio.registry.operator.it.OLMTestUtils.*;
+import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
@@ -46,8 +47,21 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
     private static final Logger log = LoggerFactory.getLogger(UpgradeOLMITTest.class);
 
+    // Budget for an upgrade that OLM can satisfy in a single step. Also the floor for
+    // multi-hop upgrades.
     private static final Duration UPGRADE_TIMEOUT = Duration.ofSeconds(
             Integer.getInteger("test.operator.timeout.olm-upgrade", 1200));
+
+    // Extra budget per additional replaces-chain hop. OLM walks the chain one CSV at a time and
+    // each hop costs a bundle-unpack Job (an image pull) plus an operator Deployment rollout, so
+    // a single fixed budget silently decays as releases accumulate in a channel: the 3.x
+    // cross-minor upgrade was 3.2.5 -> 3.3.1 (3 hops) when these tests were written and is
+    // 3.2.5 -> 3.3.3-snapshot (4 hops) today, which is what pushed it past the fixed 1200s and
+    // wedged CI mid-chain at "BundleUnpacking: UnpackingInProgress". Scaling by the hops the
+    // resolver actually has to walk keeps the assertion meaningful instead of turning it into a
+    // slow race against the release cadence.
+    private static final Duration UPGRADE_TIMEOUT_PER_HOP = Duration.ofSeconds(
+            Integer.getInteger("test.operator.timeout.olm-upgrade-per-hop", 300));
 
     private static final String SUBSCRIPTION_NAME = "apicurio-registry-operator-subscription";
 
@@ -232,16 +246,17 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
         var crossMinorEntry = catalog.getCrossMinorEntry(rollingChannel());
         var headVersion = catalog.getChannelHeadVersion(rollingChannel());
+        var hops = catalog.getHopsToHead(rollingChannel(), crossMinorEntry.getCsvName());
 
-        log.info("Testing upgrade via {} channel: {} -> {}",
-                rollingChannel(), crossMinorEntry.getVersion(), headVersion);
+        log.info("Testing upgrade via {} channel: {} -> {} ({} hops)",
+                rollingChannel(), crossMinorEntry.getVersion(), headVersion, hops);
 
         deployCatalogAndSubscribe(rollingChannel(), crossMinorEntry.getCsvName());
         waitForOperatorVersion(crossMinorEntry.getVersion());
 
         log.info("Operator {} deployed, waiting for upgrade to {}",
                 crossMinorEntry.getVersion(), headVersion);
-        verifyUpgradeTo(headVersion);
+        verifyUpgradeTo(headVersion, hops);
 
         verifyUpgradeCompleted(crossMinorEntry.getVersion(), headVersion);
 
@@ -544,8 +559,12 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     }
 
     private void verifyUpgradeTo(Semver targetVersion) {
+        verifyUpgradeTo(targetVersion, 1);
+    }
+
+    private void verifyUpgradeTo(Semver targetVersion, int hops) {
         var name = deploymentName(targetVersion);
-        upgradeAwait().untilAsserted(() -> {
+        upgradeAwait(hops).untilAsserted(() -> {
             var deployment = client.apps().deployments().inNamespace(namespace)
                     .withName(name).get();
             assertThat(deployment)
@@ -559,20 +578,18 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
     @SuppressWarnings("unchecked")
     private void patchSubscriptionChannel(String newChannel) {
-        var subscription = client.genericKubernetesResources(
-                        "operators.coreos.com/v1alpha1", "Subscription")
-                .inNamespace(namespace)
-                .withName("apicurio-registry-operator-subscription")
-                .get();
-        assertThat(subscription).as("Subscription should exist").isNotNull();
-
-        var props = subscription.getAdditionalProperties();
-        var spec = (java.util.Map<String, Object>) props.get("spec");
-        spec.put("channel", newChannel);
-        client.genericKubernetesResources("operators.coreos.com/v1alpha1", "Subscription")
-                .inNamespace(namespace)
-                .resource(subscription)
-                .update();
+        k8sCell(client, () -> {
+            var subscription = client.genericKubernetesResources(
+                            "operators.coreos.com/v1alpha1", "Subscription")
+                    .inNamespace(namespace)
+                    .withName("apicurio-registry-operator-subscription")
+                    .get();
+            assertThat(subscription).as("Subscription should exist").isNotNull();
+            return subscription;
+        }).update(subscription -> {
+            var spec = (java.util.Map<String, Object>) subscription.getAdditionalProperties().get("spec");
+            spec.put("channel", newChannel);
+        });
         log.info("Patched subscription channel to {}", newChannel);
     }
 
@@ -585,7 +602,18 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     //     of the startCSV -> install -> upgrade sequence: the resolver re-runs while the
     //     just-created CSV is not linked yet, and self-heals when the CSV succeeds.
     private ConditionFactory upgradeAwait() {
-        return await().atMost(UPGRADE_TIMEOUT).ignoreExceptions()
+        return upgradeAwait(1);
+    }
+
+    /**
+     * Awaitility factory budgeted for an upgrade spanning {@code hops} replaces-chain steps.
+     * Unknown hop counts (-1, entry not found in the channel) fall back to the single-hop budget.
+     */
+    private ConditionFactory upgradeAwait(int hops) {
+        var timeout = hops > 1
+                ? UPGRADE_TIMEOUT.plus(UPGRADE_TIMEOUT_PER_HOP.multipliedBy(hops - 1L))
+                : UPGRADE_TIMEOUT;
+        return await().atMost(timeout).ignoreExceptions()
                 .failFast("Subscription resolution failed", this::subscriptionResolutionFailed);
     }
 
@@ -656,15 +684,20 @@ public class UpgradeOLMITTest implements OperatorTestContext {
                 .inNamespace(namespace).list().getItems();
 
         for (var ip : installPlans) {
-            var props = ip.getAdditionalProperties();
-            var spec = (java.util.Map<String, Object>) props.get("spec");
+            var spec = (java.util.Map<String, Object>) ip.getAdditionalProperties().get("spec");
             if (spec != null && Boolean.FALSE.equals(spec.get("approved"))) {
-                spec.put("approved", true);
-                client.genericKubernetesResources("operators.coreos.com/v1alpha1", "InstallPlan")
+                var ipName = ip.getMetadata().getName();
+                k8sCell(client, () -> client.genericKubernetesResources(
+                                "operators.coreos.com/v1alpha1", "InstallPlan")
                         .inNamespace(namespace)
-                        .resource(ip)
-                        .update();
-                log.info("Approved install plan: {}", ip.getMetadata().getName());
+                        .withName(ipName)
+                        .get())
+                        .update(fresh -> {
+                            var freshSpec = (java.util.Map<String, Object>) fresh.getAdditionalProperties()
+                                    .get("spec");
+                            freshSpec.put("approved", true);
+                        });
+                log.info("Approved install plan: {}", ipName);
             }
         }
     }

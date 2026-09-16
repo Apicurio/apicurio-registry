@@ -16,3 +16,8 @@ Closes #<issue-number>
 
 <!-- If your PR is still in progress, open it as a Draft. CI will not run
      until the PR is marked ready for review and accepted by a maintainer. -->
+
+<!-- The PR validation check also requires a milestone on this PR and on the
+     issue it closes. Setting one needs triage permission, so a maintainer
+     does it -- there is no checklist item for you here, and the check turns
+     green on its own once they have. -->

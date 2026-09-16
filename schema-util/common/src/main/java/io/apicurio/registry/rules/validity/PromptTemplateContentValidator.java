@@ -202,33 +202,14 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
             JsonNode tree = ContentTypeUtil.parseJsonOrYaml(content);
             Set<String> refs = new HashSet<>();
             if (tree.has("variables")) {
-                findRefs(tree.get("variables"), refs);
+                findExternalRefs(tree.get("variables"), refs);
             }
             if (tree.has("outputSchema")) {
-                findRefs(tree.get("outputSchema"), refs);
+                findExternalRefs(tree.get("outputSchema"), refs);
             }
             return refs;
         } catch (Exception e) {
             return Collections.emptySet();
-        }
-    }
-
-    private void findRefs(JsonNode node, Set<String> refs) {
-        if (node.isObject()) {
-            if (node.has("$ref")) {
-                String ref = node.get("$ref").asText(null);
-                if (ref != null && !ref.startsWith("#/")) {
-                    refs.add(ref);
-                }
-            }
-            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
-            while (fields.hasNext()) {
-                findRefs(fields.next().getValue(), refs);
-            }
-        } else if (node.isArray()) {
-            for (JsonNode element : node) {
-                findRefs(element, refs);
-            }
         }
     }
 }

@@ -243,57 +243,62 @@ already happened.
 The reactor splits three ways, and only the last part is a saving:
 
 ```
-reactor   = affectedModules + excludedUpstreamCount + modules not built
+reactor   = buildSetSize + skippedModules
 build set = affectedModules + excludedUpstreamCount
 ```
 
-`excludedUpstreamCount` counts upstream build prerequisites of the affected
-modules. Scalpel drops them from the report and not from the build, so they
-still compile. Taking `affectedModules` as the build set therefore understates
-it by exactly that count.
+Since Scalpel 0.4.1 every part of that split is a native report field:
+`buildSetSize`, `reactorModuleCount`, `testedModulesCount` and the
+`skippedModules` list. `excludedUpstreamCount` counts upstream build
+prerequisites of the affected modules: Scalpel drops them from the report and
+not from the build, so they still compile. Taking `affectedModules` as the
+build set therefore understates it by exactly that count.
 
-A worked example, from the artifact of PR #10087 (run 34514275050) on a
-57-module reactor:
+A worked example, from a real 0.4.1 run on this repository (one Java file
+changed in `app`):
 
 | field | value |
 | --- | ---: |
 | `affectedModules` | 5 |
 | `excludedUpstreamCount` | 42 |
-| build set | 47 |
-| modules not built | 10 |
+| `buildSetSize` | 47 |
+| `testedModulesCount` | 5 |
+| `skippedModules` | 10 |
+| `reactorModuleCount` | 57 |
 
 Read naively, "5 affected out of 57" looks like a 91% saving. The projection is
 10 modules out of 57, which is 17.5%.
 
+Every decision is anchored by `decisionId`, `mergeBaseId`, `headId` and
+`configFingerprint`, all carried in the report, so two artifacts can be compared
+without consulting git history.
+
 The job writes `scalpel-report-summary.md` next to the JSON and into the run
-summary, so this arithmetic is already done for the run you are looking at. The
-artifact also carries `scalpel-build.log`, the Maven log the reactor count comes
-from, so the count can be rechecked without rerunning the job. The arithmetic
-lives in [`scalpel-summary.sh`](../scripts/scalpel-summary.sh) and is unit
-tested by [`scalpel-summary.test.sh`](../scripts/scalpel-summary.test.sh) in the
-`scripts-tests.yaml` workflow. The reactor and modules-not-built rows are left
-out when the Maven log holds no readable `Reactor Build Order` block, or when
-the count it gives is below the build set, which means the log came from a
-different run than the report.
+summary, so the table above is already built for the run you are looking at.
+The summary reads the native fields only. The summary lives in
+[`scalpel-summary.sh`](../scripts/scalpel-summary.sh) and is unit tested by
+[`scalpel-summary.test.sh`](../scripts/scalpel-summary.test.sh) in the
+`scripts-tests.yaml` workflow. When the native counts are missing, malformed,
+negative or mutually inconsistent, the summary says so instead of reading
+anything as zero.
 
-An artifact with no `scalpel-report.json` in it is a result rather than a broken
-job. Scalpel returns before writing anything when a changed file matches
-`scalpel.disableTriggers` or when `scalpel.excludePaths` removes every changed
-file, and a PR that touches both Java and `.github/**` reaches the job and then
-hits the first of those. The summary file says so in that case. Both patterns
-are set in `.mvn/maven.config`.
+Not every run produces a decision table. When a changed file matches
+`scalpel.disableTriggers` or `scalpel.fullBuildTriggers`, or when
+`scalpel.excludePaths` removes every changed file, Scalpel writes a status
+report instead: `status`, `reason`, and, since 0.4.1, the `triggerFile`
+responsible plus `changedFiles`, `decisionId` and `timings`. The summary
+presents that as a projected full build and names the file. Both patterns are
+set in `.mvn/maven.config`.
 
-The summary understands report schema version 1, which is what the version
-pinned in `.mvn/extensions.xml` writes today. Version 1 carries no
-`skippedModules` field and no reactor total, which is why the reactor is counted
-from the Maven build log instead. On any other schema the summary prints the
-version it found and does no arithmetic, rather than reading absent fields as
-zero and claiming the whole reactor as a saving. That refusal is safe but quiet,
-so `scalpel-summary.test.sh` also asserts that the pinned version is one that
-writes schema 1. A pull request to `main` moving the pin fails those tests until
-the script learns the newer schema. `scripts-tests.yaml` triggers on
-`pull_request` against `main`, so a bump that lands any other way skips the
-check.
+The summary understands report schema version 2, which is what the version
+pinned in `.mvn/extensions.xml` writes today. On any other schema the summary
+refuses the decision table and prints the producer version it found, rather
+than reading absent fields as zero and claiming the whole reactor as a saving.
+That refusal is safe but quiet, so `scalpel-summary.test.sh` also asserts that
+the pinned version is one that writes schema 2. A pull request to `main` moving
+the pin fails those tests until the script learns the newer schema.
+`scripts-tests.yaml` triggers on `pull_request` against `main`, so a bump that
+lands any other way skips the check.
 
 The job passes no `scalpel.baseBranch`, so Scalpel derives it from
 `GITHUB_BASE_REF` and diffs against `origin/<base branch>`, which is

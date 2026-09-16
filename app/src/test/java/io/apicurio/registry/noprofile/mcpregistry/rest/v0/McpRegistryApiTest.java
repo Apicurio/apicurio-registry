@@ -133,7 +133,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .body("server.packages[0].transport.type", equalTo("stdio"))
                 .body("_meta.'" + REGISTRY_META + "'.status", equalTo("active"))
                 .body("_meta.'" + REGISTRY_META + "'.isLatest", equalTo(true))
-                .body("_meta.'" + REGISTRY_META + "'.id", notNullValue())
+                .body("_meta.'io.apicurio.registry'.id", notNullValue())
                 .body("_meta.'" + REGISTRY_META + "'.publishedAt", notNullValue());
     }
 
@@ -148,8 +148,10 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 {
                   "name": "%s",
                   "version": "1.0.0",
+                  "description": "Metadata round trip",
                   "_meta": {
                     "com.example/build": { "commit": "abc123" },
+                    "io.apicurio.registry": { "publisherField": "keep" },
                     "%s": { "status": "deleted", "id": "spoofed" }
                   }
                 }
@@ -163,6 +165,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("server._meta.'com.example/build'.commit", equalTo("abc123"))
+                .body("server._meta.'io.apicurio.registry'.publisherField", equalTo("keep"))
                 .body("_meta.'" + REGISTRY_META + "'.status", equalTo("active"));
 
         given()
@@ -172,9 +175,13 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("server._meta.'com.example/build'.commit", equalTo("abc123"))
+                .body("server._meta.'io.apicurio.registry'.publisherField", equalTo("keep"))
                 .body("_meta.'" + REGISTRY_META + "'.status", equalTo("active"))
-                .body("_meta.'" + REGISTRY_META + "'.id", notNullValue())
-                .body("_meta.'" + REGISTRY_META + "'.id", not(equalTo("spoofed")));
+                .body("_meta.'io.apicurio.registry'.id", notNullValue())
+                .body("_meta.'io.apicurio.registry'.id", not(equalTo("spoofed")));
+        given().queryParam("search", name).get(BASE + "/servers").then().statusCode(200)
+                .body("servers[0].server._meta.'io.apicurio.registry'.publisherField", equalTo("keep"))
+                .body("servers[0]._meta.'io.apicurio.registry'.id", notNullValue());
     }
 
     @Test
@@ -189,6 +196,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                         {
                           "name": "%s",
                           "version": "1.0.0",
+                          "description": "Remote server",
                           "remotes": [ { "type": "streamable-http", "url": "https://example.com/mcp" } ]
                         }
                         """.formatted(name))
@@ -278,7 +286,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .when()
                 .delete(BASE + "/servers/" + namespace + "/deletable/versions/2.0.0")
                 .then()
-                .statusCode(204);
+                .statusCode(200).body("server.version", equalTo("2.0.0"));
 
         given()
                 .when()
@@ -411,16 +419,15 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
         String namespace = uniqueNamespace();
         publish(namespace + "/noput", "1.0.0", "v1");
 
-        // RESTEasy's own message for this starts with a diagnostic code; only the reason phrase is returned.
+        // The upstream optional PUT operation explicitly permits a 501 response.
         given()
                 .when()
                 .contentType(CT_JSON)
                 .body(serverJson(namespace + "/noput", "1.0.0", "v1"))
                 .put(BASE + "/servers/" + namespace + "/noput/versions/1.0.0")
                 .then()
-                .statusCode(405)
-                .header("Allow", notNullValue())
-                .body("error", equalTo("Method Not Allowed"));
+                .statusCode(501)
+                .body("error", equalTo("In-place updates are not supported; publish a new server version"));
     }
 
     // === Status ===
@@ -581,9 +588,10 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .patch(BASE + "/servers/" + namespace + "/gone/status")
                 .then()
                 .statusCode(200)
-                .body("server.name", equalTo(name))
-                .body("server.version", equalTo("2.0.0"))
-                .body("_meta.'" + REGISTRY_META + "'.status", equalTo("deleted"));
+                .body("updatedCount", equalTo(2))
+                .body("servers", hasSize(2))
+                .body("servers[0].server.name", equalTo(name))
+                .body("servers[0]._meta.'" + REGISTRY_META + "'.status", equalTo("deleted"));
 
         for (String version : new String[] {"1.0.0", "2.0.0"}) {
             given()
@@ -656,7 +664,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void testStatusMessageIsRejectedWithActive() {
+    public void testStatusMessageRoundTripsWithActive() {
         String namespace = uniqueNamespace();
         String name = namespace + "/badreason";
 
@@ -665,10 +673,13 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON)
-                .body("{\"status\":\"active\",\"statusMessage\":\"should not be allowed\"}")
+                .body("{\"status\":\"active\",\"statusMessage\":\"Operational\"}")
                 .patch(BASE + "/servers/" + namespace + "/badreason/versions/1.0.0/status")
                 .then()
-                .statusCode(400);
+                .statusCode(200).body("_meta.'" + REGISTRY_META + "'.statusMessage", equalTo("Operational"));
+        given().get(BASE + "/servers/" + namespace + "/badreason/versions/1.0.0")
+                .then().statusCode(200)
+                .body("_meta.'" + REGISTRY_META + "'.statusMessage", equalTo("Operational"));
     }
 
     // === Identity ===
@@ -686,7 +697,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/uuidcheck")
                 .then()
                 .statusCode(200)
-                .extract().path("_meta.'" + REGISTRY_META + "'.id");
+                .extract().path("_meta.'io.apicurio.registry'.id");
 
         // A UUID, not a small sequential integer: two registries publishing independently must never
         // collide on this value, which a globalId-based id cannot guarantee across instances.
@@ -707,7 +718,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/stableid/versions/1.0.0")
                 .then()
                 .statusCode(200)
-                .extract().path("_meta.'" + REGISTRY_META + "'.id");
+                .extract().path("_meta.'io.apicurio.registry'.id");
 
         String secondRead = given()
                 .when()
@@ -715,7 +726,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/stableid/versions/1.0.0")
                 .then()
                 .statusCode(200)
-                .extract().path("_meta.'" + REGISTRY_META + "'.id");
+                .extract().path("_meta.'io.apicurio.registry'.id");
 
         assertEquals(firstRead, secondRead, "the same version's id must not change between reads");
 
@@ -727,7 +738,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/stableid/versions/1.0.0")
                 .then()
                 .statusCode(200)
-                .extract().path("_meta.'" + REGISTRY_META + "'.id");
+                .extract().path("_meta.'io.apicurio.registry'.id");
 
         assertEquals(firstRead, v1IdAfterV2Published,
                 "publishing a new version must not change an existing version's id");
@@ -738,7 +749,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .get(BASE + "/servers/" + namespace + "/stableid/versions/2.0.0")
                 .then()
                 .statusCode(200)
-                .extract().path("_meta.'" + REGISTRY_META + "'.id");
+                .extract().path("_meta.'io.apicurio.registry'.id");
 
         assertNotEquals(firstRead, v2Id, "each version must get its own distinct id");
     }
@@ -882,7 +893,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON)
-                .body("{\"name\":\"weather\",\"version\":\"1.0.0\"}")
+                .body("{\"name\":\"weather\",\"version\":\"1.0.0\",\"description\":\"Test\"}")
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(400);
@@ -893,7 +904,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON)
-                .body("{\"name\":\"" + uniqueNamespace() + "/weather\"}")
+                .body("{\"name\":\"" + uniqueNamespace() + "/weather\",\"description\":\"Test\"}")
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(400);
@@ -909,7 +920,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body("{\"name\":\"" + uniqueNamespace() + "/weather\",\"version\":\"1.0.0\","
-                        + "\"repository\":{\"source\":\"github\"}}")
+                        + "\"description\":\"Test\",\"repository\":{\"source\":\"github\"}}")
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(400);
@@ -921,7 +932,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
                 .when()
                 .contentType(CT_JSON)
                 .body("{\"name\":\"" + uniqueNamespace() + "/weather\",\"version\":\"1.0.0\","
-                        + "\"remotes\":[{\"type\":\"streamable-http\",\"url\":\"not-a-url\"}]}")
+                        + "\"description\":\"Test\",\"remotes\":[{\"type\":\"streamable-http\",\"url\":\"not-a-url\"}]}")
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(400);
@@ -1118,7 +1129,7 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON)
-                .body("{\"name\":\"" + uniqueNamespace() + "/weather\",\"version\":\"latest\"}")
+                .body("{\"name\":\"" + uniqueNamespace() + "/weather\",\"version\":\"latest\",\"description\":\"Test\"}")
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(400);

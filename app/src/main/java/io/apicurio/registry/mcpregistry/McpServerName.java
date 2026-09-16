@@ -25,6 +25,8 @@ public record McpServerName(String namespace, String serverId) {
     public static McpServerName of(String namespace, String serverId) {
         String full = namespace + "/" + serverId;
         if (namespace == null || serverId == null
+                || full.length() > 200 || ".".equals(namespace) || "..".equals(namespace)
+                || ".".equals(serverId) || "..".equals(serverId)
                 || !McpServerContentValidator.SERVER_NAME_PATTERN.matcher(full).matches()) {
             throw new BadRequestException("Invalid MCP server name: expected a reverse-DNS namespace and a"
                     + " server id separated by a single slash, for example 'io.github.user/weather'");
@@ -43,7 +45,7 @@ public record McpServerName(String namespace, String serverId) {
                     + " server id separated by a single slash, for example 'io.github.user/weather'");
         }
         int slash = name.indexOf('/');
-        return new McpServerName(name.substring(0, slash), name.substring(slash + 1));
+        return of(name.substring(0, slash), name.substring(slash + 1));
     }
 
     /**

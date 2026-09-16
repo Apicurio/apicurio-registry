@@ -55,11 +55,11 @@ public class McpRegistryListRegressionTest extends AbstractResourceTestBase {
         publish(ns + "/server1", "2.0.0", "second version");
         publish(ns + "/server1", "3.0.0", "third version");
 
-        String cursor = given().queryParam("search", ns).get(BASE + "/servers").then()
+        String cursor = given().queryParam("search", ns).queryParam("version", "latest").get(BASE + "/servers").then()
                 .statusCode(200).body("servers", hasSize(2)).body("metadata.count", equalTo(2))
                 .body("servers.server.name", equalTo(List.of(ns + "/server1", ns + "/server2")))
                 .extract().path("metadata.nextCursor");
-        given().queryParam("search", ns).queryParam("cursor", cursor).get(BASE + "/servers").then()
+        given().queryParam("search", ns).queryParam("version", "latest").queryParam("cursor", cursor).get(BASE + "/servers").then()
                 .statusCode(200).body("servers.server.name", equalTo(List.of(ns + "/server3")))
                 .body("metadata.count", equalTo(1)).body("metadata.nextCursor", nullValue());
 
@@ -99,7 +99,7 @@ public class McpRegistryListRegressionTest extends AbstractResourceTestBase {
         publish(ns + "/server", "1.0.0", term);
         publish(ns + "/server", "2.0.0", "Replacement description");
 
-        given().queryParam("search", term).get(BASE + "/servers").then().statusCode(200)
+        given().queryParam("search", term).queryParam("version", "latest").get(BASE + "/servers").then().statusCode(200)
                 .body("servers", hasSize(0)).body("metadata.count", equalTo(0))
                 .body("metadata.nextCursor", nullValue());
         given().queryParam("search", term).queryParam("version", "1.0.0").get(BASE + "/servers")

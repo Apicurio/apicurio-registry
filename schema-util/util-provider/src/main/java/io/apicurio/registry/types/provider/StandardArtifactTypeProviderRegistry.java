@@ -91,6 +91,7 @@ import io.apicurio.registry.rules.compatibility.ModelSchemaCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.PromptTemplateCompatibilityChecker;
 import io.apicurio.registry.rules.validity.AgentCardContentValidator;
 import io.apicurio.registry.rules.validity.McpServerContentValidator;
+import io.apicurio.registry.rules.compatibility.McpServerCompatibilityChecker;
 import io.apicurio.registry.rules.validity.McpToolContentValidator;
 import io.apicurio.registry.rules.validity.ModelSchemaContentValidator;
 import io.apicurio.registry.rules.validity.OdcsContractContentValidator;
@@ -242,6 +243,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .accepter(McpServerContentAccepter::new)
                 .canonicalizer(JsonContentCanonicalizer::new)
                 .validator(McpServerContentValidator::new)
+                .compatibilityChecker(McpServerCompatibilityChecker::new)
                 .extractor(McpServerContentExtractor::new)
                 .structuredContentExtractor(McpServerStructuredContentExtractor::new)
                 .build());

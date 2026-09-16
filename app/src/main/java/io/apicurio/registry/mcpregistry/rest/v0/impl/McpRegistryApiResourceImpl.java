@@ -1,6 +1,7 @@
 package io.apicurio.registry.mcpregistry.rest.v0.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
@@ -15,6 +16,7 @@ import io.apicurio.registry.mcpregistry.McpRegistryConfig;
 import io.apicurio.registry.mcpregistry.McpRegistryCursor;
 import io.apicurio.registry.mcpregistry.McpServerName;
 import io.apicurio.registry.mcpregistry.rest.v0.ApisResource;
+import io.apicurio.registry.mcpregistry.rest.v0.beans.AllVersionsStatusResponse;
 import io.apicurio.registry.mcpregistry.rest.v0.beans.ListMetadata;
 import io.apicurio.registry.mcpregistry.rest.v0.beans.Meta;
 import io.apicurio.registry.mcpregistry.rest.v0.beans.Server;
@@ -54,6 +56,7 @@ import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.security.identity.SecurityIdentity;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
@@ -80,6 +83,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -102,12 +106,14 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     /** The registry owns this key in '_meta'; every other key belongs to the publisher. */
     private static final String REGISTRY_META_KEY = "io.modelcontextprotocol.registry/official";
+    private static final String APICURIO_META_KEY = "io.apicurio.registry";
 
     /**
      * Label holding a published version's UUID. {@code globalId} is unique only within one registry
      * instance, so the id is minted at publish time and persisted rather than recomputed.
      */
-    private static final String SERVER_VERSION_ID_LABEL = "mcp-server-version-id";
+    private static final String SERVER_VERSION_ID_LABEL = "apicurio.mcp-registry.version-id";
+    private static final String LEGACY_SERVER_VERSION_ID_LABEL = "mcp-server-version-id";
 
     private static final String META_ID = "id";
     private static final String META_PUBLISHED_AT = "publishedAt";
@@ -118,6 +124,14 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     private static final String LATEST_VERSION = "latest";
     private static final int DEFAULT_PAGE_SIZE = 30;
     private static final int STATUS_MESSAGE_MAX_LENGTH = 500;
+    private static final String STATUS_PREFIX = "apicurio.mcp-registry.status.";
+
+    /** Internal envelope data must not overwrite publisher-owned server._meta keys. */
+    @RegisterForReflection
+    public static class StoredServer extends Server {
+        @JsonIgnore
+        private String registryVersionId;
+    }
 
     @Inject
     @Current
@@ -179,6 +193,9 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                 + "|" + includeDeleted;
         int offset = McpRegistryCursor.decode(cursor, fingerprint);
 
+        if (version == null || version.isBlank()) {
+            return listAllServerVersions(offset, pageSize, fingerprint, search, updatedSince, includeDeleted);
+        }
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_SERVER));
         if ((search == null || search.isBlank()) && updatedSince == null && !includeDeleted) {
@@ -231,6 +248,44 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                 end < servers.size() ? end : -1, fingerprint);
     }
 
+    private ServerList listAllServerVersions(int offset, int pageSize, String fingerprint, String search,
+            Date updatedSince, boolean includeDeleted) {
+        Set<SearchFilter> filters = new HashSet<>();
+        filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_SERVER));
+        if (!includeDeleted) {
+            filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
+        }
+        filters.add(SearchFilter.ofState(VersionState.DRAFT).negated());
+        String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
+        List<Server> matches = new ArrayList<>();
+        int scanOffset = 0;
+        while (true) {
+            VersionSearchResultsDto results = storage.searchVersions(filters, OrderBy.globalId,
+                    OrderDirection.asc, scanOffset, pageSize, false);
+            for (SearchedVersionDto found : results.getVersions()) {
+                McpServerName name = new McpServerName(found.getGroupId(), found.getArtifactId());
+                Server server = tryLoadServer(name, found.getVersion(), latestVersionOrNull(name, includeDeleted));
+                if (server != null && matchesSearch(server, query)
+                        && (updatedSince == null || !updatedAt(server).isBefore(updatedSince.toInstant()))) {
+                    matches.add(server);
+                }
+            }
+            scanOffset += results.getVersions().size();
+            if (results.getVersions().isEmpty() || scanOffset >= results.getCount()) {
+                break;
+            }
+        }
+        Comparator<Server> order = Comparator.comparing(Server::getName).thenComparing(Server::getVersion);
+        if (updatedSince != null) {
+            order = Comparator.comparing(this::updatedAt).reversed().thenComparing(order);
+        }
+        matches.sort(order);
+        int start = Math.min(offset, matches.size());
+        int end = start + Math.min(pageSize, matches.size() - start);
+        return buildServerList(new ArrayList<>(matches.subList(start, end)),
+                end < matches.size() ? end : -1, fingerprint);
+    }
+
     private boolean matchesSearch(Server server, String query) {
         return query.isEmpty() || server.getName().toLowerCase(Locale.ROOT).contains(query)
                 || nullSafe(server.getDescription()).toLowerCase(Locale.ROOT).contains(query);
@@ -267,12 +322,13 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroupId(name.namespace()));
         filters.add(SearchFilter.ofArtifactId(name.serverId()));
+        filters.add(SearchFilter.ofState(VersionState.DRAFT).negated());
         if (!includeDeleted) {
             filters.add(SearchFilter.ofState(VersionState.DISABLED).negated());
         }
 
-        // globalId rather than createdOn: same-millisecond versions tie, and paging needs a total order.
-        VersionSearchResultsDto results = storage.searchVersions(filters, OrderBy.globalId,
+        // Imported global IDs need not follow publication order; timestamp ties use a storage tiebreaker.
+        VersionSearchResultsDto results = storage.searchVersions(filters, OrderBy.createdOn,
                 OrderDirection.desc, offset, pageSize, false);
 
         // Resolved once: the server name is fixed for the whole page, so every version would otherwise
@@ -323,14 +379,26 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public void updateServerVersion(String namespace, String serverId, String version, Server data) {
+        requireEnabled();
+        McpServerName.of(namespace, serverId);
+        throw new ServerErrorException("In-place updates are not supported; publish a new server version",
+                Response.Status.NOT_IMPLEMENTED);
+    }
+
+    @Override
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void deleteServerVersion(String namespace, String serverId, String version) {
+    public ServerResponse deleteServerVersion(String namespace, String serverId, String version) {
         requireEnabled();
         requireWritable();
         McpServerName name = McpServerName.of(namespace, serverId);
         requireServerArtifact(name);
-        storage.deleteArtifactVersion(name.namespace(), name.serverId(), requireConcreteVersion(version));
+        String resolved = requireConcreteVersion(version);
+        Server deleted = loadServer(name, resolved);
+        storage.deleteArtifactVersion(name.namespace(), name.serverId(), resolved);
+        return response(deleted);
     }
 
     @Override
@@ -343,36 +411,55 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         McpServerName name = McpServerName.of(namespace, serverId);
         requireServerArtifact(name);
         String resolved = requireConcreteVersion(version);
-        storage.updateArtifactVersionState(name.namespace(), name.serverId(), resolved,
-                toVersionState(requireStatus(data)), false);
+        loadServer(name, resolved);
+        ServerStatus requested = requireStatus(data);
+        ArtifactVersionMetaDataDto current = storage.getArtifactVersionMetaData(name.namespace(), name.serverId(), resolved);
+        String currentMessage = current.getLabels() == null ? null : current.getLabels().get(STATUS_PREFIX + "message");
+        if (current.getState() == toVersionState(requested) && Objects.equals(currentMessage, data.getStatusMessage())) {
+            throw new BadRequestException("No changes to apply: status and message are unchanged");
+        }
+        storage.updateArtifactVersionStates(name.namespace(), name.serverId(), List.of(resolved),
+                toVersionState(requested), STATUS_PREFIX, statusLabels(data));
         return response(loadServer(name, resolved));
     }
 
     @Override
     @Audited
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public ServerResponse updateServerStatus(String namespace, String serverId, StatusUpdate data) {
+    public AllVersionsStatusResponse updateServerStatus(String namespace, String serverId, StatusUpdate data) {
         requireEnabled();
         requireWritable();
         McpServerName name = McpServerName.of(namespace, serverId);
         requireServerArtifact(name);
         VersionState newState = toVersionState(requireStatus(data));
 
-        // No bulk state change exists, so versions are updated one at a time; a partial failure is safe to
-        // retry because setting an already-set state is a no-op. ALL_STATES is required: the default
-        // behavior hides DISABLED versions, which are exactly the 'deleted' ones needing restore.
         List<String> versions = storage.getArtifactVersions(name.namespace(), name.serverId(),
-                RetrievalBehavior.ALL_STATES);
-
-        // Resolved before mutating, and against every state: setting the server to 'deleted' leaves no
-        // ENABLED version, so resolving 'latest' afterwards would 404 an operation that succeeded.
-        String reportedVersion = latestVersionAnyState(name);
-
-        for (String version : versions) {
-            storage.updateArtifactVersionState(name.namespace(), name.serverId(), version, newState, false);
+                RetrievalBehavior.ALL_STATES).stream()
+                .filter(version -> storage.getArtifactVersionState(name.namespace(), name.serverId(), version)
+                        != VersionState.DRAFT)
+                .collect(Collectors.toList());
+        if (versions.isEmpty()) {
+            throw new NotFoundException("No published MCP server exists at the requested coordinates");
         }
+        storage.updateArtifactVersionStates(name.namespace(), name.serverId(), versions, newState,
+                STATUS_PREFIX, statusLabels(data));
+        List<ServerResponse> updated = new ArrayList<>();
+        for (String version : versions) {
+            updated.add(response(loadServer(name, version)));
+        }
+        AllVersionsStatusResponse response = new AllVersionsStatusResponse();
+        response.setUpdatedCount(versions.size());
+        response.setServers(updated);
+        return response;
+    }
 
-        return response(loadServer(name, reportedVersion));
+    private Map<String, String> statusLabels(StatusUpdate data) {
+        Map<String, String> labels = new HashMap<>();
+        labels.put(STATUS_PREFIX + "changed-at", Instant.now().toString());
+        if (data.getStatusMessage() != null) {
+            labels.put(STATUS_PREFIX + "message", data.getStatusMessage());
+        }
+        return labels;
     }
 
     @Override
@@ -521,6 +608,9 @@ public class McpRegistryApiResourceImpl implements ApisResource {
                 : version;
         ArtifactVersionMetaDataDto meta = storage.getArtifactVersionMetaData(name.namespace(),
                 name.serverId(), resolved);
+        if (meta.getState() == VersionState.DRAFT) {
+            throw new NotFoundException("No published MCP server exists at the requested coordinates");
+        }
         StoredArtifactVersionDto stored = storage.getArtifactVersionContent(name.namespace(),
                 name.serverId(), resolved);
 
@@ -565,12 +655,6 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         return version;
     }
 
-    /** Newest version regardless of state, for when no active version may remain. */
-    private String latestVersionAnyState(McpServerName name) {
-        return storage.getBranchTip(new GA(name.namespace(), name.serverId()), BranchId.LATEST,
-                RetrievalBehavior.ALL_STATES).getRawVersionId();
-    }
-
     private String latestVersionOrNull(McpServerName name) {
         return latestVersionOrNull(name, false);
     }
@@ -609,11 +693,20 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     /** Writes the registry-managed block of '_meta' onto a server loaded from storage. */
     private void decorate(Server server, ArtifactVersionMetaDataDto meta, boolean isLatest) {
         Map<String, Object> registryMeta = new LinkedHashMap<>();
-        registryMeta.put(META_ID, serverVersionId(meta));
         registryMeta.put(META_PUBLISHED_AT, Instant.ofEpochMilli(meta.getCreatedOn()).toString());
         registryMeta.put(META_UPDATED_AT, Instant.ofEpochMilli(meta.getModifiedOn()).toString());
         registryMeta.put(META_IS_LATEST, isLatest);
         registryMeta.put(META_STATUS, toStatus(meta.getState()).value());
+        if (meta.getLabels() != null) {
+            String message = meta.getLabels().get(STATUS_PREFIX + "message");
+            String changedAt = meta.getLabels().get(STATUS_PREFIX + "changed-at");
+            if (message != null) {
+                registryMeta.put("statusMessage", message);
+            }
+            if (changedAt != null) {
+                registryMeta.put("statusChangedAt", changedAt);
+            }
+        }
 
         Meta serverMeta = server.getMeta();
         if (serverMeta == null) {
@@ -621,12 +714,16 @@ public class McpRegistryApiResourceImpl implements ApisResource {
             server.setMeta(serverMeta);
         }
         serverMeta.setAdditionalProperty(REGISTRY_META_KEY, registryMeta);
+        ((StoredServer) server).registryVersionId = serverVersionId(meta);
     }
 
     /** The persisted UUID, falling back to {@code globalId} for versions published before that label. */
     private String serverVersionId(ArtifactVersionMetaDataDto meta) {
         if (meta.getLabels() != null) {
             String id = meta.getLabels().get(SERVER_VERSION_ID_LABEL);
+            if (id == null) {
+                id = meta.getLabels().get(LEGACY_SERVER_VERSION_ID_LABEL);
+            }
             if (id != null && !id.isBlank()) {
                 return id;
             }
@@ -652,7 +749,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     private Server deserialize(String content, McpServerName name, String version) {
         try {
-            return objectMapper.readValue(content, Server.class);
+            return objectMapper.readValue(content, StoredServer.class);
         } catch (Exception e) {
             // Validated on the way in, so the stored document was corrupted or written past the API.
             // Do not leak the parser message to the client.
@@ -688,6 +785,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         Meta registryMeta = new Meta();
         registryMeta.setAdditionalProperty(REGISTRY_META_KEY,
                 server.getMeta().getAdditionalProperties().remove(REGISTRY_META_KEY));
+        registryMeta.setAdditionalProperty(APICURIO_META_KEY,
+                Map.of(META_ID, ((StoredServer) server).registryVersionId));
         if (server.getMeta().getAdditionalProperties().isEmpty()) {
             server.setMeta(null);
         }
@@ -715,12 +814,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
             throw new BadRequestException("The 'status' field is required");
         }
         String message = data.getStatusMessage();
-        if (data.getStatus() == ServerStatus.active && message != null && !message.isBlank()) {
-            throw new BadRequestException("'statusMessage' is not allowed when status is 'active'");
-        }
-        // The spec's maxLength, for every status. The message is not stored yet, but enforcing the limit now
-        // means adding storage later cannot start rejecting requests that used to succeed.
-        if (message != null && message.length() > STATUS_MESSAGE_MAX_LENGTH) {
+        // The spec's maxLength applies to every status, including active.
+        if (message != null && message.codePointCount(0, message.length()) > STATUS_MESSAGE_MAX_LENGTH) {
             throw new BadRequestException(
                     "'statusMessage' must be at most " + STATUS_MESSAGE_MAX_LENGTH + " characters");
         }

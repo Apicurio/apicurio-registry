@@ -25,7 +25,7 @@ class McpRegistryGitOpsWriteTest {
         given()
                 .when()
                 .contentType("application/json")
-                .body("{\"name\":\"io.github.gitops/weather\",\"version\":\"1.0.0\"}")
+                .body("{\"name\":\"io.github.gitops/weather\",\"version\":\"1.0.0\",\"description\":\"Test\"}")
                 .post(BASE + "/publish")
                 .then()
                 .log().ifValidationFails()

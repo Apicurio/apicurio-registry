@@ -16,8 +16,11 @@ apicurio.mcp-registry.enabled=true
 Publish a server definition with `POST /apis/mcp-registry/v0.1/publish`.
 The reverse-DNS name `io.github.example/weather` maps to group
 `io.github.example` and artifact ID `weather`, with type `MCP_SERVER`.
-Publishing applies mandatory structural validation and configured Registry rules.
-Defining semantic compatibility rules for server manifests remains separate work.
+Publishing validates the original JSON against the pinned upstream 2025-12-11
+server schema and applies configured Registry rules. A compatibility rule can
+protect existing package installation and remote connection choices across versions.
+Package version and hash upgrades are allowed; removing or changing an existing
+connection or its configuration is considered backward-incompatible.
 
 Read the published version using either the standard encoded name or the
 two-segment alias:
@@ -47,7 +50,8 @@ registry-owned metadata:
 }
 ----
 
-List servers using `GET /apis/mcp-registry/v0.1/servers`.
+List all published server versions using `GET /apis/mcp-registry/v0.1/servers`.
+Use `version=latest` to select only the latest version of each server.
 `search` matches names or descriptions. `updated_since` accepts RFC 3339 timestamps
 and uses the returned version's modification timestamp, including status changes.
 Incremental listing includes deleted records; other reads exclude them unless
@@ -55,17 +59,18 @@ Incremental listing includes deleted records; other reads exclude them unless
 with the same filters. Both explicit and default limits respect
 `apicurio.mcp-registry.max-page-size`.
 
-== Current limitations
+== Mutation behavior and operational considerations
 
-* This preview is not a fully conformant drop-in implementation of every upstream
-  endpoint and manifest constraint. The default server listing returns latest versions.
+* Draft artifact versions are not published MCP records and are excluded from MCP reads.
+* Version and server-wide status updates persist status messages and update selected
+  versions atomically. Server-wide updates return `updatedCount` and the updated `servers`.
+* Hard deletion returns HTTP 200 with the removed record. Optional PUT returns
+  HTTP 501 as permitted by the upstream API; publish a new immutable version instead.
+* Input manifests are limited to 1 MiB. Validation uses the bundled schema without
+  fetching the publisher's `$schema` URL.
 * Filtered lists scan and resolve server versions before pagination. The page-size
   limit bounds responses and storage batches, not total scanning work or memory.
   Offset cursors do not provide snapshot consistency across concurrent writes.
-* Optional PUT is unsupported; hard deletion returns HTTP 204. Server-wide status
-  changes are non-atomic and return a representative version instead of an aggregate.
-* `statusMessage` is validated but not persisted. Manifest validation is structural,
-  not complete upstream JSON Schema validation.
-* GitOps/KubernetesOps reject writes with HTTP 501. Their existing loader limitation
-  can prevent latest-version reads when imported versions lack branch entries.
+* GitOps/KubernetesOps support reads from imported branch metadata and reject writes
+  with HTTP 501.
 * Registering a server manifest does not contact the server or import its tools.

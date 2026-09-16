@@ -48,7 +48,7 @@ public class McpRegistryAuthTest extends AbstractResourceTestBase {
     }
 
     private String serverJson(String name, String version) {
-        return "{\"name\":\"" + name + "\",\"version\":\"" + version + "\"}";
+        return "{\"name\":\"" + name + "\",\"version\":\"" + version + "\",\"description\":\"Auth test\"}";
     }
 
     private void publishAs(String user, String name, String version) {
@@ -192,7 +192,7 @@ public class McpRegistryAuthTest extends AbstractResourceTestBase {
                 .when()
                 .delete(version)
                 .then()
-                .statusCode(204);
+                .statusCode(200);
     }
 
     @Test
@@ -260,7 +260,7 @@ public class McpRegistryAuthTest extends AbstractResourceTestBase {
                 .patch(server + "/status")
                 .then()
                 .statusCode(200)
-                .body("_meta.'io.modelcontextprotocol.registry/official'.status", equalTo("deprecated"));
+                .body("servers[0]._meta.'io.modelcontextprotocol.registry/official'.status", equalTo("deprecated"));
     }
 
     @Test

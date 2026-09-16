@@ -41,12 +41,12 @@ public class McpServerContentValidatorTest extends ArtifactUtilProviderTestBase 
 
     @Test
     public void testNameWithoutNamespaceIsRejected() throws Exception {
-        assertViolationMentions("mcpserver-bad-name.json", "reverse-DNS");
+        assertViolationMentions("mcpserver-bad-name.json", "pattern");
     }
 
     @Test
     public void testTraversalNameIsRejected() throws Exception {
-        assertViolationMentions("mcpserver-traversal-name.json", "reverse-DNS");
+        assertViolationMentions("mcpserver-traversal-name.json", "pattern");
     }
 
     @Test
@@ -55,11 +55,12 @@ public class McpServerContentValidatorTest extends ArtifactUtilProviderTestBase 
     }
 
     @Test
-    public void testBareStringTransportIsValid() throws Exception {
-        // 'transport' may be a bare string or an object with a 'type' - both forms appear in the wild.
-        // mcpserver-valid.json only exercises the object form, so this covers the string form separately.
+    public void testBareStringTransportIsRejected() throws Exception {
         TypedContent content = resourceToTypedContentHandle("mcpserver-bare-transport.json");
-        new McpServerContentValidator().validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        var error = Assertions.assertThrows(RuleViolationException.class, () ->
+                new McpServerContentValidator().validate(ValidityLevel.FULL, content, Collections.emptyMap()));
+        Assertions.assertTrue(error.getCauses().stream()
+                .anyMatch(violation -> violation.getContext().equals("/packages/0/transport")));
     }
 
     @Test
@@ -204,7 +205,8 @@ public class McpServerContentValidatorTest extends ArtifactUtilProviderTestBase 
                 () -> validator.validate(ValidityLevel.FULL, content, Collections.emptyMap()));
         Assertions.assertFalse(error.getCauses().isEmpty());
         Assertions.assertTrue(
-                error.getCauses().stream().anyMatch(v -> v.getDescription().contains(expected)),
+                error.getCauses().stream().anyMatch(v -> v.getDescription().contains(expected)
+                        || v.getContext().contains(expected)),
                 "Expected a violation mentioning '" + expected + "', got: " + error.getCauses());
     }
 }

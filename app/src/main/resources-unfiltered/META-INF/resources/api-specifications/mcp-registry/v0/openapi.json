@@ -17,7 +17,7 @@
           "Servers"
         ],
         "summary": "List servers",
-        "description": "List the latest version of every MCP server in the registry, with optional search and filtering. Results are paginated with an opaque cursor.",
+        "description": "List all MCP server versions, with optional version, search and timestamp filtering. Results are paginated with an opaque cursor.",
         "parameters": [
           {
             "name": "cursor",
@@ -63,7 +63,7 @@
             "name": "version",
             "in": "query",
             "required": false,
-            "description": "Return the given version of each server instead of the latest. The value 'latest' is equivalent to omitting the parameter.",
+            "description": "Omit to return all versions. Use 'latest' for the latest version of each server, or an exact version string.",
             "schema": {
               "type": "string"
             }
@@ -206,6 +206,20 @@
       }
     },
     "/apis/mcp-registry/v0.1/servers/{namespace}/{server_id}/versions/{version}": {
+      "put": {
+        "operationId": "updateServerVersion",
+        "tags": ["Servers"],
+        "summary": "Optional update operation (unsupported for immutable server versions)",
+        "parameters": [
+          {"$ref": "#/components/parameters/namespace"},
+          {"$ref": "#/components/parameters/server_id"},
+          {"$ref": "#/components/parameters/version"}
+        ],
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Server"}}}},
+        "responses": {
+          "501": {"description": "Registry does not support in-place updates", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}
+        }
+      },
       "get": {
         "operationId": "getServerVersion",
         "tags": [
@@ -265,8 +279,9 @@
           }
         ],
         "responses": {
-          "204": {
-            "description": "The server version was deleted"
+          "200": {
+            "description": "The deleted server version",
+            "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServerResponse"}}}
           },
           "400": {
             "description": "The request is invalid",
@@ -450,11 +465,11 @@
         },
         "responses": {
           "200": {
-            "description": "The latest version of the updated server",
+            "description": "All updated server versions",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ServerResponse"
+                  "$ref": "#/components/schemas/AllVersionsStatusResponse"
                 }
               }
             }
@@ -674,12 +689,20 @@
       }
     },
     "schemas": {
+      "AllVersionsStatusResponse": {
+        "type": "object", "required": ["updatedCount", "servers"],
+        "properties": {
+          "updatedCount": {"type": "integer"},
+          "servers": {"type": "array", "items": {"$ref": "#/components/schemas/ServerResponse"}}
+        }
+      },
       "Server": {
-        "description": "An MCP server definition (server.json), including the registry metadata under '_meta'.",
+        "description": "An MCP server definition (server.json), including publisher extension metadata under '_meta'. Validated using the pinned 2025-12-11 schema.",
         "type": "object",
         "additionalProperties": true,
         "required": [
           "name",
+          "description",
           "version"
         ],
         "properties": {
@@ -887,7 +910,7 @@
           "statusMessage": {
             "type": "string",
             "maxLength": 500,
-            "description": "Optional human-readable reason for the status change. Not permitted when status is 'active'."
+            "description": "Optional human-readable reason for the status change, supported for every status."
           }
         }
       },

@@ -25,7 +25,7 @@ class McpRegistryKubernetesOpsWriteTest {
         given()
                 .when()
                 .contentType("application/json")
-                .body("{\"name\":\"io.github.k8sops/weather\",\"version\":\"1.0.0\"}")
+                .body("{\"name\":\"io.github.k8sops/weather\",\"version\":\"1.0.0\",\"description\":\"Test\"}")
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(501)

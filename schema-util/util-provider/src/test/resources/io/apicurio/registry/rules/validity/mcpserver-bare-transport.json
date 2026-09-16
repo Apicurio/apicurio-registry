@@ -1,6 +1,7 @@
 {
   "name": "io.github.example/weather",
   "version": "1.0.0",
+  "description": "Weather server",
   "packages": [
     {
       "registryType": "npm",

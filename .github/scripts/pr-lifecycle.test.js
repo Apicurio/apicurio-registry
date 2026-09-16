@@ -811,6 +811,24 @@ test('review overdue: label is dropped once the PR is no longer blocked on a mai
   });
 });
 
+test('review overdue: the built-in fallback message still ccs reviewers', async () => {
+  // review_overdue_message omitted entirely. The cc is the point of the ping,
+  // so the fallback has to carry {reviewers} or a config typo silently
+  // notifies nobody.
+  const { review_overdue_message, ...stale } = STALE_CONFIG.stale;
+  await withConfig({ ...STALE_CONFIG, stale }, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 40,
+      assignees: ['maintainer-jane'],
+      timelinePages: [[blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.equal(w.calls.comments.length, 1);
+    assert.match(w.calls.comments[0], /cc @maintainer-jane/);
+  });
+});
+
 test('review overdue: decisions use post-reconcile labels, not the list snapshot', async () => {
   await withConfig(STALE_CONFIG, async () => {
     // The snapshot says waiting-on-author and the PR is well past the 4-day

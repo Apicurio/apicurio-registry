@@ -1635,6 +1635,14 @@ async function handleReviewOverdue(github, api, config, core, owner, repo, pr, n
   // PR cannot have been waiting on review for longer than it has been open;
   // and once it is labelled there is nothing further to do until it is old
   // enough to ping.
+  //
+  // These do not catch a PR that is labelled, pinged and past the ping
+  // threshold: it still costs a timeline read per sweep to re-derive that the
+  // ping already happened. Short-circuiting that would mean persisting the
+  // ping in a second label, and the cost does not justify one — it is bounded
+  // by the PRs blocked on us for longer than days_until_review_ping (25 when
+  // this was written, so ~100 reads/day against a 15,000/hour budget), and
+  // the stale path above already pays the same per-PR cost.
   if (daysOpen < daysUntilOverdue) return;
   if (hasLabel(pr, LABELS.REVIEW_OVERDUE) && daysOpen < daysUntilPing) return;
 
@@ -1688,8 +1696,11 @@ async function handleReviewOverdue(github, api, config, core, owner, repo, pr, n
     ? `\n\ncc ${responsible.map(login => `@${login}`).join(' ')}`
     : '';
 
+  // The fallback carries {reviewers} deliberately: the cc is the whole point
+  // of the ping, and a fallback without the placeholder would silently drop
+  // it if the config key were ever removed or misspelled.
   const message = (config.stale?.review_overdue_message
-      || 'This PR is waiting on a maintainer review.')
+      || 'This PR is waiting on a maintainer review.{reviewers}')
     .replace(/\{author\}/g, pr.user.login)
     .replace(/\{days\}/g, String(Math.floor(daysBlocked)))
     .replace(/\{reviewers\}/g, mentions);

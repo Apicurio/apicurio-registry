@@ -22,7 +22,7 @@ import jakarta.ws.rs.core.Response;
  * Maps storage exceptions to Iceberg-formatted error responses.
  */
 @ApplicationScoped
-public class IcebergExceptionMapperService {
+public class IcebergExceptionMapperService implements ExceptionMapperService {
 
     @Inject
     IcebergMetricsService metricsService;

@@ -66,7 +66,7 @@
       <plugin>
         <groupId>io.kiota</groupId>
         <artifactId>kiota-maven-plugin</artifactId>
-        <version>${kiota.community.version}</version>
+        <version>${kiota.maven.plugin.version}</version>
         <configuration>
           <kiotaVersion>${kiota.version}</kiotaVersion>
           <kiotaTimeout>${kiota.timeout}</kiotaTimeout>

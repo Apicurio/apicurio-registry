@@ -254,8 +254,8 @@ prerequisites of the affected modules: Scalpel drops them from the report and
 not from the build, so they still compile. Taking `affectedModules` as the
 build set therefore understates it by exactly that count.
 
-A worked example, from a real 0.4.1 run on this repository (one Java file
-changed in `app`):
+A worked example, from a real run on this repository with the pinned version
+(one Java file changed in `app`):
 
 | field | value |
 | --- | ---: |

@@ -20,8 +20,10 @@ report=${1:?usage: scalpel-summary.sh <report.json>}
 # Producers whose schema 2 this script has been checked against. scalpel-summary.test.sh
 # reads this list and fails when the pin in .mvn/extensions.xml moves to a version
 # absent from it, which is where teaching this script a newer schema belongs.
+# 0.4.2 ships scalpel-report-v2.schema.json byte-identical to 0.4.1; it changes only
+# how an empty trim is applied to the session, which mode=report never reaches.
 # shellcheck disable=SC2034  # consumed by scalpel-summary.test.sh, not here
-known_schema_2="0.4.1"
+known_schema_2="0.4.1 0.4.2"
 
 echo "## Scalpel report"
 echo
@@ -33,9 +35,9 @@ echo
 # Field reads happen once, after the object guard, so a malformed report never
 # reaches jq again and never trips the never-fail contract.
 if ! jq -e 'type == "object"' "$report" > /dev/null 2>&1; then
-  # Scalpel 0.4.1 writes a report on every path it can take, including the
-  # skip paths and a missing base branch, so an absent or unreadable report is
-  # no longer one of its outcomes. What is left is a Maven failure before the
+  # Scalpel 0.4.1 onwards writes a report on every path it can take, including
+  # the skip paths and a missing base branch, so an absent or unreadable report
+  # is no longer one of its outcomes. What is left is a Maven failure before the
   # session started. Check the Generate step when the run is red.
   echo "There is no usable report here, so nothing was analysed."
   echo

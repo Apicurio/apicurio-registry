@@ -22,6 +22,10 @@ on:
       # scalpel-summary.test.sh asserts the pinned Scalpel version still writes
       # the report schema the summary reads, so a bump has to run these tests.
       - '.mvn/extensions.xml'
+      # The same suite cross-checks the buildAllIfNoChanges pin behind the
+      # summary's empty-reactor full-build projections, so that setting has to
+      # run them too.
+      - '.mvn/maven.config'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

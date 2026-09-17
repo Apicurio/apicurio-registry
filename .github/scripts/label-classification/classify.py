@@ -102,6 +102,43 @@ def get_pr_files(repo, number):
     return [line for line in result.stdout.splitlines() if line]
 
 
+def get_removed_labels(repo, number):
+    """Every label that has been taken off this issue or PR at any point.
+
+    Classification is not a one-shot event: issues reclassify on every edit and
+    PRs on every draft/ready cycle. Without this, a maintainer who deletes a
+    wrong label gets it back the next time anybody touches the description, and
+    the only way to make a correction stick is to argue with a cron job.
+
+    No new state is needed — GitHub's events timeline already records it.
+
+    Every removal is returned, by anyone, including bots: the PR lifecycle
+    orchestrator churns through `lifecycle/*` labels constantly and those show
+    up here too. That is safe only because the result is intersected with the
+    classifier's own picks, which are always `area/*`, and nothing in
+    .github/scripts removes an `area/*` label. If some future automation
+    starts doing so, this must begin filtering by actor — otherwise one bulk
+    removal would suppress a label permanently.
+    """
+    result = subprocess.run(
+        ["gh", "api", "--paginate", f"repos/{repo}/issues/{number}/events",
+         "--jq", '.[] | select(.event == "unlabeled") | .label.name'],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        # Degrade towards the old behaviour rather than towards applying
+        # nothing: a missing history should not silently stop classification.
+        print(f"Warning: could not read label history: {result.stderr.strip()}")
+        return set()
+    return {line for line in result.stdout.splitlines() if line}
+
+
+def labels_to_apply(selected, existing_area_labels, removed_labels):
+    """What to actually add: the classifier's picks, minus what is already
+    there, minus anything a human has removed before."""
+    return selected - existing_area_labels - removed_labels
+
+
 def directories_of(file_paths):
     """Unique parent directories, in first-seen order. A file at the repository
     root stands in for itself, having no directory to collapse into."""
@@ -335,7 +372,9 @@ def main():
     default_threshold = config["area_labels"]["threshold"]
     labels_config = config["area_labels"]["labels"]
     new_labels, area_scores = classify_area_labels(target_embedding, label_embeddings, config)
-    labels_to_add = new_labels - existing_area_labels
+    removed_labels = get_removed_labels(args.repo, number)
+    labels_to_add = labels_to_apply(new_labels, existing_area_labels, removed_labels)
+    suppressed = (new_labels & removed_labels) - existing_area_labels
 
     max_labels = config["area_labels"]["max_labels"]
     capped = capped_labels(area_scores, config, new_labels)
@@ -350,6 +389,10 @@ def main():
     if capped:
         print(f"\n{len(capped)} label(s) cleared their threshold but lost to "
               f"max_labels={max_labels}: {', '.join(sorted(capped))}")
+
+    if suppressed:
+        print(f"\nNot re-adding {len(suppressed)} label(s) removed earlier: "
+              f"{', '.join(sorted(suppressed))}")
 
     if labels_to_add:
         print(f"\nLabels to add: {', '.join(sorted(labels_to_add))}")
@@ -414,6 +457,7 @@ def main():
             "area_label_scores": area_scores,
             "area_labels_selected": sorted(new_labels),
             "area_labels_capped": sorted(capped),
+            "area_labels_suppressed": sorted(suppressed),
             "area_labels_applied": applied_labels,
             "issue_type_scores": type_scores,
             "issue_type_selected": type_name,

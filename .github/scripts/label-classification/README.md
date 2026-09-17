@@ -79,6 +79,7 @@ Writes the scores and decisions as JSON so another tool can consume them rather 
   "area_label_scores": { "area/CI": 0.5142, "area/ui": 0.0871 },
   "area_labels_selected": ["area/CI"],
   "area_labels_capped": ["area/QE"],
+  "area_labels_suppressed": [],
   "area_labels_applied": ["area/CI"],
   "issue_type_scores": {},
   "issue_type_selected": null,
@@ -86,7 +87,7 @@ Writes the scores and decisions as JSON so another tool can consume them rather 
 }
 ```
 
-`area_labels_selected` is what the classifier chose; `area_labels_capped` is labels that cleared their threshold but lost to `max_labels`; `area_labels_applied` excludes labels the target already carried. The file is written under `--dry-run` too, with `dry_run: true` recorded — so a caller can see what would happen without it happening.
+`area_labels_selected` is what the classifier chose; `area_labels_capped` is labels that cleared their threshold but lost to `max_labels`; `area_labels_suppressed` is labels skipped because someone removed them before; `area_labels_applied` excludes labels the target already carried. The file is written under `--dry-run` too, with `dry_run: true` recorded — so a caller can see what would happen without it happening.
 
 ## How It Works
 
@@ -134,6 +135,23 @@ A label can clear its threshold and still not be assigned, because `max_labels` 
 `area/maven-plugin` scored higher than `area/QE` but is *not* capped — it never cleared its own 0.40 threshold. Those are two different failure modes with two different fixes: raise `max_labels`, or adjust the threshold.
 
 A lot of capped labels across many targets means thresholds are collectively too loose, not that `max_labels` is too small.
+
+### Corrections stick
+
+Classification is not a one-shot event — issues reclassify on every edit, PRs on every draft/ready cycle. So **if you remove a label the classifier got wrong, it will not come back.**
+
+Before applying anything, the script reads the target's event timeline and drops any label that has been removed before. No extra state is involved; GitHub already records the history.
+
+```
+Not re-adding 1 label(s) removed earlier: area/storage/sql
+```
+
+Two consequences worth knowing:
+
+- The classifier is **add-only**. It never removes a label you added by hand, and after your removal it never re-adds one either. Fixing its output is a one-time action.
+- If you remove a label and later decide it did belong, add it back manually — the classifier will not do it for you.
+
+This is what makes the label history usable as training data (#10160). A classifier that reinstates its own mistakes produces a label set that looks like human agreement but is really just the model agreeing with itself.
 
 ### A note on where the accuracy ceiling actually is
 

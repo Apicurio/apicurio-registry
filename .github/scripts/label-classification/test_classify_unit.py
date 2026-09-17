@@ -284,6 +284,72 @@ class GetPrFilesTest(unittest.TestCase):
         self.assertIn("repos/apicurio/registry/pulls/42/files", argv)
 
 
+class GetRemovedLabelsTest(unittest.TestCase):
+
+    def _run_result(self, returncode=0, stdout="", stderr=""):
+        return subprocess.CompletedProcess(args=[], returncode=returncode,
+                                           stdout=stdout, stderr=stderr)
+
+    def test_returns_the_labels_from_unlabeled_events(self):
+        with mock.patch.object(classify.subprocess, "run",
+                               return_value=self._run_result(stdout="area/ui\narea/rest\n")):
+            self.assertEqual(classify.get_removed_labels("o/r", 1),
+                             {"area/ui", "area/rest"})
+
+    def test_a_label_removed_twice_is_reported_once(self):
+        with mock.patch.object(classify.subprocess, "run",
+                               return_value=self._run_result(stdout="area/ui\narea/ui\n")):
+            self.assertEqual(classify.get_removed_labels("o/r", 1), {"area/ui"})
+
+    def test_an_unreadable_history_degrades_to_no_suppression(self):
+        # Failing open keeps classification working; failing closed would mean a
+        # transient API error silently stops labelling altogether.
+        with mock.patch.object(classify.subprocess, "run",
+                               return_value=self._run_result(returncode=1, stderr="boom")):
+            self.assertEqual(classify.get_removed_labels("o/r", 1), set())
+
+    def test_the_events_endpoint_is_paginated_and_filtered(self):
+        with mock.patch.object(classify.subprocess, "run",
+                               return_value=self._run_result()) as run:
+            classify.get_removed_labels("apicurio/registry", 42)
+
+        argv = run.call_args.args[0]
+        self.assertIn("--paginate", argv)
+        self.assertIn("repos/apicurio/registry/issues/42/events", argv)
+        self.assertTrue(any("unlabeled" in a for a in argv))
+
+
+class LabelsToApplyTest(unittest.TestCase):
+    """A human's correction has to outlive the next edit — otherwise the
+    classifier reinstates its own mistake and the label history stops being
+    trustworthy training data (see #10160)."""
+
+    def test_a_previously_removed_label_is_never_re_added(self):
+        self.assertEqual(
+            classify.labels_to_apply({"area/ui", "area/rest"}, set(), {"area/ui"}),
+            {"area/rest"})
+
+    def test_labels_already_present_are_not_re_applied(self):
+        self.assertEqual(
+            classify.labels_to_apply({"area/ui", "area/rest"}, {"area/ui"}, set()),
+            {"area/rest"})
+
+    def test_a_label_removed_then_manually_restored_stays(self):
+        # It is present, so there is nothing to add — and nothing removes it.
+        self.assertEqual(
+            classify.labels_to_apply({"area/ui"}, {"area/ui"}, {"area/ui"}),
+            set())
+
+    def test_removals_of_labels_the_classifier_did_not_pick_are_irrelevant(self):
+        self.assertEqual(
+            classify.labels_to_apply({"area/rest"}, set(), {"area/ui", "area/avro"}),
+            {"area/rest"})
+
+    def test_nothing_to_add_when_every_pick_was_previously_removed(self):
+        self.assertEqual(
+            classify.labels_to_apply({"area/ui"}, set(), {"area/ui"}), set())
+
+
 class ApplyLabelsTest(unittest.TestCase):
 
     def _subcommand_for(self, is_pr):

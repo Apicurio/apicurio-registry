@@ -20,28 +20,9 @@ trap 'rm -rf "$work"' EXIT
 pass=0
 fail=0
 
-# A Reactor Build Order block of $1 modules, followed by a Reactor Summary of
-# $2 successful modules. The two differ when a build dies partway.
-make_log() {
-  local order=$1 success=$2 file=$3 i
-  {
-    echo "[INFO] Reactor Build Order:"
-    echo "[INFO] "
-    for ((i = 1; i <= order; i++)); do
-      printf '[INFO] Registry :: Mod%-4d [jar]\n' "$i"
-    done
-    echo "[INFO] "
-    echo "[INFO] Reactor Summary:"
-    echo "[INFO] "
-    for ((i = 1; i <= success; i++)); do
-      printf '[INFO] Registry :: Mod%-4d SUCCESS [  1.000 s]\n' "$i"
-    done
-  } > "$file"
-}
-
 check() {
-  local name=$1 report=$2 log=$3 mode=$4 needle=$5 out rc found
-  out=$(bash "$subject" "$report" "$log" 2>"$work/stderr")
+  local name=$1 report=$2 mode=$3 needle=$4 out rc found
+  out=$(bash "$subject" "$report" 2>"$work/stderr")
   rc=$?
 
   if [ "$rc" -ne 0 ]; then
@@ -86,148 +67,163 @@ check() {
   pass=$((pass + 1))
 }
 
-# --- the real shape, from the PR 10087 artifact ------------------------------
-# 5 affected + 42 upstream = 47 built of a 57-module reactor, 10 not built.
-cat > "$work/v1.json" <<'EOF'
-{"version":"1","affectedModules":["a","b","c","d","e"],"excludedUpstreamCount":42,"fullBuildTriggered":false}
-EOF
-make_log 57 57 "$work/full.log"
-
-check "v1 report: build set is affected + upstream" \
-  "$work/v1.json" "$work/full.log" has "| projected build set | 47 |"
-check "v1 report: reactor scraped from the build log" \
-  "$work/v1.json" "$work/full.log" has "| reactor | 57 |"
-check "v1 report: saving is the remainder, not the affected count" \
-  "$work/v1.json" "$work/full.log" has "| projected modules not built | 10 |"
-
-# --- regression: a newer Scalpel writes a status report ----------------------
-# Scalpel 0.4.0 writes schema version 2, and on a skip that report carries only
-# baseBranch, status, reason and fullBuildTriggered. It is a valid object, so a
-# `type == "object"` guard admits it; jq's `null | length` is 0, so the
-# arithmetic then claimed the entire reactor as a saving.
+# --- the real shapes, captured from Scalpel 0.4.1 runs on this repository ----
+# The status shape: a disableTriggers match. Real run output, changedFiles and
+# timings trimmed for size; the fields the script reads are verbatim.
 cat > "$work/v2-status.json" <<'EOF'
-{"version":"2","baseBranch":"main","status":"SKIPPED","reason":"no changes matched","fullBuildTriggered":false}
+{"version":"2","scalpelVersion":"0.4.1","baseBranch":"main","decisionId":"6898a0457e040e268bd0be880e37f03987cf13b751e5c849f9a6277f8c1a96d6","status":"skipped","reason":"disabled by disableTriggers match","fullBuildTriggered":true,"triggerFile":".mvn/extensions.xml","changedFiles":[".mvn/extensions.xml"],"excludedUpstreamCount":0,"affectedModules":[]}
 EOF
-check "v2 status report: refuses to do the arithmetic" \
-  "$work/v2-status.json" "$work/full.log" has "does not match the schema"
-check "v2 status report: claims no saving" \
-  "$work/v2-status.json" "$work/full.log" lacks "projected modules not built"
-check "v2 status report: names the version it found" \
-  "$work/v2-status.json" "$work/full.log" has '`2`'
 
-# An object missing only excludedUpstreamCount is the same hazard.
-cat > "$work/v1-partial.json" <<'EOF'
-{"version":"1","affectedModules":["a"],"fullBuildTriggered":false}
+# The full decision shape: one Java file changed. The scalars are real run
+# output and the counts are internally consistent with what the table prints
+# (5 + 42 = 47, 47 + 10 = 57); the module membership is synthetic, chosen to
+# give both lists their real lengths without embedding 15 real module objects.
+cat > "$work/v2-full.json" <<'EOF'
+{"version":"2","scalpelVersion":"0.4.1","baseBranch":"main","decisionId":"eb03ad1a005c7b1d1ac7ef19bb2bd9c6299c752cb3ea001fea00d3e0fd35e28d","mergeBaseId":"c4c19d62fb18e46064d1c328a4c669fca44eb11f","headId":"73a7ee7bf8001b18a8e82274adb8dd0a98194ab7","configFingerprint":"baseBranch=484541447e31;head=48454144","fullBuildTriggered":false,"triggerFile":null,"changedFiles":["app/src/main/java/io/apicurio/registry/storage/impl/sql/CommonSqlStatements.java"],"excludedUpstreamCount":42,"buildSetSize":47,"reactorModuleCount":57,"testedModulesCount":5,"affectedModules":[{"groupId":"io.apicurio","artifactId":"apicurio-registry-app","path":"app","reasons":["SOURCE_CHANGE"],"category":"DIRECT","sourceSet":"main"},{"groupId":"io.apicurio","artifactId":"apicurio-registry-docs","path":"docs","reasons":["DOWNSTREAM_DEPENDENT"],"category":"DOWNSTREAM"},{"groupId":"io.apicurio","artifactId":"apicurio-registry-cli","path":"cli","reasons":["DOWNSTREAM_DEPENDENT"],"category":"DOWNSTREAM"},{"groupId":"io.apicurio","artifactId":"apicurio-registry-distro-docker","path":"distro/docker","reasons":["DOWNSTREAM_DEPENDENT"],"category":"DOWNSTREAM"},{"groupId":"io.apicurio","artifactId":"apicurio-registry-mcp","path":"mcp","reasons":["DOWNSTREAM_DEPENDENT"],"category":"DOWNSTREAM"}],"skippedModules":[{"groupId":"io.apicurio","artifactId":"m1","path":"p1","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m2","path":"p2","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m3","path":"p3","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m4","path":"p4","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m5","path":"p5","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m6","path":"p6","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m7","path":"p7","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m8","path":"p8","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m9","path":"p9","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m10","path":"p10","reason":"NOT_AFFECTED"}]}
 EOF
-check "v1 report missing excludedUpstreamCount: refuses the arithmetic" \
-  "$work/v1-partial.json" "$work/full.log" lacks "projected build set"
 
-# The same hazard by another route. jq's has() is true for an explicit null, and
-# the value then reaches the shell as the bare word `null`, which aborts the
-# arithmetic under `set -u` and exits 1. A quoted number and a boolean are the
-# same shape of input. A negative count is a number the guard must still refuse,
-# because it would print a build set below the affected count. The last two are
-# numbers the shell cannot hold: jq renders 1e999 in exponent form, which bash
-# arithmetic rejects, and renders the other as digits that overflow a 64-bit
-# integer and wrap to something that still looks like a count.
-for bad_count in null '"42"' true -1 1e999 99999999999999999999; do
-  printf '{"version":"1","affectedModules":["a"],"excludedUpstreamCount":%s}\n' \
-    "$bad_count" > "$work/v1-badcount.json"
-  check "excludedUpstreamCount $bad_count: refuses the arithmetic" \
-    "$work/v1-badcount.json" "$work/full.log" lacks "projected build set"
+check "v2 full: build set read from the native field" \
+  "$work/v2-full.json" has "| build set, \`buildSetSize\` | 47 |"
+check "v2 full: reactor read from the native field" \
+  "$work/v2-full.json" has "| reactor, \`reactorModuleCount\` | 57 |"
+check "v2 full: saving is the subtraction" \
+  "$work/v2-full.json" has "| projected modules not built | 10 |"
+check "v2 full: skippedModules is named as the actual saving" \
+  "$work/v2-full.json" has "| \`skippedModules\`, the actual saving | 10 |"
+check "v2 full: tested modules reported" \
+  "$work/v2-full.json" has "| \`testedModulesCount\`, modules whose tests would run | 5 |"
+check "v2 full: upstream prerequisites still stated" \
+  "$work/v2-full.json" has "| \`excludedUpstreamCount\`, omitted from the report but still built | 42 |"
+
+check "v2 status: explains itself" \
+  "$work/v2-status.json" has "skipped the analysis"
+check "v2 status: names the reason" \
+  "$work/v2-status.json" has "disabled by disableTriggers match"
+check "v2 status: names the trigger file" \
+  "$work/v2-status.json" has '`.mvn/extensions.xml`'
+check "v2 status: projects a full build" \
+  "$work/v2-status.json" has "**full build**"
+check "v2 status: claims no numeric saving" \
+  "$work/v2-status.json" lacks "projected modules not built"
+
+# The failed status: change detection broke, so there is nothing to project
+# and the summary must not dress the run up as a full-build outcome.
+jq '.status = "failed" | .reason = "change detection did not run (see build log)"' \
+  "$work/v2-status.json" > "$work/v2-failed.json"
+check "v2 status failed: no projection is claimed" \
+  "$work/v2-failed.json" has "no projection at all"
+check "v2 status failed: does not claim a full build" \
+  "$work/v2-failed.json" lacks "**full build**"
+check "v2 status failed: claims no numeric saving" \
+  "$work/v2-failed.json" lacks "projected modules not built"
+
+# --- regression: schema 1 is now the unknown schema --------------------------
+# Scalpel 0.3.10 writes version 1. The script reads schema 2 only, so an old
+# report must be refused loudly rather than half-parsed, and the refusal names
+# the producer version, which is the fact that identifies what happened.
+cat > "$work/v1.json" <<'EOF'
+{"version":"1","scalpelVersion":"0.3.10","affectedModules":["a","b","c","d","e"],"excludedUpstreamCount":42,"fullBuildTriggered":false}
+EOF
+check "v1 report: refuses the numbers" \
+  "$work/v1.json" has "this summary reads schema 2"
+check "v1 report: names the producing Scalpel version" \
+  "$work/v1.json" has '`0.3.10`'
+check "v1 report: claims no saving" \
+  "$work/v1.json" lacks "projected modules not built"
+
+# --- regression: schema 2 without the counts ---------------------------------
+# The shipped schema declares all four counts optional, so a producer may emit
+# a version-2 report they are missing from. Derived from the full fixture with
+# jq so it is exactly the real shape minus the fields, not a hand-typed
+# near-copy that can drift.
+jq 'del(.excludedUpstreamCount, .buildSetSize, .reactorModuleCount, .testedModulesCount)' \
+  "$work/v2-full.json" > "$work/v2-partial.json"
+check "v2 report missing the counts: refuses the table" \
+  "$work/v2-partial.json" has "are missing, malformed, negative"
+check "v2 report missing the counts: claims no saving" \
+  "$work/v2-partial.json" lacks "projected modules not built"
+check "v2 report missing the counts: does not blame the pin" \
+  "$work/v2-partial.json" has "report bug"
+
+# Each count is guarded alone, with the rest of the fixture valid, because a
+# guard that only fires on a wholly missing shape misses a single bad field.
+# Six values on one field sweep every guard arm: `null`, a quoted number and a
+# boolean all fail the type arm; -1 fails the non-negative arm; 1e999 and the
+# 20-digit integer are well-formed non-negative numbers that the subtraction
+# could hold, but they fail the consistency arm, because a build set larger
+# than the reactor is not a report the table should summarize. The other
+# three fields get one representative each, which covers the per-field half of
+# the guard.
+for bad in null '"42"' true -1 1e999 99999999999999999999; do
+  jq --argjson v "$bad" '.buildSetSize = $v' "$work/v2-full.json" > "$work/v2-bad.json"
+  check "buildSetSize $bad: refuses the table" \
+    "$work/v2-bad.json" lacks "projected modules not built"
+done
+for field in reactorModuleCount testedModulesCount excludedUpstreamCount; do
+  jq --arg f "$field" '.[$f] = null' "$work/v2-full.json" > "$work/v2-bad.json"
+  check "$field null: refuses the table" \
+    "$work/v2-bad.json" lacks "projected modules not built"
 done
 
-# JSON has one number type, so a count serialised as 42.0 is a legitimate count
-# rather than a malformed one. bash arithmetic rejects it outright, which used
-# to empty the table while still exiting 0. It must produce the table.
-cat > "$work/v1-float.json" <<'EOF'
-{"version":"1","affectedModules":["a","b","c","d","e"],"excludedUpstreamCount":42.0,"fullBuildTriggered":false}
-EOF
-check "excludedUpstreamCount 42.0: coerced rather than refused" \
-  "$work/v1-float.json" "$work/full.log" has "| projected build set | 47 |"
+# The shipped schema types the counts as integers, so 47.0 is stricter than
+# the contract requires. The coercion is deliberate leniency for a producer
+# that ever emits a float: bash arithmetic rejects it outright, which used to
+# empty the table while still exiting 0. It must produce the table.
+jq '.buildSetSize = 47.0' "$work/v2-full.json" > "$work/v2-float.json"
+check "buildSetSize 47.0: coerced rather than refused" \
+  "$work/v2-float.json" has "| build set, \`buildSetSize\` | 47 |"
 
-# --- regression: a build that died partway -----------------------------------
-# The Reactor Build Order block is printed before any module runs, so it is
-# complete at 57 even though only 49 modules reported SUCCESS. Counting SUCCESS
-# rows instead would give a reactor of 49 against a build set of 47 and publish
-# "2 modules not built" for a build that never finished.
-make_log 57 49 "$work/died.log"
-check "failed build: reactor comes from the build order, not the summary" \
-  "$work/v1.json" "$work/died.log" has "| reactor | 57 |"
+# Mutually inconsistent counts are a report bug, refused with the reason
+# rather than published as a negative saving.
+jq '.reactorModuleCount = 10' "$work/v2-full.json" > "$work/v2-inconsistent.json"
+check "reactor below build set: refuses the table" \
+  "$work/v2-inconsistent.json" has "are missing, malformed, negative"
+check "reactor below build set: claims no saving" \
+  "$work/v2-inconsistent.json" lacks "projected modules not built"
 
-# --- full-build trigger ------------------------------------------------------
-cat > "$work/trigger.json" <<'EOF'
-{"version":"1","fullBuildTriggered":true,"triggerFile":"pom.xml"}
-EOF
-check "full build trigger: reports a full build" \
-  "$work/trigger.json" "$work/full.log" has "**full build**"
-check "full build trigger: names the file" \
-  "$work/trigger.json" "$work/full.log" has '`pom.xml`'
+# --- a report-shaped trigger, from writeFullBuildReport ----------------------
+# The real producer shape for a scalpel.fullBuildTriggers match: no status
+# field and no counts. Unreachable in this repo today because disableTriggers
+# subsumes the default fullBuildTriggers list and is checked first, but one
+# maven.config edit away, so the branch that handles it is kept honest here.
+jq '.fullBuildTriggered = true | .triggerFile = "pom.xml"
+    | .changedFiles = ["pom.xml"]
+    | del(.excludedUpstreamCount, .buildSetSize, .reactorModuleCount, .testedModulesCount, .affectedModules, .skippedModules)' \
+  "$work/v2-full.json" > "$work/v2-trigger.json"
+check "trigger report: reports a full build" \
+  "$work/v2-trigger.json" has "**full build**"
+check "trigger report: names the file" \
+  "$work/v2-trigger.json" has '`pom.xml`'
+check "trigger report: builds no table" \
+  "$work/v2-trigger.json" lacks "projected modules not built"
 
 # --- degraded inputs ---------------------------------------------------------
 check "missing report: explains rather than fails" \
-  "$work/absent.json" "$work/full.log" has "no usable report"
+  "$work/absent.json" has "no usable report"
 
 printf 'not json at all' > "$work/bad.json"
 check "malformed report: explains rather than fails" \
-  "$work/bad.json" "$work/full.log" has "no usable report"
+  "$work/bad.json" has "no usable report"
 
 printf '[1,2,3]' > "$work/array.json"
 check "report that is valid json but not an object" \
-  "$work/array.json" "$work/full.log" has "no usable report"
-
-check "missing build log: omits the reactor rows" \
-  "$work/v1.json" "$work/absent.log" lacks "| reactor |"
-check "missing build log: still reports the build set" \
-  "$work/v1.json" "$work/absent.log" has "| projected build set | 47 |"
-
-# A log from a different run, too short to be this report's reactor.
-make_log 12 12 "$work/short.log"
-check "reactor below the build set: omits the rows rather than going negative" \
-  "$work/v1.json" "$work/short.log" lacks "modules not built"
-
-# A log whose build order block has no blank terminator, because it was
-# truncated or because a parallel build interleaved something else into it.
-# Every `[INFO] ` line to EOF used to count as a module, which inflates the
-# reactor past the build set and publishes whatever saving the log was long
-# enough to produce.
-{
-  echo "[INFO] Reactor Build Order:"
-  echo "[INFO] "
-  for i in $(seq 1 57); do printf '[INFO] Registry :: Mod%-4d [jar]\n' "$i"; done
-  echo "[INFO] ------------------< io.apicurio:apicurio-registry >-------------"
-  for i in $(seq 1 400); do echo "[INFO] Building module $i"; done
-} > "$work/unterminated.log"
-check "build order without a blank terminator: reactor stays at 57" \
-  "$work/v1.json" "$work/unterminated.log" has "| reactor | 57 |"
-
-# The third bound. A log that leaves the `[INFO] ` prefix behind entirely, which
-# is what a build with warnings or a plugin writing on its own prefix looks like.
-{
-  echo "[INFO] Reactor Build Order:"
-  echo "[INFO] "
-  for i in $(seq 1 57); do printf '[INFO] Registry :: Mod%-4d [jar]\n' "$i"; done
-  for i in $(seq 1 400); do echo "[WARNING] noise $i"; done
-} > "$work/noprefix.log"
-check "build order ended by a non-INFO line: reactor stays at 57" \
-  "$work/v1.json" "$work/noprefix.log" has "| reactor | 57 |"
+  "$work/array.json" has "no usable report"
 
 # --- every branch says what the job actually did -----------------------------
-for r in v1 v2-status trigger bad; do
+for r in v2-status v2-full v2-trigger v1 bad; do
   check "$r: states that mode=report trimmed nothing" \
-    "$work/$r.json" "$work/full.log" has "not a saving this run made"
+    "$work/$r.json" has "not a saving this run made"
 done
 
 # --- the pin must still write the schema the script reads --------------------
-# Refusing arithmetic on an unknown schema is the safe half of the guard, and on
+# Refusing numbers on an unknown schema is the safe half of the guard, and on
 # its own it is a silent half: moving the pin would leave every summary without
-# numbers and nothing in CI would go red. This is the loud half. It fails on the
-# pull request that moves the pin, which is where teaching the script a newer
-# schema belongs. Scalpel 0.4.0 writes schema 2 and, on a skip, a status report
-# with none of the fields the arithmetic needs, so a bump is a real code change
-# and not a version string to wave through.
+# numbers and nothing in CI would go red. This is the loud half. It fails on
+# the pull request that moves the pin, which is where teaching the script a
+# newer schema belongs. The known-producer list lives in the script itself, so
+# one edit teaches both this gate and the script's own refusal message.
 pin_file="$(cd "$script_dir/../.." && pwd)/.mvn/extensions.xml"
-writes_schema_1="0.3.10"
+writes_schema_2=$(sed -n 's/^known_schema_2="\([^"]*\)"$/\1/p' "$subject")
 
 pin=$(awk '
   /<extension>/    { blk = "" }
@@ -241,13 +237,16 @@ pin=$(awk '
 if [ -z "$pin" ]; then
   echo "FAIL pinned Scalpel version: none found in $pin_file"
   fail=$((fail + 1))
-elif ! grep -qxF "$pin" <<<"$writes_schema_1"; then
-  echo "FAIL pinned Scalpel version: $pin is pinned, but scalpel-summary.sh reads"
-  echo "      report schema 1, written by: $(tr '\n' ' ' <<<"$writes_schema_1")"
-  echo "      Teach the script the new schema, then list the version here."
+elif [ -z "$writes_schema_2" ]; then
+  echo "FAIL known_schema_2 list: not found in $subject"
+  fail=$((fail + 1))
+elif ! grep -qwF "$pin" <<<"$writes_schema_2"; then
+  echo "FAIL pinned Scalpel version: $pin is pinned, but scalpel-summary.sh lists"
+  echo "      schema 2 producers: $(tr '\n' ' ' <<<"$writes_schema_2")"
+  echo "      Teach the script the new schema, then add the version there."
   fail=$((fail + 1))
 else
-  echo "ok   pinned Scalpel $pin still writes report schema 1"
+  echo "ok   pinned Scalpel $pin is a known schema 2 producer"
   pass=$((pass + 1))
 fi
 

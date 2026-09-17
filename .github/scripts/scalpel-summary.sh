@@ -2,19 +2,26 @@
 #
 # Turn a Scalpel report into a readable summary.
 #
-# Usage: scalpel-summary.sh <report.json> <maven-build.log>
+# Usage: scalpel-summary.sh <report.json>
 #
 # Writes markdown to stdout. Never fails the caller: every degraded input is a
 # branch that explains itself, because this only reports and a summary step
 # should not redden a job.
 #
-# The arithmetic it exists for is stated in the output the script emits, so a
-# reader of the artifact gets it without this file.
+# Reads report schema 2, the schema shipped inside the pinned scalpel jars as
+# scalpel-report-v2.schema.json. The report carries the build set, reactor and
+# tested-module counts natively, so the only arithmetic here is one subtraction,
+# done in jq where numbers have no shell limits, and no build log is read.
 
 set -euo pipefail
 
-report=${1:?usage: scalpel-summary.sh <report.json> <build.log>}
-build_log=${2:?usage: scalpel-summary.sh <report.json> <build.log>}
+report=${1:?usage: scalpel-summary.sh <report.json>}
+
+# Producers whose schema 2 this script has been checked against. scalpel-summary.test.sh
+# reads this list and fails when the pin in .mvn/extensions.xml moves to a version
+# absent from it, which is where teaching this script a newer schema belongs.
+# shellcheck disable=SC2034  # consumed by scalpel-summary.test.sh, not here
+known_schema_2="0.4.1"
 
 echo "## Scalpel report"
 echo
@@ -23,101 +30,121 @@ echo "in this run was trimmed either. Anything below is a projection of what a"
 echo "trimming build would have done, not a saving this run made."
 echo
 
+# Field reads happen once, after the object guard, so a malformed report never
+# reaches jq again and never trips the never-fail contract.
 if ! jq -e 'type == "object"' "$report" > /dev/null 2>&1; then
-  # Scalpel returns before writing anything on two of its paths, so an absent
-  # report is a result and not an error. The same branch covers an unreadable
-  # one.
+  # Scalpel 0.4.1 writes a report on every path it can take, including the
+  # skip paths and a missing base branch, so an absent or unreadable report is
+  # no longer one of its outcomes. What is left is a Maven failure before the
+  # session started. Check the Generate step when the run is red.
   echo "There is no usable report here, so nothing was analysed."
   echo
-  echo "That is usually an outcome rather than a failure. Scalpel returns before"
-  echo "writing anything when a changed file matches \`scalpel.disableTriggers\` or"
-  echo "when \`scalpel.excludePaths\` removes every changed file, and both are"
-  echo "common on this repository. See \`.mvn/maven.config\` for the patterns in"
-  echo "force. On either of those two paths the projection is a **full build**,"
-  echo "which is how the baseline in the README counts them."
-  echo
-  echo "A Maven failure before the session starts leaves the same empty state, and"
-  echo "that one projects nothing at all. Check the Generate step when the run is"
-  echo "red, because the two cases are indistinguishable from here."
-
-elif [ "$(jq -r '.fullBuildTriggered // false' "$report")" = "true" ]; then
-  # Not dead code, though it is rare here: Scalpel defaults
-  # scalpel.fullBuildTriggers to `.mvn/**`, which this project also lists in
-  # scalpel.disableTriggers, so the two overlap and either outcome is possible.
-  trigger=$(jq -r '.triggerFile // "not recorded"' "$report")
-  echo "A changed file matched \`scalpel.fullBuildTriggers\`, so the projection is a"
-  echo "**full build** with no reduced build set. Trigger: \`${trigger//\`/}\`."
-
-elif ! jq -e '(.version == "1" or .version == 1)
-              and ((.affectedModules | type) == "array")
-              and ((.excludedUpstreamCount | type) == "number")
-              and (.excludedUpstreamCount >= 0)
-              and (.excludedUpstreamCount < 100000)' "$report" > /dev/null 2>&1; then
-  # The field types are validated, not just the JSON type and not just the key.
-  # A newer Scalpel writes a status report that is a perfectly good object but
-  # carries none of these fields, and jq's `null | length` is 0, so a type-only
-  # check would read it as "zero modules built" and claim the whole reactor as a
-  # saving. `has()` is not enough either: it is true for an explicit null, which
-  # then reaches the shell as the bare word `null` and aborts the arithmetic.
-  #
-  # The upper bound is there because JSON numbers have no range limit and the
-  # shell does. jq renders a very large one in exponent form, which bash
-  # arithmetic rejects outright, and renders a merely huge one as digits that
-  # overflow a 64-bit integer and wrap to something plausible-looking. The first
-  # would fail a job this script promises never to fail, the second would publish
-  # a wrong number. This reactor has 57 modules, so 100000 refuses only counts
-  # that are already impossible.
-  version=$(jq -r '.version // "absent"' "$report")
-  echo "The report does not match the schema this summary understands (version 1),"
-  echo "so no arithmetic was attempted. Reported version: \`${version//\`/}\`."
-  echo
-  echo "This means the Scalpel version moved. Check the pin in"
-  echo "\`.mvn/extensions.xml\` against the schema described in"
-  echo "\`.github/workflows/README.md\` and update this script to match."
+  echo "Every Scalpel outcome writes a report on the pinned version, including"
+  echo "the skip paths, so this usually means the Maven session died before"
+  echo "Scalpel ran. Check the Generate step in that case. A file corrupted on"
+  echo "upload produces the same empty state."
 
 else
-  affected=$(jq '.affectedModules | length' "$report")
-  # `floor` because JSON has one number type: a count serialised as 42.0 is a
-  # valid number that bash arithmetic rejects as a syntax error.
-  upstream=$(jq '.excludedUpstreamCount | floor' "$report")
-  build_set=$(( affected + upstream ))
+  status=$(jq -r '.status // ""' "$report")
+  full_triggered=$(jq -r '.fullBuildTriggered // false' "$report")
+  version=$(jq -r '.version // ""' "$report")
+  scalpel_version=$(jq -r '.scalpelVersion // ""' "$report")
+  counts=""
 
-  # Only this branch needs the reactor, and the log is the largest input here, so
-  # the scan waits until the degraded branches above have been ruled out.
-  #
-  # Maven prints the Reactor Build Order before any module runs, so the block is
-  # complete even when the build dies partway. The Reactor Summary at the end is
-  # not, and counting its SUCCESS rows on a failed build undercounts the reactor
-  # by however many modules never ran.
-  #
-  # The block is bounded on three sides. Without that, a log truncated mid-block
-  # has no terminator and every remaining `[INFO] ` line to EOF counts as a
-  # module, which inflates the reactor past the build set and publishes a
-  # nonsense saving instead of omitting the rows.
-  reactor=$(awk '
-    /^\[INFO\] Reactor Build Order:/ { in_block = 1; next }
-    in_block && /^\[INFO\] *$/       { if (n) exit; next }
-    in_block && /^\[INFO\] -----/    { if (n) exit; next }
-    in_block && !/^\[INFO\] /        { if (n) exit; next }
-    in_block                         { n++ }
-    END                              { print n + 0 }
-  ' "$build_log" 2>/dev/null) || reactor=0
+  if [ -n "$status" ]; then
+    # The skip shape: Scalpel analysed the change and declined to project a
+    # build set. Schema 2 status reports carry the decision fields, so the
+    # branch can say what happened and name the file responsible.
+    reason=$(jq -r '.reason // "not recorded"' "$report")
+    echo "Scalpel skipped the analysis, so there is no build set to project."
+    echo
+    echo "- status: \`${status//\`/}\`"
+    echo "- reason: \`${reason//\`/}\`"
+    trigger=$(jq -r '.triggerFile // ""' "$report")
+    if [ -n "$trigger" ]; then
+      echo "- trigger file: \`${trigger//\`/}\`"
+    fi
+    echo
+    if [ "$status" = "failed" ]; then
+      # Change detection did not run, so there is nothing to project and no
+      # full-build claim to make. Point at the step that owns the cause.
+      echo "Change detection did not run, so there is no projection at all."
+      echo "See the Generate step, which owns the cause of this status."
+    else
+      echo "The projection for this outcome is a **full build**: a changed file"
+      echo "matched \`scalpel.disableTriggers\` or \`scalpel.fullBuildTriggers\`, or"
+      echo "\`scalpel.excludePaths\` removed every changed file. The reason above"
+      echo "says which. This is how the baseline in the README counts these runs."
+    fi
 
-  echo "| | modules |"
-  echo "| --- | ---: |"
-  echo "| \`affectedModules\`, listed in the report | $affected |"
-  echo "| \`excludedUpstreamCount\`, omitted from the report but still built | $upstream |"
-  echo "| projected build set | $build_set |"
-  # A reactor smaller than the build set means the log was not the one that
-  # produced this report. Omit the rows rather than publish a negative number.
-  if [ "$reactor" -ge "$build_set" ] && [ "$reactor" -gt 0 ]; then
-    echo "| reactor | $reactor |"
-    echo "| projected modules not built | $(( reactor - build_set )) |"
+  elif [ "$full_triggered" = "true" ]; then
+    # Not the skip path: this is writeFullBuildReport's shape, produced when a
+    # changed file matches scalpel.fullBuildTriggers. Unreachable today because
+    # this repo's disableTriggers subsumes the default fullBuildTriggers list
+    # and is checked first, but one maven.config edit away: adding pom.xml to
+    # scalpel.fullBuildTriggers would route here. It is a live outcome, not
+    # future-proofing, so it says a true thing instead of printing a table.
+    trigger=$(jq -r '.triggerFile // "not recorded"' "$report")
+    echo "A changed file matched a full-build trigger, so the projection is a"
+    echo "**full build** with no reduced build set. Trigger: \`${trigger//\`/}\`."
+
+  elif [ "$version" != "2" ]; then
+    echo "The report was written by Scalpel \`${scalpel_version//\`/}\` with schema"
+    echo "\`${version//\`/}\`, but this summary reads schema 2, so no numbers were"
+    echo "attempted."
+    echo
+    echo "This means the pin in \`.mvn/extensions.xml\` moved to a version the"
+    echo "summary has not been taught. Check it against the schema described in"
+    echo "\`.github/workflows/README.md\` and update this script to match."
+
+  elif ! counts=$(jq -r '
+      if ((.affectedModules | type) == "array")
+          and ((.skippedModules | type) == "array")
+          and (.reactorModuleCount >= .buildSetSize)
+          and ((.skippedModules | length)
+              == ((.reactorModuleCount | floor) - (.buildSetSize | floor)))
+          and ([.excludedUpstreamCount, .buildSetSize, .reactorModuleCount, .testedModulesCount]
+              | all(type == "number" and . >= 0))
+      then [(.affectedModules | length),
+            (.skippedModules | length),
+            (.excludedUpstreamCount | floor),
+            (.buildSetSize | floor),
+            (.reactorModuleCount | floor),
+            (.testedModulesCount | floor),
+            ((.reactorModuleCount | floor) - (.buildSetSize | floor))] | @tsv
+      else empty end' "$report" 2>/dev/null) || [ -z "$counts" ]; then
+    # The version is right but the counts are missing, malformed, negative, or
+    # mutually inconsistent. The shipped schema declares all four counts
+    # optional, so a producer that emits nulls is a schema-legal state this
+    # script must refuse rather than read as zeros; that is a report bug, not
+    # a moved pin.
+    echo "The report declares schema 2, which this summary reads, but its counts"
+    echo "are missing, malformed, negative, or do not add up, so no numbers"
+    echo "were attempted."
+    echo
+    echo "That is a report bug in the Scalpel version pinned in"
+    echo "\`.mvn/extensions.xml\` and is worth reporting upstream."
+  else
+    IFS=$'\t' read -r affected skipped upstream build_set reactor tested not_built \
+      <<<"$counts"
+
+    echo "| | modules |"
+    echo "| --- | ---: |"
+    echo "| \`affectedModules\`, listed in the report | $affected |"
+    echo "| \`excludedUpstreamCount\`, omitted from the report but still built | $upstream |"
+    echo "| build set, \`buildSetSize\` | $build_set |"
+    echo "| \`testedModulesCount\`, modules whose tests would run | $tested |"
+    echo "| \`skippedModules\`, the actual saving | $skipped |"
+    echo "| reactor, \`reactorModuleCount\` | $reactor |"
+    echo "| projected modules not built | $not_built |"
+    echo
+    echo "The build set is \`affectedModules + excludedUpstreamCount\`, upstream"
+    echo "prerequisites are dropped from the report and not from the build, and"
+    echo "\`skippedModules\` is the part a trimming build would not touch. The"
+    echo "decision is anchored by \`decisionId\`, \`mergeBaseId\`, \`headId\` and"
+    echo "\`configFingerprint\` in the JSON, so two reports can be compared without"
+    echo "consulting git history."
   fi
-  echo
-  echo "The build set is \`affectedModules + excludedUpstreamCount\`. Upstream build"
-  echo "prerequisites are dropped from the report and not from the build, so"
-  echo "reading \`affectedModules\` on its own understates what compiles."
 fi
 
 echo

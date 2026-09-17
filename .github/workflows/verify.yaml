@@ -282,28 +282,24 @@ jobs:
 
       - name: Generate Scalpel report
         run: |
-          set -o pipefail
           mkdir -p target
           # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
           # reportFile restates the documented default so the upload path
           # below cannot drift if upstream changes it.
           # wagon flags: same transient-failure hardening as the other CI jobs.
-          # The log is kept because the report carries no reactor size; the
-          # next step reads it from the Reactor Build Order block.
           ./mvnw validate --no-transfer-progress \
             -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Dscalpel.enabled=true \
             -Dscalpel.mode=report \
             -Dscalpel.reportFile=target/scalpel-report.json \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
-            -Dmaven.wagon.http.retryHandler.count=5 \
-            | tee target/scalpel-build.log
+            -Dmaven.wagon.http.retryHandler.count=5
 
-      # affectedModules is not the build set. Upstream prerequisites are dropped
-      # from the report, not from the build, so a reader who takes
-      # affectedModules as "what gets built" understates it. The script does the
-      # arithmetic once, into the run summary and into the artifact. It lives
-      # under .github/scripts so it can be unit tested; see scripts-tests.yaml.
+      # The report is self-describing on Scalpel 0.4.1: it carries the build
+      # set, reactor and tested-module counts, and its skip shape names the
+      # status, reason and trigger file. The script turns that into the run
+      # summary and the artifact copy. It lives under .github/scripts so it can
+      # be unit tested; see scripts-tests.yaml.
       - name: Summarize Scalpel report
         if: ${{ !cancelled() }}
         run: |
@@ -314,8 +310,7 @@ jobs:
           # died partway would upload a header and nothing else. A missing file
           # is the honest outcome, and the upload step only warns on one.
           bash .github/scripts/scalpel-summary.sh \
-            target/scalpel-report.json \
-            target/scalpel-build.log > "$summary.tmp"
+            target/scalpel-report.json > "$summary.tmp"
           mv "$summary.tmp" "$summary"
           cat "$summary" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
 
@@ -329,7 +324,6 @@ jobs:
           path: |
             target/scalpel-report.json
             target/scalpel-report-summary.md
-            target/scalpel-build.log
           retention-days: 30
           if-no-files-found: warn
 

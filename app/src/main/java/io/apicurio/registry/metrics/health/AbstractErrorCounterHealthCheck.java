@@ -9,11 +9,11 @@ import java.util.Optional;
  */
 public abstract class AbstractErrorCounterHealthCheck {
 
-    protected long errorCounter = 0;
+    protected volatile long errorCounter = 0;
     private Instant nextCounterReset;
-    private Optional<Duration> statusResetWindowDuration;
-    private Optional<Instant> nextStatusReset;
-    protected boolean up = true;
+    private Optional<Duration> statusResetWindowDuration = Optional.empty();
+    private Optional<Instant> nextStatusReset = Optional.empty();
+    protected volatile boolean up = true;
     private Duration counterResetWindowDuration;
     private Integer configErrorThreshold;
 
@@ -41,13 +41,14 @@ public abstract class AbstractErrorCounterHealthCheck {
         }
     }
 
-    protected synchronized void suspectSuper() {
+    protected synchronized long suspectSuper() {
         nextCounterReset = Instant.now().plus(counterResetWindowDuration);
         if (++errorCounter > configErrorThreshold) {
             up = false;
             statusResetWindowDuration
                     .ifPresent(duration -> nextStatusReset = Optional.of(Instant.now().plus(duration)));
         }
+        return errorCounter;
     }
 
     protected synchronized void callSuper() {
@@ -60,5 +61,13 @@ public abstract class AbstractErrorCounterHealthCheck {
             nextCounterReset = null;
             errorCounter = 0;
         }
+    }
+
+    public synchronized boolean isUp() {
+        return up;
+    }
+
+    public synchronized long getErrorCounter() {
+        return errorCounter;
     }
 }

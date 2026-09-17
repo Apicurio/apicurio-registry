@@ -5,8 +5,6 @@ import io.apicurio.registry.operator.resource.ResourceFactory;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static io.apicurio.registry.operator.Tags.DATABASE;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,15 +17,18 @@ import static org.awaitility.Awaitility.await;
 @Tag(DATABASE)
 public class PostgresqlDataSourceITTest extends ITBase {
 
-    private static final Logger log = LoggerFactory.getLogger(PostgresqlDataSourceITTest.class);
-
     @Test
     void testPostgresqlDatasource() {
         client.load(PostgresqlDataSourceITTest.class
                 .getResourceAsStream("/k8s/examples/postgresql/example-postgresql-database.yaml")).create();
         // await for postgres to be available
-        await().atMost(DATABASE_TIMEOUT).ignoreExceptions().until(() -> (1 == client.apps().statefulSets().inNamespace(namespace)
-                .withName("example-postgresql-database").get().getStatus().getReadyReplicas()));
+        await().atMost(DATABASE_TIMEOUT).untilAsserted(() -> {
+            var database = client.apps().statefulSets().inNamespace(namespace)
+                    .withName("example-postgresql-database").get();
+            assertThat(database).isNotNull();
+            assertThat(database.getStatus()).isNotNull();
+            assertThat(database.getStatus().getReadyReplicas()).isEqualTo(1);
+        });
 
         var registry = ResourceFactory.deserialize(
                 "/k8s/examples/postgresql/example-postgresql.apicurioregistry3.yaml",
@@ -36,17 +37,20 @@ public class PostgresqlDataSourceITTest extends ITBase {
 
         client.resource(registry).create();
 
-        await().atMost(DATABASE_TIMEOUT).ignoreExceptions().until(() -> {
-            assertThat(client.apps().deployments().inNamespace(namespace)
-                    .withName(registry.getMetadata().getName() + "-app-deployment").get().getStatus()
-                    .getReadyReplicas().intValue()).isEqualTo(1);
+        await().atMost(DATABASE_TIMEOUT).untilAsserted(() -> {
+            var deployment = client.apps().deployments().inNamespace(namespace)
+                    .withName(registry.getMetadata().getName() + "-app-deployment").get();
+            assertThat(deployment).isNotNull();
+            assertThat(deployment.getStatus()).isNotNull();
+            assertThat(deployment.getStatus().getReadyReplicas()).isEqualTo(1);
             var podName = client.pods().inNamespace(namespace).list().getItems().stream()
                     .map(pod -> pod.getMetadata().getName())
                     .filter(podN -> podN.startsWith(registry.getMetadata().getName() + "-app-deployment"))
-                    .findFirst().get();
-            assertThat(client.pods().inNamespace(namespace).withName(podName).getLog())
-                    .contains("Database type: postgresql");
-            return true;
+                    .findFirst();
+            assertThat(podName).isPresent();
+            // Emitted on every startup, including after a restart with an initialized database.
+            assertThat(client.pods().inNamespace(namespace).withName(podName.orElseThrow()).getLog())
+                    .contains("Using postgresql SQL storage.");
         });
     }
 }

@@ -31,7 +31,9 @@ jobs:
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.v3.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
-            surefire-opts: "-Dsurefire.forkCount=2"
+            # Quarkus forks share target/test-classes/test-classes.idx. Concurrent
+            # writers caused "Not a jandex index" during AllYamlTest discovery.
+            surefire-opts: "-Dsurefire.forkCount=1"
           - name: app-ccompat
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.noprofile.ccompat.**"

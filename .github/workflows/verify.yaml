@@ -69,6 +69,9 @@ jobs:
       - name: Verify unit test shard partition
         run: python3 .github/scripts/verify-test-shards.py
 
+      - name: Test CI recovery paths
+        run: python3 -m unittest discover -s .github/scripts -p 'test_ci_reliability.py' -v
+
       # Orchestrator scripts run with repo write permissions under
       # pull_request_target — their logic must be tested before merge.
       - name: Test PR lifecycle scripts

@@ -48,7 +48,8 @@ jobs:
       - name: Run unit tests
         run: |
           node --test .github/scripts/pr-validation.test.js \
-                      .github/scripts/pr-lifecycle.test.js
+                      .github/scripts/pr-lifecycle.test.js \
+                      .github/scripts/issue-assignment.test.js
 
       # jq is preinstalled on ubuntu-latest, which is the same assumption the
       # scalpel-report job in verify.yaml makes.

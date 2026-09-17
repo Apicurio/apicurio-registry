@@ -19,6 +19,10 @@
     overflow-y: hidden;
 }
 
+.resizable-overview-drawer .pf-v6-c-drawer__content {
+    background-color: var(--pf-t--global--background--color--primary--default, #ffffff);
+}
+
 .resizable-overview-drawer .resizable-overview-drawer__panel {
     max-width: 100%;
     flex-shrink: 0;

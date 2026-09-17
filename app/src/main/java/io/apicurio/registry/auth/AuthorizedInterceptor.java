@@ -24,6 +24,8 @@ import org.slf4j.Logger;
 @Priority(Priorities.Interceptors.AUTHORIZATION)
 public class AuthorizedInterceptor {
 
+    static final String FORBIDDEN_MESSAGE = "User is not authorized to perform the requested operation.";
+
     @Inject
     Logger log;
 
@@ -112,8 +114,8 @@ public class AuthorizedInterceptor {
             throw t;
         }
 
-        log.info("principalId:" + securityIdentity.getPrincipal().getName());
-        log.info("roles:" + securityIdentity.getRoles());
+        log.debug("principalId: {}", securityIdentity.getPrincipal().getName());
+        log.debug("roles: {}", securityIdentity.getRoles());
 
         // If the user is authenticated and the operation auth level is None, allow it
         if (annotation.level() == AuthorizedLevel.None) {
@@ -135,8 +137,8 @@ public class AuthorizedInterceptor {
         // If RBAC is enabled, apply role based rules
         if (authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
             log.warn("RBAC enabled and required role missing.");
-            throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
-                    + " is not authorized to perform the requested operation.");
+            log.debug("Denying access for user: {}", securityIdentity.getPrincipal().getName());
+            throw new ForbiddenException(FORBIDDEN_MESSAGE);
         }
 
         // If Owner-only is enabled, apply ownership rules
@@ -145,8 +147,8 @@ public class AuthorizedInterceptor {
                 // User is admin, that's good enough.
             } else if (!obac.isAuthorized(context)) {
                 log.warn("OBAC enabled and operation not permitted due to wrong owner.");
-                throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
-                        + " is not authorized to perform the requested operation.");
+                log.debug("Denying access for user: {}", securityIdentity.getPrincipal().getName());
+                throw new ForbiddenException(FORBIDDEN_MESSAGE);
             }
         }
 

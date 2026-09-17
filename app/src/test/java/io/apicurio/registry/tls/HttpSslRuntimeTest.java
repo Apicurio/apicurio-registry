@@ -54,11 +54,9 @@ public class HttpSslRuntimeTest {
 
         // 2. Connection with TLSv1.2 should fail because TLSv1.2 is restricted
         SSLSocketFactory factory12 = sslContext12.getSocketFactory();
-        Assertions.assertThrows(IOException.class, () -> {
-            try (SSLSocket socket = (SSLSocket) factory12.createSocket(host, port)) {
-                socket.setEnabledProtocols(new String[]{"TLSv1.2"});
-                socket.startHandshake();
-            }
-        });
+        try (SSLSocket socket = (SSLSocket) factory12.createSocket(host, port)) {
+            socket.setEnabledProtocols(new String[]{"TLSv1.2"});
+            Assertions.assertThrows(IOException.class, socket::startHandshake);
+        }
     }
 }

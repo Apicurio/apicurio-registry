@@ -103,6 +103,10 @@ a| Full
 a| Syntax Only
 a| None
 a| Full
+|*OpenRPC*
+a| Full
+a| None
+a| Full
 |*GraphQL*
 a| Syntax Only
 a| None

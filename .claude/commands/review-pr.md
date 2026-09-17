@@ -1,6 +1,7 @@
 ---
 description: Review an existing pull request for code quality, tests, and documentation
 argument-hint: [pr-number-or-url]
+agent: code-reviewer
 ---
 
 You are reviewing a Pull Request for the Apicurio Registry project.

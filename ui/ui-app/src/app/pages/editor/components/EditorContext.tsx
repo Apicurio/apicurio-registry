@@ -1,7 +1,7 @@
 import { FunctionComponent } from "react";
 import "./EditorContext.css";
 import { Breadcrumb, BreadcrumbItem, Button, Icon, Popover } from "@patternfly/react-core";
-import { FromNow, If, ObjectDropdown } from "@apicurio/common-ui-components";
+import { FromNow, If, ObjectDropdown } from "@apitomy/common-ui-components";
 import { Draft } from "@models/drafts";
 import { Link } from "react-router";
 import { ExclamationTriangleIcon } from "@patternfly/react-icons";

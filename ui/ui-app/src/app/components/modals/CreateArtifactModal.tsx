@@ -28,7 +28,7 @@ import {
     Modal
 } from "@patternfly/react-core/deprecated";
 import { CreateArtifact } from "@sdk/lib/generated-client/models";
-import { If, UrlUpload } from "@apicurio/common-ui-components";
+import { If, UrlUpload } from "@apitomy/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { UrlService, useUrlService } from "@services/useUrlService.ts";
 import { ArtifactTypesService, useArtifactTypesService } from "@services/useArtifactTypesService.ts";

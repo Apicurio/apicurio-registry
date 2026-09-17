@@ -4,12 +4,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.types.ContentTypes;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -95,12 +98,12 @@ public class EmbeddedSchemaService {
             // Extract "input" schema
             if (rootObj.has("input") && rootObj.get("input").isObject() && hasSchemaProperties(rootObj.get("input"))) {
                 String schemaArtifactId = artifactId + "-input-schema";
-                String version = "1";
-                String refName = buildReferenceName(groupId, schemaArtifactId, version);
                 JsonNode inputSchema = rootObj.get("input");
 
-                if (autoRegisterSchema(storage, groupId, schemaArtifactId, inputSchema,
-                        "Input schema for " + artifactId, owner)) {
+                String version = autoRegisterSchema(storage, groupId, schemaArtifactId, inputSchema,
+                        "Input schema for " + artifactId, owner);
+                if (version != null) {
+                    String refName = buildReferenceName(groupId, schemaArtifactId, version);
                     rootObj.set("input", createRefNode(refName));
                     references.add(ArtifactReferenceDto.builder()
                             .groupId(groupId).artifactId(schemaArtifactId).version(version).name(refName)
@@ -112,12 +115,12 @@ public class EmbeddedSchemaService {
             // Extract "output" schema
             if (rootObj.has("output") && rootObj.get("output").isObject() && hasSchemaProperties(rootObj.get("output"))) {
                 String schemaArtifactId = artifactId + "-output-schema";
-                String version = "1";
-                String refName = buildReferenceName(groupId, schemaArtifactId, version);
                 JsonNode outputSchema = rootObj.get("output");
 
-                if (autoRegisterSchema(storage, groupId, schemaArtifactId, outputSchema,
-                        "Output schema for " + artifactId, owner)) {
+                String version = autoRegisterSchema(storage, groupId, schemaArtifactId, outputSchema,
+                        "Output schema for " + artifactId, owner);
+                if (version != null) {
+                    String refName = buildReferenceName(groupId, schemaArtifactId, version);
                     rootObj.set("output", createRefNode(refName));
                     references.add(ArtifactReferenceDto.builder()
                             .groupId(groupId).artifactId(schemaArtifactId).version(version).name(refName)
@@ -162,12 +165,12 @@ public class EmbeddedSchemaService {
             // Extract "outputSchema"
             if (rootObj.has("outputSchema") && rootObj.get("outputSchema").isObject() && hasSchemaProperties(rootObj.get("outputSchema"))) {
                 String schemaArtifactId = artifactId + "-output-schema";
-                String version = "1";
-                String refName = buildReferenceName(groupId, schemaArtifactId, version);
                 JsonNode outputSchema = rootObj.get("outputSchema");
 
-                if (autoRegisterSchema(storage, groupId, schemaArtifactId, outputSchema,
-                        "Output schema for prompt template " + artifactId, owner)) {
+                String version = autoRegisterSchema(storage, groupId, schemaArtifactId, outputSchema,
+                        "Output schema for prompt template " + artifactId, owner);
+                if (version != null) {
+                    String refName = buildReferenceName(groupId, schemaArtifactId, version);
                     rootObj.set("outputSchema", createRefNode(refName));
                     references.add(ArtifactReferenceDto.builder()
                             .groupId(groupId).artifactId(schemaArtifactId).version(version).name(refName)
@@ -193,11 +196,13 @@ public class EmbeddedSchemaService {
     }
 
     /**
-     * Auto-register a JSON Schema as a separate JSON artifact.
+     * Auto-register a JSON Schema as a separate JSON artifact. If the schema artifact already
+     * exists, an existing version with identical content is reused, otherwise a new version
+     * is created.
      *
-     * @return true if the schema was successfully registered, false otherwise
+     * @return the version of the registered schema, or null if registration failed
      */
-    private boolean autoRegisterSchema(RegistryStorage storage, String groupId, String schemaArtifactId,
+    private String autoRegisterSchema(RegistryStorage storage, String groupId, String schemaArtifactId,
             JsonNode schema, String description, String owner) {
         try {
             String schemaContent = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(schema);
@@ -217,19 +222,35 @@ public class EmbeddedSchemaService {
                     .references(Collections.emptyList())
                     .build();
 
-            storage.createArtifact(groupId, schemaArtifactId, "JSON", artifactMeta,
-                    "1", contentWrapper, versionMeta, Collections.emptyList(),
-                    false, false, owner);
-
-            log.info("Auto-registered embedded schema as artifact: {}/{}", groupId, schemaArtifactId);
-            return true;
-        } catch (ArtifactAlreadyExistsException e) {
-            log.info("Embedded schema artifact already exists: {}/{}, skipping auto-registration",
-                    groupId, schemaArtifactId);
-            return false;
+            try {
+                storage.createArtifact(groupId, schemaArtifactId, "JSON", artifactMeta,
+                        "1", contentWrapper, versionMeta, Collections.emptyList(),
+                        false, false, owner);
+                log.info("Auto-registered embedded schema as artifact: {}/{}", groupId, schemaArtifactId);
+                return "1";
+            } catch (ArtifactAlreadyExistsException e) {
+                // The schema artifact already exists. Reuse an existing version with identical content
+                // if there is one, otherwise register the updated schema as a new version.
+                TypedContent typedContent = TypedContent.create(contentHandle, ContentTypes.APPLICATION_JSON);
+                try {
+                    ArtifactVersionMetaDataDto existing = storage.getArtifactVersionMetaDataByContent(
+                            groupId, schemaArtifactId, false, typedContent, Collections.emptyList());
+                    return existing.getVersion();
+                } catch (ArtifactNotFoundException nfe) {
+                    // No version with matching content - create a new one.
+                    log.debug("No existing version with matching content for {}/{}, creating new version",
+                            groupId, schemaArtifactId);
+                }
+                ArtifactVersionMetaDataDto vmd = storage.createArtifactVersion(groupId, schemaArtifactId,
+                        null, "JSON", contentWrapper, versionMeta, Collections.emptyList(),
+                        false, false, owner);
+                log.info("Auto-registered updated embedded schema as new version: {}/{} v{}",
+                        groupId, schemaArtifactId, vmd.getVersion());
+                return vmd.getVersion();
+            }
         } catch (Exception e) {
             log.warn("Failed to auto-register embedded schema {}/{}: {}", groupId, schemaArtifactId, e.getMessage());
-            return false;
+            return null;
         }
     }
 

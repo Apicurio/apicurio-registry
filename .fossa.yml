@@ -8,5 +8,4 @@ paths:
   exclude:
     # Test-only modules — dependencies here are not shipped
     - integration-tests/
-    - utils/extra-tests/
     - utils/concurrency-tests/

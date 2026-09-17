@@ -51,7 +51,7 @@ public class KafkaSqlSnapshotScheduler {
     private static final long MIN_INITIAL_DELAY_SECONDS = 60L;
     private static final long MAX_INITIAL_DELAY_JITTER_SECONDS = 30L;
 
-    @ConfigProperty(name = "apicurio.storage.kind")
+    @ConfigProperty(name = "apicurio.storage.kind", defaultValue = "sql")
     @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, gitops, or kubernetesops", availableSince = "3.0.0")
     String registryStorageType;
 

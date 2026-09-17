@@ -27,7 +27,7 @@ type VersionsRequestBuilderGetQueryParameters struct {
 	GlobalId *int64 `uriparametername:"globalId"`
 	// Filter by artifact group.
 	GroupId *string `uriparametername:"groupId"`
-	// Filter by one or more name/value label.  Separate each name/value pair using a colon.  Forexample `labels=foo:bar` will return only artifacts with a label named `foo`and value `bar`.
+	// Filter by one or more name/value label. Separate each name/value pair using a colon, which splits on the last colon (e.g. `labels=foo:bar` matches key `foo` and value `bar`). Note: the key:value query treats the last colon as the delimiter, so values containing colons cannot be matched via this syntax (they remain matchable via key-only queries).
 	Labels []string `uriparametername:"labels"`
 	// The number of versions to return.  Defaults to 20.
 	Limit *int32 `uriparametername:"limit"`
@@ -94,6 +94,11 @@ type VersionsRequestBuilderPostQueryParameters struct {
 	OrderbyAsVersionSortBy *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionSortBy `uriparametername:"orderby"`
 	// Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.
 	SkipCount *bool `uriparametername:"skipCount"`
+	// Filter by version state.
+	// Deprecated: This property is deprecated, use StateAsVersionState instead
+	State *string `uriparametername:"state"`
+	// Filter by version state.
+	StateAsVersionState *iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.VersionState `uriparametername:"state"`
 }
 
 // VersionsRequestBuilderPostRequestConfiguration configuration for the request such as headers, query parameters, and middleware options.

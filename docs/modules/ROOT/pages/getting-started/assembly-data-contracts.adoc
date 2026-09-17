@@ -601,6 +601,8 @@ curl "http://localhost:8080/apis/registry/v3/search/contracts?status=STABLE&owne
 [role="_abstract"]
 Global contract rulesets provide a baseline set of rules applied to all artifacts. Artifact-level and version-level rules override global rules by name.
 
+You can also manage the global contract ruleset in the {registry} web console. Click the *Contract rules* tab in the console navigation to add, delete, or clear global contract rules without calling the REST API directly.
+
 When rules are executed, they are merged from three scopes:
 
 . Global rules apply to all artifacts and are set through `/admin/contracts/ruleset`.

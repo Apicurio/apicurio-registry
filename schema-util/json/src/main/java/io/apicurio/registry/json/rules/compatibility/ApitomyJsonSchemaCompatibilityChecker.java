@@ -2,7 +2,7 @@ package io.apicurio.registry.json.rules.compatibility;
 
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
+import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 import io.apitomy.datamodels.jsonschema.compat.JsonSchemaCompatibilityChecker;
 import io.apitomy.datamodels.jsonschema.ref.AnchorFragmentResolver;
 import io.apitomy.datamodels.jsonschema.ref.JsonSchemaRefResolverChain;
@@ -16,10 +16,10 @@ import java.util.stream.Collectors;
  * JSON Schema compatibility checker using the Apitomy Data Models library
  * instead of the everit-json-schema library.
  */
-public class ApitomyJsonSchemaCompatibilityChecker extends AbstractCompatibilityChecker<ApitomyCompatibilityDifference> {
+public class ApitomyJsonSchemaCompatibilityChecker extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
     @Override
-    protected Set<ApitomyCompatibilityDifference> isBackwardsCompatibleWith(String existing, String proposed,
+    protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing, String proposed,
             Map<String, TypedContent> resolvedReferences) {
         var chain = JsonSchemaRefResolverChain.builder()
                 .addFragmentResolver(new PointerFragmentResolver())
@@ -30,12 +30,8 @@ public class ApitomyJsonSchemaCompatibilityChecker extends AbstractCompatibility
         return JsonSchemaCompatibilityChecker
                 .checkBackwardCompatibility(existing, proposed, chain)
                 .getIncompatibleDifferences().stream()
-                .map(ApitomyCompatibilityDifference::new)
+                .map(difference -> new SimpleCompatibilityDifference(difference.getDiffType().name(),
+                        difference.getPathUpdated()))
                 .collect(Collectors.toSet());
-    }
-
-    @Override
-    protected CompatibilityDifference transform(ApitomyCompatibilityDifference original) {
-        return original;
     }
 }

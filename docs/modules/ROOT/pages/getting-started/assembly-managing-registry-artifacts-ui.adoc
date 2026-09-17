@@ -53,7 +53,7 @@ You can use the {registry} web console to browse the schema and API artifacts st
 
 .Procedure
 
-. On the *Explore* tab, browse the list of artifacts stored in {registry}, or enter a search string to find an artifact. You can select from the list to search by specific criteria such as name, group, labels, or global ID.
+. On the *Explore* tab, browse the list of artifacts stored in {registry}, or enter a search string to find an artifact. You can select from the list to search by specific criteria such as name, group, labels, or global ID. When you filter by artifact type or by version state, you select the value from a list instead of typing it.
 +
 .Artifacts in {registry} web console
 image::images/getting-started/registry-web-console.png[Artifacts in Registry web console]
@@ -72,7 +72,7 @@ image::images/getting-started/registry-web-console-artifact.png[Artifacts in Reg
 ** *Overview*: Displays artifact version metadata such as version name, description, global ID, content ID, labels, and so on. Also displays any comments created for the artifact version.
 ** *Documentation* (OpenAPI and AsyncAPI only): Displays automatically generated REST API documentation.
 ** *Content*: Displays a read-only view of the full artifact version content. For JSON content, you can click *JSON* or *YAML* to display your preferred format.
-** *References*: Displays a read-only view of all artifacts referenced by this artifact version. You can also click *View artifacts that reference this artifact version*.
+** *References*: Displays a read-only view of all artifacts referenced by this artifact version. You can also click *View artifacts that reference this artifact version*. To add references to a new artifact or version, use the *Artifact References* step when you create it.
 +
 .Artifact version details in {registry} web console
 image::images/getting-started/registry-web-console-artifact-version.png[Artifacts in Registry web console]
@@ -135,6 +135,11 @@ You can create rules first and add content later.
 ** *Description*: Enter an optional description for the first artifact version.
 ** *Labels*: Optionally add one or more label (name/value pair) for the first artifact version.
 
+.. Optional: Specify the *Artifact References*:
++
+** Click *Add reference*, and enter the *Reference Name*, *Group Id*, *Artifact Id*, and *Version* of an artifact that is already stored in {registry}. All four fields are required for each reference.
+** Alternatively, click *Detect references* to automatically detect the references in the uploaded content and complete the reference fields.
+
 . Click *Create* and view the artifact details:
 +
 ** *Overview*: Displays artifact metadata such as artifact ID, name, description, labels, and so on. Also displays rules for validity and compatibility that you can configure for artifact content.
@@ -160,6 +165,7 @@ You can also add zero or more labels (name + value) for categorizing and searchi
 .. *Content*: Specify the content using either of the following options:
 ... *From file*: Click *Browse*, and select a file, or drag and drop a file. For example, `my-openapi.json` or `my-schema.proto`. Alternatively, you can enter the file contents in the text box.
 ... *From URL*: Enter a valid and accessible URL, and click *Fetch*. For example: `\https://petstore3.swagger.io/api/v3/openapi.json`.
+.. Optional: Add artifact references for the new version, either manually or by clicking *Detect references*.
 .. Click *Create* to create the new version.
 . To delete a group, artifact, or artifact version, see the deletion procedures listed in the additional resources.
 

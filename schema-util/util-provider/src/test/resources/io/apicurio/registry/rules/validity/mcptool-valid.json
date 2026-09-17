@@ -20,7 +20,9 @@
   },
   "annotations": {
     "title": "DB Search",
-    "audience": ["user", "assistant"],
-    "priority": 0.8
+    "readOnlyHint": true,
+    "destructiveHint": false,
+    "idempotentHint": true,
+    "openWorldHint": false
   }
 }

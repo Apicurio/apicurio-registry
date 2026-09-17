@@ -15,6 +15,9 @@ public class CredentialProviderProducer {
     @Produces
     @ApplicationScoped
     CredentialProvider createProvider() {
+        if (PlatformUtils.isWindows()) {
+            return new WindowsCredentialProvider(SERVICE_NAME);
+        }
         if (PlatformUtils.isMacOS()) {
             return new MacOSCredentialProvider(SERVICE_NAME);
         }

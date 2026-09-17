@@ -11,7 +11,7 @@ You can use the {registry} command-line interface (CLI) to manage {registry} con
 ifndef::service-registry-downstream[]
 [NOTE]
 ====
-The CLI is currently in *dev-preview* status and is unstable; its arguments and behavior are subject to backwards-incompatible changes. The CLI supports Linux (x86_64, bash) and macOS (Apple Silicon, zsh). Windows is not supported.
+The CLI is currently in *dev-preview* status and is unstable; its arguments and behavior are subject to backwards-incompatible changes. The CLI supports Linux (x86_64, bash), macOS (Apple Silicon, zsh), and Windows (x86_64, command prompt or PowerShell).
 ====
 endif::[]
 
@@ -25,7 +25,7 @@ endif::[]
 == Prerequisites
 
 * You have installed {registry}.
-* You have access to a bash shell on Linux (x86_64) or a zsh shell on macOS (Apple Silicon).
+* You have access to a bash shell on Linux (x86_64), a zsh shell on macOS (Apple Silicon), or a command prompt or PowerShell on Windows (x86_64).
 
 [id="installing-registry-cli_{context}"]
 == Installing the {registry} CLI
@@ -36,22 +36,34 @@ endif::[]
 You can install the {registry} CLI to interact with {registry} from the command line. The CLI is distributed as a native executable in a platform-specific .zip file, so it does not require a Java runtime.
 
 .Prerequisites
-* You have a Linux x86_64 system with a bash shell, or a macOS Apple Silicon system with a zsh shell.
+* You have a Linux x86_64 system with a bash shell, a macOS Apple Silicon system with a zsh shell, or a Windows x86_64 system with a command prompt or PowerShell.
 
 .Procedure
 ifndef::service-registry-downstream[]
-. Download the .zip file for your platform, for example `apicurio-registry-cli-VERSION-linux-x86_64.zip` (Linux) or `apicurio-registry-cli-VERSION-osx-aarch64.zip` (macOS), from the https://github.com/Apicurio/apicurio-registry/releases[{registry} GitHub Releases page]. Alternatively, you can download the CLI from the https://search.maven.org/search?q=g:io.apicurio%20AND%20a:apicurio-registry-cli[Maven Central repository] by searching for `apicurio-registry-cli`.
+. Download the .zip file for your platform, for example `apicurio-registry-cli-VERSION-linux-x86_64.zip` (Linux), `apicurio-registry-cli-VERSION-osx-aarch64.zip` (macOS), or `apicurio-registry-cli-VERSION-windows-x86_64.zip` (Windows), from the https://github.com/Apicurio/apicurio-registry/releases[{registry} GitHub Releases page]. Alternatively, you can download the CLI from the https://search.maven.org/search?q=g:io.apicurio%20AND%20a:apicurio-registry-cli[Maven Central repository] by searching for `apicurio-registry-cli`.
 endif::[]
 ifdef::service-registry-downstream[]
 . Download the CLI .zip file for your platform from the Red{nbsp}Hat Customer Portal.
 endif::[]
 . Extract the downloaded file to a location of your choice:
 +
+On Linux and macOS:
++
 [source,bash]
 ----
 $ unzip apicurio-registry-cli-VERSION-linux-x86_64.zip -d ~/apicurio-cli
 ----
++
+On Windows:
++
+[source,subs="+quotes"]
+----
+> mkdir %USERPROFILE%\apicurio-cli
+> tar -xf apicurio-registry-cli-VERSION-windows-x86_64.zip -C %USERPROFILE%\apicurio-cli
+----
 . Install the CLI for the current user:
++
+On Linux and macOS:
 +
 [source,bash]
 ----
@@ -59,7 +71,17 @@ $ cd ~/apicurio-cli
 $ ./acr install
 ----
 +
+On Windows:
++
+[source,subs="+quotes"]
+----
+> cd %USERPROFILE%\apicurio-cli
+> acr.cmd install
+----
++
 This command copies the CLI files to `$HOME/.apicurio/apicurio-registry-cli`, creates symbolic links in `$HOME/bin`, updates your `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS), and configures shell completions.
++
+On Windows, the CLI files are copied to `%USERPROFILE%\.apicurio\apicurio-registry-cli` and the launcher is copied to `%USERPROFILE%\bin`, because creating a symbolic link there requires Developer Mode or an elevated prompt. Windows has no shell configuration file to source, so the command sets the `ACR_HOME` user environment variable and adds the `bin` directory to your user `Path` instead. Shell completions are generated for bash and zsh only.
 . Reload your shell configuration:
 +
 On Linux:
@@ -75,6 +97,8 @@ On macOS:
 ----
 $ source ~/.zshrc
 ----
++
+On Windows, open a new command prompt or PowerShell window so that it picks up the updated environment variables. The installed command is `acr`, which the command prompt resolves to `acr.cmd` through `PATHEXT`.
 . Verify the installation:
 +
 [source,bash]
@@ -176,7 +200,7 @@ You can log in to the {registry} instance of your current CLI context by using b
 
 .Prerequisites
 * You have configured a CLI context for a {registry} instance that requires authentication.
-* On Linux, the `secret-tool` utility (libsecret) is available for keychain storage. On macOS, the CLI uses the built-in keychain.
+* On Linux, the `secret-tool` utility (libsecret) is available for keychain storage. On macOS, the CLI uses the built-in keychain. On Windows, the CLI uses the built-in Credential Manager, which stores a secret of up to 2560 bytes.
 
 .Procedure
 . To log in with basic authentication, provide a user name. The CLI prompts for the password:
@@ -195,7 +219,7 @@ $ acr login --token-endpoint https://auth.example.com/realms/registry/protocol/o
 ----
 +
 Optional: Provide an OAuth2 scope with the `--scope` option.
-. Optional: On systems without a keychain, for example in headless environments, use the `--allow-unsafe-credential-storage` option. The CLI stores secrets in a `credentials.json` file with `0600` permissions and prints a warning. This preference persists per context.
+. Optional: On systems without a keychain, for example in headless environments, use the `--allow-unsafe-credential-storage` option. The CLI stores secrets in a `credentials.json` file and prints a warning. The file is restricted to its owner, by `0600` permissions on Linux and macOS and by an owner-only access control list on Windows. This preference persists per context.
 . To log out of the current context, run the following command. The CLI removes the stored secrets and clears the authentication settings of the context:
 +
 [source,bash]

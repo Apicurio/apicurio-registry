@@ -1,11 +1,14 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -126,6 +129,63 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         results = clientV3.search().versions().post(asInputStream(searchByUnknownContent),
                 ContentTypes.APPLICATION_JSON);
         Assertions.assertEquals(0, results.getCount());
+    }
+
+    @Test
+    public void testSearchVersionsByContentWithState() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = TestUtils.generateGroupId();
+        String searchByCommonContent = artifactContent.replaceAll("Empty API",
+                "testSearchVersionsByContentWithState-api");
+
+        String artifactId = TestUtils.generateArtifactId();
+        createArtifact(group, artifactId, ArtifactType.OPENAPI, searchByCommonContent,
+                ContentTypes.APPLICATION_JSON);
+
+        // Change state to DISABLED
+        WrappedVersionState disabled = new WrappedVersionState();
+        disabled.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(group).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state().put(disabled);
+
+        // Search with NO state (regression test - should return all states except those filtered implicitly, which is none here)
+        given().when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(searchByCommonContent)
+                .post("/registry/v3/search/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1));
+
+        // Search with state=ENABLED
+        given().when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(searchByCommonContent)
+                .queryParam("state", "ENABLED")
+                .post("/registry/v3/search/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
+
+        // Search with state=DISABLED
+        given().when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(searchByCommonContent)
+                .queryParam("state", "DISABLED")
+                .post("/registry/v3/search/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1));
+
+        // Search with state=DEPRECATED
+        given().when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .body(searchByCommonContent)
+                .queryParam("state", "DEPRECATED")
+                .post("/registry/v3/search/versions")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
     }
 
     @Test
@@ -254,7 +314,7 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         String group1 = TestUtils.generateGroupId();
         String group2 = TestUtils.generateGroupId();
 
-        CreateArtifactResponse car = null;
+        CreateArtifactResponse car;
 
         // Create 5 artifacts in group 1 (two versions each)
         for (int idx = 0; idx < 5; idx++) {
@@ -308,6 +368,41 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(results.getVersions().get(0).getLabels());
         Assertions.assertEquals(Map.of("key-1", "value-1", "id", "testSearchVersionsByIds_Group1_Artifact_1"),
                 results.getVersions().get(0).getLabels().getAdditionalData());
+    }
+
+    @Test
+    public void testSearchVersionsByLabelTrailingDelimiter() throws Exception {
+        String artifactContent = "testSearchVersionsByLabelTrailingDelimiter-content";
+        String group = TestUtils.generateGroupId();
+        CreateArtifactResponse car = null;
+
+        for (int idx = 0; idx < 3; idx++) {
+            String artifactId = "testSearchVersionsByLabelTrailingDelimiter_Artifact_" + idx;
+            car = createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
+
+            // Add a label with a key and a value.
+            EditableVersionMetaData emd = new EditableVersionMetaData();
+            emd.setLabels(new Labels());
+            emd.getLabels().setAdditionalData(Map.of("trailing", "trailing-value-" + idx));
+            clientV3.groups().byGroupId(group).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(car.getVersion().getVersion()).put(emd);
+        }
+
+        // A label filter with a trailing ':' (no value) must match the key with any value.
+        // This exercises the branch that was previously unreachable dead code (see #8734).
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "trailing:" };
+        });
+        Assertions.assertEquals(3, results.getCount(),
+                "Trailing-colon label filter should match all 3 versions by key");
+
+        // A label filter with no ':' at all must also match the key directly.
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.labels = new String[] { "trailing" };
+        });
+        Assertions.assertEquals(3, results.getCount(),
+                "Key-only label filter should match all 3 versions by key");
     }
 
     @Test
@@ -424,6 +519,128 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
         given().when().queryParam("groupId", group).queryParam("offset", -1)
                 .get("/registry/v3/search/versions").then().statusCode(200)
                 .body("count", equalTo(3)).body("versions.size()", equalTo(3));
+    }
+
+    @Test
+    public void testSearchVersionsByLabelsTrailingColonAndNamespace() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        Labels labels = new Labels();
+        labels.setAdditionalData(Map.of("byLabels", "byLabels-value", "byLabels-3", "byLabels-value-3", "env:tag", "production"));
+        createArtifact.getFirstVersion().setLabels(labels);
+        clientV3.groups().byGroupId(group).artifacts().post(createArtifact);
+
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.labels = new String[] { "byLabels" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.labels = new String[] { "byLabels:byLabels-value" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+
+        // Test trailing colon label queries
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.labels = new String[] { "byLabels:" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.labels = new String[] { "byLabels-3:" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+
+        // Test namespace colon label queries (e.g. "env:tag:") to protect against regression
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.labels = new String[] { "env:tag:" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId;
+            config.queryParameters.labels = new String[] { "env:tag:production" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+        Assertions.assertEquals(group, results.getVersions().get(0).getGroupId());
+        Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
+    }
+
+    @Test
+    public void testSearchVersionsByLabelsColonInValue() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = TestUtils.generateGroupId();
+
+        // Version 1: Namespaced label key (env:tag = production)
+        String artifactId1 = TestUtils.generateArtifactId();
+        CreateArtifact createArtifact1 = TestUtils.clientCreateArtifact(artifactId1, ArtifactType.OPENAPI,
+                artifactContent, ContentTypes.APPLICATION_JSON);
+        Labels nsLabels = new Labels();
+        nsLabels.setAdditionalData(Map.of("env:tag", "production"));
+        createArtifact1.getFirstVersion().setLabels(nsLabels);
+        clientV3.groups().byGroupId(group).artifacts().post(createArtifact1);
+
+        // Version 2: Colon in label value (color = red:dark)
+        String artifactId2 = TestUtils.generateArtifactId();
+        CreateArtifact createArtifact2 = TestUtils.clientCreateArtifact(artifactId2, ArtifactType.OPENAPI,
+                artifactContent, ContentTypes.APPLICATION_JSON);
+        Labels colonLabels = new Labels();
+        colonLabels.setAdditionalData(Map.of("color", "red:dark"));
+        createArtifact2.getFirstVersion().setLabels(colonLabels);
+        clientV3.groups().byGroupId(group).artifacts().post(createArtifact2);
+
+        // --- 1. Namespace key regression check ---
+
+        // Query "env:tag:production" -> matches key "env:tag" and value "production"
+        VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId1;
+            config.queryParameters.labels = new String[] { "env:tag:production" };
+        });
+        Assertions.assertEquals(1, results.getCount());
+
+        // --- 2. Colon-in-value behavior tradeoff check ---
+
+        // Querying "color:red:dark" splits via lastIndexOf(":") into key="color:red", value="dark".
+        // Since Version 2 has key="color" and value="red:dark", it does NOT match key="color:red".
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId2;
+            config.queryParameters.labels = new String[] { "color:red:dark" };
+        });
+        Assertions.assertEquals(0, results.getCount());
+
+        // Querying key-only "color" matches Version 2
+        results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.artifactId = artifactId2;
+            config.queryParameters.labels = new String[] { "color" };
+        });
+        Assertions.assertEquals(1, results.getCount());
     }
 
 }

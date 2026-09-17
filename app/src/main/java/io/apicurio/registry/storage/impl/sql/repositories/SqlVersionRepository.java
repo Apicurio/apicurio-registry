@@ -248,20 +248,20 @@ public class SqlVersionRepository {
                 labels.forEach((k, v) -> {
                     handle.createUpdate(sqlStatements.insertVersionLabel())
                             .bind(0, globalId)
-                            .bind(1, limitStr(k.toLowerCase(), MAX_LABEL_KEY_LENGTH))
+                            .bind(1, limitStr(asLowerCase(k), MAX_LABEL_KEY_LENGTH))
                             .bind(2, limitStr(asLowerCase(v), MAX_LABEL_VALUE_LENGTH)).execute();
                 });
+            }
 
-                if (modified) {
-                    String modifiedBy = securityIdentity.getPrincipal().getName();
-                    Date modifiedOn = new Date();
+            if (modified) {
+                String modifiedBy = securityIdentity.getPrincipal().getName();
+                Date modifiedOn = new Date();
 
-                    rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionModifiedByOn())
-                            .bind(0, modifiedBy).bind(1, modifiedOn).bind(2, normalizeGroupId(groupId))
-                            .bind(3, artifactId).bind(4, version).execute();
-                    if (rowCount == 0) {
-                        throw new VersionNotFoundException(groupId, artifactId, version);
-                    }
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionModifiedByOn())
+                        .bind(0, modifiedBy).bind(1, modifiedOn).bind(2, normalizeGroupId(groupId))
+                        .bind(3, artifactId).bind(4, version).execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
                 }
             }
 
@@ -458,8 +458,8 @@ public class SqlVersionRepository {
                 entity.labels.forEach((k, v) -> {
                     handle.createUpdate(sqlStatements.insertVersionLabel())
                             .bind(0, entity.globalId)
-                            .bind(1, k.toLowerCase())
-                            .bind(2, v == null ? null : v.toLowerCase())
+                            .bind(1, asLowerCase(k))
+                            .bind(2, asLowerCase(v))
                             .execute();
                 });
             }
@@ -585,8 +585,8 @@ public class SqlVersionRepository {
         if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
             metaData.getLabels().forEach((k, v) -> {
                 handle.createUpdate(sqlStatements.insertVersionLabel()).bind(0, globalId)
-                        .bind(1, limitStr(k.toLowerCase(), MAX_LABEL_KEY_LENGTH))
-                        .bind(2, limitStr(v.toLowerCase(), MAX_LABEL_VALUE_LENGTH))
+                        .bind(1, limitStr(asLowerCase(k), MAX_LABEL_KEY_LENGTH))
+                        .bind(2, limitStr(asLowerCase(v), MAX_LABEL_VALUE_LENGTH))
                         .execute();
             });
         }

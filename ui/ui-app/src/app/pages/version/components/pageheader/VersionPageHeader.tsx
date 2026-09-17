@@ -9,7 +9,7 @@ import {
     Content,
     ContentVariants
 } from "@patternfly/react-core";
-import { If, ObjectDropdown } from "@apicurio/common-ui-components";
+import { If, ObjectDropdown } from "@apitomy/common-ui-components";
 import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/models";
 import { useUserService } from "@services/useUserService.ts";
 import { useConfigService } from "@services/useConfigService.ts";
@@ -28,6 +28,7 @@ export type VersionPageHeaderProps = {
     onEditAgentCard: () => void;
     onDelete: () => void;
     onDownload: () => void;
+    onTest: () => void;
     onFinalizeDraft: () => void;
     onCreateDraftFrom: () => void;
     onGenerateClient: () => void;
@@ -69,6 +70,16 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             isVisible: () => {
                 return !config.featureReadOnly() &&
                     props.version?.artifactType === "AGENT_CARD" &&
+                    user.isUserDeveloper(props.artifact?.owner);
+            }
+        },
+        {
+            label: "Test content",
+            testId: "action-test-version",
+            onSelect: () => props.onTest(),
+            isVisible: () => {
+                return !config.featureReadOnly() &&
+                    props.artifact !== undefined &&
                     user.isUserDeveloper(props.artifact?.owner);
             }
         },

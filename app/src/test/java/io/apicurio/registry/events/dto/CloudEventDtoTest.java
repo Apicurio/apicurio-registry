@@ -86,6 +86,29 @@ public class CloudEventDtoTest {
     }
 
     @Test
+    public void testSerializationWithTimestampsEnabled() throws Exception {
+        // A mapper that leaves WRITE_DATES_AS_TIMESTAMPS enabled (the ObjectMapper default)
+        // must still serialize the CloudEvent "time" attribute as an RFC 3339 string, because
+        // the CloudEvents 1.0 spec requires it regardless of global mapper settings.
+        ObjectMapper timestampMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+
+        CloudEventDto dto = new CloudEventDto()
+                .withId("test-id")
+                .withSource("/test-source")
+                .withType("io.apicurio.registry.events.TestEvent")
+                .withData("{\"test\":\"data\"}")
+                .withTime(Instant.parse("2024-01-01T00:00:00Z"));
+
+        String json = timestampMapper.writeValueAsString(dto);
+        assertNotNull(json);
+        assertTrue(json.contains("\"time\":\"2024-01-01T00:00:00Z\""),
+                "Expected time to be serialized as an RFC 3339 string, but was: " + json);
+
+        CloudEventDto deserialized = timestampMapper.readValue(json, CloudEventDto.class);
+        assertEquals(Instant.parse("2024-01-01T00:00:00Z"), deserialized.getTime());
+    }
+
+    @Test
     public void testFromEventCreatesValidCloudEvent() {
         long createdOn = System.currentTimeMillis();
 

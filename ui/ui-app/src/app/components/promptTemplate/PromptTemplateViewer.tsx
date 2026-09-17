@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from "react";
+import { FunctionComponent } from "react";
 import "./PromptTemplateViewer.css";
 import {
     Card,
@@ -17,17 +17,8 @@ import {
     Title
 } from "@patternfly/react-core";
 import { JsonSchemaProperties } from "@app/components/jsonSchema/JsonSchemaProperties";
-import { highlightVariables } from "./PromptTemplateViewer.utils";
-
-export interface PromptVariable {
-    name?: string;
-    type?: string;
-    description?: string;
-    required?: boolean;
-    default?: any;
-    enum?: string[];
-    constraints?: any;
-}
+import { VariableSchema } from "./promptTemplateVariables";
+import { formatDefault, formatRange, getVariablesList, highlightVariables } from "./PromptTemplateViewer.utils";
 
 export interface PromptTemplateMetadata {
     author?: string;
@@ -47,7 +38,7 @@ export interface PromptTemplate {
     description?: string;
     version?: string;
     template?: string;
-    variables?: Record<string, PromptVariable> | PromptVariable[];
+    variables?: Record<string, VariableSchema> | VariableSchema[];
     outputSchema?: any;
     metadata?: PromptTemplateMetadata;
     mcp?: {
@@ -61,23 +52,6 @@ export interface PromptTemplate {
 export type PromptTemplateViewerProps = {
     promptTemplate: PromptTemplate;
     className?: string;
-};
-
-const getVariablesList = (variables: Record<string, PromptVariable> | PromptVariable[] | undefined): { name: string; variable: PromptVariable }[] => {
-    if (!variables) return [];
-    if (Array.isArray(variables)) {
-        return variables.map(v => ({ name: v.name || "", variable: v }));
-    }
-    return Object.entries(variables).map(([name, variable]) => ({ name, variable }));
-};
-
-// Format a variable default for display in the Variables table.
-// Objects and arrays go through JSON.stringify so they don't render as "[object Object]".
-const formatDefault = (value: any): string => {
-    if (typeof value === "object" && value !== null) {
-        return JSON.stringify(value);
-    }
-    return String(value);
 };
 
 export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> = (props: PromptTemplateViewerProps) => {
@@ -162,6 +136,8 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                                         <th>Type</th>
                                         <th>Required</th>
                                         <th>Default</th>
+                                        <th>Allowed Values</th>
+                                        <th>Range</th>
                                         <th>Description</th>
                                     </tr>
                                 </thead>
@@ -182,6 +158,16 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                                             <td>{variable.default !== undefined ? (
                                                 <code>{formatDefault(variable.default)}</code>
                                             ) : "-"}</td>
+                                            <td>
+                                                {variable.enum && variable.enum.length > 0 ? (
+                                                    <LabelGroup>
+                                                        {variable.enum.map((val, i) => (
+                                                            <Label key={i} color="grey" isCompact>{String(val)}</Label>
+                                                        ))}
+                                                    </LabelGroup>
+                                                ) : "-"}
+                                            </td>
+                                            <td>{formatRange(variable.minimum, variable.maximum) ?? "-"}</td>
                                             <td>{variable.description || "-"}</td>
                                         </tr>
                                     ))}
@@ -236,7 +222,7 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                         <DescriptionList isCompact className="section-content">
                             {promptTemplate.mcp.name && (
                                 <DescriptionListGroup>
-                                    <DescriptionListTerm>Tool Name</DescriptionListTerm>
+                                    <DescriptionListTerm>MCP Prompt Name</DescriptionListTerm>
                                     <DescriptionListDescription>
                                         <code>{promptTemplate.mcp.name}</code>
                                     </DescriptionListDescription>

@@ -12,7 +12,7 @@ import { ArtifactGroup, ArtifactTypeIcon, ListedItemLabels } from "@app/componen
 import { SearchArtifactName } from "@app/pages";
 import { SearchedVersion } from "@sdk/lib/generated-client/models";
 import { shash } from "@utils/string.utils.ts";
-import { ObjectDropdown } from "@apicurio/common-ui-components";
+import { ObjectDropdown } from "@apitomy/common-ui-components";
 
 /**
  * Properties

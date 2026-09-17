@@ -29,6 +29,13 @@ class PromptTemplateCompatibilityCheckerTest {
         return TypedContent.create(ContentHandle.create(json), ContentTypes.APPLICATION_JSON);
     }
 
+    private static void assertHasDifferenceWithContext(CompatibilityExecutionResult result,
+            String context) {
+        assertTrue(result.getIncompatibleDifferences().stream()
+                .anyMatch(d -> context.equals(d.asRuleViolation().getContext())),
+                "Expected a difference with context '" + context + "'");
+    }
+
     private static String template(String templateText, String variables, String extras) {
         return """
                 {
@@ -85,6 +92,7 @@ class PromptTemplateCompatibilityCheckerTest {
                 create(proposed),
                 Map.of());
         assertFalse(result.isCompatible(), "Changing variable type should be incompatible");
+        assertHasDifferenceWithContext(result, "/variables");
     }
 
     @Test
@@ -102,6 +110,7 @@ class PromptTemplateCompatibilityCheckerTest {
                 create(proposed),
                 Map.of());
         assertFalse(result.isCompatible(), "Making variable required should be incompatible");
+        assertHasDifferenceWithContext(result, "/variables");
     }
 
     @Test
@@ -119,6 +128,7 @@ class PromptTemplateCompatibilityCheckerTest {
                 create(proposed),
                 Map.of());
         assertFalse(result.isCompatible(), "Removing enum value should be incompatible");
+        assertHasDifferenceWithContext(result, "/variables");
     }
 
     @Test
@@ -135,6 +145,7 @@ class PromptTemplateCompatibilityCheckerTest {
                 create(proposed),
                 Map.of());
         assertFalse(result.isCompatible(), "Removing variable still used in template should be incompatible");
+        assertHasDifferenceWithContext(result, "/variables");
     }
 
     @Test
@@ -182,6 +193,7 @@ class PromptTemplateCompatibilityCheckerTest {
                 create(proposed),
                 Map.of());
         assertFalse(result.isCompatible(), "Removing output schema property should be incompatible");
+        assertHasDifferenceWithContext(result, "/outputSchema/properties");
     }
 
     @Test
@@ -203,6 +215,7 @@ class PromptTemplateCompatibilityCheckerTest {
                 create(proposed),
                 Map.of());
         assertFalse(result.isCompatible(), "Removing output schema should be incompatible");
+        assertHasDifferenceWithContext(result, "/outputSchema");
     }
 
     @Test

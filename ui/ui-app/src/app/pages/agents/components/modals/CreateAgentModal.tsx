@@ -27,6 +27,9 @@ type Validities = {
 
 const EMPTY_AGENT_CARD: AgentCard = {
     name: "",
+    description: "",
+    version: "",
+    supportedInterfaces: [],
     defaultInputModes: ["text"],
     defaultOutputModes: ["text"]
 };
@@ -62,6 +65,15 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
     };
 
     const handleCreate = (): void => {
+        const sanitizedCard = {
+            ...agentCard,
+            // Strip UI-only `id` keys before JSON serialization to the backend.
+            supportedInterfaces: agentCard.supportedInterfaces?.map((iface) => {
+                const rest = { ...iface };
+                delete rest.id;
+                return rest;
+            })
+        };
         const data: CreateArtifact = {
             artifactId: artifactId || undefined,
             artifactType: "AGENT_CARD",
@@ -70,7 +82,7 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
             firstVersion: {
                 version: version || undefined,
                 content: {
-                    content: JSON.stringify(agentCard, null, 2),
+                    content: JSON.stringify(sanitizedCard, null, 2),
                     contentType: "application/json"
                 }
             }
@@ -84,7 +96,19 @@ export const CreateAgentModal: FunctionComponent<CreateAgentModalProps> = (props
     };
 
     const isContentStepValid = (): boolean => {
-        return !!agentCard.name && agentCard.name.trim().length > 0;
+        return (
+            !!agentCard.name?.trim() &&
+            !!agentCard.description?.trim() &&
+            !!agentCard.version?.trim() &&
+            Array.isArray(agentCard.supportedInterfaces) &&
+            agentCard.supportedInterfaces.length > 0 &&
+            agentCard.supportedInterfaces.every(
+                iface => !!iface.url?.trim() && !!iface.protocolBinding?.trim() && !!iface.protocolVersion?.trim()
+            ) &&
+            agentCard.capabilities !== undefined &&
+            Array.isArray(agentCard.skills) &&
+            agentCard.skills.length > 0
+        );
     };
 
     const coordinatesStepFooter: Partial<WizardFooterProps> = {

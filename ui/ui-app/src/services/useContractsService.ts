@@ -1,6 +1,6 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { createAuthOptions, createEndpoint } from "@utils/rest.utils.ts";
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import axios from "axios";
 
 export interface ContractMetadata {

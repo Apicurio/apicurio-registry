@@ -15,3 +15,4 @@ export * from "./useUrlService";
 export * from "./useUserService";
 export * from "./useVersionService";
 export * from "./useSearchService";
+export * from "./useThemeService";

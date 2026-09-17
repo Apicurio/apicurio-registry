@@ -27,7 +27,7 @@ export const ResizableOverviewDrawer: FunctionComponent<ResizableOverviewDrawerP
                     {head}
                 </DrawerPanelContent>
             }
-            style={{ backgroundColor: "white" }}
+            style={{ backgroundColor: "var(--registry-card-bg)" }}
         >
             <DrawerContentBody hasPadding={false}>{body}</DrawerContentBody>
         </DrawerContent>

@@ -209,6 +209,70 @@ endif::[]
 
 
 // proc-configuring-liveness-readiness-probes
+[id="configuring-dynamic-log-level_{context}"]
+== Changing the {registry} log level at runtime
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can change the log level of a running {registry} instance without restarting it by setting the dynamic `apicurio.log.level` configuration property. The setting applies to the {registry} loggers in the `io.apicurio` category.
+
+.Prerequisites
+* You have administrator access to the {registry} instance.
+
+.Procedure
+. Set the log level with the admin configuration REST endpoint. Valid values are `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `OFF`, and `ALL`. The default value is `INFO`:
++
+[source,bash]
+----
+$ curl -X PUT -H "Content-Type: application/json" \
+  -d '{"value": "DEBUG"}' \
+  http://localhost:8080/apis/registry/v3/admin/config/properties/apicurio.log.level
+----
++
+Alternatively, use the CLI:
++
+[source,bash]
+----
+$ acr server-config set apicurio.log.level DEBUG
+----
++
+The registry applies the change within a few seconds. The value is stored in the registry storage, so it persists across restarts.
+. To revert to the original log level, remove the dynamic property. The registry restores the log level that was active at startup:
++
+[source,bash]
+----
+$ acr server-config reset apicurio.log.level
+----
+
+[id="registry-rest-metrics-distribution_{context}"]
+== REST request metrics distribution configuration
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The following properties control how {registry} publishes distribution statistics for its REST request timer metrics. Change the distribution type when your monitoring system computes percentiles poorly from histogram buckets, for example, Datadog.
+
+.REST metrics distribution properties
+[.table-expandable,width="100%",cols="4,3,4",options="header"]
+|===
+|Property
+|Default
+|Description
+
+|`apicurio.metrics.rest.distribution.type`
+|`histogram`
+|Distribution type for REST request timers. The `histogram` type publishes bucket histograms with service level objective boundaries, and the `summary` type publishes pre-computed percentiles only. An invalid value prevents the application from starting.
+
+|`apicurio.metrics.rest.distribution.percentiles`
+|`0.5,0.95,0.99,0.9995`
+|Percentiles to pre-compute. Each value must be between 0.0 and 1.0.
+
+|`apicurio.metrics.rest.distribution.slo`
+|`0.1,0.25,0.5,1.0,2.0,5.0,10.0`
+|Service level objective boundaries in seconds for the histogram buckets. Only used when the distribution type is `histogram`.
+|===
+
 [id="configuring-liveness-readiness-probes_{context}"]
 == Configuring {registry} health checks on OpenShift
 

@@ -7,6 +7,7 @@ import io.apicurio.registry.xml.util.DocumentBuilderAccessor;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import java.util.Locale;
 import java.util.Map;
 
 public class XsdContentAccepter implements ContentAccepter {
@@ -15,7 +16,7 @@ public class XsdContentAccepter implements ContentAccepter {
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
             String contentType = content.getContentType();
-            if (contentType.toLowerCase().contains("xml")
+            if (contentType != null && contentType.toLowerCase(Locale.ROOT).contains("xml")
                     && ContentTypeUtil.isParsableXml(content.getContent())) {
                 Document xmlDocument = DocumentBuilderAccessor.getDocumentBuilder()
                         .parse(content.getContent().stream());

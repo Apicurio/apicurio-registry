@@ -30,7 +30,7 @@ export const QuickActions: FunctionComponent<QuickActionsProps> = ({
     onSettings
 }: QuickActionsProps) => {
     return (
-        <Card className="quick-actions-card" variant="secondary" style={{ backgroundColor: "white" }}>
+        <Card className="quick-actions-card" variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
             <CardTitle>Quick Actions</CardTitle>
             <CardBody>
                 <Flex direction={{ default: "column" }} spaceItems={{ default: "spaceItemsMd" }}>

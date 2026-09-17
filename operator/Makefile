@@ -42,7 +42,7 @@ NAMESPACE ?= default
 PACKAGE_NAME ?= apicurio-registry-3
 PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
 
-PREVIOUS_PACKAGE_VERSION ?= 3.3.1
+PREVIOUS_PACKAGE_VERSION ?= 3.3.3
 PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 
 # Auto-derive channel from version (e.g., 3.2.1 -> 3.2.x, 3.3.0-snapshot -> 3.3.x)
@@ -93,6 +93,7 @@ OLM_DEPLOY_DIR ?= $(CATALOG_DIR)/../olmv$(OLM_VERSION)
 
 INSTALL_NAMESPACE ?= PLACEHOLDER_NAMESPACE
 INSTALL_FILE ?= install/apicurio-registry-operator-$(VERSION).yaml
+INSTALL_NAMESPACED_FILE ?= install/apicurio-registry-operator-namespaced-$(VERSION).yaml
 
 DIST_TARGET_DIR ?= target/dist
 
@@ -218,6 +219,23 @@ define target_dir
 endef
 
 
+# Registries (e.g. quay.io) occasionally return transient 5xx errors on push.
+# Retry a few times with a short backoff instead of failing the whole job.
+define docker_push_retry
+    @{ \
+		for i in 1 2 3; do \
+			docker push $(1) && break; \
+			if [ $$i -eq 3 ]; then \
+				echo "docker push $(1) failed after 3 attempts"; \
+				exit 1; \
+			fi; \
+			echo "docker push $(1) failed (attempt $$i/3), retrying..."; \
+			sleep 5; \
+		done; \
+	}
+endef
+
+
 OPERATOR_SDK_VERSION ?= 1.37.0
 OPERATOR_SDK = $(shell pwd)/target/bin/operator-sdk
 .PHONY: install-operator-sdk
@@ -268,6 +286,16 @@ build: ## TODO
 	mvn clean install $(BUILD_OPTS_EXT)
 
 
+GROUPS ?=
+EXCLUDED_GROUPS ?=
+
+.PHONY: test-local-group
+test-local-group: ## Run local (in-process operator) tests filtered by JUnit tag groups
+	mvn verify $(BUILD_OPTS_EXT) \
+		$(if $(GROUPS),-Dgroups=$(GROUPS)) \
+		$(if $(EXCLUDED_GROUPS),-DexcludedGroups=$(EXCLUDED_GROUPS))
+
+
 .PHONY: test-remote-all
 test-remote-all: ## TODO
 	# Do not run `mvn clean` when not necessary.
@@ -278,9 +306,6 @@ else
 endif
 	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) -Dtest.operator.deployment-type=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
 
-
-GROUPS ?=
-EXCLUDED_GROUPS ?=
 
 .PHONY: test-remote-group
 test-remote-group: ## Run remote tests filtered by JUnit tag groups
@@ -308,21 +333,31 @@ endif
 
 .PHONY: image-push
 image-push: ## TODO
-	docker push $(IMAGE)
+	$(call docker_push_retry,$(IMAGE))
 ifneq ($(ADDITIONAL_IMAGE),)
 ifneq ($(ADDITIONAL_IMAGE_TAG),)
-	docker push $(ADDITIONAL_IMAGE)
+	$(call docker_push_retry,$(ADDITIONAL_IMAGE))
 endif
 endif
 
 
 .PHONY: image-buildx-push
 image-buildx-push: ## Build and push a multi-arch operator image
-	docker buildx build --push -f controller/src/main/docker/Dockerfile.jvm \
-		--platform $(IMAGE_PLATFORMS) \
-		-t $(IMAGE) \
-		$(if $(and $(ADDITIONAL_IMAGE),$(ADDITIONAL_IMAGE_TAG)),-t $(ADDITIONAL_IMAGE),) \
-		controller/target
+	@{ \
+		for i in 1 2 3; do \
+			docker buildx build --push -f controller/src/main/docker/Dockerfile.jvm \
+				--platform $(IMAGE_PLATFORMS) \
+				-t $(IMAGE) \
+				$(if $(and $(ADDITIONAL_IMAGE),$(ADDITIONAL_IMAGE_TAG)),-t $(ADDITIONAL_IMAGE),) \
+				controller/target && break; \
+			if [ $$i -eq 3 ]; then \
+				echo "docker buildx build --push failed after 3 attempts"; \
+				exit 1; \
+			fi; \
+			echo "docker buildx build --push failed (attempt $$i/3), retrying..."; \
+			sleep 5; \
+		done; \
+	}
 
 
 .PHONY: image
@@ -352,8 +387,15 @@ else
 endif
 
 
+.PHONY: dist-install-file-namespaced
+dist-install-file-namespaced: ## Generate the single-namespace (least-privilege) install file
+	mkdir -p $(dir $(INSTALL_NAMESPACED_FILE))
+	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
+	kubectl kustomize controller/src/main/deploy/install/namespaced | envsubst >$(INSTALL_NAMESPACED_FILE)
+
+
 .PHONY: dist
-dist: dist-install-file ## TODO
+dist: dist-install-file dist-install-file-namespaced ## TODO
 	$(call target_dir,$(DIST_TARGET_DIR))
 	cp -rt $(DIST_TARGET_DIR) controller/src/main/deploy/dist-template/*
 	# Licenses
@@ -369,6 +411,7 @@ dist: dist-install-file ## TODO
 	# Install
 	mkdir -p $(DIST_TARGET_DIR)/install
 	cp $(INSTALL_FILE) $(DIST_TARGET_DIR)/install/install.yaml
+	cp $(INSTALL_NAMESPACED_FILE) $(DIST_TARGET_DIR)/install/install-namespaced.yaml
 	# Archive
 	cd $(DIST_TARGET_DIR) && tar -zcf ../apicurio-registry-operator-$(VERSION).tar.gz *
 
@@ -407,10 +450,10 @@ endif
 
 .PHONY: bundle-image-push
 bundle-image-push: ## TODO
-	docker push $(BUNDLE_IMAGE)
+	$(call docker_push_retry,$(BUNDLE_IMAGE))
 ifneq ($(ADDITIONAL_BUNDLE_IMAGE),)
 ifneq ($(ADDITIONAL_BUNDLE_TAG),)
-	docker push $(ADDITIONAL_BUNDLE_IMAGE)
+	$(call docker_push_retry,$(ADDITIONAL_BUNDLE_IMAGE))
 endif
 endif
 
@@ -444,10 +487,10 @@ endif
 
 .PHONY: catalog-image-push
 catalog-image-push: ## TODO
-	docker push $(CATALOG_IMAGE)
+	$(call docker_push_retry,$(CATALOG_IMAGE))
 ifneq ($(ADDITIONAL_CATALOG_IMAGE),)
 ifneq ($(ADDITIONAL_CATALOG_IMAGE_TAG),)
-	docker push $(ADDITIONAL_CATALOG_IMAGE)
+	$(call docker_push_retry,$(ADDITIONAL_CATALOG_IMAGE))
 endif
 endif
 

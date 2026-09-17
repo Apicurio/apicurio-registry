@@ -22,7 +22,7 @@ import {
     Truncate
 } from "@patternfly/react-core";
 import { PencilAltIcon, PlusCircleIcon } from "@patternfly/react-icons";
-import { FromNow, If, ListWithToolbar } from "@apicurio/common-ui-components";
+import { FromNow, If, ListWithToolbar } from "@apitomy/common-ui-components";
 import { isStringEmptyOrUndefined } from "@utils/string.utils.ts";
 import {
     ArtifactMetaData,

@@ -27,11 +27,10 @@ public class ContractMetadataMapper {
         }
 
         if (contractId == null) {
-            contractId = detectContractId(labels);
+            contractId = ContractLabels.findContractId(labels);
         }
 
-        String p = contractId != null
-                ? ContractLabels.contractPrefix(contractId) : ContractLabels.PREFIX;
+        String p = ContractLabels.prefixFor(contractId);
 
         return ContractMetadataDto.builder()
                 .status(parseEnum(labels.get(p + ContractLabels.SUFFIX_STATUS), ContractStatus.class))
@@ -96,21 +95,6 @@ public class ContractMetadataMapper {
         addIfNotNull(labels, prefix + ContractLabels.SUFFIX_COMPATIBILITY_GROUP,
                 metadata.getCompatibilityGroup());
         return labels;
-    }
-
-    private String detectContractId(Map<String, String> labels) {
-        String suffix = "." + ContractLabels.SUFFIX_ID;
-        for (var entry : labels.entrySet()) {
-            String key = entry.getKey();
-            if (key.startsWith(ContractLabels.PREFIX) && key.endsWith(suffix)) {
-                String middle = key.substring(ContractLabels.PREFIX.length(),
-                        key.length() - suffix.length());
-                if (!middle.isEmpty() && !middle.contains(".")) {
-                    return entry.getValue();
-                }
-            }
-        }
-        return null;
     }
 
     private <T extends Enum<T>> T parseEnum(String value, Class<T> enumClass) {

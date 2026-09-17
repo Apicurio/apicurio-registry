@@ -42,7 +42,8 @@ CI capacity. Marking it ready for review again re-enters the lifecycle the same 
 | `lifecycle/full-verified` | Full verification suite passed for the current HEAD commit. Removed on new pushes or if the suite subsequently fails. |
 | `lifecycle/waiting-on-author` | PR needs action from the author (failed tests or changes requested). |
 | `lifecycle/waiting-on-maintainer` | PR needs maintainer attention (ready to review or merge). |
-| `lifecycle/stale` | No activity for 4+ days (waiting on author) or 7+ days (otherwise). PR will be closed after further inactivity (see [Stale PRs](#stale-prs)). |
+| `lifecycle/stale` | No activity for 4+ days (waiting on author) or 7+ days (otherwise). PR will be closed after further inactivity (see [Stale PRs](#stale-prs)). Never applied to a PR blocked on a maintainer. |
+| `lifecycle/review-overdue` | Blocked on a maintainer for 14+ days. Purely a visibility signal for us — it never leads to the PR being closed (see [Stale PRs](#stale-prs)). |
 | `ci/disable-scalpel` | Skips the non-blocking `scalpel-report` data-collection job for this PR. |
 
 ## For Contributors
@@ -66,10 +67,21 @@ CI capacity. Marking it ready for review again re-enters the lifecycle the same 
 
 ### Stale PRs
 
-If your PR has no activity for 7 days, it will be marked as stale and you will be
-pinged. Comment or push to remove the stale label, or use `/unstale`. PRs blocked on
-you (`lifecycle/waiting-on-author`) go stale sooner — after 4 days — and are closed
-after 7 total days of inactivity; other PRs go stale at 7 days and close at 14 total.
+The stale timers measure **contributor** inactivity, so they only run while the ball is
+in your court. If your PR has no activity for 7 days it is marked stale and you are
+pinged; comment or push to clear the label, or use `/unstale`. PRs blocked on you
+(`lifecycle/waiting-on-author`) go stale sooner — after 4 days — and close after 7 total
+days of inactivity; other PRs go stale at 7 days and close at 14 total.
+
+**A PR waiting on us never goes stale and is never auto-closed.** While it carries
+`lifecycle/waiting-on-maintainer` there is nothing for you to do, so no timer runs
+against you and no inactivity warning is addressed to you. If it stays blocked on us for
+14 days it gets `lifecycle/review-overdue`, and after 30 days the orchestrator pings the
+assignees and reviewers — the PR is still not at risk, that label exists to hold *us* to
+account for the review backlog, not you.
+
+If a PR is blocked on both you and a maintainer, the contributor timer wins, so it can
+still go stale.
 
 ### Available commands
 
@@ -168,6 +180,14 @@ The orchestrator is configured in `.github/pr-lifecycle.yml`:
   blocked on the author as stale (default: 4)
 - **stale.days_until_close_waiting_on_author** — total days of inactivity before closing a
   PR blocked on the author (default: 7)
+- **stale.days_until_review_overdue** — days blocked on a maintainer before applying
+  `lifecycle/review-overdue` (default: 14). Measured from when the PR became
+  `lifecycle/waiting-on-maintainer`, not from its last update: bots and CI keep touching
+  an unreviewed PR, so `updated_at` barely tracks review latency.
+- **stale.days_until_review_ping** — days blocked on a maintainer before commenting to
+  ping assignees and reviewers (default: 30). Split from the label above because the
+  label is free and queryable while the comment notifies people; one ping per period of
+  being blocked, never a close.
 - **welcome_message** — message posted when a PR is opened
 
 ## Disabling the Orchestrator

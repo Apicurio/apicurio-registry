@@ -11,6 +11,7 @@ permissions:
   contents: read
 
 env:
+  KUBERNETES_VERSION: v1.33.3
   # Operator/operand/gitops-sync: saved as artifacts, pushed to localhost:5000 in test shards.
   # Bundle/catalog: pushed to ttl.sh by build job (opm requires HTTPS for catalog-build).
   REGISTRY_APP_IMAGE: localhost:5000/apicurio-registry:${{ github.sha }}
@@ -171,12 +172,17 @@ jobs:
 
 
 
+      - name: Cache Kubernetes binaries with verified downloads
+        timeout-minutes: 20
+        run: bash .github/scripts/cache-kubernetes-binaries.sh "$KUBERNETES_VERSION"
+
       - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         id: minikube-setup
         continue-on-error: true
         timeout-minutes: 10
         with:
           driver: 'none'
+          kubernetes-version: ${{ env.KUBERNETES_VERSION }}
           ingress-enable: 'true'
           olm-enable: 'false'
           olm-v1-enable: 'false'
@@ -189,6 +195,7 @@ jobs:
         timeout-minutes: 10
         with:
           driver: 'none'
+          kubernetes-version: ${{ env.KUBERNETES_VERSION }}
           ingress-enable: 'true'
           olm-enable: 'false'
           olm-v1-enable: 'false'
@@ -319,16 +326,41 @@ jobs:
 
       # driver=none: Kubernetes runs directly on the host, sharing all runner
       # resources (4 vCPU / 16 GB) and the host network (localhost:5000 registry).
+      - name: Cache Kubernetes binaries with verified downloads
+        timeout-minutes: 20
+        run: bash .github/scripts/cache-kubernetes-binaries.sh "$KUBERNETES_VERSION"
+
       - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         id: minikube-setup
         continue-on-error: true
         timeout-minutes: 10
         with:
           driver: 'none'
+          kubernetes-version: ${{ env.KUBERNETES_VERSION }}
           ingress-enable: 'true'
           olm-enable: ${{ matrix.olm-enable }}
           olm-v1-enable: ${{ matrix.olm-v1-enable }}
           start-args: '--alsologtostderr --v=2'
+
+      # OLM v0's installer rejects an existing installation. Reuse it when healthy
+      # after an OLM v1 download failure; only remove an incomplete v0 installation.
+      # OLM v1 uses kubectl apply and can resume without deleting cert-manager/webhooks.
+      - name: Prepare OLM for Minikube setup retry
+        id: retry-olm
+        if: steps.minikube-setup.outcome == 'failure' && matrix.olm-enable == 'true'
+        timeout-minutes: 5
+        run: |
+          if ! kubectl cluster-info >/dev/null 2>&1; then
+            echo "install-v0=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if kubectl rollout status deployment/olm-operator -n olm --timeout=30s &&
+             kubectl rollout status deployment/catalog-operator -n olm --timeout=30s; then
+            echo "install-v0=false" >> "$GITHUB_OUTPUT"
+          else
+            kubectl delete namespace olm operators --ignore-not-found --timeout=180s
+            echo "install-v0=true" >> "$GITHUB_OUTPUT"
+          fi
 
       # medyagh/setup-minikube (invoked by the composite action) intermittently
       # fails with transient HTTP 504s while downloading; one retry absorbs it
@@ -338,8 +370,9 @@ jobs:
         timeout-minutes: 10
         with:
           driver: 'none'
+          kubernetes-version: ${{ env.KUBERNETES_VERSION }}
           ingress-enable: 'true'
-          olm-enable: ${{ matrix.olm-enable }}
+          olm-enable: ${{ steps.retry-olm.outputs.install-v0 || matrix.olm-enable }}
           olm-v1-enable: ${{ matrix.olm-v1-enable }}
           start-args: '--alsologtostderr --v=2'
 

@@ -285,6 +285,8 @@ jobs:
 
       - name: Generate Scalpel report
         run: |
+          # Scalpel writes the report at session start, before validate has
+          # necessarily created target/ on the root aggregator. Keep this.
           mkdir -p target
           # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
           # reportFile restates the documented default so the upload path
@@ -307,6 +309,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           summary=target/scalpel-report-summary.md
+          # This step also runs when Generate failed, so target/ may not exist.
           mkdir -p target
           # Written aside and moved into place. A redirect straight onto the
           # final path truncates it before the script starts, so a script that
@@ -315,7 +318,7 @@ jobs:
           bash .github/scripts/scalpel-summary.sh \
             target/scalpel-report.json > "$summary.tmp"
           mv "$summary.tmp" "$summary"
-          cat "$summary" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          cat "$summary" >> "$GITHUB_STEP_SUMMARY"
 
       # A failed build is when the offline artifact is wanted most: Scalpel
       # writes the report at session start, so it survives a later failure.

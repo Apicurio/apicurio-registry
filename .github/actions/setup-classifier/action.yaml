@@ -1,0 +1,39 @@
+name: 'Setup Classifier'
+description: 'Install Python and the embedding classifier dependencies, with pip and model caches'
+
+# Shared by the classify-issue and classify-pr jobs in classify.yml. Those two
+# jobs differ only in their trigger and which flag they pass to classify.py;
+# everything expensive and fiddly — the pinned action SHAs, the two cache keys —
+# lives here so there is one copy to keep correct.
+#
+# Checkout is deliberately NOT part of this action: a local composite action is
+# resolved from the workspace, so the repository must already be checked out
+# before this can be referenced at all.
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+      with:
+        python-version: '3.14.7'
+
+    - name: Cache pip packages
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ~/.cache/pip
+        key: classify-pip-${{ hashFiles('.github/scripts/label-classification/classify.py') }}
+        restore-keys: classify-pip-
+
+    # Keyed by model name: the weights never change for a given name, so the
+    # key only needs to change when label-descriptions.yml selects a different
+    # model. Keep the two in sync.
+    - name: Cache model
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ~/.cache/huggingface
+        key: classify-model-all-MiniLM-L6-v2
+
+    - name: Install dependencies
+      shell: bash
+      run: pip install pyyaml sentence-transformers

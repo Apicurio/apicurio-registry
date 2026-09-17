@@ -2,6 +2,8 @@ package io.apicurio.registry.storage.impl.gitops;
 
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.util.GitopsTestProfile;
 import io.apicurio.registry.types.RuleType;
@@ -80,6 +82,12 @@ public class GitOpsSmokeTest {
         var expectedContent = loadFile("git/smoke01/content/petstore-1.0.0.yaml");
         assertEquals(YAMLObjectMapper.YAML_MAPPER.readTree(expectedContent.bytes()),
                 YAMLObjectMapper.YAML_MAPPER.readTree(version.getContent().bytes()));
+
+        // Version order in the GitOps artifact defines the system "latest" branch.
+        assertEquals("1", storage.getBranchTip(new GA("foo", "petstore"), BranchId.LATEST,
+                RegistryStorage.RetrievalBehavior.ACTIVE_STATES).getRawVersionId());
+        get("/apis/ccompat/v7/subjects/foo:petstore/versions/latest").then().statusCode(200)
+                .body("version", equalTo(1)).body("id", equalTo(1));
 
         // --- Load smoke02: Different artifact, no rules ---
         testRepository.load("git/smoke02");

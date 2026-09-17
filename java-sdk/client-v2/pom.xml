@@ -204,7 +204,7 @@
       <plugin>
         <groupId>io.kiota</groupId>
         <artifactId>kiota-maven-plugin</artifactId>
-        <version>${kiota.community.version}</version>
+        <version>${kiota.maven.plugin.version}</version>
         <executions>
           <execution>
             <id>v2</id>

@@ -69,6 +69,9 @@ jobs:
       - name: Verify unit test shard partition
         run: python3 .github/scripts/verify-test-shards.py
 
+      - name: Test CI recovery paths
+        run: python3 -m unittest discover -s .github/scripts -p 'test_ci_reliability.py' -v
+
       # Orchestrator scripts run with repo write permissions under
       # pull_request_target — their logic must be tested before merge.
       - name: Test PR lifecycle scripts
@@ -282,6 +285,8 @@ jobs:
 
       - name: Generate Scalpel report
         run: |
+          # Scalpel writes the report at session start, before validate has
+          # necessarily created target/ on the root aggregator. Keep this.
           mkdir -p target
           # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
           # reportFile restates the documented default so the upload path
@@ -295,8 +300,8 @@ jobs:
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 
-      # The report is self-describing on Scalpel 0.4.1: it carries the build
-      # set, reactor and tested-module counts, and its skip shape names the
+      # The report is self-describing from Scalpel 0.4.1 onwards: it carries the
+      # build set, reactor and tested-module counts, and its skip shape names the
       # status, reason and trigger file. The script turns that into the run
       # summary and the artifact copy. It lives under .github/scripts so it can
       # be unit tested; see scripts-tests.yaml.
@@ -304,6 +309,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           summary=target/scalpel-report-summary.md
+          # This step also runs when Generate failed, so target/ may not exist.
           mkdir -p target
           # Written aside and moved into place. A redirect straight onto the
           # final path truncates it before the script starts, so a script that
@@ -312,7 +318,7 @@ jobs:
           bash .github/scripts/scalpel-summary.sh \
             target/scalpel-report.json > "$summary.tmp"
           mv "$summary.tmp" "$summary"
-          cat "$summary" >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+          cat "$summary" >> "$GITHUB_STEP_SUMMARY"
 
       # A failed build is when the offline artifact is wanted most: Scalpel
       # writes the report at session start, so it survives a later failure.

@@ -219,6 +219,23 @@ define target_dir
 endef
 
 
+# Registries (e.g. quay.io) occasionally return transient 5xx errors on push.
+# Retry a few times with a short backoff instead of failing the whole job.
+define docker_push_retry
+    @{ \
+		for i in 1 2 3; do \
+			docker push $(1) && break; \
+			if [ $$i -eq 3 ]; then \
+				echo "docker push $(1) failed after 3 attempts"; \
+				exit 1; \
+			fi; \
+			echo "docker push $(1) failed (attempt $$i/3), retrying..."; \
+			sleep 5; \
+		done; \
+	}
+endef
+
+
 OPERATOR_SDK_VERSION ?= 1.37.0
 OPERATOR_SDK = $(shell pwd)/target/bin/operator-sdk
 .PHONY: install-operator-sdk
@@ -316,21 +333,31 @@ endif
 
 .PHONY: image-push
 image-push: ## TODO
-	docker push $(IMAGE)
+	$(call docker_push_retry,$(IMAGE))
 ifneq ($(ADDITIONAL_IMAGE),)
 ifneq ($(ADDITIONAL_IMAGE_TAG),)
-	docker push $(ADDITIONAL_IMAGE)
+	$(call docker_push_retry,$(ADDITIONAL_IMAGE))
 endif
 endif
 
 
 .PHONY: image-buildx-push
 image-buildx-push: ## Build and push a multi-arch operator image
-	docker buildx build --push -f controller/src/main/docker/Dockerfile.jvm \
-		--platform $(IMAGE_PLATFORMS) \
-		-t $(IMAGE) \
-		$(if $(and $(ADDITIONAL_IMAGE),$(ADDITIONAL_IMAGE_TAG)),-t $(ADDITIONAL_IMAGE),) \
-		controller/target
+	@{ \
+		for i in 1 2 3; do \
+			docker buildx build --push -f controller/src/main/docker/Dockerfile.jvm \
+				--platform $(IMAGE_PLATFORMS) \
+				-t $(IMAGE) \
+				$(if $(and $(ADDITIONAL_IMAGE),$(ADDITIONAL_IMAGE_TAG)),-t $(ADDITIONAL_IMAGE),) \
+				controller/target && break; \
+			if [ $$i -eq 3 ]; then \
+				echo "docker buildx build --push failed after 3 attempts"; \
+				exit 1; \
+			fi; \
+			echo "docker buildx build --push failed (attempt $$i/3), retrying..."; \
+			sleep 5; \
+		done; \
+	}
 
 
 .PHONY: image
@@ -423,10 +450,10 @@ endif
 
 .PHONY: bundle-image-push
 bundle-image-push: ## TODO
-	docker push $(BUNDLE_IMAGE)
+	$(call docker_push_retry,$(BUNDLE_IMAGE))
 ifneq ($(ADDITIONAL_BUNDLE_IMAGE),)
 ifneq ($(ADDITIONAL_BUNDLE_TAG),)
-	docker push $(ADDITIONAL_BUNDLE_IMAGE)
+	$(call docker_push_retry,$(ADDITIONAL_BUNDLE_IMAGE))
 endif
 endif
 
@@ -460,10 +487,10 @@ endif
 
 .PHONY: catalog-image-push
 catalog-image-push: ## TODO
-	docker push $(CATALOG_IMAGE)
+	$(call docker_push_retry,$(CATALOG_IMAGE))
 ifneq ($(ADDITIONAL_CATALOG_IMAGE),)
 ifneq ($(ADDITIONAL_CATALOG_IMAGE_TAG),)
-	docker push $(ADDITIONAL_CATALOG_IMAGE)
+	$(call docker_push_retry,$(ADDITIONAL_CATALOG_IMAGE))
 endif
 endif
 

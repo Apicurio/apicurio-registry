@@ -41,13 +41,14 @@ public abstract class AbstractErrorCounterHealthCheck {
         }
     }
 
-    protected synchronized void suspectSuper() {
+    protected synchronized long suspectSuper() {
         nextCounterReset = Instant.now().plus(counterResetWindowDuration);
         if (++errorCounter > configErrorThreshold) {
             up = false;
             statusResetWindowDuration
                     .ifPresent(duration -> nextStatusReset = Optional.of(Instant.now().plus(duration)));
         }
+        return errorCounter;
     }
 
     protected synchronized void callSuper() {

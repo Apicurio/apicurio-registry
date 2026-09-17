@@ -68,10 +68,10 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck
         if (disableLogging != Boolean.TRUE) {
             log.warn("Liveness problem suspected in ResponseErrorLivenessCheck: {}", reason);
         }
-        super.suspectSuper();
+        long currentCount = super.suspectSuper();
         if (disableLogging != Boolean.TRUE) {
             log.info("After this event, the error counter is {} (out of the maximum {} allowed).",
-                    errorCounter, configErrorThreshold);
+                    currentCount, configErrorThreshold);
         }
     }
 
@@ -81,10 +81,10 @@ public class ResponseErrorLivenessCheck extends AbstractErrorCounterHealthCheck
             log.warn("Liveness problem suspected in ResponseErrorLivenessCheck because of an exception: ",
                     reason);
         }
-        super.suspectSuper();
+        long currentCount = super.suspectSuper();
         if (disableLogging != Boolean.TRUE) {
             log.info("After this event, the error counter is {} (out of the maximum {} allowed).",
-                    errorCounter, configErrorThreshold);
+                    currentCount, configErrorThreshold);
         }
     }
 }

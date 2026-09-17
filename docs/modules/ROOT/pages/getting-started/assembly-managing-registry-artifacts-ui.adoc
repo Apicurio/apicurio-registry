@@ -190,7 +190,7 @@ Each artifact version has a state that identifies its lifecycle stage. The web c
 
 |*Sunset* (`SUNSET`)
 |A version that has reached the end of its deprecation period. You can set this state only by using the REST API. The web console displays a *Sunset* badge for the version, but the *Change version state* dialog displays the current state as *Unknown*.
-|*Enabled*, *Deprecated*. The dialog also lists *Disabled*, but {registry} rejects that change.
+|*Enabled*, *Deprecated*, *Disabled*
 |===
 
 You can create a version in the `DRAFT` state, but you cannot change an existing version back to `DRAFT` after publication.
@@ -744,7 +744,8 @@ You export all artifact data from a source {registry} instance to a `.zip` file,
 
 . Click the *Admin actions* icon (three vertical dots) next to *Create group* in the toolbar, and select *Export all (as .ZIP)* to export the data for this {registry} instance to a `.zip` download file.
 +
-The *Admin actions* menu is available only to administrators. In read-only mode, the menu offers only *Export all (as .ZIP)*.
+The *Admin actions* menu is available only to administrators.
+When the web console is in read-only mode (`apicurio.ui.features.read-only.enabled=true`), the menu offers only *Export all (as .ZIP)*.
 
 . In the web console for the target {registry} instance, view the *Explore* tab.
 

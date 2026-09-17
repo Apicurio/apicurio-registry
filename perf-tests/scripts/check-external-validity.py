@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Decide whether an external load run produced a usable measurement.
 
-This is deliberately *not* a performance check - perf-tests/scripts/check-thresholds.py
-already compares latency and throughput against the baseline, and those numbers are
+This is deliberately *not* a performance check - check-external-baseline.py compares this
+run's latency and throughput against external-baseline.json, and those numbers are
 informational on GitHub-hosted runners because the hardware varies run to run.
 
 This answers the prior question: did the run actually exercise the registry at all? A run
@@ -17,55 +17,12 @@ Exit status is 0 when the run is usable and 1 when it is not, so the calling ste
 """
 
 import argparse
-import re
+import os
 import sys
 
-# "> KO       1,406,042 (94.74%)" in Gatling's Response Time Distribution block.
-KO_LINE = re.compile(r"^>\s*KO\s+([\d,]+)\s+\(\s*([\d.]+)%\)", re.MULTILINE)
-# "> request count   | 1,484,140 |    78,098 | 1,406,042"
-REQUEST_COUNT_LINE = re.compile(
-    r"^>\s*request count\s*\|\s*([\d,]+)\s*\|\s*([\d,]+)\s*\|\s*([\d,]+)", re.MULTILINE
-)
-# Gatling echoes each distinct failure with its own share of the total errors.
-ERROR_LINE = re.compile(r"^>\s*(\S.*?)\s{2,}([\d,]+)\s+\(\s*[\d.]+%\)", re.MULTILINE)
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Failures that mean the target was not reachable, as opposed to the target answering with
-# something we did not want. The distinction matters: a 500 is the registry being unhappy,
-# an ECONNREFUSED is the registry not being there.
-UNREACHABLE_MARKERS = (
-    "Connection refused",
-    "Connection reset by peer",
-    "Premature close",
-    "connection timed out",
-    "No route to host",
-)
-
-
-def _int(text):
-    return int(text.replace(",", ""))
-
-
-def parse(log_text):
-    ko_match = KO_LINE.search(log_text)
-    count_match = REQUEST_COUNT_LINE.search(log_text)
-    if not ko_match or not count_match:
-        return None
-
-    total, ok, ko = (_int(g) for g in count_match.groups())
-    unreachable = 0
-    # Only the Errors block matters; take everything after the last "---- Errors" header.
-    errors_block = log_text.rsplit("---- Errors", 1)[-1] if "---- Errors" in log_text else ""
-    for label, count in ERROR_LINE.findall(errors_block):
-        if any(marker in label for marker in UNREACHABLE_MARKERS):
-            unreachable += _int(count)
-
-    return {
-        "total": total,
-        "ok": ok,
-        "ko": ko,
-        "ko_percent": float(ko_match.group(2)),
-        "unreachable": unreachable,
-    }
+from gatling_console import parse  # noqa: E402
 
 
 def main():

@@ -309,10 +309,13 @@
     <!-- Kiota -->
     <kiota.libs.version>1.9.3</kiota.libs.version>
     <kiota.community.version>0.0.38</kiota.community.version>
+    <!-- 0.0.39 retries transient ETXTBSY during process startup (JDK-8068370). -->
+    <kiota.maven.plugin.version>0.0.39</kiota.maven.plugin.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
+    <kiota.binary.folder>${session.executionRootDirectory}/target/kiota-binary</kiota.binary.folder>
 
     <!-- Groovy scripting -->
     <groovy.version>5.1.1</groovy.version>

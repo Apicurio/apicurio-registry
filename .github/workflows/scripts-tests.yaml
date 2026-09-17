@@ -45,4 +45,5 @@ jobs:
       - name: Run unit tests
         run: |
           node --test .github/scripts/pr-validation.test.js \
-                      .github/scripts/pr-lifecycle.test.js
+                      .github/scripts/pr-lifecycle.test.js \
+                      .github/scripts/issue-assignment.test.js

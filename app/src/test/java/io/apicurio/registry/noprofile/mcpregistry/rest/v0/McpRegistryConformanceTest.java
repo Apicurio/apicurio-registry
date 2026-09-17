@@ -5,6 +5,7 @@ import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.quarkus.test.junit.QuarkusTestProfile;
 import io.apicurio.registry.storage.impl.sql.jdb.RuntimeSqlException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.VersionState;
@@ -18,15 +19,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static io.restassured.RestAssured.given;
+import static io.apicurio.registry.noprofile.mcpregistry.rest.v0.McpRegistryRequests.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @QuarkusTest
-@TestProfile(McpRegistryExperimentalFeaturesProfile.class)
+@TestProfile(McpRegistryConformanceTest.DeletionDisabledProfile.class)
 class McpRegistryConformanceTest extends AbstractResourceTestBase {
+
+    public static class DeletionDisabledProfile implements QuarkusTestProfile {
+        @Override
+        public Map<String, String> getConfigOverrides() {
+            return Map.of("apicurio.features.experimental.enabled", "true",
+                    "apicurio.mcp-registry.enabled", "true",
+                    "apicurio.rest.deletion.artifact-version.enabled", "false");
+        }
+    }
 
     private static final String BASE = "/mcp-registry/v0.1";
     private static final String META = "_meta.'io.modelcontextprotocol.registry/official'";
@@ -57,6 +67,23 @@ class McpRegistryConformanceTest extends AbstractResourceTestBase {
                 .body("metadata.count", equalTo(2));
         given().queryParam("search", ns).queryParam("version", "latest").get(BASE + "/servers")
                 .then().statusCode(200).body("servers.server.version", equalTo(List.of("2.0.0")));
+    }
+
+    @Test
+    void deleteRetainsHistoryWhenPermanentVersionDeletionIsDisabled() {
+        String ns = namespace();
+        publish(ns + "/server", "1.0.0");
+        String nativePath = "/registry/v3/groups/" + ns + "/artifacts/server/versions/1.0.0";
+        given().delete(nativePath).then().statusCode(405);
+        String path = BASE + "/servers/" + ns + "/server/versions/1.0.0";
+        given().delete(path).then().statusCode(200).body(META + ".status", equalTo("deleted"));
+        given().get(path).then().statusCode(404);
+        given().queryParam("include_deleted", true).get(path).then().statusCode(200)
+                .body("server.version", equalTo("1.0.0")).body(META + ".status", equalTo("deleted"));
+        assertEquals(VersionState.DISABLED, storage.getArtifactVersionState(ns, "server", "1.0.0"));
+        given().contentType(CT_JSON).body(Map.of("status", "active"))
+                .patch(path + "/status").then().statusCode(200);
+        given().get(path).then().statusCode(200).body(META + ".status", equalTo("active"));
     }
 
     @Test

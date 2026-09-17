@@ -32,8 +32,11 @@ https://github.com/modelcontextprotocol/registry/blob/739b70e8bc1bea203c5a35ab69
 
 `io.github.user/weather` maps to group `io.github.user`, artifact `weather`.
 `McpServerName` validates identifiers and excludes traversal dot segments.
-`McpRegistryEncodedNameFilter` rewrites only the validated single `%2F` separator
-on MCP Registry routes; no global container encoded-slash switch is needed.
+Routes declare the single encoded `{serverName}` segment directly, matching upstream.
+`AuthorizedStyle.McpServerName` validates/splits parameter 0 for owner checks. The
+former rewrite filter and two-segment aliases are removed; no global encoded-slash
+switch is enabled. Internal Java/spec directory `v0` is the facade generation, not
+another served API: the wire version stays `v0.1`.
 
 Single-version responses and list entries are `{server, _meta}`. Publisher metadata
 is inside `server._meta`. Registry-owned lifecycle fields are in envelope
@@ -68,7 +71,7 @@ status is always derived from version state. Omitting a message clears the old h
 ## Mutation atomicity and authorization
 
 Every addressed route verifies MCP_SERVER type before reading/mutating content.
-Path parameters 0 and 1 stay group/artifact for `@Authorized(GroupAndArtifact)`.
+Path parameter 0 is the full decoded server name for `@Authorized(McpServerName)`.
 Publish is body-addressed and explicitly verifies owner-only access; anonymous and
 non-owner access are covered by auth tests.
 
@@ -79,8 +82,10 @@ reject it. Search-index/outbox decorators must remain wired when changing this A
 Rollback tests inject a DB constraint failure on the **second** version and assert
 both complete metadata snapshots are restored, for SQL and KafkaSQL.
 
-Server-wide PATCH returns `{updatedCount, servers}`. Hard DELETE returns HTTP 200
-with the removed record. Optional PUT returns the upstream-permitted 501 because
+Server-wide PATCH returns `{updatedCount, servers}`. DELETE sets DISABLED and returns
+HTTP 200 with the retained record, permitting discovery of tombstones and restoration.
+Permanent removal stays behind native v3's artifact-version deletion gate. Optional
+PUT returns the upstream-permitted 501 because
 in-place edits of immutable server versions are unsupported. These are separate
 from soft deletion (PATCH deleted). Read-only storage returns 501 for writes.
 
@@ -91,7 +96,16 @@ mutation methods that reject system-defined branches to build these entries.
 ## Tests and feature gates
 
 Both `apicurio.features.experimental.enabled` and `apicurio.mcp-registry.enabled`
-must be true. Defaults remain off. `max-page-size` defaults to 100.
+must be true. `ExperimentalFeaturesConfig` is eagerly instantiated with `@Startup`;
+the startup-failure test proves the check runs. Defaults remain off. `max-page-size`
+defaults to 100; both MCP config properties are availableSince 3.4.0.
+
+`McpRegistryExperimentalStartupTest` uses QuarkusUnitTest, which cannot share a JVM
+with QuarkusTest. It has tag `experimental-startup`, excluded from default-test and
+default-cli executions, and runs in its own `experimental-startup-test` execution.
+To invoke it directly use `surefire:test@experimental-startup-test` after compilation.
+Functional tests use `McpRegistryRequests` to encode readable fixture coordinates;
+the helper preserves complete resolved URLs and already-encoded query values.
 
 - `McpRegistryApiTest`: publish/read/list/status/delete, metadata envelopes, paths.
 - `McpRegistryConformanceTest`: schema failures, raw types, drafts, pagination,

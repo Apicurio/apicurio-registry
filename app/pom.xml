@@ -273,6 +273,11 @@
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit-internal</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
       <artifactId>quarkus-test-common</artifactId>
       <scope>test</scope>
     </dependency>
@@ -594,6 +599,33 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>default-test</id>
+            <configuration>
+              <excludedGroups>experimental-startup</excludedGroups>
+            </configuration>
+          </execution>
+          <execution>
+            <id>default-cli</id>
+            <configuration>
+              <!-- Direct surefire:test must also exclude the separate QuarkusUnitTest JVM. -->
+              <excludedGroups>experimental-startup</excludedGroups>
+            </configuration>
+          </execution>
+          <execution>
+            <id>experimental-startup-test</id>
+            <goals><goal>test</goal></goals>
+            <configuration>
+              <!-- QuarkusUnitTest and QuarkusTest must not share a JVM. -->
+              <groups>experimental-startup</groups>
+              <test>McpRegistryExperimentalStartupTest</test>
+              <forkCount>1</forkCount>
+              <reuseForks>false</reuseForks>
+              <reportsDirectory>${project.build.directory}/surefire-reports-startup</reportsDirectory>
+            </configuration>
+          </execution>
+        </executions>
         <configuration>
           <groups>${groups}</groups>
           <!-- Fork count is overridable per CI shard with -Dsurefire.forkCount=N (e.g. the

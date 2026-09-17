@@ -14,7 +14,7 @@ import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.types.VersionState;
 import jakarta.inject.Inject;
 
-import static io.restassured.RestAssured.given;
+import static io.apicurio.registry.noprofile.mcpregistry.rest.v0.McpRegistryRequests.given;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;

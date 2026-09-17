@@ -5,6 +5,10 @@ Apicurio Registry exposes an experimental MCP Registry API at
 `/apis/mcp-registry/v0.1`. This is separate from the `mcp/` server module,
 which exposes Registry operations as MCP tools.
 
+This Developer Preview targets {registry} 3.4.0. The internal Java package and
+specification directory use `v0` for the facade generation; the published upstream
+wire contract is explicitly `v0.1`. They are not separate served API versions.
+
 Enable both configuration properties:
 
 [source,properties]
@@ -22,8 +26,7 @@ protect existing package installation and remote connection choices across versi
 Package version and hash upgrades are allowed; removing or changing an existing
 connection or its configuration is considered backward-incompatible.
 
-Read the published version using either the standard encoded name or the
-two-segment alias:
+Read the published version using the standard URL-encoded `serverName` path segment:
 
 [source,shell]
 ----
@@ -64,7 +67,11 @@ with the same filters. Both explicit and default limits respect
 * Draft artifact versions are not published MCP records and are excluded from MCP reads.
 * Version and server-wide status updates persist status messages and update selected
   versions atomically. Server-wide updates return `updatedCount` and the updated `servers`.
-* Hard deletion returns HTTP 200 with the removed record. Optional PUT returns
+* DELETE is a soft deletion: it returns HTTP 200 with status `deleted` and retains
+  content/history. Use `include_deleted=true` to inspect it or PATCH status to restore
+  it. Permanent deletion is only available through the native v3 API, subject to
+  `apicurio.rest.deletion.artifact-version.enabled`; MCP does not bypass that gate.
+* Optional PUT returns
   HTTP 501 as permitted by the upstream API; publish a new immutable version instead.
 * Input manifests are limited to 1 MiB. Validation uses the bundled schema without
   fetching the publisher's `$schema` URL.
@@ -74,3 +81,5 @@ with the same filters. Both explicit and default limits respect
 * GitOps/KubernetesOps support reads from imported branch metadata and reject writes
   with HTTP 501.
 * Registering a server manifest does not contact the server or import its tools.
+* Status messages are descriptive, user-editable version metadata. They are not
+  authorization or approval state; the lifecycle status is derived from version state.

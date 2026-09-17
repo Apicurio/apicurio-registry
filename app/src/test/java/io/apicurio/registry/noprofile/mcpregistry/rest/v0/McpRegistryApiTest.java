@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-import static io.restassured.RestAssured.given;
+import static io.apicurio.registry.noprofile.mcpregistry.rest.v0.McpRegistryRequests.given;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -1140,7 +1140,8 @@ public class McpRegistryApiTest extends AbstractResourceTestBase {
         given()
                 .when()
                 .contentType(CT_JSON)
-                .get(BASE + "/servers/..%2F..%2Fetc/passwd")
+                .urlEncodingEnabled(false)
+                .get(BASE + "/servers/..%2Fpasswd")
                 .then()
                 .statusCode(400);
     }

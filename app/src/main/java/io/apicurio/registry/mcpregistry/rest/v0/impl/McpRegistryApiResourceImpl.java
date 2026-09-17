@@ -298,19 +298,19 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public ServerResponse getServer(String namespace, String serverId, Boolean includeDeletedParam) {
+    @Authorized(style = AuthorizedStyle.McpServerName, level = AuthorizedLevel.Read)
+    public ServerResponse getServer(String serverName, Boolean includeDeletedParam) {
         requireEnabled();
-        return readResponse(McpServerName.of(namespace, serverId), LATEST_VERSION);
+        return readResponse(McpServerName.parse(serverName), LATEST_VERSION);
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public ServerList listServerVersions(String namespace, String serverId, String cursor,
+    @Authorized(style = AuthorizedStyle.McpServerName, level = AuthorizedLevel.Read)
+    public ServerList listServerVersions(String serverName, String cursor,
             BigInteger limit, Boolean includeDeletedParam) {
         requireEnabled();
 
-        McpServerName name = McpServerName.of(namespace, serverId);
+        McpServerName name = McpServerName.parse(serverName);
         // Surfaces a 404 for an unknown server, rather than an empty page.
         requireServerArtifact(name);
 
@@ -349,11 +349,11 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
-    public ServerResponse getServerVersion(String namespace, String serverId, String version,
+    @Authorized(style = AuthorizedStyle.McpServerName, level = AuthorizedLevel.Read)
+    public ServerResponse getServerVersion(String serverName, String version,
             Boolean includeDeletedParam) {
         requireEnabled();
-        return readResponse(McpServerName.of(namespace, serverId), version);
+        return readResponse(McpServerName.parse(serverName), version);
     }
 
     private boolean includeDeleted() {
@@ -379,36 +379,39 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public void updateServerVersion(String namespace, String serverId, String version, Server data) {
+    @Authorized(style = AuthorizedStyle.McpServerName, level = AuthorizedLevel.Write)
+    public void updateServerVersion(String serverName, String version, Server data) {
         requireEnabled();
-        McpServerName.of(namespace, serverId);
+        McpServerName.parse(serverName);
         throw new ServerErrorException("In-place updates are not supported; publish a new server version",
                 Response.Status.NOT_IMPLEMENTED);
     }
 
     @Override
     @Audited
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public ServerResponse deleteServerVersion(String namespace, String serverId, String version) {
+    @Authorized(style = AuthorizedStyle.McpServerName, level = AuthorizedLevel.Write)
+    public ServerResponse deleteServerVersion(String serverName, String version) {
         requireEnabled();
         requireWritable();
-        McpServerName name = McpServerName.of(namespace, serverId);
+        McpServerName name = McpServerName.parse(serverName);
         requireServerArtifact(name);
         String resolved = requireConcreteVersion(version);
-        Server deleted = loadServer(name, resolved);
-        storage.deleteArtifactVersion(name.namespace(), name.serverId(), resolved);
-        return response(deleted);
+        loadServer(name, resolved);
+        StatusUpdate deleted = new StatusUpdate();
+        deleted.setStatus(ServerStatus.deleted);
+        storage.updateArtifactVersionStates(name.namespace(), name.serverId(), List.of(resolved),
+                VersionState.DISABLED, STATUS_PREFIX, statusLabels(deleted));
+        return response(loadServer(name, resolved, latestVersionOrNull(name, true)));
     }
 
     @Override
     @Audited
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public ServerResponse updateServerVersionStatus(String namespace, String serverId, String version,
+    @Authorized(style = AuthorizedStyle.McpServerName, level = AuthorizedLevel.Write)
+    public ServerResponse updateServerVersionStatus(String serverName, String version,
             StatusUpdate data) {
         requireEnabled();
         requireWritable();
-        McpServerName name = McpServerName.of(namespace, serverId);
+        McpServerName name = McpServerName.parse(serverName);
         requireServerArtifact(name);
         String resolved = requireConcreteVersion(version);
         loadServer(name, resolved);
@@ -425,11 +428,11 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     @Override
     @Audited
-    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    public AllVersionsStatusResponse updateServerStatus(String namespace, String serverId, StatusUpdate data) {
+    @Authorized(style = AuthorizedStyle.McpServerName, level = AuthorizedLevel.Write)
+    public AllVersionsStatusResponse updateServerStatus(String serverName, StatusUpdate data) {
         requireEnabled();
         requireWritable();
-        McpServerName name = McpServerName.of(namespace, serverId);
+        McpServerName name = McpServerName.parse(serverName);
         requireServerArtifact(name);
         VersionState newState = toVersionState(requireStatus(data));
 

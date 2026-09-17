@@ -876,12 +876,12 @@ The following {registry} configuration options are available for each component 
 |`apicurio.mcp-registry.enabled`
 |`boolean`
 |`false`
-|`3.3.0`
-|Enable the MCP Registry API _(experimental)_
+|`3.4.0`
+|Enable the MCP Registry API (Developer Preview) _(experimental)_
 |`apicurio.mcp-registry.max-page-size`
 |`int`
 |`100`
-|`3.3.0`
+|`3.4.0`
 |Maximum number of MCP servers returned by a single list request
 |`apicurio.mcp-tools.enabled`
 |`boolean`

@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
-import static io.restassured.RestAssured.given;
+import static io.apicurio.registry.noprofile.mcpregistry.rest.v0.McpRegistryRequests.given;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;

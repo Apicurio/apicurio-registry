@@ -81,6 +81,10 @@
               }
             }
           },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/UnavailableError" },
           "400": {
             "$ref": "#/components/responses/BadRequestError",
             "content": {
@@ -94,7 +98,7 @@
         }
       }
     },
-    "/apis/mcp-registry/v0.1/servers/{namespace}/{server_id}": {
+    "/apis/mcp-registry/v0.1/servers/{serverName}": {
       "get": {
         "operationId": "getServer",
         "tags": [
@@ -104,10 +108,7 @@
         "description": "Get the latest version of a single MCP server.",
         "parameters": [
           {
-            "$ref": "#/components/parameters/namespace"
-          },
-          {
-            "$ref": "#/components/parameters/server_id"
+            "$ref": "#/components/parameters/serverName"
           },
           { "$ref": "#/components/parameters/include_deleted" }
         ],
@@ -122,6 +123,11 @@
               }
             }
           },
+          "400": { "$ref": "#/components/responses/BadRequestError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/UnavailableError" },
           "404": {
             "$ref": "#/components/responses/NotFoundError",
             "content": {
@@ -135,7 +141,7 @@
         }
       }
     },
-    "/apis/mcp-registry/v0.1/servers/{namespace}/{server_id}/versions": {
+    "/apis/mcp-registry/v0.1/servers/{serverName}/versions": {
       "get": {
         "operationId": "listServerVersions",
         "tags": [
@@ -145,10 +151,7 @@
         "description": "List versions of a single MCP server, newest first. Deleted versions are excluded unless include_deleted is true.",
         "parameters": [
           {
-            "$ref": "#/components/parameters/namespace"
-          },
-          {
-            "$ref": "#/components/parameters/server_id"
+            "$ref": "#/components/parameters/serverName"
           },
           {
             "name": "cursor",
@@ -192,6 +195,11 @@
               }
             }
           },
+          "400": { "$ref": "#/components/responses/BadRequestError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/UnavailableError" },
           "404": {
             "$ref": "#/components/responses/NotFoundError",
             "content": {
@@ -205,18 +213,22 @@
         }
       }
     },
-    "/apis/mcp-registry/v0.1/servers/{namespace}/{server_id}/versions/{version}": {
+    "/apis/mcp-registry/v0.1/servers/{serverName}/versions/{version}": {
       "put": {
         "operationId": "updateServerVersion",
         "tags": ["Servers"],
         "summary": "Optional update operation (unsupported for immutable server versions)",
         "parameters": [
-          {"$ref": "#/components/parameters/namespace"},
-          {"$ref": "#/components/parameters/server_id"},
+          {"$ref": "#/components/parameters/serverName"},
           {"$ref": "#/components/parameters/version"}
         ],
         "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Server"}}}},
         "responses": {
+          "400": { "$ref": "#/components/responses/BadRequestError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/UnavailableError" },
           "501": {"description": "Registry does not support in-place updates", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}}
         }
       },
@@ -228,10 +240,7 @@
         "summary": "Get a server version",
         "parameters": [
           {
-            "$ref": "#/components/parameters/namespace"
-          },
-          {
-            "$ref": "#/components/parameters/server_id"
+            "$ref": "#/components/parameters/serverName"
           },
           {
             "$ref": "#/components/parameters/version"
@@ -249,6 +258,11 @@
               }
             }
           },
+          "400": { "$ref": "#/components/responses/BadRequestError" },
+          "401": { "$ref": "#/components/responses/UnauthorizedError" },
+          "403": { "$ref": "#/components/responses/ForbiddenError" },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/UnavailableError" },
           "404": {
             "$ref": "#/components/responses/NotFoundError",
             "content": {
@@ -266,13 +280,11 @@
         "tags": [
           "Servers"
         ],
-        "summary": "Delete a server version",
+        "summary": "Soft-delete a server version",
+        "description": "Mark the version deleted while retaining content and history. Permanent removal is available only through the native Registry API and its deletion gate.",
         "parameters": [
           {
-            "$ref": "#/components/parameters/namespace"
-          },
-          {
-            "$ref": "#/components/parameters/server_id"
+            "$ref": "#/components/parameters/serverName"
           },
           {
             "$ref": "#/components/parameters/version"
@@ -283,6 +295,7 @@
             "description": "The deleted server version",
             "content": {"application/json": {"schema": {"$ref": "#/components/schemas/ServerResponse"}}}
           },
+          "503": { "$ref": "#/components/responses/UnavailableError" },
           "400": {
             "description": "The request is invalid",
             "content": {
@@ -346,7 +359,7 @@
         }
       }
     },
-    "/apis/mcp-registry/v0.1/servers/{namespace}/{server_id}/versions/{version}/status": {
+    "/apis/mcp-registry/v0.1/servers/{serverName}/versions/{version}/status": {
       "patch": {
         "operationId": "updateServerVersionStatus",
         "tags": [
@@ -355,10 +368,7 @@
         "summary": "Update the status of a server version",
         "parameters": [
           {
-            "$ref": "#/components/parameters/namespace"
-          },
-          {
-            "$ref": "#/components/parameters/server_id"
+            "$ref": "#/components/parameters/serverName"
           },
           {
             "$ref": "#/components/parameters/version"
@@ -385,6 +395,8 @@
               }
             }
           },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/UnavailableError" },
           "400": {
             "description": "The request is invalid",
             "content": {
@@ -438,7 +450,7 @@
         }
       }
     },
-    "/apis/mcp-registry/v0.1/servers/{namespace}/{server_id}/status": {
+    "/apis/mcp-registry/v0.1/servers/{serverName}/status": {
       "patch": {
         "operationId": "updateServerStatus",
         "tags": [
@@ -447,10 +459,7 @@
         "summary": "Update the status of every version of a server",
         "parameters": [
           {
-            "$ref": "#/components/parameters/namespace"
-          },
-          {
-            "$ref": "#/components/parameters/server_id"
+            "$ref": "#/components/parameters/serverName"
           }
         ],
         "requestBody": {
@@ -474,6 +483,8 @@
               }
             }
           },
+          "500": { "$ref": "#/components/responses/InternalError" },
+          "503": { "$ref": "#/components/responses/UnavailableError" },
           "400": {
             "description": "The request is invalid",
             "content": {
@@ -556,6 +567,8 @@
               }
             }
           },
+          "413": { "description": "Server manifest exceeds the request limit", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}} },
+          "503": { "$ref": "#/components/responses/UnavailableError" },
           "400": {
             "$ref": "#/components/responses/BadRequestError",
             "content": {
@@ -628,20 +641,11 @@
         "description": "Include deleted server versions. Always enabled for incremental listing with updated_since.",
         "schema": { "type": "boolean", "default": false }
       },
-      "namespace": {
-        "name": "namespace",
+      "serverName": {
+        "name": "serverName",
         "in": "path",
         "required": true,
-        "description": "The reverse-DNS namespace half of the server name, e.g. 'io.github.user'.",
-        "schema": {
-          "type": "string"
-        }
-      },
-      "server_id": {
-        "name": "server_id",
-        "in": "path",
-        "required": true,
-        "description": "The server id half of the server name, e.g. 'weather'.",
+        "description": "URL-encoded full server name, e.g. io.github.user%2Fweather.",
         "schema": {
           "type": "string"
         }
@@ -657,6 +661,22 @@
       }
     },
     "responses": {
+      "UnauthorizedError": {
+        "description": "Authentication required (Apicurio error declaration beyond upstream minimal responses)",
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}
+      },
+      "ForbiddenError": {
+        "description": "Caller is not authorized (Apicurio error declaration beyond upstream minimal responses)",
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}
+      },
+      "InternalError": {
+        "description": "Internal failure; implementation details are not exposed (Apicurio error declaration)",
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}
+      },
+      "UnavailableError": {
+        "description": "Service unavailable or storage operation timed out (Apicurio error declaration)",
+        "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Error"}}}
+      },
       "BadRequestError": {
         "description": "The request was malformed",
         "content": {

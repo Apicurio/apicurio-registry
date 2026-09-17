@@ -69,6 +69,15 @@ jobs:
       - name: Verify unit test shard partition
         run: python3 .github/scripts/verify-test-shards.py
 
+      # The scalpel summary contract is merge-blocking, so its suite runs in
+      # the Gate too: it pins the extension version's report schema and the
+      # buildAllIfNoChanges setting the summary's projections stand on, and
+      # scripts-tests.yaml alone would leave a red suite non-blocking.
+      # jq is preinstalled on ubuntu-latest, the same assumption that
+      # workflow makes.
+      - name: Test scalpel summary script
+        run: bash .github/scripts/scalpel-summary.test.sh
+
       - name: Test CI recovery paths
         run: python3 -m unittest discover -s .github/scripts -p 'test_ci_reliability.py' -v
 
@@ -252,6 +261,7 @@ jobs:
     uses: ./.github/workflows/verify-unit-tests.yaml
     with:
       image-tag: ${{ github.sha }}
+      scalpel-enabled: ${{ needs.decide.outputs.scalpel-enabled }}
 
   # Scalpel Report (affected-module detection, data collection only).
   # Not in the Gate: a failure here never blocks a PR.

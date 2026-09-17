@@ -82,14 +82,19 @@ cat > "$work/v2-full.json" <<'EOF'
 {"version":"2","scalpelVersion":"0.4.1","baseBranch":"main","decisionId":"eb03ad1a005c7b1d1ac7ef19bb2bd9c6299c752cb3ea001fea00d3e0fd35e28d","mergeBaseId":"c4c19d62fb18e46064d1c328a4c669fca44eb11f","headId":"73a7ee7bf8001b18a8e82274adb8dd0a98194ab7","configFingerprint":"baseBranch=484541447e31;head=48454144","fullBuildTriggered":false,"triggerFile":null,"changedFiles":["app/src/main/java/io/apicurio/registry/storage/impl/sql/CommonSqlStatements.java"],"excludedUpstreamCount":42,"buildSetSize":47,"reactorModuleCount":57,"testedModulesCount":5,"affectedModules":[{"groupId":"io.apicurio","artifactId":"apicurio-registry-app","path":"app","reasons":["SOURCE_CHANGE"],"category":"DIRECT","sourceSet":"main"},{"groupId":"io.apicurio","artifactId":"apicurio-registry-docs","path":"docs","reasons":["DOWNSTREAM_DEPENDENT"],"category":"DOWNSTREAM"},{"groupId":"io.apicurio","artifactId":"apicurio-registry-cli","path":"cli","reasons":["DOWNSTREAM_DEPENDENT"],"category":"DOWNSTREAM"},{"groupId":"io.apicurio","artifactId":"apicurio-registry-distro-docker","path":"distro/docker","reasons":["DOWNSTREAM_DEPENDENT"],"category":"DOWNSTREAM"},{"groupId":"io.apicurio","artifactId":"apicurio-registry-mcp","path":"mcp","reasons":["DOWNSTREAM_DEPENDENT"],"category":"DOWNSTREAM"}],"skippedModules":[{"groupId":"io.apicurio","artifactId":"m1","path":"p1","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m2","path":"p2","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m3","path":"p3","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m4","path":"p4","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m5","path":"p5","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m6","path":"p6","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m7","path":"p7","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m8","path":"p8","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m9","path":"p9","reason":"NOT_AFFECTED"},{"groupId":"io.apicurio","artifactId":"m10","path":"p10","reason":"NOT_AFFECTED"}]}
 EOF
 
+# The table's header row, used as the needle for every "no numbers were
+# published" assertion. It is the one line no other branch prints, so a `lacks`
+# against it fails if a branch ever grows a table, where a needle taken from a
+# single data row would also pass if that row alone were dropped.
+table="| | modules |"
+
 check "v2 full: build set read from the native field" \
   "$work/v2-full.json" has "| build set, \`buildSetSize\` | 47 |"
 check "v2 full: reactor read from the native field" \
   "$work/v2-full.json" has "| reactor, \`reactorModuleCount\` | 57 |"
-check "v2 full: saving is the subtraction" \
-  "$work/v2-full.json" has "| projected modules not built | 10 |"
-check "v2 full: skippedModules is named as the actual saving" \
-  "$work/v2-full.json" has "| \`skippedModules\`, the actual saving | 10 |"
+check "v2 full: skippedModules is the saving, and it is the subtraction" \
+  "$work/v2-full.json" has \
+  "| \`skippedModules\`, the modules a trimming build would not touch | 10 |"
 check "v2 full: tested modules reported" \
   "$work/v2-full.json" has "| \`testedModulesCount\`, modules whose tests would run | 5 |"
 check "v2 full: upstream prerequisites still stated" \
@@ -104,7 +109,7 @@ check "v2 status: names the trigger file" \
 check "v2 status: projects a full build" \
   "$work/v2-status.json" has "**full build**"
 check "v2 status: claims no numeric saving" \
-  "$work/v2-status.json" lacks "projected modules not built"
+  "$work/v2-status.json" lacks "$table"
 
 # The failed status: change detection broke, so there is nothing to project
 # and the summary must not dress the run up as a full-build outcome.
@@ -115,7 +120,7 @@ check "v2 status failed: no projection is claimed" \
 check "v2 status failed: does not claim a full build" \
   "$work/v2-failed.json" lacks "**full build**"
 check "v2 status failed: claims no numeric saving" \
-  "$work/v2-failed.json" lacks "projected modules not built"
+  "$work/v2-failed.json" lacks "$table"
 
 # --- regression: schema 1 is now the unknown schema --------------------------
 # Scalpel 0.3.10 writes version 1. The script reads schema 2 only, so an old
@@ -129,7 +134,7 @@ check "v1 report: refuses the numbers" \
 check "v1 report: names the producing Scalpel version" \
   "$work/v1.json" has '`0.3.10`'
 check "v1 report: claims no saving" \
-  "$work/v1.json" lacks "projected modules not built"
+  "$work/v1.json" lacks "$table"
 
 # --- regression: schema 2 without the counts ---------------------------------
 # The shipped schema declares all four counts optional, so a producer may emit
@@ -141,7 +146,7 @@ jq 'del(.excludedUpstreamCount, .buildSetSize, .reactorModuleCount, .testedModul
 check "v2 report missing the counts: refuses the table" \
   "$work/v2-partial.json" has "are missing, malformed, negative"
 check "v2 report missing the counts: claims no saving" \
-  "$work/v2-partial.json" lacks "projected modules not built"
+  "$work/v2-partial.json" lacks "$table"
 check "v2 report missing the counts: does not blame the pin" \
   "$work/v2-partial.json" has "report bug"
 
@@ -157,12 +162,12 @@ check "v2 report missing the counts: does not blame the pin" \
 for bad in null '"42"' true -1 1e999 99999999999999999999; do
   jq --argjson v "$bad" '.buildSetSize = $v' "$work/v2-full.json" > "$work/v2-bad.json"
   check "buildSetSize $bad: refuses the table" \
-    "$work/v2-bad.json" lacks "projected modules not built"
+    "$work/v2-bad.json" lacks "$table"
 done
 for field in reactorModuleCount testedModulesCount excludedUpstreamCount; do
   jq --arg f "$field" '.[$f] = null' "$work/v2-full.json" > "$work/v2-bad.json"
   check "$field null: refuses the table" \
-    "$work/v2-bad.json" lacks "projected modules not built"
+    "$work/v2-bad.json" lacks "$table"
 done
 
 # The shipped schema types the counts as integers, so 47.0 is stricter than
@@ -179,7 +184,7 @@ jq '.reactorModuleCount = 10' "$work/v2-full.json" > "$work/v2-inconsistent.json
 check "reactor below build set: refuses the table" \
   "$work/v2-inconsistent.json" has "are missing, malformed, negative"
 check "reactor below build set: claims no saving" \
-  "$work/v2-inconsistent.json" lacks "projected modules not built"
+  "$work/v2-inconsistent.json" lacks "$table"
 
 # --- a report-shaped trigger, from writeFullBuildReport ----------------------
 # The real producer shape for a scalpel.fullBuildTriggers match: no status
@@ -195,7 +200,7 @@ check "trigger report: reports a full build" \
 check "trigger report: names the file" \
   "$work/v2-trigger.json" has '`pom.xml`'
 check "trigger report: builds no table" \
-  "$work/v2-trigger.json" lacks "projected modules not built"
+  "$work/v2-trigger.json" lacks "$table"
 
 # --- degraded inputs ---------------------------------------------------------
 check "missing report: explains rather than fails" \
@@ -209,11 +214,12 @@ printf '[1,2,3]' > "$work/array.json"
 check "report that is valid json but not an object" \
   "$work/array.json" has "no usable report"
 
-# --- every branch says what the job actually did -----------------------------
-for r in v2-status v2-full v2-trigger v1 bad; do
-  check "$r: states that mode=report trimmed nothing" \
-    "$work/$r.json" has "not a saving this run made"
-done
+# --- the disclaimer is unconditional -----------------------------------------
+# mode=report trims nothing, and the summary has to say so on every outcome.
+# The line is printed in the header, above the first branch, so one fixture
+# proves it for all of them; the branches are covered by the checks above.
+check "states that mode=report trimmed nothing" \
+  "$work/v2-full.json" has "not a saving this run made"
 
 # --- the pin must still write the schema the script reads --------------------
 # Refusing numbers on an unknown schema is the safe half of the guard, and on

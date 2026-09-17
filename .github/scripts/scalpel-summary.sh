@@ -50,8 +50,6 @@ else
   status=$(jq -r '.status // ""' "$report")
   full_triggered=$(jq -r '.fullBuildTriggered // false' "$report")
   version=$(jq -r '.version // ""' "$report")
-  scalpel_version=$(jq -r '.scalpelVersion // ""' "$report")
-  counts=""
 
   if [ -n "$status" ]; then
     # The skip shape: Scalpel analysed the change and declined to project a
@@ -91,6 +89,7 @@ else
     echo "**full build** with no reduced build set. Trigger: \`${trigger//\`/}\`."
 
   elif [ "$version" != "2" ]; then
+    scalpel_version=$(jq -r '.scalpelVersion // ""' "$report")
     echo "The report was written by Scalpel \`${scalpel_version//\`/}\` with schema"
     echo "\`${version//\`/}\`, but this summary reads schema 2, so no numbers were"
     echo "attempted."
@@ -99,53 +98,57 @@ else
     echo "summary has not been taught. Check it against the schema described in"
     echo "\`.github/workflows/README.md\` and update this script to match."
 
-  elif ! counts=$(jq -r '
-      if ((.affectedModules | type) == "array")
-          and ((.skippedModules | type) == "array")
-          and (.reactorModuleCount >= .buildSetSize)
-          and ((.skippedModules | length)
-              == ((.reactorModuleCount | floor) - (.buildSetSize | floor)))
-          and ([.excludedUpstreamCount, .buildSetSize, .reactorModuleCount, .testedModulesCount]
-              | all(type == "number" and . >= 0))
-      then [(.affectedModules | length),
-            (.skippedModules | length),
-            (.excludedUpstreamCount | floor),
-            (.buildSetSize | floor),
-            (.reactorModuleCount | floor),
-            (.testedModulesCount | floor),
-            ((.reactorModuleCount | floor) - (.buildSetSize | floor))] | @tsv
-      else empty end' "$report" 2>/dev/null) || [ -z "$counts" ]; then
-    # The version is right but the counts are missing, malformed, negative, or
-    # mutually inconsistent. The shipped schema declares all four counts
-    # optional, so a producer that emits nulls is a schema-legal state this
-    # script must refuse rather than read as zeros; that is a report bug, not
-    # a moved pin.
-    echo "The report declares schema 2, which this summary reads, but its counts"
-    echo "are missing, malformed, negative, or do not add up, so no numbers"
-    echo "were attempted."
-    echo
-    echo "That is a report bug in the Scalpel version pinned in"
-    echo "\`.mvn/extensions.xml\` and is worth reporting upstream."
   else
-    IFS=$'\t' read -r affected skipped upstream build_set reactor tested not_built \
-      <<<"$counts"
+    # Counts are floored once and reused. A null or non-numeric count makes the
+    # floor bindings fail, jq exits without writing, and the empty result lands
+    # in the refusal branch below, which is where a malformed report belongs.
+    counts=$(jq -r '
+      (.excludedUpstreamCount | floor) as $upstream
+      | (.buildSetSize | floor) as $build_set
+      | (.reactorModuleCount | floor) as $reactor
+      | (.testedModulesCount | floor) as $tested
+      | if ((.affectedModules | type) == "array")
+            and ((.skippedModules | type) == "array")
+            and ([.excludedUpstreamCount, .buildSetSize,
+                  .reactorModuleCount, .testedModulesCount]
+                | all(type == "number" and . >= 0))
+            and ($reactor >= $build_set)
+            and ((.skippedModules | length) == ($reactor - $build_set))
+        then [(.affectedModules | length), (.skippedModules | length),
+              $upstream, $build_set, $reactor, $tested] | @tsv
+        else empty end' "$report" 2>/dev/null) || true
 
-    echo "| | modules |"
-    echo "| --- | ---: |"
-    echo "| \`affectedModules\`, listed in the report | $affected |"
-    echo "| \`excludedUpstreamCount\`, omitted from the report but still built | $upstream |"
-    echo "| build set, \`buildSetSize\` | $build_set |"
-    echo "| \`testedModulesCount\`, modules whose tests would run | $tested |"
-    echo "| \`skippedModules\`, the actual saving | $skipped |"
-    echo "| reactor, \`reactorModuleCount\` | $reactor |"
-    echo "| projected modules not built | $not_built |"
-    echo
-    echo "The build set is \`affectedModules + excludedUpstreamCount\`, upstream"
-    echo "prerequisites are dropped from the report and not from the build, and"
-    echo "\`skippedModules\` is the part a trimming build would not touch. The"
-    echo "decision is anchored by \`decisionId\`, \`mergeBaseId\`, \`headId\` and"
-    echo "\`configFingerprint\` in the JSON, so two reports can be compared without"
-    echo "consulting git history."
+    if [ -z "$counts" ]; then
+      # The version is right but the counts are missing, malformed, negative, or
+      # mutually inconsistent. The shipped schema declares all four counts
+      # optional, so a producer that emits nulls is a schema-legal state this
+      # script must refuse rather than read as zeros; that is a report bug, not
+      # a moved pin.
+      echo "The report declares schema 2, which this summary reads, but its counts"
+      echo "are missing, malformed, negative, or do not add up, so no numbers"
+      echo "were attempted."
+      echo
+      echo "That is a report bug in the Scalpel version pinned in"
+      echo "\`.mvn/extensions.xml\` and is worth reporting upstream."
+    else
+      IFS=$'\t' read -r affected skipped upstream build_set reactor tested <<<"$counts"
+
+      echo "| | modules |"
+      echo "| --- | ---: |"
+      echo "| \`affectedModules\`, listed in the report | $affected |"
+      echo "| \`excludedUpstreamCount\`, omitted from the report but still built | $upstream |"
+      echo "| build set, \`buildSetSize\` | $build_set |"
+      echo "| \`testedModulesCount\`, modules whose tests would run | $tested |"
+      echo "| \`skippedModules\`, the modules a trimming build would not touch | $skipped |"
+      echo "| reactor, \`reactorModuleCount\` | $reactor |"
+      echo
+      echo "The build set is \`affectedModules + excludedUpstreamCount\`, upstream"
+      echo "prerequisites are dropped from the report and not from the build, and"
+      echo "\`skippedModules\` is the saving, which is also the reactor less the"
+      echo "build set. The decision is anchored by \`decisionId\`, \`mergeBaseId\`,"
+      echo "\`headId\` and \`configFingerprint\` in the JSON, so two reports can be"
+      echo "compared without consulting git history."
+    fi
   fi
 fi
 

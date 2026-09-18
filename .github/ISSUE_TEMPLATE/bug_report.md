@@ -2,7 +2,7 @@
 name: Bug report
 about: Use this template to report a bug in this project
 title: ""
-labels: Bug
+labels: type/bug
 ---
 
 <!--

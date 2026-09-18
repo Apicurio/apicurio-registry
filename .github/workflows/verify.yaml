@@ -40,7 +40,28 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # A push supersedes the suite it interrupts — those results describe a SHA
+  # nobody is merging, so cancelling them is right. A review does not: the SHA
+  # is unchanged and the in-flight suite is still answering the correct
+  # question, so cancelling it destroys up to 40 minutes of work and re-runs
+  # it to the identical result.
+  #
+  # That distinction is not academic. `pull_request_review: submitted` fires
+  # for every reply in a review thread, not just for approvals, so ordinary
+  # review conversation was restarting the whole suite per message. Six
+  # replies on #10167 produced six runs, five of them cancelled.
+  #
+  # Worse, a cancelled run does not fail quietly. The Verification Gate runs
+  # under `if: always()`, so it still executes, sees cancelled jobs among its
+  # needs, and fails — and since branch protection takes the most recent
+  # check-run per name, that failure can outrank a green gate from a newer,
+  # successful run. #10166 sat red for exactly this reason.
+  #
+  # With this expression a review-triggered run queues instead. Runs that are
+  # superseded while still pending start no jobs and post no check-runs at
+  # all (verified on #10167: four such runs, zero jobs, zero checks), so the
+  # intermediate ones vanish silently and only the last one runs.
+  cancel-in-progress: ${{ github.event_name != 'pull_request_review' }}
 
 permissions:
   contents: read

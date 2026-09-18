@@ -26,6 +26,11 @@ https://github.com/modelcontextprotocol/registry/blob/739b70e8bc1bea203c5a35ab69
   artifact rules before writing. `McpServerCompatibilityChecker` protects existing
   install/connection choices; package version/hash upgrades are allowed. Registry
   compatibility policy is independent of the upstream discovery protocol.
+- Both rule paths report a rejected publish as **400**: the mandatory structural check and
+  `rulesService.applyRules` are each wrapped so a `RuleViolationException` never reaches
+  `HttpStatusCodeMap`, which answers 400 or 409 depending on
+  `apicurio.rest.legacy-error-codes.enabled` - a v2 compatibility switch this surface must not
+  inherit. Covered by `McpRegistryLegacyErrorCodesTest`.
 - The generic v3 OpenAPI/SDK model is unaffected by changes to this foreign API.
 
 ## Identity and metadata

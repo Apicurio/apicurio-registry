@@ -504,9 +504,16 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         TypedContent typedContent = TypedContent.create(ContentHandle.create(serialize(data)),
                 ContentTypes.APPLICATION_JSON);
         validateServerDefinition(typedContent);
-        rulesService.applyRules(name.namespace(), name.serverId(), ArtifactType.MCP_SERVER, typedContent,
-                exists ? RuleApplicationType.UPDATE : RuleApplicationType.CREATE,
-                Collections.emptyList(), Collections.emptyMap());
+        try {
+            rulesService.applyRules(name.namespace(), name.serverId(), ArtifactType.MCP_SERVER, typedContent,
+                    exists ? RuleApplicationType.UPDATE : RuleApplicationType.CREATE,
+                    Collections.emptyList(), Collections.emptyMap());
+        } catch (RuleViolationException e) {
+            // Uncaught, this reaches HttpStatusCodeMap, which answers 400 or 409 depending on
+            // apicurio.rest.legacy-error-codes.enabled - a v2 compatibility switch this API has no business
+            // inheriting. A rejected publish is a bad request on every deployment.
+            throw badRequest(e);
+        }
 
         ContentWrapperDto content = ContentWrapperDto.builder()
                 .content(typedContent.getContent())
@@ -578,11 +585,15 @@ public class McpRegistryApiResourceImpl implements ApisResource {
             factory.getArtifactTypeProvider(ArtifactType.MCP_SERVER).getContentValidator()
                     .validate(ValidityLevel.FULL, content, Collections.emptyMap());
         } catch (RuleViolationException e) {
-            String detail = e.getCauses().stream().map(RuleViolation::getDescription).sorted()
-                    .collect(Collectors.joining("; "));
-            throw new BadRequestException(
-                    detail.isEmpty() ? e.getMessage() : e.getMessage() + ": " + detail);
+            throw badRequest(e);
         }
+    }
+
+    /** Both rule paths - the mandatory structural check and configured rules - report the same way. */
+    private BadRequestException badRequest(RuleViolationException e) {
+        String detail = e.getCauses().stream().map(RuleViolation::getDescription).sorted()
+                .collect(Collectors.joining("; "));
+        return new BadRequestException(detail.isEmpty() ? e.getMessage() : e.getMessage() + ": " + detail);
     }
 
     // === Loading and conversion ===

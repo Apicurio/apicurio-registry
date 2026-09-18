@@ -52,7 +52,7 @@ class McpRegistryGovernanceTest extends AbstractResourceTestBase {
         given().contentType(CT_JSON)
                 .body(Map.of("name", ns + "/server", "version", "2.0.0", "description", "Updated"))
                 .post(BASE + "/publish").then().statusCode(400)
-                .body("error", equalTo("Blocked by configured rule"));
+                .body("error", equalTo("Blocked by configured rule: Incompatible test contract"));
         given().get(BASE + "/servers/" + ns + "/server/versions/2.0.0").then().statusCode(404);
         given().get(BASE + "/servers/" + ns + "/server/versions").then().statusCode(200)
                 .body("metadata.count", equalTo(1));
@@ -67,7 +67,7 @@ class McpRegistryGovernanceTest extends AbstractResourceTestBase {
                         eq(RuleApplicationType.CREATE), any(), any());
         given().contentType(CT_JSON).body(Map.of("name", ns + "/server", "version", "1.0.0",
                 "description", "Rejected")).post(BASE + "/publish").then().statusCode(400)
-                .body("error", equalTo("Create blocked"));
+                .body("error", equalTo("Create blocked: Rejected test definition"));
         given().get("/registry/v3/groups/" + ns + "/artifacts/server").then().statusCode(404);
     }
 

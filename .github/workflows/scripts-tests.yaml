@@ -1,6 +1,6 @@
 name: Scripts Tests
 
-# Unit tests for the Node scripts under .github/scripts.
+# Unit tests for the scripts under .github/scripts.
 #
 # These deliberately do NOT live in pr-validation.yml, even though it already
 # had a test step: that workflow runs on pull_request_target and checks out the
@@ -40,10 +40,27 @@ jobs:
         with:
           node-version: 24.20.0
 
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.14.7'
+
+      # classify.py's unit tests need only these two. sentence-transformers is
+      # deliberately not installed: classify.py imports it lazily, so the
+      # decision logic is testable without a multi-hundred-MB torch download on
+      # every PR that touches a script.
+      - name: Install Python dependencies
+        run: python -m pip install pyyaml numpy
+
       # Listed individually rather than as a directory: `node --test <dir>`
       # resolves the argument as a module on Node 24 and fails.
-      - name: Run unit tests
+      - name: Run Node unit tests
         run: |
           node --test .github/scripts/pr-validation.test.js \
                       .github/scripts/pr-lifecycle.test.js \
                       .github/scripts/issue-assignment.test.js
+
+      # test_classify.py (no _unit suffix) is deliberately not run here — it is
+      # an accuracy harness that needs the model, the network and a `gh` token.
+      - name: Run Python unit tests
+        run: python .github/scripts/label-classification/test_classify_unit.py

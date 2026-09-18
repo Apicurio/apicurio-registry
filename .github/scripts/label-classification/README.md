@@ -1,6 +1,6 @@
 # Label Classification
 
-Automatically assigns `area/*` labels and issue types to GitHub issues using sentence embeddings. Runs in GitHub Actions on every issue open/edit — no inference API calls, no API keys, no GPU required. The embedding model is downloaded from Hugging Face Hub on first run and cached between workflow runs.
+Automatically assigns `area/*` labels to GitHub issues and pull requests, and issue types to issues, using sentence embeddings. Runs in GitHub Actions on every issue open/edit and every PR open — no inference API calls, no API keys, no GPU required. The embedding model is downloaded from Hugging Face Hub on first run and cached between workflow runs.
 
 ## Usage
 
@@ -10,21 +10,94 @@ python classify.py --repo Apicurio/apicurio-registry --issue 7891 --dry-run
 
 # Apply labels and issue type
 python classify.py --repo Apicurio/apicurio-registry --issue 7891
+
+# Classify a pull request (area labels only)
+python classify.py --repo Apicurio/apicurio-registry --pr 9004
+
+# Write the raw scores to a file for another tool to consume
+python classify.py --repo Apicurio/apicurio-registry --pr 9004 --output-json scores.json
 ```
+
+Exactly one of `--issue` or `--pr` is required.
 
 Requires: `pip install pyyaml sentence-transformers`
 
-In GitHub Actions, the workflow (`.github/workflows/classify-issues.yml`) runs this automatically.
+In GitHub Actions, the workflow (`.github/workflows/classify.yml`) runs this automatically.
+
+## Issues vs Pull Requests
+
+Both kinds share the same `area_labels` descriptions and thresholds. Two things differ:
+
+- **PRs contribute the directories they touch** to the embedded text, inserted *between* the title and the body (first 50 directories). Paths carry area signal that PR prose routinely omits: "fix NPE in the resolver" says nothing, `app/src/main/java/io/apicurio/registry/storage/impl/sql/` says a great deal.
+- **PRs get no issue type.** GitHub's issue type field does not exist on pull requests, so that whole stage — including embedding the type descriptions — is skipped.
+
+#### Why directories, and why before the body
+
+Both details are load-bearing, and neither is obvious. `all-MiniLM-L6-v2` truncates its input at **256 word pieces** — a typical PR description in this repository blows past that on its own (PR #10086: 1407 tokens). Paths appended *after* the body are therefore never seen by the model at all.
+
+Measured over 40 recent merged PRs, scoring whether the area label implied by the PR's conventional-commit scope was among those assigned:
+
+| Text layout | Expected label found | Avg labels/PR | PRs with no labels |
+|---|---|---|---|
+| title + body | 65% | 2.75 | 3/40 |
+| title + body + files | 68% | 2.80 | 3/40 |
+| title + files + body | 74% | 3.17 | 0/40 |
+| **title + directories + body** | **76%** | **2.92** | **0/40** |
+| title + directories | 50% | 2.60 | 2/40 |
+
+Directories beat raw file paths because a PR touching 30 files in one package spends 30 slots saying the same thing; collapsing them leaves room for the other packages it touched. And prose still carries real signal — paths alone drop to 50%.
+
+#### Don't "fix" this by raising `max_seq_length`
+
+256 word pieces really is short: across the same 40 PRs the median title+body is **777 tokens**, p90 is 1411, and 37 of 40 exceed 256. The obvious reaction is to raise the limit — `max_seq_length` is a config value in the model's `sentence_bert_config.json`, not an architectural ceiling, and the underlying transformer has 512 position embeddings. That was measured too, and it makes things **worse**:
+
+| Layout | `max_seq_length` | Expected label found | Avg labels/PR |
+|---|---|---|---|
+| title + body | 256 | 65% | 2.75 |
+| **title + directories + body** | **256** | **76%** | **2.92** |
+| title + body | 512 | 71% | 3.33 |
+| title + directories + body | 512 | 62% | 3.35 |
+
+The reason is **mean pooling**. This model produces its 384-dimension vector by averaging the per-token embeddings, so every token dilutes every other one. The directory block is a small, concentrated, high-signal region; doubling the window halves its share of the average and buries it under PR-template boilerplate. Longer context is not free accuracy here — for a mean-pooled sentence embedding, it is actively a cost unless the added text is as informative as the text already in the window. (Running at 512 is also off-distribution: the model was fine-tuned at 256. Both effects push the same way.)
+
+The right lever is therefore *what* goes in the window, not how big it is. If PR descriptions ever need to be read more deeply than this, that is a case for a different model — one with a longer trained context and CLS-style rather than mean pooling — not for turning this knob.
+
+Treat these numbers as directional. The conventional-commit scope is a proxy for human judgement, not ground truth (`fix(perf)` → `area/QE` is a judgement call), and the measure is recall of a single expected label — it says nothing about the precision of the *other* labels assigned. Re-run `variants` style comparisons against real human-assigned labels once enough PRs have them.
+
+PRs are classified when they open and when a draft is marked ready for review, matching the two moments the lifecycle orchestrator treats as a PR entering the lifecycle (`initNewPr` in `../pr-lifecycle.js`). Drafts are skipped.
+
+### `--output-json`
+
+Writes the scores and decisions as JSON so another tool can consume them rather than scraping the log:
+
+```json
+{
+  "repo": "Apicurio/apicurio-registry",
+  "number": 9004,
+  "kind": "pr",
+  "dry_run": false,
+  "area_label_scores": { "area/CI": 0.5142, "area/ui": 0.0871 },
+  "area_labels_selected": ["area/CI"],
+  "area_labels_capped": ["area/QE"],
+  "area_labels_suppressed": [],
+  "area_labels_applied": ["area/CI"],
+  "issue_type_scores": {},
+  "issue_type_selected": null,
+  "changed_files": [".github/workflows/classify.yml"]
+}
+```
+
+`area_labels_selected` is what the classifier chose; `area_labels_capped` is labels that cleared their threshold but lost to `max_labels`; `area_labels_suppressed` is labels skipped because someone removed them before; `area_labels_applied` excludes labels the target already carried. The file is written under `--dry-run` too, with `dry_run: true` recorded — so a caller can see what would happen without it happening.
 
 ## How It Works
 
-The script compares the **meaning** of an issue's text against the **meaning** of each label's description, and assigns labels whose descriptions are semantically closest.
+The script compares the **meaning** of an issue's or PR's text against the **meaning** of each label's description, and assigns labels whose descriptions are semantically closest.
 
 ### Sentence Embeddings
 
 The key technique is **sentence embeddings** — converting text into a vector (a list of 384 numbers) that captures its meaning. Texts with similar meaning produce vectors that point in similar directions.
 
-1. The issue title and body are concatenated into a single string. The **entire text** is embedded as one unit — not individual words. The model reads all words in context (e.g. it knows "Kubernetes operator" is different from "mathematical operator").
+1. The title and body (plus the directories touched, for a PR) are concatenated into a single string. The **entire text** is embedded as one unit — not individual words. The model reads all words in context (e.g. it knows "Kubernetes operator" is different from "mathematical operator").
 
 2. Each label's description from `label-descriptions.yml` is embedded the same way.
 
@@ -45,6 +118,46 @@ area/auth:          0.0860       not assigned
 ```
 
 The model understood that "Operator" + "HA" + "deployment" is semantically close to the `area/operator` description, even though the issue doesn't use the exact keywords.
+
+### Reading the `[capped]` marker
+
+A label can clear its threshold and still not be assigned, because `max_labels` (4) cut it. The score listing marks those explicitly, so you are never left wondering why a label that looks like a match was skipped:
+
+```
+  >>> area/CI: 0.4368 (threshold: 0.3)
+      area/maven-plugin: 0.3936 (threshold: 0.4)
+  >>> area/sdk: 0.3481 (threshold: 0.2)
+      area/QE: 0.3312 (threshold: 0.2)  [capped: over threshold, but max_labels=4]
+
+5 label(s) cleared their threshold but lost to max_labels=4: area/CLI, area/QE, ...
+```
+
+`area/maven-plugin` scored higher than `area/QE` but is *not* capped — it never cleared its own 0.40 threshold. Those are two different failure modes with two different fixes: raise `max_labels`, or adjust the threshold.
+
+A lot of capped labels across many targets means thresholds are collectively too loose, not that `max_labels` is too small.
+
+### Corrections stick
+
+Classification is not a one-shot event — issues reclassify on every edit, PRs on every draft/ready cycle. So **if you remove a label the classifier got wrong, it will not come back.**
+
+Before applying anything, the script reads the target's event timeline and drops any label that has been removed before. No extra state is involved; GitHub already records the history.
+
+```
+Not re-adding 1 label(s) removed earlier: area/storage/sql
+```
+
+Two consequences worth knowing:
+
+- The classifier is **add-only**. It never removes a label you added by hand, and after your removal it never re-adds one either. Fixing its output is a one-time action.
+- If you remove a label and later decide it did belong, add it back manually — the classifier will not do it for you.
+
+This is what makes the label history usable as training data (#10160). A classifier that reinstates its own mistakes produces a label set that looks like human agreement but is really just the model agreeing with itself.
+
+### A note on where the accuracy ceiling actually is
+
+Tuning descriptions and thresholds is the lever this design gives you, and it works — but it is not the biggest lever available. Measured against 854 human-labeled issues, fitting a classifier on those existing labels beats cosine-similarity-to-description by **17 points top-1** using the same model and the same embeddings, while swapping in a larger embedding model gains ~1 point at best.
+
+See **#10160** for the numbers, the trade-offs (rare labels, label noise, explainability) and the suggested hybrid. Until that is picked up, the tuning workflow below is the way to improve accuracy.
 
 ### The Embedding Model
 
@@ -74,6 +187,14 @@ Descriptions don't need to be grammatical sentences — keyword lists work well.
 4. Add terms to the label's description in `label-descriptions.yml`
 5. Optionally adjust the label's `threshold` (lower = catch more, higher = fewer but more precise)
 6. Re-run the test to verify improvement
+
+### Tuning for Pull Requests
+
+`test_classify.py` measures accuracy against issues only, and cannot be pointed at PRs: the tuning loop needs human-assigned ground truth, and no PR in this repository carries an `area/*` label yet. PRs therefore start on the thresholds tuned for issues.
+
+That is a deliberate starting point, not a verified one. On the 40-PR sample above, the shipped layout assigns **2.92 labels per PR** and puts 10 of 40 at the 4-label cap — noticeably hotter than issue labelling. Some of that is genuine (PRs really do span more areas than issues), some is not: a CI-only PR picking up `area/storage/sql` from workflow files that merely *name* storage shards is a false positive the thresholds should have caught.
+
+Once enough PRs have been labelled — and corrected — by hand to form a ground truth, re-tune, and add PR-specific threshold overrides to `label-descriptions.yml` if the two distributions turn out to need different numbers. Lowering `max_labels` for PRs is the other obvious lever.
 
 ## Measuring Accuracy
 
@@ -151,6 +272,7 @@ Key observations:
 | File | Purpose |
 |------|---------|
 | `classify.py` | Main classification script |
-| `test_classify.py` | Accuracy testing (recall + precision) |
+| `test_classify.py` | Accuracy testing (recall + precision) — needs the model, network and `gh` |
+| `test_classify_unit.py` | Offline unit tests for the decision logic — runs in CI on every scripts change |
 | `label-descriptions.yml` | Label/type descriptions and threshold configuration |
 | `README.md` | This file |

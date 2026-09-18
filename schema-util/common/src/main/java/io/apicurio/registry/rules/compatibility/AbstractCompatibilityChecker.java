@@ -109,11 +109,9 @@ public abstract class AbstractCompatibilityChecker<D extends CompatibilityDiffer
     protected abstract Set<D> isBackwardsCompatibleWith(String existing, String proposed,
             Map<String, TypedContent> resolvedReferences);
 
-    private Set<D> unionOf(Set<D>... from) {
-        Set<D> rval = new HashSet<>();
-        for (Set<D> f : from) {
-            rval.addAll(f);
-        }
+    private Set<D> unionOf(Set<D> first, Set<D> second) {
+        Set<D> rval = new HashSet<>(first);
+        rval.addAll(second);
         return rval;
     }
 

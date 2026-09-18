@@ -2,6 +2,7 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./BranchOverviewTabContent.css";
 import "@app/styles/empty.css";
 import { IfAuth, IfFeature } from "@app/components";
+import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
 import {
     Alert,
     Button,
@@ -62,22 +63,35 @@ export const BranchOverviewTabContent: FunctionComponent<BranchOverviewTabConten
     const groups: GroupsService = useGroupsService();
     const logger: LoggerService = useLoggerService();
 
-    const refresh = (): void => {
-        setLoading(true);
+    useEffect(() => {
+        // Runtime guard: in BranchPage, artifact and branch are cast from state that may
+        // initially be undefined before loaders resolve. Ensure both IDs are present.
+        if (!props.artifact?.artifactId || !props.branch?.branchId) {
+            return;
+        }
 
-        groups.getArtifactBranchVersions(props.artifact.groupId!, props.artifact.artifactId!, props.branch.branchId!, paging).then(sr => {
-            setResults(sr);
-            setLoading(false);
-        }).catch(error => {
-            logger.error(error);
-            setLoading(false);
-            setError(true);
-        });
-    };
+        const guard: LoaderGuard = newLoaderGuard();
+        setLoading(true);
+        setError(false);
+
+        const groupId: string = props.artifact.groupId || "default";
+        groups.getArtifactBranchVersions(groupId, props.artifact.artifactId, props.branch.branchId, paging)
+            .then(guard.wrap((sr: VersionSearchResults) => {
+                setResults(sr);
+                setLoading(false);
+            }))
+            .catch(guard.wrap((error: unknown) => {
+                logger.error(error);
+                setLoading(false);
+                setError(true);
+            }));
+
+        return () => guard.cancel();
+    }, [props.artifact, props.branch?.branchId, paging]);
 
     useEffect(() => {
-        refresh();
-    }, [props.artifact, paging]);
+        setPaging(prev => prev.page === 1 ? prev : { ...prev, page: 1 });
+    }, [props.branch?.branchId]);
 
     const description = (): string => {
         return props.branch.description || "No description";

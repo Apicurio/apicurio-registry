@@ -32,7 +32,6 @@ public class PromptTemplateCompatibilityChecker
     private static final String CONTEXT_DOCUMENT = "/document";
     private static final String MSG_VARIABLE_PREFIX = "Variable '";
 
-    private static final ObjectMapper jsonMapper = new ObjectMapper();
     private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
     @Override
@@ -56,10 +55,6 @@ public class PromptTemplateCompatibilityChecker
     }
 
     private JsonNode parseContent(String content) throws Exception {
-        String trimmed = content.trim();
-        if (trimmed.startsWith("{")) {
-            return jsonMapper.readTree(content);
-        }
         return yamlMapper.readTree(content);
     }
 

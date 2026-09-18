@@ -109,7 +109,7 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - [ ] Security tests cover: authorized access, unauthorized access (403), edge cases (null tokens, expired sessions).
 - [ ] Tests for CDI annotations (`@Retry`, `@CircuitBreaker`, `@Timeout`) use `@QuarkusTest` with injected beans; plain JUnit with `new` bypasses interceptors.
 - [ ] If CI fails on a test unrelated to your change, report it as a separate issue with the flaky test class, error message, and CI run link.
-- [ ] When the diff touches `**/src/test/**`, run `/apicurio-test-quality` (scores test code against 30 documented failure patterns P1-P30; score below 7.0 blocks submission).
+- [ ] Run `/apicurio-test-quality` when the diff touches `**/src/test/**`, and also when it changes a concurrency primitive with no test file in it at all. The second case is what P34 detects, and gating on the test path alone makes that pattern unreachable. The skill scores against `claudedocs/test-fix-pattern-catalog.md`; anything below 7.0 has to be fixed before submission.
 
 ### Submission
 - [ ] `./mvnw test-compile -pl <module> -am -DskipTests` compiles cleanly (use `test-compile`, not `compile`, when touching test files).

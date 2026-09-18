@@ -1,6 +1,7 @@
 package io.apicurio.registry.cli.artifact;
 
 import io.apicurio.registry.cli.Acr;
+import io.apicurio.registry.cli.branch.BranchCommand;
 import io.apicurio.registry.cli.common.AbstractCommand;
 import io.apicurio.registry.cli.common.ArtifactOrderMixin;
 import io.apicurio.registry.cli.common.ColumnsMixin;
@@ -45,6 +46,7 @@ import static io.apicurio.registry.cli.utils.Conversions.convertToString;
                 ArtifactGetCommand.class,
                 ArtifactRuleCommand.class,
                 ArtifactUpdateCommand.class,
+                BranchCommand.class,
                 VersionCommand.class
         }
 )

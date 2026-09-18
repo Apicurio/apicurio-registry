@@ -6,6 +6,7 @@ import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.restassured.RestAssured;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.Test;
 
@@ -20,9 +21,9 @@ import static org.hamcrest.CoreMatchers.nullValue;
  * Owner-only authorization tests for the MCP Registry API.
  *
  * Publishing takes the server name from the request body rather than the path, so it cannot rely on
- * {@code AuthorizedStyle.GroupAndArtifact} and has to enforce ownership itself. Delete and the status
- * updates do rely on it, which works only because the namespace and server id are method parameters 0 and
- * 1; the tests for those endpoints are what catch a reorder.
+ * {@code AuthorizedStyle.McpServerName} and has to enforce ownership itself. Delete and the status updates
+ * do rely on it: {@code isOwner()} parses parameter 0 with {@code McpServerName.parse} and checks the owner
+ * of the resulting group/artifact, so the tests for those endpoints are what catch a signature change.
  */
 @QuarkusTest
 @TestProfile(McpRegistryAuthTestProfile.class)
@@ -59,6 +60,42 @@ public class McpRegistryAuthTest extends AbstractResourceTestBase {
                 .post(BASE + "/publish")
                 .then()
                 .statusCode(200);
+    }
+
+    @Test
+    public void testMalformedServerNameIsRejectedWithoutReachingTheEndpoint() {
+        // isOwner() parses parameter 0 through McpServerName.parse, so a malformed name is now rejected
+        // inside the authorization interceptor. Only an auth-enabled profile exercises that path, and an
+        // exception raised there is easy to regress into a 500, so pin the status and the body shape.
+        given().auth().preemptive().basic("bob1", "bob1")
+                .when()
+                .get(BASE + "/servers/notaname")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("Invalid MCP server name: expected a reverse-DNS namespace and a"
+                        + " server id separated by a single slash, for example 'io.github.user/weather'"))
+                .body("name", nullValue());
+
+        // Two slashes: decoded by the container, rejected by SERVER_NAME_PATTERN rather than by the router.
+        given().auth().preemptive().basic("bob1", "bob1")
+                .when()
+                .urlEncodingEnabled(false)
+                .get(BASE + "/servers/io.github.a%2Fb%2Fc/versions/1.0.0")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("Invalid MCP server name: expected a reverse-DNS namespace and a"
+                        + " server id separated by a single slash, for example 'io.github.user/weather'"));
+
+        // Same on a write endpoint, where the interceptor runs at Write level. RestAssured.given() rather
+        // than the shared helper: the helper rewrites a readable 'namespace/serverId' pair into the %2F
+        // form, and on a deliberately malformed path it would encode 'notaname/versions' as the name.
+        RestAssured.given().auth().preemptive().basic("bob1", "bob1")
+                .when()
+                .delete(BASE + "/servers/notaname/versions/1.0.0")
+                .then()
+                .statusCode(400)
+                .body("error", equalTo("Invalid MCP server name: expected a reverse-DNS namespace and a"
+                        + " server id separated by a single slash, for example 'io.github.user/weather'"));
     }
 
     @Test

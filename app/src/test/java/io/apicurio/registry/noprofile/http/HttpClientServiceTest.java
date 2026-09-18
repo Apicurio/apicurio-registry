@@ -30,6 +30,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -38,6 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -58,6 +62,9 @@ class HttpClientServiceTest {
     private static final ConcurrentHashMap<String, AtomicInteger> requestCounts = new ConcurrentHashMap<>();
     private static volatile CountDownLatch delayedInterruptLatch;
 
+    /** Headers received by the stub server, keyed by request path. Header names are lower-cased. */
+    private static final ConcurrentHashMap<String, Map<String, String>> capturedHeaders = new ConcurrentHashMap<>();
+
     /** CDI-managed bean — carries {@code @Retry} + {@code @Timeout} interceptors. */
     @Inject
     HttpClientService httpClientService;
@@ -76,6 +83,17 @@ class HttpClientServiceTest {
         vertx.createHttpServer().requestHandler(req -> {
             String path = req.path();
             int attempt = requestCounts.computeIfAbsent(path, p -> new AtomicInteger()).incrementAndGet();
+
+            // Header-capture endpoints: record what actually arrived on the wire, then reply 200.
+            if (path.startsWith("/headers/")) {
+                Map<String, String> received = new HashMap<>();
+                req.headers().forEach(entry -> received.put(entry.getKey().toLowerCase(Locale.ROOT), entry.getValue()));
+                capturedHeaders.put(path, received);
+                req.response().setStatusCode(200)
+                        .putHeader("content-type", "application/json")
+                        .end("{\"result\":\"ok\"}");
+                return;
+            }
 
             switch (path) {
                 case "/ok200":
@@ -185,32 +203,32 @@ class HttpClientServiceTest {
 
     @Test
     void testHttp200DoesNotThrow() {
-        httpClientService.post(baseUrl + "/ok200", "{}", Object.class);
+        httpClientService.post(baseUrl + "/ok200", null, "{}", Object.class);
     }
 
     @Test
     void testHttp201DoesNotThrow() {
         // 201 Created is a valid success code — must not trigger retries or throw.
-        httpClientService.post(baseUrl + "/created201", "{}", Object.class);
+        httpClientService.post(baseUrl + "/created201", null, "{}", Object.class);
     }
 
     @Test
     void testHttp202DoesNotThrow() {
         // 202 Accepted is the standard CloudEvents webhook acknowledgment.
-        httpClientService.post(baseUrl + "/accepted202", "{}", Object.class);
+        httpClientService.post(baseUrl + "/accepted202", null, "{}", Object.class);
     }
 
     @Test
     void testHttp204WithVoidClassReturnsNull() {
         // 204 No Content with Void.class must return null without deserialization attempt.
-        Object result = httpClientService.post(baseUrl + "/noContent204", "{}", Void.class);
+        Object result = httpClientService.post(baseUrl + "/noContent204", null, "{}", Void.class);
         assertNull(result);
     }
 
     @Test
     void testVoidClassWithBodyReturnsNull() {
         // A response with a body must return null without deserializing when Void.class is expected.
-        Object result = httpClientService.post(baseUrl + "/ok200", "{}", Void.class);
+        Object result = httpClientService.post(baseUrl + "/ok200", null, "{}", Void.class);
         assertNull(result);
     }
 
@@ -221,7 +239,7 @@ class HttpClientServiceTest {
         // Empty body when non-Void is expected throws HttpClientContentException and must abort on attempt 1.
         int countBefore = requestCounts.getOrDefault("/noContent204", new AtomicInteger()).get();
         assertThrows(HttpClientContentException.class, () ->
-                httpClientService.post(baseUrl + "/noContent204", "{}", Object.class));
+                httpClientService.post(baseUrl + "/noContent204", null, "{}", Object.class));
         int countAfter = requestCounts.get("/noContent204").get();
         assertEquals(countBefore + 1, countAfter, "Content error must abort immediately without retries");
     }
@@ -230,7 +248,7 @@ class HttpClientServiceTest {
     void testMalformedJsonAbortsWithoutRetries() {
         // Malformed JSON throws HttpClientContentException and must abort on attempt 1 without retries.
         assertThrows(HttpClientContentException.class, () ->
-                httpClientService.post(baseUrl + "/malformedJson", "{}", Object.class));
+                httpClientService.post(baseUrl + "/malformedJson", null, "{}", Object.class));
         assertEquals(1, requestCounts.get("/malformedJson").get(),
                 "Malformed JSON response must abort immediately without retries");
     }
@@ -239,7 +257,7 @@ class HttpClientServiceTest {
     void testHttp400BadRequestAbortsWithoutRetries() {
         // 400 Bad Request throws HttpClientErrorException and must abort on attempt 1 without retries.
         assertThrows(HttpClientErrorException.class, () ->
-                httpClientService.post(baseUrl + "/clientError400", "{}", Object.class));
+                httpClientService.post(baseUrl + "/clientError400", null, "{}", Object.class));
         assertEquals(1, requestCounts.get("/clientError400").get(),
                 "400 Bad Request must abort immediately without retries");
     }
@@ -248,7 +266,7 @@ class HttpClientServiceTest {
     void testHttp404NotFoundAbortsWithoutRetries() {
         // 404 Not Found throws HttpClientErrorException and must abort on attempt 1 without retries.
         assertThrows(HttpClientErrorException.class, () ->
-                httpClientService.post(baseUrl + "/clientError404", "{}", Object.class));
+                httpClientService.post(baseUrl + "/clientError404", null, "{}", Object.class));
         assertEquals(1, requestCounts.get("/clientError404").get(),
                 "404 Not Found must abort immediately without retries");
     }
@@ -256,7 +274,7 @@ class HttpClientServiceTest {
     @Test
     void testServerError5xxIsRetried() {
         // Transient 5xx server errors must be retried with backoff until success.
-        httpClientService.post(baseUrl + "/retryThenSuccess", "{}", Object.class);
+        httpClientService.post(baseUrl + "/retryThenSuccess", null, "{}", Object.class);
         assertEquals(3, requestCounts.get("/retryThenSuccess").get(),
                 "Transient 5xx error should be retried until success");
     }
@@ -270,7 +288,7 @@ class HttpClientServiceTest {
 
         Thread worker = new Thread(() -> {
             try {
-                httpClientService.post(baseUrl + "/delayedInterrupt", "{}", Object.class);
+                httpClientService.post(baseUrl + "/delayedInterrupt", null, "{}", Object.class);
             } catch (Throwable t) {
                 thrown.set(t);
             }
@@ -293,13 +311,124 @@ class HttpClientServiceTest {
                 "Interrupted call must abort immediately on attempt 1 without retrying");
     }
 
+    // --- Configured header tests (injected bean, FT interceptors active) ---
+
+    @Test
+    void testConfiguredHeadersAreSent() {
+        // Headers configured on a webhook provider must arrive on the outbound request, otherwise
+        // the endpoint cannot authenticate the caller.
+        String path = "/headers/custom";
+        httpClientService.post(baseUrl + path,
+                Map.of("X-Api-Key", "test-secret", "Authorization", "Bearer test-token"),
+                "{}", Object.class);
+
+        Map<String, String> received = capturedHeaders.get(path);
+        assertEquals("test-secret", received.get("x-api-key"));
+        assertEquals("Bearer test-token", received.get("authorization"));
+        // The default Content-Type must still be present alongside the configured headers.
+        assertEquals("application/json", received.get("content-type"));
+    }
+
+    @Test
+    void testConfiguredContentTypeDoesNotOverrideJsonBodyLabel() {
+        // The body is always serialized as JSON, and Vert.x only defaults Content-Type when it is
+        // absent, so a Content-Type supplied by configuration must not survive and mislabel it.
+        String path = "/headers/contentType";
+        httpClientService.post(baseUrl + path,
+                Map.of("Content-Type", "application/xml", "X-Api-Key", "test-secret"),
+                "{}", Object.class);
+
+        Map<String, String> received = capturedHeaders.get(path);
+        assertEquals("application/json", received.get("content-type"),
+                "Configured Content-Type must not override the JSON body label");
+        // The other configured headers must still be applied.
+        assertEquals("test-secret", received.get("x-api-key"));
+    }
+
+    @Test
+    void testNullHeadersMapSendsNoExtraHeaders() {
+        // A provider with no headers configured deserializes to a null map, which must not NPE.
+        String path = "/headers/nullMap";
+        httpClientService.post(baseUrl + path, null, "{}", Object.class);
+
+        Map<String, String> received = capturedHeaders.get(path);
+        assertEquals("application/json", received.get("content-type"));
+        assertFalse(received.containsKey("x-api-key"));
+    }
+
+    @Test
+    void testEmptyHeadersMapSendsNoExtraHeaders() {
+        String path = "/headers/emptyMap";
+        httpClientService.post(baseUrl + path, Map.of(), "{}", Object.class);
+
+        Map<String, String> received = capturedHeaders.get(path);
+        assertEquals("application/json", received.get("content-type"));
+        assertFalse(received.containsKey("x-api-key"));
+    }
+
+    @Test
+    void testNullHeaderValueIsSkipped() {
+        // "headers": { "X-Api-Key": null } is valid JSON in the config file, so a null value must
+        // be skipped rather than propagated into the request.
+        String path = "/headers/nullValue";
+        Map<String, String> headers = new HashMap<>();
+        headers.put("X-Api-Key", null);
+        headers.put("X-Other", "present");
+
+        httpClientService.post(baseUrl + path, headers, "{}", Object.class);
+
+        Map<String, String> received = capturedHeaders.get(path);
+        assertFalse(received.containsKey("x-api-key"), "Header with a null value must not be sent");
+        assertEquals("present", received.get("x-other"));
+    }
+
+    @Test
+    void testLowercaseConfiguredContentTypeDoesNotOverrideJsonBodyLabel() {
+        // Header names are case-insensitive, so the ordering guarantee must hold for any spelling
+        // of Content-Type, not just the canonical one.
+        String path = "/headers/lowercaseContentType";
+        httpClientService.post(baseUrl + path,
+                Map.of("content-type", "application/xml"), "{}", Object.class);
+
+        Map<String, String> received = capturedHeaders.get(path);
+        assertEquals("application/json", received.get("content-type"));
+    }
+
+    @Test
+    void testUppercaseConfiguredContentTypeDoesNotOverrideJsonBodyLabel() {
+        String path = "/headers/uppercaseContentType";
+        httpClientService.post(baseUrl + path,
+                Map.of("CONTENT-TYPE", "text/plain"), "{}", Object.class);
+
+        assertEquals("application/json", capturedHeaders.get(path).get("content-type"));
+    }
+
+    @Test
+    void testInvalidHeaderValueIsSkippedWithoutFailingTheRequest() {
+        // A CRLF in a configured value is rejected by the HTTP layer. It must not abort the call:
+        // the exception message quotes the offending value, which for these headers is a credential.
+        String path = "/headers/invalidValue";
+        Map<String, String> headers = new HashMap<>();
+        headers.put("X-Evil", "secret\r\nX-Injected: yes");
+        headers.put("X-Api-Key", "valid-secret");
+
+        httpClientService.post(baseUrl + path, headers, "{}", Object.class);
+
+        Map<String, String> received = capturedHeaders.get(path);
+        assertFalse(received.containsKey("x-evil"), "Rejected header must not be sent");
+        assertFalse(received.containsKey("x-injected"), "Header injection must not succeed");
+        // Valid headers alongside it must still be applied.
+        assertEquals("valid-secret", received.get("x-api-key"));
+        assertEquals("application/json", received.get("content-type"));
+    }
+
     // --- Status-branching and interrupt tests (non-intercepted rawService) ---
 
     @Test
     void testNon2xxThrowsHttpClientException() {
         // Uses rawService to skip the 8-retry/exponential-backoff chain — resolves in one attempt.
         assertThrows(HttpClientException.class, () ->
-                rawService.post(baseUrl + "/serverError500", "{}", Object.class));
+                rawService.post(baseUrl + "/serverError500", null, "{}", Object.class));
     }
 
     @Test
@@ -310,7 +439,7 @@ class HttpClientServiceTest {
         Thread.currentThread().interrupt();
         try {
             HttpClientException ex = assertThrows(HttpClientException.class, () ->
-                    rawService.post(baseUrl + "/delayed", "{}", Object.class));
+                    rawService.post(baseUrl + "/delayed", null, "{}", Object.class));
             // The exception must be the interrupt-specific subtype so @Retry abortOn works.
             assertInstanceOf(HttpClientInterruptedException.class, ex,
                     "Expected HttpClientInterruptedException for interrupt path");

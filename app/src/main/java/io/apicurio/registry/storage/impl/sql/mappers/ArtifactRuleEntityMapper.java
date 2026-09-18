@@ -28,6 +28,7 @@ public class ArtifactRuleEntityMapper implements RowMapper<ArtifactRuleEntity> {
         entity.artifactId = rs.getString("artifactId");
         entity.type = RuleType.fromValue(rs.getString("type"));
         entity.configuration = rs.getString("configuration");
+        entity.onFailure = rs.getString("onFailure");
         return entity;
     }
 

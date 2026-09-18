@@ -93,7 +93,7 @@ public class SqlRuleRepository {
             handles.withHandle(handle -> {
                 handle.createUpdate(sqlStatements.insertArtifactRule()).bind(0, normalizeGroupId(groupId))
                         .bind(1, artifactId).bind(2, rule.name()).bind(3, config.getConfiguration())
-                        .execute();
+                        .bind(4, config.getOnFailure().name()).execute();
 
                 outboxEvent.fire(
                         SqlOutboxEvent.of(ArtifactRuleConfigured.of(groupId, artifactId, rule, config)));
@@ -142,8 +142,8 @@ public class SqlRuleRepository {
                 rule.name(), config.getConfiguration());
         handles.withHandle(handle -> {
             int rowCount = handle.createUpdate(sqlStatements.updateArtifactRule())
-                    .bind(0, config.getConfiguration()).bind(1, normalizeGroupId(groupId)).bind(2, artifactId)
-                    .bind(3, rule.name()).execute();
+                    .bind(0, config.getConfiguration()).bind(1, config.getOnFailure().name())
+                    .bind(2, normalizeGroupId(groupId)).bind(3, artifactId).bind(4, rule.name()).execute();
             if (rowCount == 0) {
                 if (!artifactRepository.isArtifactExistsRaw(handle, groupId, artifactId)) {
                     throw new ArtifactNotFoundException(groupId, artifactId);
@@ -243,7 +243,8 @@ public class SqlRuleRepository {
         try {
             handles.withHandle(handle -> {
                 handle.createUpdate(sqlStatements.insertGroupRule()).bind(0, normalizeGroupId(groupId))
-                        .bind(1, rule.name()).bind(2, config.getConfiguration()).execute();
+                        .bind(1, rule.name()).bind(2, config.getConfiguration())
+                        .bind(3, config.getOnFailure().name()).execute();
 
                 outboxEvent.fire(SqlOutboxEvent.of(GroupRuleConfigured.of(groupId, rule, config)));
 
@@ -288,8 +289,8 @@ public class SqlRuleRepository {
                 config.getConfiguration());
         handles.withHandle(handle -> {
             int rowCount = handle.createUpdate(sqlStatements.updateGroupRule())
-                    .bind(0, config.getConfiguration()).bind(1, normalizeGroupId(groupId))
-                    .bind(2, rule.name()).execute();
+                    .bind(0, config.getConfiguration()).bind(1, config.getOnFailure().name())
+                    .bind(2, normalizeGroupId(groupId)).bind(3, rule.name()).execute();
             if (rowCount == 0) {
                 if (!groupRepository.isGroupExistsRaw(handle, groupId)) {
                     throw new GroupNotFoundException(groupId);
@@ -362,7 +363,7 @@ public class SqlRuleRepository {
         try {
             handles.withHandle(handle -> {
                 handle.createUpdate(sqlStatements.insertGlobalRule()).bind(0, rule.name())
-                        .bind(1, config.getConfiguration()).execute();
+                        .bind(1, config.getConfiguration()).bind(2, config.getOnFailure().name()).execute();
 
                 outboxEvent.fire(SqlOutboxEvent.of(GlobalRuleConfigured.of(rule, config)));
 
@@ -397,7 +398,8 @@ public class SqlRuleRepository {
         log.debug("Updating a global rule: {}::{}", rule.name(), config.getConfiguration());
         handles.withHandle(handle -> {
             int rowCount = handle.createUpdate(sqlStatements.updateGlobalRule())
-                    .bind(0, config.getConfiguration()).bind(1, rule.name()).execute();
+                    .bind(0, config.getConfiguration()).bind(1, config.getOnFailure().name())
+                    .bind(2, rule.name()).execute();
             if (rowCount == 0) {
                 throw new RuleNotFoundException(rule);
             }
@@ -497,6 +499,7 @@ public class SqlRuleRepository {
                         .bind(0, normalizeGroupId(entity.groupId))
                         .bind(1, entity.type.name())
                         .bind(2, entity.configuration)
+                        .bind(3, onFailure(entity.onFailure))
                         .execute();
             } else {
                 throw new GroupNotFoundException(entity.groupId);
@@ -516,6 +519,7 @@ public class SqlRuleRepository {
                         .bind(1, entity.artifactId)
                         .bind(2, entity.type.name())
                         .bind(3, entity.configuration)
+                        .bind(4, onFailure(entity.onFailure))
                         .execute();
             } else {
                 throw new ArtifactNotFoundException(entity.groupId, entity.artifactId);
@@ -532,8 +536,13 @@ public class SqlRuleRepository {
             handle.createUpdate(sqlStatements.importGlobalRule())
                     .bind(0, entity.ruleType.name())
                     .bind(1, entity.configuration)
+                    .bind(2, onFailure(entity.onFailure))
                     .execute();
             return null;
         });
+    }
+
+    private static String onFailure(String onFailure) {
+        return RuleConfigurationDto.parseOnFailure(onFailure).name();
     }
 }

@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.List;
 
 import static io.apicurio.registry.operator.it.ITBase.MEDIUM_DURATION;
 import static io.apicurio.registry.operator.it.ITBase.SHORT_DURATION;
@@ -181,31 +180,8 @@ public abstract class OLMITBase implements OperatorTestContext {
                     }
                 });
 
-                await().atMost(MEDIUM_DURATION).ignoreExceptions().until(() -> {
-                    log.debug("Deleting ApicurioRegistry3 CRD.");
-                    crd.getOptional().ifPresent(c -> {
-                        client.resource(c).delete();
-                    });
-                    try {
-                        await().atMost(SHORT_DURATION).ignoreExceptions().until(() -> {
-                            var c = crd.getOptional();
-                            if (c.isPresent()) {
-                                log.debug("Waiting on ApicurioRegistry3 CRD to be deleted. Terminating condition: {}", c.get().getStatus().getConditions().stream()
-                                        .filter(cond -> "Terminating".equals(cond.getType())).findFirst().orElse(null));
-                                return false;
-                            } else {
-                                return true;
-                            }
-                        });
-                        return true;
-                    } catch (Exception ex) {
-                        log.debug("Could not delete ApicurioRegistry3 CRD. Trying to force the deletion by deleting the finalizer.");
-                        crd.update(r -> {
-                            r.getMetadata().setFinalizers(List.of());
-                        });
-                        return false;
-                    }
-                });
+                log.debug("Deleting ApicurioRegistry3 CRD.");
+                crd.delete(MEDIUM_DURATION, SHORT_DURATION);
             }
 
             createResource("olmv1/cluster-catalog.yaml");

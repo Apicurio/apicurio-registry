@@ -159,6 +159,28 @@ test('checkDcoSignOff: a trailer copied from a different commit does not satisfy
   assert.match(violation.detail, /`aaaaaaaa`/);
 });
 
+test('checkDcoSignOff: an unsigned merge commit is exempt', () => {
+  const commits = [
+    { sha: 'aaaaaaaa1111', ...commitWith('fix: a\n\nSigned-off-by: A <a@example.com>', 'a@example.com') },
+    {
+      sha: 'bbbbbbbb2222',
+      parents: [{ sha: 'aaaaaaaa1111' }, { sha: 'cccccccc3333' }],
+      ...commitWith("Merge branch 'main' into fix/thing", 'a@example.com'),
+    },
+  ];
+  assert.equal(checkDcoSignOff(commits), null);
+});
+
+test('checkDcoSignOff: the merge exemption does not cover single-parent commits', () => {
+  const commits = [
+    { sha: 'bbbbbbbb2222', parents: [{ sha: 'aaaaaaaa1111' }], ...commitWith('fix: b', 'b@example.com') },
+  ];
+  const violation = checkDcoSignOff(commits);
+  assert.equal(violation.name, 'DCO sign-off');
+  assert.match(violation.detail, /1 commit\(s\)/);
+  assert.match(violation.detail, /`bbbbbbbb`/);
+});
+
 // ---------------------------------------------------------------------------
 // validate(): mocked github/core, no network access.
 //

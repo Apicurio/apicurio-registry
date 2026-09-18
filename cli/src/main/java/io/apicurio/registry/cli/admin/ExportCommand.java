@@ -17,7 +17,9 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.CliException.TRANSIENT_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
+import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
 
 @Command(
         name = "export",
@@ -108,10 +110,12 @@ public class ExportCommand extends AbstractCommand {
             httpClient.request(requestOptions)
                     .onSuccess(req -> req.send()
                             .onSuccess(response -> {
-                                if (response.statusCode() != HTTP_OK) {
+                                final var statusCode = response.statusCode();
+                                if (statusCode != HTTP_OK) {
                                     future.completeExceptionally(new CliException(
-                                            "Failed to download export: HTTP " + response.statusCode(),
-                                            APPLICATION_ERROR_RETURN_CODE));
+                                            "Failed to download export: HTTP " + statusCode,
+                                            statusCode == HTTP_UNAVAILABLE
+                                                    ? TRANSIENT_ERROR_RETURN_CODE : APPLICATION_ERROR_RETURN_CODE));
                                     return;
                                 }
                                 response.body()

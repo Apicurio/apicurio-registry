@@ -21,8 +21,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.jboss.logging.Logger;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.CliException.TRANSIENT_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
+import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
 
 @ApplicationScoped
 public class OidcDiscovery {
@@ -199,7 +201,8 @@ public class OidcDiscovery {
         if (statusCode != HTTP_OK) {
             future.completeExceptionally(new CliException(
                     "OIDC discovery failed: HTTP " + statusCode + " from " + uri,
-                    APPLICATION_ERROR_RETURN_CODE));
+                    statusCode == HTTP_UNAVAILABLE
+                            ? TRANSIENT_ERROR_RETURN_CODE : APPLICATION_ERROR_RETURN_CODE));
             return;
         }
         if (exceedsMaxSizeByContentLength(response, uri, future)) {

@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.common;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.cli.Acr;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.services.Client;
@@ -7,12 +8,18 @@ import io.apicurio.registry.cli.services.UpdateNotifier;
 import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
+import io.vertx.core.http.HttpClosedException;
 import jakarta.inject.Inject;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import org.jboss.logging.Logger;
 import picocli.CommandLine.Command;
@@ -22,6 +29,8 @@ import picocli.CommandLine.Spec;
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.OK_RETURN_CODE;
 import static io.apicurio.registry.cli.common.CliException.SERVER_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.CliException.TRANSIENT_ERROR_RETURN_CODE;
+import static java.net.HttpURLConnection.HTTP_UNAVAILABLE;
 
 @Command
 public abstract class AbstractCommand implements Callable<Integer> {
@@ -54,23 +63,55 @@ public abstract class AbstractCommand implements Callable<Integer> {
             return OK_RETURN_CODE;
         } catch (CliException ex) {
             handleCliException(output, ex);
-            return ex.getCode();
+            final var code = ex.getCode();
+            return code == APPLICATION_ERROR_RETURN_CODE && isTransientFailure(ex)
+                    ? TRANSIENT_ERROR_RETURN_CODE : code;
         } catch (RuleViolationProblemDetails ex) {
             handleRuleViolation(output, ex);
             return SERVER_ERROR_RETURN_CODE;
         } catch (ProblemDetails ex) {
             handleProblemDetails(output, ex);
-            return SERVER_ERROR_RETURN_CODE;
+            return isTransientFailure(ex) ? TRANSIENT_ERROR_RETURN_CODE : SERVER_ERROR_RETURN_CODE;
         } catch (Exception ex) {
             log.error("Unexpected error", ex);
             output.writeStdErrChunk(out -> out.append("Unexpected error: ").append(ex.getMessage()).append("\n"));
-            return APPLICATION_ERROR_RETURN_CODE;
+            return isTransientFailure(ex) ? TRANSIENT_ERROR_RETURN_CODE : APPLICATION_ERROR_RETURN_CODE;
         } finally {
             output.print();
         }
     }
 
     public abstract void run(OutputBuffer output) throws Exception;
+
+    private static boolean isTransientFailure(final Throwable failure) {
+        final var seen = new IdentityHashMap<Throwable, Boolean>();
+        for (var cause = failure;
+                cause != null && seen.put(cause, Boolean.TRUE) == null;
+                cause = cause.getCause()) {
+            if (cause instanceof CliException cliException) {
+                final var code = cliException.getCode();
+                if (code != APPLICATION_ERROR_RETURN_CODE) {
+                    return code == TRANSIENT_ERROR_RETURN_CODE;
+                }
+            }
+
+            if (cause instanceof ApiException apiException) {
+                final var statusCode = apiException.getResponseStatusCode();
+                if (statusCode != 0) {
+                    return statusCode == HTTP_UNAVAILABLE;
+                }
+            }
+
+            if (cause instanceof TimeoutException
+                    || cause instanceof SocketTimeoutException
+                    || cause instanceof SocketException
+                    || cause instanceof UnknownHostException
+                    || cause instanceof HttpClosedException) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private static void handleCliException(final OutputBuffer output, final CliException ex) {
         if (!ex.isQuiet()) {

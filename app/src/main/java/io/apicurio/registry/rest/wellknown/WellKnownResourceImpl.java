@@ -1483,6 +1483,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
             return "schemas/model-schema-v1.json";
         } else if ("mcp-tool".equals(type) && "v1".equals(version)) {
             return "schemas/mcp-tool-v1.json";
+        } else if ("agent-card".equals(type) && "v1".equals(version)) {
+            return "schemas/agent-card-v1.json";
         }
         return null;
     }

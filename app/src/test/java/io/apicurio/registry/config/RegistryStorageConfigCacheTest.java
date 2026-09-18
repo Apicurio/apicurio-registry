@@ -8,9 +8,16 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -134,5 +141,37 @@ public class RegistryStorageConfigCacheTest {
 
         cache.enabled = false;
         assertEquals(false, cache.isEnabled());
+    }
+
+    @Test
+    void getConfigPropertyDoesNotCacheAValueLoadedAcrossAnInvalidation() throws Exception {
+        CountDownLatch loadStarted = new CountDownLatch(1);
+        CountDownLatch invalidated = new CountDownLatch(1);
+        AtomicReference<String> stored = new AtomicReference<>("old");
+
+        when(delegate.getConfigProperty("apicurio.a")).thenAnswer(invocation -> {
+            String snapshot = stored.get();
+            loadStarted.countDown();
+            assertTrue(invalidated.await(10, TimeUnit.SECONDS), "invalidation did not happen");
+            return new DynamicConfigPropertyDto("apicurio.a", snapshot);
+        });
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        try {
+            Future<DynamicConfigPropertyDto> slowLoad = executor
+                    .submit(() -> cache.getConfigProperty("apicurio.a"));
+            assertTrue(loadStarted.await(10, TimeUnit.SECONDS), "load did not start");
+
+            stored.set("new");
+            cache.setConfigProperty(new DynamicConfigPropertyDto("apicurio.a", "new"));
+            invalidated.countDown();
+
+            // The in-flight read still returns what storage handed it, but it must not survive the
+            // invalidation, or that stale value is served until a later refresh happens to notice.
+            assertEquals("old", slowLoad.get(10, TimeUnit.SECONDS).getValue());
+            assertEquals("new", cache.getConfigProperty("apicurio.a").getValue());
+        } finally {
+            executor.shutdownNow();
+        }
     }
 }

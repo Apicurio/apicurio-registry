@@ -199,6 +199,10 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                                 }
                             } catch (Exception e) {
                                 log.error("{} poll/load failed: {}", storageName(), e.getMessage(), e);
+                                status = status.toBuilder()
+                                        .syncState(PollingStorageStatus.SyncState.ERROR)
+                                        .errors(List.of(new PollingError("Poll failed: " + e.getMessage())))
+                                        .build();
                             }
                         }
                     }

@@ -1,0 +1,13 @@
+{
+  "name": "typo_output_type_tool",
+  "description": "outputSchema declares a property type that is not a JSON Schema type",
+  "inputSchema": {
+    "type": "object"
+  },
+  "outputSchema": {
+    "type": "object",
+    "properties": {
+      "total": { "type": "integr" }
+    }
+  }
+}

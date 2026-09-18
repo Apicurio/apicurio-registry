@@ -177,6 +177,11 @@ Configure TLS certificates for the application:
 |Reference to a Secret containing the keystore password. Default key: `password`
 |xref:secret-key-ref_{context}[SecretKeyRef]
 |None
+
+|`expirationWarningDays`
+|Number of days before a TLS certificate expires to start emitting warning events and updating the `CertificateExpiring` status condition.
+|Integer
+|`30`
 |===
 
 Example:

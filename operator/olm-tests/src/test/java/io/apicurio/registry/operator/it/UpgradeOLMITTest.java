@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 
 import org.awaitility.core.ConditionFactory;
 
@@ -251,12 +253,37 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         log.info("Testing upgrade via {} channel: {} -> {} ({} hops)",
                 rollingChannel(), crossMinorEntry.getVersion(), headVersion, hops);
 
-        deployCatalogAndSubscribe(rollingChannel(), crossMinorEntry.getCsvName());
+        // Automatic multi-hop upgrades can resolve the next hop before OLM has removed
+        // the replaced CSV, leaving an orphan that makes the resolver constraints unsatisfiable.
+        deployCatalogAndSubscribe(rollingChannel(), crossMinorEntry.getCsvName(), true);
+        var installedCSV = approveNextInstallPlan(null);
+        assertThat(installedCSV).isEqualTo(crossMinorEntry.getCsvName());
         waitForOperatorVersion(crossMinorEntry.getVersion());
 
-        log.info("Operator {} deployed, waiting for upgrade to {}",
-                crossMinorEntry.getVersion(), headVersion);
-        verifyUpgradeTo(headVersion, hops);
+        var headCSV = catalog.getChannelHeadCSV(rollingChannel());
+        // Follow the actual InstallPlan: downstream catalogs can skip replaces-chain entries.
+        int maxHops = catalog.getChannels().get(rollingChannel()).size();
+        for (int hop = 0; hop < maxHops && !headCSV.equals(installedCSV); hop++) {
+            var previousCSV = installedCSV;
+            installedCSV = approveNextInstallPlan(previousCSV);
+            verifyUpgradeTo(CatalogInfo.parseVersion(CatalogInfo.extractVersionString(installedCSV)));
+            // Do not approve another hop until the old CSV is actually gone.
+            upgradeAwait().untilAsserted(() -> assertThat(client.genericKubernetesResources(
+                            "operators.coreos.com/v1alpha1", "ClusterServiceVersion")
+                    .inNamespace(namespace).withName(previousCSV).get())
+                    .as("Replaced CSV %s should be removed before the next hop", previousCSV)
+                    .isNull());
+        }
+        assertThat(installedCSV).as("Upgrade should reach the discovered channel head").isEqualTo(headCSV);
+        upgradeAwait().untilAsserted(() -> {
+            var subscription = client.genericKubernetesResources("operators.coreos.com/v1alpha1", "Subscription")
+                    .inNamespace(namespace).withName(SUBSCRIPTION_NAME).get();
+            assertThat((String) subscription.get("status", "installedCSV")).isEqualTo(headCSV);
+            var csv = client.genericKubernetesResources("operators.coreos.com/v1alpha1", "ClusterServiceVersion")
+                    .inNamespace(namespace).withName(headCSV).get();
+            assertThat(csv).isNotNull();
+            assertThat((String) csv.get("status", "phase")).isEqualTo("Succeeded");
+        });
 
         verifyUpgradeCompleted(crossMinorEntry.getVersion(), headVersion);
 
@@ -528,6 +555,10 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     }
 
     private void deployCatalogAndSubscribe(String channel, String startCSV) throws Exception {
+        deployCatalogAndSubscribe(channel, startCSV, false);
+    }
+
+    private void deployCatalogAndSubscribe(String channel, String startCSV, boolean manual) throws Exception {
         try {
             createResource(client, namespace, "olmv0/catalog-source.yaml");
             waitForCatalogPodReady(client, namespace);
@@ -537,7 +568,11 @@ public class UpgradeOLMITTest implements OperatorTestContext {
                     "${PLACEHOLDER_UPGRADE_CHANNEL}", channel,
                     "${PLACEHOLDER_UPGRADE_START_CSV}", startCSV);
             var raw = loadRawResource("olmv0/subscription-upgrade.yaml");
-            client.resource(replaceVars(raw, namespace, extraVars)).create();
+            var subscription = replaceVars(raw, namespace, extraVars);
+            if (manual) {
+                subscription = subscription.replace("installPlanApproval: Automatic", "installPlanApproval: Manual");
+            }
+            client.resource(subscription).create();
         } catch (Exception e) {
             log.error("OLM catalog/subscription setup failed, dumping cluster diagnostics", e);
             ClusterDiagnostics.dump(client, namespace, true);
@@ -675,6 +710,37 @@ public class UpgradeOLMITTest implements OperatorTestContext {
                     .isGreaterThanOrEqualTo(1);
         });
         approveAllPendingInstallPlans();
+    }
+
+    /** Approve only the pending plan referenced by this Subscription, returning its target CSV. */
+    private String approveNextInstallPlan(String previousCSV) {
+        var selected = new AtomicReference<GenericKubernetesResource>();
+        var target = new AtomicReference<String>();
+        upgradeAwait().untilAsserted(() -> {
+            var subscription = client.genericKubernetesResources("operators.coreos.com/v1alpha1", "Subscription")
+                    .inNamespace(namespace).withName(SUBSCRIPTION_NAME).get();
+            assertThat(subscription).isNotNull();
+            String planName = subscription.get("status", "installPlanRef", "name");
+            assertThat(planName).isNotBlank();
+            var plan = client.genericKubernetesResources("operators.coreos.com/v1alpha1", "InstallPlan")
+                    .inNamespace(namespace).withName(planName).get();
+            assertThat(plan).isNotNull();
+            assertThat((Boolean) plan.get("spec", "approved")).isFalse();
+            List<String> csvNames = plan.get("spec", "clusterServiceVersionNames");
+            assertThat(csvNames).isNotNull();
+            var targets = csvNames.stream().filter(name -> name.startsWith(PACKAGE_NAME + ".v"))
+                    .filter(name -> !name.equals(previousCSV)).toList();
+            assertThat(targets).hasSize(1);
+            selected.set(plan);
+            target.set(targets.get(0));
+        });
+        var planName = selected.get().getMetadata().getName();
+        k8sCell(client, () -> client.genericKubernetesResources("operators.coreos.com/v1alpha1", "InstallPlan")
+                .inNamespace(namespace).withName(planName).get()).update(plan -> {
+                    Map<String, Object> spec = plan.get("spec");
+                    spec.put("approved", true);
+                });
+        return target.get();
     }
 
     @SuppressWarnings("unchecked")

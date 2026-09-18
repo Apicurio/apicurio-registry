@@ -7,6 +7,7 @@ import io.apicurio.registry.cli.auth.LogoutCommand;
 import io.apicurio.registry.cli.content.ContentCommand;
 import io.apicurio.registry.cli.config.ConfigPropertyCommand;
 import io.apicurio.registry.cli.context.ContextCommand;
+import io.apicurio.registry.cli.gitops.GitOpsCommand;
 import io.apicurio.registry.cli.globalrule.GlobalRuleCommand;
 import io.apicurio.registry.cli.group.GroupCommand;
 import io.apicurio.registry.cli.reference.ReferenceCommand;
@@ -37,6 +38,7 @@ import static picocli.CommandLine.ScopeType.INHERIT;
                 ConfigPropertyCommand.class,
                 ContentCommand.class,
                 ContextCommand.class,
+                GitOpsCommand.class,
                 GlobalRuleCommand.class,
                 GroupCommand.class,
                 InstallCommand.class,

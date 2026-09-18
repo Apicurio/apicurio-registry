@@ -8,6 +8,7 @@ import io.apicurio.registry.cli.common.CliException;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 import static com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT;
+import static com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS;
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 
 public class Mapper {
@@ -20,6 +21,7 @@ public class Mapper {
         MAPPER.registerModule(new JsonOrgModule());
         MAPPER.configure(FAIL_ON_UNKNOWN_PROPERTIES, true);
         MAPPER.configure(INDENT_OUTPUT, true);
+        MAPPER.configure(WRITE_DATES_AS_TIMESTAMPS, false);
     }
 
     @SuppressWarnings("unchecked")

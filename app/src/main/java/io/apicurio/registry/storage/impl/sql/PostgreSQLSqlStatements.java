@@ -44,6 +44,11 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
         return "INSERT INTO sequences (seqName, seqValue) VALUES (?, 1) ON CONFLICT (seqName) DO UPDATE SET seqValue = sequences.seqValue + 1 RETURNING seqValue";
     }
 
+    @Override
+    public String getNextSequenceValueBlock() {
+        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?) ON CONFLICT (seqName) DO UPDATE SET seqValue = sequences.seqValue + ? RETURNING seqValue";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
      */

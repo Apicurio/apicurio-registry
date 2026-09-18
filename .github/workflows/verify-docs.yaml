@@ -1,0 +1,137 @@
+name: Docs Verification
+
+# Static verification of the getting-started assemblies that feed the downstream
+# (Red Hat) modular build. Two checks run on the same list of assemblies, in one job:
+#
+#   1. docs/scripts/downstream-compat.py — the structural contract the downstream
+#      splitter (docs/scripts/leben.py, an unmodified copy of the downstream script)
+#      and its strict DocBook build rely on: [id="..."]/heading adjacency, no <<...>>
+#      shorthand xrefs, cross-assembly xref targets (warning only).
+#   2. docs/scripts/vale-pipeline.py — split each assembly with leben.py, then run
+#      vale with the AsciiDocDITA package pinned in .vale.ini over the SPLIT output.
+#      Vale on the raw monolith is noisy by design and is never the gate.
+#
+# Errors fail the job (and therefore the Verification Gate in verify.yaml);
+# warnings are reported in the job summary only.
+#
+# Scope: pull_request / pull_request_review runs lint only the assemblies the PR
+# adds, modifies or renames; push to main lints all of them. Called from verify.yaml
+# behind Decide's run-docs output, so the repository_owner guard and the lifecycle
+# policy are inherited from the caller.
+#
+# Run locally: python3 docs/scripts/vale-pipeline.py  (see docs/scripts/README.md).
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+env:
+  VALE_VERSION: '3.17.1'
+  # sha256 of vale_3.17.1_Linux_64-bit.tar.gz from vale_3.17.1_checksums.txt on
+  # https://github.com/errata-ai/vale/releases/tag/v3.17.1
+  VALE_SHA256: 'db947f89f2292e6a0381a61de155f6a5f5cb4cb460ca178ea412ef605559cefd'
+  ASSEMBLY_GLOB: 'docs/modules/ROOT/pages/getting-started/assembly-*.adoc'
+
+jobs:
+  docs-verify:
+    name: Docs Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # The scripts are stdlib-only; a pinned interpreter keeps runs reproducible.
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.14.7'
+
+      - name: Compute assembly scope
+        id: scope
+        env:
+          IS_PUSH: ${{ github.event_name == 'push' }}
+          # Present on both pull_request and pull_request_review payloads.
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          LIST="$RUNNER_TEMP/assemblies.txt"
+          if [ "$IS_PUSH" = "true" ]; then
+            MODE=all
+            git ls-files -- "$ASSEMBLY_GLOB" > "$LIST"
+          else
+            MODE=changed
+            # The checkout is the PR merge commit at depth 1: fetch the base commit so
+            # both trees exist, then diff. Deleted assemblies are excluded (nothing to
+            # lint); renames report the new path.
+            git fetch --no-tags --depth=1 origin "$BASE_SHA"
+            git diff --name-only -M --diff-filter=AMR "$BASE_SHA" HEAD -- "$ASSEMBLY_GLOB" > "$LIST"
+          fi
+          COUNT=$(grep -c . "$LIST" || true)
+          { echo "mode=$MODE"; echo "count=$COUNT"; } >> "$GITHUB_OUTPUT"
+          echo "Scope: $MODE ($COUNT assemblies)"
+          cat "$LIST"
+          if [ "$COUNT" = "0" ]; then
+            {
+              echo "### Docs Verification"
+              echo ""
+              echo "No assemblies under \`$ASSEMBLY_GLOB\` were added, modified or renamed by this change; nothing to lint."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Downstream compatibility contract
+        if: steps.scope.outputs.count != '0'
+        run: python3 docs/scripts/downstream-compat.py --files-from "$RUNNER_TEMP/assemblies.txt"
+
+      # Everything below still runs when the contract step failed, so both checks
+      # always report (the job stays red). vale's AsciiDoc support shells out to
+      # asciidoctor; without it vale cannot parse .adoc at all.
+      - name: Install asciidoctor
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.scope.outputs.count != '0' }}
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends asciidoctor
+          asciidoctor --version
+
+      - name: Install vale ${{ env.VALE_VERSION }}
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.scope.outputs.count != '0' }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/vale-bin"
+          curl -sSfL --retry 3 -o "$RUNNER_TEMP/vale.tar.gz" \
+            "https://github.com/errata-ai/vale/releases/download/v${VALE_VERSION}/vale_${VALE_VERSION}_Linux_64-bit.tar.gz"
+          echo "${VALE_SHA256}  $RUNNER_TEMP/vale.tar.gz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/vale.tar.gz" -C "$RUNNER_TEMP/vale-bin" vale
+          echo "$RUNNER_TEMP/vale-bin" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/vale-bin/vale" --version
+
+      - name: Cache vale styles
+        id: vale-styles
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.scope.outputs.count != '0' }}
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: .vale/styles
+          key: vale-styles-${{ runner.os }}-${{ hashFiles('.vale.ini') }}
+
+      - name: Sync vale styles
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.scope.outputs.count != '0' && steps.vale-styles.outputs.cache-hit != 'true' }}
+        run: vale --config .vale.ini sync
+
+      - name: Vale on leben-split output
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.scope.outputs.count != '0' }}
+        run: |
+          python3 docs/scripts/vale-pipeline.py \
+            --files-from "$RUNNER_TEMP/assemblies.txt" \
+            --out-dir "$RUNNER_TEMP/vale-pipeline"
+
+      - name: Upload split output and vale JSON
+        if: ${{ !cancelled() && steps.scope.outcome == 'success' && steps.scope.outputs.count != '0' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: docs-vale-${{ github.sha }}
+          path: ${{ runner.temp }}/vale-pipeline
+          retention-days: 3
+          if-no-files-found: ignore
+          overwrite: true

@@ -60,6 +60,10 @@ public class CoreV2RegistryExceptionMapperService {
             code = codeMap.getCode(t.getClass());
         }
 
+        if (code <= 0) {
+            code = HTTP_INTERNAL_ERROR;
+        }
+
         if (code == HTTP_INTERNAL_ERROR) {
             // If the error is not something we should ignore, then we report it to the liveness object
             // and log it. Otherwise we only log it if debug logging is enabled.
@@ -83,8 +87,13 @@ public class CoreV2RegistryExceptionMapperService {
     private Object toAuthError(Throwable t, int code) {
         AuthError error = new AuthError();
         error.setStatus(code);
-        error.setTitle(t.getLocalizedMessage());
-        error.setName(t.getClass().getSimpleName());
+        if (code >= 500 && !includeStackTrace) {
+            error.setTitle("Internal Server Error");
+            error.setName("InternalError");
+        } else {
+            error.setTitle(t.getLocalizedMessage());
+            error.setName(t.getClass().getSimpleName());
+        }
         return error;
     }
 
@@ -100,13 +109,19 @@ public class CoreV2RegistryExceptionMapperService {
         }
 
         error.setErrorCode(code);
-        error.setMessage(t.getLocalizedMessage());
-        if (includeStackTrace) {
-            error.setDetail(getStackTrace(t));
+        if (code >= 500 && !includeStackTrace) {
+            error.setMessage("Internal Server Error");
+            error.setDetail("An unexpected error occurred.");
+            error.setName("InternalError");
         } else {
-            error.setDetail(getRootMessage(t));
+            error.setMessage(t.getLocalizedMessage());
+            if (includeStackTrace) {
+                error.setDetail(getStackTrace(t));
+            } else {
+                error.setDetail(getRootMessage(t));
+            }
+            error.setName(t.getClass().getSimpleName());
         }
-        error.setName(t.getClass().getSimpleName());
         return error;
     }
 

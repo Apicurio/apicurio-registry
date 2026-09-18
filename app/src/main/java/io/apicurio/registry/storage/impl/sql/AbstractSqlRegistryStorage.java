@@ -68,6 +68,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -1183,6 +1184,34 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public VersionState getArtifactVersionState(String groupId, String artifactId, String version) {
 
         return versionRepository.getArtifactVersionState(groupId, artifactId, version);
+    }
+
+    @Override
+    public void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
+        handles.withHandleNoException(handle -> {
+            // Validate every target before changing any of them. Nested repository calls share this
+            // handle and transaction, including outbox rows and label indexes.
+            for (String version : versions) {
+                versionRepository.getArtifactVersionMetaData(groupId, artifactId, version);
+            }
+            for (String version : versions) {
+                updateArtifactVersionState(groupId, artifactId, version, newState, false);
+                ArtifactVersionMetaDataDto metadata = versionRepository.getArtifactVersionMetaData(
+                        groupId, artifactId, version);
+                Map<String, String> merged = new HashMap<>();
+                if (metadata.getLabels() != null) {
+                    merged.putAll(metadata.getLabels());
+                }
+                merged.keySet().removeIf(key -> key.startsWith(labelPrefix));
+                merged.putAll(labels);
+                // Keep the canonical label map intact. Rebuilding it from the search index would
+                // truncate/lowercase unrelated publisher metadata.
+                versionRepository.updateArtifactVersionMetaData(groupId, artifactId, version,
+                        EditableVersionMetaDataDto.builder().labels(merged).build());
+            }
+            return null;
+        });
     }
 
     @Override

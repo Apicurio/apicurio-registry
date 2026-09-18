@@ -76,6 +76,22 @@ public Supplier<Boolean> setting;
 
 Dynamic properties need a `.dynamic.allow` entry in `application.properties`.
 
+## Deprecated Properties Lifecycle
+
+Deprecated configuration properties follow a warning-first two-phase deprecation lifecycle managed by `DeprecatedPropertiesCheck`:
+
+1. **Phase 1 (Deprecated property configured)**:
+   - At startup, setting a deprecated property logs a `WARN`:
+     `Property 'apicurio.example.old' is deprecated since 3.1.0 and will be removed in 4.0.0. Use 'apicurio.example.new' instead.`
+   - Application startup continues and the property remains functional.
+   - If both old and replacement properties are set, the replacement property takes precedence with a `WARN`:
+     `Both 'apicurio.example.old' (deprecated since 3.1.0) and 'apicurio.example.new' are configured. 'apicurio.example.new' will take precedence.`
+
+2. **Phase 2 (Removed property configured)**:
+   - When a property is marked as removed in a major release, configuring the old property produces an `ERROR`:
+     `Property 'apicurio.example.old' was removed in 4.0.0. Use 'apicurio.example.new' instead.`
+   - Application startup hard-fails with an `IllegalStateException`.
+
 ## Doc Generation
 
 `docs/modules/ROOT/partials/getting-started/ref-registry-all-configs.adoc` is **generated** by

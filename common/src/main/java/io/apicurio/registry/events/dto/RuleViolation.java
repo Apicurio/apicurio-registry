@@ -13,13 +13,16 @@ import java.util.List;
  * distinct from {@link ArtifactRuleChange}, which describes a rule *configuration* change rather
  * than a validation failure.
  * <p>
- * Design note (producer and rollback semantics): the intended producer is the rule-enforcement
- * layer, at the point where it rejects an incoming write (e.g. a content validation or
- * compatibility check failure) &mdash; before any storage mutation is attempted. Because the
- * write was never committed, there is nothing to roll back or compensate: this event is purely
- * notificational, reporting a rejection that already left no trace in storage. This PR only
- * defines the payload shape and {@link CloudEventType#RULE_VIOLATED} type string; wiring an
- * actual producer into the rule-enforcement path is out of scope here.
+ * Design note (producer and transaction semantics): the intended producer is the rule-enforcement
+ * layer ({@code RulesServiceImpl}), wrapping the {@code applyRules()} call, catching
+ * {@link io.apicurio.registry.rules.RuleViolationException}, firing the CDI event, and rethrowing
+ * unchanged. No artifact mutation is committed when validation is rejected &mdash; but durable
+ * recording of the rejection notification still requires a transaction strategy: if the
+ * {@code webhook_delivery_logs} INSERT shares the enclosing transaction that is rolled back by the
+ * rethrown exception, the notification record is silently lost. Whether to use a separate
+ * transaction for the delivery log row, or fire the CDI event after the transaction boundary, is
+ * an open design question to resolve before implementing the producer (tracked for #8568). No
+ * producer or delivery implementation is in scope for this DTO PR.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonPropertyOrder({ "groupId", "artifactId", "version", "type", "ruleType", "violations" })

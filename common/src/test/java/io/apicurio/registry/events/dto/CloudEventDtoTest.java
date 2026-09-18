@@ -106,4 +106,52 @@ public class CloudEventDtoTest {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, event::validate);
         assertTrue(ex.getMessage().contains("specversion"));
     }
+
+    @Test
+    void testValidate_failsWhenIdIsEmpty() {
+        CloudEventDto event = new CloudEventDto().withId("").withSource("/apicurio-registry")
+                .withType(CloudEventType.ARTIFACT_UPDATED.type());
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, event::validate);
+        assertTrue(ex.getMessage().contains("id"));
+    }
+
+    @Test
+    void testValidate_failsWhenIdIsBlank() {
+        CloudEventDto event = new CloudEventDto().withId("   ").withSource("/apicurio-registry")
+                .withType(CloudEventType.ARTIFACT_UPDATED.type());
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, event::validate);
+        assertTrue(ex.getMessage().contains("id"));
+    }
+
+    @Test
+    void testValidate_failsWhenSourceIsEmpty() {
+        CloudEventDto event = new CloudEventDto().withId("abc-123").withSource("")
+                .withType(CloudEventType.ARTIFACT_UPDATED.type());
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, event::validate);
+        assertTrue(ex.getMessage().contains("source"));
+    }
+
+    @Test
+    void testValidate_failsWhenSourceIsBlank() {
+        CloudEventDto event = new CloudEventDto().withId("abc-123").withSource("   ")
+                .withType(CloudEventType.ARTIFACT_UPDATED.type());
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, event::validate);
+        assertTrue(ex.getMessage().contains("source"));
+    }
+
+    @Test
+    void testValidate_failsWhenTypeIsEmpty() {
+        CloudEventDto event = new CloudEventDto().withId("abc-123").withSource("/apicurio-registry")
+                .withType("");
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, event::validate);
+        assertTrue(ex.getMessage().contains("type"));
+    }
+
+    @Test
+    void testValidate_failsWhenTypeIsBlank() {
+        CloudEventDto event = new CloudEventDto().withId("abc-123").withSource("/apicurio-registry")
+                .withType("   ");
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, event::validate);
+        assertTrue(ex.getMessage().contains("type"));
+    }
 }

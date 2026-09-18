@@ -70,6 +70,7 @@ public class FileDescriptorUtils {
     private static final String SWIFT_PREFIX_OPTION = "swift_prefix";
     // message options
     private static final String NO_STANDARD_DESCRIPTOR_OPTION = "no_standard_descriptor_accessor";
+    private static final String TYPE_MESSAGE = "message";
     // rpc options
     private static final String IDEMPOTENCY_LEVEL_OPTION = "idempotency_level";
 
@@ -144,7 +145,7 @@ public class FileDescriptorUtils {
         return !trimmed.startsWith("syntax") &&
                !trimmed.startsWith("package") &&
                !trimmed.startsWith("import") &&
-               !trimmed.startsWith("message") &&
+               !trimmed.startsWith(TYPE_MESSAGE) &&
                !trimmed.startsWith("enum") &&
                !trimmed.startsWith("service") &&
                !trimmed.startsWith("option") &&
@@ -847,7 +848,7 @@ public class FileDescriptorUtils {
                 // Map fields are only permitted in messages
                 if (protoType.isMap() && keyType != null && valueType != null) {
                     label = "repeated";
-                    fieldType = "message";
+                    fieldType = TYPE_MESSAGE;
                     String fieldMapEntryName = toMapEntry(field.getName());
                     // Map entry field name is capitalized
                     fieldMapEntryName = fieldMapEntryName.substring(0, 1).toUpperCase()
@@ -1004,7 +1005,7 @@ public class FileDescriptorUtils {
         Type typeReference = schema.getType(protoType);
         if (typeReference != null) {
             if (typeReference instanceof MessageType) {
-                return "message";
+                return TYPE_MESSAGE;
             }
             if (typeReference instanceof EnumType) {
                 return "enum";

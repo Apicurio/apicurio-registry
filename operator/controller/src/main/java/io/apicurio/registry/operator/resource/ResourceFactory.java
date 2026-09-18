@@ -50,6 +50,8 @@ import static java.util.Optional.ofNullable;
 public class ResourceFactory {
 
     private static final Logger log = LoggerFactory.getLogger(ResourceFactory.class);
+    private static final String MEMORY = "memory";
+    private static final String MEM_512MI = "512Mi";
 
     public static final ResourceFactory INSTANCE = new ResourceFactory();
 
@@ -132,8 +134,8 @@ public class ResourceFactory {
                 containerPort,
                 readinessProbe,
                 livenessProbe,
-                Map.of("cpu", new Quantity("500m"), "memory", new Quantity("512Mi")),
-                Map.of("cpu", new Quantity("1"), "memory", new Quantity("1Gi"))
+                Map.of("cpu", new Quantity("500m"), MEMORY, new Quantity(MEM_512MI)),
+                Map.of("cpu", new Quantity("1"), MEMORY, new Quantity("1Gi"))
         );
 
         addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_APP);
@@ -177,8 +179,8 @@ public class ResourceFactory {
                 List.of(new ContainerPortBuilder().withName("http").withProtocol("TCP").withContainerPort(8080).build()),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/config.js").withPort(new IntOrString(8080)).withScheme("HTTP").build()).build(),
-                Map.of("cpu", new Quantity("100m"), "memory", new Quantity("256Mi")),
-                Map.of("cpu", new Quantity("200m"), "memory", new Quantity("512Mi"))
+                Map.of("cpu", new Quantity("100m"), MEMORY, new Quantity("256Mi")),
+                Map.of("cpu", new Quantity("200m"), MEMORY, new Quantity(MEM_512MI))
         );
         addDefaultLabels(r.getMetadata().getLabels(), primary, COMPONENT_UI);
         addSelectorLabels(r.getSpec().getSelector().getMatchLabels(), primary, COMPONENT_UI);
@@ -197,8 +199,8 @@ public class ResourceFactory {
                 List.of(new ContainerPortBuilder().withName("https").withProtocol("TCP").withContainerPort(9443).build()),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/q/health/ready").withPort(new IntOrString(9443)).withScheme("HTTPS").build()).withInitialDelaySeconds(5).withPeriodSeconds(10).build(),
                 new ProbeBuilder().withHttpGet(new HTTPGetActionBuilder().withPath("/q/health/live").withPort(new IntOrString(9443)).withScheme("HTTPS").build()).withInitialDelaySeconds(5).withPeriodSeconds(10).build(),
-                Map.of("cpu", new Quantity("100m"), "memory", new Quantity("256Mi")),
-                Map.of("cpu", new Quantity("500m"), "memory", new Quantity("512Mi"))
+                Map.of("cpu", new Quantity("100m"), MEMORY, new Quantity("256Mi")),
+                Map.of("cpu", new Quantity("500m"), MEMORY, new Quantity(MEM_512MI))
         );
         var pts = r.getSpec().getTemplate();
         if (pts.getSpec() == null) {
@@ -428,7 +430,7 @@ public class ResourceFactory {
                 .ifPresent(memTarget -> metrics.add(new MetricSpecBuilder()
                         .withType("Resource")
                         .withNewResource()
-                        .withName("memory")
+                        .withName(MEMORY)
                         .withNewTarget()
                         .withType("Utilization")
                         .withAverageUtilization(memTarget)

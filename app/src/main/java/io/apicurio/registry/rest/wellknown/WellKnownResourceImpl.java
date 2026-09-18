@@ -104,6 +104,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
     private static final int MAX_VISIBILITY_FILTER_RESULTS = 10000;
     private static final int MAX_REPRESENTATIVE_QUERIES = 5;
     private static final String PROPERTIES_FIELD = "properties";
+    private static final String BRANCH_LATEST = "branch=latest";
+    private static final String FIELD_TITLE = "title";
+    private static final String FIELD_CAPABILITIES = "capabilities";
+    private static final String FIELD_PUBLISHER = "publisher";
 
     /**
      * Maximum number of MCP-tool candidates evaluated per compatible-tools request.
@@ -117,13 +121,13 @@ public class WellKnownResourceImpl implements WellKnownResource {
      * results in a 400 response.
      */
     private static final Set<String> SUPPORTED_ARD_FILTER_KEYS = Set.of(
-            "type", "tags", "capabilities", "publisher");
+            "type", "tags", FIELD_CAPABILITIES, FIELD_PUBLISHER);
 
     /**
      * Supported ARD {@code POST /explore} facet field names. Any other field results in a
      * 400 response.
      */
-    private static final Set<String> SUPPORTED_ARD_FACET_FIELDS = Set.of("type", "publisher");
+    private static final Set<String> SUPPORTED_ARD_FACET_FIELDS = Set.of("type", FIELD_PUBLISHER);
 
     /**
      * The set of media types this registry actually emits in AI Catalog / ARD entries. Used
@@ -200,7 +204,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         try {
             // Resolve version expression (or default to "latest" branch)
-            String versionExpression = StringUtil.isEmpty(version) ? "branch=latest" : version;
+            String versionExpression = StringUtil.isEmpty(version) ? BRANCH_LATEST : version;
             GAV gav = VersionExpressionParser.parse(ga, versionExpression,
                     (g, branchId) -> storage.getBranchTip(g, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
 
@@ -347,7 +351,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Fetch and parse the latest version content to extract skills and capabilities
         try {
             GA ga = new GA(artifact.getGroupId(), artifact.getArtifactId());
-            GAV gav = VersionExpressionParser.parse(ga, "branch=latest",
+            GAV gav = VersionExpressionParser.parse(ga, BRANCH_LATEST,
                     (g, branchId) -> storage.getBranchTip(g, branchId,
                             RetrievalBehavior.SKIP_DISABLED_LATEST));
             StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
@@ -372,7 +376,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
             }
 
             // Extract capabilities
-            JsonNode capabilitiesNode = root.path("capabilities");
+            JsonNode capabilitiesNode = root.path(FIELD_CAPABILITIES);
             if (capabilitiesNode.isObject()) {
                 streaming = capabilitiesNode.path("streaming").asBoolean(false);
                 pushNotifications = capabilitiesNode.path("pushNotifications").asBoolean(false);
@@ -428,7 +432,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         GA ga = new GA(rawGroupId, artifactId);
 
         try {
-            String versionExpression = StringUtil.isEmpty(version) ? "branch=latest" : version;
+            String versionExpression = StringUtil.isEmpty(version) ? BRANCH_LATEST : version;
             GAV gav = VersionExpressionParser.parse(ga, versionExpression,
                     (g, branchId) -> storage.getBranchTip(g, branchId,
                             RetrievalBehavior.SKIP_DISABLED_LATEST));
@@ -542,7 +546,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         GA ga = new GA(rawGroupId, artifactId);
 
         try {
-            String versionExpression = StringUtil.isEmpty(version) ? "branch=latest" : version;
+            String versionExpression = StringUtil.isEmpty(version) ? BRANCH_LATEST : version;
             GAV gav = VersionExpressionParser.parse(ga, versionExpression,
                     (g, branchId) -> storage.getBranchTip(g, branchId,
                             RetrievalBehavior.SKIP_DISABLED_LATEST));
@@ -651,7 +655,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         try {
             GA candidateGa = new GA(candidate.getGroupId(), candidate.getArtifactId());
-            GAV candidateGav = VersionExpressionParser.parse(candidateGa, "branch=latest",
+            GAV candidateGav = VersionExpressionParser.parse(candidateGa, BRANCH_LATEST,
                     (g, branchId) -> storage.getBranchTip(g, branchId,
                             RetrievalBehavior.SKIP_DISABLED_LATEST));
             StoredArtifactVersionDto candidateStored = storage.getArtifactVersionContent(
@@ -723,7 +727,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         try {
             GA ga = new GA(artifact.getGroupId(), artifact.getArtifactId());
-            GAV gav = VersionExpressionParser.parse(ga, "branch=latest",
+            GAV gav = VersionExpressionParser.parse(ga, BRANCH_LATEST,
                     (g, branchId) -> storage.getBranchTip(g, branchId,
                             RetrievalBehavior.SKIP_DISABLED_LATEST));
             StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
@@ -762,8 +766,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
         List<String> parameters = new ArrayList<>();
 
         // Extract title
-        if (root.has("title") && root.get("title").isTextual()) {
-            title = root.get("title").asText();
+        if (root.has(FIELD_TITLE) && root.get(FIELD_TITLE).isTextual()) {
+            title = root.get(FIELD_TITLE).asText();
         }
 
         // Extract parameter names from inputSchema
@@ -1089,7 +1093,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
     private AiCatalogCandidate buildToolCandidate(SearchedArtifactDto artifact, String baseUrl,
             String publisherDomain) {
         JsonNode root = readLatestContent(artifact);
-        String displayName = textOrDefault(root, "title", textOrDefault(root, "name", artifact.getName()));
+        String displayName = textOrDefault(root, FIELD_TITLE, textOrDefault(root, "name", artifact.getName()));
         String version = textOrDefault(root, "version", null);
         String groupSegment = groupIdSegment(artifact.getGroupId());
 
@@ -1171,7 +1175,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
     private JsonNode readLatestContent(SearchedArtifactDto artifact) {
         try {
             GA ga = new GA(artifact.getGroupId(), artifact.getArtifactId());
-            GAV gav = VersionExpressionParser.parse(ga, "branch=latest",
+            GAV gav = VersionExpressionParser.parse(ga, BRANCH_LATEST,
                     (g, branchId) -> storage.getBranchTip(g, branchId, RetrievalBehavior.SKIP_DISABLED_LATEST));
             StoredArtifactVersionDto stored = storage.getArtifactVersionContent(
                     gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
@@ -1325,10 +1329,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
             case "type":
                 return values.stream().anyMatch(value -> candidate.entry.getType() != null
                         && candidate.entry.getType().contains(value));
-            case "publisher":
+            case FIELD_PUBLISHER:
                 return values.stream()
                         .anyMatch(value -> value.equals(publisherOf(candidate.entry.getIdentifier())));
-            case "capabilities":
+            case FIELD_CAPABILITIES:
                 return values.stream().anyMatch(value -> candidate.entry.getCapabilities() != null
                         && candidate.entry.getCapabilities().contains(value));
             case "tags":
@@ -1457,7 +1461,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         if ("type".equals(field)) {
             return candidate.entry.getType();
         }
-        if ("publisher".equals(field)) {
+        if (FIELD_PUBLISHER.equals(field)) {
             return publisherOf(candidate.entry.getIdentifier());
         }
         return null;

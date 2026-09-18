@@ -20,6 +20,8 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_GIT
 @ApplicationScoped
 public class GitOpsConfig extends AbstractPollingStorageConfig {
 
+    private static final String REPOS_PREFIX = "apicurio.gitops.repos.";
+
     @ConfigProperty(name = "apicurio.gitops.workspace", defaultValue = "/repos")
     @Info(category = CATEGORY_GITOPS, experimental = true, description = """
             Base directory where Git repositories are mounted. \
@@ -125,21 +127,21 @@ public class GitOpsConfig extends AbstractPollingStorageConfig {
         List<GitRepoConfig> result = new ArrayList<>();
 
         for (int i = 0; ; i++) {
-            Optional<String> dir = config.getOptionalValue("apicurio.gitops.repos." + i + ".dir", String.class);
+            Optional<String> dir = config.getOptionalValue(REPOS_PREFIX + i + ".dir", String.class);
             if (dir.isEmpty()) {
                 // Check for gaps: scan ahead to catch skipped indexes (e.g., repos.0, repos.2)
                 for (int j = i + 1; j <= i + 10; j++) {
-                    Optional<String> ahead = config.getOptionalValue("apicurio.gitops.repos." + j + ".dir", String.class);
+                    Optional<String> ahead = config.getOptionalValue(REPOS_PREFIX + j + ".dir", String.class);
                     if (ahead.isPresent()) {
-                        throw new ConfigurationException("Missing apicurio.gitops.repos." + i + ".dir but repos."
+                        throw new ConfigurationException("Missing " + REPOS_PREFIX + i + ".dir but repos."
                                 + j + ".dir is set. Indexes must be dense (no gaps).");
                     }
                 }
                 break;
             }
-            String branch = config.getOptionalValue("apicurio.gitops.repos." + i + ".branch", String.class)
+            String branch = config.getOptionalValue(REPOS_PREFIX + i + ".branch", String.class)
                     .orElse("main");
-            String id = config.getOptionalValue("apicurio.gitops.repos." + i + ".id", String.class)
+            String id = config.getOptionalValue(REPOS_PREFIX + i + ".id", String.class)
                     .orElse(dir.orElseThrow());
             result.add(new GitRepoConfig(id, dir.orElseThrow(), branch));
         }

@@ -30,6 +30,9 @@ import java.util.Set;
  */
 public class IcebergContentValidator implements ContentValidator {
 
+    private static final String FIELD_LOCATION = "location";
+    private static final String PATH_LOCATION = "/location";
+
     private final boolean isTable;
 
     public IcebergContentValidator(boolean isTable) {
@@ -98,10 +101,10 @@ public class IcebergContentValidator implements ContentValidator {
         }
 
         // location is required
-        if (!tree.has("location")) {
-            violations.add(new RuleViolation("Iceberg table metadata must have a 'location' field", "/location"));
-        } else if (!tree.get("location").isTextual()) {
-            violations.add(new RuleViolation("'location' must be a string", "/location"));
+        if (!tree.has(FIELD_LOCATION)) {
+            violations.add(new RuleViolation("Iceberg table metadata must have a 'location' field", PATH_LOCATION));
+        } else if (!tree.get(FIELD_LOCATION).isTextual()) {
+            violations.add(new RuleViolation("'location' must be a string", PATH_LOCATION));
         }
 
         // Validate schemas array (format version 2+)
@@ -141,10 +144,10 @@ public class IcebergContentValidator implements ContentValidator {
         }
 
         // location is required
-        if (!tree.has("location")) {
-            violations.add(new RuleViolation("Iceberg view metadata must have a 'location' field", "/location"));
-        } else if (!tree.get("location").isTextual()) {
-            violations.add(new RuleViolation("'location' must be a string", "/location"));
+        if (!tree.has(FIELD_LOCATION)) {
+            violations.add(new RuleViolation("Iceberg view metadata must have a 'location' field", PATH_LOCATION));
+        } else if (!tree.get(FIELD_LOCATION).isTextual()) {
+            violations.add(new RuleViolation("'location' must be a string", PATH_LOCATION));
         }
 
         // versions array is required

@@ -14,6 +14,8 @@ import java.util.Map;
  */
 public class ModelSchemaContentAccepter implements ContentAccepter {
 
+    private static final String FIELD_SCHEMA = "$schema";
+
     @Override
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
@@ -28,8 +30,8 @@ public class ModelSchemaContentAccepter implements ContentAccepter {
                 return false;
             }
 
-            if (tree.has("$schema") && tree.get("$schema").isTextual()
-                    && tree.get("$schema").asText().contains("model-schema")) {
+            if (tree.has(FIELD_SCHEMA) && tree.get(FIELD_SCHEMA).isTextual()
+                    && tree.get(FIELD_SCHEMA).asText().contains("model-schema")) {
                 return true;
             }
 

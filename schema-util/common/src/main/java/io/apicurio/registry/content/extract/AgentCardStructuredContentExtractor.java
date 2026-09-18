@@ -20,6 +20,9 @@ import io.apicurio.registry.content.ContentHandle;
  */
 public class AgentCardStructuredContentExtractor implements StructuredContentExtractor {
 
+    private static final String FIELD_PROTOCOL_BINDING = "protocolBinding";
+    private static final String FIELD_PROTOCOL_VERSION = "protocolVersion";
+
     private static final Logger log = LoggerFactory.getLogger(AgentCardStructuredContentExtractor.class);
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -94,13 +97,13 @@ public class AgentCardStructuredContentExtractor implements StructuredContentExt
         JsonNode interfaces = root.path("supportedInterfaces");
         if (!interfaces.isMissingNode() && interfaces.isArray()) {
             for (JsonNode iface : interfaces) {
-                if (iface.has("protocolBinding") && iface.get("protocolBinding").isTextual()) {
+                if (iface.has(FIELD_PROTOCOL_BINDING) && iface.get(FIELD_PROTOCOL_BINDING).isTextual()) {
                     elements.add(new StructuredElement("protocolbinding",
-                            iface.get("protocolBinding").asText()));
+                            iface.get(FIELD_PROTOCOL_BINDING).asText()));
                 }
-                if (iface.has("protocolVersion") && iface.get("protocolVersion").isTextual()) {
+                if (iface.has(FIELD_PROTOCOL_VERSION) && iface.get(FIELD_PROTOCOL_VERSION).isTextual()) {
                     elements.add(new StructuredElement("protocolversion",
-                            iface.get("protocolVersion").asText()));
+                            iface.get(FIELD_PROTOCOL_VERSION).asText()));
                 }
                 if (iface.has("url") && iface.get("url").isTextual()) {
                     elements.add(new StructuredElement("url",
@@ -119,7 +122,7 @@ public class AgentCardStructuredContentExtractor implements StructuredContentExt
     }
 
     private void extractProtocolVersion(JsonNode root, List<StructuredElement> elements) {
-        JsonNode version = root.path("protocolVersion");
+        JsonNode version = root.path(FIELD_PROTOCOL_VERSION);
         if (!version.isMissingNode() && version.isTextual()) {
             elements.add(new StructuredElement("protocolversion", version.asText()));
         }

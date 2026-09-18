@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 public class PerfTestRunner {
 
     private static final Logger log = LoggerFactory.getLogger(PerfTestRunner.class);
+    private static final String JVM_ADD_OPENS = "--add-opens";
 
     public static void main(String[] args) throws Exception {
         boolean skipKafka = Boolean.parseBoolean(System.getenv("PERF_SKIP_KAFKA"));
@@ -72,12 +73,12 @@ public class PerfTestRunner {
         // Gatling requires these --add-opens on JDK 17+/21+ (the same flags its own bundled
         // gatling.sh/gatling.bat scripts pass) since it uses reflection into java.base
         // internals for its stats writers and Netty transport.
-        ProcessBuilder pb = new ProcessBuilder(javaBin, "--add-opens", "java.base/java.lang=ALL-UNNAMED",
-                "--add-opens", "java.base/java.util=ALL-UNNAMED", "--add-opens",
-                "java.base/java.util.concurrent=ALL-UNNAMED", "--add-opens", "java.base/java.nio=ALL-UNNAMED",
-                "--add-opens", "java.base/sun.nio.ch=ALL-UNNAMED", "--add-opens",
-                "java.base/sun.security.ssl=ALL-UNNAMED", "--add-opens",
-                "java.base/sun.security.util=ALL-UNNAMED", "--add-opens", "java.base/java.net=ALL-UNNAMED",
+        ProcessBuilder pb = new ProcessBuilder(javaBin, JVM_ADD_OPENS, "java.base/java.lang=ALL-UNNAMED",
+                JVM_ADD_OPENS, "java.base/java.util=ALL-UNNAMED", JVM_ADD_OPENS,
+                "java.base/java.util.concurrent=ALL-UNNAMED", JVM_ADD_OPENS, "java.base/java.nio=ALL-UNNAMED",
+                JVM_ADD_OPENS, "java.base/sun.nio.ch=ALL-UNNAMED", JVM_ADD_OPENS,
+                "java.base/sun.security.ssl=ALL-UNNAMED", JVM_ADD_OPENS,
+                "java.base/sun.security.util=ALL-UNNAMED", JVM_ADD_OPENS, "java.base/java.net=ALL-UNNAMED",
                 "--add-exports", "java.base/jdk.internal.misc=ALL-UNNAMED", "-cp", classpath,
                 "io.gatling.app.Gatling", "-s",
                 "io.apicurio.registry.perftest.simulations.RegistryApiSimulation", "-rf", resultsFolder,

@@ -52,6 +52,144 @@ public class ProtobufCompatibilityCheckerLibraryTest {
         assertTrue(differences.isEmpty(), "Expected no differences for compatible map<string, string> schemas.");
     }
 
+    /**
+     * Tests that a map field stored in its desugared descriptor form (a repeated field whose type
+     * is a nested synthetic message with "option map_entry = true", as rendered by pre-3.3.1
+     * versions of the registry) is considered compatible with the same field rendered using
+     * map syntax. This is a regression test for issue #9703.
+     */
+    @Test
+    public void testDesugaredMapEntryCompatibility() {
+        String desugaredSchema = """
+            syntax = "proto3";
+            package test;
+
+            message OrderChanged {
+                repeated OrderChanged.DataEntry data = 1;
+
+                message DataEntry {
+                    option map_entry = true;
+                    string key = 1;
+                    string value = 2;
+                }
+            }
+        """;
+
+        String mapSchema = """
+            syntax = "proto3";
+            package test;
+
+            message OrderChanged {
+                map<string, string> data = 1;
+            }
+        """;
+
+        ProtobufFile desugaredFile = new ProtobufFile(desugaredSchema);
+        ProtobufFile mapFile = new ProtobufFile(mapSchema);
+
+        // Both directions must be compatible (backward and forward checks).
+        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(
+                desugaredFile, mapFile);
+        List<ProtobufDifference> differences = checker.findDifferences();
+        assertTrue(differences.isEmpty(),
+                "Expected no differences between the desugared and map<K, V> forms. Found: "
+                        + differences);
+
+        ProtobufCompatibilityCheckerLibrary reverseChecker = new ProtobufCompatibilityCheckerLibrary(
+                mapFile, desugaredFile);
+        List<ProtobufDifference> reverseDifferences = reverseChecker.findDifferences();
+        assertTrue(reverseDifferences.isEmpty(),
+                "Expected no differences between the map<K, V> and desugared forms. Found: "
+                        + reverseDifferences);
+    }
+
+    /**
+     * Tests that a genuine change to the value type of a map field is still reported as
+     * incompatible when one side uses the desugared descriptor form.
+     */
+    @Test
+    public void testDesugaredMapEntryValueTypeChangeIsIncompatible() {
+        String desugaredSchema = """
+            syntax = "proto3";
+            package test;
+
+            message OrderChanged {
+                repeated OrderChanged.DataEntry data = 1;
+
+                message DataEntry {
+                    option map_entry = true;
+                    string key = 1;
+                    string value = 2;
+                }
+            }
+        """;
+
+        String mapSchema = """
+            syntax = "proto3";
+            package test;
+
+            message OrderChanged {
+                map<string, int32> data = 1;
+            }
+        """;
+
+        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(
+                new ProtobufFile(desugaredSchema), new ProtobufFile(mapSchema));
+        List<ProtobufDifference> differences = checker.findDifferences();
+
+        assertFalse(differences.isEmpty(), "Changing the map value type should be incompatible");
+        assertTrue(differences.stream().anyMatch(d -> d.getMessage().contains("Field type changed")),
+                "Expected error about the field type change. Found: " + differences);
+    }
+
+    /**
+     * Tests that desugared map fields whose key/value types are message types rendered with
+     * fully qualified names (as produced from compiled descriptors) are compatible with map
+     * fields using relative type names.
+     */
+    @Test
+    public void testDesugaredMapEntryWithMessageValueCompatibility() {
+        String desugaredSchema = """
+            syntax = "proto3";
+            package test;
+
+            message Foo {
+                string id = 1;
+            }
+
+            message OrderChanged {
+                repeated OrderChanged.DataEntry data = 1;
+
+                message DataEntry {
+                    option map_entry = true;
+                    string key = 1;
+                    .test.Foo value = 2;
+                }
+            }
+        """;
+
+        String mapSchema = """
+            syntax = "proto3";
+            package test;
+
+            message Foo {
+                string id = 1;
+            }
+
+            message OrderChanged {
+                map<string, Foo> data = 1;
+            }
+        """;
+
+        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(
+                new ProtobufFile(desugaredSchema), new ProtobufFile(mapSchema));
+        List<ProtobufDifference> differences = checker.findDifferences();
+
+        assertTrue(differences.isEmpty(),
+                "Expected no differences for map fields with message value types. Found: "
+                        + differences);
+    }
+
     @Test
     public void testAddingNewFieldIsForwardCompatible() {
         // Mock ProtobufFile instances for before and after schema versions

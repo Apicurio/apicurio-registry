@@ -71,10 +71,13 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
         if (disableLogging != Boolean.TRUE) {
             log.warn("Liveness problem suspected in PersistenceExceptionLivenessCheck: {}", reason);
         }
-        super.suspectSuper();
+        long currentCount;
+        synchronized (this) {
+            currentCount = super.suspectSuper();
+        }
         if (disableLogging != Boolean.TRUE) {
             log.info("After this event, the error counter is {} (out of the maximum {} allowed).",
-                    errorCounter, configErrorThreshold);
+                    currentCount, configErrorThreshold);
         }
     }
 
@@ -85,10 +88,13 @@ public class PersistenceExceptionLivenessCheck extends AbstractErrorCounterHealt
                     "Liveness problem suspected in PersistenceExceptionLivenessCheck because of an exception: ",
                     reason);
         }
-        super.suspectSuper();
+        long currentCount;
+        synchronized (this) {
+            currentCount = super.suspectSuper();
+        }
         if (disableLogging != Boolean.TRUE) {
             log.info("After this event, the error counter is {} (out of the maximum {} allowed).",
-                    errorCounter, configErrorThreshold);
+                    currentCount, configErrorThreshold);
         }
     }
 }

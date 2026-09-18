@@ -284,7 +284,7 @@ class GetPrFilesTest(unittest.TestCase):
         self.assertIn("repos/apicurio/registry/pulls/42/files", argv)
 
 
-class GetRemovedLabelsTest(unittest.TestCase):
+class GetRemovedAreaLabelsTest(unittest.TestCase):
 
     def _run_result(self, returncode=0, stdout="", stderr=""):
         return subprocess.CompletedProcess(args=[], returncode=returncode,
@@ -293,30 +293,40 @@ class GetRemovedLabelsTest(unittest.TestCase):
     def test_returns_the_labels_from_unlabeled_events(self):
         with mock.patch.object(classify.subprocess, "run",
                                return_value=self._run_result(stdout="area/ui\narea/rest\n")):
-            self.assertEqual(classify.get_removed_labels("o/r", 1),
+            self.assertEqual(classify.get_removed_area_labels("o/r", 1),
                              {"area/ui", "area/rest"})
 
     def test_a_label_removed_twice_is_reported_once(self):
         with mock.patch.object(classify.subprocess, "run",
                                return_value=self._run_result(stdout="area/ui\narea/ui\n")):
-            self.assertEqual(classify.get_removed_labels("o/r", 1), {"area/ui"})
+            self.assertEqual(classify.get_removed_area_labels("o/r", 1), {"area/ui"})
 
     def test_an_unreadable_history_degrades_to_no_suppression(self):
         # Failing open keeps classification working; failing closed would mean a
         # transient API error silently stops labelling altogether.
         with mock.patch.object(classify.subprocess, "run",
                                return_value=self._run_result(returncode=1, stderr="boom")):
-            self.assertEqual(classify.get_removed_labels("o/r", 1), set())
+            self.assertEqual(classify.get_removed_area_labels("o/r", 1), set())
 
-    def test_the_events_endpoint_is_paginated_and_filtered(self):
+    def test_the_events_endpoint_is_paginated(self):
         with mock.patch.object(classify.subprocess, "run",
                                return_value=self._run_result()) as run:
-            classify.get_removed_labels("apicurio/registry", 42)
+            classify.get_removed_area_labels("apicurio/registry", 42)
 
         argv = run.call_args.args[0]
         self.assertIn("--paginate", argv)
         self.assertIn("repos/apicurio/registry/issues/42/events", argv)
-        self.assertTrue(any("unlabeled" in a for a in argv))
+
+    def test_the_query_filters_to_unlabeled_events_on_area_labels(self):
+        # The lifecycle orchestrator's lifecycle/* churn dominates this
+        # timeline; filtering server-side keeps it out of the result entirely.
+        with mock.patch.object(classify.subprocess, "run",
+                               return_value=self._run_result()) as run:
+            classify.get_removed_area_labels("apicurio/registry", 42)
+
+        jq = run.call_args.args[0][run.call_args.args[0].index("--jq") + 1]
+        self.assertIn("unlabeled", jq)
+        self.assertIn('startswith("area/")', jq)
 
 
 class LabelsToApplyTest(unittest.TestCase):
@@ -370,6 +380,15 @@ class ApplyLabelsTest(unittest.TestCase):
         with mock.patch.object(classify.subprocess, "run") as run:
             classify.apply_labels("o/r", 7, ["area/ui", "area/rest"], is_pr=True)
         self.assertEqual(run.call_count, 2)
+
+    def test_labels_are_applied_in_sorted_order(self):
+        # Input is a set in production and Python randomises string hashing per
+        # process, so without sorting the log order varies between runs.
+        with mock.patch.object(classify.subprocess, "run") as run:
+            classify.apply_labels("o/r", 7, {"area/ui", "area/rest", "area/CI"})
+
+        applied = [call.args[0][-1] for call in run.call_args_list]
+        self.assertEqual(applied, ["area/CI", "area/rest", "area/ui"])
 
 
 class WriteOutputJsonTest(unittest.TestCase):

@@ -102,8 +102,8 @@ def get_pr_files(repo, number):
     return [line for line in result.stdout.splitlines() if line]
 
 
-def get_removed_labels(repo, number):
-    """Every label that has been taken off this issue or PR at any point.
+def get_removed_area_labels(repo, number):
+    """Every `area/*` label that has been taken off this issue or PR.
 
     Classification is not a one-shot event: issues reclassify on every edit and
     PRs on every draft/ready cycle. Without this, a maintainer who deletes a
@@ -112,17 +112,23 @@ def get_removed_labels(repo, number):
 
     No new state is needed — GitHub's events timeline already records it.
 
-    Every removal is returned, by anyone, including bots: the PR lifecycle
-    orchestrator churns through `lifecycle/*` labels constantly and those show
-    up here too. That is safe only because the result is intersected with the
-    classifier's own picks, which are always `area/*`, and nothing in
-    .github/scripts removes an `area/*` label. If some future automation
-    starts doing so, this must begin filtering by actor — otherwise one bulk
-    removal would suppress a label permanently.
+    The `area/` filter is in the jq, not left to the caller. The timeline is
+    dominated by the PR lifecycle orchestrator's `lifecycle/*` churn, which is
+    irrelevant here and can run to dozens of entries on an active PR.
+
+    Removals are not filtered by actor, which is safe only because nothing in
+    .github/scripts removes an `area/*` label: pr-lifecycle.js:1107 is reached
+    only via the label-guard job, which the workflow gates to `lifecycle/` and
+    `orchestrator/` prefixes, and pr-validation.js only touches its own
+    validation label. If some future automation starts removing area labels,
+    this must begin filtering by actor — otherwise one bulk removal would
+    suppress a label permanently. Filtering to `area/*` above does not help
+    with that; it is about noise, not safety.
     """
     result = subprocess.run(
         ["gh", "api", "--paginate", f"repos/{repo}/issues/{number}/events",
-         "--jq", '.[] | select(.event == "unlabeled") | .label.name'],
+         "--jq", '.[] | select(.event == "unlabeled") | .label.name '
+                 '| select(startswith("area/"))'],
         capture_output=True, text=True,
     )
     if result.returncode != 0:
@@ -277,7 +283,10 @@ def classify_issue_type(issue_embedding, type_embeddings, config):
 
 def apply_labels(repo, number, labels, is_pr=False):
     subcommand = "pr" if is_pr else "issue"
-    for label in labels:
+    # Sorted, because `labels` is a set and Python randomises string hashing per
+    # process: without this the log order differs between otherwise identical
+    # runs, which makes two runs annoying to diff.
+    for label in sorted(labels):
         subprocess.run(
             ["gh", subcommand, "edit", str(number),
              "--repo", repo, "--add-label", label],
@@ -372,7 +381,7 @@ def main():
     default_threshold = config["area_labels"]["threshold"]
     labels_config = config["area_labels"]["labels"]
     new_labels, area_scores = classify_area_labels(target_embedding, label_embeddings, config)
-    removed_labels = get_removed_labels(args.repo, number)
+    removed_labels = get_removed_area_labels(args.repo, number)
     labels_to_add = labels_to_apply(new_labels, existing_area_labels, removed_labels)
     suppressed = (new_labels & removed_labels) - existing_area_labels
 

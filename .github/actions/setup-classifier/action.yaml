@@ -34,6 +34,8 @@ runs:
         path: ~/.cache/huggingface
         key: classify-model-all-MiniLM-L6-v2
 
+    # `python -m pip` rather than `pip`: it pins the install to the interpreter
+    # setup-python just configured, instead of whatever `pip` PATH resolves to.
     - name: Install dependencies
       shell: bash
-      run: pip install pyyaml sentence-transformers
+      run: python -m pip install pyyaml sentence-transformers

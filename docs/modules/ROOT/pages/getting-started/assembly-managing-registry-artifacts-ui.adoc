@@ -189,7 +189,7 @@ Each artifact version has a state that identifies its lifecycle stage. The web c
 |*Enabled*, *Deprecated*
 
 |*Sunset* (`SUNSET`)
-|A version that has reached the end of its deprecation period. You can set this state only by using the REST API. The web console displays a *Sunset* badge for the version, but the *Change version state* dialog displays the current state as *Unknown*.
+|A version that has reached the end of its deprecation period. You can set this state only by using the REST API.
 |*Enabled*, *Deprecated*, *Disabled*
 |===
 

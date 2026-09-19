@@ -208,6 +208,36 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
 
     /**
+     * Enable or disable retry for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_ENABLED = "apicurio.registry.client.retry.enabled";
+    public static final boolean CLIENT_RETRY_ENABLED_DEFAULT = true;
+
+    /**
+     * Maximum number of retry attempts for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_MAX_ATTEMPTS = "apicurio.registry.client.retry.max-attempts";
+    public static final long CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT = 3;
+
+    /**
+     * Initial retry delay in milliseconds for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_DELAY_MS = "apicurio.registry.client.retry.delay-ms";
+    public static final long CLIENT_RETRY_DELAY_MS_DEFAULT = 250;
+
+    /**
+     * Exponential backoff multiplier for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_BACKOFF_MULTIPLIER = "apicurio.registry.client.retry.backoff-multiplier";
+    public static final double CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT = 2.0;
+
+    /**
+     * Maximum retry delay in milliseconds for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_MAX_DELAY_MS = "apicurio.registry.client.retry.max-delay-ms";
+    public static final long CLIENT_RETRY_MAX_DELAY_MS_DEFAULT = 10000;
+
+    /**
      * Used to indicate the serdes to dereference the schema. This is used in two different situation, once
      * the schema is registered, instructs the serdes to ask the server for the schema dereferenced. It is
      * also used to instruct the serializer to dereference the schema before registering it Registry, but this
@@ -475,6 +505,44 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getDurationNonNegativeMillis(RETRY_BACKOFF_MS);
     }
 
+    public boolean getClientRetryEnabled() {
+        return getBoolean(CLIENT_RETRY_ENABLED);
+    }
+
+    public long getClientRetryMaxAttempts() {
+        return getLongNonNegative(CLIENT_RETRY_MAX_ATTEMPTS);
+    }
+
+    public long getClientRetryDelayMs() {
+        return getDurationNonNegativeMillis(CLIENT_RETRY_DELAY_MS).toMillis();
+    }
+
+    public double getClientRetryBackoffMultiplier() {
+        Object value = getObject(CLIENT_RETRY_BACKOFF_MULTIPLIER);
+        if (value == null) {
+            return CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT;
+        }
+        if (value instanceof Number) {
+            return ((Number) value).doubleValue();
+        } else if (value instanceof String) {
+            try {
+                return Double.parseDouble((String) value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid configuration property value for '"
+                        + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
+                        + value + "'.", e);
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid configuration property value for '"
+                    + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
+                    + value + "'.");
+        }
+    }
+
+    public long getClientRetryMaxDelayMs() {
+        return getDurationNonNegativeMillis(CLIENT_RETRY_MAX_DELAY_MS).toMillis();
+    }
+
     public String getExplicitArtifactGroupId() {
         return getString(EXPLICIT_ARTIFACT_GROUP_ID);
     }
@@ -630,6 +698,11 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),
             entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
+            entry(CLIENT_RETRY_ENABLED, CLIENT_RETRY_ENABLED_DEFAULT),
+            entry(CLIENT_RETRY_MAX_ATTEMPTS, CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT),
+            entry(CLIENT_RETRY_DELAY_MS, CLIENT_RETRY_DELAY_MS_DEFAULT),
+            entry(CLIENT_RETRY_BACKOFF_MULTIPLIER, CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT),
+            entry(CLIENT_RETRY_MAX_DELAY_MS, CLIENT_RETRY_MAX_DELAY_MS_DEFAULT),
             entry(DEREFERENCE_SCHEMA, DEREFERENCE_DEFAULT),
             entry(TLS_TRUSTSTORE_TYPE, TLS_TRUSTSTORE_TYPE_DEFAULT),
             entry(TLS_KEYSTORE_TYPE, TLS_KEYSTORE_TYPE_DEFAULT),

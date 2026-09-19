@@ -2077,6 +2077,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("data", data);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
 
@@ -2093,6 +2094,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         ? PromotionStage.valueOf(data.getStage().value()) : null)
                 .compatibilityGroup(data.getCompatibilityGroup())
                 .build();
+
+        contractMetadataValidator.validate(editableDto);
 
         // Resolve the contract id and the labels to store before handing them to storage. The
         // merge removes the contract.{id}.id label, so the id has to be read up front, and the
@@ -2216,6 +2219,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("data", data);
         ParameterValidationUtils.requireParameter("status", data.getStatus());
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();

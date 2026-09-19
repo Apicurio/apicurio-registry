@@ -6,7 +6,7 @@
   ],
   "baseBranches": [
     "main",
-    "3.2.x"
+    "3.3.x"
   ],
   "enabledManagers": [
     "npm",
@@ -446,9 +446,9 @@
     },
 
     {
-      "description": "On 3.2.x branch, only allow patch updates",
+      "description": "On 3.3.x LTS branch, only allow patch updates",
       "matchBaseBranches": [
-        "3.2.x"
+        "3.3.x"
       ],
       "matchUpdateTypes": [
         "major",

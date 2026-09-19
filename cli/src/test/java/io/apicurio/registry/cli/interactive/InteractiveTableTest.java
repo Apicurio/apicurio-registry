@@ -1,5 +1,6 @@
 package io.apicurio.registry.cli.interactive;
 
+import io.apicurio.registry.cli.common.CliException;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.jline.terminal.impl.ExternalTerminal;
@@ -16,8 +17,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InteractiveTableTest {
@@ -148,6 +151,90 @@ class InteractiveTableTest {
         var selection = table.handleBinding("CONFIRM_YES", InteractiveTableState.Mode.CONFIRM_DELETE);
         assertNull(selection); // stays in loop
         assertEquals(InteractiveTableState.Mode.NORMAL, table.state.getMode());
+        assertEquals("Failed to delete: Server error", table.getErrorMessage());
+        // The failure has to outlive the footer, which is gone once the TUI exits.
+        assertEquals("Failed to delete: Server error", table.getDeleteFailureMessage());
+    }
+
+    @Test
+    void testFailIfDeleteFailed_ThrowsWithApplicationErrorCodeAfterAFailedDelete() {
+        var table = new InteractiveTable<String>(
+                List.of("A"),
+                s -> s,
+                s -> s,
+                p -> new InteractiveTable.PageResult<>(List.of("A"), false),
+                false,
+                item -> {
+                    throw new RuntimeException("Server error");
+                }
+        );
+        table.state.startConfirmDelete();
+        table.handleBinding("CONFIRM_YES", InteractiveTableState.Mode.CONFIRM_DELETE);
+
+        // The TUI has exited by this point, so the exit code is the only signal left.
+        var thrown = assertThrows(CliException.class, table::failIfDeleteFailed);
+        assertEquals("Failed to delete: Server error", thrown.getMessage());
+        assertEquals(CliException.APPLICATION_ERROR_RETURN_CODE, thrown.getCode());
+    }
+
+    @Test
+    void testFailIfDeleteFailed_SilentWhenEveryDeleteSucceeds() {
+        var pageRows = new ArrayList<>(List.of("A", "B"));
+        var table = new InteractiveTable<String>(
+                List.copyOf(pageRows),
+                s -> s,
+                s -> s,
+                p -> new InteractiveTable.PageResult<>(pageRows, false),
+                false,
+                pageRows::remove
+        );
+        table.state.startConfirmDelete();
+
+        var selection = table.handleBinding("CONFIRM_YES", InteractiveTableState.Mode.CONFIRM_DELETE);
+        assertNull(selection); // the handler ran in-loop rather than returning a DELETE selection
+        assertEquals(List.of("B"), table.state.getVisibleRows());
+        assertNull(table.getDeleteFailureMessage());
+        assertDoesNotThrow(table::failIfDeleteFailed);
+    }
+
+    @Test
+    void testHandleNormalBinding_AfterFailedDelete_ErrorDoesNotHideConfirmPrompt() throws IOException {
+        var table = new InteractiveTable<String>(
+                List.of("A", "B"),
+                s -> s,
+                s -> s,
+                p -> new InteractiveTable.PageResult<>(List.of("A", "B"), false),
+                false,
+                item -> {
+                    throw new RuntimeException("Server error");
+                }
+        );
+        table.state.startConfirmDelete();
+        table.handleBinding("CONFIRM_YES", InteractiveTableState.Mode.CONFIRM_DELETE);
+        assertEquals("Failed to delete: Server error", table.getErrorMessage());
+
+        // Pressing 'd' again must show the confirmation prompt, not the previous error: the footer
+        // renders errorMessage at a higher priority than the prompt.
+        table.handleBinding("DELETE", InteractiveTableState.Mode.NORMAL);
+        assertNull(table.getErrorMessage());
+        assertEquals(InteractiveTableState.Mode.CONFIRM_DELETE, table.state.getMode());
+        assertEquals("Delete A? [y/N]", renderFooter(table));
+        // Clearing the footer must not lose the failure that drives the exit code.
+        assertEquals("Failed to delete: Server error", table.getDeleteFailureMessage());
+    }
+
+    /**
+     * Renders just the footer to an in-memory terminal and returns it without the leading blank
+     * line. The carriage returns must be stripped: println emits the platform separator and the
+     * terminal applies ONLCR on top, so on Windows the stream contains "\r\r\n".
+     */
+    private static String renderFooter(InteractiveTable<String> table) throws IOException {
+        var out = new ByteArrayOutputStream();
+        try (Terminal terminal = new ExternalTerminal("test", "xterm",
+                new ByteArrayInputStream(new byte[0]), out, StandardCharsets.UTF_8)) {
+            table.renderFooter(terminal);
+        }
+        return out.toString(StandardCharsets.UTF_8).replace("\r", "").strip();
     }
 
     @Test
@@ -256,6 +343,8 @@ class InteractiveTableTest {
             assertEquals("QUIT", keyMap.getBound("\u0003"));
             assertEquals("DELETE", keyMap.getBound("d"));
             assertEquals("FILTER", keyMap.getBound("/"));
+            // A bare ESC quits; an ESC that opens a sequence must not. That distinction is the bug.
+            assertEquals("ESC", keyMap.getBound("\033"));
         }
     }
 
@@ -278,6 +367,9 @@ class InteractiveTableTest {
             // Application cursor mode
             assertEquals("UP", keyMap.getBound("\033OA"));
             assertEquals("DOWN", keyMap.getBound("\033OB"));
+            // A bare ESC still quits. Before the fix the arrow sequences had no binding, so their
+            // leading ESC matched this one and the first arrow key press exited the TUI.
+            assertEquals("ESC", keyMap.getBound("\033"));
         }
     }
 }

@@ -73,12 +73,9 @@ public final class InteractiveUtil {
         );
 
         var selected = table.run();
-        if (selected == null) {
-            return;
-        }
 
-        var a = selected.row();
-        if (selected.action() == InteractiveTable.Action.VIEW) {
+        if (selected != null && selected.action() == InteractiveTable.Action.VIEW) {
+            var a = selected.row();
             if (outputType == OutputType.json) {
                 output.writeStdOutChunk(out -> {
                     try {
@@ -91,6 +88,10 @@ public final class InteractiveUtil {
                 output.writeStdOutChunk(sb -> printArtifactDetails(a, sb));
             }
         }
+
+        // Checked on every exit path, including quitting the TUI, so this must stay after the
+        // selection handling above.
+        table.failIfDeleteFailed();
     }
 
     static void printArtifactDetails(SearchedArtifact a, StringBuilder stdout) {

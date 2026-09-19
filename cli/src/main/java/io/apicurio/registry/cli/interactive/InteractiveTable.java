@@ -43,6 +43,7 @@ public class InteractiveTable<T> {
     private int windowStart = 0;
     private String errorMessage = null;
     private String statusMessage = null;
+    private String deleteFailureMessage = null;
 
     /** Result of fetching a page: the rows, and whether more pages exist. */
     public record PageResult<T>(List<T> rows, boolean hasNextPage) {
@@ -173,6 +174,27 @@ public class InteractiveTable<T> {
         return keyMap;
     }
 
+    /**
+     * Fails the command if any delete failed during this session. Callers invoke it after the TUI
+     * exits: failures are reported in the footer, but that is gone once the alternate screen is
+     * left, and a failed delete must not be reported as success.
+     */
+    public void failIfDeleteFailed() {
+        if (deleteFailureMessage != null) {
+            throw new CliException(deleteFailureMessage, CliException.APPLICATION_ERROR_RETURN_CODE);
+        }
+    }
+
+    /** Package-private for tests: the message currently shown in the footer, if any. */
+    String getErrorMessage() {
+        return errorMessage;
+    }
+
+    /** Package-private for tests: the message of the last delete that failed, if any. */
+    String getDeleteFailureMessage() {
+        return deleteFailureMessage;
+    }
+
     /** Returns a Selection if the loop should end with a result, or null to keep looping. */
     Selection<T> handleBinding(String op, InteractiveTableState.Mode mode) {
         return switch (mode) {
@@ -212,6 +234,7 @@ public class InteractiveTable<T> {
         } catch (Exception e) {
             log.warn("Failed to delete item", e);
             errorMessage = "Failed to delete: " + extractErrorMessage(e);
+            deleteFailureMessage = errorMessage;
             statusMessage = null;
             return;
         }
@@ -247,6 +270,9 @@ public class InteractiveTable<T> {
 
     Selection<T> handleNormalBinding(String op) {
         statusMessage = null;
+        // Errors are transient: clear them on the next action so a stale one cannot hide the
+        // delete confirmation prompt, which the footer renders at lower priority.
+        errorMessage = null;
         switch (op) {
             case "QUIT", "ESC" -> {
                 return terminalExit();
@@ -370,7 +396,7 @@ public class InteractiveTable<T> {
         }
     }
 
-    private void renderFooter(Terminal terminal) {
+    void renderFooter(Terminal terminal) {
         terminal.writer().println();
         if (errorMessage != null) {
             terminal.writer().println("Error: " + errorMessage);

@@ -26,7 +26,7 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'backport/3.3.x')
     steps:
       - name: Backport
-        uses: kiegroup/git-backporting@v4
+        uses: kiegroup/git-backporting@17bab14ff4b362d044e12c18e491b4ef8e69a4b1 # v4
         with:
           target-branch: 3.3.x
           pull-request: ${{ github.event.pull_request.html_url }}

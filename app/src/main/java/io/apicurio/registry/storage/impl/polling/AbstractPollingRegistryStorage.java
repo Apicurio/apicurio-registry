@@ -192,6 +192,11 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                                 var pollResult = pollingDataSourceManager.poll();
                                 if (pollResult.isHasChanges()) {
                                     debouncer.onChange(pollResult);
+                                } else {
+                                    status = status.toBuilder()
+                                            .syncState(PollingStorageStatus.SyncState.IDLE)
+                                            .errors(Collections.emptyList())
+                                            .build();
                                 }
                                 if (debouncer.isReady()) {
                                     loadInactive(debouncer.pending());
@@ -201,7 +206,9 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                                 log.error("{} poll/load failed: {}", storageName(), e.getMessage(), e);
                                 status = status.toBuilder()
                                         .syncState(PollingStorageStatus.SyncState.ERROR)
-                                        .errors(List.of(new PollingError("Poll failed: " + e.getMessage())))
+                                        .errors(List.of(new PollingError(
+                                                "Poll failed: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName())
+                                        )))
                                         .build();
                             }
                         }

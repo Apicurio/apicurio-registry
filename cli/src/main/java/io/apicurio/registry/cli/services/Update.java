@@ -69,8 +69,19 @@ public class Update {
     }
 
     public UpdateCheckResult checkForUpdates(CliVersion currentVersion) {
-        var allVersions = fetchAvailableVersions();
+        List<CliVersion> allVersions;
+        try {
+            allVersions = fetchAvailableVersions();
+        } catch (RuntimeException ex) {
+            // Record the failure before rethrowing, so the next attempt is deferred instead of being
+            // retried by the auto-check hook on every subsequent command.
+            recordFailedCheck();
+            throw ex;
+        }
         if (allVersions == null || allVersions.isEmpty()) {
+            // Metadata was fetched and parsed, it simply lists nothing usable. That is a completed
+            // check, so it is recorded as one; leaving it unrecorded would re-run it every command.
+            recordSuccessfulCheck();
             return new UpdateCheckResult(currentVersion, List.of());
         }
 
@@ -92,11 +103,48 @@ public class Update {
                 .sorted(CliVersion.COMPARATOR)
                 .collect(Collectors.toCollection(ArrayList::new));
 
-        var configModel = config.read();
-        configModel.getConfig().put("internal.update.last-check", Instant.now().toString());
-        config.write(configModel);
+        recordSuccessfulCheck();
 
         return new UpdateCheckResult(currentVersion, List.copyOf(parsed));
+    }
+
+    /**
+     * Records a completed update check and clears any failure state, so the next check is governed by
+     * the normal daily interval rather than by the failure backoff.
+     */
+    private void recordSuccessfulCheck() {
+        var configModel = config.read();
+        var props = configModel.getConfig();
+        props.put("internal.update.last-check", Instant.now().toString());
+        props.remove("internal.update.last-failure");
+        props.remove("internal.update.failure-count");
+        config.write(configModel);
+    }
+
+    /**
+     * Records a failed update check: when it happened, and how many have failed in a row. Both are
+     * read back by {@link UpdateNotifier} to defer the next attempt, for progressively longer after
+     * each consecutive failure.
+     * <p>
+     * The failure is deliberately tracked separately from {@code internal.update.last-check} rather
+     * than reusing it, so that a failing check retries sooner than a successful one would, instead of
+     * being suppressed for a full day.
+     * <p>
+     * Recording is best-effort. A config file that cannot be read or written must not turn a failed
+     * update check into a failure of the command the user actually ran.
+     */
+    private void recordFailedCheck() {
+        try {
+            var configModel = config.read();
+            var props = configModel.getConfig();
+            var failures = UpdateNotifier.parseFailureCount(props.get("internal.update.failure-count"));
+            props.put("internal.update.last-failure", Instant.now().toString());
+            props.put("internal.update.failure-count",
+                    Integer.toString(Math.min(failures + 1, UpdateNotifier.MAX_FAILURE_COUNT)));
+            config.write(configModel);
+        } catch (RuntimeException ex) {
+            log.debugf("Could not record the failed update check: %s", ex.getMessage());
+        }
     }
 
     List<CliVersion> fetchAvailableVersions() {
@@ -218,10 +266,27 @@ public class Update {
         }
     }
 
+    /**
+     * Reads the repository the CLI updates from.
+     * <p>
+     * The value is read optionally, and every failure is reported as a {@link CliException}. Reading it
+     * with {@code getValue} instead throws {@link java.util.NoSuchElementException} when the property is
+     * absent, which the command layer can only report as an "Unexpected error" with a stack trace. This
+     * matches how {@link #isSkipChecksumVerification()} already reads configuration in this class.
+     */
     private String getRepoUrl() {
-        String url = ConfigProvider.getConfig().getValue("internal.update.repo-url", String.class);
+        String url;
+        try {
+            url = ConfigProvider.getConfig()
+                    .getOptionalValue("internal.update.repo-url", String.class)
+                    .orElse(null);
+        } catch (RuntimeException ex) {
+            throw new CliException("Could not read the update repository URL from the configuration.", ex,
+                    APPLICATION_ERROR_RETURN_CODE);
+        }
         if (url == null || url.isBlank()) {
-            throw new CliException("Update repository URL is not configured.");
+            throw new CliException(
+                    "Update repository URL ('internal.update.repo-url') is not configured.");
         }
         return url;
     }

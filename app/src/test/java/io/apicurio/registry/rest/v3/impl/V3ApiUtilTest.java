@@ -17,10 +17,16 @@
 package io.apicurio.registry.rest.v3.impl;
 
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
+import io.apicurio.registry.rest.v3.beans.BranchSearchResults;
 import io.apicurio.registry.rest.v3.beans.ContractMetadata;
+import io.apicurio.registry.rest.v3.beans.SearchedBranch;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
+import io.apicurio.registry.storage.dto.SearchedBranchDto;
 import org.junit.jupiter.api.Test;
 
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -35,6 +41,20 @@ class V3ApiUtilTest {
     private static ArtifactMetaData convert(Map<String, String> labels) {
         return V3ApiUtil.dtoToArtifactMetaData(ArtifactMetaDataDto.builder()
                 .groupId("g").artifactId("a").labels(labels).build());
+    }
+
+    private static SearchedBranchDto branch(String branchId, long createdOn, long modifiedOn) {
+        return SearchedBranchDto.builder()
+                .groupId("group-" + branchId)
+                .artifactId("artifact-" + branchId)
+                .branchId(branchId)
+                .description("Description for " + branchId)
+                .systemDefined(false)
+                .owner("owner-" + branchId)
+                .createdOn(createdOn)
+                .modifiedBy("modifier-" + branchId)
+                .modifiedOn(modifiedOn)
+                .build();
     }
 
     @Test
@@ -121,5 +141,106 @@ class V3ApiUtilTest {
         assertEquals("2026-01-01", cm.getDeprecatedDate());
         assertEquals("replaced by v2", cm.getDeprecationReason());
         assertEquals("orders-v1", cm.getCompatibilityGroup());
+    }
+
+    @Test
+    void testBranchSearchResultsNormalFlow() {
+        SearchedBranchDto dtoBranch = branch("main", 1700000000000L, 1700000001000L);
+        BranchSearchResultsDto dto = BranchSearchResultsDto.builder()
+                .count(1)
+                .branches(List.of(dtoBranch))
+                .build();
+
+        BranchSearchResults results = V3ApiUtil.dtoToSearchResults(dto);
+
+        assertEquals(1, results.getCount());
+        assertEquals(1, results.getBranches().size());
+
+        SearchedBranch branch = results.getBranches().getFirst();
+        assertEquals("group-main", branch.getGroupId());
+        assertEquals("artifact-main", branch.getArtifactId());
+        assertEquals("main", branch.getBranchId());
+        assertEquals("Description for main", branch.getDescription());
+        assertEquals(Boolean.FALSE, branch.getSystemDefined());
+        assertEquals("owner-main", branch.getOwner());
+        assertEquals(new Date(1700000000000L), branch.getCreatedOn());
+        assertEquals("modifier-main", branch.getModifiedBy());
+        assertEquals(new Date(1700000001000L), branch.getModifiedOn());
+    }
+
+    @Test
+    void testBranchSearchResultsMultipleBranches() {
+        BranchSearchResultsDto dto = BranchSearchResultsDto.builder()
+                .count(2)
+                .branches(List.of(
+                        branch("main", 1700000000000L, 1700000001000L),
+                        branch("release", 1700000002000L, 1700000003000L)))
+                .build();
+
+        BranchSearchResults results = V3ApiUtil.dtoToSearchResults(dto);
+
+        assertEquals(2, results.getCount());
+        assertEquals(2, results.getBranches().size());
+        assertEquals("main", results.getBranches().get(0).getBranchId());
+        assertEquals("release", results.getBranches().get(1).getBranchId());
+        assertEquals("group-release", results.getBranches().get(1).getGroupId());
+        assertEquals("artifact-release", results.getBranches().get(1).getArtifactId());
+    }
+
+    @Test
+    void testBranchSearchResultsDateConversion() {
+        long createdOn = 1712345678901L;
+        long modifiedOn = 1712345689012L;
+        BranchSearchResultsDto dto = BranchSearchResultsDto.builder()
+                .count(1)
+                .branches(List.of(branch("dates", createdOn, modifiedOn)))
+                .build();
+
+        SearchedBranch branch = V3ApiUtil.dtoToSearchResults(dto).getBranches().getFirst();
+
+        assertEquals(new Date(createdOn), branch.getCreatedOn());
+        assertEquals(createdOn, branch.getCreatedOn().getTime());
+        assertEquals(new Date(modifiedOn), branch.getModifiedOn());
+        assertEquals(modifiedOn, branch.getModifiedOn().getTime());
+    }
+
+    @Test
+    void testBranchSearchResultsEmptyBranchList() {
+        BranchSearchResultsDto dto = BranchSearchResultsDto.builder()
+                .count(0)
+                .branches(List.of())
+                .build();
+
+        BranchSearchResults results = V3ApiUtil.dtoToSearchResults(dto);
+
+        assertEquals(0, results.getCount());
+        assertEquals(List.of(), results.getBranches());
+    }
+
+    @Test
+    void testBranchSearchResultsNullGroupAndArtifactIds() {
+        SearchedBranchDto dtoBranch = SearchedBranchDto.builder()
+                .groupId(null)
+                .artifactId(null)
+                .branchId("main")
+                .description("Description for main")
+                .systemDefined(false)
+                .owner("owner-main")
+                .createdOn(1700000000000L)
+                .modifiedBy("modifier-main")
+                .modifiedOn(1700000001000L)
+                .build();
+
+        BranchSearchResultsDto dto = BranchSearchResultsDto.builder()
+                .count(1)
+                .branches(List.of(dtoBranch))
+                .build();
+
+        BranchSearchResults results = V3ApiUtil.dtoToSearchResults(dto);
+
+        SearchedBranch branch = results.getBranches().getFirst();
+
+        assertNull(branch.getGroupId());
+        assertNull(branch.getArtifactId());
     }
 }

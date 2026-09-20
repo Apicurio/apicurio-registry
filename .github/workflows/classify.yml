@@ -26,7 +26,7 @@ on:
     types: [opened, edited]
   pull_request_target:
     types: [opened, ready_for_review]
-    branches: [main]
+    branches: [main, '3.3.x']
   workflow_dispatch:
     inputs:
       # Typed as string rather than number so "not supplied" is unambiguously

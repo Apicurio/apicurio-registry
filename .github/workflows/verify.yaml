@@ -26,12 +26,12 @@ name: Verify
 
 on:
   push:
-    branches: [main]
+    branches: [main, '3.3.x']
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled]
-    branches: [main]
+    branches: [main, '3.3.x']
   # No branches: filter here — pull_request_review does not support one.
-  # In practice every PR in this repo targets main, so this is a non-issue.
+  # In practice every PR targets main or 3.3.x, so this is a non-issue.
   # `dismissed` is included because dismissing a stale CHANGES_REQUESTED can
   # flip reviewDecision to APPROVED, which Decide must re-evaluate — otherwise
   # the full suite would stay skipped until the next push or new review.
@@ -472,6 +472,7 @@ jobs:
     uses: ./.github/workflows/verify-publish.yaml
     with:
       image-tag: ${{ github.sha }}
+      snapshot-tag: ${{ github.ref_name == 'main' && 'latest-snapshot' || format('{0}-snapshot', github.ref_name) }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}

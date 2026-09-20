@@ -14,7 +14,7 @@ name: Scripts Tests
 on:
   pull_request:
     types: [opened, reopened, synchronize]
-    branches: [main]
+    branches: [main, '3.3.x']
     paths:
       - '.github/scripts/**'
       - '.github/pr-lifecycle.yml'

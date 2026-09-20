@@ -37,6 +37,14 @@ public class Update {
 
     private static final Logger log = Logger.getLogger(Update.class);
 
+    /**
+     * Config keys holding the update-check state. Written here and read back by
+     * {@link UpdateNotifier} to decide when the next check is due.
+     */
+    static final String CONFIG_LAST_CHECK = "internal.update.last-check";
+    static final String CONFIG_LAST_FAILURE = "internal.update.last-failure";
+    static final String CONFIG_FAILURE_COUNT = "internal.update.failure-count";
+
     @Inject
     Client client;
 
@@ -115,9 +123,9 @@ public class Update {
     private void recordSuccessfulCheck() {
         var configModel = config.read();
         var props = configModel.getConfig();
-        props.put("internal.update.last-check", Instant.now().toString());
-        props.remove("internal.update.last-failure");
-        props.remove("internal.update.failure-count");
+        props.put(CONFIG_LAST_CHECK, Instant.now().toString());
+        props.remove(CONFIG_LAST_FAILURE);
+        props.remove(CONFIG_FAILURE_COUNT);
         config.write(configModel);
     }
 
@@ -137,9 +145,9 @@ public class Update {
         try {
             var configModel = config.read();
             var props = configModel.getConfig();
-            var failures = UpdateNotifier.parseFailureCount(props.get("internal.update.failure-count"));
-            props.put("internal.update.last-failure", Instant.now().toString());
-            props.put("internal.update.failure-count",
+            var failures = UpdateNotifier.parseFailureCount(props.get(CONFIG_FAILURE_COUNT));
+            props.put(CONFIG_LAST_FAILURE, Instant.now().toString());
+            props.put(CONFIG_FAILURE_COUNT,
                     Integer.toString(Math.min(failures + 1, UpdateNotifier.MAX_FAILURE_COUNT)));
             config.write(configModel);
         } catch (RuntimeException ex) {

@@ -77,7 +77,7 @@ public class UpdateCheckFailureBackoffTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         wireMock.resetAll();
         config.reset();
     }
@@ -87,7 +87,7 @@ public class UpdateCheckFailureBackoffTest {
     // ---------------------------------------------------------------------------------------------
 
     @Test
-    public void testBackoffDoublesWithEachConsecutiveFailure() {
+    void testBackoffDoublesWithEachConsecutiveFailure() {
         assertThat(UpdateNotifier.failureBackoff(0))
                 .as("Nothing has failed, so nothing is deferred")
                 .isEqualTo(Duration.ZERO);
@@ -99,14 +99,14 @@ public class UpdateCheckFailureBackoffTest {
     }
 
     @Test
-    public void testFirstRetryComesSoonerThanAScheduledCheckWould() {
+    void testFirstRetryComesSoonerThanAScheduledCheckWould() {
         assertThat(UpdateNotifier.failureBackoff(1))
                 .as("A transient failure must recover well before the once-a-day check interval")
                 .isLessThan(Duration.ofDays(1));
     }
 
     @Test
-    public void testBackoffIsCappedAtTheScheduledCheckInterval() {
+    void testBackoffIsCappedAtTheScheduledCheckInterval() {
         assertThat(UpdateNotifier.failureBackoff(8))
                 .as("Doubling past a day must saturate, not keep growing")
                 .isEqualTo(Duration.ofDays(1));
@@ -115,11 +115,11 @@ public class UpdateCheckFailureBackoffTest {
     }
 
     @Test
-    public void testFailureCountIsReadDefensivelyFromUserEditableConfig() {
-        assertThat(UpdateNotifier.parseFailureCount(null)).isEqualTo(0);
-        assertThat(UpdateNotifier.parseFailureCount("")).isEqualTo(0);
-        assertThat(UpdateNotifier.parseFailureCount("not-a-number")).isEqualTo(0);
-        assertThat(UpdateNotifier.parseFailureCount("-5")).isEqualTo(0);
+    void testFailureCountIsReadDefensivelyFromUserEditableConfig() {
+        assertThat(UpdateNotifier.parseFailureCount(null)).isZero();
+        assertThat(UpdateNotifier.parseFailureCount("")).isZero();
+        assertThat(UpdateNotifier.parseFailureCount("not-a-number")).isZero();
+        assertThat(UpdateNotifier.parseFailureCount("-5")).isZero();
         assertThat(UpdateNotifier.parseFailureCount(" 3 ")).isEqualTo(3);
         assertThat(UpdateNotifier.parseFailureCount("999"))
                 .isEqualTo(UpdateNotifier.MAX_FAILURE_COUNT);
@@ -130,7 +130,7 @@ public class UpdateCheckFailureBackoffTest {
     // ---------------------------------------------------------------------------------------------
 
     @Test
-    public void testMissingRepositoryUrlIsReportedAsAHandledCliError(@TempDir Path tempDir)
+    void testMissingRepositoryUrlIsReportedAsAHandledCliError(@TempDir Path tempDir)
             throws IOException {
         useHome(tempDir, Map.of());
 
@@ -147,7 +147,7 @@ public class UpdateCheckFailureBackoffTest {
     }
 
     @Test
-    public void testFailedCheckRecordsWhenItFailedAndHowManyInARow(@TempDir Path tempDir)
+    void testFailedCheckRecordsWhenItFailedAndHowManyInARow(@TempDir Path tempDir)
             throws IOException {
         useHome(tempDir, Map.of());
         var before = Instant.now().minusSeconds(1);
@@ -167,7 +167,7 @@ public class UpdateCheckFailureBackoffTest {
     }
 
     @Test
-    public void testConsecutiveFailuresAccumulate(@TempDir Path tempDir) throws IOException {
+    void testConsecutiveFailuresAccumulate(@TempDir Path tempDir) throws IOException {
         useHome(tempDir, Map.of(FAILURE_COUNT_KEY, "1",
                 LAST_FAILURE_KEY, Instant.now().minus(Duration.ofDays(2)).toString()));
 
@@ -179,7 +179,7 @@ public class UpdateCheckFailureBackoffTest {
     }
 
     @Test
-    public void testSuccessfulCheckClearsTheRecordedFailures(@TempDir Path tempDir)
+    void testSuccessfulCheckClearsTheRecordedFailures(@TempDir Path tempDir)
             throws IOException {
         wireMock.stubFor(get(urlEqualTo("/maven-metadata.xml"))
                 .willReturn(aResponse().withStatus(200).withBody(METADATA_XML)));
@@ -206,7 +206,7 @@ public class UpdateCheckFailureBackoffTest {
     // ---------------------------------------------------------------------------------------------
 
     @Test
-    public void testAutoCheckIsSkippedWhileBackingOff(@TempDir Path tempDir) throws IOException {
+    void testAutoCheckIsSkippedWhileBackingOff(@TempDir Path tempDir) throws IOException {
         var failedAt = Instant.now().minus(Duration.ofMinutes(1));
         useHome(tempDir, Map.of(
                 REPO_URL_KEY, wireMock.baseUrl(),
@@ -229,7 +229,7 @@ public class UpdateCheckFailureBackoffTest {
     }
 
     @Test
-    public void testAutoCheckResumesOnceTheBackoffHasElapsed(@TempDir Path tempDir)
+    void testAutoCheckResumesOnceTheBackoffHasElapsed(@TempDir Path tempDir)
             throws IOException {
         useHome(tempDir, Map.of(
                 FAILURE_COUNT_KEY, "1",
@@ -250,7 +250,7 @@ public class UpdateCheckFailureBackoffTest {
     }
 
     @Test
-    public void testUnparseableFailureTimestampDoesNotDisableCheckingForGood(@TempDir Path tempDir)
+    void testUnparseableFailureTimestampDoesNotDisableCheckingForGood(@TempDir Path tempDir)
             throws IOException {
         wireMock.stubFor(get(urlEqualTo("/maven-metadata.xml"))
                 .willReturn(aResponse().withStatus(200).withBody(METADATA_XML)));

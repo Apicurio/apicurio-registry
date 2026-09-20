@@ -94,7 +94,7 @@ public class UpdateNotifier {
                 return false;
             }
 
-            var lastCheck = props.get("internal.update.last-check");
+            var lastCheck = props.get(Update.CONFIG_LAST_CHECK);
             if (lastCheck != null) {
                 var last = Instant.parse(lastCheck);
                 var elapsed = Duration.between(last, Instant.now());
@@ -119,7 +119,7 @@ public class UpdateNotifier {
      * network attempt and two lines of output every time the user runs anything.
      */
     private boolean isBackingOffAfterFailure(Map<String, String> props) {
-        var lastFailure = props.get("internal.update.last-failure");
+        var lastFailure = props.get(Update.CONFIG_LAST_FAILURE);
         if (lastFailure == null) {
             return false;
         }
@@ -132,7 +132,7 @@ public class UpdateNotifier {
             log.debugf("Ignoring unparseable update failure timestamp: %s", lastFailure);
             return false;
         }
-        var retryAt = failedAt.plus(failureBackoff(parseFailureCount(props.get("internal.update.failure-count"))));
+        var retryAt = failedAt.plus(failureBackoff(parseFailureCount(props.get(Update.CONFIG_FAILURE_COUNT))));
         if (Instant.now().isBefore(retryAt)) {
             log.debugf("Update check skipped: previous check failed, next attempt at %s", retryAt);
             return true;

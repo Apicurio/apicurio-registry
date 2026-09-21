@@ -510,7 +510,13 @@ public class SchemaResolverConfig extends AbstractConfig {
     }
 
     public long getClientRetryMaxAttempts() {
-        return getLongNonNegative(CLIENT_RETRY_MAX_ATTEMPTS);
+        long value = getLongNonNegative(CLIENT_RETRY_MAX_ATTEMPTS);
+        if (value > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Invalid configuration property value for '"
+                    + CLIENT_RETRY_MAX_ATTEMPTS + "'. Expected a value less than or equal to "
+                    + Integer.MAX_VALUE + ", but got '" + value + "'.");
+        }
+        return value;
     }
 
     public long getClientRetryDelayMs() {
@@ -519,14 +525,14 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     public double getClientRetryBackoffMultiplier() {
         Object value = getObject(CLIENT_RETRY_BACKOFF_MULTIPLIER);
+        double multiplier;
         if (value == null) {
-            return CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT;
-        }
-        if (value instanceof Number) {
-            return ((Number) value).doubleValue();
+            multiplier = CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT;
+        } else if (value instanceof Number) {
+            multiplier = ((Number) value).doubleValue();
         } else if (value instanceof String) {
             try {
-                return Double.parseDouble((String) value);
+                multiplier = Double.parseDouble((String) value);
             } catch (NumberFormatException e) {
                 throw new IllegalArgumentException("Invalid configuration property value for '"
                         + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
@@ -537,6 +543,12 @@ public class SchemaResolverConfig extends AbstractConfig {
                     + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
                     + value + "'.");
         }
+        if (!Double.isFinite(multiplier) || multiplier <= 1.0) {
+            throw new IllegalArgumentException("Invalid configuration property value for '"
+                    + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a finite value greater than 1.0, but got '"
+                    + multiplier + "'.");
+        }
+        return multiplier;
     }
 
     public long getClientRetryMaxDelayMs() {

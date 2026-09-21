@@ -1021,7 +1021,7 @@ spec:
     enabled: true
 ----
 
-The {operator} then creates a console plugin Deployment and Service secured with OpenShift service serving certificates, and registers a cluster-scoped `ConsolePlugin` resource named `<cr-name>-console-plugin`. The plugin backend forwards the logged-in user's OpenShift bearer token to the registry API. On clusters that are not OpenShift, the console plugin is not deployed.
+The {operator} then creates a console plugin Deployment and Service secured with OpenShift service serving certificates, and registers a cluster-scoped `ConsolePlugin` resource named `<cr-namespace>-<cr-name>-console-plugin`. The namespace is included because `ConsolePlugin` is cluster-scoped, so the name must stay unique across CRs that share the same name in different namespaces. The plugin backend forwards the logged-in user's OpenShift bearer token to the registry API. On clusters that are not OpenShift, the console plugin is not deployed.
 
 [id="configuring-app-tls_{context}"]
 == Application TLS configuration

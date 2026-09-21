@@ -38,7 +38,7 @@ You can enable the search index on an existing {registry} deployment by configur
 
 .Prerequisites
 * You have installed {registry}.
-* You have an Elasticsearch cluster that the {registry} application can reach.
+* You have an Elasticsearch cluster that the {registry} application can reach. Its version is compatible with the Elasticsearch Java client included in your {registry} release.
 * You have access to the deployment configuration and Elasticsearch credentials, if authentication is enabled.
 
 .Procedure
@@ -65,6 +65,7 @@ For an HTTPS connection, configure `QUARKUS_ELASTICSEARCH_PROTOCOL=https` and th
 .Additional resources
 * xref:assembly-configuring-content-search.adoc#searching-version-content-api_{context}[Searching version content with the REST API]
 * link:https://quarkus.io/guides/elasticsearch[Quarkus Elasticsearch client configuration]
+* link:https://www.elastic.co/docs/reference/elasticsearch/clients/java[Elasticsearch Java client compatibility]
 
 
 // proc-trying-content-search-compose
@@ -87,7 +88,7 @@ You can run {registry} and Elasticsearch locally to evaluate content search befo
 ----
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.3
     environment:
       discovery.type: single-node
       xpack.security.enabled: "false"
@@ -111,7 +112,7 @@ services:
         condition: service_healthy
 ----
 +
-Replace `VERSION` with the container image version. This local example uses in-memory registry storage and disables Elasticsearch authentication. It is intended for evaluation; it does not preserve registry data when you recreate the container.
+Replace `VERSION` with the container image version. The example pairs Elasticsearch 9.2.3 with the 9.2.3 Java client in the {registry} 3.4 build. For another {registry} release, select an Elasticsearch version compatible with its Java client. This local example uses in-memory registry storage and disables Elasticsearch authentication. It is intended for evaluation; it does not preserve registry data when you recreate the container.
 . Start the services:
 +
 [source,bash]

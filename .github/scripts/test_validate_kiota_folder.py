@@ -388,6 +388,26 @@ class KiotaFolderCheckTest(unittest.TestCase):
         self.write("java-sdk/client/pom.xml", "<project><artifactId>x</project>")
         self.assertRejected("java-sdk/client/pom.xml is not valid XML")
 
+    def test_a_dangling_pom_symlink_is_reported_not_crashed(self):
+        """os.walk lists one as a file, and ET.parse raises OSError on it.
+
+        A lint step that dies with a traceback says nothing about what to fix,
+        so every parse goes through the same reporting path.
+        """
+        os.makedirs("mod")
+        os.symlink("/nonexistent/target", "mod/pom.xml")
+        self.assertRejected("Could not read mod/pom.xml")
+
+    def test_a_dangling_settings_symlink_is_reported_not_crashed(self):
+        os.makedirs(".github")
+        os.symlink("/nonexistent/target", ".github/ci-settings.xml")
+        self.assertRejected("Could not read .github/ci-settings.xml")
+
+    def test_a_dangling_root_pom_symlink_is_reported_not_crashed(self):
+        os.remove("pom.xml")
+        os.symlink("/nonexistent/target", "pom.xml")
+        self.assertRejected("Could not read pom.xml")
+
     # ---------------- rejected: the command line ----------------
 
     def test_maven_config_override_is_rejected(self):
@@ -414,6 +434,41 @@ class KiotaFolderCheckTest(unittest.TestCase):
                    "jobs:\n  build:\n    steps:\n"
                    "      - run: ./mvnw --define=kiota.binary.folder=/tmp/k install\n")
         self.assertRejected("verify.yaml:4")
+
+    def test_the_quoted_property_name_is_rejected(self):
+        """The shell strips the quotes before Maven sees the argument."""
+        self.write("scripts/build.sh",
+                   './mvnw -D"kiota.binary.folder"=/tmp/k install\n')
+        self.assertRejected("build.sh:1")
+
+    def test_a_makefile_moving_the_folder_is_rejected(self):
+        """operator/Makefile really does run mvn clean install and mvn verify."""
+        self.write("operator/Makefile",
+                   "build:\n\tmvn clean install -Dkiota.binary.folder=/tmp/k\n")
+        self.assertRejected("Makefile:2")
+
+    def test_a_dockerfile_moving_the_folder_is_rejected(self):
+        self.write("console-plugin/Dockerfile",
+                   "FROM maven\nRUN mvn package -Dkiota.binary.folder=/tmp/k\n")
+        self.assertRejected("Dockerfile:2")
+
+    def test_an_override_after_a_quoted_hash_is_rejected(self):
+        """A # inside quotes is not a comment opener.
+
+        Cutting the line there would discard the build command that follows and
+        report the file as clean.
+        """
+        self.write(".github/workflows/verify.yaml",
+                   "jobs:\n  build:\n    steps:\n"
+                   '      - run: echo "see #10213" && '
+                   "./mvnw -Dkiota.binary.folder=/tmp/k install\n")
+        self.assertRejected("verify.yaml:4")
+
+    def test_an_apostrophe_does_not_swallow_a_real_comment(self):
+        """An unpaired quote is prose, not a string, so the # still opens a comment."""
+        self.write("scripts/build.sh",
+                   "# it's fine # -Dkiota.binary.folder=/tmp/k\n")
+        self.assertAccepted()
 
     def test_relocating_the_repository_is_rejected(self):
         """setup-maven-cache saves ~/.m2/repository and nothing else."""

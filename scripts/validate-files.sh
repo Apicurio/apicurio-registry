@@ -94,9 +94,8 @@ echo "Checkstyle config ok: $(printf '%s\n' "$ACTUALLY_ENFORCED" | grep -c .) ru
 # ---------------------------------------------------------------------------
 # Kiota binary cache location
 #
-# Guards the class of bug where a change is silently slower rather than broken.
-# The script's own docstring says what it checks and why, and the root pom's
-# kiota.binary.folder comment says why the location is what it is.
+# What is checked and why is in the script's own docstring, and why the location
+# is what it is is in the kiota.binary.folder comment in the root pom.
 #
 # It lives in Python rather than in an enforcer rule because no enforcer
 # mechanism can safely take an interpolated path as syntax. evaluateBeanshell

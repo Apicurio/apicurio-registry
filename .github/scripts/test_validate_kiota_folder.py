@@ -54,8 +54,14 @@ ROOT_POM = """<?xml version="1.0" encoding="UTF-8"?>
   <properties>
     <kiota.version>1.28.0</kiota.version>
 {property}  </properties>
-{profiles}</project>
+{profiles}  <build>{extensions}</build>
+</project>
 """
+
+EXTENSIONS = """<extensions><extension>
+      <groupId>kr.motd.maven</groupId>
+      <artifactId>os-maven-plugin</artifactId>
+    </extension></extensions>"""
 
 PROPERTY_LINE = "    <kiota.binary.folder>{0}</kiota.binary.folder>\n"
 
@@ -105,11 +111,13 @@ class KiotaFolderCheckTest(unittest.TestCase):
         with open(full, "w", encoding="utf-8") as handle:
             handle.write(content)
 
-    def write_root(self, value=GOOD_VALUE, raw_property=None, profiles=""):
+    def write_root(self, value=GOOD_VALUE, raw_property=None, profiles="",
+                   extensions=EXTENSIONS):
         if raw_property is None:
             raw_property = PROPERTY_LINE.format(value)
         self.write("pom.xml", ROOT_POM.format(property=raw_property,
-                                              profiles=profiles))
+                                              profiles=profiles,
+                                              extensions=extensions))
 
     def write_consumer(self, shared=None, executions=None,
                        path="java-sdk/client/pom.xml"):
@@ -121,22 +129,22 @@ class KiotaFolderCheckTest(unittest.TestCase):
                                              executions=executions))
 
     def run_guard(self):
-        """The exit code and everything the check wrote to stderr.
-
-        Its stdout is dropped so a passing case does not print into the CI log.
-        """
-        captured = io.StringIO()
-        with contextlib.redirect_stderr(captured), \
-                contextlib.redirect_stdout(io.StringIO()):
+        """The exit code, stderr, and stdout of the check."""
+        errors, output = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stderr(errors), \
+                contextlib.redirect_stdout(output):
             code = guard.main()
-        return code, captured.getvalue()
+        return code, errors.getvalue(), output.getvalue()
 
     def assertAccepted(self):
-        code, reported = self.run_guard()
+        code, reported, output = self.run_guard()
         self.assertEqual(0, code, "expected this tree to pass:\n" + reported)
+        # A guard that returns 0 without checking anything passes every accepted
+        # case here, so the success line has to name the value it checked.
+        self.assertIn(GOOD_VALUE, output)
 
     def assertRejected(self, *expected):
-        code, reported = self.run_guard()
+        code, reported, _ = self.run_guard()
         self.assertEqual(1, code, "expected this tree to be rejected")
         for fragment in expected:
             self.assertIn(fragment, reported)
@@ -205,6 +213,17 @@ class KiotaFolderCheckTest(unittest.TestCase):
         os.symlink("/nonexistent/target", ".github/workflows/stale.yaml")
         self.assertAccepted()
 
+    def test_a_longer_resolver_property_is_accepted(self):
+        """maven.repo.local.tail.threads is a real property that moves nothing.
+
+        A word boundary after "local" matches it and reports a flag that does
+        not send the binary anywhere.
+        """
+        self.write(".github/workflows/verify.yaml",
+                   "jobs:\n  build:\n    steps:\n"
+                   "      - run: ./mvnw -Dmaven.repo.local.tail.threads=4 install\n")
+        self.assertAccepted()
+
     # ---------------- rejected: the property ----------------
 
     def test_folder_under_target_is_rejected(self):
@@ -256,7 +275,89 @@ class KiotaFolderCheckTest(unittest.TestCase):
                         "<kiota.binary.folder>/tmp/elsewhere"
                         "</kiota.binary.folder></properties></profile>"
                         "</profiles>\n")
-        self.assertRejected("Profile ci in the root pom")
+        self.assertRejected("Profile ci in pom.xml")
+
+    def test_an_empty_property_is_rejected(self):
+        """An empty value resolves to the plugin's own default folder."""
+        self.write_root(raw_property="    <kiota.binary.folder/>\n")
+        self.assertRejected("is empty, expected " + GOOD_VALUE)
+
+    def test_dropping_the_os_maven_plugin_extension_is_rejected(self):
+        """Without it the classifier is never substituted, and nothing else notices.
+
+        Maven passes ${os.detected.classifier} through as text, so the plugin
+        creates a directory of that literal name and every other check here
+        stays green.
+        """
+        self.write_root(extensions="")
+        self.assertRejected("registers no os-maven-plugin build extension")
+
+    # ---------------- rejected: other poms ----------------
+
+    def test_a_module_redeclaring_the_property_is_rejected(self):
+        """The root pom stays correct and the module ignores it anyway."""
+        self.write("java-sdk/client/other/pom.xml",
+                   '<?xml version="1.0" encoding="UTF-8"?>\n'
+                   '<project xmlns="http://maven.apache.org/POM/4.0.0">\n'
+                   "  <artifactId>x</artifactId>\n  <properties>\n"
+                   + PROPERTY_LINE.format("/tmp/elsewhere")
+                   + "  </properties>\n</project>\n")
+        self.assertRejected("redeclares <kiota.binary.folder>")
+
+    def test_a_module_profile_overriding_the_property_is_rejected(self):
+        self.write("app/pom.xml",
+                   '<?xml version="1.0" encoding="UTF-8"?>\n'
+                   '<project xmlns="http://maven.apache.org/POM/4.0.0">\n'
+                   "  <artifactId>app</artifactId>\n"
+                   "  <profiles><profile><id>fast</id><properties>"
+                   "<kiota.binary.folder>/tmp/x</kiota.binary.folder>"
+                   "</properties></profile></profiles>\n</project>\n")
+        self.assertRejected("Profile fast in app/pom.xml")
+
+    def test_a_module_relocating_the_repository_is_rejected(self):
+        self.write("app/pom.xml",
+                   '<?xml version="1.0" encoding="UTF-8"?>\n'
+                   '<project xmlns="http://maven.apache.org/POM/4.0.0">\n'
+                   "  <artifactId>app</artifactId>\n  <properties>"
+                   "<settings.localRepository>/tmp/repo"
+                   "</settings.localRepository></properties>\n</project>\n")
+        self.assertRejected("app/pom.xml declares <settings.localRepository>")
+
+    def test_a_malformed_pom_does_not_stop_the_scan(self):
+        """A broken file reports itself and the scan carries on past it.
+
+        java-sdk/a sorts before java-sdk/client, so a check that stopped at the
+        first parse error would never reach the consumer below it.
+        """
+        self.write("java-sdk/a/pom.xml", "<project><artifactId>x</project>")
+        self.write_consumer(shared="")
+        self.assertRejected("java-sdk/a/pom.xml is not valid XML",
+                            "sets no <targetBinaryFolder>")
+
+    # ---------------- rejected: committed settings ----------------
+
+    def test_a_settings_file_moving_the_repository_is_rejected(self):
+        """.github/ci-settings.xml is passed with -s by every CI build."""
+        self.write(".github/ci-settings.xml",
+                   '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">\n'
+                   "  <localRepository>/tmp/repo</localRepository>\n"
+                   "</settings>\n")
+        self.assertRejected("names its own <localRepository>")
+
+    def test_a_settings_profile_setting_the_property_is_rejected(self):
+        """A settings profile outranks the pom."""
+        self.write(".github/ci-settings.xml",
+                   '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">\n'
+                   "  <profiles><profile><id>ci</id><properties>"
+                   "<kiota.binary.folder>/tmp/x</kiota.binary.folder>"
+                   "</properties></profile></profiles>\n</settings>\n")
+        self.assertRejected("Profile ci in .github/ci-settings.xml")
+
+    def test_a_non_settings_xml_under_github_is_ignored(self):
+        """.github holds other XML, and only a <settings> root is checked."""
+        self.write(".github/dependabot-template.xml",
+                   "<config><localRepository>/tmp/repo</localRepository></config>\n")
+        self.assertAccepted()
 
     # ---------------- rejected: the consumers ----------------
 
@@ -305,6 +406,13 @@ class KiotaFolderCheckTest(unittest.TestCase):
         self.write(".github/workflows/verify.yaml",
                    "jobs:\n  build:\n    steps:\n"
                    "      - run: ./mvnw --define kiota.binary.folder=/tmp/k install\n")
+        self.assertRejected("verify.yaml:4")
+
+    def test_the_joined_long_option_is_rejected(self):
+        """commons-cli accepts --define=x=y, and a space-only match misses it."""
+        self.write(".github/workflows/verify.yaml",
+                   "jobs:\n  build:\n    steps:\n"
+                   "      - run: ./mvnw --define=kiota.binary.folder=/tmp/k install\n")
         self.assertRejected("verify.yaml:4")
 
     def test_relocating_the_repository_is_rejected(self):

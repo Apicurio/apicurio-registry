@@ -108,9 +108,9 @@ killed outright partway through the download can also leave a `kiota-<uuid>.zip`
 
 Pointing `-Dkiota.binary.folder` at another absolute path works for a local build. Do not
 commit one: `scripts/validate-files.sh` runs on every pull request and rejects the flag in a
-workflow, a composite action, a shell script or `.mvn/*.config`, along with any pom that
-moves the value, because only `~/.m2/repository` is cached and moving the folder back under
-`target/` makes every build slower without failing anything.
+workflow, a composite action, a shell script, a Makefile, a Dockerfile or `.mvn/*.config`,
+along with any pom that moves the value, because only `~/.m2/repository` is cached and
+moving the folder back under `target/` makes every build slower without failing anything.
 
 ## Dependency Analysis
 

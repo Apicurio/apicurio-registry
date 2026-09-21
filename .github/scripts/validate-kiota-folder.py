@@ -32,7 +32,8 @@ Routes that can move the binary, and how each is covered:
     module inherits
   - <targetBinaryFolder> on an execution of the plugin, which is where the
     value is consumed
-  - -D on the command line, which outranks all of the above
+  - -D on the command line, which outranks all of the above, in a shell script,
+    a Makefile, a Dockerfile, .mvn/*.config, a workflow or a composite action
   - <localRepository> in a settings.xml committed under .github/
 
 One route stays open. A settings.xml supplied by the runner rather than by the
@@ -74,13 +75,15 @@ SETTINGS_GLOB = ".github"
 # -D outranks the pom wherever it appears, and MAVEN_ARGS in a composite action
 # carries the same text. Relocating the whole local repository moves the folder
 # with it, and only ~/.m2/repository is saved to the cache. Maven accepts a space
-# after -D and accepts --define in both its spellings, so all are matched.
+# after -D and accepts --define in both its spellings, so all are matched. The
+# optional quote covers -D"kiota.binary.folder"=/x, which a shell strips before
+# Maven ever sees it.
 # The trailing guard is (?![\w.]) rather than \b so that the real Resolver
 # properties maven.repo.local.tail.threads and maven.repo.local.record.reverseTree
 # do not match: \b ends the match at the dot after "local" and reports a flag that
 # does not move anything.
 OVERRIDE = re.compile(
-    r"(?:-D\s*|--define[=\s])(?:{0}|{1})(?![\w.])".format(
+    r"""(?:-D\s*|--define[=\s])["']?(?:{0}|{1})(?![\w.])""".format(
         re.escape(PROPERTY), re.escape(REPOSITORY_PROPERTY)))
 
 # Directories whose contents are generated or vendored rather than written.
@@ -113,9 +116,16 @@ def invokes_maven(path):
     what lets this script and its test write the flags out in full. It also
     keeps prose that merely mentions a flag from failing the build, which
     matters because DEVELOPING.md documents this one.
+
+    Makefiles and Dockerfiles are in scope because they really do run Maven
+    here: operator/Makefile runs mvn clean install and mvn verify, and four
+    Dockerfiles run mvn package. Both use # for comments, so strip_comment
+    applies to them unchanged.
     """
     name = os.path.basename(path)
-    if name.endswith(".sh"):
+    if name.endswith((".sh", ".bash")):
+        return True
+    if name == "Makefile" or name.startswith("Dockerfile"):
         return True
     # Covers both .mvn/maven.config and .mvn/jvm.config.
     if path.startswith(".mvn/") and name.endswith(".config"):
@@ -132,8 +142,23 @@ def properties_of(element):
     return element.findall("{*}properties/{*}" + PROPERTY)
 
 
-def check_root_pom(path=ROOT_POM):
-    project = ET.parse(path).getroot()
+def parse(path):
+    """The root element of an XML file, or a finding explaining why not.
+
+    Returns (element, None) or (None, finding). os.walk lists a dangling
+    symlink as a file, and a file can be unreadable, so ET.parse raises OSError
+    as well as ParseError. Either way a lint step reports rather than crashing
+    with a traceback that says nothing about what to fix.
+    """
+    try:
+        return ET.parse(path).getroot(), None
+    except ET.ParseError as error:
+        return None, "{0} is not valid XML: {1}".format(path, error)
+    except OSError as error:
+        return None, "Could not read {0}: {1}".format(path, error)
+
+
+def check_root_pom(project):
 
     declared = properties_of(project)
     if not declared:
@@ -189,10 +214,9 @@ def check_pom_overrides(path, project):
 def check_settings(paths):
     """A committed settings.xml can move the whole local repository."""
     for path in paths:
-        try:
-            settings = ET.parse(path).getroot()
-        except ET.ParseError as error:
-            yield "{0} is not valid XML: {1}".format(path, error)
+        settings, failure = parse(path)
+        if failure:
+            yield failure
             continue
 
         if settings.tag.rpartition("}")[2] != "settings":
@@ -228,10 +252,9 @@ def check_consumers(paths):
     """
     configured = False
     for path in paths:
-        try:
-            project = ET.parse(path).getroot()
-        except ET.ParseError as error:
-            yield "{0} is not valid XML: {1}".format(path, error)
+        project, failure = parse(path)
+        if failure:
+            yield failure
             continue
 
         for finding in check_pom_overrides(path, project):
@@ -293,22 +316,42 @@ def strip_comment(line):
     """Drop a trailing # comment, the form shared by YAML, shell and maven.config.
 
     Only a # that starts a token is a comment opener in all three, so a value
-    containing one is left alone.
+    containing one is left alone. A # inside quotes is not an opener either, and
+    that is worth tracking rather than assuming: a step that echoes an issue
+    number or a git --format string before running the build would otherwise
+    have its whole command line discarded and its -D never seen.
+
+    A quote is only treated as opening when its partner appears later on the
+    line. An apostrophe in prose is far more common than an unterminated string,
+    and mistaking one for a quote would swallow the rest of the line.
     """
-    return re.split(r"(?:^|(?<=\s))#", line, maxsplit=1)[0]
+    quote = ""
+    for index, character in enumerate(line):
+        if quote:
+            if character == quote:
+                quote = ""
+        elif character in "\"'":
+            if character in line[index + 1:]:
+                quote = character
+        elif character == "#" and (index == 0 or line[index - 1].isspace()):
+            return line[:index]
+    return line
 
 
 def main():
-    if not os.path.isfile(ROOT_POM):
+    # lexists rather than isfile, so that a pom.xml which is present but not
+    # readable reaches parse and gets told apart from one that is absent. isfile
+    # is False for a dangling symlink, which would report the wrong cause.
+    if not os.path.lexists(ROOT_POM):
         print("No {0} here. Run this from the repository root.".format(ROOT_POM),
               file=sys.stderr)
         return 1
 
-    try:
-        errors = list(check_root_pom())
-    except ET.ParseError as error:
-        print("{0} is not valid XML: {1}".format(ROOT_POM, error), file=sys.stderr)
+    root, failure = parse(ROOT_POM)
+    if failure:
+        print(failure, file=sys.stderr)
         return 1
+    errors = list(check_root_pom(root))
 
     poms, invokers, settings = [], [], []
     for path in walk():

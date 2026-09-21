@@ -246,4 +246,38 @@ public class OpenApiAgentCardAssemblerTest {
     private TypedContent json(String content) {
         return TypedContent.create(content, ContentTypes.APPLICATION_JSON);
     }
+
+    @Test
+    void explicitWrongTypesAreNotReplacedByFallbacks() {
+        String document = """
+                {"openapi":"3.0.0","info":{"title":"Fallback","description":"Weather","version":"1",
+                 "x-agent-card":{"name":42,"supportedInterfaces":"invalid",%s}},
+                 "servers":[{"url":"https://example.com"}],"paths":{}}
+                """.formatted(FULL_SKILLS_BLOCK);
+        var error = assertThrows(RuleViolationException.class, () -> assembler.assemble(json(document)));
+        assertTrue(error.getCauses().stream().anyMatch(v -> v.getContext().equals("/info/x-agent-card/name")));
+        assertTrue(error.getCauses().stream().anyMatch(v -> v.getContext().equals("/info/x-agent-card/supportedInterfaces")));
+    }
+
+    @Test
+    void serverVariablesUseTheirDefaults() throws Exception {
+        String document = """
+                {"openapi":"3.0.0","info":{"title":"Weather","description":"Weather","version":"1",
+                 "x-agent-card":{%s}},"servers":[{"url":"https://{host}/{base}",
+                 "variables":{"host":{"default":"example.com"},"base":{"default":"agent"}}}],"paths":{}}
+                """.formatted(FULL_SKILLS_BLOCK);
+        JsonNode result = MAPPER.readTree(assembler.assemble(json(document)));
+        assertEquals("https://example.com/agent", result.path("supportedInterfaces").get(0).path("url").asText());
+    }
+
+    @Test
+    void missingServerVariableDefaultIsAnExplicitError() {
+        String document = """
+                {"openapi":"3.0.0","info":{"title":"Weather","description":"Weather","version":"1",
+                 "x-agent-card":{%s}},"servers":[{"url":"https://example.com/{base}"}],"paths":{}}
+                """.formatted(FULL_SKILLS_BLOCK);
+        var error = assertThrows(RuleViolationException.class, () -> assembler.assemble(json(document)));
+        assertEquals("/servers",error.getCauses().iterator().next().getContext());
+        assertTrue(error.getCauses().iterator().next().getDescription().contains("base"));
+    }
 }

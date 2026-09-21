@@ -15,12 +15,12 @@ public class OpenApiAgentCardConfig {
 
     @ConfigProperty(name = "apicurio.a2a.openapi-integration.enabled", defaultValue = "false")
     @Info(category = CATEGORY_A2A, description = "Auto-generate a companion AGENT_CARD artifact from the "
-            + "'x-agent-card' OpenAPI vendor extension", availableSince = "3.3.4", experimental = true)
+            + "'x-agent-card' OpenAPI vendor extension", availableSince = "3.4.0", experimental = true)
     boolean enabled;
 
     @ConfigProperty(name = "apicurio.a2a.openapi-integration.sync-on-update.enabled", defaultValue = "true")
     @Info(category = CATEGORY_A2A, description = "Update the generated Agent Card whenever its source "
-            + "OpenAPI artifact is updated", availableSince = "3.3.4")
+            + "OpenAPI artifact is updated", availableSince = "3.4.0")
     boolean syncOnUpdateEnabled;
 
     public boolean isEnabled() {

@@ -1,297 +1,233 @@
 package io.apicurio.registry.a2a.openapi;
 
+import io.apicurio.registry.a2a.A2AConstants;
+import io.apicurio.registry.auth.AuthConfig;
+import io.apicurio.registry.auth.AdminOverride;
+import io.apicurio.registry.auth.RoleBasedAccessController;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.content.canon.JsonContentCanonicalizer;
-import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
-import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.CommitFailedException;
+import io.apicurio.registry.rules.RuleApplicationType;
+import io.apicurio.registry.rules.violation.RuleViolation;
+import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.VersionState;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class OpenApiAgentCardServiceTest {
-
-    private static final String GROUP_ID = "my-group";
-    private static final String OPENAPI_ARTIFACT_ID = "weather-api";
-    private static final String COMPANION_ARTIFACT_ID = "weather-api-agent-card";
-
-    private static final String OPENAPI_WITH_CARD = """
-            {
-              "openapi": "3.0.0",
-              "info": {
-                "title": "Weather API",
-                "description": "A weather service",
-                "version": "1.0.0",
-                "x-agent-card": {
-                  "capabilities": {},
-                  "skills": [
-                    { "id": "get-weather", "name": "Get Weather",
-                      "description": "Retrieve the current weather for a city", "tags": ["weather"] }
-                  ],
-                  "defaultInputModes": ["text"],
-                  "defaultOutputModes": ["text"]
-                }
-              },
-              "servers": [ { "url": "https://weather.example.com" } ],
-              "paths": {}
-            }
-            """;
-
-    private static final String OPENAPI_NO_CARD = """
-            {
-              "openapi": "3.0.0",
-              "info": { "title": "Weather API", "version": "1.0.0" },
-              "paths": {}
-            }
-            """;
-
+class OpenApiAgentCardServiceTest {
+    private static final String GROUP = "group";
+    private static final String SOURCE = "weather";
+    private static final String CARD = "weather-agent-card";
     private RegistryStorage storage;
     private OpenApiAgentCardService service;
     private OpenApiAgentCardConfig config;
 
-    @BeforeEach
-    void setUp() {
-        storage = mock(RegistryStorage.class);
+    private String openApi(String title) {
+        return """
+                {"openapi":"3.0.0","info":{"title":"%s","description":"Weather","version":"1",
+                 "x-agent-card":{"capabilities":{},"skills":[{"id":"weather","name":"Weather",
+                 "description":"Forecast","tags":["weather"]}],"defaultInputModes":["text"],
+                 "defaultOutputModes":["text"]}},"servers":[{"url":"https://example.com"}],"paths":{}}
+                """.formatted(title);
+    }
 
+    private String assembled(String title) throws Exception {
+        return new OpenApiAgentCardAssembler().assemble(TypedContent.create(openApi(title), ContentTypes.APPLICATION_JSON));
+    }
+
+    private String hash(String content) {
+        return DigestUtils.sha256Hex(new JsonContentCanonicalizer().canonicalize(
+                TypedContent.create(content, ContentTypes.APPLICATION_JSON), Map.of()).getContent().bytes());
+    }
+
+    private Map<String, String> labels(String content) {
+        return Map.of(A2AConstants.LABEL_OPENAPI_AGENT_CARD_GENERATED,"true",
+                A2AConstants.LABEL_OPENAPI_AGENT_CARD_SOURCE_GROUP_ID,GROUP,
+                A2AConstants.LABEL_OPENAPI_AGENT_CARD_SOURCE_ARTIFACT_ID,SOURCE,
+                A2AConstants.LABEL_OPENAPI_AGENT_CARD_SOURCE_GLOBAL_ID,"10",
+                A2AConstants.LABEL_OPENAPI_AGENT_CARD_GENERATED_HASH,hash(content));
+    }
+
+    @BeforeEach
+    void setup() {
+        storage = mock(RegistryStorage.class);
         config = new OpenApiAgentCardConfig();
         config.enabled = true;
         config.syncOnUpdateEnabled = true;
-
         service = new OpenApiAgentCardService();
-        service.log = LoggerFactory.getLogger(OpenApiAgentCardServiceTest.class);
         service.config = config;
+        service.log = LoggerFactory.getLogger(getClass());
+        service.rulesService = mock(RulesService.class);
+        service.authConfig = mock(AuthConfig.class);
+        service.rbac = mock(RoleBasedAccessController.class);
+        service.adminOverride = mock(AdminOverride.class);
+        when(storage.getBranchTip(any(), any(), any())).thenAnswer(call -> new GAV((GA) call.getArgument(0), "1"));
+        var source = ArtifactVersionMetaDataDto.builder().globalId(10).version("1").versionOrder(1)
+                .groupId(GROUP).artifactId(SOURCE).artifactType(ArtifactType.OPENAPI).state(VersionState.ENABLED).build();
+        when(storage.getArtifactVersionMetaData(GROUP, SOURCE, "1")).thenReturn(source);
+        when(storage.getArtifactVersionMetaData(10L)).thenReturn(source);
+        when(storage.getArtifactVersionContent(GROUP, SOURCE, "1")).thenReturn(StoredArtifactVersionDto.builder()
+                .content(ContentHandle.create(openApi("New"))).contentType(ContentTypes.APPLICATION_JSON).build());
     }
 
-    private TypedContent openApiContent(String json) {
-        return TypedContent.create(json, ContentTypes.APPLICATION_JSON);
+    private void existing(String content, Map<String,String> provenance) {
+        when(storage.getArtifactVersions(GROUP,CARD,RegistryStorage.RetrievalBehavior.ALL_STATES)).thenReturn(List.of("1"));
+        when(storage.getArtifactMetaData(GROUP,CARD)).thenReturn(ArtifactMetaDataDto.builder()
+                .artifactType(ArtifactType.AGENT_CARD).owner("alice").labels(provenance).build());
+        when(storage.getArtifactVersionMetaData(GROUP,CARD,"1")).thenReturn(ArtifactVersionMetaDataDto.builder()
+                .version("1").versionOrder(1).globalId(20).labels(provenance).build());
+        when(storage.getArtifactVersionContent(GROUP,CARD,"1")).thenReturn(StoredArtifactVersionDto.builder()
+                .content(ContentHandle.create(content)).build());
     }
 
-    private void sync(String openApiJson, boolean isUpdate) {
-        String assembled = service.validateAndAssemble(openApiContent(openApiJson), isUpdate);
-        if (assembled != null) {
-            service.createOrSyncCompanion(storage, GROUP_ID, OPENAPI_ARTIFACT_ID, assembled, "alice");
-        }
+    private void sync() { service.createOrSyncCompanion(storage,GROUP,SOURCE,"ignored stale payload","alice"); }
+
+    private void noVersionWrite() {
+        verify(storage, never()).createArtifactVersionIfLatest(anyString(),anyString(),any(),anyString(),
+                any(),any(),any(),eq(false),anyString(),anyInt(),any());
     }
 
-    @Test
-    void featureDisabled_doesNothing() {
+    @Test void featureAndSyncTogglesAreRespected() {
         config.enabled = false;
-        sync(OPENAPI_WITH_CARD, false);
-        verifyNoStorageWrites();
-    }
-
-    @Test
-    void syncOnUpdateDisabled_skipsOnUpdate() {
+        assertNull(service.validateAndAssemble(TypedContent.create(openApi("New"),ContentTypes.APPLICATION_JSON),false));
+        config.enabled = true;
         config.syncOnUpdateEnabled = false;
-        sync(OPENAPI_WITH_CARD, true);
-        verifyNoStorageWrites();
+        assertNull(service.validateAndAssemble(TypedContent.create(openApi("New"),ContentTypes.APPLICATION_JSON),true));
     }
 
-    @Test
-    void syncOnUpdateDisabled_stillRunsOnCreate() {
-        config.syncOnUpdateEnabled = false;
-        when(storage.getArtifactMetaData(GROUP_ID, COMPANION_ARTIFACT_ID))
-                .thenThrow(new ArtifactNotFoundException(GROUP_ID, COMPANION_ARTIFACT_ID));
-
-        sync(OPENAPI_WITH_CARD, false);
-
-        verify(storage, times(1)).createArtifact(eq(GROUP_ID), eq(COMPANION_ARTIFACT_ID),
-                eq(ArtifactType.AGENT_CARD), any(), eq("1"), any(), any(), any(), eq(false), eq(false),
-                eq("alice"));
+    @Test void generatedVersionCarriesItsOwnHashAndConditionalBase() throws Exception {
+        String before = assembled("Old");
+        existing(before, labels(before));
+        sync();
+        var metadata = ArgumentCaptor.forClass(EditableVersionMetaDataDto.class);
+        verify(storage).createArtifactVersionIfLatest(eq(GROUP),eq(CARD),isNull(),eq(ArtifactType.AGENT_CARD),
+                any(),metadata.capture(),eq(List.of()),eq(false),eq("alice"),eq(1),isNull());
+        assertEquals(hash(assembled("New")),metadata.getValue().getLabels().get(A2AConstants.LABEL_OPENAPI_AGENT_CARD_GENERATED_HASH));
+        assertEquals("10",metadata.getValue().getLabels().get(A2AConstants.LABEL_OPENAPI_AGENT_CARD_SOURCE_GLOBAL_ID));
+        verify(storage,never()).mergeArtifactLabels(eq(GROUP),eq(CARD),anyString(),any());
     }
 
-    @Test
-    void noExtension_doesNothing() {
-        sync(OPENAPI_NO_CARD, false);
-        verifyNoStorageWrites();
+    @Test void missingHashStopsSync() throws Exception {
+        String before = assembled("Old");
+        var provenance = new HashMap<>(labels(before));
+        provenance.remove(A2AConstants.LABEL_OPENAPI_AGENT_CARD_GENERATED_HASH);
+        existing(before, provenance);
+        sync();
+        noVersionWrite();
     }
 
-    @Test
-    void malformedExtension_throwsBeforeTouchingStorageAtAll() {
-        String malformed = """
-                {
-                  "openapi": "3.0.0",
-                  "info": {
-                    "title": "Weather API",
-                    "version": "1.0.0",
-                    "x-agent-card": { "capabilities": {} }
-                  },
-                  "paths": {}
-                }
-                """;
-
-        assertThrows(RuleViolationException.class,
-                () -> service.validateAndAssemble(openApiContent(malformed), false));
-
-        // validateAndAssemble is called BEFORE the OpenAPI write, so it must never touch storage -
-        // createOrSyncCompanion is a separate call the caller only makes after a successful write.
-        verifyNoStorageWrites();
+    @Test void manualEditAndUnrelatedArtifactArePreserved() throws Exception {
+        existing(assembled("Human"),labels(assembled("Old")));
+        sync();
+        noVersionWrite();
     }
 
-    @Test
-    void companionMissing_createsIt() {
-        when(storage.getArtifactMetaData(GROUP_ID, COMPANION_ARTIFACT_ID))
-                .thenThrow(new ArtifactNotFoundException(GROUP_ID, COMPANION_ARTIFACT_ID));
-
-        sync(OPENAPI_WITH_CARD, false);
-
-        verify(storage, times(1)).createArtifact(eq(GROUP_ID), eq(COMPANION_ARTIFACT_ID),
-                eq(ArtifactType.AGENT_CARD), any(), eq("1"), any(), any(), any(), eq(false), eq(false),
-                eq("alice"));
-        // Source is marked with a pointer to the generated companion.
-        verify(storage, times(1)).mergeArtifactLabels(eq(GROUP_ID), eq(OPENAPI_ARTIFACT_ID),
-                eq("apicurio.a2a.openapi-agent-card."),
-                eq(Map.of("apicurio.a2a.openapi-agent-card.artifact-id", COMPANION_ARTIFACT_ID)));
-        verify(storage, never()).createArtifactVersion(anyString(), anyString(), any(), anyString(), any(),
-                any(), any(), anyBoolean(), anyBoolean(), anyString());
+    @Test void existingUpToDateCardRepairsSourceLinkWithoutNewVersion() throws Exception {
+        String current=assembled("New");
+        existing(current,labels(current));
+        doThrow(new RegistryStorageException("temporary link failure")).when(storage)
+                .mergeArtifactLabels(eq(GROUP),eq(SOURCE),anyString(),any());
+        sync();
+        doNothing().when(storage).mergeArtifactLabels(eq(GROUP),eq(SOURCE),anyString(),any());
+        sync();
+        noVersionWrite();
+        verify(storage,times(2)).mergeArtifactLabels(eq(GROUP),eq(SOURCE),anyString(),
+                eq(Map.of(A2AConstants.LABEL_OPENAPI_AGENT_CARD_ARTIFACT_ID,CARD)));
     }
 
-    @Test
-    void companionNotOurs_skipsWithoutTouchingIt() {
-        ArtifactMetaDataDto foreignCompanion = ArtifactMetaDataDto.builder().labels(Map.of()).build();
-        when(storage.getArtifactMetaData(GROUP_ID, COMPANION_ARTIFACT_ID)).thenReturn(foreignCompanion);
-
-        sync(OPENAPI_WITH_CARD, false);
-
-        verifyNoStorageWrites();
+    @Test void sourceRecreationDoesNotAdoptOldGeneration() throws Exception {
+        String before=assembled("Old");
+        existing(before,labels(before));
+        when(storage.getArtifactVersionMetaData(10L)).thenThrow(new ArtifactNotFoundException(GROUP,SOURCE));
+        sync();
+        noVersionWrite();
     }
 
-    @Test
-    void companionOursAndUpToDate_doesNothing() {
-        // Simulate a prior generation: record the actual hash the assembler will produce for
-        // OPENAPI_WITH_CARD, and make the "current latest version content" match it exactly.
-        String assembledJson = assemble(OPENAPI_WITH_CARD);
-        String hash = canonicalHash(assembledJson);
-
-        mockExistingGeneratedCompanion(hash, assembledJson);
-
-        sync(OPENAPI_WITH_CARD, false);
-
-        verify(storage, never()).createArtifactVersion(anyString(), anyString(), any(), anyString(), any(),
-                any(), any(), anyBoolean(), anyBoolean(), anyString());
-        verify(storage, never()).createArtifact(anyString(), anyString(), anyString(), any(), anyString(),
-                any(), any(), any(), anyBoolean(), anyBoolean(), anyString());
+    @Test void unauthorizedCompanionNeverReachesWrite() throws Exception {
+        String before=assembled("Old");
+        existing(before,labels(before));
+        when(service.authConfig.isObacEnabled()).thenReturn(true);
+        service.createOrSyncCompanion(storage,GROUP,SOURCE,"ignored","bob");
+        noVersionWrite();
     }
 
-    @Test
-    void companionOursAndStale_createsNewVersion() {
-        // Recorded hash matches the *previously* generated content (so we know it wasn't hand-edited),
-        // but that content differs from what today's OpenAPI (version 1.0.0) now assembles to.
-        String previouslyGenerated = assemble(openApiWithVersion("0.9.0"));
-        String previousHash = canonicalHash(previouslyGenerated);
-        mockExistingGeneratedCompanion(previousHash, previouslyGenerated);
-
-        sync(OPENAPI_WITH_CARD, false);
-
-        verify(storage, times(1)).createArtifactVersion(eq(GROUP_ID), eq(COMPANION_ARTIFACT_ID), eq(null),
-                eq(ArtifactType.AGENT_CARD), any(), any(), any(), eq(false), eq(false), eq("alice"));
-        verify(storage, times(1)).mergeArtifactLabels(eq(GROUP_ID), eq(COMPANION_ARTIFACT_ID),
-                eq("apicurio.a2a.openapi-agent-card."), any());
+    @Test void initialCompanionCreationHonorsConfiguredRules() {
+        when(storage.getArtifactMetaData(GROUP,CARD)).thenThrow(new ArtifactNotFoundException(GROUP,CARD));
+        doThrow(new RuleViolationException("Rejected",RuleType.VALIDITY,"FULL",
+                Set.of(new RuleViolation("Rejected card","/"))))
+                .when(service.rulesService).applyRules(eq(GROUP),eq(CARD),eq(ArtifactType.AGENT_CARD),any(),
+                        eq(RuleApplicationType.CREATE),any(),any());
+        sync();
+        verify(storage,never()).createArtifact(anyString(),anyString(),anyString(),any(),any(),any(),any(),any(),
+                eq(false),eq(false),anyString());
     }
 
-    @Test
-    void companionOursButManuallyEdited_skipsSync() {
-        // Recorded hash reflects what we last generated, but the *actual* latest version content
-        // (what fetchLatestVersionContent returns) no longer matches it - someone edited it directly.
-        String weGenerated = assemble(openApiWithVersion("1.0.0"));
-        String recordedHash = canonicalHash(weGenerated);
-        String handEdited = assemble(openApiWithVersion("9.9.9-hand-edited"));
-
-        mockExistingGeneratedCompanion(recordedHash, handEdited);
-
-        sync(OPENAPI_WITH_CARD, false);
-
-        verify(storage, never()).createArtifactVersion(anyString(), anyString(), any(), anyString(), any(),
-                any(), any(), anyBoolean(), anyBoolean(), anyString());
+    @Test void concurrentCompanionUpdateRejectsWithoutChangingProvenance() throws Exception {
+        String before=assembled("Old");
+        existing(before,labels(before));
+        when(storage.createArtifactVersionIfLatest(eq(GROUP),eq(CARD),isNull(),eq(ArtifactType.AGENT_CARD),
+                any(),any(),any(),eq(false),eq("alice"),eq(1),isNull()))
+                .thenThrow(new CommitFailedException(GROUP,CARD,"Tip changed"));
+        sync();
+        verify(storage,times(3)).createArtifactVersionIfLatest(eq(GROUP),eq(CARD),isNull(),eq(ArtifactType.AGENT_CARD),
+                any(),any(),any(),eq(false),eq("alice"),eq(1),isNull());
+        verify(storage,never()).mergeArtifactLabels(anyString(),anyString(),anyString(),any());
+        verify(storage,never()).createArtifactVersion(anyString(),anyString(),any(),anyString(),
+                any(),any(),any(),eq(false),eq(false),anyString());
     }
 
-    // --- helpers ---
-
-    private String assemble(String openApiJson) {
-        try {
-            return new OpenApiAgentCardAssembler().assemble(openApiContent(openApiJson));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private String openApiWithVersion(String version) {
-        return """
-                {
-                  "openapi": "3.0.0",
-                  "info": {
-                    "title": "Weather API",
-                    "description": "A weather service",
-                    "version": "%s",
-                    "x-agent-card": {
-                      "capabilities": {},
-                      "skills": [
-                        { "id": "get-weather", "name": "Get Weather",
-                          "description": "Retrieve the current weather for a city", "tags": ["weather"] }
-                      ],
-                      "defaultInputModes": ["text"],
-                      "defaultOutputModes": ["text"]
-                    }
-                  },
-                  "servers": [ { "url": "https://weather.example.com" } ],
-                  "paths": {}
-                }
-                """.formatted(version);
-    }
-
-    private String canonicalHash(String json) {
-        // Mirror OpenApiAgentCardService's own hashing so test expectations stay in lockstep with it.
-        JsonContentCanonicalizer canonicalizer = new JsonContentCanonicalizer();
-        TypedContent canonical = canonicalizer.canonicalize(
-                TypedContent.create(json, ContentTypes.APPLICATION_JSON), Collections.emptyMap());
-        return DigestUtils.sha256Hex(canonical.getContent().bytes());
-    }
-
-    private void mockExistingGeneratedCompanion(String recordedHash, String latestVersionContent) {
-        Map<String, String> labels = new HashMap<>();
-        labels.put("apicurio.a2a.openapi-agent-card.generated", "true");
-        labels.put("apicurio.a2a.openapi-agent-card.source-group-id", GROUP_ID);
-        labels.put("apicurio.a2a.openapi-agent-card.source-artifact-id", OPENAPI_ARTIFACT_ID);
-        labels.put("apicurio.a2a.openapi-agent-card.generated-hash", recordedHash);
-        ArtifactMetaDataDto existing = ArtifactMetaDataDto.builder().labels(labels).build();
-        when(storage.getArtifactMetaData(GROUP_ID, COMPANION_ARTIFACT_ID)).thenReturn(existing);
-
-        GAV latestGav = new GAV(new GA(GROUP_ID, COMPANION_ARTIFACT_ID), "1");
-        when(storage.getBranchTip(any(GA.class), any(BranchId.class), any())).thenReturn(latestGav);
-        StoredArtifactVersionDto stored = StoredArtifactVersionDto.builder()
-                .content(ContentHandle.create(latestVersionContent)).build();
-        when(storage.getArtifactVersionContent(GROUP_ID, COMPANION_ARTIFACT_ID, "1")).thenReturn(stored);
-    }
-
-    private void verifyNoStorageWrites() {
-        verify(storage, never()).createArtifact(anyString(), anyString(), anyString(), any(), anyString(),
-                any(), any(), any(), anyBoolean(), anyBoolean(), anyString());
-        verify(storage, never()).createArtifactVersion(anyString(), anyString(), any(), anyString(), any(),
-                any(), any(), anyBoolean(), anyBoolean(), anyString());
-        verify(storage, never()).mergeArtifactLabels(anyString(), anyString(), anyString(), any());
+    @Test void competingManualVersionIsReReadAndPreserved() throws Exception {
+        String before=assembled("Old");
+        existing(before,labels(before));
+        when(storage.createArtifactVersionIfLatest(eq(GROUP),eq(CARD),isNull(),eq(ArtifactType.AGENT_CARD),
+                any(),any(),any(),eq(false),eq("alice"),eq(1),isNull())).thenAnswer(call -> {
+                    when(storage.getArtifactVersions(GROUP,CARD,RegistryStorage.RetrievalBehavior.ALL_STATES))
+                            .thenReturn(List.of("1","2"));
+                    when(storage.getArtifactVersionMetaData(GROUP,CARD,"2")).thenReturn(
+                            ArtifactVersionMetaDataDto.builder().version("2").versionOrder(2).labels(Map.of()).build());
+                    throw new CommitFailedException(GROUP,CARD,"Manual version won");
+                });
+        sync();
+        verify(storage,times(1)).createArtifactVersionIfLatest(eq(GROUP),eq(CARD),isNull(),eq(ArtifactType.AGENT_CARD),
+                any(),any(),any(),eq(false),eq("alice"),eq(1),isNull());
+        verify(storage,never()).mergeArtifactLabels(anyString(),anyString(),anyString(),any());
+        verify(storage).getArtifactVersionMetaData(GROUP,CARD,"2");
     }
 }

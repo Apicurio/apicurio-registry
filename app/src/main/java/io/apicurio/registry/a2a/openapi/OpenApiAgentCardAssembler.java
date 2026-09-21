@@ -17,6 +17,8 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static io.apicurio.registry.util.JsonObjectMapper.MAPPER;
 
@@ -40,6 +42,7 @@ public class OpenApiAgentCardAssembler {
 
     private static final String DEFAULT_PROTOCOL_BINDING = "http+json";
     private static final String DEFAULT_PROTOCOL_VERSION = "1.0";
+    private static final Pattern SERVER_VARIABLE = Pattern.compile("\\{([^{}]+)\\}");
 
     private final AgentCardContentValidator agentCardValidator = new AgentCardContentValidator();
 
@@ -88,8 +91,7 @@ public class OpenApiAgentCardAssembler {
      */
     private void deriveMissingField(ObjectNode target, String fieldName, JsonNode fallback) {
         JsonNode existing = target.path(fieldName);
-        boolean present = existing.isTextual() && !existing.asText().isBlank();
-        if (!present && fallback.isTextual() && !fallback.asText().isBlank()) {
+        if (existing.isMissingNode() && fallback.isTextual() && !fallback.asText().isBlank()) {
             target.put(fieldName, fallback.asText());
         }
     }
@@ -103,7 +105,7 @@ public class OpenApiAgentCardAssembler {
      */
     private void deriveInterfacesFromServers(ObjectNode agentCard, JsonNode servers) {
         JsonNode existing = agentCard.path("supportedInterfaces");
-        if (existing.isArray() && !existing.isEmpty()) {
+        if (!existing.isMissingNode()) {
             return;
         }
         if (!servers.isArray() || servers.isEmpty()) {
@@ -118,7 +120,7 @@ public class OpenApiAgentCardAssembler {
                 continue;
             }
             ObjectNode iface = MAPPER.createObjectNode();
-            iface.put("url", urlNode.asText());
+            iface.put("url", resolveServerVariables(urlNode.asText(), server.path("variables")));
             iface.put("protocolBinding", DEFAULT_PROTOCOL_BINDING);
             iface.put("protocolVersion", protocolVersion);
             interfaces.add(iface);
@@ -126,6 +128,23 @@ public class OpenApiAgentCardAssembler {
         if (!interfaces.isEmpty()) {
             agentCard.set("supportedInterfaces", interfaces);
         }
+    }
+
+    private String resolveServerVariables(String url, JsonNode variables) {
+        Matcher matcher = SERVER_VARIABLE.matcher(url);
+        StringBuilder resolved = new StringBuilder();
+        while (matcher.find()) {
+            JsonNode value = variables.path(matcher.group(1)).path("default");
+            if (!value.isTextual()) {
+                throw new RuleViolationException("OpenAPI server variable requires a string default",
+                        RuleType.VALIDITY, ValidityLevel.FULL.name(), Set.of(new RuleViolation(
+                                "Supply a default for server variable '" + matcher.group(1)
+                                        + "' or explicit supportedInterfaces", "/servers")));
+            }
+            matcher.appendReplacement(resolved, Matcher.quoteReplacement(value.asText()));
+        }
+        matcher.appendTail(resolved);
+        return resolved.toString();
     }
 
     /**

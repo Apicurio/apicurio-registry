@@ -1220,6 +1220,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             return;
         }
 
+        String generatedCard = null;
         // If the current state is DRAFT, apply rules.
         if (currentState == VersionState.DRAFT) {
             VersionMetaData vmd = getArtifactVersionMetaData(gav.getRawGroupIdWithDefaultString(),
@@ -1235,11 +1236,18 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             rulesService.applyRules(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                     vmd.getArtifactType(), typedContent, RuleApplicationType.UPDATE, references,
                     resolvedReferences);
+            if (ArtifactType.OPENAPI.equals(vmd.getArtifactType()) && data.getState() != VersionState.DISABLED) {
+                generatedCard = openApiAgentCardService.validateAndAssemble(typedContent, true);
+            }
         }
 
         // Now update the state.
         storage.updateArtifactVersionState(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                 gav.getRawVersionId(), data.getState(), dryRun != null && dryRun);
+        if (generatedCard != null && !Boolean.TRUE.equals(dryRun)) {
+            openApiAgentCardService.createOrSyncCompanion(storage, gav.getRawGroupIdWithNull(),
+                    gav.getRawArtifactId(), generatedCard, securityIdentity.getPrincipal().getName());
+        }
     }
 
     /**
@@ -1535,7 +1543,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 // Validate the 'x-agent-card' extension (if any) BEFORE the artifact is persisted, so a
                 // malformed extension rejects this write exactly like any other content validation
                 // failure, rather than leaving a persisted OPENAPI artifact behind a 400 response.
-                if (ArtifactType.OPENAPI.equals(artifactType)) {
+                if (ArtifactType.OPENAPI.equals(artifactType) && !firstVersionIsDraft) {
                     openApiAgentCardJson = openApiAgentCardService.validateAndAssemble(effectiveTypedContent,
                             false);
                 }
@@ -1682,7 +1690,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Validate the 'x-agent-card' extension (if any) BEFORE the version is persisted, so a
         // malformed extension rejects this write exactly like any other content validation failure.
         String openApiAgentCardJson = null;
-        if (ArtifactType.OPENAPI.equals(artifactType)) {
+        if (ArtifactType.OPENAPI.equals(artifactType) && !isDraft) {
             openApiAgentCardJson = openApiAgentCardService.validateAndAssemble(
                     TypedContent.create(effectiveContent, effectiveContentType), true);
         }
@@ -1974,7 +1982,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Validate the 'x-agent-card' extension (if any) BEFORE the version is persisted, so a
         // malformed extension rejects this write exactly like any other content validation failure.
         String openApiAgentCardJson = null;
-        if (ArtifactType.OPENAPI.equals(artifactType)) {
+        if (ArtifactType.OPENAPI.equals(artifactType) && !isDraftVersion) {
             openApiAgentCardJson = openApiAgentCardService.validateAndAssemble(
                     TypedContent.create(content, contentType), true);
         }

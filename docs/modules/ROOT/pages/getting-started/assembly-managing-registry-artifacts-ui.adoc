@@ -160,6 +160,93 @@ The comparison displays the older version on the left and the newer version on t
 * Verify that the *Older* and *Newer* labels identify the versions that you selected.
 
 
+[id="draft-version-settings_{context}"]
+== Draft version settings
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+You can prepare schema and API changes as draft versions before publishing them. The following server settings control draft editing and draft content access. Both settings default to `false`.
+
+`apicurio.rest.mutability.artifact-version-content.enabled`::
+Set to `true` to update the content of versions in the `DRAFT` state and use the Studio editor in the web console. This setting does not make published versions editable. The equivalent environment variable is `APICURIO_REST_MUTABILITY_ARTIFACT_VERSION_CONTENT_ENABLED`.
+
+`apicurio.rest.draft.production-mode.enabled`::
+Set to `true` to use production-like behavior for drafts: {registry} uses content hashes for newly registered drafts, permits content retrieval by global ID and content ID, and applies content rules when you register a draft. This setting does not publish the draft or enable content editing. The equivalent environment variable is `APICURIO_REST_DRAFT_PRODUCTION_MODE_ENABLED`.
+
+An administrator can change these dynamic settings on the *Settings* tab as *Update artifact version content* and *Draft production mode*. Alternatively, set the environment variables in the server deployment configuration and restart the server. For an Operator deployment, set `spec.app.features.versionMutabilityEnabled: true` to enable draft content editing.
+
+By default, draft registration skips content rules and content retrieval by global ID or content ID is unavailable. You can still retrieve a draft by its group ID, artifact ID, and version. When you finalize a draft, {registry} applies the configured content rules before changing the state to `ENABLED`.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:configuring-settings-using-console_{context}[]
+* xref:getting-started/assembly-deploying-registry-operator.adoc#enabling-version-mutability_{context}[]
+
+
+[id="creating-editing-drafts-using-console_{context}"]
+== Creating and editing draft versions using the web console
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can create a draft, edit its content in Studio, and save changes without publishing a new version after each edit.
+
+.Prerequisites
+* You have access to the web console of a running {registry} instance, and the web console is not in read-only mode.
+* An administrator has enabled draft content mutability on the server.
+* If authentication is enabled, you have the developer or administrator role. If artifact owner-only authorization is enabled, you are the owner of the artifact or an administrator.
+
+.Procedure
+. Click the *Drafts* tab, and then click *Create draft*.
+. In *Draft Coordinates*, enter the group ID, draft ID, and version number, select the artifact type, and then click *Next*. Leave the group ID empty to use the `default` group.
++
+Use a version number that does not already exist for the artifact. You can leave the draft ID and version number empty to generate them automatically.
+. In *Draft Content*, choose a template, upload or enter content, or import content from a URL, and then click *Next*.
+. In *Draft References (optional)*, add any references that the content requires, and then click *Next*.
+. In *Draft Metadata*, enter an optional name and description, and then click *Create*.
++
+The web console opens the draft in the editor. To edit an existing draft, select *Edit draft* from its Action menu (three vertical dots) on the *Drafts* tab.
+. Edit the content, and then click *Save*.
++
+Studio provides dedicated editors for OpenAPI, AsyncAPI, and Protobuf, and a text editor for other types. Saving updates the same draft version. It does not publish the draft.
+
+.Verification
+* Return to the *Drafts* tab, select *Edit draft* for the same version, and verify that the editor displays your saved content.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:draft-version-settings_{context}[]
+* xref:publishing-drafts-using-console_{context}[]
+
+
+[id="publishing-drafts-using-console_{context}"]
+== Publishing a draft version using the web console
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can validate a saved draft against the configured content rules, and then finalize it to publish the version.
+
+.Prerequisites
+* You have saved the draft content that you want to publish.
+* You have access to the *Drafts* tab and permission to update the artifact.
+
+.Procedure
+. On the *Drafts* tab, select *Finalize draft* from the draft's Action menu (three vertical dots).
+. Optional: Turn on *Dry run only*, and then click *Finalize (dry run)* to check the content rules without publishing the version.
++
+If the content violates a rule, correct the content in the editor and save it before trying again. A successful dry run leaves the version in the `DRAFT` state.
+. Select *Finalize draft* again if you performed a dry run. Ensure that *Dry run only* is off, and then click *Finalize*.
++
+{registry} applies the content rules and changes the version to `ENABLED`. If a rule fails, the version remains a draft. After publication, you cannot edit the version's content or return it to `DRAFT`. To prepare further changes, select *Create draft from...* on the published version page and create a new draft version.
+
+.Verification
+* Open the published version on the *Explore* tab and verify that *Status* displays *Enabled*.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:artifact-version-states-using-console_{context}[]
+* xref:configuring-rules-using-console_{context}[]
+
+
 [id="artifact-version-states-using-console_{context}"]
 == Artifact version states in the {registry} web console
 :_mod-docs-content-type: REFERENCE
@@ -757,5 +844,3 @@ When the web console is in read-only mode (`apicurio.ui.features.read-only.enabl
 
 //[role="_additional-resources"]
 //.Additional resources
-
-

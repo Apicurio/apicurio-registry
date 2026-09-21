@@ -151,6 +151,61 @@ mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
 
+[id="registering-draft-versions-using-maven-plugin_{context}"]
+== Registering draft versions using the Maven plug-in
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can set `isDraft` explicitly to register a draft for any supported artifact type. This option is independent of the `API_INFO_VERSION` strategy for OpenAPI and AsyncAPI documents.
+
+.Prerequisites
+* You have a Maven project with the {registry} Maven plug-in configured.
+* You have a schema or API file to register and permission to create artifact versions.
+* To update an existing draft, an administrator has enabled `apicurio.rest.mutability.artifact-version-content.enabled` on the server.
+
+.Procedure
+. In the plug-in's `register` execution, configure the artifact with an explicit version and `isDraft` set to `true`. For example:
++
+[source,xml]
+----
+<configuration>
+    <registryUrl>MY-REGISTRY-URL/apis/registry/v3</registryUrl>
+    <artifacts>
+        <artifact>
+            <groupId>default</groupId>
+            <artifactId>FullNameRecord</artifactId>
+            <version>2.0</version>
+            <artifactType>AVRO</artifactType>
+            <file>${project.basedir}/src/main/resources/schemas/record.avsc</file>
+            <ifExists>CREATE_VERSION</ifExists>
+            <isDraft>true</isDraft>
+        </artifact>
+    </artifacts>
+</configuration>
+----
++
+Use a version that is not already published. Add the authentication settings required by your server to the same plug-in configuration.
+. Run the Maven lifecycle phase that contains the `register` execution, for example, `mvn generate-sources`.
++
+The plug-in registers version `2.0` in the `DRAFT` state. If that version already exists as a draft, the plug-in updates its content when server mutability is enabled. It cannot update the content of a published version.
+. Edit the local schema or API file and run the same Maven phase again to save further changes to the draft.
+. When the draft is ready, publish it by using *Finalize draft* in the web console or the REST API state operation.
++
+Changing `isDraft` to `false` with an explicit `version` does not promote an existing draft. For automatic promotion, use the separate `API_INFO_VERSION` workflow without an explicit `version`, remove the `-SNAPSHOT` suffix from the API document's `info.version` value, and leave `isDraft` unset or set it to `false`. Keeping `isDraft=true` updates the draft without publishing it.
+
+.Verification
+* Open the artifact version in the web console. Confirm that the version is *Draft* before publication and *Enabled* after successful finalization.
+
+For direct command-line registration, use the equivalent properties `-Dartifacts.version=2.0` and `-Dartifacts.isDraft=true` with the other artifact properties.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:adding-artifacts-using-maven-plugin_{context}[]
+* xref:getting-started/assembly-managing-registry-artifacts-ui.adoc#publishing-drafts-using-console_{context}[]
+* xref:getting-started/assembly-managing-registry-artifacts-ui.adoc#draft-version-settings_{context}[]
+
+
 [id="downloading-artifacts-using-maven-plugin_{context}"]
 == Downloading schema and API artifacts using the Maven plug-in
 

@@ -118,6 +118,43 @@ ifndef::service-registry-downstream[]
 endif::[]
 
 
+[id="installing-registry-cli-system-wide_{context}"]
+== Installing the CLI for all users
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can install the CLI in shared system directories on Linux or macOS with the `--global` option.
+
+.Prerequisites
+* You have downloaded and extracted the CLI distribution for your platform.
+* You have permission to run commands with `sudo`.
+
+.Procedure
+. In the extracted distribution directory, install the CLI:
++
+[source,bash]
+----
+$ sudo ./acr install --global
+----
++
+The installer copies the CLI to `/usr/local/lib/apicurio-registry-cli` and creates the `acr` and `acr_env` symbolic links in `/usr/local/bin`. It does not change individual shell profiles.
++
+[NOTE]
+====
+A global installation shares one `config.json` file. Separate configuration for each user is not supported. Users without write access to that file cannot change contexts or configuration. Use a per-user installation when you need independent contexts and authentication settings.
+====
+. Optional: Add the following command to your shell profile to load shell completions:
++
+[source,bash]
+----
+source /usr/local/bin/acr_env
+----
+
+.Verification
+* Verify that `/usr/local/bin` is on your `PATH`, and run `/usr/local/bin/acr --help`.
+
+
 [id="configuring-registry-cli-contexts_{context}"]
 == Configuring {registry} CLI contexts
 
@@ -180,6 +217,14 @@ $ acr context use _CONTEXT_NAME_
 $ acr context update prod --registry-url http://registry.internal.example.com
 $ acr context update --group my-schemas
 ----
+. Optional: Save group and artifact identifiers automatically after successful `group create`, `group get`, `artifact create`, and `artifact get` commands:
++
+[source,bash]
+----
+$ acr config set context.auto-update=true
+----
++
+This setting is disabled by default. When a group command changes the context group, it clears the previous artifact identifier. An artifact command saves both identifiers. Commands that omit `--group` or `--artifact` then use these saved values.
 . Delete a context that you no longer need:
 +
 [source,bash,subs="+quotes"]
@@ -211,14 +256,21 @@ $ acr login --username my-user
 ----
 +
 Alternatively, provide the password with the `--password` (`-p`) option.
-. To log in with OAuth2 client credentials, provide the token endpoint and client ID. The CLI prompts for the client secret:
+. To log in with OAuth2 client credentials, provide the OpenID Connect (OIDC) provider URL and client ID. The CLI discovers the token endpoint and prompts for the client secret:
++
+[source,bash]
+----
+$ acr login --auth-server-url https://auth.example.com/realms/registry --client-id registry-client
+----
++
+The CLI appends `/.well-known/openid-configuration` to the provider URL. Alternatively, specify the token endpoint directly:
 +
 [source,bash]
 ----
 $ acr login --token-endpoint https://auth.example.com/realms/registry/protocol/openid-connect/token --client-id registry-client
 ----
 +
-Optional: Provide an OAuth2 scope with the `--scope` option.
+If you specify both options, `--token-endpoint` takes precedence over discovery. Provide an OAuth2 scope with `--scope` when required by your provider.
 . Optional: On systems without a keychain, for example in headless environments, use the `--allow-unsafe-credential-storage` option. The CLI stores secrets in a `credentials.json` file and prints a warning. The file is restricted to its owner, by `0600` permissions on Linux and macOS and by an owner-only access control list on Windows. This preference persists per context.
 . To log out of the current context, run the following command. The CLI removes the stored secrets and clears the authentication settings of the context:
 +
@@ -251,6 +303,8 @@ You can use the CLI to create, list, update, and delete artifact groups in {regi
 ----
 $ acr group
 ----
++
+The first page includes the built-in group as `default (implicit)` in table output. Use `default` as the identifier in commands. JSON output uses `default` without the display marker. You cannot create, update, or delete this implicit group.
 +
 Optional: Use pagination options for large result sets:
 +
@@ -572,6 +626,144 @@ $ acr admin import --file registry-export.zip
 Optional: To import into a registry that already contains data, use the `--no-require-empty` option. To let the server generate new global and content identifiers instead of preserving the exported ones, use the `--no-preserve-ids` option.
 
 
+[id="synchronizing-gitops-using-registry-cli_{context}"]
+== Checking and synchronizing GitOps storage using the CLI
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can inspect GitOps storage status and request an immediate synchronization from the configured Git repositories.
+
+.Prerequisites
+* Your CLI context points to a {registry} instance that uses GitOps storage.
+* You have read access to view status and administrator access to request synchronization when authorization is enabled.
+
+.Procedure
+. Check the current synchronization status:
++
+[source,bash]
+----
+$ acr gitops status
+----
++
+The output includes the synchronization state, attempt and success timestamps, resource counts, source commit identifiers, and reported errors.
+. Request synchronization and wait for the server to report a completed attempt:
++
+[source,bash]
+----
+$ acr gitops sync --wait --timeout 300
+----
++
+The CLI checks status every two seconds. It waits for the attempt timestamp to advance and for the state to become `IDLE` or `ERROR`. Without `--wait`, the command returns after requesting synchronization.
+. Optional: Write the reported status as JSON for automation:
++
+[source,bash]
+----
+$ acr gitops status --output-type json
+$ acr gitops sync --wait --output-type json
+----
++
+For `sync`, JSON status output requires `--wait`. Without `--wait`, the command prints a request confirmation regardless of the output format.
+
+.Verification
+* Check that the `sources` values match the expected commits. The CLI reports the server status; a successful command exit alone does not verify which commit the registry loaded.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-configuring-gitops-storage.adoc[]
+
+
+[id="validating-gitops-using-registry-cli_{context}"]
+== Validating a Git revision using the CLI
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can validate the content of a Git revision before merging a change. Validation does not change the live registry content.
+
+.Prerequisites
+* Your CLI context points to a {registry} instance that uses GitOps storage.
+* The server has `apicurio.gitops.validate.enabled=true`.
+* The repository ID is configured on the server, and the server can fetch the Git revision.
+* You have administrator access when authorization is enabled.
+
+.Procedure
+. Submit a branch, tag, or pull request ref for validation:
++
+[source,bash]
+----
+$ acr gitops validate --repo primary --ref refs/heads/proposed-schemas --timeout 300
+----
++
+Replace `primary` with the configured repository ID. The CLI waits for the validation task to finish and displays its result, resource counts, and errors. The default timeout is 300 seconds.
+. Optional: Use JSON output to process the validation result in a pipeline:
++
+[source,bash]
+----
+$ acr gitops validate --repo primary --ref refs/heads/proposed-schemas --output-type json
+----
++
+JSON output includes the task ID, task state, validation result, timestamps, counts, and error details. A failed task, failed validation result, or timeout returns exit code `1`.
+. Optional: Retain the server task for later inspection:
++
+[source,bash]
+----
+$ acr gitops validate --repo primary --ref refs/heads/proposed-schemas --no-cleanup
+----
++
+By default, the CLI attempts to delete the task when it finishes waiting, including after an error or timeout. With `--no-cleanup`, the task remains available until it expires or you delete it through the REST API.
+
+.Verification
+* Check the command exit code and the reported validation result. Successful validation reports `success`.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-configuring-gitops-storage.adoc[]
+
+
+[id="registry-cli-gitops-options_{context}"]
+== GitOps CLI options
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The GitOps commands support waiting for results, JSON output, and validation task cleanup.
+
+.GitOps command options
+[cols="1,1,3", options="header"]
+|===
+| Command | Option | Description
+
+| `status`, `sync`, `validate`
+| `--output-type`, `-o`
+| Output format: `table` (default) or `json`. The `sync` command requires `--wait` to return status in either format.
+
+| `sync`
+| `--wait`
+| Wait for a completed synchronization attempt. Disabled by default. A reported `ERROR` state or timeout returns exit code `1`.
+
+| `sync`, `validate`
+| `--timeout`
+| Maximum wait in seconds. Default: `300`. Applies only when the command waits for completion.
+
+| `validate`
+| `--repo`
+| Required repository ID from the server configuration, not a repository URL.
+
+| `validate`
+| `--ref`
+| Required Git branch, tag, or pull request ref to validate.
+
+| `validate`
+| `--no-wait`
+| Return the initial task details without waiting for the result or deleting the task. A successful exit confirms task creation, not successful validation. Retrieve the task result through the REST API using the returned task ID.
+
+| `validate`
+| `--cleanup`, `--no-cleanup`
+| Control task deletion after waiting. Cleanup is enabled by default and does not apply with `--no-wait`.
+|===
+
+
 [id="registry-cli-output-formats_{context}"]
 == CLI output formats and pagination
 
@@ -623,9 +815,31 @@ $ acr artifact version --columns version,state,createdOn
 
 An unknown column name produces an error that lists the valid columns. This option only affects `table` output, and is available on commands that list multiple records rather than commands that show details of a single record.
 
+*Terminal width*
+
+Table output adapts to the terminal width by wrapping long cell values. If automatic width detection fails, the CLI uses the `COLUMNS` environment variable, then a default of 120 characters. Piped or redirected output has no width limit. JSON output is unaffected by terminal width.
+
 *Verbose output*
 
 To enable verbose output for debugging, use the `--verbose` option. This option has no short form.
+
+[source,bash]
+----
+$ acr --verbose artifact get my-artifact --group my-schemas
+----
+
+Verbose output includes HTTP requests prefixed with `>` and responses prefixed with `<`. It shows the method, URL, headers, status, and body. Bodies longer than 8192 characters are truncated.
+
+The logger redacts credential headers and common credential query parameters. Other URL values and body content remain visible, so review verbose logs before sharing them. Redirects appear as separate requests with a redirect number; retries appear as additional requests.
+
+To suppress HTTP traffic logs and retain other debug output, configure the HTTP logging category:
+
+[source,bash]
+----
+$ acr config set 'quarkus.log.category."io.apicurio.registry.client.http".level=WARNING'
+----
+
+Category overrides apply only when you use `--verbose`.
 
 
 [id="registry-cli-reference_{context}"]
@@ -746,8 +960,11 @@ The following commands are available. Running a parent command, such as `acr gro
 | `acr admin import`
 | Import registry data from a .zip file.
 
+| `acr gitops`
+| Display GitOps command help. Subcommands: `status`, `sync`, `validate`.
+
 | `acr install`
-| Install the CLI for the current user.
+| Install the CLI for the current user, or for all users with `--global` on Linux or macOS.
 
 | `acr update`
 | Update the CLI to a newer version.
@@ -782,6 +999,10 @@ You can adjust the behavior of the CLI itself with the `acr config set` command.
 | Property
 | Default
 | Description
+
+| `context.auto-update`
+| `false`
+| Save group and artifact identifiers to the current context after successful group or artifact `create` and `get` commands.
 
 | `update.check-enabled`
 | `true`

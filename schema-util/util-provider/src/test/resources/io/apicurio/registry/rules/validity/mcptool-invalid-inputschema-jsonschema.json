@@ -1,0 +1,10 @@
+{
+  "name": "typo_type_tool",
+  "description": "inputSchema declares a property type that is not a JSON Schema type",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "city": { "type": "strng" }
+    }
+  }
+}

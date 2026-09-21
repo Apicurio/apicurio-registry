@@ -20,7 +20,7 @@ name: Quick Check
 on:
   pull_request:
     types: [opened, reopened, synchronize, labeled]
-    branches: [main]
+    branches: [main, '3.3.x']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

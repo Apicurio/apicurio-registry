@@ -26,6 +26,21 @@ stale:
   # 7 days — intentional, since the PR is explicitly stalled on the author.
   days_until_stale_waiting_on_author: 4
   days_until_close_waiting_on_author: 7
+  # Review latency: the maintainer-side counterpart to the timers above, for
+  # PRs labelled lifecycle/waiting-on-maintainer. These never close anything —
+  # the author has no action to take, so a close deadline would only punish
+  # them for our backlog. Measured from when the PR became waiting-on-
+  # maintainer, not from updated_at: only 2 of 84 maintainer-blocked PRs had
+  # been idle 7+ days, because bots and CI keep touching them while nobody
+  # reviews, so updated_at barely moves with review latency at all.
+  #
+  # The label and the ping are split because they cost different things. The
+  # label is free and queryable; the comment notifies every assignee and
+  # reviewer. Measured over the 84 maintainer-blocked PRs open when this was
+  # written (median 19 days blocked, max 49), 14/30 labels 47 of them while
+  # only the 13 worst generate mail.
+  days_until_review_overdue: 14
+  days_until_review_ping: 30
   stale_message: |
     This PR has been inactive. @{author}, please update or comment
     to keep it open. It will be closed {close_window} if no activity occurs.
@@ -33,6 +48,12 @@ stale:
   close_message: |
     Closing this PR due to inactivity. Feel free to reopen if you
     want to continue working on it.
+  review_overdue_message: |
+    Thanks for your patience on this one — it has been waiting on a maintainer
+    review for {days} days.
+
+    @{author}, there is nothing you need to do here. A maintainer will take a look as soon as we can.
+    This PR will **not** be closed for inactivity while it is waiting on us.{reviewers}
 
 welcome_message: |
   Thanks for opening this PR!

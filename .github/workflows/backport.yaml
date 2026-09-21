@@ -1,0 +1,40 @@
+name: Backport
+
+# Automatically cherry-picks merged PRs to maintenance branches when labeled.
+# Add the "backport/3.3.x" label to a PR before or after merging to trigger a
+# cherry-pick PR against the 3.3.x LTS branch.
+#
+# On conflict, the action opens a draft PR with conflict markers for manual
+# resolution. Uses the apicurio-ci PAT so the backport PR triggers CI workflows
+# (PRs created by GITHUB_TOKEN do not trigger other workflows).
+
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  backport-3-3-x:
+    name: Backport to 3.3.x
+    runs-on: ubuntu-latest
+    if: >-
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.labels.*.name, 'backport/3.3.x')
+    steps:
+      - name: Backport
+        uses: kiegroup/git-backporting@v4
+        with:
+          target-branch: 3.3.x
+          pull-request: ${{ github.event.pull_request.html_url }}
+          auth: ${{ secrets.ACCESS_TOKEN }}
+          title: "[backport 3.3.x] ${{ github.event.pull_request.title }}"
+          body: |
+            Backport of #${{ github.event.pull_request.number }} to `3.3.x`.
+
+            Original PR: ${{ github.event.pull_request.html_url }}
+          labels: backported
+          bp-branch-name: backport/${{ github.event.pull_request.number }}-to-3.3.x

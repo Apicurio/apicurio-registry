@@ -63,7 +63,7 @@ For an HTTPS connection, configure `QUARKUS_ELASTICSEARCH_PROTOCOL=https` and th
 
 [role="_additional-resources"]
 .Additional resources
-* xref:assembly-configuring-content-search.adoc#searching-version-content-api_{context}[Searching version content with the REST API]
+* xref:searching-version-content-api_{context}[Searching version content with the REST API]
 * link:https://quarkus.io/guides/elasticsearch[Quarkus Elasticsearch client configuration]
 * link:https://www.elastic.co/docs/reference/elasticsearch/clients/java[Elasticsearch Java client compatibility]
 
@@ -131,7 +131,7 @@ docker compose logs registry
 
 [role="_additional-resources"]
 .Additional resources
-* xref:assembly-managing-registry-artifacts-api.adoc[Managing artifacts with the REST API]
+* xref:getting-started/assembly-managing-registry-artifacts-api.adoc[Managing artifacts with the REST API]
 
 
 // proc-configuring-content-search-operator
@@ -200,7 +200,7 @@ spec:
 
 [role="_additional-resources"]
 .Additional resources
-* xref:assembly-deploying-registry-operator.adoc[Deploying with the {operator}]
+* xref:getting-started/assembly-deploying-registry-operator.adoc[Deploying with the {operator}]
 * link:https://quarkus.io/guides/elasticsearch[Quarkus Elasticsearch client configuration]
 
 

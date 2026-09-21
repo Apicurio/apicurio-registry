@@ -20,19 +20,26 @@ error. The build still passes, it is just slower, until github.com returns a 504
 again. See the kiota.binary.folder comment in the root pom for why the location
 is what it is.
 
-Five routes can move the binary, and each is checked here:
+Routes that can move the binary, and how each is covered:
 
   - the root pom's property, which has to be the one expected value
-  - settings.localRepository redefined in the pom, which moves what that value
-    is relative to
-  - a profile in the root pom, which overrides the property when it activates
+  - the os-maven-plugin extension, without which ${os.detected.classifier} is
+    never substituted and the plugin creates a directory of that literal name
+  - settings.localRepository redefined in a pom, which moves what the value is
+    relative to
+  - a profile in any pom, which overrides the property when it activates
+  - the same property redeclared in a module pom, which overrides what that
+    module inherits
   - <targetBinaryFolder> on an execution of the plugin, which is where the
     value is consumed
   - -D on the command line, which outranks all of the above
+  - <localRepository> in a settings.xml committed under .github/
 
-A settings.xml naming its own <localRepository> is the one route left open. It
-would move the whole repository out from under the scheme, and the file is
-supplied by the runner rather than the tree, so nothing here can see it.
+One route stays open. A settings.xml supplied by the runner rather than by the
+tree can name its own <localRepository>, or set the property in an active
+profile, and nothing here can see either. The committed .github/ settings files
+are checked for the first of those; the ones Maven picks up from ~/.m2 or from
+a -s path outside the tree are not.
 
 Poms are parsed rather than grepped because ElementTree ignores comments. A
 line-oriented strip gets this wrong in both directions: it drops a live element
@@ -51,8 +58,10 @@ ANCHOR_PROPERTY = "settings.localRepository"
 EXPECTED = "${settings.localRepository}/.cache/kiota-binary/${os.detected.classifier}"
 CONSUMER_EXPRESSION = "${" + PROPERTY + "}"
 PLUGIN = "kiota-maven-plugin"
+EXTENSION = "os-maven-plugin"
 SETTING = "targetBinaryFolder"
 ROOT_POM = "pom.xml"
+SETTINGS_GLOB = ".github"
 
 # Comparing against the one expected value rather than analysing an arbitrary one
 # also enforces the reason for it. A prefix test accepts
@@ -65,9 +74,13 @@ ROOT_POM = "pom.xml"
 # -D outranks the pom wherever it appears, and MAVEN_ARGS in a composite action
 # carries the same text. Relocating the whole local repository moves the folder
 # with it, and only ~/.m2/repository is saved to the cache. Maven accepts a space
-# after -D and accepts --define, so both spellings are matched.
+# after -D and accepts --define in both its spellings, so all are matched.
+# The trailing guard is (?![\w.]) rather than \b so that the real Resolver
+# properties maven.repo.local.tail.threads and maven.repo.local.record.reverseTree
+# do not match: \b ends the match at the dot after "local" and reports a flag that
+# does not move anything.
 OVERRIDE = re.compile(
-    r"(?:-D\s*|--define\s+)(?:{0}|{1})\b".format(
+    r"(?:-D\s*|--define[=\s])(?:{0}|{1})(?![\w.])".format(
         re.escape(PROPERTY), re.escape(REPOSITORY_PROPERTY)))
 
 # Directories whose contents are generated or vendored rather than written.
@@ -80,11 +93,17 @@ PRUNED = frozenset((".git", "target", "node_modules", "__pycache__", ".venv"))
 
 
 def walk(root="."):
-    """Every file in the tree, skipping generated and vendored directories."""
+    """Every file in the tree, skipping generated and vendored directories.
+
+    Paths come back with forward slashes on every platform. invokes_maven
+    matches on a leading .mvn/ or .github/, and on Windows a native separator
+    would quietly reduce the scan to .sh files.
+    """
     for directory, subdirs, filenames in os.walk(root):
         subdirs[:] = sorted(d for d in subdirs if d not in PRUNED)
         for filename in sorted(filenames):
-            yield os.path.relpath(os.path.join(directory, filename), root)
+            relative = os.path.relpath(os.path.join(directory, filename), root)
+            yield relative.replace(os.sep, "/")
 
 
 def invokes_maven(path):
@@ -98,6 +117,7 @@ def invokes_maven(path):
     name = os.path.basename(path)
     if name.endswith(".sh"):
         return True
+    # Covers both .mvn/maven.config and .mvn/jvm.config.
     if path.startswith(".mvn/") and name.endswith(".config"):
         return True
     if path.startswith(".github/workflows/") and name.endswith((".yml", ".yaml")):
@@ -132,17 +152,60 @@ def check_root_pom(path=ROOT_POM):
             yield ("<{0}> is {1}, expected {2}. See its comment in pom.xml."
                    .format(PROPERTY, value or "empty", EXPECTED))
 
+    # The classifier segment is only a per-platform directory while something
+    # sets os.detected.*. Drop the extension and Maven substitutes nothing, so
+    # the plugin creates a directory literally named ${os.detected.classifier}
+    # and every other check here stays green.
+    extensions = project.findall("{*}build/{*}extensions/{*}extension")
+    if not any(e.findtext("{*}artifactId") == EXTENSION for e in extensions):
+        yield ("The root pom registers no {0} build extension, so "
+               "${{os.detected.classifier}} in <{1}> is never substituted."
+               .format(EXTENSION, PROPERTY))
+
+
+def check_pom_overrides(path, project):
+    """Ways a pom can move the folder without touching the root declaration."""
     if project.findall("{*}properties/{*}" + ANCHOR_PROPERTY):
-        yield ("The root pom declares <{0}>, which beats the real local "
-               "repository path and moves the binary out of any cache of "
-               "~/.m2/repository.".format(ANCHOR_PROPERTY))
+        yield ("{0} declares <{1}>, which beats the real local repository path "
+               "and moves the binary out of any cache of ~/.m2/repository."
+               .format(path, ANCHOR_PROPERTY))
+
+    # A module redeclaring the property overrides what it inherits, and the root
+    # pom it is checked against stays untouched.
+    if path != ROOT_POM and properties_of(project):
+        yield ("{0} redeclares <{1}>, which overrides the value it inherits "
+               "from the root pom.".format(path, PROPERTY))
 
     for profile in project.findall("{*}profiles/{*}profile"):
-        if properties_of(profile):
+        if properties_of(profile) or profile.findall(
+                "{*}properties/{*}" + ANCHOR_PROPERTY):
             name = profile.findtext("{*}id", "<no id>")
-            yield ("Profile {0} in the root pom overrides <{1}>. A profile that "
+            yield ("Profile {0} in {1} overrides <{2}>. A profile that "
                    "activates on the runner defeats the property with the "
-                   "declaration above it left untouched.".format(name, PROPERTY))
+                   "declaration above it left untouched."
+                   .format(name, path, PROPERTY))
+
+
+def check_settings(paths):
+    """A committed settings.xml can move the whole local repository."""
+    for path in paths:
+        try:
+            settings = ET.parse(path).getroot()
+        except ET.ParseError as error:
+            yield "{0} is not valid XML: {1}".format(path, error)
+            continue
+
+        if settings.tag.rpartition("}")[2] != "settings":
+            continue
+        if settings.findall("{*}localRepository"):
+            yield ("{0} names its own <localRepository>, which moves the whole "
+                   "repository out from under the cache this folder lives in."
+                   .format(path))
+        for profile in settings.findall("{*}profiles/{*}profile"):
+            if properties_of(profile):
+                name = profile.findtext("{*}id", "<no id>")
+                yield ("Profile {0} in {1} sets <{2}>, and a settings profile "
+                       "outranks the pom.".format(name, path, PROPERTY))
 
 
 def check_consumers(paths):
@@ -159,6 +222,9 @@ def check_consumers(paths):
 
     Yields a finding when no pom configures the plugin at all, because a check
     that silently matches nothing is the one that stops catching regressions.
+
+    Each pom is also passed to check_pom_overrides here rather than in a pass of
+    its own, so the tree is parsed once.
     """
     configured = False
     for path in paths:
@@ -168,7 +234,13 @@ def check_consumers(paths):
             yield "{0} is not valid XML: {1}".format(path, error)
             continue
 
+        for finding in check_pom_overrides(path, project):
+            yield finding
+
         for plugin in project.findall(".//{*}plugin"):
+            # A descendant search, so a declaration under <pluginManagement>
+            # counts too. That is stricter than Maven, which runs nothing from
+            # there, and no pom declares this plugin that way today.
             if plugin.findtext("{*}artifactId") != PLUGIN:
                 continue
             configured = True
@@ -238,14 +310,18 @@ def main():
         print("{0} is not valid XML: {1}".format(ROOT_POM, error), file=sys.stderr)
         return 1
 
-    poms, invokers = [], []
+    poms, invokers, settings = [], [], []
     for path in walk():
-        if os.path.basename(path) == "pom.xml":
+        name = os.path.basename(path)
+        if name == "pom.xml":
             poms.append(path)
+        elif path.startswith(SETTINGS_GLOB + "/") and name.endswith(".xml"):
+            settings.append(path)
         elif invokes_maven(path):
             invokers.append(path)
 
     errors += list(check_consumers(poms))
+    errors += list(check_settings(settings))
     errors += list(check_for_overrides(invokers))
 
     if errors:

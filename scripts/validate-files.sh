@@ -90,3 +90,18 @@ for rule in $ENFORCED_RULES; do
     fi
 done
 echo "Checkstyle config ok: $(printf '%s\n' "$ACTUALLY_ENFORCED" | grep -c .) rules enforced"
+
+# ---------------------------------------------------------------------------
+# Kiota binary cache location
+#
+# Guards the class of bug where a change is silently slower rather than broken.
+# The script's own docstring says what it checks and why, and the root pom's
+# kiota.binary.folder comment says why the location is what it is.
+#
+# It lives in Python rather than in an enforcer rule because no enforcer
+# mechanism can safely take an interpolated path as syntax. evaluateBeanshell
+# interpolates the value into a Java string literal, so a Windows local
+# repository fails at parse time whatever the value is, and requireProperty
+# interpolates into regex source, where a \E inside a Windows path ends the
+# \Q...\E quoting early. Both were tried and both broke on real paths.
+python3 .github/scripts/validate-kiota-folder.py || exit 1

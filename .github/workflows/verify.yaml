@@ -99,8 +99,14 @@ jobs:
       - name: Test scalpel summary script
         run: bash .github/scripts/scalpel-summary.test.sh
 
-      - name: Test CI recovery paths
-        run: python3 -m unittest discover -s .github/scripts -p 'test_ci_reliability.py' -v
+      # Discovers the test_*.py files sitting directly in .github/scripts rather
+      # than naming one of them. A test that CI does not run stops nothing:
+      # test_parse_flaky_tests.py sat in the tree unreferenced under the old
+      # single-file pattern. label-classification/ has no __init__.py, so
+      # discover does not descend into it; scripts-tests.yaml runs those tests,
+      # which need dependencies this job does not install.
+      - name: Test CI helper scripts
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
 
       - name: Test operator catalog automation
         run: |

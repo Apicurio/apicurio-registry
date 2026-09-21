@@ -695,7 +695,7 @@ The default group uses `default` in archive paths and `null` for the `groupId` f
 |Manifest
 |`exportVersion` identifies the archive format, for example, `3.0`. `systemVersion` identifies the source registry version, for example, `3.0.0`. Other fields include `systemName`, `systemDescription`, `exportedOn`, `exportedBy`, and `dbVersion`.
 |Content
-|`contentId` identifies the content entry. `contentType` describes the raw bytes. `contentHash` is the SHA-256 hash of the bytes followed by the UTF-8 `serializedReferences` string when references exist. `canonicalHash` is the SHA-256 hash of canonical content. If `canonicalHash` is absent and `artifactType` is present, the importer computes the canonical hash.
+|`contentId` identifies the content entry. `contentType` describes the raw bytes. `contentHash` is the SHA-256 hash of the bytes followed by the UTF-8 `serializedReferences` string when references exist. The registry canonical hash uses canonical content bytes followed by the serialized references when present. For content without references, you can omit `canonicalHash` and supply `artifactType` so that the importer computes the canonical hash.
 |Group and artifact
 |`groupId` identifies the group. An artifact also has `artifactId` and `artifactType`. Metadata fields include `owner`, `createdOn`, `modifiedBy`, `modifiedOn`, `description`, and `labels`. Artifact metadata can also include `name`.
 |Version
@@ -708,6 +708,8 @@ Entity timestamps such as `createdOn` and `modifiedOn` use milliseconds since th
 The `serializedReferences` field contains a JSON-encoded string, not a JSON array.
 Each reference includes `name`, `groupId`, `artifactId`, and `version`.
 For content without references, omit this field or use `null`.
+
+For content with references, supply a `canonicalHash` that matches the registry's canonicalization and reference serialization. Do not rely on automatic canonicalization when the referenced versions exist only in the archive: the importer processes content before versions and resolves references from the target registry. A registry export includes the stored canonical hashes.
 
 An import preserves IDs by default.
 The archive must use consistent content IDs, global IDs, and artifact coordinates across related entries, even when the import generates new IDs.

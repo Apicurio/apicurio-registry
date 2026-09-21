@@ -93,6 +93,14 @@ jobs:
       - name: Test CI recovery paths
         run: python3 -m unittest discover -s .github/scripts -p 'test_ci_reliability.py' -v
 
+      - name: Test operator catalog automation
+        run: |
+          curl --fail --silent --show-error --location \
+            https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64 \
+            --output "$RUNNER_TEMP/catalog-yq"
+          chmod +x "$RUNNER_TEMP/catalog-yq"
+          YQ="$RUNNER_TEMP/catalog-yq" python3 -m unittest discover -s operator/scripts -p 'test_catalog_automation.py' -v
+
       # Orchestrator scripts run with repo write permissions under
       # pull_request_target — their logic must be tested before merge.
       - name: Test PR lifecycle scripts

@@ -222,6 +222,20 @@ class KiotaFolderCheckTest(unittest.TestCase):
         os.symlink("/nonexistent/target", ".github/workflows/stale.yaml")
         self.assertAccepted()
 
+    def test_an_unreadable_scanned_file_is_reported_not_crashed(self):
+        """A permission error is a finding, not a traceback from a lint step."""
+        self.write("scripts/build.sh", "./mvnw install\n")
+        os.chmod("scripts/build.sh", 0)
+        self.addCleanup(os.chmod, "scripts/build.sh", 0o644)
+        if os.access("scripts/build.sh", os.R_OK):
+            self.skipTest("running as a user that ignores file permissions")
+        self.assertRejected("Could not read scripts/build.sh")
+
+    def test_a_flag_in_jvm_config_is_rejected(self):
+        """The .mvn scope is every *.config there, not maven.config alone."""
+        self.write(".mvn/jvm.config", "-Dkiota.binary.folder=/tmp/k\n")
+        self.assertRejected("jvm.config:1")
+
     def test_a_longer_resolver_property_is_accepted(self):
         """maven.repo.local.tail.threads is a real property that moves nothing.
 
@@ -425,10 +439,10 @@ class KiotaFolderCheckTest(unittest.TestCase):
     def test_a_commented_out_maven_config_line_is_accepted(self):
         """A leading # is the only comment Maven honours in maven.config.
 
-        Checked against Maven 3.9.12: it reads each line as one whole argument
-        rather than splitting on whitespace, so a # anywhere else is part of the
-        value. Only the leading form disarms the flag, and only that form is
-        treated as a comment here.
+        Checked against Maven 3.9.8, the version the wrapper pins: it reads each
+        line as one whole argument rather than splitting on whitespace, so a #
+        anywhere else is part of the value. Only the leading form disarms the
+        flag, and only that form is treated as a comment here.
         """
         self.write(".mvn/maven.config",
                    "-T 1C\n# -Dkiota.binary.folder=target/kiota-binary\n")
@@ -476,10 +490,25 @@ class KiotaFolderCheckTest(unittest.TestCase):
         self.assertRejected("verify.yaml:4")
 
     def test_an_apostrophe_does_not_swallow_a_real_comment(self):
-        """An unpaired quote is prose, not a string, so the # still opens a comment."""
+        """An unpaired quote is prose, not a string, so the # still opens a comment.
+
+        The line has to carry something before the apostrophe. With a leading #
+        the scan returns at index zero and never reaches the quote, so the test
+        would pass with the partner check deleted and pin nothing.
+        """
         self.write("scripts/build.sh",
-                   "# it's fine # -Dkiota.binary.folder=/tmp/k\n")
+                   "echo it's fine # -Dkiota.binary.folder=/tmp/k\n")
         self.assertAccepted()
+
+    def test_the_wrapper_script_is_scanned(self):
+        """mvnw has no extension and reaches every build the repository starts."""
+        self.write("mvnw", "#!/bin/sh\nexec mvn -Dkiota.binary.folder=/tmp/k \"$@\"\n")
+        self.assertRejected("mvnw:2")
+
+    def test_the_windows_wrapper_script_is_scanned(self):
+        """mvnw.cmd runs the same builds with a different extension."""
+        self.write("mvnw.cmd", "@echo off\nmvn -Dkiota.binary.folder=C:\\k %*\n")
+        self.assertRejected("mvnw.cmd:2")
 
     def test_relocating_the_repository_is_rejected(self):
         """setup-maven-cache saves ~/.m2/repository and nothing else."""

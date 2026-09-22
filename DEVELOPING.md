@@ -102,15 +102,18 @@ the plugin downloads for the same machine is named `linux-x64`. The two spell th
 platform differently and neither is a typo. The `kiota.binary.folder` comment in the root pom
 says why the path is built that way.
 
-Nothing prunes older versions, so delete `.cache/kiota-binary` to reclaim the space. A build
-killed outright partway through the download can also leave a `kiota-<uuid>.zip` or
-`kiota-<uuid>.tmp` beside the binary, in the version directory, which is safe to delete.
+Nothing prunes older versions, so delete `~/.m2/repository/.cache/kiota-binary` to reclaim
+the space. A build killed outright partway through the download can also leave a
+`kiota-<uuid>.zip` or `kiota-<uuid>.tmp` beside the binary, in the version directory, which
+is safe to delete.
 
 Pointing `-Dkiota.binary.folder` at another absolute path works for a local build. Do not
 commit one: `scripts/validate-files.sh` runs on every pull request and rejects the flag in a
-workflow, a composite action, a shell script, a Makefile, a Dockerfile or `.mvn/*.config`,
-along with any pom that moves the value, because only `~/.m2/repository` is cached and
-moving the folder back under `target/` makes every build slower without failing anything.
+workflow, a composite action, a shell script, a Makefile, a Dockerfile, `.mvn/*.config` or
+the `mvnw` wrappers, along with any pom that moves the value and any `settings.xml`
+committed under `.github/` that names its own `<localRepository>`, because only
+`~/.m2/repository` is cached and moving the folder back under `target/` makes every build
+slower without failing anything.
 
 ## Dependency Analysis
 

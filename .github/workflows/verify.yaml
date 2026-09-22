@@ -285,6 +285,8 @@ jobs:
   # Scalpel Report (affected-module detection, data collection only).
   # Not in the Gate: a failure here never blocks a PR.
   # See Discussion #8364 for the evaluation results that led to this change.
+  # How to read the artifact, and the measured baseline it should be compared
+  # against, are in README.md under "Reading the Scalpel report".
   scalpel-report:
     name: Scalpel Report
     needs: [decide]
@@ -312,6 +314,9 @@ jobs:
 
       - name: Generate Scalpel report
         run: |
+          # Scalpel writes the report at session start, before validate has
+          # necessarily created target/ on the root aggregator. Keep this.
+          mkdir -p target
           # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
           # reportFile restates the documented default so the upload path
           # below cannot drift if upstream changes it.
@@ -324,11 +329,36 @@ jobs:
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 
+      # The report is self-describing from Scalpel 0.4.1 onwards: it carries the
+      # build set, reactor and tested-module counts, and its skip shape names the
+      # status, reason and trigger file. The script turns that into the run
+      # summary and the artifact copy. It lives under .github/scripts so it can
+      # be unit tested; see scripts-tests.yaml.
+      - name: Summarize Scalpel report
+        if: ${{ !cancelled() }}
+        run: |
+          summary=target/scalpel-report-summary.md
+          # This step also runs when Generate failed, so target/ may not exist.
+          mkdir -p target
+          # Written aside and moved into place. A redirect straight onto the
+          # final path truncates it before the script starts, so a script that
+          # died partway would upload a header and nothing else. A missing file
+          # is the honest outcome, and the upload step only warns on one.
+          bash .github/scripts/scalpel-summary.sh \
+            target/scalpel-report.json > "$summary.tmp"
+          mv "$summary.tmp" "$summary"
+          cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+
+      # A failed build is when the offline artifact is wanted most: Scalpel
+      # writes the report at session start, so it survives a later failure.
       - name: Upload Scalpel report
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: scalpel-report-pr${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-          path: target/scalpel-report.json
+          path: |
+            target/scalpel-report.json
+            target/scalpel-report-summary.md
           retention-days: 30
           if-no-files-found: warn
 

@@ -43,15 +43,21 @@ profile, and nothing here can see either. The committed .github/ settings files
 are checked; the ones Maven picks up from ~/.m2 or from a -s path outside the
 tree are not.
 
-The maven-args input of reusable-docker-build.yaml is not such a route, though
-it looks like one. That workflow is workflow_call only, so every value it
-receives comes from a caller in the tree, and a caller passing the flag through
-with: is caught like any other line. Its in-file default is scanned too.
+The maven-args input of reusable-docker-build.yaml is mostly not such a route,
+though it looks like one. That workflow is workflow_call only, so every caller
+in this repository is a file this script reads, and a caller passing the flag
+through with: is caught like any other line. Its in-file default is scanned too.
+A workflow_call target can be reached from another repository, and a caller
+there is outside the tree in the same way the settings.xml above is.
 
 Poms are parsed rather than grepped because ElementTree ignores comments. A
 line-oriented strip gets this wrong in both directions: it drops a live element
 that shares its line with a comment opener, and it keeps a commented-out setting
 whose opener sits on an earlier line.
+
+Only this checkout is read. A git worktree or a nested clone under the tree has
+poms of its own, and walk() prunes any subdirectory holding a .git entry so that
+none of them are reported here.
 """
 
 import os
@@ -107,12 +113,27 @@ def walk():
     Paths come back with forward slashes on every platform. invokes_maven
     matches on a leading .mvn/ or .github/, and on Windows a native separator
     would quietly reduce the scan to .sh files.
+
+    A subdirectory holding a .git entry is a checkout of its own and its poms
+    belong to it, so it is pruned whatever it is called. Naming the directories
+    instead would not work: git worktrees live under .worktrees/ here and under
+    .claude/worktrees/ for agent sessions, and a nested clone can be anywhere.
+    This is a separate test from PRUNED's .git, which only matches a directory:
+    a linked worktree's .git is a regular file holding a gitdir: line.
     """
     for directory, subdirs, filenames in os.walk("."):
-        subdirs[:] = sorted(d for d in subdirs if d not in PRUNED)
+        subdirs[:] = sorted(d for d in subdirs
+                            if d not in PRUNED
+                            and not os.path.exists(os.path.join(directory, d, ".git")))
+        # os.walk already yields directory relative to ".", so the "./" prefix
+        # is all that separates it from the path wanted here. relpath would
+        # normalise and split both operands once per file to strip two
+        # characters.
+        prefix = directory[2:].replace(os.sep, "/")
+        if prefix:
+            prefix += "/"
         for filename in sorted(filenames):
-            relative = os.path.relpath(os.path.join(directory, filename), ".")
-            yield relative.replace(os.sep, "/")
+            yield prefix + filename
 
 
 def invokes_maven(path):
@@ -128,7 +149,9 @@ def invokes_maven(path):
     console-plugin/Dockerfile runs mvn package. Three other Dockerfiles name
     mvn in a comment telling the reader to run it themselves, which is the
     prose case strip_comment is for. Both formats use # for comments, so it
-    applies to them unchanged.
+    applies to them unchanged. The Makefile test is a suffix, and carries the
+    lowercase spelling as well, so that GNUmakefile and BSDmakefile are covered:
+    make reads both of those ahead of Makefile.
 
     The wrapper scripts are named rather than matched by extension. mvnw has
     none and mvnw.cmd has the wrong one, yet a -D added to either reaches every
@@ -144,7 +167,7 @@ def invokes_maven(path):
         return True
     if name.endswith((".sh", ".bash")):
         return True
-    if name == "Makefile" or name.startswith("Dockerfile"):
+    if name.endswith(("Makefile", "makefile")) or name.startswith("Dockerfile"):
         return True
     # Covers both .mvn/maven.config and .mvn/jvm.config.
     if path.startswith(".mvn/") and name.endswith(".config"):
@@ -258,7 +281,7 @@ def check_settings(paths):
                        "outranks the pom.".format(name, path, PROPERTY))
 
 
-def check_consumers(paths, root):
+def check_consumers(paths):
     """Every execution of the plugin has to read the property rather than restate it.
 
     This is where the value is actually consumed, and hardcoding it here is a
@@ -277,18 +300,15 @@ def check_consumers(paths, root):
     Yields a finding when no pom configures the plugin at all, because a check
     that silently matches nothing is the one that stops catching regressions.
 
-    check_pom_overrides is called from here rather than given a pass of its own
-    so that no pom is parsed twice.
+    check_pom_overrides is called from here rather than given a pass of its own,
+    so that the poms are walked once.
     """
     configured = False
     for path in paths:
-        if path == ROOT_POM:
-            project = root
-        else:
-            project, failure = parse(path)
-            if project is None:
-                yield failure
-                continue
+        project, failure = parse(path)
+        if project is None:
+            yield failure
+            continue
 
         yield from check_pom_overrides(path, project)
 
@@ -305,25 +325,26 @@ def check_consumers(paths, root):
             # Maven's implicit id for an execution that declares none is
             # "default", and java-sdk/client has exactly that shape, so naming
             # it anything else sends a reader looking for an id that is not
-            # there.
-            scopes = [(execution.findtext("{*}id", "default"),
+            # there. A plugin declaring no executions at all is described by
+            # where its configuration sits rather than by a made-up id.
+            scopes = [("execution " + execution.findtext("{*}id", "default"),
                        execution.find("{*}configuration/{*}" + SETTING))
                       for execution in plugin.findall("{*}executions/{*}execution")]
-            for name, own in scopes or [("plugin", None)]:
+            for where, own in scopes or [("the plugin declaration", None)]:
                 setting = shared if own is None else own
                 if setting is None:
-                    yield ("{0}: execution {1} of {2} sets no <{3}>, so it "
+                    yield ("{0}: {1} of {2} sets no <{3}>, so it "
                            "downloads its own binary into the plugin's default "
                            "folder. If this module inherits the plugin "
                            "configuration from a parent's <pluginManagement>, "
                            "this check cannot see it; set <{3}> here."
-                           .format(path, name, PLUGIN, SETTING))
+                           .format(path, where, PLUGIN, SETTING))
                     continue
                 value = (setting.text or "").strip()
                 if value != CONSUMER_EXPRESSION:
-                    yield ("{0}: execution {1} sets <{2}> to {3} rather than "
+                    yield ("{0}: {1} sets <{2}> to {3} rather than "
                            "{4}, so that module ignores the root pom."
-                           .format(path, name, SETTING, value or "empty",
+                           .format(path, where, SETTING, value or "empty",
                                    CONSUMER_EXPRESSION))
 
     if not configured:
@@ -376,6 +397,11 @@ def strip_comment(line):
     stray text. Only the leading-# case disarms the flag, and this handles that
     one the same way Maven does.
     """
+    # The loop below is per character, and the overwhelming majority of lines in
+    # this tree carry no # at all. Nothing can be cut from a line that has none,
+    # so those skip the loop entirely.
+    if "#" not in line:
+        return line
     quote = ""
     for index, character in enumerate(line):
         if quote:
@@ -414,7 +440,7 @@ def main():
         elif invokes_maven(path):
             invokers.append(path)
 
-    errors += list(check_consumers(poms, root))
+    errors += list(check_consumers(poms))
     errors += list(check_settings(settings))
     errors += list(check_for_overrides(invokers))
 

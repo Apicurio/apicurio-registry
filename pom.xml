@@ -314,7 +314,8 @@
          (KiotaMojo.downloadAndExtract), so a concurrent module sees either no binary or a
          complete one. That is what makes a shared kiota.binary.folder safe across builds.
          It does not pass ATOMIC_MOVE: the guarantee is rename(2) on the default filesystem
-         provider, not the API. -->
+         provider, not the API, so it holds on the POSIX systems this builds on and not on
+         Windows, where a rename over a file another process has open fails instead. -->
     <kiota.maven.plugin.version>0.0.39</kiota.maven.plugin.version>
 
     <kiota.version>1.28.0</kiota.version>

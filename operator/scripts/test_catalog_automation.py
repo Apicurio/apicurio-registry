@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import subprocess
 import tempfile
+import textwrap
 import unittest
 
 
@@ -35,7 +36,8 @@ class CatalogChannelsTest(unittest.TestCase):
     def test_minor_bump_moves_only_development_placeholder(self):
         channels = self.channels(self.run_update("3.4.x"))
         self.assertEqual(channels["3.3.x"], [{"name": "operator.v3.3.3"}])
-        self.assertEqual(channels["3.4.x"], [{"name": PLACEHOLDER}])
+        self.assertEqual(channels["3.4.x"], [
+            {"name": PLACEHOLDER, "replaces": "operator.v3.3.3"}])
         self.assertEqual(channels["3.x"][0],
                          {"name": PLACEHOLDER, "replaces": "operator.v3.3.3"})
         first = self.catalog.read_text()
@@ -51,7 +53,7 @@ class CatalogChannelsTest(unittest.TestCase):
                          {"name": "operator.v3.4.0", "replaces": "operator.v3.3.3"})
         self.assertEqual(channels["3.4.x"], [
             {"name": PLACEHOLDER, "replaces": "operator.v3.4.0"},
-            {"name": "operator.v3.4.0"},
+            {"name": "operator.v3.4.0", "replaces": "operator.v3.3.3"},
         ])
         first = self.catalog.read_text()
         self.run_update(*args)
@@ -59,18 +61,30 @@ class CatalogChannelsTest(unittest.TestCase):
         self.assertEqual([e for e in entries if e["schema"] == "olm.bundle"],
                          [{"schema": "olm.bundle", "image": args[-1]}])
 
+    def test_first_minor_release_keeps_edge_when_rolling_already_updated(self):
+        data = json.loads(self.catalog.read_text())
+        data["entries"][0]["entries"].insert(1, {
+            "name": "operator.v3.4.0", "replaces": "operator.v3.3.3"})
+        self.catalog.write_text(json.dumps(data))
+        channels = self.channels(self.run_update(
+            "3.4.x", "operator.v3.4.0", "3.4.x", "quay.io/example/bundle:3.4.0"))
+        self.assertEqual(channels["3.4.x"][1], {
+            "name": "operator.v3.4.0", "replaces": "operator.v3.3.3"})
+
     def test_skipped_development_minor_does_not_leave_empty_channel(self):
         self.run_update("3.4.x")
         channels = self.channels(self.run_update("3.5.x"))
         self.assertNotIn("3.4.x", channels)
-        self.assertEqual(channels["3.5.x"], [{"name": PLACEHOLDER}])
+        self.assertEqual(channels["3.5.x"], [
+            {"name": PLACEHOLDER, "replaces": "operator.v3.3.3"}])
 
     def test_release_and_next_snapshot_have_different_minors(self):
         channels = self.channels(self.run_update(
             "3.4.x", "operator.v3.3.4", "3.3.x", "quay.io/example/bundle:3.3.4"))
         self.assertEqual(channels["3.3.x"][0],
                          {"name": "operator.v3.3.4", "replaces": "operator.v3.3.3"})
-        self.assertEqual(channels["3.4.x"], [{"name": PLACEHOLDER}])
+        self.assertEqual(channels["3.4.x"], [
+            {"name": PLACEHOLDER, "replaces": "operator.v3.3.4"}])
 
     def test_maintenance_build_keeps_released_minor_history(self):
         channels = self.channels(self.run_update("3.3.x"))
@@ -86,12 +100,51 @@ class CatalogChannelsTest(unittest.TestCase):
             os.environ.get("YQ", "yq"), "-o=json", ".", str(self.catalog)]))["entries"]
         after = self.run_update("3.4.x")
         channels = self.channels(after)
-        self.assertEqual(channels["3.4.x"], [{"name": PLACEHOLDER}])
+        self.assertEqual(channels["3.4.x"], [
+            {"name": PLACEHOLDER, "replaces": "apicurio-registry-3.v3.3.3"}])
         for name, entries in self.channels(before).items():
             self.assertEqual([e for e in channels[name] if e["name"] != PLACEHOLDER],
                              [e for e in entries if e["name"] != PLACEHOLDER])
         self.assertEqual([e for e in before if e["schema"] == "olm.bundle"],
                          [e for e in after if e["schema"] == "olm.bundle"])
+
+
+class OpenShiftChannelTest(unittest.TestCase):
+    def test_workflow_preserves_cross_minor_upgrade_edge(self):
+        # Exercise the actual workflow loop without its network/git/PR operations.
+        workflow = (SCRIPTS.parents[1] / ".github/workflows/release-operator.yaml").read_text()
+        start = workflow.index("          for tpl in catalog-templates/v4.*.yaml; do")
+        end = workflow.index("          make catalogs", start)
+        loop = textwrap.dedent(workflow[start:end])
+        with tempfile.TemporaryDirectory() as directory:
+            templates = Path(directory) / "catalog-templates"
+            templates.mkdir()
+            for initial_minor in (None, []):
+                with self.subTest(initial_minor=initial_minor):
+                    entries = [
+                        {"schema": "olm.channel", "name": "3.x", "entries": [{"name": "operator.v3.3.3"}]},
+                        {"schema": "olm.channel", "name": "3.3.x", "entries": [{"name": "operator.v3.3.3"}]},
+                    ]
+                    if initial_minor is not None:
+                        entries.append({"schema": "olm.channel", "name": "3.4.x", "entries": initial_minor})
+                    template = templates / "v4.20.yaml"
+                    template.write_text(json.dumps({"entries": entries}))
+                    env = {**os.environ, "YQ": os.environ.get("YQ", "yq"),
+                           "PKG_NAME": "operator", "CSV_NAME": "operator.v3.4.0",
+                           "PREVIOUS_CSV": "operator.v3.3.3", "CHANNELS": "3.x 3.4.x",
+                           "BUNDLE_IMG": "quay.io/community-operator-pipeline-prod/operator@sha256:" + "a" * 64}
+                    subprocess.run(["bash", "-euo", "pipefail", "-c", loop],
+                                   env=env, cwd=directory, check=True, capture_output=True, timeout=30)
+                    data = json.loads(subprocess.check_output([env["YQ"], "-o=json", ".", str(template)]))
+                    channels = {e["name"]: e["entries"] for e in data["entries"] if e["schema"] == "olm.channel"}
+                    self.assertEqual(channels["3.4.x"], [
+                        {"name": "operator.v3.4.0", "replaces": "operator.v3.3.3"}])
+                    self.assertEqual(channels["3.3.x"], [{"name": "operator.v3.3.3"}])
+                    self.assertEqual(channels["3.x"][0], channels["3.4.x"][0])
+                    first = template.read_text()
+                    subprocess.run(["bash", "-euo", "pipefail", "-c", loop],
+                                   env=env, cwd=directory, check=True, capture_output=True, timeout=30)
+                    self.assertEqual(template.read_text(), first)
 
 
 class PublishedBundleTest(unittest.TestCase):

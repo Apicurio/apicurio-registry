@@ -5,6 +5,11 @@ before variable substitution. It derives the active development minor channel
 from `CHANNEL` (the Maven version), retaining released history in older channels.
 Changing `main` from `3.3.x` to `3.4.0-SNAPSHOT` therefore needs no catalog edit.
 The development bundle belongs to `3.x` and `3.4.x`; `3.3.x` retains only releases.
+The first entry in a new minor channel keeps a `replaces` edge to the preceding
+release in `3.x`, without adding that older release to the new channel. OLM v1
+requires this destination-channel edge when switching from an installed older
+version on `3.x` to the new minor. The OpenShift release workflow likewise retains
+the submitted CSV's predecessor when creating a new minor channel.
 
 `make release-catalog-template-update` also uses the script to record a release.
 `PREVIOUS_PACKAGE_VERSION` identifies the release, while `VERSION` identifies the

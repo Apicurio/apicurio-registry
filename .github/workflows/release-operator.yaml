@@ -403,6 +403,7 @@ jobs:
             chmod +x ../../bin/yq
           fi
           YQ="../../bin/yq"
+          PREVIOUS_CSV=$($YQ '.spec.replaces // ""' "../../../registry/operator/target/bundle/$PKG_NAME/$PACKAGE_VERSION/manifests/$PKG_NAME.clusterserviceversion.yaml")
 
           for tpl in catalog-templates/v4.*.yaml; do
             echo "  Updating $tpl"
@@ -415,10 +416,16 @@ jobs:
               elif [ -z "$CH_EXISTS" ] || [ "$CH_EXISTS" = "null" ]; then
                 echo "    Creating new channel $CH"
                 $YQ -i ".entries |= . + [{\"schema\": \"olm.channel\", \"package\": \"$PKG_NAME\", \"name\": \"$CH\", \"entries\": [{\"name\": \"$CSV_NAME\"}]}]" "$tpl"
+                if [ -n "$PREVIOUS_CSV" ]; then
+                  $YQ -i "(.entries[] | select(.schema == \"olm.channel\" and .name == \"$CH\") | .entries[0].replaces) = \"$PREVIOUS_CSV\"" "$tpl"
+                fi
               elif [ -n "$CH_HEAD" ] && [ "$CH_HEAD" != "null" ]; then
                 $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\", \"replaces\": \"$CH_HEAD\"}] + ." "$tpl"
               else
                 $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\"}]" "$tpl"
+                if [ -n "$PREVIOUS_CSV" ]; then
+                  $YQ -i "(.entries[] | select(.schema == \"olm.channel\" and .name == \"$CH\") | .entries[0].replaces) = \"$PREVIOUS_CSV\"" "$tpl"
+                fi
               fi
             done
             if ! $YQ -e ".entries[] | select(.schema == \"olm.bundle\" and .image == \"$BUNDLE_IMG\")" "$tpl" >/dev/null 2>&1; then

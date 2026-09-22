@@ -27,6 +27,12 @@ if [ "$#" -eq 5 ]; then
     export MINOR_HEAD
     MINOR_HEAD=$("$YQ" '.entries[] | select(.schema == "olm.channel" and .name == strenv(RELEASED_CHANNEL)) | [.entries[] | select(.name != strenv(PLACEHOLDER))] | .[0].name // ""' "$FILE")
     if [ "$MINOR_HEAD" != "$RELEASED_PACKAGE" ]; then
+        # OLM v1 resolves successors using the destination channel's edges.
+        # A first-in-minor release must retain its rolling-channel predecessor,
+        # even though that predecessor is not a member of the new minor channel.
+        if [ -z "$MINOR_HEAD" ]; then
+            MINOR_HEAD=$("$YQ" '.entries[] | select(.schema == "olm.channel" and .name == "3.x") | .entries[] | select(.name == strenv(RELEASED_PACKAGE)) | .replaces // ""' "$FILE")
+        fi
         "$YQ" -i '(.entries[] | select(.schema == "olm.channel" and .name == strenv(RELEASED_CHANNEL)) | .entries) |=
             [{"name": strenv(RELEASED_PACKAGE)}] + .' "$FILE"
         if [ -n "$MINOR_HEAD" ]; then
@@ -49,6 +55,9 @@ for TARGET in 3.x "$CHANNEL"; do
     export TARGET
     export PREDECESSOR
     PREDECESSOR=$("$YQ" '.entries[] | select(.schema == "olm.channel" and .name == strenv(TARGET)) | .entries[1].name // ""' "$FILE")
+    if [ -z "$PREDECESSOR" ] && [ "$TARGET" != "3.x" ]; then
+        PREDECESSOR=$("$YQ" '.entries[] | select(.schema == "olm.channel" and .name == "3.x") | .entries[0].replaces // ""' "$FILE")
+    fi
     if [ -n "$PREDECESSOR" ]; then
         "$YQ" -i '(.entries[] | select(.schema == "olm.channel" and .name == strenv(TARGET)) | .entries[0].replaces) = strenv(PREDECESSOR)' "$FILE"
     fi

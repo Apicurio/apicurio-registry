@@ -108,12 +108,18 @@ the space. A build killed outright partway through the download can also leave a
 is safe to delete.
 
 Pointing `-Dkiota.binary.folder` at another absolute path works for a local build. Do not
-commit one: `scripts/validate-files.sh` runs on every pull request and rejects the flag in a
-workflow, a composite action, a shell script, a Makefile, a Dockerfile, `.mvn/*.config` or
-the `mvnw` wrappers, along with any pom that moves the value and any `settings.xml`
-committed under `.github/` that names its own `<localRepository>`, because only
-`~/.m2/repository` is cached and moving the folder back under `target/` makes every build
-slower without failing anything.
+commit one. Only `~/.m2/repository` is cached, so moving the folder back under `target/`
+makes every build slower without failing anything, and `scripts/validate-files.sh` runs on
+every pull request to catch it. It rejects the flag in:
+
+- a workflow or a composite action
+- a shell script, a Makefile or a Dockerfile
+- `.mvn/*.config`
+- the `mvnw` and `mvnw.cmd` wrappers
+
+It also rejects any pom that moves the value, whether by redeclaring the property, setting
+it in a profile, or hardcoding the path on a plugin execution, and any `settings.xml`
+committed under `.github/` that names its own `<localRepository>`.
 
 ## Dependency Analysis
 

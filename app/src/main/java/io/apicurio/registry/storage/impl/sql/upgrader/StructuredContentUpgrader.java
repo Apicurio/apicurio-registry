@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementType;
 import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementValue;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.extractionContent;
 import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.isIndexable;
 import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.rowKey;
 import static io.apicurio.registry.utils.StringUtil.sanitizeForLog;
@@ -63,14 +64,22 @@ public class StructuredContentUpgrader implements IDbUpgrader {
     @Override
     public void upgrade(Handle handle) throws Exception {
         log.info("Backfilling structured content for existing artifacts...");
+        // Rebuilds/retries must also remove stale rows for artifacts with no eligible published tip.
+        handle.createUpdate("DELETE FROM artifact_structured_content").execute();
 
         String sql = "SELECT a.groupId, a.artifactId, a.type, c.content "
                 + "FROM artifacts a "
                     + "JOIN versions v ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
                     + "JOIN content c ON c.contentId = v.contentId "
-                + "WHERE a.type = ? AND v.versionOrder = "
-                    + "(SELECT MAX(v2.versionOrder) FROM versions v2 "
-                        + "WHERE v2.groupId = a.groupId AND v2.artifactId = a.artifactId)";
+                + "WHERE a.type = ? AND v.state NOT IN ('DRAFT', 'DISABLED') AND ("
+                + "EXISTS (SELECT 1 FROM branch_versions b WHERE b.groupId = v.groupId AND b.artifactId = v.artifactId"
+                + " AND b.branchId = 'latest' AND b.version = v.version AND b.branchOrder = "
+                + "(SELECT MAX(b2.branchOrder) FROM branch_versions b2 JOIN versions v2 ON v2.groupId = b2.groupId"
+                + " AND v2.artifactId = b2.artifactId AND v2.version = b2.version WHERE b2.groupId = v.groupId"
+                + " AND b2.artifactId = v.artifactId AND b2.branchId = 'latest' AND v2.state NOT IN ('DRAFT', 'DISABLED')))"
+                + " OR (NOT EXISTS (SELECT 1 FROM branches b WHERE b.groupId = v.groupId AND b.artifactId = v.artifactId"
+                + " AND b.branchId = 'latest') AND v.versionOrder = (SELECT MAX(v2.versionOrder) FROM versions v2"
+                + " WHERE v2.groupId = a.groupId AND v2.artifactId = a.artifactId AND v2.state NOT IN ('DRAFT', 'DISABLED'))))";
 
         int totalCount = 0;
         AtomicInteger examined = new AtomicInteger();
@@ -91,15 +100,7 @@ public class StructuredContentUpgrader implements IDbUpgrader {
                             log.info("Backfilling structured content: {} artifacts examined so far...",
                                     examined.get());
                         }
-                        try {
-                            return backfillArtifact(handle, artifact, extractor);
-                        } catch (Exception ex) {
-                            failed.incrementAndGet();
-                            log.warn("Failed to backfill structured content for {}/{}.",
-                                    sanitizeForLog(artifact.groupId), sanitizeForLog(artifact.artifactId),
-                                    ex);
-                            return 0;
-                        }
+                        return backfillArtifact(handle, artifact, extractor, failed);
                     }).sum();
         }
 
@@ -117,11 +118,15 @@ public class StructuredContentUpgrader implements IDbUpgrader {
     }
 
     private int backfillArtifact(Handle handle, ArtifactContent artifact,
-            StructuredContentExtractor extractor) {
-        List<StructuredElement> elements = extractor
-                .extract(ContentHandle.create(artifact.contentBytes));
-        if (elements.isEmpty()) {
-            return 0;
+            StructuredContentExtractor extractor, AtomicInteger failed) {
+        List<StructuredElement> elements;
+        try {
+            elements = extractor.extract(extractionContent(artifact.type, ContentHandle.create(artifact.contentBytes)));
+        } catch (Exception ex) {
+            failed.incrementAndGet();
+            log.warn("Failed to extract structured content for {}/{}", sanitizeForLog(artifact.groupId),
+                    sanitizeForLog(artifact.artifactId), ex);
+            elements = List.of();
         }
 
         // Idempotency: clear any existing rows for the artifact before inserting.

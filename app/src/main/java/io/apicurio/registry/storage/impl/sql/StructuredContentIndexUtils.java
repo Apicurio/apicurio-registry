@@ -1,6 +1,13 @@
 package io.apicurio.registry.storage.impl.sql;
 
 import io.apicurio.registry.content.extract.StructuredElement;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.util.ContentTypeUtil;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+
+import java.io.IOException;
 
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
@@ -30,6 +37,15 @@ public final class StructuredContentIndexUtils {
     public static final int MAX_ELEMENT_VALUE_LENGTH = 256;
 
     private StructuredContentIndexUtils() {
+    }
+
+    /** OpenAPI/AsyncAPI extractors expect JSON, while registry content may be YAML. */
+    public static ContentHandle extractionContent(String artifactType, ContentHandle content) throws IOException {
+        if (ArtifactType.OPENAPI.equals(artifactType) || ArtifactType.ASYNCAPI.equals(artifactType)) {
+            return ContentHandle.create(ContentTypeUtil.parseJsonOrYaml(
+                    TypedContent.create(content, ContentTypes.APPLICATION_YAML)).toString());
+        }
+        return content;
     }
 
     /**

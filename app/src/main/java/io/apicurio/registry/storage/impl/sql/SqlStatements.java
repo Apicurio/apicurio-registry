@@ -188,6 +188,10 @@ public interface SqlStatements {
      */
     public String insertContent();
 
+    default String insertContentIfAbsent() {
+        return insertContent();
+    }
+
     /**
      * A statement to update canonicalHash value in a row in the "content" table
      */

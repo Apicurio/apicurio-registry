@@ -234,13 +234,24 @@ public class WellKnownResourceImpl implements WellKnownResource {
         String baseUrl = getBaseUrl();
         String publisherDomain = resolvePublisherDomain();
 
+        Set<SearchFilter> structureFilters = new HashSet<>();
+        addStructureFilters(structureFilters, "skill", skills);
+        addStructureFilters(structureFilters, "inputmode", inputModes);
+        addStructureFilters(structureFilters, "outputmode", outputModes);
+        if (capabilities != null) {
+            for (String capability : capabilities) {
+                String[] parts = capability.split(":", 2);
+                SearchFilter filter = SearchFilter.ofStructure("agent_card:capability:" + parts[0]);
+                structureFilters.add(parts.length == 2 && "false".equals(parts[1]) ? filter.negated() : filter);
+            }
+        }
         // Delegate candidate collection (including the single, shared visibility-filtering
         // implementation) to the same core that backs the AI Catalog / ARD endpoints.
         // Structured skill/capability/input-mode/output-mode filters have no equivalent in
         // AiCatalogEntry, so they are evaluated afterwards against each surviving candidate's
         // Agent Card content.
         List<SearchedArtifactDto> matched = new ArrayList<>();
-        for (AiCatalogCandidate candidate : collectAiCatalogCandidates(baseUrl, publisherDomain, name)) {
+        for (AiCatalogCandidate candidate : collectAiCatalogCandidates(baseUrl, publisherDomain, name, structureFilters)) {
             if (!AiCatalogConstants.MEDIA_TYPE_AGENT_CARD.equals(candidate.entry.getType())) {
                 continue;
             }
@@ -1033,9 +1044,23 @@ public class WellKnownResourceImpl implements WellKnownResource {
      */
     private List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
             String textFilter) {
+        return collectAiCatalogCandidates(baseUrl, publisherDomain, textFilter, Set.of());
+    }
+
+    private void addStructureFilters(Set<SearchFilter> filters, String kind, List<String> values) {
+        if (values != null) {
+            for (String value : values) {
+                filters.add(SearchFilter.ofStructure("agent_card:" + kind + ":" + value));
+            }
+        }
+    }
+
+    private List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
+            String textFilter, Set<SearchFilter> structureFilters) {
         List<AiCatalogCandidate> candidates = new ArrayList<>();
 
         Set<SearchFilter> agentFilters = new HashSet<>();
+        agentFilters.addAll(structureFilters);
         agentFilters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
         if (!StringUtil.isEmpty(textFilter)) {
             agentFilters.add(SearchFilter.ofPartialName(textFilter));

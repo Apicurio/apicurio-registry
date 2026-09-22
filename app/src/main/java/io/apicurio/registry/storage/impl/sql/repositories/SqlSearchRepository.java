@@ -5,6 +5,7 @@ import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.SearchedVersionDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
@@ -184,6 +185,11 @@ public class SqlSearchRepository {
                     case content:
                         throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
                     case structure:
+                        if (filter.isNot() && filters.stream().noneMatch(candidate ->
+                                candidate.getType() == SearchFilterType.artifactType
+                                        && !candidate.isNot())) {
+                            throw new IllegalArgumentException("Negated structure filters require an artifactType filter");
+                        }
                         // Structured content filter, e.g. "agent_card:skill:translation". Elements are
                         // stored lowercased in artifact_structured_content as elementType
                         // ("<artifactType>:<kind>") + elementValue ("<name>").
@@ -204,11 +210,16 @@ public class SqlSearchRepository {
                             // empty "structure" parameter, and the discovery endpoints always prefix the
                             // value with "<artifactType>:<kind>:". Fail loudly rather than degrading to a
                             // clause that silently matches every artifact.
-                            throw new RegistryStorageException(
+                            throw new IllegalArgumentException(
                                     "Structure filter value must not be blank. "
                                             + STRUCTURE_FILTER_FORMAT_HELP);
                         }
                         String[] structureParts = asLowerCase(rawStructureValue.trim()).split(":", 3);
+                        for (String part : structureParts) {
+                            if (part.isBlank()) {
+                                throw new IllegalArgumentException("Structure filter components must not be blank");
+                            }
+                        }
                         op = filter.isNot() ? "NOT EXISTS" : "EXISTS";
                         where.append(op);
                         where.append(

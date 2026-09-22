@@ -15,6 +15,7 @@ import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -29,6 +30,19 @@ import static org.hamcrest.Matchers.notNullValue;
 @QuarkusTest
 @TestProfile(ExperimentalFeaturesEnabledProfile.class)
 public class WellKnownResourceTest extends AbstractResourceTestBase {
+
+    @Test
+    public void structuredFiltersUsePublishedSqlIndex() throws Exception {
+        String group = TestUtils.generateGroupId();
+        String skill = "sql-" + UUID.randomUUID();
+        createAgentCard(group,"matching",AGENT_CARD_CONTENT.replace("test-skill",skill));
+        createAgentCard(group,"other",AGENT_CARD_CONTENT.replace("test-skill",skill + "-other"));
+        givenAtRoot().queryParam("skill",skill).queryParam("capability","pushNotifications:false")
+                .queryParam("inputMode","text").get("/.well-known/agents").then().statusCode(200)
+                .body("count",equalTo(1)).body("agents[0].artifactId",equalTo("matching"));
+        givenAtRoot().queryParam("skill",skill).queryParam("capability","streaming:false")
+                .get("/.well-known/agents").then().statusCode(200).body("count",equalTo(0));
+    }
 
     private String serverRootUrl;
 

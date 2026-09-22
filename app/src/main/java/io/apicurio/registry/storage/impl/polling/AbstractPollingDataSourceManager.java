@@ -10,10 +10,12 @@ import io.apicurio.registry.storage.impl.polling.model.v0.Artifact;
 import io.apicurio.registry.storage.impl.polling.model.v0.ConfigurationProperty;
 import io.apicurio.registry.storage.impl.polling.model.v0.Content;
 import io.apicurio.registry.storage.impl.polling.model.v0.Group;
+import io.apicurio.registry.storage.impl.polling.model.v0.Peer;
 import io.apicurio.registry.storage.impl.polling.model.v0.Registry;
 import io.apicurio.registry.storage.impl.polling.model.v0.Rule;
 import io.apicurio.registry.storage.impl.polling.model.v0.Version;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.PeerDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ContentTypes;
@@ -129,6 +131,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
         if (state.getCurrentRegistry() != null) {
             processConfigurationProperties(state);
             processGlobalRules(state);
+            processPeers(state);
 
             for (PollingDataFile file : state.fromTypeIndex(Type.ARTIFACT)) {
                 Artifact artifact = file.getEntityUnchecked();
@@ -196,6 +199,32 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                 } catch (Exception ex) {
                     state.recordError("Could not import global rule %s: %s", globalRule.getRuleType(),
                             ex.getMessage());
+                }
+            }
+        }
+    }
+
+    private void processPeers(ProcessingState state) {
+        var peers = state.getCurrentRegistry().getPeers();
+        if (peers != null) {
+            for (Peer peer : peers) {
+                if (peer == null) {
+                    state.recordError("Could not import peer: entry is null.");
+                    continue;
+                }
+                try {
+                    var dto = PeerDto.builder()
+                            .peerId(peer.getPeerId())
+                            .url(peer.getUrl())
+                            .name(peer.getName())
+                            .description(peer.getDescription())
+                            .enabled(peer.getEnabled() == null || peer.getEnabled())
+                            .credentialSecretRef(peer.getCredentialSecretRef())
+                            .build();
+                    log.trace("Importing {}", dto);
+                    state.getStorage().createPeer(dto);
+                } catch (Exception ex) {
+                    state.recordError("Could not import peer %s: %s", peer.getPeerId(), ex.getMessage());
                 }
             }
         }

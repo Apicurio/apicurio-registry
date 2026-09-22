@@ -7,21 +7,23 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
-import java.util.List;
-
 @SuperBuilder
 @NoArgsConstructor
 @Setter
 @Getter
-@EqualsAndHashCode(callSuper = true)
-@ToString(callSuper = true)
-public class Registry extends HasSchema {
+@EqualsAndHashCode
+@ToString
+public class Peer {
 
-    private String registryId;
+    private String peerId;
 
-    private List<Rule> globalRules;
+    private String url;
 
-    private List<ConfigurationProperty> properties;
+    private String name;
 
-    private List<Peer> peers;
+    private String description;
+
+    private Boolean enabled;
+
+    private String credentialSecretRef;
 }

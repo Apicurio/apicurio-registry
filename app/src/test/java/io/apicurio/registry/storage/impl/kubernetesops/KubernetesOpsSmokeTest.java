@@ -28,6 +28,7 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(KubernetesOpsTestProfile.class)
@@ -83,6 +84,16 @@ class KubernetesOpsSmokeTest {
         assertEquals(YAMLObjectMapper.YAML_MAPPER.readTree(content.bytes()),
                 YAMLObjectMapper.YAML_MAPPER.readTree(version.getContent().bytes()));
 
+        // Peers
+        var peers = storage.getPeers();
+        assertEquals(1, peers.size());
+        var peer = peers.get(0);
+        assertEquals("eu-registry", peer.getPeerId());
+        assertEquals("https://registry.eu.example.com", peer.getUrl());
+        assertEquals("EU registry", peer.getName());
+        assertTrue(peer.isEnabled());
+        assertEquals("eu-registry", peer.getCredentialSecretRef());
+
         // Waiting to load smoke02
         configMapStore.load("git/smoke02");
         await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
@@ -104,10 +115,14 @@ class KubernetesOpsSmokeTest {
         content = loadFile("git/smoke02/content/Person.json");
         assertEquals(MAPPER.readTree(content.bytes()), MAPPER.readTree(version.getContent().bytes()));
 
+        // Peers removed (omitted/empty peers list wipes the previously loaded peer)
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
+
         // Waiting to load empty
         configMapStore.load("git/empty");
         await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
                 equalTo(Set.of()));
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
     }
 
     @ActivateRequestContext

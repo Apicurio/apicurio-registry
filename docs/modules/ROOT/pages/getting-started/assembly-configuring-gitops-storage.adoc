@@ -75,7 +75,7 @@ Each metadata file declares its kind with a `$type` discriminator:
 | Purpose and main fields
 
 | `registry-v0`
-| Registry configuration. Fields: `registryId`, `globalRules` (list of `ruleType` and `config` pairs), and `properties`. The `registryId` value must match the `apicurio.polling-storage.id` property of the registry instance.
+| Registry configuration. Fields: `registryId`, `globalRules` (list of `ruleType` and `config` pairs), `properties`, and `peers` (list of peer registries; see below). The `registryId` value must match the `apicurio.polling-storage.id` property of the registry instance.
 
 | `group-v0`
 | An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `rules`, and `createdOn`. Every group that an artifact references must be declared by a `group-v0` file; the registry does not create groups automatically.
@@ -148,6 +148,7 @@ The following additional rules apply:
 * If `registryIds` is omitted or empty on a group or artifact, any registry instance loads it.
 * Timestamps such as `createdOn` are optional. When omitted, the Git commit time is used. Supported formats are ISO 8601, with or without a time zone or as a date only, and Unix milliseconds.
 * The optional `validatedUpTo` field on an artifact controls rule validation during a load. When unset, only the latest version is validated, against all preceding versions. When set to a version identifier, versions up to and including that version are not re-validated. When the value matches no version, all versions are validated.
+* The optional `peers` list on the registry configuration declares peer registries. Each entry has `peerId` (must be unique and cannot be `local`, which is reserved), `url`, optional `name` and `description`, `enabled` (defaults to `true` when omitted), and an optional `credentialSecretRef`, which is a reference to a credential and never a secret value itself. The full `peers` list is replaced on every load: omitting the key, or setting it to an empty list, removes all previously loaded peers.
 
 
 [id="configuring-gitops-storage-single-repository_{context}"]

@@ -91,7 +91,7 @@ discriminator field. Content files are plain schema files referenced via relativ
 
 | `$type` | Description |
 |---------|-------------|
-| `registry-v0` | Registry configuration — global rules, settings, scoped by `registryId` |
+| `registry-v0` | Registry configuration — global rules, settings, peer registries, scoped by `registryId` |
 | `group-v0` | Group definition, scoped by `registryIds` |
 | `artifact-v0` | Artifact with inline versions, scoped by `registryIds` |
 | `content-v0` | *(Optional)* Content metadata for explicit `contentId` and references |
@@ -117,6 +117,12 @@ Key fields:
 - `Registry` has a single `registryId` — must match the instance's `apicurio.polling-storage.id`
 - `Group` and `Artifact` have `registryIds` lists — an entity is loaded by all listed registries
 - If `registryIds` is omitted or empty, the entity is loaded by any registry (simple setups)
+- `Registry` has an optional `peers` list — admin-managed peer registries for federated search.
+  Each peer has `peerId` (must not be `local`, which is reserved), `url`, optional `name` and
+  `description`, `enabled` (defaults to `true` when omitted), and an optional
+  `credentialSecretRef` (a *reference* to a credential, never a secret value). Omitting the
+  `peers` key, or setting it to an empty list, removes all previously loaded peers on the next
+  successful load — the full set is replaced on every load, not merged.
 
 ### Example Repository Layout
 

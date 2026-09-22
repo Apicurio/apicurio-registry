@@ -119,15 +119,18 @@ def invokes_maven(path):
     matters because DEVELOPING.md documents this one.
 
     Makefiles and Dockerfiles are in scope because they really do run Maven
-    here: operator/Makefile runs mvn clean install and mvn verify, and four
-    Dockerfiles run mvn package. Both use # for comments, so strip_comment
+    here: operator/Makefile runs mvn clean install and mvn verify, and
+    console-plugin/Dockerfile runs mvn package. Three other Dockerfiles name
+    mvn in a comment telling the reader to run it themselves, which is the
+    prose case strip_comment is for. Both formats use # for comments, so it
     applies to them unchanged.
 
     The wrapper scripts are named rather than matched by extension. mvnw has
     none and mvnw.cmd has the wrong one, yet a -D added to either reaches every
-    build the repository can start, which is a wider route than any single
-    shell script. They are also the file a developer changing build plumbing is
-    already editing.
+    build the repository can start. mvnw.cmd is a batch and PowerShell
+    polyglot, opening with "<# : batch portion", and its PowerShell half
+    comments with # while its batch half uses @REM, so strip_comment reads it
+    the same way the file does.
     """
     name = os.path.basename(path)
     if name in ("mvnw", "mvnw.cmd"):
@@ -154,10 +157,12 @@ def properties_of(element, name=PROPERTY):
 def parse(path):
     """The root element of an XML file, or a finding explaining why not.
 
-    Returns (element, None) or (None, finding). os.walk lists a dangling
-    symlink as a file, and a file can be unreadable, so ET.parse raises OSError
-    as well as ParseError. Either way a lint step reports rather than crashing
-    with a traceback that says nothing about what to fix.
+    Returns (element, None) or (None, finding), so callers test the element
+    rather than the finding: the two are exclusive, and testing the element is
+    the half a type checker can narrow. os.walk lists a dangling symlink as a
+    file, and a file can be unreadable, so ET.parse raises OSError as well as
+    ParseError. Either way a lint step reports rather than crashing with a
+    traceback that says nothing about what to fix.
     """
     try:
         return ET.parse(path).getroot(), None
@@ -222,7 +227,7 @@ def check_settings(paths):
     """A committed settings.xml can move the whole local repository."""
     for path in paths:
         settings, failure = parse(path)
-        if failure:
+        if settings is None:
             yield failure
             continue
 
@@ -268,7 +273,7 @@ def check_consumers(paths, root):
             project, failure = root, None
         else:
             project, failure = parse(path)
-        if failure:
+        if project is None:
             yield failure
             continue
 
@@ -276,9 +281,11 @@ def check_consumers(paths, root):
             yield finding
 
         for plugin in project.findall(".//{*}plugin"):
-            # A descendant search, so a declaration under <pluginManagement>
-            # counts too. That is stricter than Maven, which runs nothing from
-            # there, and no pom declares this plugin that way today.
+            # A descendant search, so a declaration under this pom's own
+            # <pluginManagement> counts too. That is stricter than Maven, which
+            # runs nothing from there, and no pom declares this plugin that way
+            # today. Inheriting the configuration from a parent's
+            # <pluginManagement> is the separate case the docstring describes.
             if plugin.findtext("{*}artifactId") != PLUGIN:
                 continue
             configured = True
@@ -349,10 +356,6 @@ def strip_comment(line):
     already turned into a single argument with a # in it, which no longer names
     the property. Only the leading-# case matters there, and this handles that
     one the same way Maven does.
-
-    mvnw.cmd is the one file in scope where # opens nothing, since batch
-    comments are rem. A line there carrying a bare # token is already invalid
-    batch, so cutting at it costs a finding on a file that could not run.
     """
     quote = ""
     for index, character in enumerate(line):
@@ -377,7 +380,7 @@ def main():
         return 1
 
     root, failure = parse(ROOT_POM)
-    if failure:
+    if root is None:
         print(failure, file=sys.stderr)
         return 1
     errors = list(check_root_pom(root))

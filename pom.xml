@@ -1061,9 +1061,11 @@
   <build>
     <extensions>
       <!-- Sets os.detected.*, which kiota.binary.folder uses to give each platform its own
-           cache directory. Several modules already register this extension locally, but an
-           extension declared in a module is not visible to the root properties, which is
-           where the Kiota folder is defined. -->
+           cache directory. Three modules register this extension locally, but an extension
+           declared in a module is not visible to the root properties, which is where the
+           Kiota folder is defined. Extensions are inherited, so those three registrations
+           are redundant once this one exists; removing them is behavior-neutral cleanup
+           tracked separately rather than done here. -->
       <extension>
         <groupId>kr.motd.maven</groupId>
         <artifactId>os-maven-plugin</artifactId>

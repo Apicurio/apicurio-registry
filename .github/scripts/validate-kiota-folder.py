@@ -37,11 +37,13 @@ Routes that can move the binary, and how each is covered:
     composite action
   - <localRepository> in a settings.xml committed under .github/
 
-One route stays open. A settings.xml supplied by the runner rather than by the
+Two routes stay open. A settings.xml supplied by the runner rather than by the
 tree can name its own <localRepository>, or set the property in an active
 profile, and nothing here can see either. The committed .github/ settings files
 are checked for the first of those; the ones Maven picks up from ~/.m2 or from
-a -s path outside the tree are not.
+a -s path outside the tree are not. The maven-args input of
+reusable-docker-build.yaml is open the same way, since its value arrives at
+dispatch time rather than from a file in the tree.
 
 Poms are parsed rather than grepped because ElementTree ignores comments. A
 line-oriented strip gets this wrong in both directions: it drops a live element
@@ -263,22 +265,20 @@ def check_consumers(paths, root):
     Yields a finding when no pom configures the plugin at all, because a check
     that silently matches nothing is the one that stops catching regressions.
 
-    Each pom is also passed to check_pom_overrides here rather than in a pass of
-    its own, so no pom is parsed twice. The root pom arrives already parsed,
-    since main needs it for check_root_pom before the walk starts.
+    check_pom_overrides is called from here rather than given a pass of its own
+    so that no pom is parsed twice.
     """
     configured = False
     for path in paths:
         if path == ROOT_POM:
-            project, failure = root, None
+            project = root
         else:
             project, failure = parse(path)
-        if project is None:
-            yield failure
-            continue
+            if project is None:
+                yield failure
+                continue
 
-        for finding in check_pom_overrides(path, project):
-            yield finding
+        yield from check_pom_overrides(path, project)
 
         for plugin in project.findall(".//{*}plugin"):
             # A descendant search, so a declaration under this pom's own
@@ -298,7 +298,10 @@ def check_consumers(paths, root):
                 if setting is None:
                     yield ("{0}: execution {1} of {2} sets no <{3}>, so it "
                            "downloads its own binary into the plugin's default "
-                           "folder.".format(path, name, PLUGIN, SETTING))
+                           "folder. If this module inherits the plugin "
+                           "configuration from a parent's <pluginManagement>, "
+                           "this check cannot see it; set <{3}> here."
+                           .format(path, name, PLUGIN, SETTING))
                     continue
                 value = (setting.text or "").strip()
                 if value != CONSUMER_EXPRESSION:

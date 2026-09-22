@@ -110,16 +110,15 @@ is safe to delete.
 Pointing `-Dkiota.binary.folder` at another absolute path works for a local build. Do not
 commit one. Only `~/.m2/repository` is cached, so moving the folder back under `target/`
 makes every build slower without failing anything, and `scripts/validate-files.sh` runs on
-every pull request to catch it. It rejects the flag in:
+every pull request to catch it.
 
-- a workflow or a composite action
-- a shell script, a Makefile or a Dockerfile
-- `.mvn/*.config`
-- the `mvnw` and `mvnw.cmd` wrappers
-
-It also rejects any pom that moves the value, whether by redeclaring the property, setting
-it in a profile, or hardcoding the path on a plugin execution, and any `settings.xml`
-committed under `.github/` that names its own `<localRepository>`.
+It rejects the flag anywhere in the tree that can put a `-D` on a Maven command line, which
+covers workflows, composite actions, shell scripts, Makefiles, Dockerfiles, `.mvn/*.config`
+and the two `mvnw` wrappers. The `invokes_maven` function in
+`.github/scripts/validate-kiota-folder.py` decides the exact set. It also rejects any pom
+that moves the value, whether by redeclaring the property, setting it in a profile, or
+hardcoding the path on a plugin execution, and any `settings.xml` committed under `.github/`
+that names its own `<localRepository>`.
 
 ## Dependency Analysis
 

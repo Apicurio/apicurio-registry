@@ -65,6 +65,15 @@ EXTENSIONS = """<extensions><extension>
 
 PROPERTY_LINE = "    <kiota.binary.folder>{0}</kiota.binary.folder>\n"
 
+# A module pom with nothing in it but the one element a test is about. The
+# checks that read these look at <properties> and <profiles> only, so the rest
+# of a real module pom would be scenery.
+MODULE_POM = """<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <artifactId>{name}</artifactId>
+{body}</project>
+"""
+
 # java-sdk/client sets the folder on the plugin and java-sdk/client-v2 sets it on
 # the execution. Maven merges plugin configuration into every execution, so both
 # shapes are correct and both are exercised below.
@@ -252,9 +261,7 @@ class KiotaFolderCheckTest(unittest.TestCase):
         self.assertRejected("declares no <kiota.binary.folder>")
 
     def test_a_pom_without_properties_is_rejected(self):
-        self.write("pom.xml", '<?xml version="1.0" encoding="UTF-8"?>\n'
-                   '<project xmlns="http://maven.apache.org/POM/4.0.0">\n'
-                   "  <artifactId>apicurio-registry</artifactId>\n</project>\n")
+        self.write("pom.xml", MODULE_POM.format(name="apicurio-registry", body=""))
         self.assertRejected("declares no <kiota.binary.folder>")
 
     def test_commented_out_property_is_rejected(self):
@@ -304,30 +311,27 @@ class KiotaFolderCheckTest(unittest.TestCase):
     def test_a_module_redeclaring_the_property_is_rejected(self):
         """The root pom stays correct and the module ignores it anyway."""
         self.write("java-sdk/client/other/pom.xml",
-                   '<?xml version="1.0" encoding="UTF-8"?>\n'
-                   '<project xmlns="http://maven.apache.org/POM/4.0.0">\n'
-                   "  <artifactId>x</artifactId>\n  <properties>\n"
-                   + PROPERTY_LINE.format("/tmp/elsewhere")
-                   + "  </properties>\n</project>\n")
+                   MODULE_POM.format(name="x",
+                                     body="  <properties>\n"
+                                     + PROPERTY_LINE.format("/tmp/elsewhere")
+                                     + "  </properties>\n"))
         self.assertRejected("redeclares <kiota.binary.folder>")
 
     def test_a_module_profile_overriding_the_property_is_rejected(self):
         self.write("app/pom.xml",
-                   '<?xml version="1.0" encoding="UTF-8"?>\n'
-                   '<project xmlns="http://maven.apache.org/POM/4.0.0">\n'
-                   "  <artifactId>app</artifactId>\n"
-                   "  <profiles><profile><id>fast</id><properties>"
-                   "<kiota.binary.folder>/tmp/x</kiota.binary.folder>"
-                   "</properties></profile></profiles>\n</project>\n")
+                   MODULE_POM.format(name="app",
+                                     body="  <profiles><profile><id>fast</id>"
+                                     "<properties><kiota.binary.folder>/tmp/x"
+                                     "</kiota.binary.folder></properties>"
+                                     "</profile></profiles>\n"))
         self.assertRejected("Profile fast in app/pom.xml")
 
     def test_a_module_relocating_the_repository_is_rejected(self):
         self.write("app/pom.xml",
-                   '<?xml version="1.0" encoding="UTF-8"?>\n'
-                   '<project xmlns="http://maven.apache.org/POM/4.0.0">\n'
-                   "  <artifactId>app</artifactId>\n  <properties>"
-                   "<settings.localRepository>/tmp/repo"
-                   "</settings.localRepository></properties>\n</project>\n")
+                   MODULE_POM.format(name="app",
+                                     body="  <properties>"
+                                     "<settings.localRepository>/tmp/repo"
+                                     "</settings.localRepository></properties>\n"))
         self.assertRejected("app/pom.xml declares <settings.localRepository>")
 
     def test_a_malformed_pom_does_not_stop_the_scan(self):
@@ -457,19 +461,19 @@ class KiotaFolderCheckTest(unittest.TestCase):
                    "-T 1C\n# -Dkiota.binary.folder=target/kiota-binary\n")
         self.assertAccepted()
 
-    def test_a_flag_with_a_space_is_rejected(self):
-        """Maven accepts -D foo=bar, so a joined needle would miss this."""
-        self.write_workflow("./mvnw -D kiota.binary.folder=/tmp/k install")
-        self.assertRejected("verify.yaml:4")
+    def test_every_spelling_of_the_flag_is_rejected(self):
+        """Maven accepts all four, and a joined -D needle matches only the first.
 
-    def test_the_long_option_is_rejected(self):
-        self.write_workflow("./mvnw --define kiota.binary.folder=/tmp/k install")
-        self.assertRejected("verify.yaml:4")
-
-    def test_the_joined_long_option_is_rejected(self):
-        """commons-cli accepts --define=x=y, and a space-only match misses it."""
-        self.write_workflow("./mvnw --define=kiota.binary.folder=/tmp/k install")
-        self.assertRejected("verify.yaml:4")
+        --define=x=y is the commons-cli spelling, which a match requiring a
+        space after the option name misses.
+        """
+        for flag in ("-Dkiota.binary.folder=/tmp/k",
+                     "-D kiota.binary.folder=/tmp/k",
+                     "--define kiota.binary.folder=/tmp/k",
+                     "--define=kiota.binary.folder=/tmp/k"):
+            with self.subTest(flag=flag):
+                self.write_workflow("./mvnw {0} install".format(flag))
+                self.assertRejected("verify.yaml:4")
 
     def test_the_quoted_property_name_is_rejected(self):
         """The shell strips the quotes before Maven sees the argument."""

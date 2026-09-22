@@ -29,6 +29,7 @@ import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.storage.PeerValidator;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
@@ -1074,6 +1075,38 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @Override
     public void deleteRoleMapping(String principalId) throws RegistryStorageException {
         var message = new DeleteRoleMapping1Message(principalId);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createPeer(io.apicurio.registry.storage.dto.PeerDto)
+     */
+    @Override
+    public void createPeer(PeerDto peer) throws RegistryStorageException {
+        PeerValidator.validate(peer);
+        var message = new CreatePeer1Message(peer);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updatePeer(io.apicurio.registry.storage.dto.PeerDto)
+     */
+    @Override
+    public void updatePeer(PeerDto peer) throws RegistryStorageException {
+        PeerValidator.validate(peer);
+        var message = new UpdatePeer1Message(peer);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deletePeer(java.lang.String)
+     */
+    @Override
+    public void deletePeer(String peerId) throws RegistryStorageException {
+        var message = new DeletePeer1Message(peerId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }

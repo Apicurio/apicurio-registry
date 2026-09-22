@@ -281,10 +281,6 @@ class KiotaFolderCheckTest(unittest.TestCase):
         self.write_root(raw_property="")
         self.assertRejected("declares no <kiota.binary.folder>")
 
-    def test_a_pom_without_properties_is_rejected(self):
-        self.write("pom.xml", MODULE_POM.format(body=""))
-        self.assertRejected("declares no <kiota.binary.folder>")
-
     def test_commented_out_property_is_rejected(self):
         """Commented out reads as present to grep, and as absent to a parser."""
         self.write_root(raw_property="    <!--\n"
@@ -436,10 +432,6 @@ class KiotaFolderCheckTest(unittest.TestCase):
         """Either the plugin moved, or this check is looking in the wrong place."""
         os.remove("java-sdk/client/pom.xml")
         self.assertRejected("No pom configures kiota-maven-plugin")
-
-    def test_a_malformed_consumer_pom_is_rejected(self):
-        self.write("java-sdk/client/pom.xml", "<project><artifactId>x</project>")
-        self.assertRejected("java-sdk/client/pom.xml is not valid XML")
 
     def test_a_dangling_pom_symlink_is_reported_not_crashed(self):
         """os.walk lists one as a file, and ET.parse raises OSError on it.

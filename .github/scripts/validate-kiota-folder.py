@@ -32,9 +32,8 @@ Routes that can move the binary, and how each is covered:
     module inherits
   - <targetBinaryFolder> on an execution of the plugin, which is where the
     value is consumed
-  - -D on the command line, which outranks all of the above, in a shell script,
-    a Makefile, a Dockerfile, .mvn/*.config, the mvnw wrappers, a workflow or a
-    composite action
+  - -D on the command line, which outranks all of the above, wherever
+    invokes_maven finds a file that can carry one
   - <localRepository> in a settings.xml committed under .github/
 
 One route stays open. A settings.xml supplied by the runner rather than by the
@@ -281,7 +280,7 @@ def check_settings(paths):
                        "outranks the pom.".format(name, path, PROPERTY))
 
 
-def check_consumers(paths):
+def check_consumers(paths, root):
     """Every execution of the plugin has to read the property rather than restate it.
 
     This is where the value is actually consumed, and hardcoding it here is a
@@ -301,14 +300,19 @@ def check_consumers(paths):
     that silently matches nothing is the one that stops catching regressions.
 
     check_pom_overrides is called from here rather than given a pass of its own,
-    so that the poms are walked once.
+    so that the poms are walked once. main() has already parsed the root pom to
+    check the property itself, and hands the element over so that the one pom
+    every run reads is not parsed a second time.
     """
     configured = False
     for path in paths:
-        project, failure = parse(path)
-        if project is None:
-            yield failure
-            continue
+        if path == ROOT_POM:
+            project = root
+        else:
+            project, failure = parse(path)
+            if project is None:
+                yield failure
+                continue
 
         yield from check_pom_overrides(path, project)
 
@@ -440,7 +444,7 @@ def main():
         elif invokes_maven(path):
             invokers.append(path)
 
-    errors += list(check_consumers(poms))
+    errors += list(check_consumers(poms, root))
     errors += list(check_settings(settings))
     errors += list(check_for_overrides(invokers))
 

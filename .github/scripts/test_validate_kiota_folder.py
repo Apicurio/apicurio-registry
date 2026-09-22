@@ -38,10 +38,11 @@ script_path = os.path.join(script_dir, "validate-kiota-folder.py")
 
 spec = importlib.util.spec_from_file_location("validate_kiota_folder", script_path)
 # The script's name has a hyphen in it, so a plain import cannot reach it and it
-# is loaded from its path instead. spec and spec.loader are typed as optional
-# because a finder is allowed to return nothing for a path it does not handle.
-# A missing script here means the test file has been moved away from the script
-# it tests, and saying so beats an AttributeError on None three lines down.
+# is loaded from its path instead. This is the same shape test_parse_flaky_tests
+# uses. The None check is for the type checker rather than for the runtime: both
+# spec and spec.loader are declared optional, and a script that has actually been
+# moved away raises FileNotFoundError from exec_module with the path in the
+# message long before either can be None.
 if spec is None or spec.loader is None:
     raise ImportError("Could not load {0}".format(script_path))
 guard = importlib.util.module_from_spec(spec)
@@ -122,9 +123,7 @@ class KiotaFolderCheckTest(unittest.TestCase):
 
     def write(self, relative_path, content):
         full = os.path.join(self.tmp.name, relative_path)
-        directory = os.path.dirname(full)
-        if directory:
-            os.makedirs(directory, exist_ok=True)
+        os.makedirs(os.path.dirname(full), exist_ok=True)
         with open(full, "w", encoding="utf-8") as handle:
             handle.write(content)
 
@@ -231,6 +230,20 @@ class KiotaFolderCheckTest(unittest.TestCase):
         """
         self.write(".github/scripts/sample.py",
                    'FLAG = "-Dkiota.binary.folder=/tmp/elsewhere"\n')
+        self.assertAccepted()
+
+    def test_a_nested_checkout_is_not_scanned(self):
+        """A git worktree under the tree carries poms that are not this tree's.
+
+        Its .git is a regular file rather than a directory, so PRUNED's .git
+        entry does not match it. Eric Wittmann added .worktrees/ to .gitignore
+        in 6fc7f3413, and agent sessions use .claude/worktrees/, so pruning by
+        name would need both spellings and would miss the next one.
+        """
+        self.write(".worktrees/probe/pom.xml",
+                   ROOT_POM.format(property=PROPERTY_LINE.format("/tmp/elsewhere"),
+                                   profiles="", extensions=EXTENSIONS))
+        self.write(".worktrees/probe/.git", "gitdir: /elsewhere/.git/worktrees/probe\n")
         self.assertAccepted()
 
     def test_a_dangling_symlink_is_tolerated(self):
@@ -408,6 +421,12 @@ class KiotaFolderCheckTest(unittest.TestCase):
                        "</execution>\n")
         self.assertRejected("execution default", "sets no <targetBinaryFolder>")
 
+    def test_a_plugin_with_no_executions_names_the_declaration(self):
+        """Nothing here is an execution, so the message must not invent an id."""
+        self.write_consumer(shared="", executions="")
+        self.assertRejected("the plugin declaration",
+                            "sets no <targetBinaryFolder>")
+
     def test_a_module_dropping_the_folder_is_rejected(self):
         """A second module still carrying it must not cover this one."""
         self.write_consumer(shared="", path="java-sdk/client-v2/pom.xml")
@@ -509,6 +528,12 @@ class KiotaFolderCheckTest(unittest.TestCase):
         self.write("operator/Makefile",
                    "build:\n\tmvn clean install -Dkiota.binary.folder=/tmp/k\n")
         self.assertRejected("Makefile:2")
+
+    def test_a_gnumakefile_moving_the_folder_is_rejected(self):
+        """make reads GNUmakefile ahead of Makefile, so the name alone is not enough."""
+        self.write("tools/GNUmakefile",
+                   "build:\n\tmvn verify -Dkiota.binary.folder=/tmp/k\n")
+        self.assertRejected("GNUmakefile:2")
 
     def test_a_dockerfile_moving_the_folder_is_rejected(self):
         self.write("console-plugin/Dockerfile",

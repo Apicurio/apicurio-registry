@@ -120,6 +120,11 @@ that moves the value, whether by redeclaring the property, setting it in a profi
 hardcoding the path on a plugin execution, and any `settings.xml` committed under `.github/`
 that names its own `<localRepository>`.
 
+This covers the Java SDK only. `go-sdk/generate.sh` and `python-sdk/kiota-gen.py` download
+the same Kiota release for themselves, into `go-sdk/target/kiota_tmp` and
+`python-sdk/kiota_tmp`, and neither reads `kiota.binary.folder`. The Go SDK Freshness job
+restores no cache at all, so it fetches the release on every run.
+
 ## Dependency Analysis
 
 `dependency:analyze` cannot be run directly over the full reactor: the `app` module

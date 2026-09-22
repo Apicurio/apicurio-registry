@@ -37,13 +37,16 @@ Routes that can move the binary, and how each is covered:
     composite action
   - <localRepository> in a settings.xml committed under .github/
 
-Two routes stay open. A settings.xml supplied by the runner rather than by the
+One route stays open. A settings.xml supplied by the runner rather than by the
 tree can name its own <localRepository>, or set the property in an active
 profile, and nothing here can see either. The committed .github/ settings files
-are checked for the first of those; the ones Maven picks up from ~/.m2 or from
-a -s path outside the tree are not. The maven-args input of
-reusable-docker-build.yaml is open the same way, since its value arrives at
-dispatch time rather than from a file in the tree.
+are checked; the ones Maven picks up from ~/.m2 or from a -s path outside the
+tree are not.
+
+The maven-args input of reusable-docker-build.yaml is not such a route, though
+it looks like one. That workflow is workflow_call only, so every value it
+receives comes from a caller in the tree, and a caller passing the flag through
+with: is caught like any other line. Its in-file default is scanned too.
 
 Poms are parsed rather than grepped because ElementTree ignores comments. A
 line-oriented strip gets this wrong in both directions: it drops a live element

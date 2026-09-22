@@ -62,7 +62,7 @@ PLUGIN = "kiota-maven-plugin"
 EXTENSION = "os-maven-plugin"
 SETTING = "targetBinaryFolder"
 ROOT_POM = "pom.xml"
-SETTINGS_GLOB = ".github"
+SETTINGS_DIR = ".github/"
 
 # Comparing against the one expected value rather than analysing an arbitrary one
 # also enforces the reason for it. A prefix test accepts
@@ -95,17 +95,17 @@ OVERRIDE = re.compile(
 PRUNED = frozenset((".git", "target", "node_modules", "__pycache__", ".venv"))
 
 
-def walk(root="."):
+def walk():
     """Every file in the tree, skipping generated and vendored directories.
 
     Paths come back with forward slashes on every platform. invokes_maven
     matches on a leading .mvn/ or .github/, and on Windows a native separator
     would quietly reduce the scan to .sh files.
     """
-    for directory, subdirs, filenames in os.walk(root):
+    for directory, subdirs, filenames in os.walk("."):
         subdirs[:] = sorted(d for d in subdirs if d not in PRUNED)
         for filename in sorted(filenames):
-            relative = os.path.relpath(os.path.join(directory, filename), root)
+            relative = os.path.relpath(os.path.join(directory, filename), ".")
             yield relative.replace(os.sep, "/")
 
 
@@ -137,9 +137,9 @@ def invokes_maven(path):
     return False
 
 
-def properties_of(element):
-    """The <properties> children of a pom element, in document order."""
-    return element.findall("{*}properties/{*}" + PROPERTY)
+def properties_of(element, name=PROPERTY):
+    """The named <properties> children of a pom element, in document order."""
+    return element.findall("{*}properties/{*}" + name)
 
 
 def parse(path):
@@ -159,7 +159,6 @@ def parse(path):
 
 
 def check_root_pom(project):
-
     declared = properties_of(project)
     if not declared:
         yield ("The root pom declares no <{0}>, so the modules running "
@@ -190,7 +189,7 @@ def check_root_pom(project):
 
 def check_pom_overrides(path, project):
     """Ways a pom can move the folder without touching the root declaration."""
-    if project.findall("{*}properties/{*}" + ANCHOR_PROPERTY):
+    if properties_of(project, ANCHOR_PROPERTY):
         yield ("{0} declares <{1}>, which beats the real local repository path "
                "and moves the binary out of any cache of ~/.m2/repository."
                .format(path, ANCHOR_PROPERTY))
@@ -202,8 +201,7 @@ def check_pom_overrides(path, project):
                "from the root pom.".format(path, PROPERTY))
 
     for profile in project.findall("{*}profiles/{*}profile"):
-        if properties_of(profile) or profile.findall(
-                "{*}properties/{*}" + ANCHOR_PROPERTY):
+        if properties_of(profile) or properties_of(profile, ANCHOR_PROPERTY):
             name = profile.findtext("{*}id", "<no id>")
             yield ("Profile {0} in {1} overrides <{2}>. A profile that "
                    "activates on the runner defeats the property with the "
@@ -232,7 +230,7 @@ def check_settings(paths):
                        "outranks the pom.".format(name, path, PROPERTY))
 
 
-def check_consumers(paths):
+def check_consumers(paths, root):
     """Every execution of the plugin has to read the property rather than restate it.
 
     This is where the value is actually consumed, and hardcoding it here is a
@@ -248,11 +246,15 @@ def check_consumers(paths):
     that silently matches nothing is the one that stops catching regressions.
 
     Each pom is also passed to check_pom_overrides here rather than in a pass of
-    its own, so the tree is parsed once.
+    its own, so no pom is parsed twice. The root pom arrives already parsed,
+    since main needs it for check_root_pom before the walk starts.
     """
     configured = False
     for path in paths:
-        project, failure = parse(path)
+        if path == ROOT_POM:
+            project, failure = root, None
+        else:
+            project, failure = parse(path)
         if failure:
             yield failure
             continue
@@ -313,9 +315,9 @@ def check_for_overrides(paths):
 
 
 def strip_comment(line):
-    """Drop a trailing # comment, the form shared by YAML, shell and maven.config.
+    """Drop a trailing # comment, the form YAML and shell share.
 
-    Only a # that starts a token is a comment opener in all three, so a value
+    Only a # that starts a token opens a comment in either, so a value
     containing one is left alone. A # inside quotes is not an opener either, and
     that is worth tracking rather than assuming: a step that echoes an issue
     number or a git --format string before running the build would otherwise
@@ -324,6 +326,15 @@ def strip_comment(line):
     A quote is only treated as opening when its partner appears later on the
     line. An apostrophe in prose is far more common than an unterminated string,
     and mistaking one for a quote would swallow the rest of the line.
+
+    .mvn/*.config is stricter than this and stripping it here is still safe.
+    Maven 3.9.12 reads each line of maven.config as one whole argument: it does
+    not split on whitespace, so -Da=1 -Db=2 on one line sets a to the literal
+    "1 -Db=2", and a # anywhere but column zero is part of the value rather than
+    a comment. Every line this function would cut short is therefore a line
+    Maven has already turned into a single argument with a # in it, which no
+    longer names the property. Only the leading-# case matters there, and this
+    handles that one the same way Maven does.
     """
     quote = ""
     for index, character in enumerate(line):
@@ -358,12 +369,12 @@ def main():
         name = os.path.basename(path)
         if name == "pom.xml":
             poms.append(path)
-        elif path.startswith(SETTINGS_GLOB + "/") and name.endswith(".xml"):
+        elif path.startswith(SETTINGS_DIR) and name.endswith(".xml"):
             settings.append(path)
         elif invokes_maven(path):
             invokers.append(path)
 
-    errors += list(check_consumers(poms))
+    errors += list(check_consumers(poms, root))
     errors += list(check_settings(settings))
     errors += list(check_for_overrides(invokers))
 

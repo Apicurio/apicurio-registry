@@ -30,4 +30,18 @@ class OrphanedContentSqlStatementsTest {
                 "DELETE FROM content WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = content.contentId)",
                 sql);
     }
+
+    /**
+     * PostgreSQL does not override {@code deleteAllOrphanedContent()}, so it runs the same
+     * correlated query inherited from {@link CommonSqlStatements}. This is the path that matters
+     * for PostgreSQL: {@code content_references} is cleaned up there by the {@code ON DELETE CASCADE}
+     * foreign key rather than {@code deleteOrphanedContentReferences()}.
+     */
+    @Test
+    void testPostgreSQLDeleteAllOrphanedContentCorrelatesWithOuterTable() {
+        String sql = new PostgreSQLSqlStatements().deleteAllOrphanedContent();
+        Assertions.assertEquals(
+                "DELETE FROM content c WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = c.contentId)",
+                sql);
+    }
 }

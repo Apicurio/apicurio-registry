@@ -33,7 +33,8 @@ Routes that can move the binary, and how each is covered:
   - <targetBinaryFolder> on an execution of the plugin, which is where the
     value is consumed
   - -D on the command line, which outranks all of the above, in a shell script,
-    a Makefile, a Dockerfile, .mvn/*.config, a workflow or a composite action
+    a Makefile, a Dockerfile, .mvn/*.config, the mvnw wrappers, a workflow or a
+    composite action
   - <localRepository> in a settings.xml committed under .github/
 
 One route stays open. A settings.xml supplied by the runner rather than by the
@@ -121,8 +122,16 @@ def invokes_maven(path):
     here: operator/Makefile runs mvn clean install and mvn verify, and four
     Dockerfiles run mvn package. Both use # for comments, so strip_comment
     applies to them unchanged.
+
+    The wrapper scripts are named rather than matched by extension. mvnw has
+    none and mvnw.cmd has the wrong one, yet a -D added to either reaches every
+    build the repository can start, which is a wider route than any single
+    shell script. They are also the file a developer changing build plumbing is
+    already editing.
     """
     name = os.path.basename(path)
+    if name in ("mvnw", "mvnw.cmd"):
+        return True
     if name.endswith((".sh", ".bash")):
         return True
     if name == "Makefile" or name.startswith("Dockerfile"):
@@ -240,7 +249,11 @@ def check_consumers(paths, root):
     Checked per execution rather than per file, because a second execution that
     forgets the setting would otherwise pass on the strength of the first one.
     Maven merges a plugin-level <configuration> into every execution, so that
-    counts as set: the two consuming poms use one shape each.
+    counts as set: the two consuming poms use one shape each. The merge is read
+    within one pom only. Hoisting the configuration into a parent's
+    <pluginManagement> is a shape Maven also merges, and this would report each
+    child as setting nothing. That is a false positive rather than a miss, and
+    no pom uses it today, so it is left to whoever makes that move.
 
     Yields a finding when no pom configures the plugin at all, because a check
     that silently matches nothing is the one that stops catching regressions.
@@ -328,13 +341,18 @@ def strip_comment(line):
     and mistaking one for a quote would swallow the rest of the line.
 
     .mvn/*.config is stricter than this and stripping it here is still safe.
-    Maven 3.9.12 reads each line of maven.config as one whole argument: it does
-    not split on whitespace, so -Da=1 -Db=2 on one line sets a to the literal
-    "1 -Db=2", and a # anywhere but column zero is part of the value rather than
-    a comment. Every line this function would cut short is therefore a line
-    Maven has already turned into a single argument with a # in it, which no
-    longer names the property. Only the leading-# case matters there, and this
-    handles that one the same way Maven does.
+    Maven 3.9.8, the version .mvn/wrapper/maven-wrapper.properties pins, reads
+    each line of maven.config as one whole argument: it does not split on
+    whitespace, so -Da=1 -Db=2 on one line sets a to the literal "1 -Db=2", and
+    a # anywhere but column zero is part of the value rather than a comment.
+    Every line this function would cut short is therefore a line Maven has
+    already turned into a single argument with a # in it, which no longer names
+    the property. Only the leading-# case matters there, and this handles that
+    one the same way Maven does.
+
+    mvnw.cmd is the one file in scope where # opens nothing, since batch
+    comments are rem. A line there carrying a bare # token is already invalid
+    batch, so cutting at it costs a finding on a file that could not run.
     """
     quote = ""
     for index, character in enumerate(line):

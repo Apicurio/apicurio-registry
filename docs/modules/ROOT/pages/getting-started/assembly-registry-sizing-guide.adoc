@@ -1,0 +1,313 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="registry-sizing-guide_{context}"]
+= {registry} capacity planning and sizing guide
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+The storage back end, network latency, and traffic pattern affect how many concurrent clients a
+single {registry} replica can serve. Capacity planning involves sizing each replica and deciding
+when to add replicas instead of increasing the resources of a single replica.
+
+The automated performance test suite in the `perf-tests` Maven module produced these measurements
+in a topology intended to resemble a real deployment. The {operator} installed the registry, and
+{keycloak} secured access to it. PostgreSQL or KafkaSQL storage ran behind a proxy that injected
+network latency to approximate a managed or remote data store.
+
+These measurements reflect one specific test environment and do not guarantee equivalent results
+in your environment. Use the test methodology to reproduce or extend the tests for your
+infrastructure and workload.
+
+== Prerequisites
+
+* You have installed {registry} as described in {installing-the-registry-openshift}.
+* You have reviewed xref:getting-started/assembly-registry-high-availability.adoc[].
+
+[role="_additional-resources"]
+.Additional resources
+* <<registry-sizing-methodology_{context}>>
+
+//INCLUDES
+
+[id="registry-sizing-methodology_{context}"]
+== Test methodology
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The `perf-tests` module produced the results with the following test configuration. The source
+repository contains further details in `perf-tests/README.md` and `perf-tests/k8s/README.md`.
+
+Application resources::
+A single {registry} application replica has a CPU limit of 2 and a memory limit of `2Gi`.
+The `registry-cr.yaml` file for each storage scenario sets these limits explicitly.
+The {operator} defaults to a CPU limit of 1 and a memory limit of `1Gi`.
+The default memory limit does not provide enough capacity for stable operation under the
+sustained concurrency in these tests.
+
+Connection pool::
+The Java Database Connectivity (JDBC) connection pool size is 400
+(`APICURIO_DATASOURCE_JDBC_MAX_SIZE`), increased from the default of 100.
+This setting prevents the connection pool from limiting throughput at the tested concurrency.
+
+Load model::
+A closed, concurrent-user model keeps `N` virtual clients continuously active for the full test
+duration. Each client starts another operation immediately after its previous operation completes.
+This model measures sustained concurrency rather than a fixed arrival rate.
+
+Measurement interval::
+Each figure comes from a 3-minute sustained run. The reported average excludes approximately
+the first 30–40 seconds for Java virtual machine (JVM) and just-in-time (JIT) compiler warm-up,
+because throughput is still increasing during that interval. The measurements represent steady
+state after warm-up.
+
+Load generator::
+The load generator runs as a separate process outside the cluster
+(`perf-tests/k8s/common/run-external-load.sh`) against the registry, which a NodePort service
+exposes. The load generator does not compete with the registry for the same node resources.
+
+Traffic mix::
+The tests measure reads and writes separately, with traffic set to 100% reads or 100% writes.
+Resolving an existing schema by ID represents how producers and consumers use a schema registry
+for nearly every message. Registering a new schema is comparatively rare.
+The <<registry-sizing-sql-storage_{context}>> results explain why a blended traffic ratio can
+obscure the different limits on read and write throughput.
+
+Storage latency::
+A network proxy injects a round-trip latency of approximately 15 ms ± 5 ms between the registry
+and the storage back end. This latency approximates a managed database or remote Kafka cluster
+on a different node or availability zone, rather than a colocated connection with nearly zero latency.
+
+You can reproduce these tests against your own {kubernetes} cluster by using
+`perf-tests/k8s/postgresql/deploy.sh` or `perf-tests/k8s/kafkasql/deploy.sh`.
+You can also adapt the tests to your resource limits, traffic mix, or latency profile.
+
+[id="registry-sizing-sql-storage_{context}"]
+== SQL storage sizing
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+SQL storage (PostgreSQL, MySQL, or Microsoft SQL Server) processes every read and write as a
+synchronous database round trip. Read and write throughput have different, unrelated bottlenecks.
+The separate measurements identify the capacity limit for each operation type:
+
+Read throughput::
+A single replica resolves existing schemas by ID at 200 concurrent clients with the following results.
++
+--
+.SQL storage read measurements
+[id="_read_throughput",cols="1,1",options="header"]
+|===
+| Metric | Value
+
+| Sustained throughput
+| Approximately 1,680 requests per second
+
+| Failed requests
+| Less than 0.02%
+
+| 99th-percentile latency
+| Approximately 210 ms
+|===
+
+[IMPORTANT]
+====
+Read throughput depends on sufficient memory. At the {operator} default memory limit of `1Gi`,
+sustained load at this concurrency increases garbage collection pressure, which eventually causes
+database connection acquisition timeouts and pod restarts. Set a memory limit of at least `2Gi`
+for sustained concurrency in this range.
+
+At 200 concurrent clients, CPU usage consistently reaches the limit of 2 CPUs. Given sufficient
+memory, CPU capacity is the primary limit at this concurrency, rather than network latency,
+database latency, or memory capacity. More CPU capacity is likely to increase throughput, but
+the tests do not quantify that increase.
+====
+--
+
+Write throughput::
+Write throughput does not scale with concurrency or resources in the same way as read throughput.
+Creating an artifact or version allocates a global ID through an atomic increment against a
+single shared row in the SQL storage `sequences` table. The row lock serializes concurrent writers.
++
+--
+.SQL storage write measurements
+[id="_write_throughput",cols="1,1,1",options="header"]
+|===
+| Concurrent writers | Sustained throughput (writes per second) | 99th-percentile latency
+
+| 5
+| Approximately 6–9
+| Approximately 1 s
+
+| 20
+| Approximately 6–9
+| Approximately 11 s
+|===
+
+Throughput remains approximately 6–9 writes per second in this test environment regardless of
+concurrency. Both the load generator in the cluster and the external load generator consistently
+reproduce this result. Additional concurrent writers queue behind the same row lock and increase
+tail latency without increasing throughput.
+
+Database serialization causes this limit, rather than CPU capacity, memory, or the connection
+pool. Giving the replica more resources or adding replicas does not increase write throughput
+because all replicas contend for the same row. For details and status, see
+link:https://github.com/Apicurio/apicurio-registry/issues/9847[issue #9847].
+
+[IMPORTANT]
+====
+Blending reads and writes in the same test amplifies the effect of the lock. With a 5% write
+ratio, 150 concurrent clients reduced sustained throughput to approximately 110–130 requests per
+second, with 99th-percentile latencies of 30 seconds or more.
+Concurrent writers saturated the `sequences` row lock before the read path or container resources
+reached capacity. The resulting slow responses occasionally triggered the built-in
+`ResponseTimeoutReadinessCheck`, which removed the replica from service rotation.
+If your workload has more than an incidental write rate, plan for the write-throughput limit
+independently of the read capacity that you provision.
+====
+--
+
+[id="registry-sizing-kafkasql-storage_{context}"]
+== KafkaSQL storage sizing
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+KafkaSQL storage applies writes asynchronously through a Kafka topic. Reads use a local,
+materialized copy of the data in an embedded database that replays the Kafka journal to stay
+current. Reads do not require a network round trip to a remote database.
+The separate measurements show how read and write throughput differ from SQL storage:
+
+Read throughput::
+The tests use the same conditions and methodology as the SQL storage tests: 200 concurrent
+clients, a CPU limit of 2, and a memory limit of `2Gi`.
+The injected storage latency is approximately 15 ms ± 5 ms. The 3-minute run excludes the first
+30–40 seconds for Java virtual machine (JVM) warm-up.
++
+--
+.KafkaSQL storage read measurements
+[id="_read_throughput_2",cols="1,1",options="header"]
+|===
+| Metric | Value
+
+| Sustained throughput
+| Approximately 3,000 requests per second
+
+| Failed requests
+| Less than 0.01%
+
+| 99th-percentile latency
+| Approximately 210 ms
+|===
+
+KafkaSQL read throughput is nearly double SQL read throughput at the same concurrency.
+This difference is consistent with the architecture: KafkaSQL avoids the round trip to a
+separate database server that SQL storage requires for every read, even over a fast connection.
+Both storage types reach the CPU limit of 2 CPUs at this concurrency. More CPU capacity is
+likely to increase read throughput further.
+--
+
+Write throughput::
+Each write produces a message to a Kafka topic. Unlike
+<<registry-sizing-sql-storage_{context}>>, KafkaSQL storage does not serialize writes behind a
+single database row lock, and throughput increases with concurrency.
++
+--
+.KafkaSQL storage write measurements
+[id="_write_throughput_2",cols="1,1,1",options="header"]
+|===
+| Concurrent writers | Sustained throughput (writes per second) | 99th-percentile latency
+
+| 5
+| Approximately 50
+| Approximately 110 ms
+
+| 20
+| Approximately 185
+| Approximately 110 ms
+
+| 100
+| Approximately 930
+| Approximately 150 ms
+
+| 200
+| Approximately 1,200
+| Approximately 1,100 ms
+|===
+
+Throughput increases through 100 concurrent writers with latency staying low.
+Increasing concurrency by a factor of 2 to 200 writers increases throughput by approximately 30%,
+with a substantial increase in 99th-percentile latency.
+These diminishing returns suggest that throughput is approaching a limit, but the tests did not
+exceed 200 concurrent writers. Failure rates stayed below 0.02% throughout this range.
+
+[IMPORTANT]
+====
+At 200 concurrent writers, CPU usage reaches the limit of 2 CPUs. The underlying journal topic
+has a single partition. The consumer that replays the topic to update the local materialized view
+is single-threaded and can use only one CPU core, regardless of how many cores the replica has.
+Unlike read throughput, write throughput might not increase proportionally with additional CPU
+capacity beyond a certain point. Part of the write path depends on single-threaded replay rather
+than total CPU capacity.
+====
+--
+
+[id="registry-sizing-recommendations_{context}"]
+== Recommendations
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Use the measured read and write limits to plan resources and replica counts for your workload.
+Validate capacity in your own environment before relying on a specific throughput figure.
+
+The following factors affect capacity planning:
+
+Separate read and write capacity::
+Size reads and writes separately because SQL storage has different, unrelated bottlenecks for
+each operation type. A blended requests-per-second figure can hide these limits and be misleading.
+See <<registry-sizing-sql-storage_{context}>>.
+If your write rate is more than incidental, treat the SQL write-throughput limit as a fixed budget
+independent of replica count or resources until
+link:https://github.com/Apicurio/apicurio-registry/issues/9847[issue #9847] is resolved.
+
+Read capacity per replica::
+Treat the read measurements as a starting point for a single replica with a CPU limit of 2, a
+memory limit of `2Gi`, and network latency to the database.
+Reproduce the `perf-tests` results against your cluster, resource limits, and network conditions
+before relying on a specific number. The tests measured reads at 200 concurrent clients, the
+highest concurrency tested with this methodology. The figures do not establish an absolute
+throughput limit for {registry}.
+Both storage types consistently reach the CPU limit of 2 CPUs at this concurrency.
+If you need more read throughput, increasing CPU capacity is a reasonable first option to test.
+
+Memory capacity::
+Provide enough memory for sustained concurrent load, rather than only enough for startup.
+The {operator} default memory limit of `1Gi` is insufficient at the tested concurrency.
+Garbage collection pressure can cause connection timeouts and restarts. Set a memory limit of
+at least `2Gi`.
+
+Horizontal scaling::
+For hundreds of concurrent read clients per replica, add replicas behind the application service
+rather than assuming that a single replica scales indefinitely. See
+xref:getting-started/assembly-registry-high-availability.adoc[].
+Additional replicas improve read throughput for both storage types and write throughput for
+KafkaSQL storage. They do not improve SQL write throughput because all replicas contend for a
+single shared database row.
+
+Network latency::
+A database in a different availability zone, region, or network path can have higher latency
+than access within the same zone or through a colocated connection.
+In that case, expect a lower read-throughput limit than the measurements with an approximate
+round-trip latency of 15 ms.
+
+Storage choice::
+High-throughput schema resolution is a common workload for Kafka producers and consumers that
+validate or resolve schemas. In these tests, the local materialized-view read path of KafkaSQL
+storage had substantially higher throughput than SQL storage. See
+<<registry-sizing-kafkasql-storage_{context}>>.
+KafkaSQL write throughput also increased with concurrency, unlike SQL write throughput.
+The tests did not exceed 200 concurrent writers. The figures exclude the time that KafkaSQL
+storage takes to start or catch up by replaying the underlying Kafka topic.

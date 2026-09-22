@@ -13,6 +13,16 @@ export interface AgentCapabilities {
 }
 
 /**
+ * Agent interface structure
+ */
+export interface AgentInterface {
+    url: string;
+    protocolBinding: string;
+    protocolVersion?: string;
+    tenant?: string;
+}
+
+/**
  * Agent search result structure
  */
 export interface AgentSearchResult {
@@ -21,7 +31,7 @@ export interface AgentSearchResult {
     name: string;
     description?: string;
     version?: string;
-    url?: string;
+    supportedInterfaces?: AgentInterface[];
     skills?: string[];
     capabilities?: AgentCapabilities;
     createdOn?: number;

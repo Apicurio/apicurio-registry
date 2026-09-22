@@ -771,7 +771,7 @@ public class FileDescriptorUtils {
     private static boolean isParentLevelType(ProtoType protoType, Optional<String> optionalPackageName) {
         String typeName = protoType.toString();
         if (optionalPackageName.isPresent()) {
-            String packageName = optionalPackageName.get();
+            String packageName = optionalPackageName.orElseThrow(NoSuchElementException::new);
 
             // If the type doesn't start with the package name, ignore it.
             if (!typeName.startsWith(packageName)) {

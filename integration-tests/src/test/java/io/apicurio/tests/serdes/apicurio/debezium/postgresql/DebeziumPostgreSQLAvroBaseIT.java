@@ -9,7 +9,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -23,7 +22,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -334,7 +332,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         executeUpdate("INSERT INTO " + table3 + " (sku, stock_count) VALUES ('SKU-123', 50)");
 
         List<ConsumerRecord<byte[], byte[]>> allRecords = new ArrayList<>();
-        Unreliables.retryUntilTrue(20, TimeUnit.SECONDS, () -> {
+        pollUntilTrue(Duration.ofSeconds(20), () -> {
             consumer.poll(Duration.ofMillis(500)).forEach(allRecords::add);
             return allRecords.size() >= 3;
         });
@@ -531,10 +529,18 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
     public void testPostgreSQLSpecificTypes() throws Exception {
         String tableName = getTableName("pg_types_test");
         String topicName = getTopicNameForTable(tableName);
+        // The ENUM type is a schema-global object, not scoped to this table -- unlike
+        // tableName above it wasn't namespaced per test-class instance, so the two
+        // concrete subclasses of this base class (DebeziumPostgreSQLAvroIntegrationIT and
+        // DebeziumPostgreSQLAvroLocalConvertersIT) running concurrently as separate JUnit
+        // test classes could race on the shared literal name "mood": one class's
+        // DROP TYPE ... CASCADE could drop the other's still-in-use column (or whole
+        // table) mid-test, surfacing as "column ... does not exist" further down.
+        String moodType = tablePrefix + "mood";
 
         try (Statement stmt = getDatabaseConnection().createStatement()) {
-            stmt.execute("DROP TYPE IF EXISTS mood CASCADE");
-            stmt.execute("CREATE TYPE mood AS ENUM ('happy', 'sad', 'neutral')");
+            stmt.execute("DROP TYPE IF EXISTS " + moodType + " CASCADE");
+            stmt.execute("CREATE TYPE " + moodType + " AS ENUM ('happy', 'sad', 'neutral')");
         }
 
         createTable(tableName,
@@ -542,7 +548,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
                         "id SERIAL PRIMARY KEY, " +
                         "data_json JSONB, " +
                         "tags TEXT[], " +
-                        "user_mood mood, " +
+                        "user_mood " + moodType + ", " +
                         "user_id UUID, " +
                         "created_at TIMESTAMPTZ" +
                         ")");
@@ -554,7 +560,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         try (PreparedStatement stmt = getDatabaseConnection().prepareStatement(
                 "INSERT INTO " + tableName +
                         " (data_json, tags, user_mood, user_id, created_at) " +
-                        "VALUES (?::jsonb, ?::text[], ?::mood, ?::uuid, NOW())")) {
+                        "VALUES (?::jsonb, ?::text[], ?::" + moodType + ", ?::uuid, NOW())")) {
             stmt.setString(1, "{\"key\": \"value\", \"number\": 42}");
             stmt.setArray(2, getDatabaseConnection().createArrayOf("text", new String[]{ "tag1", "tag2", "tag3" }));
             stmt.setObject(3, "happy", java.sql.Types.OTHER);
@@ -657,7 +663,7 @@ public abstract class DebeziumPostgreSQLAvroBaseIT extends DebeziumAvroBaseIT {
         }
 
         List<ConsumerRecord<byte[], byte[]>> allRecords = new ArrayList<>();
-        Unreliables.retryUntilTrue(60, TimeUnit.SECONDS, () -> {
+        pollUntilTrue(Duration.ofSeconds(60), () -> {
             consumer.poll(Duration.ofSeconds(1)).forEach(allRecords::add);
             log.info("Consumed {} records so far", allRecords.size());
             return allRecords.size() >= totalRows;

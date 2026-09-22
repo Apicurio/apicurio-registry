@@ -44,7 +44,7 @@ public class ConfigResourceImpl extends AbstractResource implements ConfigResour
             // We're assuming the configuration == compatibility level
             // TODO make it more explicit
             GlobalConfigResponse response = new GlobalConfigResponse();
-            response.setCompatibilityLevel(Optional.of(CompatibilityLevel.valueOf(supplyLevel.get())).get().name());
+            response.setCompatibilityLevel(Optional.of(CompatibilityLevel.valueOf(supplyLevel.get())).orElseThrow().name());
             return response;
         }
         catch (RuleNotFoundException ex) {

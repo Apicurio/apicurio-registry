@@ -323,9 +323,9 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`false`
 |`AUTO_REGISTER_ARTIFACT_IF_EXISTS`
 |`apicurio.registry.auto-register.if-exists`
-|Used by serializers only. Configures the behavior of the client when a conflict occurs while creating an artifact because the artifact already exists. Available values are `FAIL`, `UPDATE`, `RETURN`, or `RETURN_OR_UPDATE`.
+|Used by serializers only. Configures the behavior of the client when a conflict occurs while creating an artifact because the artifact already exists. Available values are `FAIL`, `CREATE_VERSION`, or `FIND_OR_CREATE_VERSION`.
 |`String`
-|`RETURN_OR_UPDATE`
+|`FIND_OR_CREATE_VERSION`
 |`CHECK_PERIOD_MS`
 |`apicurio.registry.check-period-ms`
 |Used by serializers and deserializers. Specifies how long to cache artifacts before auto-eviction (milliseconds). If set to zero, artifacts are fetched every time.

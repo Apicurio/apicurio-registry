@@ -8,10 +8,14 @@ import {
     PageSection,
 } from "@patternfly/react-core";
 import { ExclamationTriangleIcon } from "@patternfly/react-icons";
+import { LoggerService } from "@services/useLoggerService.ts";
+import { shouldResetOnLocationChange } from "./ErrorBoundary.utils";
 
 export type ErrorBoundaryProps = {
     children: ReactNode;
     location?: string;
+    logger?: LoggerService;
+    onNavigateHome?: () => void;
 };
 
 export type ErrorBoundaryState = {
@@ -30,11 +34,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-        console.error("[ErrorBoundary] Uncaught error:", error, errorInfo);
+        const logger: LoggerService = this.props.logger ?? console;
+        logger.error("[ErrorBoundary] Uncaught error:", error, errorInfo);
     }
 
     componentDidUpdate(prevProps: ErrorBoundaryProps): void {
-        if (this.state.hasError && this.props.location && prevProps.location !== this.props.location) {
+        if (shouldResetOnLocationChange(this.state.hasError, prevProps.location, this.props.location)) {
             this.setState({ hasError: false, error: undefined });
         }
     }
@@ -66,6 +71,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                                     >
                                         Reload page
                                     </Button>
+                                    {
+                                        this.props.onNavigateHome ? (
+                                            <Button
+                                                variant="link"
+                                                onClick={this.props.onNavigateHome}
+                                                data-testid="error-boundary-dashboard-btn"
+                                            >
+                                                Go to dashboard
+                                            </Button>
+                                        ) : null
+                                    }
                                 </EmptyStateActions>
                             </EmptyStateFooter>
                         </EmptyState>

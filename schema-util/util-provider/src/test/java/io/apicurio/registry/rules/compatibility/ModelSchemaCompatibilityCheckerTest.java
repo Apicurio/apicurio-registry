@@ -29,6 +29,13 @@ class ModelSchemaCompatibilityCheckerTest {
         return TypedContent.create(ContentHandle.create(json), ContentTypes.APPLICATION_JSON);
     }
 
+    private static void assertHasDifferenceWithContext(CompatibilityExecutionResult result,
+            String context) {
+        assertTrue(result.getIncompatibleDifferences().stream()
+                .anyMatch(d -> context.equals(d.asRuleViolation().getContext())),
+                "Expected a difference with context '" + context + "'");
+    }
+
     private static String modelSchema(String input, String output) {
         return """
                 {
@@ -109,6 +116,7 @@ class ModelSchemaCompatibilityCheckerTest {
                 create(modelSchema(proposedInput, OUTPUT_SCHEMA)),
                 Map.of());
         assertFalse(result.isCompatible(), "Adding a required input field should be incompatible");
+        assertHasDifferenceWithContext(result, "/input/required");
     }
 
     @Test
@@ -128,6 +136,7 @@ class ModelSchemaCompatibilityCheckerTest {
                 create(modelSchema(proposedInput, OUTPUT_SCHEMA)),
                 Map.of());
         assertFalse(result.isCompatible(), "Removing an input property should be incompatible");
+        assertHasDifferenceWithContext(result, "/input/properties");
     }
 
     @Test
@@ -148,6 +157,7 @@ class ModelSchemaCompatibilityCheckerTest {
                 create(modelSchema(proposedInput, OUTPUT_SCHEMA)),
                 Map.of());
         assertFalse(result.isCompatible(), "Changing input property type should be incompatible");
+        assertHasDifferenceWithContext(result, "/input/properties");
     }
 
     @Test
@@ -164,6 +174,7 @@ class ModelSchemaCompatibilityCheckerTest {
                 create(proposed),
                 Map.of());
         assertFalse(result.isCompatible(), "Removing input schema should be incompatible");
+        assertHasDifferenceWithContext(result, "/input");
     }
 
     @Test
@@ -182,6 +193,7 @@ class ModelSchemaCompatibilityCheckerTest {
                 create(modelSchema(INPUT_SCHEMA, proposedOutput)),
                 Map.of());
         assertFalse(result.isCompatible(), "Removing an output property should be incompatible");
+        assertHasDifferenceWithContext(result, "/output/properties");
     }
 
     @Test
@@ -198,6 +210,7 @@ class ModelSchemaCompatibilityCheckerTest {
                 create(proposed),
                 Map.of());
         assertFalse(result.isCompatible(), "Removing output schema should be incompatible");
+        assertHasDifferenceWithContext(result, "/output");
     }
 
     @Test

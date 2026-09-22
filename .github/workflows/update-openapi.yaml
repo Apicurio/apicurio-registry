@@ -5,7 +5,7 @@ on:
       - common/src/main/resources/META-INF/openapi.json
       - utils/tools/src/main/java/io/apicurio/registry/utils/tools/AddOpenApiAuth.java
       - utils/tools/src/main/java/io/apicurio/registry/utils/tools/TransformOpenApiForClientGen.java
-    branches: [ main ]
+    branches: [main, '3.3.x']
 
 permissions:
   contents: read
@@ -25,12 +25,12 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
           git fetch
-          git checkout main
-          git branch --set-upstream-to=origin/main
+          git checkout ${{ github.ref_name }}
+          git branch --set-upstream-to=origin/${{ github.ref_name }}
           git pull
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: 'temurin'

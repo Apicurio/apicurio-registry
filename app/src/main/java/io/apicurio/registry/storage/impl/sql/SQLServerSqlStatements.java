@@ -49,6 +49,20 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 """;
     }
 
+    @Override
+    public String upsertConfigProperty() {
+        return """
+                MERGE INTO config AS target
+                USING (VALUES (?, ?, ?)) AS source (propName, propValue, modifiedOn)
+                ON (target.propName = source.propName)
+                WHEN MATCHED THEN
+                UPDATE SET propValue = source.propValue, modifiedOn = source.modifiedOn
+                WHEN NOT MATCHED THEN
+                INSERT (propName, propValue, modifiedOn)
+                VALUES (source.propName, source.propValue, source.modifiedOn);
+                """;
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
      */
@@ -107,6 +121,14 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
         return "SELECT bv.groupId, bv.artifactId, bv.version FROM branch_versions bv "
                 + "WHERE bv.groupId = ? AND bv.artifactId = ? AND bv.branchId = ? "
                 + "ORDER BY bv.branchOrder DESC OFFSET 0 ROWS FETCH NEXT 1 ROWS ONLY";
+    }
+
+    @Override
+    public String selectContentAndArtifactTypeById() {
+        return "SELECT TOP (1) c.content, c.contentType, c.refs, c.contentHash, a.type AS artifactType FROM content c "
+                + "JOIN versions v ON v.contentId = c.contentId "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE c.contentId = ?";
     }
 
     @Override

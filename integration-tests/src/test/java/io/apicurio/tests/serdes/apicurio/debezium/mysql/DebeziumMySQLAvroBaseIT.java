@@ -10,7 +10,6 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.rnorth.ducttape.unreliables.Unreliables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.mysql.MySQLContainer;
@@ -23,7 +22,6 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -88,8 +86,11 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
                                                                    String tableIncludeList) {
         String dockerAccessibleRegistryUrl = getContainerAccessibleRegistryUrl();
 
-        // MySQL requires unique server ID for each connector
-        int serverId = 10000 + connectorCounter.get();
+        // MySQL requires unique server ID for each connector. Use this class's own stable
+        // classId (captured once in DebeziumAvroBaseIT.setup()), not connectorCounter.get() —
+        // the counter keeps moving as sibling Debezium test classes register concurrently, so
+        // re-reading it here could race and collide with another class's server-id.
+        int serverId = 10000 + classId;
 
         // Schema history topic for tracking DDL changes
         String schemaHistoryTopic = "schema-history-" + connectorName.replace("-", "_");
@@ -289,7 +290,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
         executeUpdate("INSERT INTO " + table3 + " (sku, stock_count) VALUES ('SKU-123', 50)");
 
         List<ConsumerRecord<byte[], byte[]>> allRecords = new ArrayList<>();
-        Unreliables.retryUntilTrue(120, TimeUnit.SECONDS, () -> {
+        pollUntilTrue(Duration.ofSeconds(120), () -> {
             consumer.poll(Duration.ofMillis(500)).forEach(allRecords::add);
             return allRecords.size() >= 3;
         });
@@ -603,7 +604,7 @@ public abstract class DebeziumMySQLAvroBaseIT extends DebeziumAvroBaseIT {
         }
 
         List<ConsumerRecord<byte[], byte[]>> allRecords = new ArrayList<>();
-        Unreliables.retryUntilTrue(120, TimeUnit.SECONDS, () -> {
+        pollUntilTrue(Duration.ofSeconds(120), () -> {
             consumer.poll(Duration.ofSeconds(1)).forEach(allRecords::add);
             log.info("Consumed {} records so far", allRecords.size());
             return allRecords.size() >= totalRows;

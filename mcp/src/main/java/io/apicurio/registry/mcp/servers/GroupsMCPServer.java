@@ -68,7 +68,7 @@ public class GroupsMCPServer {
     }
 
     @Tool(description = """
-            Update group metadata in the Apicurio Registry server.""")
+            Retrieve metadata of a specific group in the Apicurio Registry server.""")
     GroupMetaData get_group_metadata(
             @ToolArg(description = GROUP_ID) String groupId
     ) {

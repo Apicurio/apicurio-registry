@@ -8,6 +8,11 @@ on:
         type: string
         required: true
         description: 'Docker image tag (commit SHA)'
+      snapshot-tag:
+        type: string
+        required: false
+        default: 'latest-snapshot'
+        description: 'Snapshot tag prefix (e.g. latest-snapshot or 3.3.x-snapshot)'
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -29,7 +34,24 @@ jobs:
       image-name: 'apicurio/apicurio-registry'
       dockerfile: './distro/docker/target/docker/Dockerfile.jvm'
       context: './distro/docker/target/docker'
-      tag: 'latest-snapshot'
+      tag: ${{ inputs.snapshot-tag }}
+      maven-build: false
+      download-artifact: 'build-artifacts-${{ inputs.image-tag }}'
+      platforms: 'linux/amd64,linux/arm64'
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+      QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
+      QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
+
+  publish-app-mutable-image:
+    name: Publish App Docker Image (mutable)
+    uses: ./.github/workflows/reusable-docker-build.yaml
+    with:
+      image-name: 'apicurio/apicurio-registry'
+      dockerfile: './distro/docker/target/docker/Dockerfile.mutable.jvm'
+      context: './distro/docker/target/docker'
+      tag: '${{ inputs.snapshot-tag }}-mutable'
       maven-build: false
       download-artifact: 'build-artifacts-${{ inputs.image-tag }}'
       platforms: 'linux/amd64,linux/arm64'
@@ -46,7 +68,7 @@ jobs:
       image-name: 'apicurio/apicurio-registry-mcp-server'
       dockerfile: './mcp/target/docker/Dockerfile.jvm'
       context: './mcp/target/docker'
-      tag: 'latest-snapshot'
+      tag: ${{ inputs.snapshot-tag }}
       push-to-dockerhub: false
       maven-build: false
       download-artifact: 'build-artifacts-${{ inputs.image-tag }}'
@@ -62,7 +84,7 @@ jobs:
       image-name: 'apicurio/apicurio-registry-ui'
       dockerfile: './ui/Dockerfile'
       context: './ui'
-      tag: 'latest-snapshot'
+      tag: ${{ inputs.snapshot-tag }}
       npm-build: true
       npm-build-dir: 'ui'
       platforms: 'linux/amd64,linux/arm64'
@@ -79,7 +101,7 @@ jobs:
       image-name: 'apicurio/apicurio-registry-gitops-sync'
       dockerfile: './distro/gitops/Dockerfile'
       context: './distro/gitops'
-      tag: 'latest-snapshot'
+      tag: ${{ inputs.snapshot-tag }}
       push-to-dockerhub: false
       platforms: 'linux/amd64,linux/arm64'
     secrets:
@@ -95,7 +117,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -106,7 +128,7 @@ jobs:
         run: mvn -s ${{ github.workspace }}/.github/ci-settings.xml package -DskipTests --no-transfer-progress
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@96fe6ef7f33517b61c61be40b68a1882f3264fb8 # v4
+        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
@@ -125,5 +147,5 @@ jobs:
               --push \
               --file ./support-chat/src/main/docker/Dockerfile.jvm \
               --platform linux/amd64,linux/arm64 \
-              --tag quay.io/apicurio/apicurio-registry-support-chat:latest-snapshot \
+              --tag quay.io/apicurio/apicurio-registry-support-chat:${{ inputs.snapshot-tag }} \
               ./support-chat

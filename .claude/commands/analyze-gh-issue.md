@@ -1,6 +1,7 @@
 ---
 description: Start work on a GitHub issue
 argument-hint: [issue-number-or-url]
+agent: repo-ops
 ---
 
 You are starting work on a GitHub issue to understand its requirements and identify affected code.

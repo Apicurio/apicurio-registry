@@ -185,7 +185,7 @@ public abstract class ITBase implements OperatorTestContext {
     }
 
     protected void checkDeploymentExists(ApicurioRegistry3 primary, String component, int replicas) {
-        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+        await().atMost(LONG_DURATION).ignoreExceptions().untilAsserted(() -> {
             assertThat(client.apps().deployments()
                     .inNamespace(ofNullable(primary.getMetadata().getNamespace()).orElse(namespace))
                     .withName(primary.getMetadata().getName() + "-" + component + "-deployment").get()
@@ -575,6 +575,18 @@ public abstract class ITBase implements OperatorTestContext {
         if (cleanup) {
             log.info("Deleting namespace : {}", namespace);
             assertThat(client.namespaces().withName(namespace).delete()).isNotNull();
+            // Namespace deletion is asynchronous: the API server only removes the namespace
+            // object once every resource inside it — including cluster-wide-scoped ones like
+            // Ingress hostnames — has actually been garbage-collected. The delete call above
+            // only confirms the request was accepted, not that cleanup finished. Without
+            // waiting here, the next test class to run (e.g. the Keycloak-based auth tests,
+            // which all reuse the same Ingress hostname) can start before this namespace's
+            // Ingress is actually gone, and get rejected by the ingress admission webhook for
+            // a "host already defined" conflict that has nothing to do with its own test.
+            await().atMost(MEDIUM_DURATION).untilAsserted(() -> {
+                assertThat(client.namespaces().withName(namespace).get()).isNull();
+            });
+            log.info("Namespace {} fully terminated", namespace);
         }
         client.close();
     }

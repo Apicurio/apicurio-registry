@@ -378,6 +378,11 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
     }
 
     @Override
+    public ContentWrapperDto getContentAndArtifactTypeById(long contentId) {
+        return proxy(storage -> storage.getContentAndArtifactTypeById(contentId));
+    }
+
+    @Override
     public ContentWrapperDto getContentByHash(String contentHash) {
         return proxy(storage -> storage.getContentByHash(contentHash));
     }

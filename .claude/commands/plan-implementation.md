@@ -1,5 +1,6 @@
 ---
 description: Create a detailed implementation plan for a feature or fix
+agent: plan
 ---
 
 You are creating an implementation plan for the Apicurio Registry project.

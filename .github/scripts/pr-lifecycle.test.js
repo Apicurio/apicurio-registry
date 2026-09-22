@@ -1,4 +1,4 @@
-// Tests for pr-lifecycle.js two-tier CI routing — run with: node --test .github/scripts/
+// Tests for pr-lifecycle.js — run with: node --test .github/scripts/
 const { test, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('fs');
@@ -14,12 +14,28 @@ let hadConfig = false;
 before(() => {
   hadConfig = fs.existsSync(CONFIG_PATH);
   if (!hadConfig) {
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify({ maintainers: [], merge: { strategy: 'rebase' } }));
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify({
+      maintainers: [], merge: { strategy: 'rebase' },
+      welcome_message: 'Thanks for opening this PR, {author}!',
+    }));
   }
 });
 after(() => {
   if (!hadConfig) fs.rmSync(CONFIG_PATH, { force: true });
 });
+
+// Temporarily swaps .github/pr-lifecycle.json for the duration of fn (e.g. to set
+// a maintainers list), then restores whatever was there before — regardless of
+// hadConfig, so it composes safely with the suite-level before()/after() above.
+async function withConfig(cfg, fn) {
+  const backup = fs.readFileSync(CONFIG_PATH, 'utf8');
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(cfg));
+  try {
+    await fn();
+  } finally {
+    fs.writeFileSync(CONFIG_PATH, backup);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Stateful mock GitHub API
@@ -27,17 +43,20 @@ after(() => {
 
 const SHA = 'abcdef1234567890';
 
-function makeWorld(prLabels, { approved = false, suiteRuns = [] } = {}) {
+function makeWorld(prLabels, { approved = false, suiteRuns = [], suiteJobs = {}, autoMerge = null } = {}) {
   const labels = new Set(prLabels);
-  const calls = { added: [], removed: [], comments: [], merges: [], branchUpdates: [] };
+  const calls = { added: [], removed: [], comments: [], branchUpdates: [], graphql: [] };
 
   const pr = () => ({
     number: 42,
     title: 'test',
     draft: false,
+    node_id: 'PR_kwtest',
+    auto_merge: autoMerge,
     labels: [...labels].map(name => ({ name })),
     user: { login: 'contributor' },
     head: { sha: SHA, ref: 'feature-x' },
+    base: { ref: 'main' },
     requested_reviewers: [],
   });
 
@@ -51,19 +70,31 @@ function makeWorld(prLabels, { approved = false, suiteRuns = [] } = {}) {
         createLabel: async () => ({}),
         updateLabel: async () => ({}),
       },
+      reactions: {
+        createForIssueComment: async () => ({}),
+      },
       pulls: {
         get: async () => ({ data: pr() }),
         list: async () => ({ data: [] }),
         listReviews: async () => ({}),
-        merge: async () => { calls.merges.push('merge'); },
+        update: async () => ({}),
         updateBranch: async () => { calls.branchUpdates.push('update'); },
       },
       actions: {
         listWorkflowRuns: async () => ({ data: { workflow_runs: [] } }),
         listWorkflowRunsForRepo: async () => ({ data: { workflow_runs: suiteRuns } }),
         listWorkflowRunArtifacts: async () => ({}),
+        // Used by getFullSuiteResult to tell a genuine full-suite failure
+        // apart from the Gate's own not-ready-yet check failing (see
+        // suiteJobs option below). Defaults to "some other job genuinely
+        // failed" so existing greenSuite({ Verify: 'failure' }) callers keep
+        // meaning a real failure without having to specify it.
+        listJobsForWorkflowRun: async ({ run_id }) => ({
+          data: { jobs: suiteJobs[run_id] ?? [{ name: 'Some Job', conclusion: 'failure' }] },
+        }),
       },
     },
+    graphql: async (query, vars) => { calls.graphql.push({ query, vars }); return {}; },
     // paginate: reviews list when asked for reviews, empty otherwise
     paginate: async (fn) => fn === github.rest.pulls.listReviews
       ? (approved ? [{ state: 'APPROVED', user: { login: 'maintainer-jane' } }] : [])
@@ -92,15 +123,16 @@ function runPayload(workflowName, conclusion) {
   };
 }
 
-// Latest-run state for all full-suite workflows, green except where overridden
-// (e.g. greenSuite({ Verify: 'failure' })). Pass status via the special
-// '<status>/' prefix (e.g. { 'Integration Tests': 'in_progress/' }).
+// Latest-run state for all full-suite workflows (just "Verify"), green except
+// where overridden (e.g. greenSuite({ Verify: 'failure' })). Pass status via
+// the special '<status>/' prefix (e.g. { Verify: 'in_progress/' }).
 function greenSuite(overrides = {}) {
   return FULL_SUITE_WORKFLOWS.map(name => {
     const o = overrides[name] || 'success';
     const inProgress = o.endsWith('/');
     const conclusion = inProgress ? null : o;
     return {
+      id: name, // looked up by suiteJobs/listJobsForWorkflowRun in the mock
       name,
       status: inProgress ? o.slice(0, -1) : 'completed',
       conclusion,
@@ -111,101 +143,182 @@ function greenSuite(overrides = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// Fast gate (CI workflow) — drives lifecycle/tested during review
+// PR Opened — every PR goes straight to ready-for-review, no triage stage.
+// Trust (maintainer/auto_accept) only affects when the full suite runs
+// (verify-decide.yaml), not anything this handler does.
 // ---------------------------------------------------------------------------
 
-test('CI success in ready-for-review adds lifecycle/tested', async () => {
-  const w = makeWorld([LABELS.READY_FOR_REVIEW]);
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
-  assert.ok(w.calls.added.includes(LABELS.TESTED));
-  assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
+function openedPr(login) {
+  return {
+    number: 42,
+    title: 'test',
+    draft: false,
+    labels: [],
+    user: { login },
+    head: { sha: SHA, ref: 'feature-x' },
+    requested_reviewers: [],
+  };
+}
+
+function openedContext(pr) {
+  return {
+    repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+    payload: { pull_request: pr },
+  };
+}
+
+test('trusted-author PR open: straight to ready-for-review, trusted-author messaging', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = makeWorld([]);
+    await lifecycle.handlePrOpened({ github: w.github, context: openedContext(openedPr('maintainer-jane')), core: w.core });
+
+    assert.ok(w.calls.added.includes(LABELS.READY_FOR_REVIEW));
+    assert.ok(w.calls.added.includes(LABELS.WAITING_ON_MAINTAINER));
+    assert.ok(!w.calls.added.includes(LABELS.READY_TO_MERGE));
+    assert.ok(w.calls.comments.some(c => c.includes('trusted author')));
+  });
 });
 
-test('CI failure in ready-for-review sets waiting-on-author', async () => {
+test('non-trusted-author PR open: straight to ready-for-review, welcome message (no accept step)', async () => {
+  const w = makeWorld([]);
+  await lifecycle.handlePrOpened({ github: w.github, context: openedContext(openedPr('some-contributor')), core: w.core });
+
+  assert.ok(w.calls.added.includes(LABELS.READY_FOR_REVIEW));
+  assert.ok(w.calls.added.includes(LABELS.WAITING_ON_MAINTAINER));
+  assert.ok(!w.calls.added.includes(LABELS.NEW));
+  assert.ok(w.calls.comments.some(c => c.includes('Thanks for opening this PR')));
+});
+
+test('non-trusted author already at max open PRs is closed automatically', async () => {
+  await withConfig({ maintainers: [], max_contributor_prs: 1, merge: { strategy: 'rebase' }, welcome_message: 'hi {author}' }, async () => {
+    const w = makeWorld([]);
+    w.github.paginate = async (fn) => fn === w.github.rest.pulls.list
+      ? [{ number: 7, user: { login: 'some-contributor' } }]
+      : [];
+    let closed = false;
+    w.github.rest.pulls.update = async ({ state }) => { closed = state === 'closed'; };
+    await lifecycle.handlePrOpened({ github: w.github, context: openedContext(openedPr('some-contributor')), core: w.core });
+
+    assert.ok(closed, 'PR must be closed when the author is already at the open-PR cap');
+    assert.ok(!w.calls.added.includes(LABELS.READY_FOR_REVIEW));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// checkAndTransitionToReady (via Quick Check fast-gate result) — promotes to
+// ready-to-merge once approved AND fast-gated. No more review-skipped bypass:
+// every author needs an actual approving review to reach ready-to-merge,
+// consistent with branch protection now requiring one.
+// ---------------------------------------------------------------------------
+
+test('fast gate pass with an approved review promotes to ready-to-merge', async () => {
+  const w = makeWorld([LABELS.READY_FOR_REVIEW], { approved: true });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
+
+  assert.ok(w.calls.added.includes(LABELS.TESTED));
+  assert.ok(w.calls.added.includes(LABELS.READY_TO_MERGE),
+    'an approved review + green fast gate must promote to ready-to-merge');
+  assert.ok(w.calls.comments.some(c => c.includes('is the remaining merge gate')));
+});
+
+test('fast gate pass without a review stays in ready-for-review (waiting on maintainer)', async () => {
+  const w = makeWorld([LABELS.READY_FOR_REVIEW]);
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
+
+  assert.ok(w.calls.added.includes(LABELS.TESTED));
+  assert.ok(!w.calls.added.includes(LABELS.READY_TO_MERGE),
+    'an unreviewed PR must wait for an approval before being promoted');
+  assert.ok(w.calls.added.includes(LABELS.WAITING_ON_MAINTAINER));
+});
+
+test('Quick Check failure in ready-for-review sets waiting-on-author', async () => {
   const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER]);
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'failure'), core: w.core });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'failure'), core: w.core });
   assert.ok(w.calls.added.includes(LABELS.WAITING_ON_AUTHOR));
   assert.ok(w.calls.removed.includes(LABELS.WAITING_ON_MAINTAINER));
   assert.ok(!w.calls.added.includes(LABELS.TESTED));
-  assert.ok(w.calls.comments.some(c => c.includes('fast CI gate failed')));
+  assert.ok(w.calls.comments.some(c => c.includes('Quick Check gate failed')));
 });
 
-test('CI result is ignored at ready-to-merge (full suite owns the result)', async () => {
+test('Quick Check completing at ready-to-merge is a harmless no-op re-check (not a fast-gate result)', async () => {
   const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true });
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
   assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
-  assert.equal(w.calls.merges.length, 0);
 });
 
 // ---------------------------------------------------------------------------
-// Full suite (Verify workflow) — the pre-merge gate
+// Full suite (Verify workflow) — now runs on its own native triggers (push
+// for trusted authors, review submission for everyone else), so its result
+// is recorded regardless of lifecycle state, not just at ready-to-merge.
 // ---------------------------------------------------------------------------
 
-test('Verify success in ready-for-review is a no-op (must not mark tested)', async () => {
-  const w = makeWorld([LABELS.READY_FOR_REVIEW]);
+test('Verify success while still in ready-for-review is recorded (trusted-author suite can finish before the fast gate)', async () => {
+  const w = makeWorld([LABELS.READY_FOR_REVIEW], { suiteRuns: greenSuite() });
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
-  assert.ok(!w.calls.added.includes(LABELS.TESTED));
-  assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
+  assert.ok(w.calls.added.includes(LABELS.FULL_VERIFIED));
+  assert.ok(!w.calls.added.includes(LABELS.TESTED), 'full suite result must not itself set lifecycle/tested');
 });
 
 test('Verify success at ready-to-merge adds lifecycle/full-verified when the whole suite is green', async () => {
   const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true, suiteRuns: greenSuite() });
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
   assert.ok(w.calls.added.includes(LABELS.FULL_VERIFIED));
-  assert.equal(w.calls.merges.length, 0);
 });
 
-test('Verify success at ready-to-merge completes a queued (pending) merge', async () => {
-  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED, LABELS.PENDING_MERGE], { approved: true, suiteRuns: greenSuite() });
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
-  assert.ok(w.calls.added.includes(LABELS.FULL_VERIFIED));
-  assert.ok(w.calls.removed.includes(LABELS.PENDING_MERGE));
-  assert.equal(w.calls.merges.length, 1);
-});
-
-test('full suite stays pending while a sibling workflow is still running', async () => {
-  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true, suiteRuns: greenSuite({ 'Integration Tests': 'in_progress/' }) });
+test('full suite stays pending if the search API has not caught up with the just-completed run yet', async () => {
+  // getFullSuiteResult re-queries workflow runs by head_sha independently of
+  // the webhook payload; a still-in_progress result for the very run that
+  // just fired this event is a (rare) eventual-consistency lag, not a real
+  // failure, and must be treated as pending rather than promoted.
+  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true, suiteRuns: greenSuite({ Verify: 'in_progress/' }) });
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
   assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
-  assert.equal(w.calls.merges.length, 0);
   assert.equal(w.calls.comments.length, 0);
 });
 
-test('a failure in any full-suite workflow reverts to ready-for-review', async () => {
-  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED, LABELS.FULL_VERIFIED, LABELS.PENDING_MERGE], { approved: true, suiteRuns: greenSuite({ 'Extra Tests': 'failure' }) });
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
-  assert.ok(w.calls.removed.includes(LABELS.FULL_VERIFIED));
-  assert.ok(w.calls.removed.includes(LABELS.TESTED));
-  assert.ok(w.calls.added.includes(LABELS.READY_FOR_REVIEW));
-  assert.ok(w.calls.added.includes(LABELS.WAITING_ON_AUTHOR));
-  assert.ok(w.calls.comments.some(c => c.includes('Extra Tests')));
-  assert.equal(w.calls.merges.length, 0);
-});
-
-test('CI success at ready-to-merge counts towards the full suite', async () => {
-  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED], { approved: true, suiteRuns: greenSuite() });
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
-  assert.ok(w.calls.added.includes(LABELS.FULL_VERIFIED));
-});
-
-test('late CI success does not promote the PR after a full-suite failure', async () => {
+test('late Quick Check success does not promote the PR after a full-suite failure', async () => {
   // State after the failure revert: ready-for-review, no tested label. A late
-  // CI completion (full-tier run) must not re-add lifecycle/tested.
-  const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_AUTHOR], { suiteRuns: greenSuite({ 'Integration Tests': 'failure' }) });
-  await lifecycle.handleTestResult({ github: w.github, context: runPayload('CI', 'success'), core: w.core });
+  // Quick Check completion must not re-add lifecycle/tested while the full
+  // suite is recorded as failed for this SHA.
+  const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_AUTHOR], { suiteRuns: greenSuite({ Verify: 'failure' }) });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
   assert.ok(!w.calls.added.includes(LABELS.TESTED));
   assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
 });
 
+test('Quick Check success DOES promote a reviewed PR even though an earlier not-yet-ready Verify run shows failure', async () => {
+  // Every Verify run before Decide requires the full suite legitimately
+  // fails its own "is this actually required yet" check (see verify.yaml's
+  // Gate) — that is not a real test failure and must not be confused with
+  // one. Here only "Verification Gate" failed; every other job in the run
+  // was skipped (Decide gated them on the same not-yet-required state), so
+  // getFullSuiteResult must treat this as pending, not a genuine failure,
+  // and let the fast gate promote the PR normally.
+  const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER], {
+    approved: true,
+    suiteRuns: greenSuite({ Verify: 'failure' }),
+    suiteJobs: { Verify: [{ name: 'Verification Gate', conclusion: 'failure' }] },
+  });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
+  assert.ok(w.calls.added.includes(LABELS.TESTED));
+  assert.ok(w.calls.added.includes(LABELS.READY_TO_MERGE));
+});
+
 test('Verify failure at ready-to-merge reverts to ready-for-review', async () => {
-  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED, LABELS.FULL_VERIFIED, LABELS.PENDING_MERGE], { approved: true, suiteRuns: greenSuite({ Verify: 'failure' }) });
+  const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED, LABELS.FULL_VERIFIED], { approved: true, suiteRuns: greenSuite({ Verify: 'failure' }) });
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'failure'), core: w.core });
   assert.ok(w.calls.removed.includes(LABELS.FULL_VERIFIED));
   assert.ok(w.calls.removed.includes(LABELS.TESTED));
-  assert.ok(w.calls.removed.includes(LABELS.PENDING_MERGE));
   assert.ok(w.calls.added.includes(LABELS.READY_FOR_REVIEW));
   assert.ok(w.calls.added.includes(LABELS.WAITING_ON_AUTHOR));
-  assert.equal(w.calls.merges.length, 0);
+});
+
+test('Verify failure while still in ready-for-review just clears full-verified (nothing to revert)', async () => {
+  const w = makeWorld([LABELS.READY_FOR_REVIEW], { suiteRuns: greenSuite({ Verify: 'failure' }) });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'failure'), core: w.core });
+  assert.ok(w.calls.removed.includes(LABELS.FULL_VERIFIED));
+  assert.ok(!w.calls.added.includes(LABELS.WAITING_ON_AUTHOR));
+  assert.ok(w.calls.comments.some(c => c.includes('full verification suite')));
 });
 
 test('Verify result with stale SHA is ignored', async () => {
@@ -214,4 +327,542 @@ test('Verify result with stale SHA is ignored', async () => {
   ctx.payload.workflow_run.head_sha = '0000000000different';
   await lifecycle.handleTestResult({ github: w.github, context: ctx, core: w.core });
   assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
+});
+
+// ---------------------------------------------------------------------------
+// /merge — toggles native GitHub auto-merge (no more custom merge polling)
+// ---------------------------------------------------------------------------
+
+test('/merge command: maintainer enables auto-merge and posts confirmation', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = makeWorld([LABELS.READY_TO_MERGE], { autoMerge: null });
+    const pr = await w.github.rest.pulls.get().then(r => r.data);
+    await lifecycle.handleComment({
+      github: w.github,
+      context: {
+        repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+        payload: {
+          comment: { id: 1, body: '/merge', user: { login: 'maintainer-jane' } },
+          issue: { number: pr.number, pull_request: {} },
+        },
+      },
+      core: w.core,
+    });
+    assert.equal(w.calls.graphql.length, 1);
+    assert.match(w.calls.graphql[0].query, /enablePullRequestAutoMerge/);
+    assert.ok(w.calls.comments.some(c => c.includes('Auto-merge enabled')));
+  });
+});
+
+test('/merge command: maintainer disables auto-merge when already enabled', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = makeWorld([LABELS.READY_TO_MERGE], { autoMerge: { enabled_by: { login: 'maintainer-jane' } } });
+    await lifecycle.handleComment({
+      github: w.github,
+      context: {
+        repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+        payload: {
+          comment: { id: 1, body: '/merge', user: { login: 'maintainer-jane' } },
+          issue: { number: 42, pull_request: {} },
+        },
+      },
+      core: w.core,
+    });
+    assert.equal(w.calls.graphql.length, 1);
+    assert.match(w.calls.graphql[0].query, /disablePullRequestAutoMerge/);
+    assert.ok(w.calls.comments.some(c => c.includes('Auto-merge disabled')));
+  });
+});
+
+test('/merge command: non-maintainer is rejected', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = makeWorld([LABELS.READY_TO_MERGE]);
+    await lifecycle.handleComment({
+      github: w.github,
+      context: {
+        repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+        payload: {
+          comment: { id: 1, body: '/merge', user: { login: 'random-user' } },
+          issue: { number: 42, pull_request: {} },
+        },
+      },
+      core: w.core,
+    });
+    assert.equal(w.calls.graphql.length, 0);
+    assert.ok(w.calls.comments.some(c => c.includes('Only maintainers can merge')));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// /reject — maintainer moderation, works regardless of lifecycle state
+// (there is no more lifecycle/new triage stage to restrict it to)
+// ---------------------------------------------------------------------------
+
+test('/reject closes the PR for a maintainer regardless of state', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = makeWorld([LABELS.READY_FOR_REVIEW]);
+    let closed = false;
+    w.github.rest.pulls.update = async ({ state }) => { closed = state === 'closed'; };
+    await lifecycle.handleComment({
+      github: w.github,
+      context: {
+        repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+        payload: {
+          comment: { id: 1, body: '/reject not a good fit', user: { login: 'maintainer-jane' } },
+          issue: { number: 42, pull_request: {} },
+        },
+      },
+      core: w.core,
+    });
+    assert.ok(closed);
+    assert.ok(w.calls.comments.some(c => c.includes('rejected') && c.includes('not a good fit')));
+  });
+});
+
+test('/reject is rejected for a non-maintainer', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = makeWorld([LABELS.READY_FOR_REVIEW]);
+    let closed = false;
+    w.github.rest.pulls.update = async () => { closed = true; };
+    await lifecycle.handleComment({
+      github: w.github,
+      context: {
+        repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+        payload: {
+          comment: { id: 1, body: '/reject', user: { login: 'random-user' } },
+          issue: { number: 42, pull_request: {} },
+        },
+      },
+      core: w.core,
+    });
+    assert.ok(!closed);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Legacy label migration — retired labels from the old bot-driven-promotion
+// design are cleaned up (or migrated to their native equivalent) on the next
+// reconcile, rather than left stuck on old PRs forever. Exercised through
+// handleReconcile (the real workflow_dispatch entry point) so these tests go
+// through the module's actual createApi, not a re-implementation of it.
+// ---------------------------------------------------------------------------
+
+function reconcileContext() {
+  return { repo: { owner: 'Apicurio', repo: 'apicurio-registry' } };
+}
+
+test('legacy lifecycle/new migrates to ready-for-review', async () => {
+  const w = makeWorld(['lifecycle/new']);
+  await lifecycle.handleReconcile({ github: w.github, context: reconcileContext(), core: w.core, prNumber: 42 });
+  assert.ok(!w.labels.has('lifecycle/new'));
+  assert.ok(w.calls.added.includes(LABELS.READY_FOR_REVIEW));
+});
+
+test('legacy orchestrator/review-skipped is just removed', async () => {
+  const w = makeWorld([LABELS.READY_FOR_REVIEW, 'orchestrator/review-skipped']);
+  await lifecycle.handleReconcile({ github: w.github, context: reconcileContext(), core: w.core, prNumber: 42 });
+  assert.ok(w.calls.removed.includes('orchestrator/review-skipped'));
+});
+
+test('legacy orchestrator/auto-merge migrates to native auto-merge', async () => {
+  const w = makeWorld([LABELS.READY_FOR_REVIEW, 'orchestrator/auto-merge'], { autoMerge: null });
+  await lifecycle.handleReconcile({ github: w.github, context: reconcileContext(), core: w.core, prNumber: 42 });
+  assert.ok(w.calls.removed.includes('orchestrator/auto-merge'));
+  assert.equal(w.calls.graphql.length, 1);
+  assert.match(w.calls.graphql[0].query, /enablePullRequestAutoMerge/);
+});
+
+
+// ---------------------------------------------------------------------------
+// Stale sweep
+//
+// The sweep decides "has anything happened since we labelled this stale?" by
+// walking the issue timeline. Two properties of that API make it easy to get
+// wrong, and both regressed in production: the timeline is paginated
+// oldest-first, and not every event carries created_at.
+// ---------------------------------------------------------------------------
+
+const DAY = 24 * 60 * 60 * 1000;
+const ago = days => new Date(Date.now() - days * DAY).toISOString();
+
+const STALE_CONFIG = {
+  maintainers: [], merge: { strategy: 'rebase' },
+  stale: {
+    days_until_stale: 7,
+    days_until_close: 14,
+    days_until_stale_waiting_on_author: 4,
+    days_until_close_waiting_on_author: 7,
+    days_until_review_overdue: 14,
+    days_until_review_ping: 30,
+    stale_message: 'Inactive. @{author}, update or comment. Closed {close_window}.{assignees}',
+    close_message: 'Closing due to inactivity.',
+    review_overdue_message: 'Waiting on review for {days} days. @{author} nothing to do.{reviewers}',
+  },
+};
+
+// timelinePages models the real pagination shape: github.paginate concatenates
+// every page, while an unpaginated call would only ever see pages[0].
+function makeStaleWorld({ labels = [LABELS.READY_FOR_REVIEW], updatedDaysAgo = 30,
+                          timelinePages = [[]], assignees = [], reviewers = [],
+                          createdDaysAgo = null, baseRef = 'not-main' } = {}) {
+  const prLabels = new Set(labels);
+  const calls = { added: [], removed: [], comments: [], closed: [] };
+
+  const pr = {
+    number: 42,
+    draft: false,
+    labels: [...prLabels].map(name => ({ name })),
+    user: { login: 'contributor' },
+    assignees: assignees.map(login => ({ login })),
+    requested_reviewers: reviewers.map(login => ({ login })),
+    head: { sha: SHA, ref: 'feature-x' },
+    // Default skips reconcile, since most of this suite is about the timers
+    // rather than label repair. baseRef: 'main' opts a test into reconcile.
+    base: { ref: baseRef },
+    updated_at: ago(updatedDaysAgo),
+    // The review-overdue track pre-filters on PR age before reading the
+    // timeline, so it has to be at least as old as the label/ping thresholds
+    // for those tests to reach the interesting code.
+    created_at: ago(createdDaysAgo ?? updatedDaysAgo),
+  };
+
+  const github = {
+    rest: {
+      issues: {
+        addLabels: async ({ labels: ls }) => ls.forEach(l => { prLabels.add(l); calls.added.push(l); }),
+        removeLabel: async ({ name }) => { prLabels.delete(name); calls.removed.push(name); },
+        createComment: async ({ body }) => calls.comments.push(body),
+        getLabel: async () => { const e = new Error('nf'); e.status = 404; throw e; },
+        createLabel: async () => ({}),
+        updateLabel: async () => ({}),
+        listEventsForTimeline: 'listEventsForTimeline',
+      },
+      pulls: {
+        list: 'pulls.list',
+        update: async ({ pull_number, state }) => calls.closed.push({ pull_number, state }),
+        // The sweep re-reads each PR after reconcile, so this must reflect
+        // label mutations rather than replaying the original snapshot.
+        get: async () => ({ data: { ...pr, labels: [...prLabels].map(name => ({ name })) } }),
+      },
+    },
+    paginate: async (fn) => {
+      if (fn === 'pulls.list') return [pr];
+      if (fn === 'listEventsForTimeline') return timelinePages.flat();
+      return [];
+    },
+  };
+
+  const core = { info: () => {}, warning: () => {}, error: () => {} };
+  return { github, core, calls, prLabels };
+}
+
+function staleContext() {
+  return { repo: { owner: 'Apicurio', repo: 'apicurio-registry' } };
+}
+
+const staleLabelEvent = daysAgo => ({
+  event: 'labeled', label: { name: LABELS.STALE }, created_at: ago(daysAgo),
+  actor: { login: 'github-actions[bot]' },
+});
+
+// A 'committed' timeline event as GitHub actually returns it: no created_at
+// and no actor — the commit date lives in author.date. Treating it as activity
+// made every PR with a commit look permanently active, so the stale label was
+// stripped on the next sweep and nothing ever closed.
+const committedEvent = daysAgo => ({
+  event: 'committed', sha: SHA, author: { name: 'C', date: ago(daysAgo) },
+});
+
+test('stale: old commit in the timeline does not count as activity', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.STALE],
+      timelinePages: [[committedEvent(30), staleLabelEvent(1)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(!w.calls.removed.includes(LABELS.STALE),
+      'stale label must survive a commit that predates it');
+  });
+});
+
+test('stale: a human comment after the label clears it', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.STALE],
+      timelinePages: [[staleLabelEvent(2),
+        { event: 'commented', created_at: ago(1), user: { login: 'contributor' } }]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.removed.includes(LABELS.STALE));
+  });
+});
+
+test('stale: the bot own warning comment does not count as activity', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.STALE],
+      timelinePages: [[staleLabelEvent(1),
+        { event: 'commented', created_at: ago(1), actor: { login: 'github-actions[bot]' },
+          user: { login: 'github-actions[bot]' } }]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(!w.calls.removed.includes(LABELS.STALE));
+  });
+});
+
+test('stale: label event on a later timeline page is still found', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    // Page 1 holds an old stale cycle and the activity that cleared it; the
+    // current label is on page 2. Reading only page 1 backdates staleSince,
+    // making that old activity look recent — and the label gets stripped.
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.STALE],
+      timelinePages: [
+        [staleLabelEvent(20), { event: 'commented', created_at: ago(19), user: { login: 'contributor' } }],
+        [staleLabelEvent(1)],
+      ],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(!w.calls.removed.includes(LABELS.STALE),
+      'activity predating the current stale label must not clear it');
+  });
+});
+
+test('stale: closes once the grace period has elapsed', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.STALE],
+      timelinePages: [[committedEvent(30), staleLabelEvent(8)]], // grace is 14 - 7 = 7
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.deepEqual(w.calls.closed, [{ pull_number: 42, state: 'closed' }]);
+  });
+});
+
+test('stale: warning ccs the assignees but not the author', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({ assignees: ['maintainer-jane', 'contributor'] });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.added.includes(LABELS.STALE));
+    assert.equal(w.calls.comments.length, 1);
+    assert.match(w.calls.comments[0], /cc @maintainer-jane/);
+    assert.equal((w.calls.comments[0].match(/@contributor/g) || []).length, 1,
+      'the author is already addressed by name and must not be cc-ed again');
+  });
+});
+
+test('stale: warning with no assignees has no cc line', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld();
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.equal(w.calls.comments.length, 1);
+    assert.doesNotMatch(w.calls.comments[0], /cc @/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Review overdue — the maintainer-side track (#10149)
+//
+// A PR labelled waiting-on-maintainer is blocked on us, so the author-facing
+// stale timers must not touch it: no author-directed warning, and above all no
+// auto-close. 24 of the 25 stale PRs in the queue when this was written were
+// in exactly this state.
+// ---------------------------------------------------------------------------
+
+const blockedLabelEvent = daysAgo => ({
+  event: 'labeled', label: { name: LABELS.WAITING_ON_MAINTAINER }, created_at: ago(daysAgo),
+  actor: { login: 'github-actions[bot]' },
+});
+
+const overduePing = daysAgo => ({
+  event: 'commented', created_at: ago(daysAgo), user: { login: 'github-actions[bot]' },
+  body: '<!-- pr-lifecycle:review-overdue -->\nWaiting on review for 40 days.',
+});
+
+test('review overdue: a maintainer-blocked PR is never marked stale', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 30,
+      timelinePages: [[blockedLabelEvent(5)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(!w.calls.added.includes(LABELS.STALE),
+      'the 7/14 author-inactivity timer must not apply to a PR blocked on a maintainer');
+    assert.deepEqual(w.calls.closed, []);
+  });
+});
+
+test('review overdue: an already-stale maintainer-blocked PR has the label cleared, not closed', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    // The live situation this fixes: stale was applied by the old logic and
+    // the grace period has long since elapsed, so the next sweep would close.
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER, LABELS.STALE],
+      updatedDaysAgo: 40,
+      timelinePages: [[blockedLabelEvent(40), staleLabelEvent(20)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.removed.includes(LABELS.STALE));
+    assert.deepEqual(w.calls.closed, [], 'must never close a PR blocked on a maintainer');
+  });
+});
+
+test('review overdue: waiting-on-author wins when both labels are set', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    // reconcile's label-recovery path can add waiting-on-maintainer without
+    // clearing waiting-on-author. The tie must not grant a stale exemption,
+    // or an author-blocked PR would never lapse.
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_AUTHOR, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 5, // past the 4-day waiting-on-author threshold
+      timelinePages: [[blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.added.includes(LABELS.STALE));
+    assert.ok(!w.calls.added.includes(LABELS.REVIEW_OVERDUE));
+  });
+});
+
+test('review overdue: labels at 14 days but does not ping until 30', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 20,
+      timelinePages: [[blockedLabelEvent(20)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.added.includes(LABELS.REVIEW_OVERDUE));
+    assert.equal(w.calls.comments.length, 0,
+      'the label is free, the comment notifies every reviewer — only the label fires at 14 days');
+  });
+});
+
+test('review overdue: pings past 30 days, ccing assignees and requested reviewers', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 40,
+      assignees: ['maintainer-jane', 'contributor'],
+      reviewers: ['maintainer-bob'],
+      timelinePages: [[blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.added.includes(LABELS.REVIEW_OVERDUE));
+    assert.equal(w.calls.comments.length, 1);
+    assert.match(w.calls.comments[0], /Waiting on review for 40 days/);
+    assert.match(w.calls.comments[0], /cc @maintainer-jane @maintainer-bob/);
+    assert.equal((w.calls.comments[0].match(/@contributor/g) || []).length, 1,
+      'the author is addressed by the message and must not also be cc-ed');
+  });
+});
+
+test('review overdue: measured from the waiting-on-maintainer label, not updated_at', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    // The author rebased yesterday, which refreshes updated_at without
+    // discharging the review. Our clock must keep running.
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 1,
+      createdDaysAgo: 40,
+      timelinePages: [[blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.added.includes(LABELS.REVIEW_OVERDUE));
+    assert.equal(w.calls.comments.length, 1);
+  });
+});
+
+test('review overdue: does not ping twice within one blocked period', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER, LABELS.REVIEW_OVERDUE],
+      updatedDaysAgo: 50,
+      timelinePages: [[blockedLabelEvent(50), overduePing(10)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.equal(w.calls.comments.length, 0);
+  });
+});
+
+test('review overdue: a ping predating the current block does not suppress a new one', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    // Pinged, then reviewed and unblocked, then blocked again. The new period
+    // gets its own ping — otherwise one old comment silences the PR forever.
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER, LABELS.REVIEW_OVERDUE],
+      updatedDaysAgo: 90,
+      timelinePages: [[overduePing(60), blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.equal(w.calls.comments.length, 1);
+  });
+});
+
+test('review overdue: label is dropped once the PR is no longer blocked on a maintainer', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_AUTHOR, LABELS.REVIEW_OVERDUE],
+      updatedDaysAgo: 1, // recent, so the author timer does not fire either
+      timelinePages: [[]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.removed.includes(LABELS.REVIEW_OVERDUE));
+  });
+});
+
+test('review overdue: the built-in fallback message still ccs reviewers', async () => {
+  // review_overdue_message omitted entirely. The cc is the point of the ping,
+  // so the fallback has to carry {reviewers} or a config typo silently
+  // notifies nobody.
+  const { review_overdue_message, ...stale } = STALE_CONFIG.stale;
+  await withConfig({ ...STALE_CONFIG, stale }, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 40,
+      assignees: ['maintainer-jane'],
+      timelinePages: [[blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.equal(w.calls.comments.length, 1);
+    assert.match(w.calls.comments[0], /cc @maintainer-jane/);
+  });
+});
+
+test('review overdue: decisions use post-reconcile labels, not the list snapshot', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    // The snapshot says waiting-on-author and the PR is well past the 4-day
+    // author threshold, so the pre-fix code would warn and eventually close
+    // it. But reconcile case 2 (no changes requested, tested, was blocked on
+    // the author) moves it to waiting-on-maintainer — the PR is blocked on us.
+    // Reading the snapshot after that would close a PR we owe a review on.
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_AUTHOR, LABELS.TESTED],
+      baseRef: 'main',
+      updatedDaysAgo: 10,
+      timelinePages: [[blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+
+    // reconcile performed the handover...
+    assert.ok(w.calls.removed.includes(LABELS.WAITING_ON_AUTHOR));
+    assert.ok(w.calls.added.includes(LABELS.WAITING_ON_MAINTAINER));
+    // ...and the sweep acted on that, not on the stale snapshot.
+    assert.ok(!w.calls.added.includes(LABELS.STALE),
+      'a PR reconcile just handed back to the maintainers must not go stale on the author timer');
+    assert.deepEqual(w.calls.closed, []);
+  });
+});
+
+test('review overdue: a young maintainer-blocked PR is left entirely alone', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 3,
+      timelinePages: [[blockedLabelEvent(3)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.deepEqual(w.calls.added, []);
+    assert.equal(w.calls.comments.length, 0);
+  });
 });

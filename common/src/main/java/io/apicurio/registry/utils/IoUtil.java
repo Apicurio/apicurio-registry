@@ -194,7 +194,7 @@ public class IoUtil {
      */
     public static String toString(InputStream stream) {
         try {
-            return toBaos(stream).toString(StandardCharsets.UTF_8.name());
+            return toBaos(stream).toString(StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } finally {

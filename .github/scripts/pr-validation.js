@@ -117,14 +117,30 @@ function checkDcoSignOff(commits) {
   if (unsigned.length === 0) {
     return null;
   }
+  const mergeCommits = unsigned.filter((c) => c.parents && c.parents.length > 1);
+  const allAreMerges = mergeCommits.length === unsigned.length;
+
   const list = unsigned
     .map(c => `  - \`${shortSha(c.sha)}\` ${firstLine(c.commit.message)}`)
     .join('\n');
+
+  let advice;
+  if (allAreMerges) {
+    advice = 
+      'Since every unsigned commit is a merge commit, run:\n' +
+      '```bash\n' +
+      'git rebase --signoff upstream/main\n' +
+      'git push --force-with-lease\n' +
+      '```';
+  } else {
+    advice = 
+      'Sign off with `git commit -s`, or repair existing commits with ' +
+      '`git rebase --signoff upstream/main` and force-push.';
+  }
   return {
     name: 'DCO sign-off',
     detail: `${unsigned.length} commit(s) are missing a \`Signed-off-by:\` trailer:\n\n${list}\n\n`
-      + 'Sign off with `git commit -s`, or repair existing commits with '
-      + '`git rebase --signoff upstream/main` and force-push.',
+      + advice
   };
 }
 
@@ -233,7 +249,16 @@ function buildComment(pr, violations, duplicates) {
   } else {
     lines.push(`This PR has ${violations.length} validation issue(s):`, '');
     for (const violation of violations) {
-      lines.push(`### ${violation.name}`, '', violation.detail, '');
+      if (
+        violation.name === 'DCO sign-off' ||
+        violation.name === 'Issue link'
+      ) {
+        lines.push('### For the author', '');
+      } else if (violation.name === 'Milestone') {
+        lines.push('### For a maintainer', '');
+      }
+
+      lines.push(`### ${violation.name}`, '', `- [ ] ${violation.detail}`, '');
     }
     lines.push('The check updates automatically when you push. This does not '
       + 'close your PR, and a maintainer can still accept it.', '');

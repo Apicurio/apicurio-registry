@@ -111,6 +111,15 @@ class KiotaFolderCheckTest(unittest.TestCase):
         with open(full, "w", encoding="utf-8") as handle:
             handle.write(content)
 
+    def write_workflow(self, command, path=".github/workflows/verify.yaml"):
+        """A workflow whose single step runs the given command, on line 4.
+
+        The scaffold is the same in every one of these, so the tests name only
+        the flag they are about.
+        """
+        self.write(path, "jobs:\n  build:\n    steps:\n"
+                         "      - run: {0}\n".format(command))
+
     def write_root(self, value=GOOD_VALUE, raw_property=None, profiles="",
                    extensions=EXTENSIONS):
         if raw_property is None:
@@ -219,9 +228,7 @@ class KiotaFolderCheckTest(unittest.TestCase):
         A word boundary after "local" matches it and reports a flag that does
         not send the binary anywhere.
         """
-        self.write(".github/workflows/verify.yaml",
-                   "jobs:\n  build:\n    steps:\n"
-                   "      - run: ./mvnw -Dmaven.repo.local.tail.threads=4 install\n")
+        self.write_workflow("./mvnw -Dmaven.repo.local.tail.threads=4 install")
         self.assertAccepted()
 
     # ---------------- rejected: the property ----------------
@@ -415,24 +422,30 @@ class KiotaFolderCheckTest(unittest.TestCase):
                    "-T 1C\n-Dkiota.binary.folder=target/kiota-binary\n")
         self.assertRejected(".mvn/maven.config:2")
 
+    def test_a_commented_out_maven_config_line_is_accepted(self):
+        """A leading # is the only comment Maven honours in maven.config.
+
+        Checked against Maven 3.9.12: it reads each line as one whole argument
+        rather than splitting on whitespace, so a # anywhere else is part of the
+        value. Only the leading form disarms the flag, and only that form is
+        treated as a comment here.
+        """
+        self.write(".mvn/maven.config",
+                   "-T 1C\n# -Dkiota.binary.folder=target/kiota-binary\n")
+        self.assertAccepted()
+
     def test_a_flag_with_a_space_is_rejected(self):
         """Maven accepts -D foo=bar, so a joined needle would miss this."""
-        self.write(".github/workflows/verify.yaml",
-                   "jobs:\n  build:\n    steps:\n"
-                   "      - run: ./mvnw -D kiota.binary.folder=/tmp/k install\n")
+        self.write_workflow("./mvnw -D kiota.binary.folder=/tmp/k install")
         self.assertRejected("verify.yaml:4")
 
     def test_the_long_option_is_rejected(self):
-        self.write(".github/workflows/verify.yaml",
-                   "jobs:\n  build:\n    steps:\n"
-                   "      - run: ./mvnw --define kiota.binary.folder=/tmp/k install\n")
+        self.write_workflow("./mvnw --define kiota.binary.folder=/tmp/k install")
         self.assertRejected("verify.yaml:4")
 
     def test_the_joined_long_option_is_rejected(self):
         """commons-cli accepts --define=x=y, and a space-only match misses it."""
-        self.write(".github/workflows/verify.yaml",
-                   "jobs:\n  build:\n    steps:\n"
-                   "      - run: ./mvnw --define=kiota.binary.folder=/tmp/k install\n")
+        self.write_workflow("./mvnw --define=kiota.binary.folder=/tmp/k install")
         self.assertRejected("verify.yaml:4")
 
     def test_the_quoted_property_name_is_rejected(self):
@@ -458,10 +471,8 @@ class KiotaFolderCheckTest(unittest.TestCase):
         Cutting the line there would discard the build command that follows and
         report the file as clean.
         """
-        self.write(".github/workflows/verify.yaml",
-                   "jobs:\n  build:\n    steps:\n"
-                   '      - run: echo "see #10213" && '
-                   "./mvnw -Dkiota.binary.folder=/tmp/k install\n")
+        self.write_workflow('echo "see #10213" && '
+                            "./mvnw -Dkiota.binary.folder=/tmp/k install")
         self.assertRejected("verify.yaml:4")
 
     def test_an_apostrophe_does_not_swallow_a_real_comment(self):

@@ -37,6 +37,13 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 script_path = os.path.join(script_dir, "validate-kiota-folder.py")
 
 spec = importlib.util.spec_from_file_location("validate_kiota_folder", script_path)
+# The script's name has a hyphen in it, so a plain import cannot reach it and it
+# is loaded from its path instead. spec and spec.loader are typed as optional
+# because a finder is allowed to return nothing for a path it does not handle.
+# A missing script here means the test file has been moved away from the script
+# it tests, and saying so beats an AttributeError on None three lines down.
+if spec is None or spec.loader is None:
+    raise ImportError("Could not load {0}".format(script_path))
 guard = importlib.util.module_from_spec(spec)
 sys.modules["validate_kiota_folder"] = guard
 spec.loader.exec_module(guard)
@@ -47,9 +54,14 @@ spec.loader.exec_module(guard)
 GOOD_VALUE = guard.EXPECTED
 EXPRESSION = guard.CONSUMER_EXPRESSION
 
-ROOT_POM = """<?xml version="1.0" encoding="UTF-8"?>
+# The namespace matters: the script matches elements with {*} wildcards, so a
+# fixture that declared none would still parse and still pass, and would stop
+# representing a real pom without any test noticing.
+PREAMBLE = """<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0">
-  <modelVersion>4.0.0</modelVersion>
+"""
+
+ROOT_POM = PREAMBLE + """  <modelVersion>4.0.0</modelVersion>
   <artifactId>apicurio-registry</artifactId>
   <properties>
     <kiota.version>1.28.0</kiota.version>
@@ -68,18 +80,14 @@ PROPERTY_LINE = "    <kiota.binary.folder>{0}</kiota.binary.folder>\n"
 # A module pom carrying nothing but the one element a test is about. No
 # assertion reads the artifactId, and the remaining elements of a real module
 # pom would be scenery.
-MODULE_POM = """<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0">
-  <artifactId>module</artifactId>
+MODULE_POM = PREAMBLE + """  <artifactId>module</artifactId>
 {body}</project>
 """
 
 # java-sdk/client sets the folder on the plugin and java-sdk/client-v2 sets it on
 # the execution. Maven merges plugin configuration into every execution, so both
 # shapes are correct and both are exercised below.
-CONSUMER_POM = """<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0">
-  <modelVersion>4.0.0</modelVersion>
+CONSUMER_POM = PREAMBLE + """  <modelVersion>4.0.0</modelVersion>
   <artifactId>apicurio-registry-java-sdk</artifactId>
   <build><plugins><plugin>
     <groupId>io.kiota</groupId>

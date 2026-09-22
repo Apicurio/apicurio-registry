@@ -287,17 +287,22 @@ Not every run produces a decision table. When a changed file matches
 `scalpel.excludePaths` removes every changed file, Scalpel writes a status
 report instead: `status`, `reason`, and, since 0.4.1, the `triggerFile`
 responsible plus `changedFiles`, `decisionId` and `timings`. The summary names
-the file and reads the reason, because the two cases project opposite builds.
+the file and reads the reason, because the reason decides which explanation
+the run gets.
 
-Two reasons project an empty build. They are the only two that reach Scalpel's
-`trimReactorToEmpty`, and each is logged alongside `trimming reactor to empty
-(buildAllIfNoChanges=false)`: `all changed files excluded by path filters` and
-`no changes detected`. Only the first mentions path filters, so a summary that
-keyed the empty-build case on that phrase alone would report the second as a
-full build. Scalpel 0.4.0 and earlier built every module in both cases, so the
-same `reason` string means the opposite thing either side of the pin, and
-`scalpel.buildAllIfNoChanges` would restore the old behaviour if it were set,
-which this repository does not do.
+Two reasons would empty the reactor. They are the only two that reach Scalpel's
+`trimReactorToEmpty`: `all changed files excluded by path filters` and `no
+changes detected`. Only the first mentions path filters, so a summary that
+keyed the empty case on that phrase alone would misreport the second. Neither
+reason describes a working outcome in this repository: `.mvn/maven.config`
+pins `scalpel.buildAllIfNoChanges=true`, so a trimming build runs every module
+on both (the log line reads `building all modules (buildAllIfNoChanges=true)`),
+and with the Scalpel default of false the zero-project reactor dies in Maven
+proper with `NoGoalSpecifiedException`, because a session with no projects has
+no goals. Scalpel 0.4.0 and earlier built every module here too, so the empty
+build the reason's wording suggests has never been a reachable outcome on any
+pin of this extension. Both facts were verified on 0.4.2 in `mode=trim` with
+synthetic change sets (REG-304).
 
 Five reasons project a full build, because Scalpel returns without touching the
 reactor. Configuration stands it down in three of them, `disabled by
@@ -311,19 +316,44 @@ yields an incomplete set. A `failed` status carrying `change detection did not
 run (see build log)` leaves the reactor whole too, so it is a full build as
 well, but the cause rather than the projection is the part worth chasing.
 
-Three reasons never appear in this report at all, because Scalpel routes them to
-`target/scalpel-shadow.json`: `no modules affected by changes`, `no modules
-match includePaths filters` and `disabled by -pl project selection`. A run that
-hits one of those writes an ordinary report here, with no `status` field, so it
-is read as a decision table rather than as a skip.
+Three reasons never appear in this report as a status, because Scalpel routes
+them to `target/scalpel-shadow.json`: `no modules affected by changes`, `no
+modules match includePaths filters` and `disabled by -pl project selection`. A
+run that hits one of those writes an ordinary report here, with no `status`
+field, so it lands in the counts path rather than as a skip. The first of the
+three is reachable in this repository: a change confined to a module outside
+the default reactor, such as `operator/` or `mcp/`, or to a root-level file no
+pom names, affects no module this job's reactor builds. Its report carries a
+decision table with `buildSetSize` 0 and `skippedModules` naming all 57
+modules, but a trimming build does not perform that projection on Scalpel
+0.4.2, with `buildAllIfNoChanges` either way (verified with the operator-only
+change set of commit `0b35b825b`): the reactor stays whole and every module
+builds. The summary recognizes the zero build set and says so rather than
+drawing that table.
 
-The report also sets `fullBuildTriggered` to true on the exhaustion outcome,
-which does not mean a full build on the pinned version, and is why the summary
-branches on `status` and the reason before it reads that field. The summary
-matches each reason in full rather than by substring and refuses to name a
-projection for a reason it does not know, because the same `skipped` status
-covers both an empty build and a full one and there is no safe default. Of the
-two trigger patterns, only `scalpel.disableTriggers` is set in
+That root-level files sit in this family is why `scalpel.excludePaths` carries
+no slash-free pattern. Scalpel rewrites a pattern without a slash to match at
+every depth, and 0.3.10 matched the root only, so the 0.4.x bump silently
+widened the old `*.md` and `LICENSE` entries from root files to the whole
+tree. Verified by probing the same in-tree change,
+`app/src/test/resources/git/invalid-content-ref/README.md`, against both pins:
+0.3.10 attributes it to `app` (a test fixture `GitOpsStatusTest` loads), 0.4.2
+with the widened pattern excluded it and every other in-tree markdown file,
+111 tracked files in all. The list this branch ships drops the slash-free
+entries, which restores attribution for all of them and leaves root markdown
+and LICENSE unlisted: a change confined to those projects the zero-build-set
+report above instead, which under the pin builds every module.
+
+The report also sets `fullBuildTriggered` to true on the exhaustion outcome.
+Under this repository's `buildAllIfNoChanges=true` pin that is now the truth:
+the trimming build runs every module. Against the Scalpel default of false the
+same field states the opposite of the behaviour, because the reactor empties
+and the build fails rather than building everything, which is REG-307, so the
+summary still branches on `status` and the reason before it reads that field.
+The summary matches each reason in full rather than by substring and refuses
+to name a projection for a reason it does not know, because the same `skipped`
+status covers both an empty reactor and a full build and there is no safe
+default. Of the two trigger patterns, only `scalpel.disableTriggers` is set in
 `.mvn/maven.config`; `scalpel.fullBuildTriggers` is left at the Scalpel default.
 
 The summary understands report schema version 2, which is what the version
@@ -358,6 +388,20 @@ Scalpel 0.4.1 replayed over the last 40 first-parent commits of `main`, on
 
 Mean modules not built over all 40 runs: 53.7%. Over the 11 partially trimmed
 runs alone: 13.7%.
+
+Both empty-build rows are projections under `buildAllIfNoChanges=false`, which
+`.mvn/maven.config` no longer uses: with the pin at `true` the exhaustion runs
+build every module, and the zero-build-set runs build every module too, because
+a trimming build never applies that decision on Scalpel 0.4.2 with the flag
+either way. The rows above were counted under the pre-narrowing excludePaths
+list; under the list this branch ships the split moves to 12 exhausted and 8
+zero-build-set, and the total projecting a zero-module build stays 20 of 40.
+The behavior statements are 0.4.2 facts; the replay rows themselves are 0.4.1
+reports, whose schema is byte-identical to 0.4.2 by the hash check recorded in
+REG-245. The mean under the shipped configuration is the trimmed row alone,
+about 4% of module-builds, plus the test-time saving that
+`scalpel.skipTestsForUpstream` would add on the trimmed runs, which this
+replay did not measure and whose adoption is undecided (REG-303).
 
 An earlier replay of the same 40 commits on 0.4.0 put the mean at 5.8%. Almost
 all of that difference is one upstream fix,

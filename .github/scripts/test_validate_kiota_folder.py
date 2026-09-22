@@ -65,12 +65,12 @@ EXTENSIONS = """<extensions><extension>
 
 PROPERTY_LINE = "    <kiota.binary.folder>{0}</kiota.binary.folder>\n"
 
-# A module pom with nothing in it but the one element a test is about. The
-# checks that read these look at <properties> and <profiles> only, so the rest
-# of a real module pom would be scenery.
+# A module pom carrying nothing but the one element a test is about. No
+# assertion reads the artifactId, and the remaining elements of a real module
+# pom would be scenery.
 MODULE_POM = """<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0">
-  <artifactId>{name}</artifactId>
+  <artifactId>module</artifactId>
 {body}</project>
 """
 
@@ -261,7 +261,7 @@ class KiotaFolderCheckTest(unittest.TestCase):
         self.assertRejected("declares no <kiota.binary.folder>")
 
     def test_a_pom_without_properties_is_rejected(self):
-        self.write("pom.xml", MODULE_POM.format(name="apicurio-registry", body=""))
+        self.write("pom.xml", MODULE_POM.format(body=""))
         self.assertRejected("declares no <kiota.binary.folder>")
 
     def test_commented_out_property_is_rejected(self):
@@ -311,16 +311,14 @@ class KiotaFolderCheckTest(unittest.TestCase):
     def test_a_module_redeclaring_the_property_is_rejected(self):
         """The root pom stays correct and the module ignores it anyway."""
         self.write("java-sdk/client/other/pom.xml",
-                   MODULE_POM.format(name="x",
-                                     body="  <properties>\n"
+                   MODULE_POM.format(body="  <properties>\n"
                                      + PROPERTY_LINE.format("/tmp/elsewhere")
                                      + "  </properties>\n"))
         self.assertRejected("redeclares <kiota.binary.folder>")
 
     def test_a_module_profile_overriding_the_property_is_rejected(self):
         self.write("app/pom.xml",
-                   MODULE_POM.format(name="app",
-                                     body="  <profiles><profile><id>fast</id>"
+                   MODULE_POM.format(body="  <profiles><profile><id>fast</id>"
                                      "<properties><kiota.binary.folder>/tmp/x"
                                      "</kiota.binary.folder></properties>"
                                      "</profile></profiles>\n"))
@@ -328,11 +326,20 @@ class KiotaFolderCheckTest(unittest.TestCase):
 
     def test_a_module_relocating_the_repository_is_rejected(self):
         self.write("app/pom.xml",
-                   MODULE_POM.format(name="app",
-                                     body="  <properties>"
+                   MODULE_POM.format(body="  <properties>"
                                      "<settings.localRepository>/tmp/repo"
                                      "</settings.localRepository></properties>\n"))
         self.assertRejected("app/pom.xml declares <settings.localRepository>")
+
+    def test_a_profile_moving_only_the_repository_names_that_property(self):
+        """The message has to name the lever that was pulled, not the other one."""
+        self.write("app/pom.xml",
+                   MODULE_POM.format(body="  <profiles><profile><id>ci</id>"
+                                     "<properties><settings.localRepository>"
+                                     "/tmp/repo</settings.localRepository>"
+                                     "</properties></profile></profiles>\n"))
+        self.assertRejected("Profile ci in app/pom.xml overrides "
+                            "<settings.localRepository>")
 
     def test_a_malformed_pom_does_not_stop_the_scan(self):
         """A broken file reports itself and the scan carries on past it.
@@ -384,6 +391,14 @@ class KiotaFolderCheckTest(unittest.TestCase):
                             executions=execution("v2", EXPRESSION)
                             + execution("v3"))
         self.assertRejected("execution v3", "sets no <targetBinaryFolder>")
+
+    def test_an_id_less_execution_is_named_default(self):
+        """java-sdk/client has this shape, and Maven calls that id default."""
+        self.write_consumer(
+            shared="",
+            executions="      <execution><goals><goal>generate</goal></goals>"
+                       "</execution>\n")
+        self.assertRejected("execution default", "sets no <targetBinaryFolder>")
 
     def test_a_module_dropping_the_folder_is_rejected(self):
         """A second module still carrying it must not cover this one."""

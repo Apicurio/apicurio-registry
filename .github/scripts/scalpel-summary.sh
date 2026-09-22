@@ -25,6 +25,12 @@ report=${1:?usage: scalpel-summary.sh <report.json>}
 # shellcheck disable=SC2034  # consumed by scalpel-summary.test.sh, not here
 known_schema_2="0.4.1 0.4.2"
 
+# The value this repository pins in .mvn/maven.config for the empty-reactor
+# reasons below. Read by scalpel-summary.test.sh, which cross-checks it against
+# the file itself, so the pin cannot move without this script's claims moving
+# with it.
+build_all_if_no_changes_pin="true"
+
 # Report strings are printed inside markdown code spans and list items, so a
 # backtick would end the span early and a newline would end the item. Flatten
 # both rather than trusting a field that comes from a file path or a git ref.
@@ -126,19 +132,21 @@ else
           ;;
         *:"no changes detected" | \
         *:"all changed files excluded by path filters")
-          # The only two reasons that reach trimReactorToEmpty. Both call sites
-          # consult scalpel.buildAllIfNoChanges first and trim only when it is
-          # false, which is its default and which this repository does not
-          # override. The reason line above says which of the two applied.
-          echo "Scalpel projects an **empty build** here: no module would be built"
-          echo "and no test would run."
+          # The only two reasons that reach trimReactorToEmpty, and the only
+          # two whose call sites consult scalpel.buildAllIfNoChanges. The echo
+          # block carries the user-facing story; the pin it stands on lives in
+          # build_all_if_no_changes_pin above and is guarded by the test.
+          echo "The projection is a **full build**: \`scalpel.buildAllIfNoChanges\`"
+          echo "is pinned to \`$build_all_if_no_changes_pin\` in \`.mvn/maven.config\`,"
+          echo "so a trimming build runs every module on this outcome rather"
+          echo "than none."
           echo
-          echo "This is the largest saving Scalpel can project and the one worth"
-          echo "reading twice, because it is also what a wrongly excluded build input"
-          echo "would produce. The pinned version trims to empty because"
-          echo "\`scalpel.buildAllIfNoChanges\` defaults to false and this repository"
-          echo "does not set it. Scalpel 0.4.0 and earlier built every module here, so"
-          echo "a report from an older pin means the opposite of this one."
+          echo "With the Scalpel default of \`false\` the reactor would be trimmed"
+          echo "to empty here, and on the pinned version Maven then fails with"
+          echo "\`NoGoalSpecifiedException\` rather than building nothing cleanly."
+          echo "Scalpel 0.4.0 and earlier built every module on this outcome as"
+          echo "well, so the empty build this reason's wording suggests has"
+          echo "never been a working outcome on any pin."
           ;;
         *:"disabled by disableTriggers match" | \
         *:"disabled by disableOnBranch" | \
@@ -207,7 +215,8 @@ else
               and ([.excludedUpstreamCount, .buildSetSize,
                     .reactorModuleCount, .testedModulesCount]
                   | all(type == "number" and . >= 0))
-              and ($reactor >= $build_set)
+              and ($build_set == ((.affectedModules | length) + $upstream))
+              and ($tested <= $reactor)
               and (($skipped | length) == ($reactor - $build_set))
           then [(.affectedModules | length), ($skipped | length),
                 $upstream, $build_set, $reactor, $tested] | @tsv
@@ -232,21 +241,50 @@ else
       else
         IFS=$'\t' read -r affected skipped upstream build_set reactor tested <<<"$counts"
 
-        echo "| | modules |"
-        echo "| --- | ---: |"
-        echo "| \`affectedModules\`, listed in the report | $affected |"
-        echo "| \`excludedUpstreamCount\`, omitted from the report but still built | $upstream |"
-        echo "| build set, \`buildSetSize\` | $build_set |"
-        echo "| \`testedModulesCount\`, modules whose tests would run | $tested |"
-        echo "| \`skippedModules\`, the modules a trimming build would not touch | $skipped |"
-        echo "| reactor, \`reactorModuleCount\` | $reactor |"
-        echo
-        echo "The build set is \`affectedModules + excludedUpstreamCount\`, upstream"
-        echo "prerequisites are dropped from the report and not from the build, and"
-        echo "\`skippedModules\` is the saving, which is also the reactor less the"
-        echo "build set. The decision is anchored by \`decisionId\`, \`mergeBaseId\`,"
-        echo "\`headId\` and \`configFingerprint\` in the JSON, so two reports can be"
-        echo "compared without consulting git history."
+        if [ "$build_set" = 0 ]; then
+          # A decision report with a zero build set is the no-affected-modules
+          # family: Scalpel logged the reason to its shadow output and wrote an
+          # ordinary report whose projection is an empty reactor. Drawing the
+          # table would publish skippedModules = reactor as a saving, but a
+          # trimming build does not perform this projection on Scalpel 0.4.2,
+          # whatever buildAllIfNoChanges is set to (verified with the flag
+          # both ways): the reactor stays whole, so the build that runs is a
+          # full one. The string comparison rather than -eq is deliberate:
+          # the counts come from producer-controlled text, and an exponent
+          # rendering that [ -eq ] cannot parse would write to stderr and
+          # break the never-fail contract above.
+          echo "The report projects an **empty build set**: \`buildSetSize\` is 0"
+          echo "and \`skippedModules\` names the whole reactor, so no table was"
+          echo "drawn for it."
+          echo
+          echo "A trimming build on Scalpel 0.4.2 does not apply this"
+          echo "projection, whatever \`scalpel.buildAllIfNoChanges\` is set to."
+          echo "Scalpel routes the no-affected-modules decision to its shadow"
+          echo "output and leaves the reactor whole, so the build that runs is"
+          echo "a **full build** and the reactor-wide saving this shape"
+          echo "suggests is not available from trimming. This repository sets"
+          echo "neither \`scalpel.includePaths\` nor a \`-pl\` selection, so the"
+          echo "no-affected-modules decision is the only producer of this shape"
+          echo "here: changes no module in this reactor owns land in it, which"
+          echo "means root-level files no pom names and paths under modules"
+          echo "outside the default reactor such as \`operator\` and \`mcp\`."
+        else
+          echo "| | modules |"
+          echo "| --- | ---: |"
+          echo "| \`affectedModules\`, listed in the report | $affected |"
+          echo "| \`excludedUpstreamCount\`, omitted from the report but still built | $upstream |"
+          echo "| build set, \`buildSetSize\` | $build_set |"
+          echo "| \`testedModulesCount\`, modules whose tests would run | $tested |"
+          echo "| \`skippedModules\`, the modules a trimming build would not touch | $skipped |"
+          echo "| reactor, \`reactorModuleCount\` | $reactor |"
+          echo
+          echo "The build set is \`affectedModules + excludedUpstreamCount\`, upstream"
+          echo "prerequisites are dropped from the report and not from the build, and"
+          echo "\`skippedModules\` is the saving, which is also the reactor less the"
+          echo "build set. The decision is anchored by \`decisionId\`, \`mergeBaseId\`,"
+          echo "\`headId\` and \`configFingerprint\` in the JSON, so two reports can be"
+          echo "compared without consulting git history."
+        fi
       fi
     fi
   fi

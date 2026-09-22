@@ -16,6 +16,10 @@ CREATE INDEX IDX_config_1 ON config(modifiedOn);
 CREATE TABLE acls (principalId VARCHAR(256) NOT NULL, role VARCHAR(32) NOT NULL, principalName VARCHAR(256));
 ALTER TABLE acls ADD PRIMARY KEY (principalId);
 
+CREATE TABLE peers (peerId VARCHAR(256) NOT NULL, url VARCHAR(1024) NOT NULL, name VARCHAR(512), description VARCHAR(1024), enabled BOOLEAN NOT NULL DEFAULT TRUE, credentialSecretRef VARCHAR(256));
+ALTER TABLE peers ADD PRIMARY KEY (peerId);
+CREATE INDEX IDX_peers_1 ON peers(enabled);
+
 CREATE TABLE downloads (downloadId VARCHAR(128) NOT NULL, expires BIGINT NOT NULL, context VARCHAR(1024));
 ALTER TABLE downloads ADD PRIMARY KEY (downloadId);
 CREATE HASH INDEX IDX_down_1 ON downloads(expires);

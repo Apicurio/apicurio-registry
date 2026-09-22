@@ -30,6 +30,17 @@ CREATE TABLE acls (
     PRIMARY KEY (principalId)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
 
+CREATE TABLE peers (
+    peerId              VARCHAR(256)  NOT NULL,
+    url                 VARCHAR(1024) NOT NULL,
+    name                VARCHAR(512)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    description         VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    enabled             BOOLEAN       NOT NULL DEFAULT TRUE,
+    credentialSecretRef VARCHAR(256),
+    PRIMARY KEY (peerId)
+) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
+CREATE INDEX IDX_peers_1 ON peers (enabled);
+
 CREATE TABLE downloads (
     downloadId VARCHAR(128) NOT NULL,
     expires    BIGINT       NOT NULL,

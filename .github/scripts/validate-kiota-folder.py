@@ -130,9 +130,11 @@ def invokes_maven(path):
     The wrapper scripts are named rather than matched by extension. mvnw has
     none and mvnw.cmd has the wrong one, yet a -D added to either reaches every
     build the repository can start. mvnw.cmd is a batch and PowerShell
-    polyglot, opening with "<# : batch portion", and its PowerShell half
-    comments with # while its batch half uses @REM, so strip_comment reads it
-    the same way the file does.
+    polyglot, opening with "<# : batch portion", and only its PowerShell half
+    comments with #. Its batch half uses @REM, which strip_comment does not
+    know, so a flag commented out with @REM is reported. That is a false
+    positive on a line nobody runs, in a file nobody edits, and it fails
+    closed.
     """
     name = os.path.basename(path)
     if name in ("mvnw", "mvnw.cmd"):
@@ -196,6 +198,11 @@ def check_root_pom(project):
     # sets os.detected.*. Drop the extension and Maven substitutes nothing, so
     # the plugin creates a directory literally named ${os.detected.classifier}
     # and every other check here stays green.
+    # Only the pom is read. .mvn/extensions.xml loads extensions for every
+    # build too and would work as well, so moving the declaration there is a
+    # false positive rather than a miss. The artifactId alone is matched, so a
+    # different groupId publishing a jar of that name would also pass; both are
+    # judged less likely than the plain deletion this exists to catch.
     extensions = project.findall("{*}build/{*}extensions/{*}extension")
     if not any(e.findtext("{*}artifactId") == EXTENSION for e in extensions):
         yield ("The root pom registers no {0} build extension, so "
@@ -217,12 +224,14 @@ def check_pom_overrides(path, project):
                "from the root pom.".format(path, PROPERTY))
 
     for profile in project.findall("{*}profiles/{*}profile"):
-        if properties_of(profile) or properties_of(profile, ANCHOR_PROPERTY):
+        for moved in (PROPERTY, ANCHOR_PROPERTY):
+            if not properties_of(profile, moved):
+                continue
             name = profile.findtext("{*}id", "<no id>")
             yield ("Profile {0} in {1} overrides <{2}>. A profile that "
                    "activates on the runner defeats the property with the "
                    "declaration above it left untouched."
-                   .format(name, path, PROPERTY))
+                   .format(name, path, moved))
 
 
 def check_settings(paths):
@@ -290,7 +299,11 @@ def check_consumers(paths, root):
                 continue
             configured = True
             shared = plugin.find("{*}configuration/{*}" + SETTING)
-            scopes = [(execution.findtext("{*}id", "<no id>"),
+            # Maven's implicit id for an execution that declares none is
+            # "default", and java-sdk/client has exactly that shape, so naming
+            # it anything else sends a reader looking for an id that is not
+            # there.
+            scopes = [(execution.findtext("{*}id", "default"),
                        execution.find("{*}configuration/{*}" + SETTING))
                       for execution in plugin.findall("{*}executions/{*}execution")]
             for name, own in scopes or [("plugin", None)]:
@@ -355,9 +368,9 @@ def strip_comment(line):
     each line of maven.config as one whole argument: it does not split on
     whitespace, so -Da=1 -Db=2 on one line sets a to the literal "1 -Db=2", and
     a # anywhere but column zero is part of the value rather than a comment.
-    Every line this function would cut short is therefore a line Maven has
-    already turned into a single argument with a # in it, which no longer names
-    the property. Only the leading-# case matters there, and this handles that
+    Cutting at that # leaves the part that names the property, which is the
+    part worth reporting, since the flag is live and only its value carries the
+    stray text. Only the leading-# case disarms the flag, and this handles that
     one the same way Maven does.
     """
     quote = ""

@@ -6,6 +6,8 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.storage.util.GitopsTestProfile;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.JsonObjectMapper;
@@ -32,6 +34,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
@@ -89,6 +92,16 @@ public class GitOpsSmokeTest {
         assertEquals(YAMLObjectMapper.YAML_MAPPER.readTree(expectedContent.bytes()),
                 YAMLObjectMapper.YAML_MAPPER.readTree(version.getContent().bytes()));
 
+        // Peers
+        var peers = storage.getPeers();
+        assertEquals(1, peers.size());
+        var peer = peers.get(0);
+        assertEquals("eu-registry", peer.getPeerId());
+        assertEquals("https://registry.eu.example.com", peer.getUrl());
+        assertEquals("EU registry", peer.getName());
+        assertTrue(peer.isEnabled());
+        assertEquals("eu-registry", peer.getCredentialSecretRef());
+
         // --- Load smoke02: Different artifact, no rules ---
         testRepository.load("git/smoke02");
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
@@ -111,6 +124,9 @@ public class GitOpsSmokeTest {
         assertEquals(JsonObjectMapper.MAPPER.readTree(personContent.bytes()),
                 JsonObjectMapper.MAPPER.readTree(version.getContent().bytes()));
 
+        // Peers removed (omitted/empty peers list wipes the previously loaded peer)
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
+
         // --- Load data without registry config → rejected by safety check, smoke02 data preserved ---
         testRepository.load("git/invalid-content-ref");
         await().pollDelay(Duration.ofSeconds(5)).untilAsserted(() -> {
@@ -118,11 +134,25 @@ public class GitOpsSmokeTest {
             assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
         });
 
+        // --- Load data with an invalid peer (reserved id "local") → rejected by PeerValidator,
+        // smoke02 data preserved ---
+        testRepository.load("git/peers-invalid");
+        await().pollDelay(Duration.ofSeconds(5)).untilAsserted(() -> {
+            // Previous data should still be served because the failed load does not cause a swap
+            assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
+            assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
+        });
+
+        // Admin writes against this read-only storage are rejected with a 409-mapped exception
+        assertThrows(ReadOnlyStorageException.class,
+                () -> storage.createPeer(PeerDto.builder().peerId("rejected").url("https://example.com").build()));
+
         // --- Load empty: Everything cleared (proves the system recovers after invalid data) ---
         testRepository.load("git/empty");
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
             assertEquals(Set.of(), withContext(() -> storage.getArtifactIds(10)));
         });
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
 
         // Still ready (empty is a valid state after initial load)
         await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> assertTrue(storage.isReady()));

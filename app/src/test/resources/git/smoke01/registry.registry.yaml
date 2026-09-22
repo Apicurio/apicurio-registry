@@ -4,3 +4,9 @@ globalRules:
   - ruleType: VALIDITY
     config: FULL
 properties: []
+peers:
+  - peerId: eu-registry
+    url: https://registry.eu.example.com
+    name: EU registry
+    enabled: true
+    credentialSecretRef: eu-registry

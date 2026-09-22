@@ -18,6 +18,7 @@ import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.PeerDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
@@ -254,6 +255,21 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
 
     @Override
     public void updateRoleMapping(String principalId, String role) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void createPeer(PeerDto peer) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void updatePeer(PeerDto peer) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void deletePeer(String peerId) throws RegistryStorageException {
         readOnlyViolation();
     }
 

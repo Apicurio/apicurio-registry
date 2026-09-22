@@ -371,14 +371,14 @@ const createArtifactBranch = async (config: ConfigService, auth: AuthService, gr
 const deleteArtifactBranch = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, branchId: string): Promise<void> => {
     groupId = normalizeGroupId(groupId);
 
-    console.info("[GroupsService] Deleting new branch: ", groupId, artifactId, branchId);
+    console.info("[GroupsService] Deleting branch: ", groupId, artifactId, branchId);
     return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).branches.byBranchId(branchId).delete();
 };
 
 const getArtifactBranchMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, branchId: string): Promise<BranchMetaData> => {
     groupId = normalizeGroupId(groupId);
 
-    console.info("[GroupsService] Deleting new branch: ", groupId, artifactId, branchId);
+    console.info("[GroupsService] Getting branch metadata: ", groupId, artifactId, branchId);
     return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).branches.byBranchId(branchId).get().then(v => v!);
 };
 

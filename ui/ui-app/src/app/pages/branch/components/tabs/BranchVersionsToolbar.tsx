@@ -48,8 +48,8 @@ export const BranchVersionsToolbar: FunctionComponent<BranchVersionsToolbarProps
                         page={ props.paging.page }
                         onSetPage={ onSetPage }
                         onPerPageSelect={ onPerPageSelect }
-                        widgetId="version-list-pagination"
-                        className="version-list-pagination"
+                        widgetId="branch-versions-list-pagination"
+                        className="branch-versions-list-pagination"
                     />
                 </ToolbarItem>
             </ToolbarContent>

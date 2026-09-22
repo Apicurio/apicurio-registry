@@ -86,7 +86,7 @@ export const BranchPage: FunctionComponent<PageProperties> = () => {
             const aid: string = encodeURIComponent(artifactId as string);
             appNavigation.navigateTo(`/explore/${gid}/${aid}/branches`);
         }).catch(error => {
-            setPageError(toPageError(error, "Error deleting a version."));
+            setPageError(toPageError(error, "Error deleting branch."));
         });
     };
 
@@ -100,12 +100,10 @@ export const BranchPage: FunctionComponent<PageProperties> = () => {
 
     const doEditMetaData = (metaData: MetaData): void => {
         groups.updateArtifactBranchMetaData(groupId as string, artifactId as string, branchId as string, metaData).then( () => {
-            if (artifact) {
-                setBranch({
-                    ...branch,
-                    ...metaData
-                } as BranchMetaData);
-            }
+            setBranch(prev => prev ? ({
+                ...prev,
+                ...metaData
+            } as BranchMetaData) : undefined);
         }).catch( error => {
             setPageError(toPageError(error, "Error editing branch metadata."));
         });

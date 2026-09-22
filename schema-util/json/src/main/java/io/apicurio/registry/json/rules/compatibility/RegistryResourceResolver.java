@@ -5,7 +5,7 @@ import io.apitomy.datamodels.Library;
 import io.apitomy.datamodels.jsonschema.ref.RefResolutionContext;
 import io.apitomy.datamodels.jsonschema.ref.ResourceResolver;
 import io.apitomy.datamodels.models.Node;
-import io.apitomy.datamodels.models.jsonschema.JsonSchemaDocument;
+import io.apitomy.datamodels.models.jsonschema.JFullSchema;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +35,15 @@ public class RegistryResourceResolver implements ResourceResolver {
         }
 
         try {
-            var doc = Library.readDocumentFromJSONString(content.getContent().content());
-            if (doc instanceof JsonSchemaDocument) {
-                return Optional.of(doc);
+            // readDocumentFromJSONString is deprecated in Data Models 4.0 and throws for JSON
+            // Schema, whose root is a schema rather than a Document. readRootFromJSONString is
+            // the replacement that works for every model type.
+            //
+            // The returned RootCapable is only a Node when it is a full schema: a boolean schema
+            // root is not one, and cannot be handed back through this interface.
+            var root = Library.readRootFromJSONString(content.getContent().content());
+            if (root instanceof JFullSchema) {
+                return Optional.of((JFullSchema) root);
             }
             return Optional.empty();
         } catch (Exception e) {

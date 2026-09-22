@@ -17,17 +17,27 @@ package io.apicurio.registry.rules.compatibility.jsonschema;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.json.rules.compatibility.ApitomyJsonSchemaCompatibilityChecker;
 import io.apicurio.registry.json.rules.compatibility.JsonSchemaCompatibilityChecker;
+import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class JsonSchemaRemoteReferenceTest {
+
+    static Stream<CompatibilityChecker> checkers() {
+        return Stream.of(new JsonSchemaCompatibilityChecker(), new ApitomyJsonSchemaCompatibilityChecker());
+    }
 
     private static final String EXISTING_SCHEMA = """
             {
@@ -104,5 +114,39 @@ class JsonSchemaRemoteReferenceTest {
                         """)));
 
         assertFalse(result.isCompatible(), "Supplied referenced content should be used during compatibility checking");
+    }
+
+    /**
+     * A reference that Registry did not supply means the sub-schema behind it was never compared.
+     * {@code AbstractCompatibilityChecker} separates that from a determined incompatibility: the
+     * former is an error and must throw, the latter returns differences.
+     * <p>
+     * Both checkers must agree here, and for a while they did not. The Apitomy adapter reported
+     * {@code OBJECT_TYPE_PROPERTY_SCHEMAS_NARROWED} — the incidental difference left behind by the
+     * unresolved {@code $ref} — which told a user with a mistyped reference that their properties
+     * had been narrowed, and said nothing about the reference.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("checkers")
+    void unresolvedReferenceIsAnErrorNotAnIncompatibility(CompatibilityChecker checker) {
+        String proposedSchema = """
+                {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "$ref": "missing-schema.json"
+                    }
+                  }
+                }
+                """;
+
+        var exception = assertThrows(IllegalStateException.class,
+                () -> checker.testCompatibility(CompatibilityLevel.BACKWARD,
+                        List.of(toTypedContent(EXISTING_SCHEMA)), toTypedContent(proposedSchema),
+                        Collections.emptyMap()));
+
+        assertFalse(exception.getMessage().isBlank(),
+                "The failure should say which reference could not be resolved");
     }
 }

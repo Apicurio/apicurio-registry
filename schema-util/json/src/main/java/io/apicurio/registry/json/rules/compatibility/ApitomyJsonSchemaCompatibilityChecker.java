@@ -43,8 +43,20 @@ public class ApitomyJsonSchemaCompatibilityChecker extends AbstractCompatibility
                 .allowCrossVersionChecking(true)
                 .build();
 
-        return checker.checkBackward(existing, proposed)
-                .getIncompatibleDifferences().stream()
+        var result = checker.checkBackward(existing, proposed);
+
+        // AbstractCompatibilityChecker separates "not compatible" — report differences — from
+        // "compatibility could not be determined" — throw. An unresolved reference is the second:
+        // the sub-schemas behind it were never compared, so any verdict understates what was
+        // checked. Without this the caller is told whatever incidental difference the unresolved
+        // $ref happened to produce, which for a mistyped reference is a property-narrowing report
+        // that says nothing about the real problem. The legacy checker throws here too.
+        if (result.hasUnsupportedFeatures()) {
+            throw new IllegalStateException("Compatibility could not be determined: "
+                    + String.join("; ", result.getUnsupportedFeatures()));
+        }
+
+        return result.getIncompatibleDifferences().stream()
                 .map(difference -> new SimpleCompatibilityDifference(difference.getDiffType().name(),
                         difference.getPathUpdated()))
                 .collect(Collectors.toSet());

@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -354,5 +355,128 @@ class McpToolCompatibilityCheckerTest {
                 createMcpTool(proposed), Map.of());
 
         assertTrue(result.isCompatible(), "Identical schema with description change should be fully compatible");
+    }
+
+    private TypedContent createMcpToolYaml(String yaml) {
+        return TypedContent.create(ContentHandle.create(yaml), ContentTypes.APPLICATION_YAML);
+    }
+
+    @Test
+    void testBackwardCompatibleYamlFormat() {
+        String existing = """
+                name: test_tool
+                description: An MCP tool
+                inputSchema:
+                  type: object
+                  properties:
+                    query:
+                      type: string
+                  required:
+                    - query
+                """;
+
+        String proposed = """
+                name: test_tool
+                description: An MCP tool
+                inputSchema:
+                  type: object
+                  properties:
+                    query:
+                      type: string
+                    limit:
+                      type: integer
+                  required:
+                    - query
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpToolYaml(existing)),
+                createMcpToolYaml(proposed), Map.of());
+
+        assertTrue(result.isCompatible(), "Adding optional parameter in YAML should be backward compatible");
+    }
+
+    @Test
+    void testBackwardIncompatibleYamlFormat() {
+        String existing = """
+                name: test_tool
+                description: An MCP tool
+                inputSchema:
+                  type: object
+                  properties:
+                    query:
+                      type: string
+                    limit:
+                      type: integer
+                  required:
+                    - query
+                """;
+
+        String proposed = """
+                name: test_tool
+                description: An MCP tool
+                inputSchema:
+                  type: object
+                  properties:
+                    query:
+                      type: string
+                  required:
+                    - query
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpToolYaml(existing)),
+                createMcpToolYaml(proposed), Map.of());
+
+        assertFalse(result.isCompatible(), "Removing an input property in YAML should be backward incompatible");
+        assertEquals(1, result.getIncompatibleDifferences().size());
+    }
+
+    @Test
+    void testCrossFormatCompatibilityJsonToYaml() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        },
+                        "required": ["query"]
+                    }
+                }
+                """;
+
+        String proposed = """
+                name: test_tool
+                description: Updated in YAML
+                inputSchema:
+                  type: object
+                  properties:
+                    query:
+                      type: string
+                    limit:
+                      type: integer
+                  required:
+                    - query
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpToolYaml(proposed), Map.of());
+
+        assertTrue(result.isCompatible(), "Updating from JSON to YAML should be backward compatible");
+    }
+
+    @Test
+    void testBackwardCompatibleYamlFlowMapping() {
+        String existing = "{name: test_tool, inputSchema: {type: object, properties: {query: {type: string}}, required: [query]}}";
+        String proposed = "{name: test_tool, inputSchema: {type: object, properties: {query: {type: string}, limit: {type: integer}}, required: [query]}}";
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpToolYaml(existing)),
+                createMcpToolYaml(proposed), Map.of());
+
+        assertTrue(result.isCompatible(), "YAML flow mapping syntax should be parsed and backward compatible");
     }
 }

@@ -169,6 +169,16 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
 
                 processArtifact(state, file, artifact);
             }
+
+            // Import declared groups that have no artifacts (not yet processed by processGroupRef)
+            for (PollingDataFile groupFile : state.fromTypeIndex(Type.GROUP)) {
+                if (!groupFile.isProcessed()) {
+                    Group group = groupFile.getEntityUnchecked();
+                    if (matchesRegistryId(group.getRegistryIds())) {
+                        processGroupRef(state, group.getGroupId());
+                    }
+                }
+            }
         } else {
             log.debug("No registry config found for ID '{}'. requireRegistryConfig={}",
                     pollingConfig.getRegistryId(), pollingConfig.isRequireRegistryConfig());
@@ -258,7 +268,8 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
         if (group != null) {
             List<Version> versions = artifact.getVersions();
             if (versions == null || versions.isEmpty()) {
-                log.debug("Artifact {} has no versions, skipping", artifact.getArtifactId());
+                importArtifactMetadata(state, artifactFile, artifact, artifactImported);
+                processArtifactRules(state, artifact);
                 artifactFile.setProcessed(true);
                 return;
             }
@@ -292,6 +303,29 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             artifactFile.setProcessed(true);
         }
         // Note: if group is null, processGroupRef() already recorded the error
+    }
+
+    private void importArtifactMetadata(ProcessingState state, PollingDataFile artifactFile,
+                                       Artifact artifact, AtomicBoolean artifactImported) {
+        if (artifact.getArtifactType() == null) {
+            state.recordError(artifactFile,
+                    "Versionless artifact '%s:%s' must specify artifactType explicitly.",
+                    artifact.getGroupId(), artifact.getArtifactId());
+            return;
+        }
+        ArtifactEntity artifactEntity = new ArtifactEntity();
+        artifactEntity.groupId = artifact.getGroupId();
+        artifactEntity.artifactId = artifact.getArtifactId();
+        artifactEntity.artifactType = artifact.getArtifactType();
+        artifactEntity.name = artifact.getName();
+        artifactEntity.description = artifact.getDescription();
+        artifactEntity.labels = withSourceLabel(artifact.getLabels(), artifactFile.getSourceId());
+        artifactEntity.owner = artifact.getOwner();
+        artifactEntity.createdOn = TimestampParser.parse(artifact.getCreatedOn(), state.getCommitTime());
+        artifactEntity.modifiedOn = TimestampParser.parse(artifact.getModifiedOn(), state.getCommitTime());
+        state.getStorage().importArtifact(artifactEntity);
+        state.incrementArtifactCount();
+        artifactImported.set(true);
     }
 
     private void importVersion(ProcessingState state, PollingDataFile artifactFile, Artifact artifact,

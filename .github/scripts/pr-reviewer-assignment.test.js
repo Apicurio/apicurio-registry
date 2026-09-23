@@ -241,6 +241,18 @@ test('ownershipFromCommits: each file weighs the same however long its history',
   assert.equal(scores.get('bob'), 0.5);
 });
 
+test('ownershipFromCommits: shares are among reviewers, so contributor commits do not dilute them', () => {
+  // Deliberate (see the function's comment): the only reviewer to have
+  // touched a file owns it, whatever else is in its history.
+  const mixed = [
+    { login: 'alice', date: daysAgo(200) },
+    ...Array.from({ length: 9 }, () => ({ login: 'someone', date: daysAgo(10) })),
+  ];
+  const scores = ra.ownershipFromCommits([mixed], ['alice', 'bob'], SETTINGS.ownership, NOW);
+  assert.equal(scores.get('alice'), 1);
+  assert.equal(scores.get('bob'), 0);
+});
+
 test('ownershipFromCommits: a contributor-only file lowers everyone, a bot-only file is ignored', () => {
   const owned = [{ login: 'alice', date: daysAgo(200) }];
   const contributorOnly = [{ login: 'someone', date: daysAgo(200) }];
@@ -600,6 +612,21 @@ test('assignReviewer: a maintainer PR that already requested a review gets no su
   assert.deepEqual(w.calls.comments, []);
 });
 
+test('assignReviewer: a maintainer PR assigned to someone else gets no suggestion', async () => {
+  const w = makeWorld({ ...UI_PR, pr: { ...UI_PR.pr, user: { login: 'alice' }, assignees: [{ login: 'bob' }] } });
+  assert.equal(await run(w), null);
+  assert.deepEqual(w.calls.comments, []);
+});
+
+test('assignReviewer: a maintainer who self-assigned their own PR still gets a suggestion', async () => {
+  // Self-assignment is ownership, not review: the suggestion is still useful.
+  const w = makeWorld({ ...UI_PR, pr: { ...UI_PR.pr, user: { login: 'alice' }, assignees: [{ login: 'Alice' }] } });
+  const out = await run(w);
+  assert.equal(out.mode, 'suggest');
+  assert.equal(w.calls.comments.length, 1);
+  assert.match(w.calls.comments[0], /^Suggested reviewer: `bob`\./m);
+});
+
 test('assignReviewer: a dependency bot PR rotates to the least bot-loaded, with no comment', async () => {
   const w = makeWorld({
     pr: { user: { login: 'renovate[bot]' } },
@@ -660,6 +687,29 @@ test('assignReviewer: a dry run decides but writes nothing', async () => {
   assert.deepEqual(w.calls.assigned, []);
   assert.deepEqual(w.calls.comments, []);
   assert.ok(w.logs.info.some(m => m.startsWith('[DRY RUN] would post:')));
+});
+
+test('assignReviewer: a dry run still scores a PR the bot already handled, and says a live run would skip it', async () => {
+  const w = makeWorld({
+    ...UI_PR,
+    pr: { ...UI_PR.pr, assignees: [{ login: 'bob' }] },
+    comments: [`${ra.COMMENT_MARKER}\nAuto-assigned to @bob.`],
+  });
+  const out = await run(w, { dryRun: true });
+
+  assert.equal(out.winner, 'alice');
+  assert.deepEqual(w.calls.assigned, []);
+  assert.deepEqual(w.calls.comments, []);
+  assert.ok(w.logs.info.some(m =>
+    m === '[DRY RUN] a live run would skip PR #42 (it already has an assignee; ' +
+          'it already has a reviewer assignment comment); scoring it anyway'));
+});
+
+test('assignReviewer: a dry run still skips drafts and closed PRs', async () => {
+  for (const pr of [{ draft: true }, { state: 'closed' }]) {
+    const w = makeWorld({ ...UI_PR, pr });
+    assert.equal(await run(w, { dryRun: true }), null);
+  }
 });
 
 test('assignReviewer: failed lookups degrade to no signal instead of failing', async () => {

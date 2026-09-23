@@ -237,9 +237,17 @@ function monthsBefore(date, months) {
  * rather than pooled so that one file with a long history cannot outvote the
  * other twenty the PR touches.
  *
+ * Shares are among reviewers only, deliberately: the question is which
+ * reviewer knows this code, so the only reviewer to have touched a file owns
+ * all of it, however many contributor commits sit alongside theirs. Counting
+ * contributor commits in the total was measured (#10248 review) and made the
+ * pick worse: it changed 24 of 334 backtested picks, and in all 6 of them
+ * where the actual reviewer was known, it moved the PR away from them.
+ *
  * A file whose recent history is all contributors still counts, as a 0 for
- * everyone: that is weaker evidence about the PR as a whole, and the score
- * should say so. A file touched only by bots does not count at all.
+ * everyone: no reviewer knows it, which is weaker evidence about the PR as a
+ * whole, and the score should say so. A file touched only by bots does not
+ * count at all.
  */
 function ownershipFromCommits(commitsByFile, candidates, ownership, now) {
   const recentCutoff = monthsBefore(now, ownership.recent_months);
@@ -608,18 +616,33 @@ async function assignReviewer({
     return null;
   }
 
-  if (mode !== 'suggest' && (pr.assignees || []).length) {
-    core.info(`PR #${prNumber} already has an assignee, skipping`);
-    return null;
-  }
-  if (mode === 'suggest'
-      && ((pr.requested_reviewers || []).length || (pr.requested_teams || []).length)) {
-    core.info(`PR #${prNumber} already has a review requested, skipping`);
-    return null;
+  // "Already handled" guards. A live run must never act twice, but a dry run
+  // is how a maintainer inspects a PR the bot has already processed — so it
+  // reports what would have stopped a live run and scores the PR anyway.
+  //
+  // For a maintainer PR the suggestion is about the reviewer, so what counts as
+  // handled is a requested review or someone other than the author assigned.
+  // Authors self-assigning their own PR is ownership, not review.
+  const handled = [];
+  if (mode === 'suggest') {
+    if ((pr.requested_reviewers || []).length || (pr.requested_teams || []).length) {
+      handled.push('a review is already requested');
+    }
+    if ((pr.assignees || []).some(a => !sameLogin(a.login, author))) {
+      handled.push('someone other than the author is already assigned');
+    }
+  } else if ((pr.assignees || []).length) {
+    handled.push('it already has an assignee');
   }
   if (mode !== 'rotate' && await hasMarkerComment(github, owner, repo, prNumber)) {
-    core.info(`PR #${prNumber} already has a reviewer assignment comment, skipping`);
-    return null;
+    handled.push('it already has a reviewer assignment comment');
+  }
+  if (handled.length) {
+    if (!dryRun) {
+      core.info(`PR #${prNumber} skipped: ${handled.join('; ')}`);
+      return null;
+    }
+    core.info(`[DRY RUN] a live run would skip PR #${prNumber} (${handled.join('; ')}); scoring it anyway`);
   }
 
   // --- Dependency bot rotation --------------------------------------------

@@ -156,9 +156,12 @@ gives it `area/*` labels and then picks a reviewer
 | Maintainer | The same scoring, posted as a **suggestion** only. Nobody is assigned or @-mentioned; you request the review yourself. |
 | Dependency bot (`auto_accept`, i.e. Renovate) | **Rotated** to whichever `bot_rotation` reviewer has had the fewest bot PRs in the last 30 days. No comment. |
 
-It runs once per PR. It skips a PR that already has an assignee (or, for a maintainer PR,
-a requested reviewer) or an earlier assignment comment. Reassigning in the GitHub UI is
-always fine; the bot will not undo it.
+It runs once per PR. It skips a PR it has already commented on, and also:
+- a contributor or Renovate PR that already has an assignee;
+- a maintainer PR that already has a requested reviewer, or an assignee other than its
+  author. Assigning yourself to your own PR doesn't count: that's ownership, not review.
+
+Reassigning in the GitHub UI is always fine; the bot will not undo it.
 
 #### How a reviewer is picked
 
@@ -171,7 +174,7 @@ everyone is considered.
 
 | Signal | Weight | What it measures |
 |--------|--------|------------------|
-| Git ownership | 0.55 | Your share of the recent commits to the files the PR changes: the 10 most recent commits per file within 12 months, commits from the last 3 months counting double. Each file weighs the same, so one file with a long history cannot outvote the rest. Only the 30 largest changed files are read, and lockfiles and generated SDK code are skipped. |
+| Git ownership | 0.55 | Your share, **among the reviewers**, of the recent commits to the files the PR changes: the 10 most recent commits per file within 12 months, commits from the last 3 months counting double. Contributors' commits don't dilute it: if you're the only reviewer who has touched a file, it's all yours. A file no reviewer has touched counts as 0 for everyone. Each file weighs the same, so one file with a long history cannot outvote the rest. Only the 30 largest changed files are read, and lockfiles and generated SDK code are skipped. |
 | Interest | 0.30 | Your **highest** weight among the PR's area labels, from your interest map (below). |
 | Issue author | 0.15 | 1 if you opened an issue the PR closes. |
 
@@ -209,8 +212,11 @@ reviewer** section is for tuning:
 - **Links** to this section and to the workflow run.
 
 The run log has the same numbers plus the weighted parts of every score. To see them
-for any PR without assigning anything, run the **Classify** workflow manually with the
-PR number and `dry_run` checked.
+for any open PR without assigning anything, run the **Classify** workflow manually with
+the PR number and `dry_run` checked. This works on PRs the bot has already handled: the
+log notes that a live run would skip it, and scores it anyway. A dry run scores with
+today's history and load, so it can differ from the original decision; the comment is
+the record of that.
 
 #### Adjusting which PRs are assigned to you
 

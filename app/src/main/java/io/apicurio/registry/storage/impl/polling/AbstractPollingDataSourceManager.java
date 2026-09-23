@@ -339,6 +339,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                         publishedVersions.add(e.version);
                     }
                     state.incrementVersionCount();
+
                 } catch (Exception ex) {
                     state.recordError(artifactFile, "Could not import artifact version '%s': %s",
                             artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion(),
@@ -378,6 +379,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             }
         }
     }
+
 
     private void processGroupRules(ProcessingState state, Group group) {
         var rules = group.getRules();

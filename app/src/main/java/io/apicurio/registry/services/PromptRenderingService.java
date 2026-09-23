@@ -2,7 +2,7 @@ package io.apicurio.registry.services;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.util.PromptTemplateVariableUtil;
+import io.apicurio.registry.agents.content.util.PromptTemplateVariableUtil;
 import io.apicurio.registry.rest.v3.beans.RenderPromptResponse;
 import io.apicurio.registry.rest.v3.beans.RenderValidationError;
 import io.apicurio.registry.storage.error.InvalidContentException;

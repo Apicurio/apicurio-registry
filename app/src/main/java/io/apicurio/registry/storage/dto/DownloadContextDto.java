@@ -20,6 +20,8 @@ public class DownloadContextDto {
     private Long contentId;
     private String contentHash;
 
+    private String format;
+
     // Fields for VERSION_EXPORT
     private String groupId;
     private String artifactId;

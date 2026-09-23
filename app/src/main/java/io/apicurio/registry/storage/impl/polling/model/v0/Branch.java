@@ -8,7 +8,6 @@ import lombok.ToString;
 import lombok.experimental.SuperBuilder;
 
 import java.util.List;
-import java.util.Map;
 
 @SuperBuilder
 @NoArgsConstructor
@@ -16,23 +15,13 @@ import java.util.Map;
 @Getter
 @EqualsAndHashCode
 @ToString
-public class Version {
+public class Branch {
 
-    private String version;
-
-    private String state;
-
-    private String name;
+    private String branchId;
 
     private String description;
 
-    private Map<String, String> labels;
-
-    private String content;
-
-    private String contentMetadata;
-
-    private Long globalId;
+    private boolean systemDefined;
 
     private String owner;
 
@@ -40,5 +29,5 @@ public class Version {
 
     private String modifiedOn;
 
-    private List<Comment> comments;
+    private List<String> versions;
 }

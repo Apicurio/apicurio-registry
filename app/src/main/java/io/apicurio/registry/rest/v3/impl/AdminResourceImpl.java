@@ -15,6 +15,7 @@ import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.ConflictException;
+import io.apicurio.registry.rest.InvalidParameterValueException;
 import io.apicurio.registry.rest.MethodMetadata;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
@@ -390,13 +391,17 @@ public class AdminResourceImpl implements AdminResource {
     }
 
     /**
-     * @see io.apicurio.registry.rest.v3.AdminResource#exportData(java.lang.Boolean, java.lang.String)
+     * @see io.apicurio.registry.rest.v3.AdminResource#exportData(java.lang.Boolean, java.lang.String, java.lang.String)
      */
     @Override
     @MethodMetadata(extractParameters = {"0", MPK_FOR_BROWSER})
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
-    public Response exportData(Boolean forBrowser, String groupId) {
+    public Response exportData(Boolean forBrowser, String groupId, String format) {
+        if (format != null && !"default".equals(format) && !"gitops-v1".equals(format)) {
+            throw new InvalidParameterValueException("format", "default or gitops-v1", format);
+        }
+
         // If a groupId is specified, validate that the group exists (throws GroupNotFoundException -> 404)
         if (groupId != null) {
             storage.getGroupMetaData(groupId);
@@ -406,7 +411,7 @@ public class AdminResourceImpl implements AdminResource {
         if (Boolean.TRUE.equals(forBrowser) || MediaType.APPLICATION_JSON.equals(acceptHeader)) {
             long expires = System.currentTimeMillis() + (downloadHrefTtl.get() * 1000);
             DownloadContextDto downloadCtx = DownloadContextDto.builder().type(DownloadContextType.EXPORT)
-                    .groupId(groupId).expires(expires).build();
+                    .groupId(groupId).format(format).expires(expires).build();
             String downloadId = storage.createDownload(downloadCtx);
             String downloadHref = createDownloadHref(downloadId);
             DownloadRef downloadRef = new DownloadRef();
@@ -414,7 +419,7 @@ public class AdminResourceImpl implements AdminResource {
             downloadRef.setHref(downloadHref);
             return Response.ok(downloadRef).type(MediaType.APPLICATION_JSON_TYPE).build();
         } else {
-            return exporter.exportData(groupId);
+            return exporter.exportData(groupId, format);
         }
     }
 

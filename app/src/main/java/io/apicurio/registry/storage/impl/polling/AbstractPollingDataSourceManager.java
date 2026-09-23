@@ -7,6 +7,8 @@ import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.polling.model.Type;
 import io.apicurio.registry.storage.impl.polling.model.v0.Artifact;
+import io.apicurio.registry.storage.impl.polling.model.v0.Branch;
+import io.apicurio.registry.storage.impl.polling.model.v0.Comment;
 import io.apicurio.registry.storage.impl.polling.model.v0.ConfigurationProperty;
 import io.apicurio.registry.storage.impl.polling.model.v0.Content;
 import io.apicurio.registry.storage.impl.polling.model.v0.Group;
@@ -22,6 +24,8 @@ import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.utils.impexp.v3.CommentEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
@@ -270,6 +274,8 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                     log.trace("Importing {}",e);
                     state.getStorage().importArtifactVersion(e);
                     state.incrementVersionCount();
+
+                    processVersionComments(state, artifact, version, e.globalId);
                 } catch (Exception ex) {
                     state.recordError(artifactFile, "Could not import artifact version '%s': %s",
                             artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion(),
@@ -277,6 +283,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                 }
             }
             processArtifactRules(state, artifact);
+            processArtifactBranches(state, artifact);
             artifactFile.setProcessed(true);
         }
         // Note: if group is null, processGroupRef() already recorded the error
@@ -297,6 +304,56 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                 } catch (Exception ex) {
                     state.recordError("Could not import rule %s for artifact '%s': %s", rule.getRuleType(),
                             artifact.getGroupId() + ":" + artifact.getArtifactId(), ex.getMessage());
+                }
+            }
+        }
+    }
+
+    private void processArtifactBranches(ProcessingState state, Artifact artifact) {
+        final var branches = artifact.getBranches();
+        if (branches != null) {
+            for (final Branch branch : branches) {
+                try {
+                    final var e = new BranchEntity();
+                    e.groupId = artifact.getGroupId();
+                    e.artifactId = artifact.getArtifactId();
+                    e.branchId = branch.getBranchId();
+                    e.description = branch.getDescription();
+                    e.systemDefined = branch.isSystemDefined();
+                    e.owner = branch.getOwner();
+                    e.createdOn = TimestampParser.parse(branch.getCreatedOn(), state.getCommitTime());
+                    e.modifiedOn = TimestampParser.parse(branch.getModifiedOn(), state.getCommitTime());
+                    e.versions = branch.getVersions();
+                    log.trace("Importing {}", e);
+                    state.getStorage().importBranch(e);
+                } catch (Exception ex) {
+                    state.recordError("Could not import branch %s for artifact '%s': %s",
+                            branch.getBranchId(),
+                            artifact.getGroupId() + ":" + artifact.getArtifactId(), ex.getMessage());
+                }
+            }
+        }
+    }
+
+    private void processVersionComments(ProcessingState state, Artifact artifact, Version version,
+            long globalId) {
+        final var comments = version.getComments();
+        if (comments != null) {
+            for (final Comment comment : comments) {
+                try {
+                    final var e = new CommentEntity();
+                    e.globalId = globalId;
+                    e.commentId = comment.getCommentId();
+                    e.owner = comment.getOwner();
+                    e.createdOn = TimestampParser.parse(comment.getCreatedOn(), state.getCommitTime());
+                    e.value = comment.getValue();
+                    log.trace("Importing {}", e);
+                    state.getStorage().importComment(e);
+                } catch (Exception ex) {
+                    state.recordError("Could not import comment for version '%s': %s",
+                            artifact.getGroupId() + ":" + artifact.getArtifactId() + ":"
+                                    + version.getVersion(),
+                            ex.getMessage());
                 }
             }
         }

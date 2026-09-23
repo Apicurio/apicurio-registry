@@ -602,6 +602,18 @@
               "type": "string"
             },
             "in": "query"
+          },
+          {
+            "name": "format",
+            "description": "The format of the exported data. When set to `gitops-v1`, the export produces a ZIP containing `*.registry.yaml` files compatible with the GitOps storage format. When omitted or set to `default`, the standard import/export format is used.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "default",
+                "gitops-v1"
+              ]
+            },
+            "in": "query"
           }
         ],
         "responses": {

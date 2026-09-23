@@ -45,7 +45,7 @@ public class DownloadsResourceImpl {
     public Response download(@PathParam("downloadId") String downloadId) {
         DownloadContextDto downloadContext = storage.consumeDownload(downloadId);
         if (downloadContext.getType() == DownloadContextType.EXPORT) {
-            return exporter.exportData(downloadContext.getGroupId());
+            return exporter.exportData(downloadContext.getGroupId(), downloadContext.getFormat());
         }
 
         if (downloadContext.getType() == DownloadContextType.VERSION_EXPORT) {

@@ -41,7 +41,7 @@ echo "Running benchmark: OTEL DISABLED"
 echo "========================================"
 cd "$PROJECT_ROOT"
 
-./mvnw test -pl app \
+./mvnw test -pl core \
     -Dtest=OpenTelemetryPerformanceTest \
     -DOpenTelemetryPerformanceTest=enabled \
     -DskipITs=true \
@@ -52,7 +52,7 @@ echo "========================================"
 echo "Running benchmark: OTEL ENABLED"
 echo "========================================"
 
-./mvnw test -pl app \
+./mvnw test -pl core \
     -Dtest=OpenTelemetryPerformanceEnabledTest \
     -DOpenTelemetryPerformanceTest=enabled \
     -DskipITs=true \

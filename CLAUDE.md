@@ -12,7 +12,8 @@ See [README.md](README.md) for a quick-start guide.
 Multi-module Maven project. Quarkus-based. Storage variants and build configuration are
 documented in [DEVELOPING.md](DEVELOPING.md).
 
-Storage implementations: `app/src/main/java/io/apicurio/registry/storage/impl/`
+Server code lives in `core/`; the optional agent registry feature in `agents/`; `app/` only packages them.
+Storage implementations: `core/src/main/java/io/apicurio/registry/storage/impl/`
 
 ## Conventions
 
@@ -63,7 +64,7 @@ Other conventions:
 
 ### REST API
 - Versioned at `/apis/registry/v3/`
-- Implementation: `app/src/.../rest/v3/impl/`
+- Implementation: `core/src/.../rest/v3/impl/`
 - Response DTOs shared with Java SDK
 - Never expose stack traces or internal errors to API clients
 
@@ -126,6 +127,9 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - UI has its own npm/Vite build system, separate from Maven
 - Integration tests need running infrastructure (use testcontainers or profiles)
 - `APICURIO_STORAGE_SQL_KIND` selects the SQL dialect (postgresql, mysql, mssql)
+- The server is split into `core` (all server code and tests), `agents` (the optional agent
+  registry feature) and `app` (packaging only, no code). Put server code in `core` unless it belongs
+  to the agent registry feature; `core` must never depend on `agents`. See DEVELOPING.md.
 - New components must be wired into the Verify → Decide → Verification Gate CI pipeline, not standalone workflows. A standalone workflow that doesn't block merges is an incomplete integration.
 
 ## Claude Code Configuration

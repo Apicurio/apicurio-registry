@@ -137,7 +137,7 @@ and `mysql`.
 Storage-specific unit tests live under the matching packages and can be run directly:
 
 ```bash
-./mvnw test -pl app -Dtest='io.apicurio.registry.storage.impl.kafkasql.**'
+./mvnw test -pl core -Dtest='io.apicurio.registry.storage.impl.kafkasql.**'
 ```
 
 Integration tests are opt-in and are documented in the

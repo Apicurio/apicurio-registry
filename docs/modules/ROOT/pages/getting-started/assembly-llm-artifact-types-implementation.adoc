@@ -82,7 +82,7 @@ Each artifact type includes the following handler functions (as Java classes in 
 [role="_abstract"]
 The PROMPT_TEMPLATE and MODEL_SCHEMA artifact types in {registry} have formal JSON Schemas, aligned with industry standards for interoperability.
 
-You can find the JSON Schemas in `app/src/main/resources/schemas/`:
+You can find the JSON Schemas in `agents/src/main/resources/schemas/`:
 
 .JSON Schema files
 [%header,cols="2,3"]
@@ -714,7 +714,7 @@ POST /apis/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version
 }
 ----
 
-The `PromptRenderingService` class (`app/src/main/java/io/apicurio/registry/services/PromptRenderingService.java`) includes the following features:
+The `PromptRenderingService` class (`agents/src/main/java/io/apicurio/registry/services/PromptRenderingService.java`) includes the following features:
 
 .Rendering service features
 [%header,cols="2,4"]

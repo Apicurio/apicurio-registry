@@ -192,11 +192,11 @@ To reproduce these benchmarks, run the following commands from the project root:
 ./mvnw clean install -DskipTests
 
 # Run benchmark with OTEL disabled (baseline)
-./mvnw test -pl app -Dtest=OpenTelemetryPerformanceTest \
+./mvnw test -pl core -Dtest=OpenTelemetryPerformanceTest \
     -DOpenTelemetryPerformanceTest=enabled
 
 # Run benchmark with OTEL enabled
-./mvnw test -pl app -Dtest=OpenTelemetryPerformanceEnabledTest \
+./mvnw test -pl core -Dtest=OpenTelemetryPerformanceEnabledTest \
     -DOpenTelemetryPerformanceTest=enabled
 ----
 endif::[]

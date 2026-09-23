@@ -98,7 +98,7 @@ jobs:
           # resources) — a pre-existing issue on main, tracked separately.
           ./mvnw test --no-transfer-progress \
             -s ${{ github.workspace }}/.github/ci-settings.xml \
-            -Dlocal -pl '!app,!utils/protobuf-schema-utilities' \
+            -Dlocal -pl '!core,!agents,!utils/protobuf-schema-utilities' \
             -DskipCommitIdPlugin=true \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -Daether.syncContext.named.factory=noop
@@ -111,7 +111,7 @@ jobs:
           #   grep -L "@TestProfile\|QuarkusTestResource" <file>
           ./mvnw surefire:test --no-transfer-progress \
             -s ${{ github.workspace }}/.github/ci-settings.xml \
-            -Pprod -pl app \
+            -Pprod -pl core \
             -Dtest='io.apicurio.registry.noprofile.rest.v3.BranchesTest,io.apicurio.registry.noprofile.rest.v3.ContentResourceTest,io.apicurio.registry.noprofile.rest.v3.SearchArtifactsTest,io.apicurio.registry.noprofile.rest.v3.ImportExportTest,io.apicurio.registry.noprofile.rest.v3.SystemResourceTest,io.apicurio.registry.noprofile.ArtifactTypeTest' \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -Daether.syncContext.named.factory=noop

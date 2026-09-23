@@ -23,7 +23,7 @@ The [Apicurio Compatibility Harness](https://github.com/Apicurio/apicurio-compat
 /apis/ccompat/v8/*  -->  v8 Resource Implementations (delegate to v7)
 ```
 
-All business logic lives in the v7 implementations. The v8 layer is a thin delegation wrapper that converts between v7 and v8 bean types (generated from separate OpenAPI specs). Both specs are maintained in `app/src/main/resources-unfiltered/META-INF/resources/api-specifications/ccompat/`.
+All business logic lives in the v7 implementations. The v8 layer is a thin delegation wrapper that converts between v7 and v8 bean types (generated from separate OpenAPI specs). Both specs are maintained in `core/src/main/resources-unfiltered/META-INF/resources/api-specifications/ccompat/`.
 
 ### Endpoint Coverage
 

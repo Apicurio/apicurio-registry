@@ -1,7 +1,8 @@
 ---
 paths:
-  - "app/src/main/java/**/storage/**/*.java"
-  - "app/src/main/java/**/rest/**/*.java"
+  - "core/src/main/java/**/storage/**/*.java"
+  - "core/src/main/java/**/rest/**/*.java"
+  - "agents/src/main/java/**/*.java"
 ---
 # Labels
 

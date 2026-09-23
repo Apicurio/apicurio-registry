@@ -1,12 +1,12 @@
 ---
 paths:
-  - "app/src/main/java/**/auth/**/*.java"
-  - "app/src/main/resources/application.properties"
+  - "core/src/main/java/**/auth/**/*.java"
+  - "core/src/main/resources/application.properties"
 ---
 # Security Considerations
 
 - OIDC authentication via Keycloak (Quarkus OIDC extension)
-- Auth configuration in `app/src/main/resources/application.properties`
+- Auth configuration in `core/src/main/resources/application.properties`
 - Never log secrets, tokens, or credentials
 - Never commit `.env` files or credentials
 - Integration tests with auth use Keycloak testcontainers (`dasniko/testcontainers-keycloak`)

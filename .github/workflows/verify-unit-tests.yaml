@@ -32,36 +32,36 @@ jobs:
           # a2a, root-level classes). app-rest-misc must exclude everything app-rest-v3
           # includes; .github/scripts/verify-test-shards.py enforces the partition.
           - name: app-rest-v3
-            modules: "-pl app -am -Dfull -DcliSkipNative"
+            modules: "-pl core -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.v3.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
             # Quarkus forks share target/test-classes/test-classes.idx. Concurrent
             # writers caused "Not a jandex index" during AllYamlTest discovery.
             surefire-opts: "-Dsurefire.forkCount=1"
           - name: app-ccompat
-            modules: "-pl app -am -Dfull -DcliSkipNative"
+            modules: "-pl core -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.noprofile.ccompat.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
             surefire-opts: ""
           - name: app-rest-misc
-            modules: "-pl app -am -Dfull -DcliSkipNative"
+            modules: "-pl core -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.rest.v3.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
             surefire-opts: ""
           - name: app-sql
-            modules: "-pl app -am -Dfull -DcliSkipNative"
+            modules: "-pl core -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.sql.**,io.apicurio.registry.storage.impl.search.**,io.apicurio.registry.storage.impl.polling.**,io.apicurio.registry.storage.impl.readonly.**,io.apicurio.registry.storage.decorator.**,io.apicurio.registry.storage.dto.**,io.apicurio.registry.event.sql.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-kafkasql
-            modules: "-pl app -am -Dfull -DcliSkipNative"
+            modules: "-pl core -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kafkasql.**,io.apicurio.registry.event.kafkasql.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-gitops
-            modules: "-pl app -am -Dfull -DcliSkipNative"
+            modules: "-pl core -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.gitops.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-kubernetesops
-            modules: "-pl app -am -Dfull -DcliSkipNative"
+            modules: "-pl core -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.kubernetesops.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           # app-auth / app-transport / app-metrics are carved out of app-other. Each @TestProfile in a
@@ -72,25 +72,31 @@ jobs:
           # Counts come from .github/scripts/verify-test-shards.py, which is also what enforces that
           # every class below is claimed by exactly one shard. See issue #9265.
           - name: app-auth
-            modules: "-pl app -am -Dfull -DcliSkipNative"
+            modules: "-pl core -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.auth.**,io.apicurio.registry.rbac.**,io.apicurio.registry.limits.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-transport
-            modules: "-pl app -am -Dfull -DcliSkipNative"
+            modules: "-pl core -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.tls.**,io.apicurio.registry.headers.**,io.apicurio.registry.cors.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: app-metrics
-            modules: "-pl app -am -Dfull -DcliSkipNative"
+            modules: "-pl core -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.metrics.**,io.apicurio.registry.search.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           # Catch-all: stays an exclusion filter so a newly added package lands here rather than in no
           # shard at all. Every exclusion below must correspond to another shard's inclusion.
           - name: app-other
-            modules: "-pl app -am -Dfull -DcliSkipNative"
+            modules: "-pl core -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.impl.sql.**,!io.apicurio.registry.storage.impl.search.**,!io.apicurio.registry.storage.impl.polling.**,!io.apicurio.registry.storage.impl.readonly.**,!io.apicurio.registry.storage.decorator.**,!io.apicurio.registry.storage.dto.**,!io.apicurio.registry.storage.impl.kafkasql.**,!io.apicurio.registry.storage.impl.gitops.**,!io.apicurio.registry.storage.impl.kubernetesops.**,!io.apicurio.registry.event.sql.**,!io.apicurio.registry.event.kafkasql.**,!io.apicurio.registry.auth.**,!io.apicurio.registry.rbac.**,!io.apicurio.registry.limits.**,!io.apicurio.registry.tls.**,!io.apicurio.registry.headers.**,!io.apicurio.registry.cors.**,!io.apicurio.registry.metrics.**,!io.apicurio.registry.search.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+          # The optional agent registry module (see agents/pom.xml). Selected by -pl, not by -Dtest,
+          # so like non-app it is outside the core partition checked by verify-test-shards.py.
+          - name: agents
+            modules: "-pl agents -am -Dfull -DcliSkipNative"
+            test-filter: ""
+            maven-opts: "-Xmx4g"
           - name: non-app
-            modules: "-Dfull -DcliSkipNative -pl !app,!distro/docker,!docs,!docs/config-generator,!docs/rest-api"
+            modules: "-Dfull -DcliSkipNative -pl !core,!agents,!app,!distro/docker,!docs,!docs/config-generator,!docs/rest-api"
             test-filter: ""
             maven-opts: "-Xmx4g"
             # Scalpel shadow carrier: the session covers every non-app module,

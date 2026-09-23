@@ -80,6 +80,8 @@
 
   <modules>
     <!-- Essential modules (always built) -->
+    <module>core</module>
+    <module>agents</module>
     <module>app</module>
     <module>common</module>
     <module>config-index/definitions</module>
@@ -351,6 +353,16 @@
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-agents</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-java-sdk</artifactId>
         <version>${project.version}</version>
       </dependency>
@@ -387,7 +399,7 @@
       </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
-        <artifactId>apicurio-registry-app</artifactId>
+        <artifactId>apicurio-registry-core</artifactId>
         <version>${project.version}</version>
         <type>test-jar</type>
       </dependency>

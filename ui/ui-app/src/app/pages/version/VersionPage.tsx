@@ -34,7 +34,7 @@ import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { DownloadService, useDownloadService } from "@services/useDownloadService.ts";
-import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
+import { ArtifactTypes, ArtifactTypesService, useArtifactTypesService } from "@services/useArtifactTypesService.ts";
 import {
     ArtifactMetaData,
     CreateVersion,
@@ -82,12 +82,15 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [isTestVersionSuccessModalOpen, setIsTestVersionSuccessModalOpen] = useState(false);
     const [isChangeStateModalOpen, setIsChangeStateModalOpen] = useState(false);
     const [isEditAgentCardModalOpen, setIsEditAgentCardModalOpen] = useState(false);
+    // Optimistically true so the common case (agents deployed) does not flicker; see agentTypesSupported().
+    const [agentTypesSupported, setAgentTypesSupported] = useState<boolean>(true);
 
     const appNavigation: AppNavigation = useAppNavigation();
     const logger: LoggerService = useLoggerService();
     const groups: GroupsService = useGroupsService();
     const draftsService: DraftsService = useDraftsService();
     const download: DownloadService = useDownloadService();
+    const artifactTypes: ArtifactTypesService = useArtifactTypesService();
     const { groupId, artifactId, version }= useParams();
     const contentMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/content");
     const referencesMatch = useMatch("/explore/:groupId/:artifactId/versions/:version/references");
@@ -206,6 +209,9 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             return false;
         }
         const type = artifact?.artifactType;
+        if (ArtifactTypes.isAgentType(type) && !agentTypesSupported) {
+            return false;
+        }
         return type === ArtifactTypes.OPENAPI
             || type === ArtifactTypes.ASYNCAPI
             || type === ArtifactTypes.AGENT_CARD
@@ -399,6 +405,16 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     };
 
     useEffect(() => {
+        let cancelled = false;
+        artifactTypes.agentTypesSupported().then(supported => {
+            if (!cancelled) {
+                setAgentTypesSupported(supported);
+            }
+        });
+        return () => { cancelled = true; };
+    }, [artifactTypes]);
+
+    useEffect(() => {
         setPageError(undefined);
         const guard: LoaderGuard = newLoaderGuard();
         setLoaders(createLoaders(guard));
@@ -482,6 +498,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                     <VersionPageHeader
                         onEdit={onEditDraft}
                         onEditAgentCard={() => setIsEditAgentCardModalOpen(true)}
+                        agentTypesSupported={agentTypesSupported}
                         onDelete={onDeleteVersion}
                         onDownload={doDownloadVersion}
                         onFinalizeDraft={() => {
@@ -565,7 +582,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 onChangeState={doChangeState}
             />
             {(() => {
-                const agentCard = getAgentCardFromContent();
+                const agentCard = agentTypesSupported ? getAgentCardFromContent() : undefined;
                 return agentCard ? (
                     <EditAgentModal
                         isOpen={isEditAgentCardModalOpen}

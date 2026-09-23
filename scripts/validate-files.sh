@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # DB_VERSION_BUILD=$(yq .project.properties."apicurio.sql.storage.db-version" app/pom.xml -r)
-DB_VERSION_BUILD=$(cat app/src/main/resources/io/apicurio/registry/storage/impl/sql/db-version)
+DB_VERSION_BUILD=$(cat core/src/main/resources/io/apicurio/registry/storage/impl/sql/db-version)
 echo "Build's DB version is $DB_VERSION_BUILD"
 
-DDLS="app/src/main/resources/io/apicurio/registry/storage/impl/sql/postgresql.ddl app/src/main/resources/io/apicurio/registry/storage/impl/sql/h2.ddl app/src/main/resources/io/apicurio/registry/storage/impl/sql/mysql.ddl app/src/main/resources/io/apicurio/registry/storage/impl/sql/mssql.ddl"
+DDLS="core/src/main/resources/io/apicurio/registry/storage/impl/sql/postgresql.ddl core/src/main/resources/io/apicurio/registry/storage/impl/sql/h2.ddl core/src/main/resources/io/apicurio/registry/storage/impl/sql/mysql.ddl core/src/main/resources/io/apicurio/registry/storage/impl/sql/mssql.ddl"
 for ddl in $DDLS 
 do
     echo "Processing DDL $ddl"

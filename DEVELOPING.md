@@ -43,6 +43,27 @@ Additionally, there are 2 main configuration profiles:
 Runtime configuration options for the produced executables (data source, security, and more)
 are documented on the [Apicurio Registry documentation site](https://www.apicur.io/registry/docs/).
 
+## Server Modules
+
+The registry server is split into three Maven modules:
+
+| Module | Contents |
+|---|---|
+| `core` (`apicurio-registry-core`) | All server code: storage, REST API, auth, rules. A library, with most of the server tests. |
+| `agents` (`apicurio-registry-agents`) | The optional agent registry feature: A2A, MCP tools, AI Catalog and ARD discovery under `/.well-known`, prompt rendering, embedded-schema extraction and OpenAPI `x-agent-card` companions. Its artifact types (AGENT_CARD, MCP_TOOL, MODEL_SCHEMA, PROMPT_TEMPLATE) are in `schema-util/agents`. |
+| `app` (`apicurio-registry-app`) | No code. Packages `core` and, by default, `agents` into the runnable Quarkus server, tarballs and container image inputs. |
+
+`core` never depends on `agents`. The agents module plugs in through the CDI extension points in `io.apicurio.registry.extensions` and the `ServiceLoader`-based artifact type registry, so core code cannot reference agent classes: it would not compile.
+
+Build with `-DskipAgents` to package the server without the agent registry feature. The REST API is unchanged either way, so the SDKs are the same, but in a server without agents:
+- the agent endpoints respond with 404;
+- the agent artifact types are unknown;
+- the UI hides its agent features, even if `apicurio.ui.features.agents.enabled` is set.
+
+Where to work:
+- run server tests with `-pl core` or `-pl agents`;
+- run `quarkus:dev` and build the server or image with `-pl app` (use `-am` to build its dependencies).
+
 ## Build Tiers
 
 The project uses a three-tier build system to allow developers to build only what they need:
@@ -82,6 +103,7 @@ Integration tests and examples are always opt-in via their own profiles:
 | `-Dmaven.test.skip=true` | Skip compiling and running tests                                                      |
 | `-DcliSkipNative`     | Skip CLI native image compilation (no executable is produced, but tests can still run)   |
 | `-DskipOperatorTests` | Skip operator tests (default: `true`, requires a running cluster)                        |
+| `-DskipAgents`        | Build the server without the agent registry feature (see below)                          |
 
 ## Dependency Analysis
 

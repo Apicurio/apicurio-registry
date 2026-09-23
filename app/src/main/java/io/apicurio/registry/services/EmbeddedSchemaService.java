@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.extensions.ArtifactVersionWriteHook;
+import io.apicurio.registry.extensions.PreparedContent;
+import io.apicurio.registry.extensions.VersionWriteContext;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
@@ -13,6 +16,7 @@ import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -39,36 +43,23 @@ import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
  * $ref references pointing to the newly created artifacts.
  */
 @ApplicationScoped
-public class EmbeddedSchemaService {
+public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
 
     @Inject
     Logger log;
 
-    /**
-     * Result of extracting embedded schemas from an artifact.
-     */
-    public static class ExtractionResult {
-        private final ContentHandle modifiedContent;
-        private final String contentType;
-        private final List<ArtifactReferenceDto> references;
-
-        public ExtractionResult(ContentHandle modifiedContent, String contentType, List<ArtifactReferenceDto> references) {
-            this.modifiedContent = modifiedContent;
-            this.contentType = contentType;
-            this.references = references;
+    @Override
+    public PreparedContent prepareContent(VersionWriteContext context, TypedContent content) {
+        String contentType = content.getContentType();
+        if (ArtifactType.MODEL_SCHEMA.equals(context.getArtifactType())) {
+            return extractModelSchemaEmbeddedSchemas(context.getStorage(), context.getGroupId(),
+                    context.getArtifactId(), content.getContent(), contentType, context.getOwner());
         }
-
-        public ContentHandle getModifiedContent() {
-            return modifiedContent;
+        if (ArtifactType.PROMPT_TEMPLATE.equals(context.getArtifactType())) {
+            return extractPromptTemplateEmbeddedSchemas(context.getStorage(), context.getGroupId(),
+                    context.getArtifactId(), content.getContent(), contentType, context.getOwner());
         }
-
-        public String getContentType() {
-            return contentType;
-        }
-
-        public List<ArtifactReferenceDto> getReferences() {
-            return references;
-        }
+        return null;
     }
 
     /**
@@ -81,9 +72,9 @@ public class EmbeddedSchemaService {
      * @param content    the raw content of the MODEL_SCHEMA
      * @param contentType the content type (application/json or application/x-yaml)
      * @param owner      the owner of the created artifacts
-     * @return extraction result with modified content and references, or null if no extraction was performed
+     * @return the rewritten content and the references to the registered schemas, or null if no extraction was performed
      */
-    public ExtractionResult extractModelSchemaEmbeddedSchemas(RegistryStorage storage, String groupId,
+    public PreparedContent extractModelSchemaEmbeddedSchemas(RegistryStorage storage, String groupId,
             String artifactId, ContentHandle content, String contentType, String owner) {
         try {
             JsonNode root = parseContent(content.content(), contentType);
@@ -135,7 +126,7 @@ public class EmbeddedSchemaService {
 
             // Serialize back to original format
             String modifiedContentStr = serializeContent(rootObj, contentType);
-            return new ExtractionResult(
+            return new PreparedContent(
                     ContentHandle.create(modifiedContentStr),
                     contentType,
                     references
@@ -150,7 +141,7 @@ public class EmbeddedSchemaService {
      * Extract embedded schemas from a PROMPT_TEMPLATE artifact, auto-register them, and return
      * the modified content with $ref references.
      */
-    public ExtractionResult extractPromptTemplateEmbeddedSchemas(RegistryStorage storage, String groupId,
+    public PreparedContent extractPromptTemplateEmbeddedSchemas(RegistryStorage storage, String groupId,
             String artifactId, ContentHandle content, String contentType, String owner) {
         try {
             JsonNode root = parseContent(content.content(), contentType);
@@ -184,7 +175,7 @@ public class EmbeddedSchemaService {
             }
 
             String modifiedContentStr = serializeContent(rootObj, contentType);
-            return new ExtractionResult(
+            return new PreparedContent(
                     ContentHandle.create(modifiedContentStr),
                     contentType,
                     references

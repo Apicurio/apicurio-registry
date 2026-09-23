@@ -25,6 +25,7 @@ import java.util.Set;
  * - SYNTAX_ONLY: Validates that the content is valid JSON and is an object
  * - FULL: Full schema validation including required fields, type checking, and structure
  *   validation. The 'annotations' object is validated as a closed ToolAnnotations shape.
+ *   The 'inputSchema' and 'outputSchema' objects must themselves be valid JSON Schema documents.
  *
  * @see <a href="https://modelcontextprotocol.io/specification/2025-11-25/server/tools">MCP Tools</a>
  */
@@ -157,10 +158,18 @@ public class McpToolContentValidator implements ContentValidator {
     }
 
     private void validateOutputSchemaField(JsonNode tree, Set<RuleViolation> violations) {
-        if (tree.has("outputSchema") && !tree.get("outputSchema").isObject()) {
+        if (!tree.has("outputSchema")) {
+            return;
+        }
+
+        JsonNode outputSchema = tree.get("outputSchema");
+        if (!outputSchema.isObject()) {
             violations.add(new RuleViolation("'outputSchema' field must be an object",
                     "/outputSchema"));
+            return;
         }
+
+        JsonValidationUtils.validateJsonSchema(outputSchema, "/outputSchema", violations);
     }
 
     private void validateAnnotationsField(JsonNode tree, Set<RuleViolation> violations) {

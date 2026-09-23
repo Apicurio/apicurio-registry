@@ -20,7 +20,10 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-APP_TESTS = REPO / "app/src/test/java"
+# Test source roots compiled into the default (sharded) build. app/src/test-agents belongs to the
+# default-on 'agents' profile. app/src/test-no-agents is deliberately absent: it only compiles with
+# -DskipAgents and runs in the dedicated build-without-agents job, not in these shards.
+APP_TEST_ROOTS = (REPO / "app/src/test/java", REPO / "app/src/test-agents/java")
 WORKFLOW = REPO / ".github/workflows/verify-unit-tests.yaml"
 
 # The 'non-app' shard selects by Maven -pl, not by -Dtest, so it is not part of
@@ -41,7 +44,14 @@ def is_surefire_name(stem):
 def enumerate_classes():
     """Fully-qualified names of app/ test classes surefire would actually run."""
     found = []
-    for path in APP_TESTS.rglob("*.java"):
+    for root in APP_TEST_ROOTS:
+        found.extend(_enumerate_root(root))
+    return sorted(found)
+
+
+def _enumerate_root(root):
+    found = []
+    for path in root.rglob("*.java"):
         stem = path.stem
         if not is_surefire_name(stem):
             continue
@@ -49,8 +59,8 @@ def enumerate_classes():
         # Abstract classes are bases for other tests; surefire never runs them.
         if re.search(r"\babstract\s+class\s+" + re.escape(stem) + r"\b", source):
             continue
-        found.append(str(path.relative_to(APP_TESTS)).replace("/", ".")[:-len(".java")])
-    return sorted(found)
+        found.append(str(path.relative_to(root)).replace("/", ".")[:-len(".java")])
+    return found
 
 
 def pattern_to_regex(pattern):

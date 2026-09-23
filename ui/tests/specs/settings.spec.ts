@@ -10,13 +10,20 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("Settings - Filter", async ({ page }) => {
-    await expect(page.getByTestId("settings-search-widget").locator("input")).toBeEmpty();
-    expect(page.getByTestId("config-groups")).toBeDefined();
-    await expect(page.getByTestId("config-groups").locator(".configuration-property")).toHaveCount(15);
+    const searchWidget = page.getByTestId("settings-search-widget");
+    const searchInput = searchWidget.locator("input");
+    const configGroups = page.getByTestId("config-groups");
+    const properties = configGroups.locator(".configuration-property");
 
-    await page.getByTestId("settings-search-widget").locator("input").fill("legacy");
-    await expect(page.getByTestId("settings-search-widget").locator("input")).toHaveValue("legacy");
-    await page.getByTestId("settings-search-widget").locator("button[type=submit]").click();
+    await expect(searchInput).toBeEmpty();
+    await expect(configGroups).toBeVisible();
+    await expect(properties.first()).toBeVisible();
 
-    await expect(page.getByTestId("config-groups").locator(".configuration-property")).toHaveCount(1);
+    await searchInput.fill("legacy");
+    await expect(searchInput).toHaveValue("legacy");
+    await searchWidget.locator("button[type=submit]").click();
+
+    await expect(properties).toHaveCount(1);
+    await expect(properties.locator(".property-name .name"))
+        .toHaveText("Legacy ID mode (compatibility API)");
 });

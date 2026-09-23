@@ -100,7 +100,8 @@ Contributors can self-assign open issues by commenting `/assign-me` (or `/claim`
 - **Unassigning**: Comment `/unassign-me` to release an issue.
 - **Overriding**: Maintainers can override assignments directly via the GitHub UI at any time.
 - **Maintainer-only labels**: Issues carrying one of `MAINTAINER_ONLY_LABELS` in
-  `.github/scripts/issue-assignment.js` (currently `area/CI`) cannot be self-assigned — the bot
+  `.github/scripts/issue-assignment.js` (currently `area/CI`, including labels nested under it such as
+  `area/CI/automation`) cannot be self-assigned — the bot
   declines and asks for a different issue to be picked. Maintainers (the list in
   `.github/pr-lifecycle.yml`) are exempt. Labels are applied automatically, so a contributor who
   believes the label does not fit, or who wants an exception, can ask in a comment — the bot

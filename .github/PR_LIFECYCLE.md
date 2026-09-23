@@ -144,6 +144,153 @@ auto-merge (enabled via `/merge`) waits correctly in that case, but it does not 
 the branch for you — if a PR has been open a while and other PRs merged in the
 meantime, click **Update branch** on the PR page (or push a rebase) to let it proceed.
 
+### Reviewer assignment
+
+When a PR opens or leaves draft, the `classify-pr` job in `.github/workflows/classify.yml`
+gives it `area/*` labels and then picks a reviewer
+(`.github/scripts/pr-reviewer-assignment.js`):
+
+| PR author | What happens |
+|-----------|--------------|
+| Contributor | The winner is **assigned**, and a comment says so in one line, with the reasoning in a collapsed section (see [Reading the comment](#reading-the-comment)). |
+| Maintainer | The same scoring, posted as a **suggestion** only. Nobody is assigned or @-mentioned; you request the review yourself. |
+| Dependency bot (`auto_accept`, i.e. Renovate) | **Rotated** to whichever `bot_rotation` reviewer has had the fewest bot PRs in the last 30 days. No comment. |
+
+It runs once per PR. It skips a PR that already has an assignee (or, for a maintainer PR,
+a requested reviewer) or an earlier assignment comment. Reassigning in the GitHub UI is
+always fine; the bot will not undo it.
+
+#### How a reviewer is picked
+
+**1. Who is considered.** Everyone in `reviewer_assignment.reviewers` except the PR author,
+provided they have **some link to the PR**: interest above 0 in one of its areas, a recent
+commit to one of its files, or authorship of an issue it closes. If nobody has a link,
+everyone is considered.
+
+**2. The score.** Three signals, each 0–1, weighted (`reviewer_assignment.weights`):
+
+| Signal | Weight | What it measures |
+|--------|--------|------------------|
+| Git ownership | 0.55 | Your share of the recent commits to the files the PR changes: the 10 most recent commits per file within 12 months, commits from the last 3 months counting double. Each file weighs the same, so one file with a long history cannot outvote the rest. Only the 30 largest changed files are read, and lockfiles and generated SDK code are skipped. |
+| Interest | 0.30 | Your **highest** weight among the PR's area labels, from your interest map (below). |
+| Issue author | 0.15 | 1 if you opened an issue the PR closes. |
+
+**3. The swap.** Your **load** is the number of PRs you were assigned in the last 30
+days, in any state: merged and closed count too, so clearing your queue doesn't count
+against you. Assignments from the last 48 hours count double, and bot PRs are counted
+separately. Load isn't part of the score. It does two things:
+- **Breaks exact ties**, in favor of the less loaded reviewer.
+- **Swaps an overloaded winner.** If the winner's load is at least **1.5×** the
+  runner-up's and at least **3 more**, the runner-up gets the PR, however far behind on
+  score. This is what keeps git ownership from piling PRs on whoever commits most:
+  without it, one maintainer got 43% of contributor PRs in the backtest.
+
+The swap only goes to a runner-up with interest in the PR's **primary area**, the label
+the classifier was most confident about. Specialists always look idle, because they
+cover few areas, not because they're free. Without this condition the swap handed them
+PRs whose only link to their area was an incidental label, like a UI PR that touched
+docs going to the docs reviewer. A PR with no area labels can be swapped to anyone.
+Measuring load against how many PRs each reviewer was eligible for, instead of raw counts,
+is tracked in #10247.
+
+#### Reading the comment
+
+The contributor sees one line (`Auto-assigned to @…`). The collapsed **Why this
+reviewer** section is for tuning:
+- **A table of the reviewers who were considered.** It shows each one's score, the raw
+  ownership, interest and issue-author values (the column headers carry the weights), and
+  their load. The assignee is in bold. Comparing the table with the config usually tells
+  you which knob to turn.
+- **The PR's areas, with the primary one marked.** If they're wrong, the labels are the
+  problem, not the interest maps (see knob 2 below).
+- **Swapped / Not swapped:** whether an overloaded winner handed the PR on, or kept it
+  because the runner-up has no interest in the primary area.
+- **Not considered:** reviewers with no link to the PR at all.
+- **Links** to this section and to the workflow run.
+
+The run log has the same numbers plus the weighted parts of every score. To see them
+for any PR without assigning anything, run the **Classify** workflow manually with the
+PR number and `dry_run` checked.
+
+#### Adjusting which PRs are assigned to you
+
+There are two knobs you control directly: your **interest map** and the **area labels**
+it reads.
+
+**1. Your interest map** — `reviewer_assignment.reviewers.<your login>.interest` in
+`.github/pr-lifecycle.yml`:
+
+```yaml
+jsenko:
+  interest:
+    "area/*": 0.4              # everything, at a low base
+    "area/operator/*": 0.6     # operator and everything nested under it
+    "area/CLI": 1.0            # exactly area/CLI
+    "area/ui/editors": 0       # carve one label out of the base
+```
+
+- **Weights are absolute interest, 0 to 1.** They don't need to add up to anything.
+  A PR's interest score is your **highest** weight among its most specific labels (a PR
+  labeled `area/storage` and `area/storage/sql` counts only `area/storage/sql`). A label
+  that none of your patterns match counts as 0. The highest rather than the average,
+  because PRs average two to three labels and some are incidental (`area/QE` for touching
+  a test): averaging diluted specialists out of their own areas.
+- **Patterns:** `area/ui` matches only that label; `area/ui/*` matches `area/ui` and
+  everything nested under it; `area/*` matches every area label. The most specific
+  pattern wins, and an exact pattern beats `/*` for the same label, which is what lets
+  a `0` switch off one area inside a broader one.
+- **Your weight on an area decides whether the swap can hand you its PRs.** A runner-up
+  only takes over an overloaded winner's PR if their interest in its primary area is
+  above 0. A `0`, or no matching pattern, keeps the swap from giving you those PRs.
+- **How much it moves the score:** interest is 30% of it. Going from 0.4 to 1.0 on a PR's
+  best label adds 0.18. That's enough to decide between people with similar ownership,
+  but it won't beat someone who wrote most of the changed code. That person may still be
+  swapped out if they're overloaded.
+- **Taking a break:** remove your entry from `reviewers` (and from
+  `bot_rotation.reviewers`). You can still get picked by hand, just not by the bot.
+
+Some examples:
+
+| I want to... | Change |
+|---|---|
+| Get more PRs in an area | Raise that pattern, e.g. `"area/ui/*": 1.0` |
+| Stop getting an area | Set it to `0`, or remove the pattern if you have no `area/*` base |
+| Review only a few areas | Remove `area/*` and list just those areas |
+| Share an area with someone more evenly | Give it the same weight as theirs. Ties on interest are decided by ownership, then by the swap |
+| Get Renovate PRs, or stop getting them | Add or remove yourself in `bot_rotation.reviewers` |
+
+The Scripts Tests workflow checks the file whenever it changes:
+- every reviewer is a maintainer;
+- every pattern names a real label;
+- every weight is between 0 and 1;
+- **every area label still has at least one interested reviewer.**
+
+So if you are the only one covering a label, someone else has to pick it up before you
+can drop it. Changes take effect once merged to `main`.
+
+**2. The area labels.** Interest can only be as good as the labels a PR gets, and the
+strongest label also picks the primary area that decides the swap. They are assigned by
+the embedding classifier, from the descriptions in
+`.github/scripts/label-classification/label-descriptions.yml`. If PRs in your area keep
+getting the wrong labels, or none:
+- fix the label by hand on the PR. The classifier never re-adds a label someone removed,
+  and those corrections are what it can later be measured against. It doesn't change who
+  was assigned, though, because assignment happened when the PR opened.
+- improve the label's description or threshold. The
+  [classifier README](scripts/label-classification/README.md) covers tuning and measuring.
+- if the area needs a label of its own, add it. It has to exist on GitHub with exactly
+  that name, and it must be nested where it belongs, because nesting drives both the
+  classifier and the `/*` patterns above.
+
+The other two signals aren't per-person settings. Git ownership follows the code you
+commit to. Issue authorship follows the issues you open: if you want to follow a fix,
+open the issue for it. The signal weights, the ownership window and the swap thresholds
+are shared by everyone (`reviewer_assignment.weights`, `.ownership`, `.fairness`), so
+change those in a PR the other maintainers agree with. For calibration: in the backtest
+done for #9005 (334 contributor PRs), moving the weights anywhere between ownership
+0.60 / interest 0.25 and 0.45 / 0.40 changed the shares by only a couple of points; the
+interest maps and the swap matter much more.
+
 ## Continuous Integration
 
 Two workflows make up the whole pipeline — see `.github/workflows/README.md` for the
@@ -190,6 +337,11 @@ The orchestrator is configured in `.github/pr-lifecycle.yml`:
   label is free and queryable while the comment notifies people; one ping per period of
   being blocked, never a close.
 - **welcome_message** — message posted when a PR is opened
+- **reviewer_assignment** — automatic reviewer assignment: signal weights, the ownership
+  window, load and swap thresholds (`fairness`), the Renovate rotation pool, and each
+  reviewer's interest map. See
+  [Reviewer assignment](#reviewer-assignment). Every key is required (there are no
+  built-in defaults to drift from the file); remove the whole section to turn it off.
 
 ## Disabling the Orchestrator
 

@@ -235,8 +235,11 @@ jobs:
           decide run-console-plugin  "$run_tests" "$IS_PUSH" "$CONSOLE_PLUGIN" "$CI"
           decide run-go-sdk-freshness "$run_tests" "$GO_SDK_GEN" "$CI"
 
-          # Scalpel (affected-module detection) can be disabled via PR label
-          if [ "$EVENT" != "push" ] && has_label "ci/disable-scalpel"; then
+          # Scalpel (affected-module detection) can be disabled via PR label.
+          # A push to main has no PR and no base branch to diff against, so
+          # the consumers of this output stay off there too; deciding that
+          # here keeps every scalpel consumer a plain pass-through.
+          if [ "$EVENT" = "push" ] || has_label "ci/disable-scalpel"; then
             echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
           else
             echo "scalpel-enabled=true" >> "$GITHUB_OUTPUT"

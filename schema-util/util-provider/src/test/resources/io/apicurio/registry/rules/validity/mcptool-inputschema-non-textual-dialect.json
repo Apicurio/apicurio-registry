@@ -1,0 +1,8 @@
+{
+  "name": "non_textual_dialect_tool",
+  "description": "inputSchema declares $schema as a number instead of a dialect URI",
+  "inputSchema": {
+    "$schema": 7,
+    "type": "object"
+  }
+}

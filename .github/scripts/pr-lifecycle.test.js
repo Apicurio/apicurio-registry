@@ -492,15 +492,19 @@ const STALE_CONFIG = {
     days_until_close: 14,
     days_until_stale_waiting_on_author: 4,
     days_until_close_waiting_on_author: 7,
+    days_until_review_overdue: 14,
+    days_until_review_ping: 30,
     stale_message: 'Inactive. @{author}, update or comment. Closed {close_window}.{assignees}',
     close_message: 'Closing due to inactivity.',
+    review_overdue_message: 'Waiting on review for {days} days. @{author} nothing to do.{reviewers}',
   },
 };
 
 // timelinePages models the real pagination shape: github.paginate concatenates
 // every page, while an unpaginated call would only ever see pages[0].
 function makeStaleWorld({ labels = [LABELS.READY_FOR_REVIEW], updatedDaysAgo = 30,
-                          timelinePages = [[]], assignees = [] } = {}) {
+                          timelinePages = [[]], assignees = [], reviewers = [],
+                          createdDaysAgo = null, baseRef = 'not-main' } = {}) {
   const prLabels = new Set(labels);
   const calls = { added: [], removed: [], comments: [], closed: [] };
 
@@ -510,9 +514,16 @@ function makeStaleWorld({ labels = [LABELS.READY_FOR_REVIEW], updatedDaysAgo = 3
     labels: [...prLabels].map(name => ({ name })),
     user: { login: 'contributor' },
     assignees: assignees.map(login => ({ login })),
+    requested_reviewers: reviewers.map(login => ({ login })),
     head: { sha: SHA, ref: 'feature-x' },
-    base: { ref: 'not-main' }, // skip reconcile; this suite is about staleness
+    // Default skips reconcile, since most of this suite is about the timers
+    // rather than label repair. baseRef: 'main' opts a test into reconcile.
+    base: { ref: baseRef },
     updated_at: ago(updatedDaysAgo),
+    // The review-overdue track pre-filters on PR age before reading the
+    // timeline, so it has to be at least as old as the label/ping thresholds
+    // for those tests to reach the interesting code.
+    created_at: ago(createdDaysAgo ?? updatedDaysAgo),
   };
 
   const github = {
@@ -529,6 +540,9 @@ function makeStaleWorld({ labels = [LABELS.READY_FOR_REVIEW], updatedDaysAgo = 3
       pulls: {
         list: 'pulls.list',
         update: async ({ pull_number, state }) => calls.closed.push({ pull_number, state }),
+        // The sweep re-reads each PR after reconcile, so this must reflect
+        // label mutations rather than replaying the original snapshot.
+        get: async () => ({ data: { ...pr, labels: [...prLabels].map(name => ({ name })) } }),
       },
     },
     paginate: async (fn) => {
@@ -643,5 +657,212 @@ test('stale: warning with no assignees has no cc line', async () => {
     await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
     assert.equal(w.calls.comments.length, 1);
     assert.doesNotMatch(w.calls.comments[0], /cc @/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Review overdue — the maintainer-side track (#10149)
+//
+// A PR labelled waiting-on-maintainer is blocked on us, so the author-facing
+// stale timers must not touch it: no author-directed warning, and above all no
+// auto-close. 24 of the 25 stale PRs in the queue when this was written were
+// in exactly this state.
+// ---------------------------------------------------------------------------
+
+const blockedLabelEvent = daysAgo => ({
+  event: 'labeled', label: { name: LABELS.WAITING_ON_MAINTAINER }, created_at: ago(daysAgo),
+  actor: { login: 'github-actions[bot]' },
+});
+
+const overduePing = daysAgo => ({
+  event: 'commented', created_at: ago(daysAgo), user: { login: 'github-actions[bot]' },
+  body: '<!-- pr-lifecycle:review-overdue -->\nWaiting on review for 40 days.',
+});
+
+test('review overdue: a maintainer-blocked PR is never marked stale', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 30,
+      timelinePages: [[blockedLabelEvent(5)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(!w.calls.added.includes(LABELS.STALE),
+      'the 7/14 author-inactivity timer must not apply to a PR blocked on a maintainer');
+    assert.deepEqual(w.calls.closed, []);
+  });
+});
+
+test('review overdue: an already-stale maintainer-blocked PR has the label cleared, not closed', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    // The live situation this fixes: stale was applied by the old logic and
+    // the grace period has long since elapsed, so the next sweep would close.
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER, LABELS.STALE],
+      updatedDaysAgo: 40,
+      timelinePages: [[blockedLabelEvent(40), staleLabelEvent(20)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.removed.includes(LABELS.STALE));
+    assert.deepEqual(w.calls.closed, [], 'must never close a PR blocked on a maintainer');
+  });
+});
+
+test('review overdue: waiting-on-author wins when both labels are set', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    // reconcile's label-recovery path can add waiting-on-maintainer without
+    // clearing waiting-on-author. The tie must not grant a stale exemption,
+    // or an author-blocked PR would never lapse.
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_AUTHOR, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 5, // past the 4-day waiting-on-author threshold
+      timelinePages: [[blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.added.includes(LABELS.STALE));
+    assert.ok(!w.calls.added.includes(LABELS.REVIEW_OVERDUE));
+  });
+});
+
+test('review overdue: labels at 14 days but does not ping until 30', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 20,
+      timelinePages: [[blockedLabelEvent(20)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.added.includes(LABELS.REVIEW_OVERDUE));
+    assert.equal(w.calls.comments.length, 0,
+      'the label is free, the comment notifies every reviewer — only the label fires at 14 days');
+  });
+});
+
+test('review overdue: pings past 30 days, ccing assignees and requested reviewers', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 40,
+      assignees: ['maintainer-jane', 'contributor'],
+      reviewers: ['maintainer-bob'],
+      timelinePages: [[blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.added.includes(LABELS.REVIEW_OVERDUE));
+    assert.equal(w.calls.comments.length, 1);
+    assert.match(w.calls.comments[0], /Waiting on review for 40 days/);
+    assert.match(w.calls.comments[0], /cc @maintainer-jane @maintainer-bob/);
+    assert.equal((w.calls.comments[0].match(/@contributor/g) || []).length, 1,
+      'the author is addressed by the message and must not also be cc-ed');
+  });
+});
+
+test('review overdue: measured from the waiting-on-maintainer label, not updated_at', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    // The author rebased yesterday, which refreshes updated_at without
+    // discharging the review. Our clock must keep running.
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 1,
+      createdDaysAgo: 40,
+      timelinePages: [[blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.added.includes(LABELS.REVIEW_OVERDUE));
+    assert.equal(w.calls.comments.length, 1);
+  });
+});
+
+test('review overdue: does not ping twice within one blocked period', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER, LABELS.REVIEW_OVERDUE],
+      updatedDaysAgo: 50,
+      timelinePages: [[blockedLabelEvent(50), overduePing(10)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.equal(w.calls.comments.length, 0);
+  });
+});
+
+test('review overdue: a ping predating the current block does not suppress a new one', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    // Pinged, then reviewed and unblocked, then blocked again. The new period
+    // gets its own ping — otherwise one old comment silences the PR forever.
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER, LABELS.REVIEW_OVERDUE],
+      updatedDaysAgo: 90,
+      timelinePages: [[overduePing(60), blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.equal(w.calls.comments.length, 1);
+  });
+});
+
+test('review overdue: label is dropped once the PR is no longer blocked on a maintainer', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_AUTHOR, LABELS.REVIEW_OVERDUE],
+      updatedDaysAgo: 1, // recent, so the author timer does not fire either
+      timelinePages: [[]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.ok(w.calls.removed.includes(LABELS.REVIEW_OVERDUE));
+  });
+});
+
+test('review overdue: the built-in fallback message still ccs reviewers', async () => {
+  // review_overdue_message omitted entirely. The cc is the point of the ping,
+  // so the fallback has to carry {reviewers} or a config typo silently
+  // notifies nobody.
+  const { review_overdue_message, ...stale } = STALE_CONFIG.stale;
+  await withConfig({ ...STALE_CONFIG, stale }, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 40,
+      assignees: ['maintainer-jane'],
+      timelinePages: [[blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.equal(w.calls.comments.length, 1);
+    assert.match(w.calls.comments[0], /cc @maintainer-jane/);
+  });
+});
+
+test('review overdue: decisions use post-reconcile labels, not the list snapshot', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    // The snapshot says waiting-on-author and the PR is well past the 4-day
+    // author threshold, so the pre-fix code would warn and eventually close
+    // it. But reconcile case 2 (no changes requested, tested, was blocked on
+    // the author) moves it to waiting-on-maintainer — the PR is blocked on us.
+    // Reading the snapshot after that would close a PR we owe a review on.
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_AUTHOR, LABELS.TESTED],
+      baseRef: 'main',
+      updatedDaysAgo: 10,
+      timelinePages: [[blockedLabelEvent(40)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+
+    // reconcile performed the handover...
+    assert.ok(w.calls.removed.includes(LABELS.WAITING_ON_AUTHOR));
+    assert.ok(w.calls.added.includes(LABELS.WAITING_ON_MAINTAINER));
+    // ...and the sweep acted on that, not on the stale snapshot.
+    assert.ok(!w.calls.added.includes(LABELS.STALE),
+      'a PR reconcile just handed back to the maintainers must not go stale on the author timer');
+    assert.deepEqual(w.calls.closed, []);
+  });
+});
+
+test('review overdue: a young maintainer-blocked PR is left entirely alone', async () => {
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({
+      labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
+      updatedDaysAgo: 3,
+      timelinePages: [[blockedLabelEvent(3)]],
+    });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.deepEqual(w.calls.added, []);
+    assert.equal(w.calls.comments.length, 0);
   });
 });

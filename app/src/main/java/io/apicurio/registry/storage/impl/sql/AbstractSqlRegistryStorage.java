@@ -68,6 +68,7 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -632,6 +633,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     handle.setRollback(true);
                 }
 
+                lockArtifactForVersionWrite(handle, groupId, artifactId);
                 boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
 
                 // Now create the version and return the new version metadata.
@@ -661,7 +663,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         try {
             return handles.withHandle(handle -> {
-                // Lock the artifact's versions and get current max versionOrder
+                // Lock a stable parent row before selecting the version set. Locking only existing
+                // versions lets a waiting statement miss a concurrently inserted version on PostgreSQL.
+                lockArtifactForVersionWrite(handle, groupId, artifactId);
                 Integer currentMax = handle
                         .createQuery(sqlStatements.selectMaxVersionOrderForUpdate())
                         .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Integer.class)
@@ -720,6 +724,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throws RegistryStorageException {
 
         return versionRepository.countActiveArtifactVersions(groupId, artifactId);
+    }
+
+    private void lockArtifactForVersionWrite(Handle handle,
+            String groupId, String artifactId) {
+        int count = handle.createUpdate("UPDATE artifacts SET modifiedOn = modifiedOn WHERE groupId = ? AND artifactId = ?")
+                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
+        if (count == 0) {
+            throw new ArtifactNotFoundException(groupId, artifactId);
+        }
     }
 
     @Override
@@ -927,27 +940,22 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void mergeArtifactLabels(String groupId, String artifactId, String prefix,
             Map<String, String> labels) throws RegistryStorageException {
         String normalizedGroup = normalizeGroupId(groupId);
-        handles.withHandleNoException(
-                (io.apicurio.registry.storage.impl.sql.jdb.HandleAction<RegistryStorageException>) handle -> {
-                    handle.createUpdate(sqlStatements.deleteArtifactLabelsByPrefix())
-                            .bind(0, normalizedGroup).bind(1, artifactId)
-                            .bind(2, prefix + "%").execute();
-                    for (Map.Entry<String, String> entry : labels.entrySet()) {
-                        String key = entry.getKey().toLowerCase(java.util.Locale.ROOT);
-                        if (key.length() > 256) {
-                            throw new RegistryStorageException(
-                                    "Label key exceeds maximum length (256): " + key);
-                        }
-                        handle.createUpdate(sqlStatements.insertArtifactLabel())
-                                .bind(0, normalizedGroup).bind(1, artifactId)
-                                .bind(2, key)
-                                .bind(3, limitStr(entry.getValue(), 512)).execute();
-                    }
-                    handle.createUpdate(sqlStatements.updateArtifactLabels())
-                            .bind(0, RegistryContentUtils.serializeLabels(
-                                    rebuildLabels(handle, normalizedGroup, artifactId)))
-                            .bind(1, normalizedGroup).bind(2, artifactId).execute();
-                });
+        handles.withHandleNoException(handle -> {
+            // An UPDATE locks the canonical row on every supported SQL dialect, including SQL Server.
+            // Read/merge after acquiring it so concurrent label writers cannot clobber unrelated keys.
+            int count = handle.createUpdate("UPDATE artifacts SET modifiedOn = modifiedOn WHERE groupId = ? AND artifactId = ?")
+                    .bind(0, normalizedGroup).bind(1, artifactId).execute();
+            if (count == 0) {
+                throw new ArtifactNotFoundException(groupId, artifactId);
+            }
+            var existing = artifactRepository.getArtifactMetaData(groupId, artifactId).getLabels();
+            Map<String, String> merged = existing == null ? new HashMap<>() : new HashMap<>(existing);
+            merged.keySet().removeIf(key -> key.startsWith(prefix));
+            merged.putAll(labels);
+            artifactRepository.updateArtifactMetaData(groupId, artifactId,
+                    EditableArtifactMetaDataDto.builder().labels(merged).build());
+            return null;
+        });
     }
 
     @Override
@@ -980,19 +988,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         outboxEvent.fire(SqlOutboxEvent
                 .of(ContractStatusChanged.of(groupId, artifactId, fromStatus, toStatus)));
-    }
-
-    private Map<String, String> rebuildLabels(
-            io.apicurio.registry.storage.impl.sql.jdb.Handle handle,
-            String groupId, String artifactId) {
-        Map<String, String> result = new java.util.LinkedHashMap<>();
-        handle.createQuery(sqlStatements.selectArtifactLabels())
-                .bind(0, groupId).bind(1, artifactId)
-                .map(rs -> {
-                    result.put(rs.getString("labelKey"), rs.getString("labelValue"));
-                    return null;
-                }).list();
-        return result;
     }
 
     @Override

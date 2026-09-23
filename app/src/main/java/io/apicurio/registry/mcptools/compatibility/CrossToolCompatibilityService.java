@@ -1,6 +1,7 @@
 package io.apicurio.registry.mcptools.compatibility;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.JsonSchemaDiffLibrary;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.Difference;
@@ -130,13 +131,20 @@ public class CrossToolCompatibilityService {
             return indeterminate(limitations);
         }
 
+        ObjectNode producerProjected = producer.projection().projected();
+        Optional<ObjectNode> producerRealigned = TypeAlignment.realign(producerProjected,
+                consumer.projected());
+        ObjectNode consumerProjected = TypeAlignment.realign(consumer.projected(), producerProjected)
+                .orElse(consumer.projected());
+
         Map<DifferenceKey, Difference> asWritten;
         Map<DifferenceKey, Difference> closed;
         try {
-            Schema consumerSchema = load(consumer.projected());
-            asWritten = incompatibleDifferences(producer.asWritten(), consumerSchema);
-            closed = producer.closed() == null ? asWritten
-                    : incompatibleDifferences(producer.closed(), consumerSchema);
+            Schema consumerSchema = load(consumerProjected);
+            ProducerRun run = producerRun(producer, producerRealigned);
+            asWritten = incompatibleDifferences(run.asWritten(), consumerSchema);
+            closed = run.closed() == null ? asWritten
+                    : incompatibleDifferences(run.closed(), consumerSchema);
         } catch (SchemaException | JSONException e) {
             log.debug("MCP tool inputSchema cannot be loaded for comparison", e);
             limitations.add(comparisonFailed(SchemaSide.CONSUMER, INPUT_SCHEMA_POINTER,
@@ -201,9 +209,27 @@ public class CrossToolCompatibilityService {
         return indeterminate(limitations);
     }
 
+    /**
+     * The producer schemas to compare with one consumer. The schemas loaded when the producer was
+     * prepared are reused unless that consumer's unions require the producer to be written the
+     * same way.
+     */
+    private ProducerRun producerRun(PreparedProducer producer, Optional<ObjectNode> realigned) {
+        if (realigned.isEmpty()) {
+            return new ProducerRun(producer.asWritten(), producer.closed());
+        }
+        ObjectNode projected = realigned.get();
+        Schema closed = producer.projection().closable()
+                ? load(SchemaProjection.closed(projected))
+                : null;
+        return new ProducerRun(load(projected), closed);
+    }
+
     private Optional<Boolean> accepts(JsonNode emitted, JsonNode accepted) {
         try {
-            return Optional.of(incompatibleDifferences(load(emitted), load(accepted)).isEmpty());
+            return Optional.of(incompatibleDifferences(
+                    load(TypeAlignment.realignSubschema(emitted, accepted)),
+                    load(TypeAlignment.realignSubschema(accepted, emitted))).isEmpty());
         } catch (SchemaException | JSONException | IllegalStateException e) {
             return Optional.empty();
         }
@@ -260,5 +286,8 @@ public class CrossToolCompatibilityService {
     }
 
     private record DifferenceKey(DiffType type, String path, String updated) {
+    }
+
+    private record ProducerRun(Schema asWritten, Schema closed) {
     }
 }

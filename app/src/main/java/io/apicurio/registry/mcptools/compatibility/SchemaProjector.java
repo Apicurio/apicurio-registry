@@ -1,6 +1,7 @@
 package io.apicurio.registry.mcptools.compatibility;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.networknt.schema.SpecVersionDetector;
@@ -13,7 +14,9 @@ import java.util.Set;
 /**
  * Builds the draft-07 projection of a tool schema that the comparison engine evaluates. Keywords
  * outside the evaluated set are removed and recorded as limitations on the node that carries
- * them, so the keywords that remain mean the same thing in every supported dialect.
+ * them, so the keywords that remain mean the same thing in every supported dialect. The one
+ * keyword removed without a limitation is {@code format} on the producer, which cannot change a
+ * verdict while no evaluated consumer keyword constrains the contents of a value.
  */
 final class SchemaProjector {
 
@@ -23,6 +26,9 @@ final class SchemaProjector {
     static final String ADDITIONAL_PROPERTIES = "additionalProperties";
 
     private static final String SCHEMA = "$schema";
+    private static final String FORMAT = "format";
+    private static final String NUMBER = "number";
+    private static final String INTEGER = "integer";
 
     private static final Set<String> NON_SEMANTIC = Set.of("title", "description", "default",
             "examples", "$comment");
@@ -71,7 +77,11 @@ final class SchemaProjector {
                 case REQUIRED -> projected.set(REQUIRED, value);
                 case ADDITIONAL_PROPERTIES -> projected.set(ADDITIONAL_PROPERTIES,
                         projectSubschema(value, pointer, side, limitations));
-                default -> limitations.add(unsupportedKeyword(side, base, pointer, keyword));
+                default -> {
+                    if (!droppedFromProducer(side, keyword)) {
+                        limitations.add(unsupportedKeyword(side, base, pointer, keyword));
+                    }
+                }
             }
         }
         return new SchemaProjection(side, base, schema, projected, limitations);
@@ -103,11 +113,11 @@ final class SchemaProjector {
             String keyword = field.getKey();
             String pointer = JsonPointers.append(node, keyword);
             if (TYPE.equals(keyword)) {
-                projectType(field.getValue(), node, pointer, side, projected, limitations);
+                projectPropertyType(field.getValue(), node, pointer, side, projected, limitations);
             } else if (NESTED_STRUCTURE.contains(keyword)) {
                 limitations.add(new CompatibilityLimitation(LimitationCode.DEPTH_LIMIT_REACHED, side,
                         node, pointer, "Nested '" + keyword + "' is not evaluated yet"));
-            } else if (!NON_SEMANTIC.contains(keyword)) {
+            } else if (!NON_SEMANTIC.contains(keyword) && !droppedFromProducer(side, keyword)) {
                 limitations.add(unsupportedKeyword(side, node, pointer, keyword));
             }
         }
@@ -122,6 +132,59 @@ final class SchemaProjector {
         } else {
             projected.set(TYPE, type);
         }
+    }
+
+    /**
+     * Reduces a property's union to the types it accepts: duplicates are dropped, and
+     * {@code integer} is dropped beside {@code number} because every integer is a number. A union
+     * left with one type is written as that type, so that two properties accepting the same values
+     * are written the same way. A list that does not name types is not evaluated; a {@code type}
+     * that is neither a list nor a name is left for the engine to reject.
+     */
+    private static void projectPropertyType(JsonNode type, String node, String pointer, SchemaSide side,
+            ObjectNode projected, List<CompatibilityLimitation> limitations) {
+        if (!type.isArray()) {
+            projected.set(TYPE, type);
+            return;
+        }
+        List<String> names = new ArrayList<>();
+        for (JsonNode entry : type) {
+            if (!entry.isTextual()) {
+                limitations.add(unnamedTypes(side, node, pointer));
+                return;
+            }
+            if (!names.contains(entry.textValue())) {
+                names.add(entry.textValue());
+            }
+        }
+        if (names.isEmpty()) {
+            limitations.add(unnamedTypes(side, node, pointer));
+            return;
+        }
+        if (names.contains(NUMBER)) {
+            names.remove(INTEGER);
+        }
+        if (names.size() == 1) {
+            projected.put(TYPE, names.get(0));
+        } else {
+            ArrayNode union = projected.putArray(TYPE);
+            names.forEach(union::add);
+        }
+    }
+
+    /**
+     * {@code format} on the producer only narrows what it emits, and no evaluated consumer keyword
+     * constrains the contents of a value, so dropping it cannot turn an incompatible pair into a
+     * compatible one. It becomes a limitation again as soon as a keyword such as {@code pattern}
+     * is evaluated.
+     */
+    private static boolean droppedFromProducer(SchemaSide side, String keyword) {
+        return side == SchemaSide.PRODUCER && FORMAT.equals(keyword);
+    }
+
+    private static CompatibilityLimitation unnamedTypes(SchemaSide side, String node, String pointer) {
+        return new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, side, node, pointer,
+                "'type' does not list type names");
     }
 
     private static CompatibilityLimitation unsupportedKeyword(SchemaSide side, String node,

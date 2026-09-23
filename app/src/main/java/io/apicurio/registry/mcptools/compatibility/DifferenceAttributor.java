@@ -27,6 +27,7 @@ final class DifferenceAttributor {
     private static final String ENGINE_PROPERTIES_ONLY_IN_CONSUMER = "/propertySchemasAdded";
     private static final String ENGINE_PROPERTY_PREFIX = "/properties/";
     private static final String ENGINE_TYPE_SUFFIX = "/type";
+    private static final String ENGINE_UNION_SIZE_SUFFIX = "/[size]";
 
     private final SchemaProjection producer;
     private final SchemaProjection consumer;
@@ -85,12 +86,19 @@ final class DifferenceAttributor {
                 "The producer may emit undeclared properties that the consumer does not accept")));
     }
 
+    /**
+     * The engine reports only that the producer declares properties the consumer does not, so each
+     * one is judged against the consumer's {@code additionalProperties}. The difference is
+     * attributed once one of them has been judged, whether or not any was rejected: the engine
+     * also reports this difference when the two sides merely write the same values differently.
+     */
     private Optional<List<CompatibilityReason>> propertiesOnlyInProducer() {
         JsonNode consumerAdditional = consumer.additionalProperties();
         if (consumerAdditional == null) {
             return Optional.empty();
         }
         List<CompatibilityReason> reasons = new ArrayList<>();
+        boolean judged = false;
         for (String name : producer.propertyNames()) {
             JsonNode emitted = producer.projectedProperty(name);
             if (consumer.declaresProperty(name) || BooleanNode.FALSE.equals(emitted)) {
@@ -102,13 +110,14 @@ final class DifferenceAttributor {
             if (accepted.isEmpty()) {
                 return Optional.empty();
             }
+            judged = true;
             if (!accepted.get()) {
                 reasons.add(new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
                         producer.propertyPointer(name), consumer.additionalPropertiesPointer(),
                         "The producer may emit '" + name + "', which the consumer does not accept"));
             }
         }
-        return reasons.isEmpty() ? Optional.empty() : Optional.of(reasons);
+        return judged ? Optional.of(reasons) : Optional.empty();
     }
 
     private Optional<List<CompatibilityReason>> propertiesOnlyInConsumer() {
@@ -118,6 +127,7 @@ final class DifferenceAttributor {
             return Optional.empty();
         }
         List<CompatibilityReason> reasons = new ArrayList<>();
+        boolean judged = false;
         for (String name : consumer.propertyNames()) {
             if (producer.declaresProperty(name)) {
                 continue;
@@ -126,20 +136,26 @@ final class DifferenceAttributor {
             if (accepted.isEmpty()) {
                 return Optional.empty();
             }
+            judged = true;
             if (!accepted.get()) {
                 reasons.add(new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
                         producer.additionalPropertiesPointer(), consumer.propertyTypePointer(name),
                         "The producer may emit '" + name + "' with a value the consumer does not accept"));
             }
         }
-        return reasons.isEmpty() ? Optional.empty() : Optional.of(reasons);
+        return judged ? Optional.of(reasons) : Optional.empty();
     }
 
+    /**
+     * A union mismatch is reported either on the property itself or on the size of the union, so
+     * both forms name the same property.
+     */
     private Optional<List<CompatibilityReason>> propertyInBoth(String path) {
         List<String> matches = consumer.propertyNames().stream()
                 .filter(producer::declaresProperty)
                 .filter(name -> path.equals(ENGINE_PROPERTY_PREFIX + name)
-                        || path.equals(ENGINE_PROPERTY_PREFIX + name + ENGINE_TYPE_SUFFIX))
+                        || path.equals(ENGINE_PROPERTY_PREFIX + name + ENGINE_TYPE_SUFFIX)
+                        || path.equals(ENGINE_PROPERTY_PREFIX + name + ENGINE_UNION_SIZE_SUFFIX))
                 .toList();
         if (matches.size() != 1) {
             return Optional.empty();

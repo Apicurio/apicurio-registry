@@ -75,13 +75,74 @@ class SchemaProjectorTest {
     }
 
     @Test
-    void testTypeGivenAsArrayIsRemoved() {
+    void testRootTypeGivenAsArrayIsRemoved() {
         SchemaProjection projection = project("{'type':['object','null'],'properties':{"
-                + "'a':{'type':['string']}}}");
+                + "'a':{'type':'string'}}}");
 
-        assertEquals(json("{'properties':{'a':{}}}"), projection.projected());
-        assertEquals(List.of("/inputSchema/type", "/inputSchema/properties/a/type"),
-                projection.limitations().stream().map(CompatibilityLimitation::pointer).toList());
+        assertEquals(json("{'properties':{'a':{'type':'string'}}}"), projection.projected());
+        assertEquals(List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD,
+                SchemaSide.CONSUMER, "/inputSchema", "/inputSchema/type",
+                "'type' given as an array is not evaluated yet")), projection.limitations());
+    }
+
+    @Test
+    void testPropertyUnionKeepsTheTypesItAccepts() {
+        SchemaProjection projection = project("{'type':'object','properties':{"
+                + "'a':{'type':['string','null']},'b':{'type':['string','string','null']},"
+                + "'c':{'type':['null','string']}}}");
+
+        assertEquals(json("{'type':'object','properties':{'a':{'type':['string','null']},"
+                + "'b':{'type':['string','null']},'c':{'type':['null','string']}}}"),
+                projection.projected());
+        assertTrue(projection.limitations().isEmpty());
+    }
+
+    @Test
+    void testPropertyUnionOfOneTypeIsWrittenAsThatType() {
+        SchemaProjection projection = project("{'type':'object','properties':{'a':{'type':['string']},"
+                + "'b':{'type':['integer','number']},'c':{'type':['number','integer','null']}}}");
+
+        assertEquals(json("{'type':'object','properties':{'a':{'type':'string'},'b':{'type':'number'},"
+                + "'c':{'type':['number','null']}}}"), projection.projected());
+        assertTrue(projection.limitations().isEmpty());
+    }
+
+    @Test
+    void testPropertyTypeThatNamesNoTypeIsLimitation() {
+        SchemaProjection projection = project("{'type':'object','properties':{'a':{'type':[]},"
+                + "'b':{'type':['string',7]}}}");
+
+        assertEquals(json("{'type':'object','properties':{'a':{},'b':{}}}"), projection.projected());
+        assertEquals(List.of(
+                new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.CONSUMER,
+                        "/inputSchema/properties/a", "/inputSchema/properties/a/type",
+                        "'type' does not list type names"),
+                new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.CONSUMER,
+                        "/inputSchema/properties/b", "/inputSchema/properties/b/type",
+                        "'type' does not list type names")), projection.limitations());
+    }
+
+    @Test
+    void testProducerFormatIsRemovedWithoutLimitation() {
+        SchemaProjection projection = SchemaProjector.project(
+                json("{'type':'object','format':'x','properties':{'a':{'type':'string','format':'email'}}}"),
+                "/outputSchema", SchemaSide.PRODUCER);
+
+        assertEquals(json("{'type':'object','properties':{'a':{'type':'string'}}}"),
+                projection.projected());
+        assertTrue(projection.limitations().isEmpty());
+    }
+
+    @Test
+    void testConsumerFormatStaysLimitation() {
+        SchemaProjection projection = project(
+                "{'type':'object','properties':{'a':{'type':'string','format':'email'}}}");
+
+        assertEquals(json("{'type':'object','properties':{'a':{'type':'string'}}}"),
+                projection.projected());
+        assertEquals(List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD,
+                SchemaSide.CONSUMER, "/inputSchema/properties/a", "/inputSchema/properties/a/format",
+                "'format' is not evaluated yet")), projection.limitations());
     }
 
     @Test

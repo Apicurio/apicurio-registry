@@ -46,9 +46,10 @@ public class JsonSchemaCheckerContractTest {
      * This is the only path through {@code RegistryResourceResolver}, and the catalogue cannot
      * reach it.
      * <p>
-     * Replacing an {@code integer} property with a reference to a {@code string} schema is
-     * incompatible, but only if the reference is actually followed — a checker ignoring the
-     * supplied map would have nothing to compare and could not reach that verdict.
+     * The two halves use identical schemas and differ only in what the map holds, so the verdict
+     * can only have come from the map. Asserting the incompatible half on its own would also be
+     * satisfied by an implementation that rejects every external {@code $ref} without resolving
+     * anything.
      */
     @ParameterizedTest(name = "{0}")
     @MethodSource("checkers")
@@ -68,12 +69,20 @@ public class JsonSchemaCheckerContractTest {
                 }
                 """;
 
-        var result = checker.testCompatibility(CompatibilityLevel.BACKWARD, List.of(json(existing)),
+        var matching = checker.testCompatibility(CompatibilityLevel.BACKWARD, List.of(json(existing)),
+                json(proposed), Collections.singletonMap("address.json", json("""
+                        { "type": "integer" }
+                        """)));
+
+        assertTrue(matching.isCompatible(),
+                "Resolving to the type the property already had leaves nothing incompatible");
+
+        var differing = checker.testCompatibility(CompatibilityLevel.BACKWARD, List.of(json(existing)),
                 json(proposed), Collections.singletonMap("address.json", json("""
                         { "type": "string" }
                         """)));
 
-        assertFalse(result.isCompatible(),
+        assertFalse(differing.isCompatible(),
                 "The supplied reference should be followed, making integer -> string visible");
     }
 

@@ -79,6 +79,25 @@ public class JsonSchemaCompatibilityLevelTest {
             }
             """;
 
+    private static final String ENUM_A = """
+            {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "enum": ["a"]
+            }
+            """;
+
+    /**
+     * The same value set as {@link #ENUM_AB} with an annotation added, so that it is not literally
+     * the newest version and cannot be short-circuited as unchanged.
+     */
+    private static final String ENUM_AB_ANNOTATED = """
+            {
+              "$schema": "http://json-schema.org/draft-07/schema#",
+              "description": "same values, new wording",
+              "enum": ["a", "b"]
+            }
+            """;
+
     private static TypedContent content(String schema) {
         return TypedContent.create(ContentHandle.create(schema), ContentTypes.APPLICATION_JSON);
     }
@@ -149,12 +168,43 @@ public class JsonSchemaCompatibilityLevelTest {
                 "Against the oldest version it also removes enum member 'c'");
     }
 
-    /** FULL_TRANSITIVE must fail when either direction fails against any existing version. */
+    /**
+     * The forward mirror of the case above, and the one that pins the transitive fold on the
+     * forward side.
+     * <p>
+     * The proposal permits {@code a} and {@code b}, exactly what the newest version permits, so it
+     * is forward compatible with it. The version before that permitted only {@code a}, and cannot
+     * read a {@code b}. An implementation treating FORWARD_TRANSITIVE as plain FORWARD sees only
+     * the newest version and passes.
+     */
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("checkers")
+    void forwardTransitiveSeesOlderVersionsThatForwardMisses(CompatibilityChecker checker) {
+        List<String> versions = List.of(ENUM_A, ENUM_AB); // newest last
+
+        assertTrue(check(checker, CompatibilityLevel.FORWARD, versions, ENUM_AB_ANNOTATED),
+                "The proposal permits exactly what the newest version permits");
+        assertFalse(check(checker, CompatibilityLevel.FORWARD_TRANSITIVE, versions, ENUM_AB_ANNOTATED),
+                "The oldest version permits only 'a' and cannot read a 'b'");
+    }
+
+    /**
+     * FULL_TRANSITIVE must fail when either direction fails against any existing version, so it
+     * needs a case per direction — one where only the backward side fails, and one where only the
+     * forward side does. Without the second, an implementation that dropped the forward half
+     * entirely would still pass.
+     */
     @ParameterizedTest(name = "{0}")
     @MethodSource("checkers")
     void fullTransitiveUnionsBothDirectionsAcrossAllVersions(CompatibilityChecker checker) {
         assertFalse(check(checker, CompatibilityLevel.FULL_TRANSITIVE, List.of(ENUM_ABC, ENUM_AB),
-                ENUM_ABD), "FULL_TRANSITIVE should fail when any version fails in any direction");
+                ENUM_ABD), "FULL_TRANSITIVE should fail on the backward side here");
+
+        List<String> forwardBreaking = List.of(ENUM_A, ENUM_AB);
+        assertTrue(check(checker, CompatibilityLevel.FULL, forwardBreaking, ENUM_AB_ANNOTATED),
+                "Against the newest version alone both directions hold");
+        assertFalse(check(checker, CompatibilityLevel.FULL_TRANSITIVE, forwardBreaking, ENUM_AB_ANNOTATED),
+                "FULL_TRANSITIVE should fail on the forward side here, which FULL cannot see");
     }
 
     /** Transitive levels degenerate to their non-transitive form for a single existing version. */

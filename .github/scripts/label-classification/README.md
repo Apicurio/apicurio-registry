@@ -105,7 +105,7 @@ The key technique is **sentence embeddings** — converting text into a vector (
    - `1.0` = identical meaning, `0.0` = unrelated, `-1.0` = opposite
    - In practice, scores for this model range from `-0.1` to `0.6`
 
-4. Labels scoring above their threshold are assigned (up to 4). Issue type works the same way but is single-select, and only set if the issue doesn't already have one.
+4. Labels scoring above their threshold are assigned (up to 4, preferring the most nested — see [Hierarchical Labels](#hierarchical-labels)). Issue type works the same way but is single-select, and only set if the issue doesn't already have one.
 
 ### Example
 
@@ -167,7 +167,33 @@ The model is **not** being trained or fine-tuned. It's used as-is — all the "l
 
 ### Hierarchical Labels
 
-Some labels have parent-child relationships (e.g. `area/storage/sql` → `area/storage`). When a child label is assigned, the parent is automatically added too. This is configured via the `parent` field in `label-descriptions.yml`.
+Labels nest **by name**: `area/storage/sql` is a child of `area/storage` because that is the longest configured label its name extends by whole `/` segments. There is no `parent:` key to keep in sync — the hierarchy is exactly the one visible on GitHub. A config test requires every nested label's immediate parent to be configured, so a child can never be orphaned: whenever the parent is the best fit, it is there to be picked on its own.
+
+Nesting affects selection in two ways:
+
+- **A pick brings its ancestors along, free.** Choosing `area/artifact-types/avro` applies `area/artifact-types` too, without spending a second `max_labels` slot.
+- **The more nested label wins.** Candidates are taken strongest first. A child that clears its own threshold *replaces* an ancestor already picked rather than sitting beside it, and a parent whose child is already picked is skipped as implied. So `area/storage` + `area/storage/sql` costs one slot, not two.
+
+A child still has to clear **its own** threshold — a strong `area/AI` score does not make an issue `area/AI/MCP`. The consequence for description writing: a parent's description should hold what the whole family has in common, and anything specific to one child belongs in that child.
+
+#### Why a child is not gated on its parent's score
+
+It is tempting to add a second guard: only let a child replace its parent if it fits the text about as well as the parent does, so that a PR touching some *new* REST API does not land on `area/rest/ccompat` just because it is REST-shaped. That was measured, on 234 PRs (changed paths as ground truth) and 1000 issues (title keywords as ground truth), across every child label that ground truth can be derived for:
+
+| Rule | PR P / R / F1 | Issue P / R / F1 |
+|---|---|---|
+| no gate (shipped) | 41% / 67% / 0.51 | 34% / 75% / 0.47 |
+| child score ≥ parent − 0.05 | 41% / 62% / 0.50 | 37% / 73% / 0.49 |
+| child score ≥ parent | 41% / 54% / 0.47 | 40% / 71% / 0.51 |
+| child margin over threshold ≥ parent's | 43% / 50% / 0.46 | 41% / 69% / 0.52 |
+
+Every gate trades recall for precision roughly one-for-one. The reason is visible in the misfires themselves: a child is almost never wrong *because its parent was a better fit* — in most of them the parent scores far below the child. They are wrong because the child's own description overlaps some other label's vocabulary. `area/rest/ccompat` used to say "Confluent Schema Registry *compatible* API" and "ccompat *compatibility* mode", and so matched every issue about compatibility *rules*, while `area/rest` scored 0.2–0.3 on the same text. The fix was the description, not a gate.
+
+So when a child fires where it should not, look for the shared word before reaching for a threshold.
+
+#### Don't open a description with "Apicurio Registry"
+
+Almost every PR body and a good share of issues contain that phrase, so a description that starts with it matches almost everything. `area/converter` and `area/maven-plugin` both did, and were being applied to 184 and 109 of the last 1000 issues respectively — at roughly 1–3% precision. With the phrase removed (and thresholds re-fitted) those figures are 11 and 31.
 
 ## Tuning Accuracy
 
@@ -175,7 +201,7 @@ The main lever is **editing label descriptions** in `label-descriptions.yml`:
 
 - Adding keywords that appear in issues for an area improves recall (fewer misses)
 - Making descriptions more specific improves precision (fewer false positives)
-- Each label can have its own `threshold` override — useful because broad labels (storage, rest, auth) naturally score lower than specific ones (lakehouse, serdes)
+- Each label can have its own `threshold` override — useful because broad labels (storage, rest, auth) naturally score lower than specific ones (rest/iceberg, serdes)
 
 Descriptions don't need to be grammatical sentences — keyword lists work well.
 
@@ -195,6 +221,14 @@ Descriptions don't need to be grammatical sentences — keyword lists work well.
 That is a deliberate starting point, not a verified one. On the 40-PR sample above, the shipped layout assigns **2.92 labels per PR** and puts 10 of 40 at the 4-label cap — noticeably hotter than issue labelling. Some of that is genuine (PRs really do span more areas than issues), some is not: a CI-only PR picking up `area/storage/sql` from workflow files that merely *name* storage shards is a false positive the thresholds should have caught.
 
 Once enough PRs have been labelled — and corrected — by hand to form a ground truth, re-tune, and add PR-specific threshold overrides to `label-descriptions.yml` if the two distributions turn out to need different numbers. Lowering `max_labels` for PRs is the other obvious lever.
+
+#### Changed paths as ground truth
+
+Until hand-labelled PRs exist, many labels have a better PR ground truth than any human: the files the PR touched. A PR that changes `storage/impl/kafkasql/` is `area/storage/kafkasql`; one that changes `ui/ui-editors/` is `area/ui/editors`. The thresholds of the labels added in the 2026-09 taxonomy revision were fitted that way — changed paths for 234 merged PRs, title keywords for 1000 issues, keeping a value only if it held on both, because a threshold is shared by the two.
+
+It is a proxy with known blind spots: incidental touches count as positives (a refactor that brushes one `schema-util/` file), and labels with no path of their own (`area/security`, `area/performance` beyond the perf-test modules) can only be checked against issue titles. Treat the fitted values as a better starting point than the issue-tuned defaults, not as final.
+
+The same measurement showed several **existing** labels running far hotter on PRs than on issues — `area/CLI`, `area/storage/sql` and `area/storage/gitops` at 17–25% precision on PRs. Those were left alone: they are tuned for issue recall, and lowering their PR noise is the PR-specific-override job described above.
 
 ## Measuring Accuracy
 
@@ -266,6 +300,22 @@ Key observations:
 - Broad labels (storage, rest, auth) needed per-label threshold overrides (lowered to 0.20–0.25)
 - Labels with very few issues (AI, converter) have unreliable scores due to small sample size
 - Some "false positives" are likely correct predictions where the human forgot to add the label
+
+Label names above are as they were then. Since the 2026-09 revision: `avro` → `artifact-types/avro`, `protobuf` → `artifact-types/protobuf`, `converter` → `serdes/converter`, `caching` → `performance/caching`, `lakehouse` → `rest/iceberg`. The `maven-plugin` and `converter` figures above also predate the finding that their descriptions matched almost everything (see *Don't open a description with "Apicurio Registry"*).
+
+### 2026-09 taxonomy revision
+
+Added 5 labels that already existed on GitHub but were never classifiable (`storage/kafkasql`, `AI/MCP`, `rules/compatibility`, `sdk/java`, `sdk/python`), 13 new ones, nesting from label names, and nested-label preference. Measured on the same data before and after:
+
+| | before | after |
+|---|---|---|
+| PR: label implied by the commit scope assigned (143 PRs whose scope maps to a label in both) | 78% | 80% (81% counting a parent match) |
+| PR: most specific labels per PR (avg) | 2.40 | 2.60 |
+| PR: all labels per PR, parents included (avg) | 2.55 | 3.27 |
+| Issues with no `area/*` label today that would get one (of 104) | 20 | 56 |
+| `area/ai-agents` issues that get `area/AI` (of 46) | 38 | 45 — 30 as `AI/A2A`, 14 `AI/MCP`, 4 `AI/prompt-templates` |
+
+The rise in labels per PR is mostly parents that nesting now implies (a child plus its parent where there used to be one flat label), not extra areas. The cap is hit more often (59 of 155 PRs, from 44), which is the next thing to look at if PR labelling feels noisy.
 
 ## Files
 

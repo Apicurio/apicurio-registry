@@ -189,6 +189,28 @@ test('area/CI: who is assigned does not change who gets pinged', async () => {
   });
 });
 
+test('area/CI: a label nested under it is restricted too, even on its own', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'] }, async () => {
+    // Added by hand, without the parent the classifier would have applied.
+    const w = makeWorld({ labels: ['area/CI/automation'] });
+    await run(w, '/assign-me', 'contributor');
+
+    assert.deepEqual(w.calls.assigned, []);
+    assert.equal(w.calls.comments.length, 1);
+    assert.match(w.calls.comments[0], /`area\/CI\/automation`/);
+    assert.match(w.calls.comments[0], /not available for self-assignment/);
+  });
+});
+
+test('area/CI: a label that merely shares the prefix string is not restricted', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'] }, async () => {
+    const w = makeWorld({ labels: ['area/CIA'] });
+    await run(w, '/assign-me', 'contributor');
+
+    assert.deepEqual(w.calls.assigned, ['contributor']);
+  });
+});
+
 test('area/CI: the refusal names the label rather than a hardcoded area', async () => {
   await withConfig({ maintainers: [] }, async () => {
     const w = makeWorld({ labels: ['area/CI'] });

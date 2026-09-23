@@ -48,10 +48,6 @@ PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
 # Auto-derive channel from version (e.g., 3.2.1 -> 3.2.x, 3.3.0-snapshot -> 3.3.x)
 CHANNEL ?= $(shell echo "$(LC_VERSION)" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
 PREVIOUS_CHANNEL ?= $(shell echo "$(PREVIOUS_PACKAGE_VERSION)" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
-# The minor channel from the version before this release. Passed by CI when a cross-minor
-# release happens (e.g., OLD_PREVIOUS_CHANNEL=3.2.x when releasing 3.3.0 after 3.2.x).
-# Used by release-catalog-template-update to finalize the old minor channel.
-OLD_PREVIOUS_CHANNEL ?=
 
 # Pass ROLLING_CHANNEL=3.x from CI when releasing from main to include the rolling channel.
 # Maintenance branch releases omit it, so the bundle only goes in the minor channel.
@@ -219,6 +215,23 @@ define target_dir
 endef
 
 
+# Registries (e.g. quay.io) occasionally return transient 5xx errors on push.
+# Retry a few times with a short backoff instead of failing the whole job.
+define docker_push_retry
+    @{ \
+		for i in 1 2 3; do \
+			docker push $(1) && break; \
+			if [ $$i -eq 3 ]; then \
+				echo "docker push $(1) failed after 3 attempts"; \
+				exit 1; \
+			fi; \
+			echo "docker push $(1) failed (attempt $$i/3), retrying..."; \
+			sleep 5; \
+		done; \
+	}
+endef
+
+
 OPERATOR_SDK_VERSION ?= 1.37.0
 OPERATOR_SDK = $(shell pwd)/target/bin/operator-sdk
 .PHONY: install-operator-sdk
@@ -316,21 +329,31 @@ endif
 
 .PHONY: image-push
 image-push: ## TODO
-	docker push $(IMAGE)
+	$(call docker_push_retry,$(IMAGE))
 ifneq ($(ADDITIONAL_IMAGE),)
 ifneq ($(ADDITIONAL_IMAGE_TAG),)
-	docker push $(ADDITIONAL_IMAGE)
+	$(call docker_push_retry,$(ADDITIONAL_IMAGE))
 endif
 endif
 
 
 .PHONY: image-buildx-push
 image-buildx-push: ## Build and push a multi-arch operator image
-	docker buildx build --push -f controller/src/main/docker/Dockerfile.jvm \
-		--platform $(IMAGE_PLATFORMS) \
-		-t $(IMAGE) \
-		$(if $(and $(ADDITIONAL_IMAGE),$(ADDITIONAL_IMAGE_TAG)),-t $(ADDITIONAL_IMAGE),) \
-		controller/target
+	@{ \
+		for i in 1 2 3; do \
+			docker buildx build --push -f controller/src/main/docker/Dockerfile.jvm \
+				--platform $(IMAGE_PLATFORMS) \
+				-t $(IMAGE) \
+				$(if $(and $(ADDITIONAL_IMAGE),$(ADDITIONAL_IMAGE_TAG)),-t $(ADDITIONAL_IMAGE),) \
+				controller/target && break; \
+			if [ $$i -eq 3 ]; then \
+				echo "docker buildx build --push failed after 3 attempts"; \
+				exit 1; \
+			fi; \
+			echo "docker buildx build --push failed (attempt $$i/3), retrying..."; \
+			sleep 5; \
+		done; \
+	}
 
 
 .PHONY: image
@@ -423,10 +446,10 @@ endif
 
 .PHONY: bundle-image-push
 bundle-image-push: ## TODO
-	docker push $(BUNDLE_IMAGE)
+	$(call docker_push_retry,$(BUNDLE_IMAGE))
 ifneq ($(ADDITIONAL_BUNDLE_IMAGE),)
 ifneq ($(ADDITIONAL_BUNDLE_TAG),)
-	docker push $(ADDITIONAL_BUNDLE_IMAGE)
+	$(call docker_push_retry,$(ADDITIONAL_BUNDLE_IMAGE))
 endif
 endif
 
@@ -436,11 +459,13 @@ bundle: bundle-build bundle-image-build bundle-image-push ## TODO
 
 
 .PHONY: catalog-build
-catalog-build: install-opm ## TODO
+catalog-build: install-opm install-yq ## TODO
 	$(call target_dir,$(CATALOG_TARGET_DIR))
 	# Create catalog.yaml
 	mkdir -p $(CATALOG_TARGET_DIR)/configs
-	cat $(CATALOG_DIR)/catalog.template.yaml | envsubst >$(CATALOG_TARGET_DIR)/catalog.yaml
+	cp $(CATALOG_DIR)/catalog.template.yaml $(CATALOG_TARGET_DIR)/catalog.template.yaml
+	YQ=$(YQ) bash scripts/catalog-channels.sh $(CATALOG_TARGET_DIR)/catalog.template.yaml $(CHANNEL)
+	cat $(CATALOG_TARGET_DIR)/catalog.template.yaml | envsubst >$(CATALOG_TARGET_DIR)/catalog.yaml
 	# Build
 	cd $(CATALOG_TARGET_DIR) && $(OPM) alpha render-template basic catalog.yaml --output=yaml >configs/index.yaml
 	cd $(CATALOG_TARGET_DIR) && $(OPM) generate dockerfile configs
@@ -460,10 +485,10 @@ endif
 
 .PHONY: catalog-image-push
 catalog-image-push: ## TODO
-	docker push $(CATALOG_IMAGE)
+	$(call docker_push_retry,$(CATALOG_IMAGE))
 ifneq ($(ADDITIONAL_CATALOG_IMAGE),)
 ifneq ($(ADDITIONAL_CATALOG_IMAGE_TAG),)
-	docker push $(ADDITIONAL_CATALOG_IMAGE)
+	$(call docker_push_retry,$(ADDITIONAL_CATALOG_IMAGE))
 endif
 endif
 
@@ -533,29 +558,10 @@ endif
 
 .PHONY: release-catalog-template-update
 release-catalog-template-update: install-yq
-	# Update 3.x rolling channel: replace placeholder with released version, add new placeholder
-	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml
-	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml
-	# Finalize old minor channel if this is a cross-minor release.
-	# OLD_PREVIOUS_CHANNEL is passed by CI when the previous release was on a different minor.
-ifdef OLD_PREVIOUS_CHANNEL
-	@echo "Finalizing old $(OLD_PREVIOUS_CHANNEL) channel: replacing placeholder with last entry"
-	$(YQ) 'del(.entries[] | select(.schema == "olm.channel") | select(.name == "$(OLD_PREVIOUS_CHANNEL)") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}"))' -i $(CATALOG_DIR)/catalog.template.yaml
-endif
-	# Update minor-version channel (CHANNEL and PREVIOUS_CHANNEL are always the same minor here)
-	@if $(YQ) -e '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)"))' $(CATALOG_DIR)/catalog.template.yaml > /dev/null 2>&1; then \
-		echo "Updating existing $(CHANNEL) channel: replacing placeholder with $(PREVIOUS_PACKAGE)"; \
-		$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml; \
-		echo "Adding new placeholder to $(CHANNEL) channel"; \
-		$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml; \
-	else \
-		echo "Creating new $(CHANNEL) channel with $(PREVIOUS_PACKAGE)"; \
-		$(YQ) '.entries |= . + [{"schema": "olm.channel", "package": "$${PLACEHOLDER_PACKAGE_NAME}", "name": "$(CHANNEL)", "entries": [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}, {"name": "$(PREVIOUS_PACKAGE)"}]}]' -i $(CATALOG_DIR)/catalog.template.yaml; \
-	fi
+	# PREVIOUS_CHANNEL describes the release; CHANNEL describes the next development version.
+	YQ=$(YQ) bash scripts/catalog-channels.sh $(CATALOG_DIR)/catalog.template.yaml $(CHANNEL) $(PREVIOUS_PACKAGE) $(PREVIOUS_CHANNEL) $(PREVIOUS_BUNDLE_IMAGE)
 	# Update defaultChannel to the current channel
 	$(YQ) '(.entries[] | select(.schema == "olm.package")).defaultChannel = "$${PLACEHOLDER_CHANNEL}"' -i $(CATALOG_DIR)/catalog.template.yaml
-	# Add bundle image for the released version
-	$(YQ) '.entries |= . + [{"schema": "olm.bundle", "image": "$(PREVIOUS_BUNDLE_IMAGE)"}]' -i $(CATALOG_DIR)/catalog.template.yaml
 
 
 .PHONY: dev

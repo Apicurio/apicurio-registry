@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.3.4-SNAPSHOT</version>
+    <version>3.4.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -596,9 +596,8 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <groups>${groups}</groups>
-          <!-- Fork count is overridable per CI shard with -Dsurefire.forkCount=N (e.g. the
-               app-rest-v3 shard uses 2). Quarkus tests boot on random ports, so concurrent
-               forks do not collide. Default stays 1 for local runs. -->
+          <!-- Keep Quarkus tests in one fork: random HTTP ports do not isolate the
+               test-class Jandex index that concurrent forks write in target/. -->
           <forkCount>${surefire.forkCount}</forkCount>
           <!-- This, not MAVEN_OPTS, is the heap the tests actually run in: surefire forks a JVM and
                MAVEN_OPTS only sizes the Maven process that spawns it. Override per CI shard with

@@ -12,7 +12,7 @@ answers many common questions.
 
 | What you need | Where to go |
 |---|---|
-| Ask a usage or "how do I..." question | The [#apicurio channel on CNCF Slack](https://cloud-native.slack.com/archives/C0BDWTC1DTM) for a quick chat, or [GitHub Discussions -> Q&A](https://github.com/Apicurio/apicurio-registry/discussions/categories/q-a) so the answer stays searchable |
+| Ask a usage or "how do I..." question | The [#apicurio-registry channel on CNCF Slack](https://cloud-native.slack.com/archives/C0BDWTC1DTM) for a quick chat, or [GitHub Discussions -> Q&A](https://github.com/Apicurio/apicurio-registry/discussions/categories/q-a) so the answer stays searchable |
 | Report a bug | [Open an issue](https://github.com/Apicurio/apicurio-registry/issues/new/choose) using the **Bug report** template |
 | Propose or discuss a feature or idea | Float it in [GitHub Discussions -> Ideas](https://github.com/Apicurio/apicurio-registry/discussions/categories/ideas) first, then open a [Feature request](https://github.com/Apicurio/apicurio-registry/issues/new/choose) once it is concrete |
 | Report a security vulnerability | Do **not** open a public issue. Follow the private disclosure process in [SECURITY.md](SECURITY.md) |
@@ -20,7 +20,7 @@ answers many common questions.
 | Read the documentation | The [Apicurio Registry documentation](https://www.apicur.io/registry/docs/) |
 
 New to CNCF Slack? Join at [slack.cncf.io](https://slack.cncf.io) first, then open the
-[#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM).
+[#apicurio-registry channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM).
 
 ## Before you ask
 

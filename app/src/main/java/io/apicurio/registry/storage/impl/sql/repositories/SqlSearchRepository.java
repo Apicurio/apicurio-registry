@@ -386,6 +386,10 @@ public class SqlSearchRepository {
                 limitOffset.append(" LIMIT ? OFFSET ?");
             }
 
+            if (orderBy == OrderBy.createdOn || orderBy == OrderBy.modifiedOn) {
+                orderByQuery.append(", v.globalId ").append(orderDirection.name());
+            }
+
             // Query for the versions
             String versionsQuerySql = new StringBuilder(selectTemplate).append(where).append(orderByQuery)
                     .append(limitOffset).toString().replace("{{selectColumns}}", "v.*, a.type");

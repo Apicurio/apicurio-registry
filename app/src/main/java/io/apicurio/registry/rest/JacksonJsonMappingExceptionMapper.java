@@ -5,16 +5,20 @@ import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import io.apicurio.registry.rest.v3.beans.ContractStatusTransition;
 import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
+import io.apicurio.registry.services.http.McpRegistryExceptionMapperService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 
 /**
  * Intentionally handles JsonMappingException globally so malformed JSON
- * responses use the consistent ProblemDetails format across the API.
+ * responses use the consistent ProblemDetails format across the API. The MCP Registry API is the
+ * exception: its specification defines its own error shape.
  */
 @Provider
 @ApplicationScoped
@@ -23,23 +27,40 @@ public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMa
     @Inject
     CoreRegistryExceptionMapperService coreMapper;
 
+    @Inject
+    McpRegistryExceptionMapperService mcpRegistryMapper;
+
+    @Context
+    HttpServletRequest request;
+
     @Override
     public Response toResponse(JsonMappingException exception) {
         String actualValue = extractInvalidStatusValue(exception);
 
         if (actualValue != null) {
-            return coreMapper.mapException(new InvalidParameterValueException("status", "valid status enum value", actualValue));
+            return map(new InvalidParameterValueException("status", "valid status enum value", actualValue));
         }
 
         String message = exception.getOriginalMessage();
 
         if (message != null && !message.contains("io.apicurio")) {
-            return coreMapper.mapException(new BadRequestException(message));
+            return map(new BadRequestException(message));
         }
 
-        return coreMapper.mapException(
+        return map(
             new BadRequestException("Not able to deserialize data provided.")
         );
+    }
+
+    /**
+     * This mapper is selected by exception type, so it bypasses the path dispatch in
+     * {@link RegistryExceptionMapper} and has to repeat the part of it that applies here.
+     */
+    private Response map(Throwable t) {
+        if (McpRegistryExceptionMapperService.handles(request)) {
+            return mcpRegistryMapper.mapException(t);
+        }
+        return coreMapper.mapException(t);
     }
 
     /**

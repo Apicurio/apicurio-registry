@@ -41,6 +41,7 @@ import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.List;
+import java.util.Map;
 
 public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage {
 
@@ -185,6 +186,12 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     @Override
     public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
             EditableVersionMetaDataDto metaData) throws RegistryStorageException {
+        readOnlyViolation();
+    }
+
+    @Override
+    public void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
         readOnlyViolation();
     }
 

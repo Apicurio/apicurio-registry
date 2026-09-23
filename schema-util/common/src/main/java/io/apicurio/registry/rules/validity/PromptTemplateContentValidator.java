@@ -3,13 +3,13 @@ package io.apicurio.registry.rules.validity;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
+import io.apicurio.registry.content.util.PromptTemplateFormats;
 import io.apicurio.registry.content.util.PromptTemplateVariableUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -25,11 +25,18 @@ import java.util.Set;
  */
 public class PromptTemplateContentValidator extends AbstractContentValidator {
 
-    private static final List<String> VALID_VARIABLE_TYPES = Arrays.asList(
+    private static final List<String> VALID_VARIABLE_TYPES = List.of(
             "string", "integer", "number", "boolean", "array", "object");
             
     private static final String FIELD_MINIMUM = "minimum";
     private static final String FIELD_MAXIMUM = "maximum";
+
+    /**
+     * Maximum number of characters of a rejected field value echoed back in a violation message.
+     * Values come from user supplied content, so they are truncated to keep error responses and
+     * logs to a sensible size.
+     */
+    private static final int MAX_ECHOED_VALUE_LENGTH = 40;
 
     @Override
     public void validate(ValidityLevel level, TypedContent content,
@@ -181,6 +188,89 @@ public class PromptTemplateContentValidator extends AbstractContentValidator {
         if (tree.has("metadata") && !tree.get("metadata").isObject()) {
             violations.add(new RuleViolation(
                     "Field 'metadata' must be an object if provided.", "/metadata"));
+        }
+
+        validateModel(tree, violations);
+        validateStringArray(tree, "authors", violations);
+        validateStringArray(tree, "tags", violations);
+        validateTemplateFormat(tree, violations);
+    }
+
+    /**
+     * The registry stores {@code model} without interpreting it, but the published schema still
+     * constrains the shape of its two known members. The same constraints are applied here so a
+     * document cannot pass validation while violating the schema the registry serves.
+     */
+    private void validateModel(JsonNode tree, Set<RuleViolation> violations) {
+        if (!tree.has("model")) {
+            return;
+        }
+
+        JsonNode model = tree.get("model");
+        if (!model.isObject()) {
+            violations.add(new RuleViolation(
+                    "Field 'model' must be an object if provided.", "/model"));
+            return;
+        }
+
+        if (model.has("api") && !model.get("api").isTextual()) {
+            violations.add(new RuleViolation(
+                    "Field 'model.api' must be a string if provided.", "/model/api"));
+        }
+
+        if (model.has("parameters") && !model.get("parameters").isObject()) {
+            violations.add(new RuleViolation(
+                    "Field 'model.parameters' must be an object if provided.", "/model/parameters"));
+        }
+    }
+
+    private void validateTemplateFormat(JsonNode tree, Set<RuleViolation> violations) {
+        if (!tree.has("templateFormat")) {
+            return;
+        }
+
+        JsonNode templateFormat = tree.get("templateFormat");
+        if (!templateFormat.isTextual()) {
+            violations.add(new RuleViolation(
+                    "Field 'templateFormat' must be a string if provided.", "/templateFormat"));
+            return;
+        }
+
+        String format = templateFormat.asText();
+        if (!PromptTemplateFormats.isSupported(format)) {
+            violations.add(new RuleViolation(
+                    "Field 'templateFormat' has unsupported value '" + truncate(format)
+                            + "'. Must be one of, matched case-sensitively: "
+                            + String.join(", ", PromptTemplateFormats.supported()) + ".",
+                    "/templateFormat"));
+        }
+    }
+
+    private static String truncate(String value) {
+        if (value.length() <= MAX_ECHOED_VALUE_LENGTH) {
+            return value;
+        }
+        return value.substring(0, MAX_ECHOED_VALUE_LENGTH) + "...";
+    }
+
+    private void validateStringArray(JsonNode tree, String fieldName, Set<RuleViolation> violations) {
+        if (!tree.has(fieldName)) {
+            return;
+        }
+
+        JsonNode field = tree.get(fieldName);
+        if (!field.isArray()) {
+            violations.add(new RuleViolation(
+                    "Field '" + fieldName + "' must be an array if provided.", "/" + fieldName));
+            return;
+        }
+
+        for (JsonNode element : field) {
+            if (!element.isTextual()) {
+                violations.add(new RuleViolation(
+                        "Field '" + fieldName + "' must contain only strings.", "/" + fieldName));
+                return;
+            }
         }
     }
 

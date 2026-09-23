@@ -240,7 +240,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
         addStructureFilters(structureFilters, "outputmode", outputModes);
         if (capabilities != null) {
             for (String capability : capabilities) {
+                requireNonBlankStructuredFilter("capability", capability);
                 String[] parts = capability.split(":", 2);
+                requireNonBlankStructuredFilter("capability", parts[0]);
+                if (parts.length == 2 && !"true".equals(parts[1]) && !"false".equals(parts[1])) {
+                    throw new BadRequestException("Capability filter must use true or false");
+                }
                 SearchFilter filter = SearchFilter.ofStructure("agent_card:capability:" + parts[0]);
                 structureFilters.add(parts.length == 2 && "false".equals(parts[1]) ? filter.negated() : filter);
             }
@@ -1050,8 +1055,15 @@ public class WellKnownResourceImpl implements WellKnownResource {
     private void addStructureFilters(Set<SearchFilter> filters, String kind, List<String> values) {
         if (values != null) {
             for (String value : values) {
+                requireNonBlankStructuredFilter(kind, value);
                 filters.add(SearchFilter.ofStructure("agent_card:" + kind + ":" + value));
             }
+        }
+    }
+
+    private void requireNonBlankStructuredFilter(String parameter, String value) {
+        if (value == null || value.isBlank()) {
+            throw new BadRequestException("Structured filter '" + parameter + "' must not be blank");
         }
     }
 

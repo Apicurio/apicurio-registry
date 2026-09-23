@@ -15,6 +15,7 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementValue;
 
 @QuarkusTest
 @TestProfile(MysqlTestProfile.class)
@@ -35,7 +36,7 @@ class StructuredContentSearchMysqlTest extends StructuredContentSearchTest {
         handles.withHandleNoException(handle -> {
             handle.createUpdate("DELETE FROM artifact_structured_content WHERE groupId = ?").bind(0,group).execute();
             handle.createUpdate("ALTER TABLE artifact_structured_content ADD CONSTRAINT " + constraint
-                    + " CHECK (elementValue <> '" + skill + "')").execute();
+                    + " CHECK (elementValue <> '" + elementValue(skill) + "')").execute();
             handle.createUpdate("UPDATE apicurio SET propValue = '109' WHERE propName = 'db_version'").execute();
             return null;
         });

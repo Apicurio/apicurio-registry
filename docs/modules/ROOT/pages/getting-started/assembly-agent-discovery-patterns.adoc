@@ -360,6 +360,8 @@ Follow semantic versioning for agent cards:
 Artifact-level structured content search is supported by `sql`, `kafkasql`, `gitops`, and `kubernetesops`. The index follows the latest published, non-disabled branch tip. Draft writes do not replace published entries; publication, disable/restore, deletion and imported versions/branches refresh the index transactionally.
 
 Import populates the index without requiring re-upload. OpenAPI/AsyncAPI YAML is normalized to JSON before extraction. Full `type:kind:value`, partial `kind:value`, and plain `value` filters use case-insensitive exact value matching; SQL wildcard characters in partial kinds are treated literally. Blank components are rejected. Negated structure filters require a positive artifact-type constraint to avoid matching unrelated artifact families. Elasticsearch full-text/version-level search remains a separate feature.
+
+Values are indexed using a SHA-256 equality key over the full lowercased value, not a truncated prefix. Long skill IDs sharing their first 256 characters therefore remain distinct. Live indexing, upgrade backfill and lookup use the same encoding; original values remain in artifact content. Empty or whitespace-only `skill`, `capability`, `inputMode`, and `outputMode` parameters return HTTP 400. Capability suffixes must be `:true` or `:false`.
 ====
 
 [NOTE]

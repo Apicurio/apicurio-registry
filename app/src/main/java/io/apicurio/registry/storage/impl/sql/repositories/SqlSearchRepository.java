@@ -29,6 +29,7 @@ import java.util.Set;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementValue;
 
 /**
  * Repository handling search operations in the SQL storage layer.
@@ -192,7 +193,7 @@ public class SqlSearchRepository {
                         }
                         // Structured content filter, e.g. "agent_card:skill:translation". Elements are
                         // stored lowercased in artifact_structured_content as elementType
-                        // ("<artifactType>:<kind>") + elementValue ("<name>").
+                        // ("<artifactType>:<kind>") + elementValue (SHA-256 of the full normalized name).
                         // Negation (NOT EXISTS) is true for artifacts that have no structured rows at
                         // all, so a negated filter is only meaningful when the result set is already
                         // constrained. The only caller that negates this filter is the agent discovery
@@ -231,7 +232,7 @@ public class SqlSearchRepository {
                                 query.bind(idx, structureParts[0] + ":" + structureParts[1]);
                             });
                             binders.add((query, idx) -> {
-                                query.bind(idx, structureParts[2]);
+                                query.bind(idx, elementValue(structureParts[2]));
                             });
                         } else if (structureParts.length == 2) {
                             // Partial format: "kind:name" - match the kind for any artifact type. The
@@ -243,13 +244,13 @@ public class SqlSearchRepository {
                                 query.bind(idx, "%:" + escapeLikePattern(structureParts[0]));
                             });
                             binders.add((query, idx) -> {
-                                query.bind(idx, structureParts[1]);
+                                query.bind(idx, elementValue(structureParts[1]));
                             });
                         } else {
                             // Plain name: match the element value for any kind
                             where.append("sc.elementValue = ?");
                             binders.add((query, idx) -> {
-                                query.bind(idx, structureParts[0]);
+                                query.bind(idx, elementValue(structureParts[0]));
                             });
                         }
                         where.append(")");

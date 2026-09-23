@@ -6,6 +6,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import org.apache.commons.codec.digest.DigestUtils;
 
 import java.io.IOException;
 
@@ -27,12 +28,9 @@ public final class StructuredContentIndexUtils {
     public static final int MAX_ELEMENT_TYPE_LENGTH = 64;
 
     /**
-     * Maximum length of the {@code elementValue} column. Must match {@code VARCHAR(256)} in the DDLs.
-     * <p>
-     * All four columns form the table's primary key, so this width is bounded by the smallest index key
-     * limit across the supported databases: MySQL InnoDB allows 3072 bytes, and {@code elementValue} is
-     * the one utf8mb4 column (4 bytes per character), which leaves 256 characters once the ascii
-     * {@code groupId} (512), {@code artifactId} (512) and {@code elementType} (64) are accounted for.
+     * Width of the existing elementValue column. Equality keys occupy 64 hexadecimal characters;
+     * the wider column is retained so fresh and upgrade DDL remain consistent. It is not a limit
+     * on the length of identifiers in artifact content or search requests.
      */
     public static final int MAX_ELEMENT_VALUE_LENGTH = 256;
 
@@ -57,17 +55,17 @@ public final class StructuredContentIndexUtils {
     }
 
     /**
-     * Builds the {@code elementValue} value for a structured element, lower-cased for the same reason as
-     * {@link #elementType(String, String)}.
+     * Builds a bounded equality key from the entire normalized value. Hash every value, including
+     * short ones, so a literal string resembling a digest cannot alias a long identifier. Original
+     * values remain in artifact content; live writes, backfill and queries must all use this method.
      */
     public static String elementValue(String name) {
-        return limitStr(asLowerCase(name), MAX_ELEMENT_VALUE_LENGTH);
+        return DigestUtils.sha256Hex(asLowerCase(name));
     }
 
     /**
      * Key used to de-duplicate rows before insert. It mirrors the table's primary key, and is computed
-     * from the already-normalized values so two element names that only differ beyond
-     * {@link #MAX_ELEMENT_VALUE_LENGTH} collapse into a single row instead of failing the insert.
+     * from the normalized type and full-value digest. Long names sharing a prefix remain distinct.
      */
     public static String rowKey(String elementType, String elementValue) {
         return elementType + ":" + elementValue;

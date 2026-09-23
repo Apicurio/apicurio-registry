@@ -30,6 +30,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementValue;
 
 @QuarkusTest
 public class StructuredContentSearchTest {
@@ -220,6 +221,30 @@ public class StructuredContentSearchTest {
     }
 
     @Test
+    public void fullLengthValuesRemainDistinctThroughAllQueryFormsAndBackfill() {
+        String group = group();
+        String prefix = "shared-" + "x".repeat(300);
+        String first = prefix + "-one";
+        String second = prefix + "-two";
+        create(group, "one", first);
+        create(group, "two", second);
+        create(group, "literal-digest", elementValue(first));
+        for (int pass = 0; pass < 2; pass++) {
+            for (String form : List.of("agent_card:skill:", "skill:", "")) {
+                assertEquals(Set.of("one"), matches(group, SearchFilter.ofStructure(form + first)));
+                assertEquals(Set.of("two"), matches(group, SearchFilter.ofStructure(form + second)));
+                assertEquals(Set.of("literal-digest"), matches(group, SearchFilter.ofStructure(form + elementValue(first))));
+            }
+            if (pass == 0) {
+                handles.withHandleNoException(handle -> {
+                    new StructuredContentUpgrader().upgrade(handle);
+                    return null;
+                });
+            }
+        }
+    }
+
+    @Test
     public void databaseIndexFailureRollsBackVersionAndPreviousIndex() {
         String group=group();
         create(group,"agent","before");
@@ -227,7 +252,7 @@ public class StructuredContentSearchTest {
         String constraint="structure_" + UUID.randomUUID().toString().replace("-", "");
         handles.withHandleNoException(handle -> {
             handle.createUpdate("ALTER TABLE artifact_structured_content ADD CONSTRAINT " + constraint
-                    + " CHECK (elementValue <> '" + blocked + "')").execute();
+                    + " CHECK (elementValue <> '" + elementValue(blocked) + "')").execute();
             return null;
         });
         try {

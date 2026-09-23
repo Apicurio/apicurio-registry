@@ -927,7 +927,16 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     @Test
     public void testPeers() {
         storage().deleteAllUserData();
+        try {
+            testPeersBody();
+        } finally {
+            // Runs even if an assertion above fails, so a failed run does not leave peer rows
+            // behind for the next test in this class (or the next run of this one) to trip over.
+            storage().deleteAllUserData();
+        }
+    }
 
+    private void testPeersBody() {
         Assertions.assertTrue(storage().getPeers().isEmpty());
 
         PeerDto peer1 = PeerDto.builder().peerId("peer-test-1").url("https://peer1.example.com")
@@ -1000,7 +1009,23 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
                 () -> storage().createPeer(PeerDto.builder().peerId("peer-test-invalid-2")
                         .url("https://user:pass@x.example.com").build()));
 
-        storage().deleteAllUserData();
+        // Peer ids are lowercase-only so identity is consistent across SQL dialects: MySQL's
+        // peers table collates case-insensitively, so an uppercase id would address a different
+        // row than the same id in lowercase on Postgres/H2 if it were allowed through. Covered
+        // here (not just at the validator level) so it is exercised against a real MySQL
+        // database too, via MysqlStorageTest extending this class.
+        Assertions.assertThrows(InvalidPeerException.class,
+                () -> storage().createPeer(PeerDto.builder().peerId("Peer-Test-Case")
+                        .url("https://case.example.com").build()));
+
+        // Case rejection also applies on update, not just create.
+        PeerDto lowercaseForUpdateCheck = PeerDto.builder().peerId("peer-test-case-update")
+                .url("https://case-update.example.com").enabled(true).build();
+        storage().createPeer(lowercaseForUpdateCheck);
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage()
+                .updatePeer(PeerDto.builder().peerId("PEER-TEST-CASE-UPDATE")
+                        .url("https://case-update-2.example.com").build()));
+        storage().deletePeer("peer-test-case-update");
     }
 
     @Test
@@ -1262,7 +1287,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         final String artifactId2 = "testArtifact-2";
         final String principal = "testPrincipal";
         final String role = "testRole";
-        final String peerId = "testPeer";
+        final String peerId = "test-peer";
 
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         storage().createGroup(GroupMetaDataDto.builder().groupId(group1).build());

@@ -30,6 +30,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -129,11 +130,26 @@ public class GitOpsSmokeTest {
         // --- Load data with an invalid peer (reserved id "local") → rejected by PeerValidator,
         // smoke02 data preserved ---
         testRepository.load("git/peers-invalid");
-        await().pollDelay(Duration.ofSeconds(5)).untilAsserted(() -> {
-            // Previous data should still be served because the failed load does not cause a swap
-            assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
-            assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
+
+        // Wait for the status endpoint to actually report the rejection of this specific
+        // revision. Checking only that the previous data is still served is not enough: that
+        // state is already true before the invalid commit is even processed, so a slow poll
+        // could pass without ever proving the invalid revision was rejected. The polling status
+        // model does not expose a per-error revision/commit id (an ERROR status keeps the
+        // *previous successful* sync's source marker, not the rejected one), so the specific
+        // error detail below is the strongest available correlation.
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("ERROR"))
+                    .body("errors", hasSize(1))
+                    .body("errors[0].detail", containsString("Peer id 'local' is reserved."));
         });
+
+        // Previous data should still be served because the failed load does not cause a swap
+        assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
 
         // Admin writes against this read-only storage are rejected with a 409-mapped exception
         assertThrows(ReadOnlyStorageException.class,
@@ -191,6 +207,38 @@ public class GitOpsSmokeTest {
                     .body("errors", hasSize(1))
                     .body("errors[0].detail", containsString("Rule " + expectedRuleType + " violation"));
         });
+    }
+
+    @Test
+    void peerReloadUpdatesFieldsAndOmittedEnabledDefaultsToTrue() throws Exception {
+        var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        testRepository.load("git/peers-update-1");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var peers = storage.getPeers();
+            assertEquals(1, peers.size());
+            assertEquals("https://before.example.com", peers.get(0).getUrl());
+        });
+        var before = storage.getPeers().get(0);
+        assertEquals("update-test-peer", before.getPeerId());
+        assertEquals("Before Update", before.getName());
+        assertFalse(before.isEnabled());
+        assertEquals("before-cred", before.getCredentialSecretRef());
+
+        // Reload the same peer id with different field values and enabled omitted entirely.
+        testRepository.load("git/peers-update-2");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var peers = storage.getPeers();
+            assertEquals(1, peers.size());
+            assertEquals("https://after.example.com", peers.get(0).getUrl());
+        });
+        var after = storage.getPeers().get(0);
+        assertEquals("update-test-peer", after.getPeerId());
+        assertEquals("After Update", after.getName());
+        // enabled is omitted in this load; it must default to true fresh, not carry over the
+        // previous load's explicit enabled: false.
+        assertTrue(after.isEnabled());
+        assertEquals("after-cred", after.getCredentialSecretRef());
     }
 
     @Test

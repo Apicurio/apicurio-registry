@@ -309,7 +309,8 @@
     <!-- Kiota -->
     <kiota.libs.version>1.9.3</kiota.libs.version>
     <kiota.community.version>0.0.38</kiota.community.version>
-    <!-- 0.0.39 retries transient ETXTBSY during process startup (JDK-8068370) and publishes
+    <!-- 0.0.39 retries transient ETXTBSY during process startup
+         (https://bugs.openjdk.org/browse/JDK-8068370) and publishes
          the binary by renaming a temporary file within the destination folder
          (KiotaMojo.downloadAndExtract), so a concurrent module sees either no binary or a
          complete one. That is what makes a shared kiota.binary.folder safe across builds.
@@ -329,7 +330,22 @@
          os.detected.classifier gives each platform its own directory, so a Linux container
          that mounts a macOS host's ~/.m2 does not try to execute the host's binary. It
          carries no libc component, but Kiota publishes no musl asset either, so an Alpine
-         container is no worse off here than it was before. -->
+         container is no worse off here than it was before.
+         .github/scripts/validate-kiota-folder.py checks this property, the profiles and the
+         settings.localRepository anchor that can move it while leaving it reading as expected,
+         in the root pom and in the two consumers, the os-maven-plugin extension that
+         substitutes the classifier, <targetBinaryFolder> in the two java-sdk poms, and -D on
+         a workflow command line. Other routes are deliberately not checked, and they are not
+         all local. Checked into this repository, so a -D there moves the folder for every CI
+         job: .mvn/maven.config, which every Maven invocation reads; the mvnw wrapper; a
+         composite action under .github/actions; and a Makefile or Dockerfile that runs Maven.
+         The verify jobs also pass .github/ci-settings.xml with -s, so a <localRepository>
+         there is the pipeline's repository. Local only: -D on an interactive shell and a
+         developer's own settings.xml. These are accepted risks rather than blind spots:
+         asserting the resolved value at build time would cover every route at once and is
+         tracked separately, while the checks above are what catch the two routes a
+         resolved-value check cannot see, the extension missing and a consumer hardcoding
+         the folder. -->
     <kiota.binary.folder>${settings.localRepository}/.cache/kiota-binary/${os.detected.classifier}</kiota.binary.folder>
 
     <!-- Groovy scripting -->
@@ -1062,9 +1078,10 @@
   <build>
     <extensions>
       <!-- Sets os.detected.*, which kiota.binary.folder uses to give each platform its own
-           cache directory. An extension declared in a module is not visible to the root
-           properties, which is where the Kiota folder is defined, so it has to be declared
-           here. Extensions are inherited, so any module that registers this one locally is
+           cache directory. Declared at the root so the substitution holds in every
+           invocation shape: a module-level declaration does resolve the root property in a
+           from-root reactor build, but an -N build of the root alone leaves the placeholder
+           literal. Extensions are inherited, so any module that registers this one locally is
            doing so redundantly. -->
       <extension>
         <groupId>kr.motd.maven</groupId>

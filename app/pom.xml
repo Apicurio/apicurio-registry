@@ -477,6 +477,13 @@
       <artifactId>apicurio-registry-maven-plugin</artifactId>
       <type>maven-plugin</type>
       <scope>test</scope>
+      <exclusions>
+        <!-- Provided by the 'agents' profile; must stay off the classpath with -DskipAgents. -->
+        <exclusion>
+          <groupId>io.apicurio</groupId>
+          <artifactId>apicurio-registry-schema-util-agents</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
@@ -940,6 +947,50 @@
                 <configuration>
                   <sources>
                     <source>${project.basedir}/src/test-agents/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <!--
+      Mirror image of the 'agents' profile: active only with -DskipAgents. Adds tests that assert the
+      build really carries no agent behaviour (src/test-no-agents).
+    -->
+    <profile>
+      <id>no-agents</id>
+      <activation>
+        <property>
+          <name>skipAgents</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <configuration>
+              <testSourceDirectories>
+                <testSourceDirectory>${project.basedir}/src/test/java</testSourceDirectory>
+                <testSourceDirectory>${project.basedir}/src/test-no-agents/java</testSourceDirectory>
+              </testSourceDirectories>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>add-no-agents-test-sources</id>
+                <goals>
+                  <goal>add-test-source</goal>
+                </goals>
+                <phase>generate-test-sources</phase>
+                <configuration>
+                  <sources>
+                    <source>${project.basedir}/src/test-no-agents/java</source>
                   </sources>
                 </configuration>
               </execution>

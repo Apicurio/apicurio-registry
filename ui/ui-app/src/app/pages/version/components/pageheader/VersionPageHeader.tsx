@@ -26,6 +26,8 @@ export type VersionPageHeaderProps = {
     codegenEnabled: boolean;
     onEdit: () => void;
     onEditAgentCard: () => void;
+    /** False when the server was built without the agent registry feature. Defaults to true. */
+    agentTypesSupported?: boolean;
     onDelete: () => void;
     onDownload: () => void;
     onTest: () => void;
@@ -69,6 +71,7 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             onSelect: () => props.onEditAgentCard(),
             isVisible: () => {
                 return !config.featureReadOnly() &&
+                    props.agentTypesSupported !== false &&
                     props.version?.artifactType === "AGENT_CARD" &&
                     user.isUserDeveloper(props.artifact?.owner);
             }

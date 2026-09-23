@@ -102,9 +102,10 @@ Its code lives apart from core:
 
 Build with `-DskipAgents` to leave all of it out. The REST API is unchanged either way, so the SDKs are the same, but in a build without agents:
 - the agent endpoints respond with 404;
-- the agent artifact types are unknown.
+- the agent artifact types are unknown;
+- the UI hides its agent features. It reads the server's artifact-type list, and the server reports `features.agents: false` even if `apicurio.ui.features.agents.enabled` is set.
 
-Keep core code free of references to agent classes. The build without agents is checked in CI.
+Keep core code free of references to agent classes. The build without agents is checked in CI by the "Build and Test without Agents" job, which runs `app/src/test-no-agents`.
 
 ## Dependency Analysis
 

@@ -18,6 +18,8 @@ import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigAuth;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigFeatures;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigUi;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.ui.UserInterfaceConfigProperties;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -48,6 +50,9 @@ public class SystemResourceImpl implements SystemResource {
 
     @Inject
     ElasticsearchSearchConfig esSearchConfig;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory artifactTypeProviderFactory;
 
     /**
      * @see io.apicurio.registry.rest.v3.SystemResource#getSystemInfo()
@@ -84,11 +89,20 @@ public class SystemResourceImpl implements SystemResource {
                         .deleteArtifact(restConfig.isArtifactDeletionEnabled())
                         .deleteVersion(restConfig.isArtifactVersionDeletionEnabled())
                         .draftMutability(restConfig.isArtifactVersionMutabilityEnabled())
-                        .agents(uiConfig.featureAgents.get())
+                        .agents(uiConfig.featureAgents.get() && isAgentSupportDeployed())
                         .searchIndex(esSearchConfig.isEnabled())
                         .urlImportMaxContentLength(uiConfig.featureUrlImportMaxContentLength)
                         .settings("true".equals(uiConfig.featureSettings)).build())
                 .build();
+    }
+
+    /**
+     * The agent registry feature is optional at build time (see the 'agents' profile in app/pom.xml).
+     * Its artifact types are only registered when it is deployed, so their presence tells us whether
+     * the endpoints behind the UI's Agents tab exist.
+     */
+    private boolean isAgentSupportDeployed() {
+        return artifactTypeProviderFactory.getAllArtifactTypes().contains(ArtifactType.AGENT_CARD);
     }
 
     private UserInterfaceConfigAuth uiAuthConfig() {

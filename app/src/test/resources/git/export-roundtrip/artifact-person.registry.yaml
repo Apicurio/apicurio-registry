@@ -1,0 +1,18 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: testgroup
+artifactId: person
+artifactType: AVRO
+name: Person Schema
+description: References the Address schema
+versions:
+  - version: "1"
+    state: ENABLED
+    globalId: 1002
+    content: ./content/person.avsc
+    contentMetadata: ./content/person.metadata.registry.yaml
+  - version: "2"
+    state: ENABLED
+    globalId: 2002
+    content: ./content/person.avsc
+    contentMetadata: ./content/person-v2.metadata.registry.yaml

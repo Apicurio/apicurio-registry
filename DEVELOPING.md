@@ -82,6 +82,29 @@ Integration tests and examples are always opt-in via their own profiles:
 | `-Dmaven.test.skip=true` | Skip compiling and running tests                                                      |
 | `-DcliSkipNative`     | Skip CLI native image compilation (no executable is produced, but tests can still run)   |
 | `-DskipOperatorTests` | Skip operator tests (default: `true`, requires a running cluster)                        |
+| `-DskipAgents`        | Build `app` without the agent registry feature (see below)                               |
+
+### Agent registry feature
+
+The agent registry feature is built into `app` by default. It includes:
+- the AGENT_CARD, MCP_TOOL, MODEL_SCHEMA and PROMPT_TEMPLATE artifact types;
+- A2A, MCP tools, AI Catalog and ARD discovery under `/.well-known`;
+- prompt rendering;
+- OpenAPI `x-agent-card` companions.
+
+Its code lives apart from core:
+
+| Location | Contents |
+|---|---|
+| `schema-util/agents` | Artifact types, contributed via `ServiceLoader` |
+| `app/src/agents` | Server-side code, plugged in via the CDI extension points in `io.apicurio.registry.extensions` |
+| `app/src/test-agents` | Server-side tests |
+
+Build with `-DskipAgents` to leave all of it out. The REST API is unchanged either way, so the SDKs are the same, but in a build without agents:
+- the agent endpoints respond with 404;
+- the agent artifact types are unknown.
+
+Keep core code free of references to agent classes. The build without agents is checked in CI.
 
 ## Dependency Analysis
 

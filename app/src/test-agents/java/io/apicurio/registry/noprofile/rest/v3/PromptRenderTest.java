@@ -17,8 +17,16 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RenderPromptRequest;
+import io.apicurio.registry.rest.client.models.RenderPromptRequestVariables;
+import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -29,6 +37,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Integration tests for the prompt template rendering endpoint.
@@ -325,5 +334,33 @@ public class PromptRenderTest extends AbstractResourceTestBase {
                 .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/render")
                 .then()
                 .statusCode(400);
+    }
+
+    @Test
+    public void testRenderRejectsDisabledVersion() throws Exception {
+        String groupId = "PromptRenderTest_testRenderRejectsDisabledVersion";
+        String artifactId = generateArtifactId();
+        String promptContent = "{\"templateId\":\"t\",\"template\":\"Hello {{name}}\","
+                + "\"variables\":[{\"name\":\"name\",\"type\":\"string\"}]}";
+        createArtifact(groupId, artifactId, ArtifactType.PROMPT_TEMPLATE, promptContent,
+                ContentTypes.APPLICATION_JSON);
+
+        VersionMetaData amd = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("branch=latest").get();
+
+        WrappedVersionState vs = new WrappedVersionState();
+        vs.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression(amd.getVersion()).state().put(vs);
+
+        RenderPromptRequest body = new RenderPromptRequest();
+        body.setVariables(new RenderPromptRequestVariables());
+
+        var exception = assertThrows(ProblemDetails.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression(amd.getVersion()).render().post(body);
+        });
+        Assertions.assertEquals(404, exception.getStatus());
+        Assertions.assertEquals("VersionNotFoundException", exception.getName());
     }
 }

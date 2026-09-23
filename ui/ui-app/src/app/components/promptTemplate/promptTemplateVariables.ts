@@ -2,7 +2,7 @@
  * Shared prompt-template variable parsing and schema reconciliation.
  *
  * `VariableSchema` mirrors `$defs.variableSchema` in
- * `app/src/main/resources/schemas/prompt-template-v1.json`, plus optional `name`
+ * `app/src/agents/resources/schemas/prompt-template-v1.json`, plus optional `name`
  * for the UI's alternate array-shaped `variables` list (name is the map key in
  * the canonical object form).
  */

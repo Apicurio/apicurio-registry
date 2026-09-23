@@ -1,6 +1,7 @@
 ---
 paths:
   - "app/src/test/**/*.java"
+  - "app/src/test-agents/**/*.java"
   - "integration-tests/**/*.java"
   - "**/src/test/**/*.java"
 ---

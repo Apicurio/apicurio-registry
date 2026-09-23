@@ -37,10 +37,6 @@
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-util-provider</artifactId>
     </dependency>
-    <dependency>
-      <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-schema-util-agents</artifactId>
-    </dependency>
 
     <dependency>
       <groupId>io.apicurio</groupId>
@@ -859,5 +855,98 @@
     </plugins>
   </build>
 
+  <profiles>
+    <!--
+      Agent registry feature: AI/agent artifact types (AGENT_CARD, MCP_TOOL, MODEL_SCHEMA,
+      PROMPT_TEMPLATE), A2A / MCP tools / AI Catalog / ARD discovery under /.well-known,
+      prompt rendering and OpenAPI x-agent-card companions.
 
+      Enabled unless -DskipAgents is set. Its code lives in separate source sets
+      (src/agents, src/test-agents) rather than a separate Maven module because it builds on
+      app internals (storage, auth, REST base classes) that app itself would otherwise have to
+      depend on. Core reaches it only through CDI extension points (io.apicurio.registry.extensions)
+      and the ServiceLoader-based artifact type registry, so without it the endpoints it backs
+      respond with 404 and its artifact types are unknown.
+    -->
+    <profile>
+      <id>agents</id>
+      <activation>
+        <property>
+          <name>!skipAgents</name>
+        </property>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>io.apicurio</groupId>
+          <artifactId>apicurio-registry-schema-util-agents</artifactId>
+        </dependency>
+      </dependencies>
+      <build>
+        <plugins>
+          <!--
+            Checkstyle runs in the validate phase, before build-helper registers the agents source
+            roots, so they must be listed explicitly to stay covered.
+          -->
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-checkstyle-plugin</artifactId>
+            <configuration>
+              <sourceDirectories>
+                <sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
+                <sourceDirectory>${project.basedir}/src/agents/java</sourceDirectory>
+              </sourceDirectories>
+              <testSourceDirectories>
+                <testSourceDirectory>${project.basedir}/src/test/java</testSourceDirectory>
+                <testSourceDirectory>${project.basedir}/src/test-agents/java</testSourceDirectory>
+              </testSourceDirectories>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>add-agents-sources</id>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <phase>generate-sources</phase>
+                <configuration>
+                  <sources>
+                    <source>${project.basedir}/src/agents/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+              <execution>
+                <id>add-agents-resources</id>
+                <goals>
+                  <goal>add-resource</goal>
+                </goals>
+                <phase>generate-resources</phase>
+                <configuration>
+                  <resources>
+                    <resource>
+                      <directory>${project.basedir}/src/agents/resources</directory>
+                    </resource>
+                  </resources>
+                </configuration>
+              </execution>
+              <execution>
+                <id>add-agents-test-sources</id>
+                <goals>
+                  <goal>add-test-source</goal>
+                </goals>
+                <phase>generate-test-sources</phase>
+                <configuration>
+                  <sources>
+                    <source>${project.basedir}/src/test-agents/java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

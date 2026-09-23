@@ -1,6 +1,7 @@
 package io.apicurio.registry.agents.mcptools.compatibility;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.networknt.schema.SpecVersion.VersionFlag;
 import io.apicurio.registry.json.rules.validity.JsonSchemaDocumentValidator;
 import io.apitomy.datamodels.DataModelsException;
@@ -134,18 +135,25 @@ public class CrossToolCompatibilityService {
             return indeterminate(limitations);
         }
 
-        if (!isReadable(consumer.projected())) {
+        ObjectNode producerProjected = producer.projection().projected();
+        Optional<ObjectNode> producerRealigned = TypeAlignment.realign(producerProjected,
+                consumer.projected());
+        ObjectNode consumerProjected = TypeAlignment.realign(consumer.projected(), producerProjected)
+                .orElse(consumer.projected());
+
+        if (!isReadable(consumerProjected)) {
             limitations.add(comparisonFailed(SchemaSide.CONSUMER, INPUT_SCHEMA_POINTER,
                     "The inputSchema cannot be read as a JSON Schema"));
             return indeterminate(limitations);
         }
 
+        ProducerRun run = producerRun(producer, producerRealigned);
         Map<DifferenceKey, Difference> asWritten;
         Map<DifferenceKey, Difference> closed;
         try {
-            asWritten = incompatibleDifferences(producer.asWritten(), consumer.projected());
-            closed = producer.closed() == null ? asWritten
-                    : incompatibleDifferences(producer.closed(), consumer.projected());
+            asWritten = incompatibleDifferences(run.asWritten(), consumerProjected);
+            closed = run.closed() == null ? asWritten
+                    : incompatibleDifferences(run.closed(), consumerProjected);
         } catch (IllegalStateException | DataModelsException e) {
             log.debug("MCP tool schemas could not be compared", e);
             limitations.add(comparisonFailed(SchemaSide.CONSUMER, INPUT_SCHEMA_POINTER,
@@ -165,7 +173,7 @@ public class CrossToolCompatibilityService {
         }
 
         DifferenceAttributor attributor = new DifferenceAttributor(producer.projection(), consumer,
-                producer.closed() != null, this::accepts);
+                run.closed() != null, this::accepts);
         Set<CompatibilityReason> reasons = new LinkedHashSet<>();
         attributor.unrestrictedOutputType().ifPresent(reasons::add);
         boolean unattributed = false;
@@ -206,9 +214,24 @@ public class CrossToolCompatibilityService {
         return indeterminate(limitations);
     }
 
+    /**
+     * The producer compared as written and, when its root object is open, also closed. A realigned
+     * producer is closed from the realigned projection so that both runs read the same types.
+     */
+    private static ProducerRun producerRun(PreparedProducer producer, Optional<ObjectNode> realigned) {
+        if (realigned.isEmpty()) {
+            return new ProducerRun(producer.asWritten(), producer.closed());
+        }
+        ObjectNode projected = realigned.get();
+        JsonNode closed = producer.projection().closable() ? SchemaProjection.closed(projected) : null;
+        return new ProducerRun(projected, closed);
+    }
+
     private Optional<Boolean> accepts(JsonNode emitted, JsonNode accepted) {
         try {
-            return Optional.of(incompatibleDifferences(emitted, accepted).isEmpty());
+            return Optional.of(incompatibleDifferences(
+                    TypeAlignment.realignSubschema(emitted, accepted),
+                    TypeAlignment.realignSubschema(accepted, emitted)).isEmpty());
         } catch (IllegalStateException | DataModelsException e) {
             return Optional.empty();
         }
@@ -264,5 +287,8 @@ public class CrossToolCompatibilityService {
     }
 
     private record DifferenceKey(DiffType type, String path) {
+    }
+
+    private record ProducerRun(JsonNode asWritten, JsonNode closed) {
     }
 }

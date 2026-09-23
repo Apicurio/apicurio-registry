@@ -451,4 +451,55 @@ class PromptTemplateContentValidatorTest {
         PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
         validator.validate(ValidityLevel.FULL, createYaml(yaml), Collections.emptyMap());
     }
+
+    /**
+     * A triple-brace run is not supported placeholder syntax - it renders through as literal text -
+     * so it is not a variable and must not be reported as an undefined one. This is the same
+     * treatment every other unsupported construct already gets: {{#each x}}, a dotted {{user.name}}
+     * and a handlebars comment are all invisible to the extractor and none of them are flagged.
+     *
+     * Before the placeholder pattern was tightened, the matcher locked onto the inner {{foo}} of
+     * {{{foo}}} and this template was rejected with "Template variable '{{foo}}' is used but not
+     * defined" - naming a placeholder the author had not written.
+     */
+    @Test
+    void testTripleBracePlaceholderIsNotReportedAsUndefined() {
+        String tripleBrace = """
+                {
+                    "templateId": "test",
+                    "template": "Hello {{name}}, raw is {{{foo}}}.",
+                    "variables": {
+                        "name": { "type": "string" }
+                    }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        validator.validate(ValidityLevel.FULL, create(tripleBrace), Collections.emptyMap());
+    }
+
+    /**
+     * The flip side of the above: leaving triple-brace alone must not blind the rule to a real
+     * undefined placeholder sitting next to it.
+     */
+    @Test
+    void testUndefinedVariableAdjacentToTripleBraceIsStillReported() {
+        String adjacent = """
+                {
+                    "templateId": "test",
+                    "template": "{{{foo}}} and {{quality}}",
+                    "variables": {
+                        "name": { "type": "string" }
+                    }
+                }
+                """;
+        PromptTemplateContentValidator validator = new PromptTemplateContentValidator();
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, create(adjacent), Collections.emptyMap());
+        });
+        Assertions.assertTrue(
+                error.getCauses().stream().anyMatch(v -> v.getDescription().contains("quality")));
+        Assertions.assertTrue(
+                error.getCauses().stream().noneMatch(v -> v.getDescription().contains("foo")),
+                "The triple-brace run must not be reported as an undefined variable");
+    }
 }

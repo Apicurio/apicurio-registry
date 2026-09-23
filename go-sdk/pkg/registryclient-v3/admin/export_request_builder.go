@@ -5,6 +5,7 @@ package admin
 
 import (
 	"context"
+	if4824ec047ac61fad3f5fb502722e8fc8035d5db176d0ad8b9d4de92a066df75 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/admin/export"
 	iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773 "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3/models"
 	i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f "github.com/microsoft/kiota-abstractions-go"
 )
@@ -18,6 +19,11 @@ type ExportRequestBuilder struct {
 type ExportRequestBuilderGetQueryParameters struct {
 	// Indicates if the operation is done for a browser.  If true, the response will be a JSON payload with a property called `href`.  This `href` will be a single-use, naked download link suitable for use by a web browser to download the content.
 	ForBrowser *bool "uriparametername:\"forBrowser\""
+	// The format of the exported data. When set to `gitops-v0`, the export produces a ZIP containing `*.registry.yaml` files compatible with the GitOps v0 data model. When omitted or set to `default`, the standard import/export format is used.
+	// Deprecated: This property is deprecated, use FormatAsGetFormatQueryParameterType instead
+	Format *string "uriparametername:\"format\""
+	// The format of the exported data. When set to `gitops-v0`, the export produces a ZIP containing `*.registry.yaml` files compatible with the GitOps v0 data model. When omitted or set to `default`, the standard import/export format is used.
+	FormatAsGetFormatQueryParameterType *if4824ec047ac61fad3f5fb502722e8fc8035d5db176d0ad8b9d4de92a066df75.GetFormatQueryParameterType "uriparametername:\"format\""
 	// If specified, only data belonging to this group will be exported. Global rules will be excluded.
 	GroupId *string "uriparametername:\"groupId\""
 }
@@ -35,7 +41,7 @@ type ExportRequestBuilderGetRequestConfiguration struct {
 // NewExportRequestBuilderInternal instantiates a new ExportRequestBuilder and sets the default values.
 func NewExportRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ExportRequestBuilder {
 	m := &ExportRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/admin/export{?forBrowser*,groupId*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/admin/export{?forBrowser*,format*,groupId*}", pathParameters),
 	}
 	return m
 }

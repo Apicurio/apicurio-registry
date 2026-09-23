@@ -1,0 +1,10 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: testgroup
+artifactId: address
+artifactType: AVRO
+name: Address Schema
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/address.avsc

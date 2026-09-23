@@ -2,11 +2,13 @@ import { FunctionComponent } from "react";
 import { Button, ButtonVariant } from "@patternfly/react-core";
 import { AdminService, useAdminService } from "@services/useAdminService.ts";
 import { DownloadRef } from "@sdk/lib/generated-client/models";
+import { type GetFormatQueryParameterType } from "@sdk/lib/generated-client/admin/exportEscaped";
 
 
 export type DownloadArtifactsProps = {
   fileName: string;
   downloadLinkLabel?: string;
+  format?: GetFormatQueryParameterType;
 };
 
 
@@ -22,7 +24,7 @@ export const DownloadArtifacts: FunctionComponent<DownloadArtifactsProps> = (pro
 
     const downloadArtifacts = () => {
         const { fileName } = props;
-        admin.exportAs(fileName).then((response: DownloadRef) => {
+        admin.exportAs(fileName, props.format).then((response: DownloadRef) => {
             generateDownloadLink(fileName, response?.href || "");
         });
     };

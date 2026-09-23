@@ -1,0 +1,6 @@
+$type: content-v0
+references:
+  - groupId: testgroup
+    artifactId: address
+    version: "1"
+    name: com.example.Address

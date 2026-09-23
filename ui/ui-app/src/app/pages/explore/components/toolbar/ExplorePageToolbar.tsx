@@ -16,6 +16,7 @@ import { ObjectDropdown } from "@apitomy/common-ui-components";
 import { Paging } from "@models/Paging.ts";
 import { FilterBy } from "@services/useSearchService.ts";
 import { GroupSearchResults } from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
+import { type GetFormatQueryParameterType } from "@apicurio/apicurio-registry-sdk/dist/generated-client/admin/exportEscaped";
 import { IfAuth, IfFeature } from "@app/components";
 import { useConfigService } from "@services/useConfigService.ts";
 
@@ -34,7 +35,7 @@ export type ExplorePageToolbarProps = {
     onSetPage: OnSetPage;
     onCreateGroup: () => void;
     onImport: () => void;
-    onExport: () => void;
+    onExport: (format?: GetFormatQueryParameterType) => void;
 };
 
 type FilterType = {
@@ -108,11 +109,15 @@ export const ExplorePageToolbar: FunctionComponent<ExplorePageToolbarProps> = (p
     };
 
     useEffect(() => {
+        const exportDefault = (): void => props.onExport();
+        const exportGitOps = (): void => props.onExport("gitops-v0");
         const adminActions: ActionType[] = config.featureReadOnly() ? [
-            { label: "Export all (as .ZIP)", callback: props.onExport }
+            { label: "Export all (as .ZIP)", callback: exportDefault },
+            { label: "Export all (GitOps .ZIP, experimental)", callback: exportGitOps }
         ] : [
             { label: "Import from .ZIP", callback: props.onImport },
-            { label: "Export all (as .ZIP)", callback: props.onExport }
+            { label: "Export all (as .ZIP)", callback: exportDefault },
+            { label: "Export all (GitOps .ZIP, experimental)", callback: exportGitOps }
         ];
         setKebabActions(adminActions);
     }, [props.onExport, props.onImport]);

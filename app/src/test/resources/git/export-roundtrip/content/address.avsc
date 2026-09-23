@@ -1,0 +1,1 @@
+{"type":"record","name":"Address","namespace":"com.example","fields":[{"name":"street","type":"string"},{"name":"city","type":"string"}]}

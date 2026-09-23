@@ -39,7 +39,7 @@ See [SECURITY.md](SECURITY.md) for details.
 
 For general questions and development discussions, use the
 [cncf-apicurio-registry-dev@lists.cncf.io](mailto:cncf-apicurio-registry-dev@lists.cncf.io) mailing list
-or the [#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+or the [#apicurio-registry channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
 
 ## Getting started and where to ask
 
@@ -74,8 +74,9 @@ Before you start working on an issue, let us know so we don't end up with duplic
 
 1. **Comment on the issue** using `/assign-me` (or `/claim`) to self-assign, or ask if you have questions before claiming.
 2. **Assignment Limit:** Contributors can have a maximum of 3 open issues assigned concurrently. Use `/unassign-me` to release an issue.
-3. **If someone is already assigned**, don't open a competing PR — ask in the issue whether they need help or have moved on.
-4. **Stale assignments:** if an assigned issue has no PR and no update for two weeks, comment asking for a status update. If there's no response within a few days, a maintainer can reassign it.
+3. **Some issues are maintainer-only:** issues labelled `area/CI` can't be self-assigned — please pick a different one. Labels are applied automatically, so if the label doesn't fit the issue, or you'd like an exception, ask in a comment and a maintainer will take it from there.
+4. **If someone is already assigned**, don't open a competing PR — ask in the issue whether they need help or have moved on.
+5. **Stale assignments:** if an assigned issue has no PR and no update for two weeks, comment asking for a status update. If there's no response within a few days, a maintainer can reassign it.
 
 Opening a PR on an issue that's assigned to someone else without checking first is likely to get your PR closed.
 

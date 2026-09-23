@@ -16,7 +16,7 @@ on:
     # blocking check the PR author cannot clear: without them the check would
     # stay red until an unrelated push after a maintainer sets the milestone.
     types: [opened, reopened, synchronize, edited, milestoned, demilestoned]
-    branches: [main]
+    branches: [main, '3.3.x']
 
 permissions:
   contents: read

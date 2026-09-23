@@ -25,6 +25,11 @@ const LABELS = {
   WAITING_ON_AUTHOR: 'lifecycle/waiting-on-author',
   WAITING_ON_MAINTAINER: 'lifecycle/waiting-on-maintainer',
   STALE: 'lifecycle/stale',
+  // The maintainer-side counterpart to STALE: the PR is blocked on us and has
+  // been for too long. Never closes anything — it exists to make review
+  // latency visible, since that is the bottleneck STALE was misreporting as
+  // contributor inactivity.
+  REVIEW_OVERDUE: 'lifecycle/review-overdue',
   DISABLED: 'orchestrator/disabled',
 };
 
@@ -54,6 +59,7 @@ const LABEL_DEFS = {
   [LABELS.WAITING_ON_AUTHOR]:    { color: COLORS.ATTENTION_STRONG, description: 'Blocked on contributor action' },
   [LABELS.WAITING_ON_MAINTAINER]:{ color: COLORS.ATTENTION, description: 'Blocked on maintainer action' },
   [LABELS.STALE]:                { color: COLORS.INACTIVE, description: 'No activity for 4+ days (waiting on author) or 7+ days' },
+  [LABELS.REVIEW_OVERDUE]:       { color: COLORS.ATTENTION, description: 'Blocked on maintainer review for too long; never auto-closed' },
   [LABELS.DISABLED]:             { color: COLORS.INACTIVE, description: 'PR excluded from lifecycle orchestrator' },
 };
 
@@ -101,6 +107,25 @@ function getLifecycleState(pr) {
   for (const state of PRIMARY_STATES) {
     if (labels.includes(state)) return state;
   }
+  return null;
+}
+
+// Which side the PR is actually blocked on: 'author', 'maintainer' or null.
+//
+// The two waiting-on-* labels are meant to be mutually exclusive, and every
+// site that adds one clears the other — except reconcile's label-recovery
+// path, which adds waiting-on-maintainer as a default for a PR that lost its
+// lifecycle label without knowing whether the author still owes something.
+// So define the tie rather than leave it to label ordering: the author wins.
+//
+// That direction is the safe one. Getting it wrong towards 'author' means a
+// maintainer-blocked PR keeps the author's shorter timer, which is exactly
+// today's behaviour; getting it wrong towards 'maintainer' would exempt an
+// author-blocked PR from ever going stale. Callers that grant an exemption
+// must branch on this, not on hasLabel(WAITING_ON_MAINTAINER).
+function getBlockedOn(pr) {
+  if (hasLabel(pr, LABELS.WAITING_ON_AUTHOR)) return 'author';
+  if (hasLabel(pr, LABELS.WAITING_ON_MAINTAINER)) return 'maintainer';
   return null;
 }
 
@@ -1068,6 +1093,7 @@ async function handleLabelChange({ github, context, core }) {
     LABELS.WAITING_ON_AUTHOR,
     LABELS.WAITING_ON_MAINTAINER,
     LABELS.STALE,
+    LABELS.REVIEW_OVERDUE,
     LABELS.DISABLED,
   ];
 
@@ -1575,6 +1601,114 @@ async function minimizePreviousFlakyComments(github, owner, repo, prNumber, core
 // Stale Detection
 // ---------------------------------------------------------------------------
 
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+// Marks the review-overdue ping so a later sweep can tell it already fired.
+const REVIEW_OVERDUE_MARKER = '<!-- pr-lifecycle:review-overdue -->';
+
+// The maintainer-side track of the sweep, for PRs blocked on us.
+//
+// Three jobs. First, undo the misclassification: a PR that went stale under
+// the author-facing timer while it was waiting on review is carrying a label
+// and a close countdown that were never meant for it, so clear them. Second,
+// label the wait. Third, ping the people who can clear it. Nothing here ever
+// closes a PR: the author has no action to take, so a close deadline would
+// only punish them for our latency.
+//
+// The label and the ping have separate thresholds on purpose. The label is
+// free and queryable (`is:open label:lifecycle/review-overdue`); the comment
+// is a notification to every assignee and reviewer. With 84 maintainer-blocked
+// PRs open, a single threshold either buries the label in PRs that are merely
+// open, or delays the visibility to keep the mail volume sane. Two thresholds
+// buy both: label early, notify late.
+async function handleReviewOverdue(github, api, config, core, owner, repo, pr, now) {
+  if (hasLabel(pr, LABELS.STALE)) {
+    await api.removeLabel(pr.number, LABELS.STALE);
+    core.info(`PR #${pr.number} stale removed (blocked on a maintainer, not on the author)`);
+  }
+
+  const daysUntilOverdue = config.stale?.days_until_review_overdue || 14;
+  const daysUntilPing = config.stale?.days_until_review_ping || 30;
+  const daysOpen = (now - new Date(pr.created_at)) / DAY_MS;
+
+  // Two cheap pre-filters, both before spending a paginated timeline read. A
+  // PR cannot have been waiting on review for longer than it has been open;
+  // and once it is labelled there is nothing further to do until it is old
+  // enough to ping.
+  //
+  // These do not catch a PR that is labelled, pinged and past the ping
+  // threshold: it still costs a timeline read per sweep to re-derive that the
+  // ping already happened. Short-circuiting that would mean persisting the
+  // ping in a second label, and the cost does not justify one — it is bounded
+  // by the PRs blocked on us for longer than days_until_review_ping (25 when
+  // this was written, so ~100 reads/day against a 15,000/hour budget), and
+  // the stale path above already pays the same per-PR cost.
+  if (daysOpen < daysUntilOverdue) return;
+  if (hasLabel(pr, LABELS.REVIEW_OVERDUE) && daysOpen < daysUntilPing) return;
+
+  // Measure from when the PR became maintainer-blocked, not from
+  // pr.updated_at. An author pushing to a PR that is waiting on review
+  // refreshes updated_at without discharging the review, so using it would
+  // restart our clock every time they rebase — which is the wrong direction
+  // for a timer whose entire purpose is to catch our own latency. Measured
+  // against the real queue, updated_at is close to useless here: only 2 of 84
+  // maintainer-blocked PRs had been idle 7+ days, because bots and CI keep
+  // touching them while nobody reviews.
+  const events = await github.paginate(github.rest.issues.listEventsForTimeline, {
+    owner, repo, issue_number: pr.number, per_page: 100,
+  });
+  const blockedEvent = events
+    .filter(e => e.event === 'labeled' && e.label?.name === LABELS.WAITING_ON_MAINTAINER)
+    .pop();
+
+  // No labeled event means the label predates the orchestrator (or the
+  // timeline no longer carries it). The PR's own age is then the longest it
+  // could possibly have been waiting, and it already passed the check above.
+  const blockedSince = blockedEvent ? new Date(blockedEvent.created_at) : new Date(pr.created_at);
+  const daysBlocked = (now - blockedSince) / DAY_MS;
+  if (daysBlocked < daysUntilOverdue) return;
+
+  if (!hasLabel(pr, LABELS.REVIEW_OVERDUE)) {
+    await api.addLabel(pr.number, LABELS.REVIEW_OVERDUE);
+    core.info(`PR #${pr.number} marked review-overdue (${Math.floor(daysBlocked)} days blocked on a maintainer)`);
+  }
+
+  if (daysBlocked < daysUntilPing) return;
+
+  // One ping per period of being blocked on us, not one per sweep. Scoped to
+  // comments newer than blockedSince so that a PR which was unblocked and
+  // later blocked again starts a fresh period rather than staying silent
+  // forever on the strength of an old ping.
+  const alreadyPinged = events.some(e =>
+    e.event === 'commented'
+    && e.created_at && new Date(e.created_at) > blockedSince
+    && (e.actor?.login === BOT_LOGIN || e.user?.login === BOT_LOGIN)
+    && (e.body || '').includes(REVIEW_OVERDUE_MARKER));
+  if (alreadyPinged) return;
+
+  // Assignees and requested reviewers are the people who can actually clear
+  // this. The author is addressed by the message itself and is filtered out.
+  const responsible = [...new Set([
+    ...(pr.assignees || []).map(a => a.login),
+    ...(pr.requested_reviewers || []).map(r => r.login),
+  ])].filter(login => login !== pr.user.login);
+  const mentions = responsible.length
+    ? `\n\ncc ${responsible.map(login => `@${login}`).join(' ')}`
+    : '';
+
+  // The fallback carries {reviewers} deliberately: the cc is the whole point
+  // of the ping, and a fallback without the placeholder would silently drop
+  // it if the config key were ever removed or misspelled.
+  const message = (config.stale?.review_overdue_message
+      || 'This PR is waiting on a maintainer review.{reviewers}')
+    .replace(/\{author\}/g, pr.user.login)
+    .replace(/\{days\}/g, String(Math.floor(daysBlocked)))
+    .replace(/\{reviewers\}/g, mentions);
+
+  await api.postComment(pr.number, `${REVIEW_OVERDUE_MARKER}\n${message}`);
+  core.info(`PR #${pr.number} review-overdue ping posted (${Math.floor(daysBlocked)} days)`);
+}
+
 async function handleStale({ github, context, core }) {
   const { owner, repo } = context.repo;
   const api = createApi(github, owner, repo);
@@ -1591,15 +1725,25 @@ async function handleStale({ github, context, core }) {
     owner, repo, state: 'open', per_page: 100,
   });
 
-  for (const pr of prs) {
-    if (hasLabel(pr, LABELS.DISABLED)) continue;
+  for (const listed of prs) {
+    if (hasLabel(listed, LABELS.DISABLED)) continue;
 
-    // Reconcile all PRs targeting main
-    if (pr.base?.ref === 'main') {
+    // Reconcile all PRs targeting main, then re-read. Everything below keys
+    // off waiting-on-* labels, and reconcile is precisely the thing that
+    // corrects them — deciding from the pulls.list snapshot would act on the
+    // state reconcile just fixed, one sweep behind. The dangerous direction is
+    // reconcile moving a PR to waiting-on-maintainer (case 2: author pushed,
+    // tests passed, changes addressed) while the snapshot still says
+    // waiting-on-author: the author timer is the short 4/7 pair, so a PR that
+    // is in fact blocked on us could be warned and closed. Same
+    // getPr-around-reconcile pattern as handlePrSynchronize and cmdRetry.
+    let pr = listed;
+    if (listed.base?.ref === 'main') {
       try {
-        await reconcile(github, api, pr, core);
+        await reconcile(github, api, listed, core);
+        pr = await api.getPr(listed.number);
       } catch (err) {
-        core.warning(`PR #${pr.number} reconcile failed: ${err.message}`);
+        core.warning(`PR #${listed.number} reconcile failed: ${err.message}`);
       }
     }
 
@@ -1607,10 +1751,33 @@ async function handleStale({ github, context, core }) {
     if (!state) continue;
     if (state === LABELS.READY_TO_MERGE) continue;
 
-    const updatedAt = new Date(pr.updated_at);
-    const daysSinceUpdate = (now - updatedAt) / (1000 * 60 * 60 * 24);
+    const blockedOn = getBlockedOn(pr);
 
-    const isWaitingOnAuthor = hasLabel(pr, LABELS.WAITING_ON_AUTHOR);
+    // Blocked on us. The stale timers measure contributor inactivity and the
+    // warning is addressed to the author, so neither applies to a PR where
+    // the author has nothing left to do — running them here is how #9965 and
+    // #9947 ended up counting down to auto-close while waiting on review.
+    // Hand off to the maintainer-facing track, which never closes anything.
+    if (blockedOn === 'maintainer') {
+      try {
+        await handleReviewOverdue(github, api, config, core, owner, repo, pr, now);
+      } catch (err) {
+        core.warning(`PR #${pr.number} review-overdue check failed: ${err.message}`);
+      }
+      continue;
+    }
+
+    // Not blocked on us (any more) — drop the reminder if it lingered, so the
+    // label always reflects a review we currently owe.
+    if (hasLabel(pr, LABELS.REVIEW_OVERDUE)) {
+      await api.removeLabel(pr.number, LABELS.REVIEW_OVERDUE);
+      core.info(`PR #${pr.number} review-overdue removed (no longer blocked on a maintainer)`);
+    }
+
+    const updatedAt = new Date(pr.updated_at);
+    const daysSinceUpdate = (now - updatedAt) / DAY_MS;
+
+    const isWaitingOnAuthor = blockedOn === 'author';
     const effectiveDaysUntilStale = isWaitingOnAuthor ? daysUntilStaleWaitingOnAuthor : daysUntilStale;
     const effectiveDaysUntilClose = isWaitingOnAuthor ? daysUntilCloseWaitingOnAuthor : daysUntilClose;
 
@@ -1630,7 +1797,7 @@ async function handleStale({ github, context, core }) {
       if (!staleEvent) continue;
 
       const staleSince = new Date(staleEvent.created_at);
-      const daysSinceStale = (now - staleSince) / (1000 * 60 * 60 * 24);
+      const daysSinceStale = (now - staleSince) / DAY_MS;
 
       // Only events that carry created_at are considered. 'committed' events
       // are deliberately not in the list: they have no created_at at all (the

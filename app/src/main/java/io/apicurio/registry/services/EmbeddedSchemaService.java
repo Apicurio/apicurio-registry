@@ -41,6 +41,10 @@ import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
 @ApplicationScoped
 public class EmbeddedSchemaService {
 
+    private static final String FIELD_INPUT = "input";
+    private static final String FIELD_OUTPUT = "output";
+    private static final String FIELD_OUTPUT_SCHEMA = "outputSchema";
+
     @Inject
     Logger log;
 
@@ -96,15 +100,15 @@ public class EmbeddedSchemaService {
             boolean modified = false;
 
             // Extract "input" schema
-            if (rootObj.has("input") && rootObj.get("input").isObject() && hasSchemaProperties(rootObj.get("input"))) {
+            if (rootObj.has(FIELD_INPUT) && rootObj.get(FIELD_INPUT).isObject() && hasSchemaProperties(rootObj.get(FIELD_INPUT))) {
                 String schemaArtifactId = artifactId + "-input-schema";
-                JsonNode inputSchema = rootObj.get("input");
+                JsonNode inputSchema = rootObj.get(FIELD_INPUT);
 
                 String version = autoRegisterSchema(storage, groupId, schemaArtifactId, inputSchema,
                         "Input schema for " + artifactId, owner);
                 if (version != null) {
                     String refName = buildReferenceName(groupId, schemaArtifactId, version);
-                    rootObj.set("input", createRefNode(refName));
+                    rootObj.set(FIELD_INPUT, createRefNode(refName));
                     references.add(ArtifactReferenceDto.builder()
                             .groupId(groupId).artifactId(schemaArtifactId).version(version).name(refName)
                             .build());
@@ -113,15 +117,15 @@ public class EmbeddedSchemaService {
             }
 
             // Extract "output" schema
-            if (rootObj.has("output") && rootObj.get("output").isObject() && hasSchemaProperties(rootObj.get("output"))) {
+            if (rootObj.has(FIELD_OUTPUT) && rootObj.get(FIELD_OUTPUT).isObject() && hasSchemaProperties(rootObj.get(FIELD_OUTPUT))) {
                 String schemaArtifactId = artifactId + "-output-schema";
-                JsonNode outputSchema = rootObj.get("output");
+                JsonNode outputSchema = rootObj.get(FIELD_OUTPUT);
 
                 String version = autoRegisterSchema(storage, groupId, schemaArtifactId, outputSchema,
                         "Output schema for " + artifactId, owner);
                 if (version != null) {
                     String refName = buildReferenceName(groupId, schemaArtifactId, version);
-                    rootObj.set("output", createRefNode(refName));
+                    rootObj.set(FIELD_OUTPUT, createRefNode(refName));
                     references.add(ArtifactReferenceDto.builder()
                             .groupId(groupId).artifactId(schemaArtifactId).version(version).name(refName)
                             .build());
@@ -163,15 +167,15 @@ public class EmbeddedSchemaService {
             boolean modified = false;
 
             // Extract "outputSchema"
-            if (rootObj.has("outputSchema") && rootObj.get("outputSchema").isObject() && hasSchemaProperties(rootObj.get("outputSchema"))) {
+            if (rootObj.has(FIELD_OUTPUT_SCHEMA) && rootObj.get(FIELD_OUTPUT_SCHEMA).isObject() && hasSchemaProperties(rootObj.get(FIELD_OUTPUT_SCHEMA))) {
                 String schemaArtifactId = artifactId + "-output-schema";
-                JsonNode outputSchema = rootObj.get("outputSchema");
+                JsonNode outputSchema = rootObj.get(FIELD_OUTPUT_SCHEMA);
 
                 String version = autoRegisterSchema(storage, groupId, schemaArtifactId, outputSchema,
                         "Output schema for prompt template " + artifactId, owner);
                 if (version != null) {
                     String refName = buildReferenceName(groupId, schemaArtifactId, version);
-                    rootObj.set("outputSchema", createRefNode(refName));
+                    rootObj.set(FIELD_OUTPUT_SCHEMA, createRefNode(refName));
                     references.add(ArtifactReferenceDto.builder()
                             .groupId(groupId).artifactId(schemaArtifactId).version(version).name(refName)
                             .build());

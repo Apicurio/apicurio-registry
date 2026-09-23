@@ -37,6 +37,8 @@ import java.util.List;
  */
 public class StructuredContentVisitor extends CombinedVisitorAdapter {
 
+    private static final String ELEM_OPERATION = "operation";
+
     private final List<StructuredElement> elements = new ArrayList<>();
 
     /**
@@ -99,17 +101,17 @@ public class StructuredContentVisitor extends CombinedVisitorAdapter {
         if (node instanceof OpenApiOperation) {
             String opId = ((OpenApiOperation) node).getOperationId();
             if (opId != null) {
-                elements.add(new StructuredElement("operation", opId));
+                elements.add(new StructuredElement(ELEM_OPERATION, opId));
             }
         } else if (node instanceof AsyncApiOperation) {
             if (node.mapPropertyName() != null && node.parent() instanceof AsyncApi3xOperations) {
                 // AsyncAPI 3.x: top-level operations use the map key as the name
-                elements.add(new StructuredElement("operation", node.mapPropertyName()));
+                elements.add(new StructuredElement(ELEM_OPERATION, node.mapPropertyName()));
             } else {
                 // AsyncAPI 2.x: operationId is on version-specific interfaces
                 String opId = getAsyncApiOperationId(node);
                 if (opId != null) {
-                    elements.add(new StructuredElement("operation", opId));
+                    elements.add(new StructuredElement(ELEM_OPERATION, opId));
                 }
             }
         }

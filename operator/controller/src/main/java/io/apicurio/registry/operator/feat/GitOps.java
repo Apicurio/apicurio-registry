@@ -53,6 +53,7 @@ public class GitOps {
 
     private static final String VOLUME_NAME = "gitops-repos";
     private static final String MOUNT_PATH = "/repos";
+    private static final String DEFAULT_REPO_DIR = "default";
     public static final int SSH_PORT = 2222;
     public static final String SSH_PORT_NAME = "ssh";
 
@@ -92,7 +93,7 @@ public class GitOps {
             var prefix = APICURIO_GITOPS_REPOS_PREFIX + i;
 
             addEnvVar(env, prefix + APICURIO_GITOPS_REPOS_DIR_SUFFIX,
-                    !isBlank(repo.getDir()) ? repo.getDir() : "default");
+                    !isBlank(repo.getDir()) ? repo.getDir() : DEFAULT_REPO_DIR);
 
             if (!isBlank(repo.getBranch())) {
                 addEnvVar(env, prefix + APICURIO_GITOPS_REPOS_BRANCH_SUFFIX, repo.getBranch());
@@ -150,7 +151,7 @@ public class GitOps {
 
             sidecarEnv.add(new EnvVarBuilder()
                     .withName(prefix + APICURIO_GITOPS_REPOS_DIR_SUFFIX)
-                    .withValue(!isBlank(repo.getDir()) ? repo.getDir() : "default").build());
+                    .withValue(!isBlank(repo.getDir()) ? repo.getDir() : DEFAULT_REPO_DIR).build());
 
             if (!isBlank(repo.getUrl())) {
                 sidecarEnv.add(new EnvVarBuilder()
@@ -220,8 +221,12 @@ public class GitOps {
                         .withPeriodSeconds(10)
                         .build());
             } else {
-                var firstRepoDir = repos.isEmpty() ? "default"
-                        : (!isBlank(repos.get(0).getDir()) ? repos.get(0).getDir() : "default");
+                String firstRepoDir;
+                if (repos.isEmpty() || isBlank(repos.get(0).getDir())) {
+                    firstRepoDir = DEFAULT_REPO_DIR;
+                } else {
+                    firstRepoDir = repos.get(0).getDir();
+                }
                 sidecar.setReadinessProbe(new ProbeBuilder()
                         .withExec(new ExecActionBuilder()
                                 .withCommand("test", "-d",

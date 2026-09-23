@@ -41,6 +41,9 @@ import java.util.stream.Collectors;
 
 public class RamlTestMicroService extends AbstractVerticle {
     private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final String CONTENT_TYPE_JSON = "application/json";
+    private static final String CONTENT_TYPE_PLAIN = "text/plain";
+    private static final String HEADER_CONTENT_TYPE = "content-type";
     private final int port;
     private HttpServer server;
     private AtomicInteger requestCounter = new AtomicInteger(0);
@@ -59,15 +62,15 @@ public class RamlTestMicroService extends AbstractVerticle {
             if (!"POST".equals(req.method().name())) {
                 req.response()
                         .setStatusCode(405)
-                        .putHeader("content-type", "text/plain")
+                        .putHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_PLAIN)
                         .end("Method Not Allowed");
                 return;
             }
 
-            if (!"application/json".equalsIgnoreCase(req.getHeader("content-type"))) {
+            if (!CONTENT_TYPE_JSON.equalsIgnoreCase(req.getHeader(HEADER_CONTENT_TYPE))) {
                 req.response()
                         .setStatusCode(400)
-                        .putHeader("content-type", "text/plain")
+                        .putHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_PLAIN)
                         .end("Bad Request: Content-Type must be application/json");
                 return;
             }
@@ -78,7 +81,7 @@ public class RamlTestMicroService extends AbstractVerticle {
             if (isEven) {
                 req.response()
                         .setStatusCode(500)
-                        .putHeader("content-type", "text/plain")
+                        .putHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_PLAIN)
                         .end("Server Error: failed for request ID::" + requestId);
                 return;
             }
@@ -143,7 +146,7 @@ public class RamlTestMicroService extends AbstractVerticle {
         } catch (Exception e) {
             req.response()
                     .setStatusCode(500)
-                    .putHeader("content-type", "text/plain")
+                    .putHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_PLAIN)
                     .end("Server error: " + e.getMessage()); // TODO include the stack trace in the response
         }
     }
@@ -152,7 +155,7 @@ public class RamlTestMicroService extends AbstractVerticle {
         ContentAccepterRequest request = objectMapper.readValue(body, ContentAccepterRequest.class);
         RamlContentAccepter accepter = new RamlContentAccepter();
         boolean accepted = accepter.acceptsContent(toServerBean(request.getTypedContent()), toServerBean(request.getResolvedReferences()));
-        req.response().putHeader("content-type", "application/json").end(String.valueOf(accepted));
+        req.response().putHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON).end(String.valueOf(accepted));
     }
 
     private void handleCompatibilityChecker(HttpServerRequest req, String body) throws Exception {
@@ -167,7 +170,7 @@ public class RamlTestMicroService extends AbstractVerticle {
 
         CompatibilityCheckerResponse response = new CompatibilityCheckerResponse();
         response.setIncompatibleDifferences(toBean(result.getIncompatibleDifferences()));
-        req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
+        req.response().putHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON).end(objectMapper.writeValueAsString(response));
     }
 
     private void handleContentCanonicalizer(HttpServerRequest req, String body) throws Exception {
@@ -179,7 +182,7 @@ public class RamlTestMicroService extends AbstractVerticle {
 
         ContentCanonicalizerResponse response = new ContentCanonicalizerResponse();
         response.setTypedContent(toBean(canonicalizedContent));
-        req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
+        req.response().putHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON).end(objectMapper.writeValueAsString(response));
     }
 
     private void handleContentValidator(HttpServerRequest req, String body) throws Exception {
@@ -207,7 +210,7 @@ public class RamlTestMicroService extends AbstractVerticle {
                 return violation;
             }).toList());
         }
-        req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
+        req.response().putHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON).end(objectMapper.writeValueAsString(response));
     }
 
     private void handleContentDereferencer(HttpServerRequest req, String body) throws Exception {
@@ -225,7 +228,7 @@ public class RamlTestMicroService extends AbstractVerticle {
             TypedContent rewrittenContent = contentDereferencer.rewriteReferences(typedContent, resolvedReferenceUrls);
             response.setTypedContent(toBean(rewrittenContent));
         }
-        req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
+        req.response().putHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON).end(objectMapper.writeValueAsString(response));
     }
 
     private void handleReferenceFinder(HttpServerRequest req, String body) throws Exception {
@@ -236,7 +239,7 @@ public class RamlTestMicroService extends AbstractVerticle {
 
         ReferenceFinderResponse response = new ReferenceFinderResponse();
         response.setExternalReferences(toBean2(externalReferences));
-        req.response().putHeader("content-type", "application/json").end(objectMapper.writeValueAsString(response));
+        req.response().putHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON).end(objectMapper.writeValueAsString(response));
     }
 
     private TypedContent toServerBean(io.apicurio.registry.types.webhooks.beans.TypedContent typedContent) {

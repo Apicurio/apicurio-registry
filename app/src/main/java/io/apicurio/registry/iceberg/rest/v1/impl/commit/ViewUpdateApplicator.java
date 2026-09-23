@@ -11,6 +11,12 @@ import java.util.Map;
  */
 public final class ViewUpdateApplicator {
 
+    private static final String FORMAT_VERSION = "format-version";
+    private static final String PROPERTIES = "properties";
+    private static final String VERSIONS = "versions";
+    private static final String VERSION_ID = "version-id";
+    private static final String TIMESTAMP_MS = "timestamp-ms";
+
     private ViewUpdateApplicator() {
     }
 
@@ -65,10 +71,10 @@ public final class ViewUpdateApplicator {
 
     private static void applyUpgradeFormatVersion(Map<String, Object> update,
             Map<String, Object> metadata) {
-        int newVersion = toInt(update.get("format-version"));
-        int currentVersion = toInt(metadata.getOrDefault("format-version", 1));
+        int newVersion = toInt(update.get(FORMAT_VERSION));
+        int currentVersion = toInt(metadata.getOrDefault(FORMAT_VERSION, 1));
         if (newVersion >= currentVersion) {
-            metadata.put("format-version", newVersion);
+            metadata.put(FORMAT_VERSION, newVersion);
         }
     }
 
@@ -83,7 +89,7 @@ public final class ViewUpdateApplicator {
 
         if (!schema.containsKey("schema-id")) {
             schema = new HashMap<>(schema);
-            schema.put("schema-id", schemas.size());
+            schema.put("schema-id", schemas.size()); //NOSONAR: schema-id is intentionally a literal here (Iceberg field key unique to schema structure)
         }
 
         schemas.add(schema);
@@ -97,14 +103,14 @@ public final class ViewUpdateApplicator {
             return;
         }
 
-        Map<String, Object> properties = (Map<String, Object>) metadata.get("properties");
+        Map<String, Object> properties = (Map<String, Object>) metadata.get(PROPERTIES);
         if (properties == null) {
             properties = new HashMap<>();
         } else {
             properties = new HashMap<>(properties);
         }
         properties.putAll(updates);
-        metadata.put("properties", properties);
+        metadata.put(PROPERTIES, properties);
     }
 
     @SuppressWarnings("unchecked")
@@ -114,13 +120,13 @@ public final class ViewUpdateApplicator {
             return;
         }
 
-        Map<String, Object> properties = (Map<String, Object>) metadata.get("properties");
+        Map<String, Object> properties = (Map<String, Object>) metadata.get(PROPERTIES);
         if (properties != null) {
             properties = new HashMap<>(properties);
             for (String key : removals) {
                 properties.remove(key);
             }
-            metadata.put("properties", properties);
+            metadata.put(PROPERTIES, properties);
         }
     }
 
@@ -131,33 +137,33 @@ public final class ViewUpdateApplicator {
             throw new IllegalArgumentException("add-view-version update is missing 'view-version' field");
         }
 
-        List<Object> versions = getMutableList(metadata, "versions");
+        List<Object> versions = getMutableList(metadata, VERSIONS);
 
         // Auto-assign version-id if not present
         int versionId;
-        if (viewVersion.containsKey("version-id")) {
-            versionId = toInt(viewVersion.get("version-id"));
+        if (viewVersion.containsKey(VERSION_ID)) {
+            versionId = toInt(viewVersion.get(VERSION_ID));
         } else {
             versionId = versions.size() + 1;
             viewVersion = new HashMap<>(viewVersion);
-            viewVersion.put("version-id", versionId);
+            viewVersion.put(VERSION_ID, versionId);
         }
 
         // Set timestamp if not present
-        if (!viewVersion.containsKey("timestamp-ms")) {
+        if (!viewVersion.containsKey(TIMESTAMP_MS)) {
             viewVersion = viewVersion instanceof HashMap ? viewVersion : new HashMap<>(viewVersion);
-            viewVersion.put("timestamp-ms", System.currentTimeMillis());
+            viewVersion.put(TIMESTAMP_MS, System.currentTimeMillis());
         }
 
         versions.add(viewVersion);
-        metadata.put("versions", versions);
+        metadata.put(VERSIONS, versions);
         metadata.put("current-version-id", versionId);
 
         // Update version-log
         List<Object> versionLog = getMutableList(metadata, "version-log");
         Map<String, Object> logEntry = new HashMap<>();
-        logEntry.put("version-id", versionId);
-        logEntry.put("timestamp-ms", viewVersion.get("timestamp-ms"));
+        logEntry.put(VERSION_ID, versionId);
+        logEntry.put(TIMESTAMP_MS, viewVersion.get(TIMESTAMP_MS));
         versionLog.add(logEntry);
         metadata.put("version-log", versionLog);
     }
@@ -168,10 +174,10 @@ public final class ViewUpdateApplicator {
         int versionId = toInt(update.get("view-version-id"));
         // The SDK sends -1 as a placeholder for the most recently added version
         if (versionId == -1) {
-            List<Object> versions = (List<Object>) metadata.get("versions");
+            List<Object> versions = (List<Object>) metadata.get(VERSIONS);
             if (versions != null && !versions.isEmpty()) {
                 Map<String, Object> lastVersion = (Map<String, Object>) versions.get(versions.size() - 1);
-                versionId = toInt(lastVersion.get("version-id"));
+                versionId = toInt(lastVersion.get(VERSION_ID));
             }
         }
         metadata.put("current-version-id", versionId);

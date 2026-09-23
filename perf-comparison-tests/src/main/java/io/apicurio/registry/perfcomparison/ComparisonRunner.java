@@ -7,18 +7,20 @@ import java.util.List;
 
 public class ComparisonRunner {
 
+    private static final String JVM_ADD_OPENS = "--add-opens";
+
     public static void main(String[] args) throws IOException, InterruptedException {
         String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
         String results = System.getProperty("gatling.resultsFolder", "/results/gatling");
         List<String> command = new ArrayList<>(List.of(javaBin,
-                "--add-opens", "java.base/java.lang=ALL-UNNAMED",
-                "--add-opens", "java.base/java.util=ALL-UNNAMED",
-                "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED",
-                "--add-opens", "java.base/java.nio=ALL-UNNAMED",
-                "--add-opens", "java.base/sun.nio.ch=ALL-UNNAMED",
-                "--add-opens", "java.base/sun.security.ssl=ALL-UNNAMED",
-                "--add-opens", "java.base/sun.security.util=ALL-UNNAMED",
-                "--add-opens", "java.base/java.net=ALL-UNNAMED",
+                JVM_ADD_OPENS, "java.base/java.lang=ALL-UNNAMED",
+                JVM_ADD_OPENS, "java.base/java.util=ALL-UNNAMED",
+                JVM_ADD_OPENS, "java.base/java.util.concurrent=ALL-UNNAMED",
+                JVM_ADD_OPENS, "java.base/java.nio=ALL-UNNAMED",
+                JVM_ADD_OPENS, "java.base/sun.nio.ch=ALL-UNNAMED",
+                JVM_ADD_OPENS, "java.base/sun.security.ssl=ALL-UNNAMED",
+                JVM_ADD_OPENS, "java.base/sun.security.util=ALL-UNNAMED",
+                JVM_ADD_OPENS, "java.base/java.net=ALL-UNNAMED",
                 "--add-exports", "java.base/jdk.internal.misc=ALL-UNNAMED"));
         forwardProperty(command, "javax.net.ssl.trustStore");
         forwardProperty(command, "javax.net.ssl.trustStorePassword");

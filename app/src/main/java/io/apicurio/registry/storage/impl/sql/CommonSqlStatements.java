@@ -10,6 +10,9 @@ import java.util.List;
  */
 public abstract class CommonSqlStatements implements SqlStatements {
 
+    private static final String SQL_GROUP_WHERE = " g WHERE g.groupId = ?";
+    private static final String SQL_UPDATE = "UPDATE ";
+
     /**
      * Constructor.
      */
@@ -631,7 +634,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectGroupCountById() {
-        return "SELECT COUNT(g.groupId) FROM " + groupsTable() + " g WHERE g.groupId = ?";
+        return "SELECT COUNT(g.groupId) FROM " + groupsTable() + SQL_GROUP_WHERE;
     }
 
     /**
@@ -752,7 +755,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateGroupDescription() {
-        return "UPDATE " + groupsTable() + " SET description = ? WHERE groupId = ?";
+        return SQL_UPDATE + groupsTable() + " SET description = ? WHERE groupId = ?";
     }
 
     /**
@@ -760,7 +763,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateGroupOwner() {
-        return "UPDATE " + groupsTable() + " SET owner = ? WHERE groupId = ?";
+        return SQL_UPDATE + groupsTable() + " SET owner = ? WHERE groupId = ?";
     }
 
     /**
@@ -768,7 +771,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateGroupLabels() {
-        return "UPDATE " + groupsTable() + " SET labels = ? WHERE groupId = ?";
+        return SQL_UPDATE + groupsTable() + " SET labels = ? WHERE groupId = ?";
     }
 
     /**
@@ -776,7 +779,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String updateGroupModifiedByOn() {
-        return "UPDATE " + groupsTable() + " SET modifiedBy = ?, modifiedOn = ? WHERE groupId = ?";
+        return SQL_UPDATE + groupsTable() + " SET modifiedBy = ?, modifiedOn = ? WHERE groupId = ?";
     }
 
     /**
@@ -808,7 +811,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String selectGroupByGroupId() {
-        return "SELECT g.* FROM " + groupsTable() + " g WHERE g.groupId = ?";
+        return "SELECT g.* FROM " + groupsTable() + SQL_GROUP_WHERE;
     }
 
     @Override
@@ -888,7 +891,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public String exportGroupsByGroupId() {
-        return "SELECT * FROM " + groupsTable() + " g WHERE g.groupId = ?";
+        return "SELECT * FROM " + groupsTable() + SQL_GROUP_WHERE;
     }
 
     /**

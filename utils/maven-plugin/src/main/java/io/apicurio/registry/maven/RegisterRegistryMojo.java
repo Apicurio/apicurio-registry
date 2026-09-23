@@ -41,6 +41,8 @@ import java.util.regex.Pattern;
 @Mojo(name = "register", requiresProject = false)
 public class RegisterRegistryMojo extends AbstractRegistryMojo {
 
+    private static final String CASE_VERSION = "version";
+
     /**
      * The list of pre-registered artifacts that can be used as references.
      */
@@ -244,7 +246,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             case "contentType":
                 artifact.setContentType(value);
                 break;
-            case "version":
+            case CASE_VERSION:
                 artifact.setVersion(value);
                 break;
             case "versionStrategy":
@@ -325,7 +327,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             case "artifactId":
                 existingReference.setArtifactId(value);
                 break;
-            case "version":
+            case CASE_VERSION:
                 existingReference.setVersion(value);
                 break;
             case "resourceName":
@@ -800,7 +802,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     private String extractApiInfoVersion(RegisterArtifact artifact, String data) throws MojoExecutionException {
         try {
             JsonNode root = getVersionExtractionMapper(artifact).readTree(data);
-            JsonNode versionNode = root.path("info").path("version");
+            JsonNode versionNode = root.path("info").path(CASE_VERSION);
             if (versionNode.isTextual()) {
                 String version = versionNode.asText();
                 if (!version.isBlank()) {

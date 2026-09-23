@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class AvroReferenceFinder implements ReferenceFinder {
 
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final String NAMESPACE = "namespace";
 
     private static final Set<String> PRIMITIVE_TYPES = Set.of("null", "boolean", "int", "long", "float",
             "double", "bytes", "string");
@@ -47,9 +48,9 @@ public class AvroReferenceFinder implements ReferenceFinder {
      * @return The namespace or null if not present
      */
     private static String extractNamespace(JsonNode schema) {
-        if (schema != null && schema.isObject() && schema.has("namespace")
-                && !schema.get("namespace").isNull()) {
-            return schema.get("namespace").asText();
+        if (schema != null && schema.isObject() && schema.has(NAMESPACE)
+                && !schema.get(NAMESPACE).isNull()) {
+            return schema.get(NAMESPACE).asText();
         }
         return null;
     }

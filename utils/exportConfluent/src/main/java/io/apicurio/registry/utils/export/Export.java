@@ -61,6 +61,9 @@ import java.util.zip.ZipOutputStream;
 @QuarkusMain(name = "ConfluentExport")
 public class Export implements QuarkusApplication {
 
+    private static final String EXPORTED_BY = "export-confluent-utility";
+    private static final String LOG_EXPORTED = "Exported ";
+
     @Inject
     Logger log;
 
@@ -160,7 +163,7 @@ public class Export implements QuarkusApplication {
                                                   contentHashToContentId, writer);
                 }
             }
-            log.info("Exported " + contentCount + " content entities");
+            log.info(LOG_EXPORTED + contentCount + " content entities");
 
             // =========================================================================
             // STEP 4: Export all artifacts
@@ -169,7 +172,7 @@ public class Export implements QuarkusApplication {
             for (String subject : sortedSubjects) {
                 exportArtifact(subject, artifactTypeBySubject.get(subject), writer);
             }
-            log.info("Exported " + sortedSubjects.size() + " artifacts");
+            log.info(LOG_EXPORTED + sortedSubjects.size() + " artifacts");
 
             // =========================================================================
             // STEP 5: Export all artifact versions
@@ -184,7 +187,7 @@ public class Export implements QuarkusApplication {
                     versionCount++;
                 }
             }
-            log.info("Exported " + versionCount + " artifact versions");
+            log.info(LOG_EXPORTED + versionCount + " artifact versions");
 
             // =========================================================================
             // STEP 6: Export all branches
@@ -193,7 +196,7 @@ public class Export implements QuarkusApplication {
             for (String subject : sortedSubjects) {
                 exportBranch(subject, versionsBySubject.get(subject), writer);
             }
-            log.info("Exported " + sortedSubjects.size() + " branches");
+            log.info(LOG_EXPORTED + sortedSubjects.size() + " branches");
 
             // =========================================================================
             // STEP 7: Export artifact rules
@@ -209,7 +212,7 @@ public class Export implements QuarkusApplication {
                     // Subject does not have specific compatibility rule
                 }
             }
-            log.info("Exported " + artifactRuleCount + " artifact rules");
+            log.info(LOG_EXPORTED + artifactRuleCount + " artifact rules");
 
             // =========================================================================
             // STEP 8: Export global rules
@@ -306,9 +309,9 @@ public class Export implements QuarkusApplication {
                 .name(null)
                 .description(null)
                 .labels(Collections.emptyMap())
-                .owner("export-confluent-utility")
+                .owner(EXPORTED_BY)
                 .createdOn(now)
-                .modifiedBy("export-confluent-utility")
+                .modifiedBy(EXPORTED_BY)
                 .modifiedOn(now)
                 .build();
 
@@ -353,10 +356,10 @@ public class Export implements QuarkusApplication {
                 .state(VersionState.ENABLED)
                 .name(null)
                 .description(null)
-                .owner("export-confluent-utility")
+                .owner(EXPORTED_BY)
                 .labels(Collections.emptyMap())
                 .createdOn(now)
-                .modifiedBy("export-confluent-utility")
+                .modifiedBy(EXPORTED_BY)
                 .modifiedOn(now)
                 .contentId(contentId)
                 .build();
@@ -389,9 +392,9 @@ public class Export implements QuarkusApplication {
                 .systemDefined(true) // System-defined branch
                 .versions(versionStrings)
                 .description(null)
-                .owner("export-confluent-utility")
+                .owner(EXPORTED_BY)
                 .createdOn(now)
-                .modifiedBy("export-confluent-utility")
+                .modifiedBy(EXPORTED_BY)
                 .modifiedOn(now)
                 .build();
 

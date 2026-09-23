@@ -94,13 +94,19 @@ echo "Checkstyle config ok: $(printf '%s\n' "$ACTUALLY_ENFORCED" | grep -c .) ru
 # ---------------------------------------------------------------------------
 # Kiota binary cache location
 #
-# What is checked and why is in the script's own docstring, and why the location
-# is what it is is in the kiota.binary.folder comment in the root pom.
+# What is checked and why is in the script's own docstring. Why the location is
+# what it is: see the kiota.binary.folder comment in the root pom.
 #
-# It lives in Python rather than in an enforcer rule because no enforcer
-# mechanism can safely take an interpolated path as syntax. evaluateBeanshell
-# interpolates the value into a Java string literal, so a Windows local
-# repository fails at parse time whatever the value is, and requireProperty
-# interpolates into regex source, where a \E inside a Windows path ends the
-# \Q...\E quoting early. Both were tried and both broke on real paths.
+# It lives in Python rather than in a maven-enforcer rule because the enforcer
+# sees the property's resolved value and this check needs the pom's committed
+# shape. A requireProperty rule with a shape regex does enforce the resolved
+# value on every route at once, but it is blind to the two routes that leave the
+# resolved property reading as expected: with the os-maven-plugin extension
+# missing the classifier segment stays literal and still matches the shape, and
+# a consumer pom can hardcode <targetBinaryFolder> while the property itself is
+# never consulted. Matching a literal path instead means quoting it with
+# \Q...\E, and a \E inside a path such as C:\Eclipse ends the quoting early;
+# evaluateBeanshell interpolates the value into a Java string literal, so a
+# Windows local repository fails at parse time whatever the value is. Both
+# literal routes were tried on enforcer 3.6.3 and both broke on real paths.
 python3 .github/scripts/validate-kiota-folder.py || exit 1

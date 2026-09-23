@@ -16,13 +16,9 @@
 """Mutation tests for the Kiota binary folder check.
 
 Each test builds a small tree, applies one change, and asserts the exit code.
-The accepted cases carry as much weight as the rejected ones. An earlier version
+The accepted cases carry as much weight as the rejected ones: an earlier version
 of this check matched text rather than parsing, and it rejected a property whose
 line also opened a comment while accepting one that was commented out.
-
-Flags are written out in full here. The check scopes itself by what a file does
-rather than by where it sits, and a .py file cannot put a -D on a Maven command
-line, so this file is not scanned. test_a_python_file_is_not_scanned pins that.
 """
 
 import contextlib
@@ -36,13 +32,11 @@ import unittest
 script_dir = os.path.dirname(os.path.abspath(__file__))
 script_path = os.path.join(script_dir, "validate-kiota-folder.py")
 
+# The script's name has a hyphen, so a plain import cannot reach it and it is
+# loaded from its path instead, the same shape test_parse_flaky_tests uses. The
+# None check is for the type checker: both are declared optional, and a script
+# that really moved raises FileNotFoundError from exec_module first.
 spec = importlib.util.spec_from_file_location("validate_kiota_folder", script_path)
-# The script's name has a hyphen in it, so a plain import cannot reach it and it
-# is loaded from its path instead. This is the same shape test_parse_flaky_tests
-# uses. The None check is for the type checker rather than for the runtime: both
-# spec and spec.loader are declared optional, and a script that has actually been
-# moved away raises FileNotFoundError from exec_module with the path in the
-# message long before either can be None.
 if spec is None or spec.loader is None:
     raise ImportError("Could not load {0}".format(script_path))
 guard = importlib.util.module_from_spec(spec)
@@ -50,47 +44,38 @@ sys.modules["validate_kiota_folder"] = guard
 spec.loader.exec_module(guard)
 
 # Read from the script rather than restated here. A second copy of the expected
-# value would let the two drift apart, and the tests would keep passing against
+# value would let the two drift, and these tests would keep passing against
 # whatever the script had been changed to.
 GOOD_VALUE = guard.EXPECTED
 EXPRESSION = guard.CONSUMER_EXPRESSION
 
 # The namespace matters: the script matches elements with {*} wildcards, so a
-# fixture that declared none would still parse and still pass, and would stop
+# fixture declaring none would still parse and still pass, and would stop
 # representing a real pom without any test noticing.
 PREAMBLE = """<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0">
 """
 
-ROOT_POM = PREAMBLE + """  <modelVersion>4.0.0</modelVersion>
-  <artifactId>apicurio-registry</artifactId>
+ROOT_POM = PREAMBLE + """  <artifactId>apicurio-registry</artifactId>
   <properties>
-    <kiota.version>1.28.0</kiota.version>
 {property}  </properties>
 {profiles}  <build>{extensions}</build>
 </project>
 """
 
-EXTENSIONS = """<extensions><extension>
-      <groupId>kr.motd.maven</groupId>
-      <artifactId>os-maven-plugin</artifactId>
-    </extension></extensions>"""
+EXTENSIONS = ("<extensions><extension><groupId>kr.motd.maven</groupId>"
+              "<artifactId>os-maven-plugin</artifactId></extension></extensions>")
 
 PROPERTY_LINE = "    <kiota.binary.folder>{0}</kiota.binary.folder>\n"
 
-# A module pom carrying nothing but the one element a test is about. No
-# assertion reads the artifactId, and the remaining elements of a real module
-# pom would be scenery.
-MODULE_POM = PREAMBLE + """  <artifactId>module</artifactId>
-{body}</project>
-"""
+PROFILE = ("  <profiles><profile><id>ci</id><properties>"
+           "<{0}>/tmp/elsewhere</{0}></properties></profile></profiles>\n")
 
 # java-sdk/client sets the folder on the plugin and java-sdk/client-v2 sets it on
 # the execution. Maven merges plugin configuration into every execution, so both
 # shapes are correct and both are exercised below.
-CONSUMER_POM = PREAMBLE + """  <modelVersion>4.0.0</modelVersion>
-  <artifactId>apicurio-registry-java-sdk</artifactId>
-  <build><plugins><plugin>
+CONSUMER_POM = PREAMBLE + """  <artifactId>apicurio-registry-java-sdk</artifactId>
+{properties}{profiles}  <build><plugins><plugin>
     <groupId>io.kiota</groupId>
     <artifactId>kiota-maven-plugin</artifactId>
 {shared}    <executions>
@@ -101,13 +86,19 @@ CONSUMER_POM = PREAMBLE + """  <modelVersion>4.0.0</modelVersion>
 
 FOLDER = "<configuration><targetBinaryFolder>{0}</targetBinaryFolder></configuration>"
 SHARED_FOLDER = "    " + FOLDER + "\n"
-EXECUTION = "      <execution><id>{0}</id><goals><goal>generate</goal></goals>" \
+EXECUTION = "      <execution>{0}<goals><goal>generate</goal></goals>" \
             "{1}</execution>\n"
 
 
-def execution(name, folder=""):
-    """One <execution>, with its own <targetBinaryFolder> when given a value."""
-    return EXECUTION.format(name, FOLDER.format(folder) if folder else "")
+def execution(name, folder=None):
+    """One <execution>, id-less when name is None.
+
+    An absent folder and an empty one are different trees to the check: pass
+    None to omit the element and "" to build an empty one.
+    """
+    identifier = "" if name is None else "<id>{0}</id>".format(name)
+    own = "" if folder is None else FOLDER.format(folder)
+    return EXECUTION.format(identifier, own)
 
 
 class KiotaFolderCheckTest(unittest.TestCase):
@@ -120,6 +111,11 @@ class KiotaFolderCheckTest(unittest.TestCase):
         self.addCleanup(os.chdir, previous)
         self.write_root()
         self.write_consumer()
+        # Both consumers, because the check names the set it expects rather than
+        # counting matches. A fixture with one of them would never exercise the
+        # half-match the real tree can reach.
+        self.write_consumer(shared="", executions=execution("v2", EXPRESSION),
+                            path="java-sdk/client-v2/pom.xml")
 
     def write(self, relative_path, content):
         full = os.path.join(self.tmp.name, relative_path)
@@ -128,11 +124,7 @@ class KiotaFolderCheckTest(unittest.TestCase):
             handle.write(content)
 
     def write_workflow(self, command, path=".github/workflows/verify.yaml"):
-        """A workflow whose single step runs the given command, on line 4.
-
-        The scaffold is the same in every one of these, so the tests name only
-        the flag they are about.
-        """
+        """A workflow whose single step runs the given command, on line 4."""
         self.write(path, "jobs:\n  build:\n    steps:\n"
                          "      - run: {0}\n".format(command))
 
@@ -144,14 +136,15 @@ class KiotaFolderCheckTest(unittest.TestCase):
                                               profiles=profiles,
                                               extensions=extensions))
 
-    def write_consumer(self, shared=None, executions=None,
-                       path="java-sdk/client/pom.xml"):
+    def write_consumer(self, shared=None, executions=None, properties="",
+                       profiles="", path="java-sdk/client/pom.xml"):
         if shared is None:
             shared = SHARED_FOLDER.format(EXPRESSION)
         if executions is None:
             executions = execution("default")
-        self.write(path, CONSUMER_POM.format(shared=shared,
-                                             executions=executions))
+        self.write(path, CONSUMER_POM.format(shared=shared, executions=executions,
+                                             properties=properties,
+                                             profiles=profiles))
 
     def run_guard(self):
         """The exit code, stderr, and stdout of the check."""
@@ -164,7 +157,7 @@ class KiotaFolderCheckTest(unittest.TestCase):
     def assertAccepted(self):
         code, reported, output = self.run_guard()
         self.assertEqual(0, code, "expected this tree to pass:\n" + reported)
-        # A guard that returns 0 without checking anything passes every accepted
+        # A guard returning 0 without checking anything passes every accepted
         # case here, so the success line has to name the value it checked.
         self.assertIn(GOOD_VALUE, output)
 
@@ -177,11 +170,6 @@ class KiotaFolderCheckTest(unittest.TestCase):
     # ---------------- accepted ----------------
 
     def test_the_real_shape_is_accepted(self):
-        self.assertAccepted()
-
-    def test_the_folder_set_on_the_execution_is_accepted(self):
-        """java-sdk/client-v2 sets it here rather than on the plugin."""
-        self.write_consumer(shared="", executions=execution("v2", EXPRESSION))
         self.assertAccepted()
 
     def test_a_plugin_without_executions_is_accepted(self):
@@ -208,8 +196,8 @@ class KiotaFolderCheckTest(unittest.TestCase):
                         "    </kiota.binary.folder>\n".format(GOOD_VALUE))
         self.assertAccepted()
 
-    def test_prose_naming_the_flag_is_accepted(self):
-        """DEVELOPING.md documents the flag, and a doc cannot run Maven."""
+    def test_a_readme_beside_the_workflows_is_not_scanned(self):
+        """Only .yml and .yaml are read, and a doc cannot run Maven."""
         self.write(".github/workflows/README.md",
                    "Pass -Dkiota.binary.folder to move the binary.\n")
         self.assertAccepted()
@@ -221,61 +209,50 @@ class KiotaFolderCheckTest(unittest.TestCase):
                    "      - run: ./mvnw install\n")
         self.assertAccepted()
 
-    def test_a_python_file_is_not_scanned(self):
-        """Why this file may write the flags out rather than assemble them.
+    def test_a_script_outside_the_workflows_is_not_scanned(self):
+        """The scan is the workflow directory, and this pins that boundary.
 
-        An earlier version scanned every file under .github, so its own source
-        reported itself. Assembling the flags fixed the source and not the
-        bytecode, where the compiler folds the two literals back into one.
+        A shell script moving the folder is a real way to do it and deliberately
+        out of scope: it moves the folder for one developer rather than for the
+        pipeline. The pom comment carries the full list of what is left out.
         """
-        self.write(".github/scripts/sample.py",
-                   'FLAG = "-Dkiota.binary.folder=/tmp/elsewhere"\n')
-        self.assertAccepted()
-
-    def test_a_nested_checkout_is_not_scanned(self):
-        """A git worktree under the tree carries poms that are not this tree's.
-
-        Its .git is a regular file rather than a directory, so PRUNED's .git
-        entry does not match it. Eric Wittmann added .worktrees/ to .gitignore
-        in 6fc7f3413, and agent sessions use .claude/worktrees/, so pruning by
-        name would need both spellings and would miss the next one.
-        """
-        self.write(".worktrees/probe/pom.xml",
-                   ROOT_POM.format(property=PROPERTY_LINE.format("/tmp/elsewhere"),
-                                   profiles="", extensions=EXTENSIONS))
-        self.write(".worktrees/probe/.git", "gitdir: /elsewhere/.git/worktrees/probe\n")
-        self.assertAccepted()
-
-    def test_a_dangling_symlink_is_tolerated(self):
-        """os.walk lists one as a file, and opening it raises FileNotFoundError."""
-        os.makedirs(".github/workflows")
-        os.symlink("/nonexistent/target", ".github/workflows/stale.yaml")
+        self.write("scripts/build.sh",
+                   "#!/bin/bash\n./mvnw -Dkiota.binary.folder=/tmp/k install\n")
         self.assertAccepted()
 
     def test_a_longer_resolver_property_is_accepted(self):
         """maven.repo.local.tail.threads is a real property that moves nothing.
 
-        A word boundary after "local" matches it and reports a flag that does
-        not send the binary anywhere.
+        A word boundary after "local" matches it and reports a flag that sends
+        the binary nowhere.
         """
         self.write_workflow("./mvnw -Dmaven.repo.local.tail.threads=4 install")
         self.assertAccepted()
 
-    # ---------------- rejected: the property ----------------
+    def test_a_similarly_named_property_is_not_reported(self):
+        """The trailing guard excludes the hyphen, and folder-x moves nothing.
 
-    def test_folder_under_target_is_rejected(self):
-        """The regression this check exists for."""
-        self.write_root("${session.executionRootDirectory}/target/kiota-binary")
-        self.assertRejected("expected " + GOOD_VALUE)
+        A word boundary ends at the hyphen, and reporting this flag would fail
+        an unrelated PR on a merge-blocking step.
+        """
+        self.write_workflow("./mvnw -Dkiota.binary.folder-x=1 install")
+        self.assertAccepted()
 
-    def test_an_artifact_shaped_path_is_rejected(self):
-        """io/kiota/... has the shape of a groupId tree that really exists."""
-        self.write_root("${settings.localRepository}/io/kiota")
-        self.assertRejected("expected " + GOOD_VALUE)
+    # ---------------- rejected: the root pom ----------------
 
-    def test_the_bare_repository_root_is_rejected(self):
-        self.write_root("${settings.localRepository}")
-        self.assertRejected("expected " + GOOD_VALUE)
+    def test_a_different_value_is_rejected(self):
+        """The three near misses a looser test would let through.
+
+        target/ is the regression this check exists for, io/kiota is the
+        artifact-shaped path the pom comment exists to avoid, and the bare
+        repository root is what a prefix test accepts.
+        """
+        for value in ("${session.executionRootDirectory}/target/kiota-binary",
+                      "${settings.localRepository}/io/kiota",
+                      "${settings.localRepository}"):
+            with self.subTest(value=value):
+                self.write_root(value)
+                self.assertRejected("expected " + GOOD_VALUE)
 
     def test_missing_property_is_rejected(self):
         self.write_root(raw_property="")
@@ -293,6 +270,11 @@ class KiotaFolderCheckTest(unittest.TestCase):
                         + PROPERTY_LINE.format("/tmp/elsewhere"))
         self.assertRejected("declares <kiota.binary.folder> 2 times")
 
+    def test_an_empty_property_is_rejected(self):
+        """An empty value resolves to the plugin's own default folder."""
+        self.write_root(raw_property="    <kiota.binary.folder/>\n")
+        self.assertRejected("is empty, expected " + GOOD_VALUE)
+
     def test_redefining_the_local_repository_is_rejected(self):
         """It beats the real path, and only ~/.m2/repository is cached."""
         self.write_root(raw_property="    <settings.localRepository>/tmp/repo"
@@ -300,99 +282,34 @@ class KiotaFolderCheckTest(unittest.TestCase):
                         + PROPERTY_LINE.format(GOOD_VALUE))
         self.assertRejected("declares <settings.localRepository>")
 
-    def test_a_profile_overriding_the_property_is_rejected(self):
-        """It leaves the declaration above it untouched and still wins."""
-        self.write_root(profiles="  <profiles><profile><id>ci</id><properties>"
+    def test_a_profile_is_rejected_for_either_property(self):
+        """A profile leaves the declaration above it untouched and still wins.
+
+        Both levers are checked, and the message names the one that was pulled
+        rather than the other.
+        """
+        for moved in ("kiota.binary.folder", "settings.localRepository"):
+            with self.subTest(property=moved):
+                self.write_root(profiles=PROFILE.format(moved))
+                self.assertRejected("Profile ci in pom.xml overrides <{0}>"
+                                    .format(moved))
+
+    def test_a_profile_with_no_id_is_named_in_the_message(self):
+        """findtext's fallback, so the finding still names what was pulled."""
+        self.write_root(profiles="  <profiles><profile><properties>"
                         "<kiota.binary.folder>/tmp/elsewhere"
                         "</kiota.binary.folder></properties></profile>"
                         "</profiles>\n")
-        self.assertRejected("Profile ci in pom.xml")
-
-    def test_an_empty_property_is_rejected(self):
-        """An empty value resolves to the plugin's own default folder."""
-        self.write_root(raw_property="    <kiota.binary.folder/>\n")
-        self.assertRejected("is empty, expected " + GOOD_VALUE)
+        self.assertRejected("Profile with no id in pom.xml")
 
     def test_dropping_the_os_maven_plugin_extension_is_rejected(self):
-        """Without it the classifier is never substituted, and nothing else notices.
+        """Maven then passes ${os.detected.classifier} through as text.
 
-        Maven passes ${os.detected.classifier} through as text, so the plugin
-        creates a directory of that literal name and every other check here
-        stays green.
+        The plugin creates a directory of that literal name, and every other
+        check here stays green.
         """
         self.write_root(extensions="")
         self.assertRejected("registers no os-maven-plugin build extension")
-
-    # ---------------- rejected: other poms ----------------
-
-    def test_a_module_redeclaring_the_property_is_rejected(self):
-        """The root pom stays correct and the module ignores it anyway."""
-        self.write("java-sdk/client/other/pom.xml",
-                   MODULE_POM.format(body="  <properties>\n"
-                                     + PROPERTY_LINE.format("/tmp/elsewhere")
-                                     + "  </properties>\n"))
-        self.assertRejected("redeclares <kiota.binary.folder>")
-
-    def test_a_module_profile_overriding_the_property_is_rejected(self):
-        self.write("app/pom.xml",
-                   MODULE_POM.format(body="  <profiles><profile><id>fast</id>"
-                                     "<properties><kiota.binary.folder>/tmp/x"
-                                     "</kiota.binary.folder></properties>"
-                                     "</profile></profiles>\n"))
-        self.assertRejected("Profile fast in app/pom.xml")
-
-    def test_a_module_relocating_the_repository_is_rejected(self):
-        self.write("app/pom.xml",
-                   MODULE_POM.format(body="  <properties>"
-                                     "<settings.localRepository>/tmp/repo"
-                                     "</settings.localRepository></properties>\n"))
-        self.assertRejected("app/pom.xml declares <settings.localRepository>")
-
-    def test_a_profile_moving_only_the_repository_names_that_property(self):
-        """The message has to name the lever that was pulled, not the other one."""
-        self.write("app/pom.xml",
-                   MODULE_POM.format(body="  <profiles><profile><id>ci</id>"
-                                     "<properties><settings.localRepository>"
-                                     "/tmp/repo</settings.localRepository>"
-                                     "</properties></profile></profiles>\n"))
-        self.assertRejected("Profile ci in app/pom.xml overrides "
-                            "<settings.localRepository>")
-
-    def test_a_malformed_pom_does_not_stop_the_scan(self):
-        """A broken file reports itself and the scan carries on past it.
-
-        java-sdk/a sorts before java-sdk/client, so a check that stopped at the
-        first parse error would never reach the consumer below it.
-        """
-        self.write("java-sdk/a/pom.xml", "<project><artifactId>x</project>")
-        self.write_consumer(shared="")
-        self.assertRejected("java-sdk/a/pom.xml is not valid XML",
-                            "sets no <targetBinaryFolder>")
-
-    # ---------------- rejected: committed settings ----------------
-
-    def test_a_settings_file_moving_the_repository_is_rejected(self):
-        """.github/ci-settings.xml is passed with -s by every CI build."""
-        self.write(".github/ci-settings.xml",
-                   '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">\n'
-                   "  <localRepository>/tmp/repo</localRepository>\n"
-                   "</settings>\n")
-        self.assertRejected("names its own <localRepository>")
-
-    def test_a_settings_profile_setting_the_property_is_rejected(self):
-        """A settings profile outranks the pom."""
-        self.write(".github/ci-settings.xml",
-                   '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0">\n'
-                   "  <profiles><profile><id>ci</id><properties>"
-                   "<kiota.binary.folder>/tmp/x</kiota.binary.folder>"
-                   "</properties></profile></profiles>\n</settings>\n")
-        self.assertRejected("Profile ci in .github/ci-settings.xml")
-
-    def test_a_non_settings_xml_under_github_is_ignored(self):
-        """.github holds other XML, and only a <settings> root is checked."""
-        self.write(".github/dependabot-template.xml",
-                   "<config><localRepository>/tmp/repo</localRepository></config>\n")
-        self.assertAccepted()
 
     # ---------------- rejected: the consumers ----------------
 
@@ -402,10 +319,14 @@ class KiotaFolderCheckTest(unittest.TestCase):
             shared=SHARED_FOLDER.format("${project.build.directory}/kiota-binary"))
         self.assertRejected("rather than " + EXPRESSION)
 
+    def test_an_empty_folder_on_an_execution_is_rejected(self):
+        """Empty is not absent, so the message names the empty value."""
+        self.write_consumer(shared="", executions=execution("v2", ""))
+        self.assertRejected("sets <targetBinaryFolder> to empty")
+
     def test_an_execution_without_the_folder_is_rejected(self):
         """The check is per execution: the first one must not cover the second."""
-        self.write_consumer(shared="",
-                            executions=execution("v2", EXPRESSION)
+        self.write_consumer(shared="", executions=execution("v2", EXPRESSION)
                             + execution("v3"))
         self.assertRejected("execution v3", "sets no <targetBinaryFolder>")
 
@@ -423,149 +344,121 @@ class KiotaFolderCheckTest(unittest.TestCase):
         self.assertRejected("the plugin declaration",
                             "sets no <targetBinaryFolder>")
 
+    def test_a_consumer_redeclaring_the_property_is_rejected(self):
+        """The root pom stays correct and the module ignores it anyway."""
+        self.write_consumer(properties="  <properties>\n"
+                            + PROPERTY_LINE.format("/tmp/elsewhere")
+                            + "  </properties>\n")
+        self.assertRejected("redeclares <kiota.binary.folder>")
+
+    def test_a_profile_in_a_consumer_is_rejected_for_either_property(self):
+        """The root pom's profile check, on the module that interpolates it.
+
+        The inherited value keeps reading as expected everywhere else, and the
+        profile still wins inside the module whenever it is active.
+        """
+        for moved in ("kiota.binary.folder", "settings.localRepository"):
+            with self.subTest(property=moved):
+                self.write_consumer(profiles=PROFILE.format(moved))
+                self.assertRejected("Profile ci in java-sdk/client/pom.xml "
+                                    "overrides <{0}>".format(moved))
+
     def test_a_module_dropping_the_folder_is_rejected(self):
         """A second module still carrying it must not cover this one."""
         self.write_consumer(shared="", path="java-sdk/client-v2/pom.xml")
         self.assertRejected("java-sdk/client-v2/pom.xml")
 
-    def test_no_consumer_at_all_is_rejected(self):
-        """Either the plugin moved, or this check is looking in the wrong place."""
+    def test_a_missing_consumer_is_rejected(self):
+        """Every named pom is read, so one going away is a finding, not a pass."""
         os.remove("java-sdk/client/pom.xml")
-        self.assertRejected("No pom configures kiota-maven-plugin")
+        self.assertRejected("Could not read java-sdk/client/pom.xml")
 
-    def test_a_dangling_pom_symlink_is_reported_not_crashed(self):
-        """os.walk lists one as a file, and ET.parse raises OSError on it.
+    def test_one_consumer_dropping_the_plugin_is_rejected(self):
+        """The half-match a boolean cannot see.
 
-        A lint step that dies with a traceback says nothing about what to fix,
-        so every parse goes through the same reporting path.
+        With client still declaring the plugin, a flag set by the first match
+        reports nothing and the check prints ok. Naming the expected set is what
+        makes the missing declaration visible.
         """
-        os.makedirs("mod")
-        os.symlink("/nonexistent/target", "mod/pom.xml")
-        self.assertRejected("Could not read mod/pom.xml")
+        self.write("java-sdk/client-v2/pom.xml",
+                   PREAMBLE + "  <artifactId>module</artifactId>\n</project>\n")
+        self.assertRejected("No plugin declaration of kiota-maven-plugin in "
+                            "java-sdk/client-v2/pom.xml")
 
-    def test_a_dangling_settings_symlink_is_reported_not_crashed(self):
-        os.makedirs(".github")
-        os.symlink("/nonexistent/target", ".github/ci-settings.xml")
-        self.assertRejected("Could not read .github/ci-settings.xml")
-
-    def test_a_dangling_root_pom_symlink_is_reported_not_crashed(self):
-        os.remove("pom.xml")
-        os.symlink("/nonexistent/target", "pom.xml")
-        self.assertRejected("Could not read pom.xml")
+    def test_a_malformed_consumer_pom_is_reported_not_crashed(self):
+        """A lint step dying with a traceback says nothing about what to fix."""
+        self.write("java-sdk/client/pom.xml", "<project><artifactId>x</project>")
+        self.assertRejected("java-sdk/client/pom.xml is not valid XML")
 
     # ---------------- rejected: the command line ----------------
 
-    def test_maven_config_override_is_rejected(self):
-        self.write(".mvn/maven.config",
-                   "-T 1C\n-Dkiota.binary.folder=target/kiota-binary\n")
-        self.assertRejected(".mvn/maven.config:2")
-
-    def test_a_flag_in_jvm_config_is_rejected(self):
-        """The .mvn scope is every *.config there, not maven.config alone."""
-        self.write(".mvn/jvm.config", "-Dkiota.binary.folder=/tmp/k\n")
-        self.assertRejected("jvm.config:1")
-
-    def test_the_wrapper_script_is_scanned(self):
-        """mvnw has no extension and reaches every build the repository starts."""
-        self.write("mvnw", "#!/bin/sh\nexec mvn -Dkiota.binary.folder=/tmp/k \"$@\"\n")
-        self.assertRejected("mvnw:2")
-
-    def test_the_windows_wrapper_script_is_scanned(self):
-        """mvnw.cmd runs the same builds with a different extension."""
-        self.write("mvnw.cmd", "@echo off\nmvn -Dkiota.binary.folder=/tmp/k %*\n")
-        self.assertRejected("mvnw.cmd:2")
-
-    def test_an_unreadable_scanned_file_is_reported_not_crashed(self):
-        """A permission error is a finding, not a traceback from a lint step."""
-        self.write("scripts/build.sh", "./mvnw install\n")
-        os.chmod("scripts/build.sh", 0)
-        if os.access("scripts/build.sh", os.R_OK):
-            self.skipTest("running as a user that ignores file permissions")
-        self.assertRejected("Could not read scripts/build.sh")
-
-    def test_a_commented_out_maven_config_line_is_accepted(self):
-        """A leading # is the only comment Maven honours in maven.config.
-
-        Checked against Maven 3.9.8, the version the wrapper pins: it reads each
-        line as one whole argument rather than splitting on whitespace, so a #
-        anywhere else is part of the value. Only the leading form disarms the
-        flag, and only that form is treated as a comment here.
-        """
-        self.write(".mvn/maven.config",
-                   "-T 1C\n# -Dkiota.binary.folder=target/kiota-binary\n")
-        self.assertAccepted()
-
     def test_every_spelling_of_the_flag_is_rejected(self):
-        """Maven accepts all four, and a joined -D needle matches only the first.
+        """Maven accepts all of them, and a joined -D needle matches only the first.
 
         --define=x=y is the commons-cli spelling, which a match requiring a
-        space after the option name misses.
+        space after the option name misses. The two-space forms are here because
+        matching the gap inside one alternative covered -D and not --define, so
+        the guard was asymmetric between two spellings of the same flag. The
+        shell strips the quotes in the last one before Maven sees the argument.
         """
         for flag in ("-Dkiota.binary.folder=/tmp/k",
                      "-D kiota.binary.folder=/tmp/k",
+                     "-D  kiota.binary.folder=/tmp/k",
                      "--define kiota.binary.folder=/tmp/k",
-                     "--define=kiota.binary.folder=/tmp/k"):
+                     "--define  kiota.binary.folder=/tmp/k",
+                     "--define=kiota.binary.folder=/tmp/k",
+                     '-D"kiota.binary.folder"=/tmp/k'):
             with self.subTest(flag=flag):
                 self.write_workflow("./mvnw {0} install".format(flag))
                 self.assertRejected("verify.yaml:4")
 
-    def test_the_quoted_property_name_is_rejected(self):
-        """The shell strips the quotes before Maven sees the argument."""
-        self.write("scripts/build.sh",
-                   './mvnw -D"kiota.binary.folder"=/tmp/k install\n')
-        self.assertRejected("build.sh:1")
+    def test_a_valueless_flag_is_rejected(self):
+        """A valueless -D sets the property to the literal "true".
 
-    def test_a_makefile_moving_the_folder_is_rejected(self):
-        """operator/Makefile really does run mvn clean install and mvn verify."""
-        self.write("operator/Makefile",
-                   "build:\n\tmvn clean install -Dkiota.binary.folder=/tmp/k\n")
-        self.assertRejected("Makefile:2")
-
-    def test_a_gnumakefile_moving_the_folder_is_rejected(self):
-        """make reads GNUmakefile ahead of Makefile, so the name alone is not enough."""
-        self.write("tools/GNUmakefile",
-                   "build:\n\tmvn verify -Dkiota.binary.folder=/tmp/k\n")
-        self.assertRejected("GNUmakefile:2")
-
-    def test_a_dockerfile_moving_the_folder_is_rejected(self):
-        self.write("console-plugin/Dockerfile",
-                   "FROM maven\nRUN mvn package -Dkiota.binary.folder=/tmp/k\n")
-        self.assertRejected("Dockerfile:2")
-
-    def test_an_override_after_a_quoted_hash_is_rejected(self):
-        """A # inside quotes is not a comment opener.
-
-        Cutting the line there would discard the build command that follows and
-        report the file as clean.
+        Probed on Maven 3.9.8 with help:evaluate, so requiring "=" in the
+        pattern would open exactly this hole.
         """
-        self.write_workflow('echo "see #10213" && '
-                            "./mvnw -Dkiota.binary.folder=/tmp/k install")
+        self.write_workflow("./mvnw -Dkiota.binary.folder install")
         self.assertRejected("verify.yaml:4")
 
-    def test_an_apostrophe_does_not_swallow_a_real_comment(self):
-        """An unpaired quote is prose, not a string, so the # still opens a comment.
+    def test_every_property_that_moves_the_folder_is_rejected(self):
+        """All three were probed against the real pom with help:evaluate.
 
-        The line has to carry something before the apostrophe. With a leading #
-        the scan returns at index zero and never reaches the quote, so the test
-        would pass with the partner check deleted and pin nothing.
+        maven.repo.local relocates the whole repository, and only
+        ~/.m2/repository is cached. settings.localRepository is the anchor the
+        expected value is built on, so -Dsettings.localRepository=/tmp/x
+        resolves kiota.binary.folder to /tmp/x/.cache/kiota-binary/linux-x86_64.
+        The pom side of the anchor is checked above, and the command line
+        outranks it.
         """
-        self.write("scripts/build.sh",
-                   "echo it's fine # -Dkiota.binary.folder=/tmp/k\n")
-        self.assertAccepted()
+        for moved in ("kiota.binary.folder", "maven.repo.local",
+                      "settings.localRepository"):
+            with self.subTest(property=moved):
+                self.write_workflow("./mvnw -D{0}=/tmp/x install".format(moved))
+                self.assertRejected("verify.yaml:4", moved)
 
-    def test_relocating_the_repository_is_rejected(self):
-        """setup-maven-cache saves ~/.m2/repository and nothing else."""
-        self.write(".github/actions/setup-maven-cache/action.yaml",
-                   "runs:\n  steps:\n"
-                   '    - run: echo "MAVEN_ARGS=-Dmaven.repo.local=$RUNNER_TEMP/m2"'
-                   ' >> "$GITHUB_ENV"\n')
-        self.assertRejected("action.yaml:3")
+    def test_a_yml_workflow_is_scanned_too(self):
+        """Both spellings are live on GitHub, and this tree uses .yaml."""
+        self.write_workflow("./mvnw -Dkiota.binary.folder=/tmp/k install",
+                            path=".github/workflows/legacy.yml")
+        self.assertRejected("legacy.yml:4")
 
-    def test_an_override_in_a_shell_script_is_rejected(self):
-        """Scoping by role rather than by directory is what reaches scripts/."""
-        self.write("scripts/build.sh",
-                   "#!/bin/bash\n./mvnw -Dkiota.binary.folder=/tmp/k install\n")
-        self.assertRejected("scripts/build.sh:2")
+    def test_an_override_after_a_mid_token_hash_is_rejected(self):
+        """Only a # that starts a token opens a comment in YAML.
+
+        Cutting the line at any # would discard the build command that follows
+        and report the file as clean. A # inside quotes is not covered: tracking
+        that cost more than the case is worth, and no step here has that shape.
+        """
+        self.write_workflow("./mvnw -Dtag=v1#2 "
+                            "-Dkiota.binary.folder=/tmp/k install")
+        self.assertRejected("verify.yaml:4")
+
+    def test_a_dangling_workflow_symlink_is_reported_not_crashed(self):
+        """listdir names one, and opening it raises FileNotFoundError."""
+        os.makedirs(".github/workflows")
+        os.symlink("/nonexistent/target", ".github/workflows/stale.yaml")
+        self.assertRejected("Could not read .github/workflows/stale.yaml")
 
     # ---------------- rejected: the tree itself ----------------
 

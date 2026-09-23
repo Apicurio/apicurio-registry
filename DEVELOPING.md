@@ -95,7 +95,7 @@ cached outside the build tree, in your local Maven repository at
 that is `~/.m2/repository/.cache/kiota-binary/linux-x86_64/<kiota.version>/kiota` for the
 version pinned as `kiota.version` in the root pom. On Windows the file is named `kiota.exe`.
 Keeping it there means `mvn clean` no longer forces a fresh download on the next build. The
-download is about 35 MB and the binary it extracts about 82 MB.
+download is a 35 MB compressed archive and the binary it extracts is about 82 MB.
 
 The directory name is the os-maven-plugin classifier, `linux-x86_64`, while the release asset
 the plugin downloads for the same machine is named `linux-x64`. The two spell the same
@@ -112,18 +112,20 @@ commit one. Only `~/.m2/repository` is cached, so moving the folder back under `
 makes every build slower without failing anything, and `scripts/validate-files.sh` runs on
 every pull request to catch it.
 
-It rejects the flag anywhere in the tree that can put a `-D` on a Maven command line, which
-covers workflows, composite actions, shell scripts, Makefiles, Dockerfiles, `.mvn/*.config`
-and the two `mvnw` wrappers. The `invokes_maven` function in
-`.github/scripts/validate-kiota-folder.py` decides the exact set. It also rejects any pom
-that moves the value, whether by redeclaring the property, setting it in a profile, or
-hardcoding the path on a plugin execution, and any `settings.xml` committed under `.github/`
-that names its own `<localRepository>`.
+It checks the root pom's property, the profiles and the `settings.localRepository` anchor
+that can move the resolved path while leaving the property reading as expected, the
+`os-maven-plugin` extension that substitutes the classifier, `<targetBinaryFolder>` on every
+plugin execution in `java-sdk/client` and `java-sdk/client-v2`, and a `-D` on a command line
+under `.github/workflows`. Which other routes to the folder are deliberately not checked,
+pipeline-wide and local ones separately, is enumerated in one place: the
+`kiota.binary.folder` comment in the root pom.
 
-This covers the Java SDK only. `go-sdk/generate.sh` and `python-sdk/kiota-gen.py` download
-the same Kiota release for themselves, into `go-sdk/target/kiota_tmp` and
-`python-sdk/kiota_tmp`, and neither reads `kiota.binary.folder`. The Go SDK Freshness job
-restores no cache at all, so it fetches the release on every run.
+This covers the Java SDK only. `go-sdk/generate.sh` and `python-sdk/kiota-gen.py` each
+download their own pinned Kiota version, read from `go-sdk/go-sdk.csproj` and
+`python-sdk/python-sdk.csproj` rather than from `kiota.version` in the root pom, into
+`go-sdk/target/kiota_tmp` and `python-sdk/kiota_tmp/<version>`. Neither reads
+`kiota.binary.folder`. The three pins are independent and currently differ. The Go SDK
+Freshness job restores no cache at all, so it fetches the release on every run.
 
 ## Dependency Analysis
 

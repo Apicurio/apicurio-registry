@@ -7,7 +7,7 @@
 //
 // Blocking checks (fail the GitHub check):
 //   - issue link: the body references an issue this PR closes
-//   - DCO sign-off: every commit carries a Signed-off-by trailer
+//   - DCO sign-off: every non-merge commit carries a Signed-off-by trailer
 //   - milestone: the PR and every issue it closes carry an open milestone
 //
 // Advisory only (reported, never blocking):
@@ -112,8 +112,24 @@ function checkIssueLink(linkedIssues) {
   };
 }
 
+/**
+ * A merge commit has two or more parents, and carries no authored change of
+ * its own. GitHub creates one server-side when the "Update branch" button (or
+ * `gh pr update-branch`) brings a PR up to date; that commit never carries a
+ * Signed-off-by trailer, and branch protection on main makes updating the
+ * branch mandatory, so flagging it would make a required action break a
+ * required check.
+ *
+ * Exempting merge commits cannot put unsigned content on main, because this
+ * repository allows only squash and rebase merges: a merge commit on a PR
+ * branch is discarded when the PR merges.
+ */
+function isMergeCommit(commit) {
+  return (commit.parents || []).length > 1;
+}
+
 function checkDcoSignOff(commits) {
-  const unsigned = commits.filter(c => !hasSignOff(c));
+  const unsigned = commits.filter(c => !isMergeCommit(c) && !hasSignOff(c));
   if (unsigned.length === 0) {
     return null;
   }

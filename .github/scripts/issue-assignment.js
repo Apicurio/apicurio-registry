@@ -49,12 +49,19 @@ function loadMaintainers(core) {
 
 /**
  * Returns the maintainer-only label present on the issue (original casing), or null.
+ *
+ * A label nested under a restricted one (area/CI/automation under area/CI)
+ * is restricted too. The classifier always applies the parent alongside a
+ * child, but a label added by hand need not be — and the policy is about the
+ * area, not about which of its labels happened to be applied.
  */
 function findMaintainerOnlyLabel(issue) {
   const labelNames = (issue.labels || []).map(l => (typeof l === 'string' ? l : l.name)).filter(Boolean);
-  return labelNames.find(
-    name => MAINTAINER_ONLY_LABELS.some(restricted => restricted.toLowerCase() === name.toLowerCase())
-  ) || null;
+  return labelNames.find(name => MAINTAINER_ONLY_LABELS.some(restricted => {
+    const label = name.toLowerCase();
+    const area = restricted.toLowerCase();
+    return label === area || label.startsWith(`${area}/`);
+  })) || null;
 }
 
 /**

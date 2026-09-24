@@ -26,12 +26,12 @@ name: Verify
 
 on:
   push:
-    branches: [main]
+    branches: [main, '3.3.x']
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled]
-    branches: [main]
+    branches: [main, '3.3.x']
   # No branches: filter here — pull_request_review does not support one.
-  # In practice every PR in this repo targets main, so this is a non-issue.
+  # In practice every PR targets main or 3.3.x, so this is a non-issue.
   # `dismissed` is included because dismissing a stale CHANGES_REQUESTED can
   # flip reviewDecision to APPROVED, which Decide must re-evaluate — otherwise
   # the full suite would stay skipped until the next push or new review.
@@ -40,7 +40,28 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # A push supersedes the suite it interrupts — those results describe a SHA
+  # nobody is merging, so cancelling them is right. A review does not: the SHA
+  # is unchanged and the in-flight suite is still answering the correct
+  # question, so cancelling it destroys up to 40 minutes of work and re-runs
+  # it to the identical result.
+  #
+  # That distinction is not academic. `pull_request_review: submitted` fires
+  # for every reply in a review thread, not just for approvals, so ordinary
+  # review conversation was restarting the whole suite per message. Six
+  # replies on #10167 produced six runs, five of them cancelled.
+  #
+  # Worse, a cancelled run does not fail quietly. The Verification Gate runs
+  # under `if: always()`, so it still executes, sees cancelled jobs among its
+  # needs, and fails — and since branch protection takes the most recent
+  # check-run per name, that failure can outrank a green gate from a newer,
+  # successful run. #10166 sat red for exactly this reason.
+  #
+  # With this expression a review-triggered run queues instead. Runs that are
+  # superseded while still pending start no jobs and post no check-runs at
+  # all (verified on #10167: four such runs, zero jobs, zero checks), so the
+  # intermediate ones vanish silently and only the last one runs.
+  cancel-in-progress: ${{ github.event_name != 'pull_request_review' }}
 
 permissions:
   contents: read
@@ -69,8 +90,25 @@ jobs:
       - name: Verify unit test shard partition
         run: python3 .github/scripts/verify-test-shards.py
 
+      # The scalpel summary contract is merge-blocking, so its suite runs in
+      # the Gate too: it pins the extension version's report schema and the
+      # buildAllIfNoChanges setting the summary's projections stand on, and
+      # scripts-tests.yaml alone would leave a red suite non-blocking.
+      # jq is preinstalled on ubuntu-latest, the same assumption that
+      # workflow makes.
+      - name: Test scalpel summary script
+        run: bash .github/scripts/scalpel-summary.test.sh
+
       - name: Test CI recovery paths
         run: python3 -m unittest discover -s .github/scripts -p 'test_ci_reliability.py' -v
+
+      - name: Test operator catalog automation
+        run: |
+          curl --fail --silent --show-error --location \
+            https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64 \
+            --output "$RUNNER_TEMP/catalog-yq"
+          chmod +x "$RUNNER_TEMP/catalog-yq"
+          YQ="$RUNNER_TEMP/catalog-yq" python3 -m unittest discover -s operator/scripts -p 'test_catalog_automation.py' -v
 
       # Orchestrator scripts run with repo write permissions under
       # pull_request_target — their logic must be tested before merge.
@@ -252,10 +290,13 @@ jobs:
     uses: ./.github/workflows/verify-unit-tests.yaml
     with:
       image-tag: ${{ github.sha }}
+      scalpel-enabled: ${{ needs.decide.outputs.scalpel-enabled }}
 
   # Scalpel Report (affected-module detection, data collection only).
   # Not in the Gate: a failure here never blocks a PR.
   # See Discussion #8364 for the evaluation results that led to this change.
+  # How to read the artifact, and the measured baseline it should be compared
+  # against, are in README.md under "Reading the Scalpel report".
   scalpel-report:
     name: Scalpel Report
     needs: [decide]
@@ -283,6 +324,9 @@ jobs:
 
       - name: Generate Scalpel report
         run: |
+          # Scalpel writes the report at session start, before validate has
+          # necessarily created target/ on the root aggregator. Keep this.
+          mkdir -p target
           # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
           # reportFile restates the documented default so the upload path
           # below cannot drift if upstream changes it.
@@ -295,11 +339,36 @@ jobs:
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 
+      # The report is self-describing from Scalpel 0.4.1 onwards: it carries the
+      # build set, reactor and tested-module counts, and its skip shape names the
+      # status, reason and trigger file. The script turns that into the run
+      # summary and the artifact copy. It lives under .github/scripts so it can
+      # be unit tested; see scripts-tests.yaml.
+      - name: Summarize Scalpel report
+        if: ${{ !cancelled() }}
+        run: |
+          summary=target/scalpel-report-summary.md
+          # This step also runs when Generate failed, so target/ may not exist.
+          mkdir -p target
+          # Written aside and moved into place. A redirect straight onto the
+          # final path truncates it before the script starts, so a script that
+          # died partway would upload a header and nothing else. A missing file
+          # is the honest outcome, and the upload step only warns on one.
+          bash .github/scripts/scalpel-summary.sh \
+            target/scalpel-report.json > "$summary.tmp"
+          mv "$summary.tmp" "$summary"
+          cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+
+      # A failed build is when the offline artifact is wanted most: Scalpel
+      # writes the report at session start, so it survives a later failure.
       - name: Upload Scalpel report
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: scalpel-report-pr${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-          path: target/scalpel-report.json
+          path: |
+            target/scalpel-report.json
+            target/scalpel-report-summary.md
           retention-days: 30
           if-no-files-found: warn
 
@@ -451,6 +520,7 @@ jobs:
     uses: ./.github/workflows/verify-publish.yaml
     with:
       image-tag: ${{ github.sha }}
+      snapshot-tag: ${{ github.ref_name == 'main' && 'latest-snapshot' || format('{0}-snapshot', github.ref_name) }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}

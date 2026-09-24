@@ -4,7 +4,7 @@
 
   <groupId>io.apicurio</groupId>
   <artifactId>apicurio-registry</artifactId>
-  <version>3.3.4-SNAPSHOT</version>
+  <version>3.4.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Registry</name>
   <description>Open Source API &amp; Schema Registry</description>
@@ -94,6 +94,7 @@
     <module>utils/tests</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
+    <module>schema-util/agents</module>
     <module>schema-util/asyncapi</module>
     <module>schema-util/avro</module>
     <module>schema-util/common</module>
@@ -483,6 +484,18 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-util-provider</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-util-provider</artifactId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-util-agents</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

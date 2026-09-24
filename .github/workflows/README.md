@@ -225,12 +225,206 @@ non-Java changes (docs, UI).
 | `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `gate` (Verification Gate) is the single required check | N/A |
 | `build-java`/`build-ui` (jobs in `verify.yaml`) | Called by verify | Parallel Java (`mvnw install -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention. The sole build for a commit, shared by every other job in the same run via `needs:` | ~6 min |
 | `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
-| `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads JSON artifact for offline analysis. Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |
+| `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads a JSON artifact plus a summary for offline analysis (see [Reading the Scalpel report](#reading-the-scalpel-report)). Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |
 | `verify-integration-tests.yaml` | Called by verify | 13-job matrix across storage backends, each with Minikube | ~15 min per job |
 | `verify-extras.yaml` | Called by verify | 5 parallel jobs: extra tests, UI Playwright tests, legacy V2 compatibility tests, TypeScript SDK tests, example builds | ~13 min |
 | `verify-sdk.yaml` | Called by verify | Go and Python SDK verification | ~2 min |
 | `verify-cli.yaml` | Called by verify | CLI native build (GraalVM) + tests on Linux and macOS. Conditional on `cli/` or `java-sdk/` changes | ~15-25 min |
 | `verify-publish.yaml` | Called by verify | Push Docker images (app, UI, MCP, GitOps) to DockerHub and Quay.io. Main branch only. Uses `reusable-docker-build.yaml` for multi-arch builds | ~30-40 min |
+
+### Reading the Scalpel report
+
+The `scalpel-report` job runs `mode=report`. It works out which modules a PR
+affects and writes `scalpel-report.json`. It does not trim anything. That job
+builds the whole reactor, and so does every other job in the run. The report
+describes what a trimming build would do, so nothing in it is a saving that
+already happened.
+
+The reactor splits three ways, and only the last part is a saving:
+
+```
+reactor   = buildSetSize + skippedModules
+build set = affectedModules + excludedUpstreamCount
+```
+
+Since Scalpel 0.4.1 every part of that split is a native report field:
+`buildSetSize`, `reactorModuleCount`, `testedModulesCount` and the
+`skippedModules` list. `excludedUpstreamCount` counts upstream build
+prerequisites of the affected modules: Scalpel drops them from the report and
+not from the build, so they still compile. Taking `affectedModules` as the
+build set therefore understates it by exactly that count.
+
+A worked example, from a real run on this repository with the pinned version
+(one Java file changed in `app`):
+
+| field | value |
+| --- | ---: |
+| `affectedModules` | 5 |
+| `excludedUpstreamCount` | 42 |
+| `buildSetSize` | 47 |
+| `testedModulesCount` | 5 |
+| `skippedModules` | 10 |
+| `reactorModuleCount` | 57 |
+
+Read naively, "5 affected out of 57" looks like a 91% saving. The projection is
+10 modules out of 57, which is 17.5%.
+
+Every decision is anchored by `decisionId`, `mergeBaseId`, `headId` and
+`configFingerprint`, all carried in the report, so two artifacts can be compared
+without consulting git history.
+
+The job writes `scalpel-report-summary.md` next to the JSON and into the run
+summary, so the table above is already built for the run you are looking at.
+The summary reads the native fields only. The summary lives in
+[`scalpel-summary.sh`](../scripts/scalpel-summary.sh) and is unit tested by
+[`scalpel-summary.test.sh`](../scripts/scalpel-summary.test.sh) in the
+`scripts-tests.yaml` workflow. When the native counts are missing, malformed,
+negative or mutually inconsistent, the summary says so instead of reading
+anything as zero.
+
+Not every run produces a decision table. When a changed file matches
+`scalpel.disableTriggers` or `scalpel.fullBuildTriggers`, or when
+`scalpel.excludePaths` removes every changed file, Scalpel writes a status
+report instead: `status`, `reason`, and, since 0.4.1, the `triggerFile`
+responsible plus `changedFiles`, `decisionId` and `timings`. The summary names
+the file and reads the reason, because the reason decides which explanation
+the run gets.
+
+Two reasons would empty the reactor. They are the only two that reach Scalpel's
+`trimReactorToEmpty`: `all changed files excluded by path filters` and `no
+changes detected`. Only the first mentions path filters, so a summary that
+keyed the empty case on that phrase alone would misreport the second. Neither
+reason describes a working outcome in this repository: `.mvn/maven.config`
+pins `scalpel.buildAllIfNoChanges=true`, so a trimming build runs every module
+on both (the log line reads `building all modules (buildAllIfNoChanges=true)`),
+and with the Scalpel default of false the zero-project reactor dies in Maven
+proper with `NoGoalSpecifiedException`, because a session with no projects has
+no goals. Scalpel 0.4.0 and earlier built every module here too, so the empty
+build the reason's wording suggests has never been a reachable outcome on any
+pin of this extension. Both facts were verified on 0.4.2 in `mode=trim` with
+synthetic change sets (REG-304).
+
+Five reasons project a full build, because Scalpel returns without touching the
+reactor. Configuration stands it down in three of them, `disabled by
+disableTriggers match`, `disabled by disableOnBranch` and `disabled by
+disableOnBaseBranch`. In the other two it never gets far enough to compare
+anything: `not a git repository` and `no base branch configured`. Those last
+four come from a different jar than the rest. `extension3` writes most of what
+lands in the report, but `ScalpelCore` abandons detection with a skip reason of
+its own and the caller copies it in verbatim, so reading only `extension3`
+yields an incomplete set. A `failed` status carrying `change detection did not
+run (see build log)` leaves the reactor whole too, so it is a full build as
+well, but the cause rather than the projection is the part worth chasing.
+
+Three reasons never appear in this report as a status, because Scalpel routes
+them to `target/scalpel-shadow.json`: `no modules affected by changes`, `no
+modules match includePaths filters` and `disabled by -pl project selection`. A
+run that hits one of those writes an ordinary report here, with no `status`
+field, so it lands in the counts path rather than as a skip. The first of the
+three is reachable in this repository: a change confined to a module outside
+the default reactor, such as `operator/` or `mcp/`, or to a root-level file no
+pom names, affects no module this job's reactor builds. Its report carries a
+decision table with `buildSetSize` 0 and `skippedModules` naming all 57
+modules, but a trimming build does not perform that projection on Scalpel
+0.4.2, with `buildAllIfNoChanges` either way (verified with the operator-only
+change set of commit `0b35b825b`): the reactor stays whole and every module
+builds. The summary recognizes the zero build set and says so rather than
+drawing that table.
+
+That root-level files sit in this family is why `scalpel.excludePaths` carries
+no slash-free pattern. Scalpel rewrites a pattern without a slash to match at
+every depth, and 0.3.10 matched the root only, so the 0.4.x bump silently
+widened the old `*.md` and `LICENSE` entries from root files to the whole
+tree. Verified by probing the same in-tree change,
+`app/src/test/resources/git/invalid-content-ref/README.md`, against both pins:
+0.3.10 attributes it to `app` (a test fixture `GitOpsStatusTest` loads), 0.4.2
+with the widened pattern excluded it and every other in-tree markdown file,
+111 tracked files in all. The list this branch ships drops the slash-free
+entries, which restores attribution for all of them and leaves root markdown
+and LICENSE unlisted: a change confined to those projects the zero-build-set
+report above instead, which under the pin builds every module.
+
+The report also sets `fullBuildTriggered` to true on the exhaustion outcome.
+Under this repository's `buildAllIfNoChanges=true` pin that is now the truth:
+the trimming build runs every module. Against the Scalpel default of false the
+same field states the opposite of the behaviour, because the reactor empties
+and the build fails rather than building everything, which is REG-307, so the
+summary still branches on `status` and the reason before it reads that field.
+The summary matches each reason in full rather than by substring and refuses
+to name a projection for a reason it does not know, because the same `skipped`
+status covers both an empty reactor and a full build and there is no safe
+default. Of the two trigger patterns, only `scalpel.disableTriggers` is set in
+`.mvn/maven.config`; `scalpel.fullBuildTriggers` is left at the Scalpel default.
+
+The summary understands report schema version 2, which is what the version
+pinned in `.mvn/extensions.xml` writes today. On any other schema the summary
+refuses the decision table and prints the producer version it found, rather
+than reading absent fields as zero and claiming the whole reactor as a saving.
+That refusal is safe but quiet, so `scalpel-summary.test.sh` also asserts that
+the pinned version is one that writes schema 2. A pull request to `main` moving
+the pin turns `scripts-tests.yaml` red until the script learns the newer schema.
+Two gaps in that gate are worth knowing. The workflow triggers on
+`pull_request` against `main`, so a bump landing any other way skips the check.
+And it is not part of the Verification Gate, the single required check for
+branch protection, so a red run there is a signal a reviewer has to read rather
+than a merge blocker.
+
+The job passes no `scalpel.baseBranch`, so Scalpel derives it from
+`GITHUB_BASE_REF` and diffs against `origin/<base branch>`, which is
+`origin/main` for most PRs but is whatever branch a PR actually targets.
+
+#### Measured baseline
+
+Scalpel 0.4.1 replayed over the last 40 first-parent commits of `main`, on
+2026-09-16:
+
+| outcome | runs | share |
+| --- | ---: | ---: |
+| empty build, every changed file matched `excludePaths` | 16 | 40.0% |
+| trimmed | 11 | 27.5% |
+| full build, `disableTriggers` matched | 6 | 15.0% |
+| empty build, analysis found no affected module | 4 | 10.0% |
+| no saving, the build set is the whole reactor | 3 | 7.5% |
+
+Mean modules not built over all 40 runs: 53.7%. Over the 11 partially trimmed
+runs alone: 13.7%.
+
+Both empty-build rows are projections under `buildAllIfNoChanges=false`, which
+`.mvn/maven.config` no longer uses: with the pin at `true` the exhaustion runs
+build every module, and the zero-build-set runs build every module too, because
+a trimming build never applies that decision on Scalpel 0.4.2 with the flag
+either way. The rows above were counted under the pre-narrowing excludePaths
+list; under the list this branch ships the split moves to 12 exhausted and 8
+zero-build-set, and the total projecting a zero-module build stays 20 of 40.
+The behavior statements are 0.4.2 facts; the replay rows themselves are 0.4.1
+reports, whose schema is byte-identical to 0.4.2 by the hash check recorded in
+REG-245. The mean under the shipped configuration is the trimmed row alone,
+about 4% of module-builds, plus the test-time saving that
+`scalpel.skipTestsForUpstream` would add on the trimmed runs, which this
+replay did not measure and whose adoption is undecided (REG-303).
+
+An earlier replay of the same 40 commits on 0.4.0 put the mean at 5.8%. Almost
+all of that difference is one upstream fix,
+[maveniverse/scalpel#184](https://github.com/maveniverse/scalpel/issues/184):
+exhausting `excludePaths` used to build every module and now builds none, which
+moves 16 of the 40 runs from the worst outcome to the best one. The two
+remaining issues from that round are also closed.
+[#185](https://github.com/maveniverse/scalpel/issues/185) was the root-aggregator
+cascade, and a root-level file that no pom names now projects an empty build
+rather than the whole reactor. [#187](https://github.com/maveniverse/scalpel/issues/187)
+asked for the three-way split to be readable from the report, which is what the
+native count fields above deliver.
+
+Three caveats. The replay ran on 0.4.1 rather than the 0.4.2 now pinned in
+`.mvn/extensions.xml`; the two ship a byte-identical report schema and differ
+only in how an empty trim is applied to the session, which `mode=report` never
+reaches. The replay also predates the current `scalpel.excludePaths` list, so
+the 16 exhausted runs come from re-applying the current list to each commit's
+changed files using Scalpel's own glob rules, and the 11 trimmed percentages are
+as measured, which makes them a lower bound: excluding more files can only
+shrink an affected set. And the replay harness is not in this repository, so the
+table cannot be regenerated from a checkout. Treat it as a dated observation and
+re-measure rather than trusting it indefinitely.
 
 ## Validation Workflows
 
@@ -261,6 +455,7 @@ and tags starting with `3.`.
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
 | `pr-lifecycle.yml` | PR events, review submissions, comments, workflow_run, every 6 hours | Label-driven PR state machine. States: `ready-for-review` -> `ready-to-merge` (no triage stage — every PR starts at `ready-for-review`). Draft PRs are ignored until marked ready for review. Comment commands: `/reject`, `/merge` (toggles native GitHub auto-merge), `/unstale`, `/retry`. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close; 4/7 for PRs waiting on the author). PRs waiting on a maintainer are exempt from staleness entirely and instead get `lifecycle/review-overdue` at 14 days and a reviewer ping at 30, never a close. Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
+| `classify.yml` | Issue opened/edited, PR opened/ready for review (non-draft), workflow_dispatch | Embedding classifier (`.github/scripts/label-classification`) assigns `area/*` labels to issues and PRs, and an issue type to issues. For PRs, then picks a reviewer (`pr-reviewer-assignment.js`): assigns contributor PRs, posts a suggestion on maintainer PRs, rotates Renovate PRs. Configured by `reviewer_assignment` in `.github/pr-lifecycle.yml`; see [PR_LIFECYCLE.md](../PR_LIFECYCLE.md#reviewer-assignment). `pull_request_target`, but never checks out or runs PR code. Manual runs take `dry_run` to print scores without applying anything | 2-4 min |
 | `update-openapi.yaml` | Push to main (openapi.json changes) | Auto-copies v3 OpenAPI spec to v2 path, commits if changed, then validates via `validate-openapi.yaml` | 10-15 min |
 | `update-website.yaml` | Release event, workflow_dispatch | Updates `latestRelease.json` on apicurio.github.io with release metadata | 5-10 min |
 | `publish-docs.yaml` | Push to main (docs/**), workflow_dispatch | Builds documentation via Antora playbook and publishes to apicurio.github.io | 15-30 min |

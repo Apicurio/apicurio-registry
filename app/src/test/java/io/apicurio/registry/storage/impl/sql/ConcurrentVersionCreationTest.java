@@ -49,20 +49,30 @@ public class ConcurrentVersionCreationTest {
     @BeforeEach
     void clearBytemanState() {
         System.clearProperty("byteman.writerFrozen");
+        System.clearProperty("byteman.raceTestReady");
     }
 
+    /**
+     * Verifies that concurrent version creation produces distinct versionOrder values.
+     *
+     * The freeze point is inside the transaction, after the artifacts-row lock and the
+     * versionOrder read, but before the INSERT. This reproduces the real race window:
+     * thread A holds the lock and has computed isFirstVersion; thread B then enters
+     * createArtifactVersion and signals thread A to continue. Thread B blocks on the
+     * artifacts-row lock until A commits, then reads the updated MAX(versionOrder).
+     */
     @Test
     @BMRules(rules = {
-        @BMRule(name = "freeze first writer",
+        @BMRule(name = "freeze first writer after versionOrder read",
+            targetClass = "io.apicurio.registry.storage.impl.sql.repositories.SqlVersionRepository",
+            targetMethod = "createArtifactVersionRaw",
+            targetLocation = "AT ENTRY",
+            condition = "\"true\".equals(java.lang.System.getProperty(\"byteman.raceTestReady\")) AND NOT flagged(\"writer-entered\")",
+            action = "flag(\"writer-entered\"); java.lang.System.setProperty(\"byteman.writerFrozen\", \"true\"); waitFor(\"versionOrder-race\", 10000)"),
+        @BMRule(name = "release frozen writer when second thread enters",
             targetClass = "io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage",
             targetMethod = "createArtifactVersion(String, String, String, String, ContentWrapperDto, EditableVersionMetaDataDto, java.util.List, boolean, boolean, String)",
             targetLocation = "AT ENTRY",
-            condition = "NOT flagged(\"writer-entered\")",
-            action = "flag(\"writer-entered\"); java.lang.System.setProperty(\"byteman.writerFrozen\", \"true\"); waitFor(\"versionOrder-race\", 10000)"),
-        @BMRule(name = "release frozen writer",
-            targetClass = "io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage",
-            targetMethod = "createArtifactVersion(String, String, String, String, ContentWrapperDto, EditableVersionMetaDataDto, java.util.List, boolean, boolean, String)",
-            targetLocation = "AT EXIT",
             condition = "flagged(\"writer-entered\") AND NOT flagged(\"writer-released\")",
             action = "flag(\"writer-released\"); signalWake(\"versionOrder-race\", true)")
     })
@@ -78,9 +88,16 @@ public class ConcurrentVersionCreationTest {
                         .build(),
                 null, Collections.emptyList(), false, false, null);
 
+        // Arm the Byteman rules only after the initial artifact is created.
+        // This prevents the freeze rule from firing during createArtifact's
+        // internal call to SqlVersionRepository.createArtifactVersionRaw.
+        System.setProperty("byteman.raceTestReady", "true");
+
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
-        // Thread A: will be frozen by Byteman rule at entry to createArtifactVersion
+        // Thread A: enters createArtifactVersion, acquires the artifacts-row lock,
+        // reads versionOrder, then Byteman freezes it inside SqlVersionRepository
+        // before the INSERT.
         Future<ArtifactVersionMetaDataDto> futureA = submitInRequestScope(executor,
                 () -> storage.createArtifactVersion(
                         groupId, artifactId, null, ArtifactType.OPENAPI,
@@ -90,7 +107,10 @@ public class ConcurrentVersionCreationTest {
                                 .build(),
                         null, Collections.emptyList(), false, false, null));
 
-        // Thread B: spin until Thread A is frozen, then create version
+        // Thread B: spin until Thread A is frozen, then enter createArtifactVersion.
+        // Byteman rule 2 fires at Thread B's ENTRY, signaling Thread A to continue.
+        // Thread B then proceeds into the transaction, where it blocks on the
+        // artifacts-row lock until Thread A commits.
         Future<ArtifactVersionMetaDataDto> futureB = submitInRequestScope(executor, () -> {
             long deadline = System.currentTimeMillis() + 5000;
             while (!"true".equals(System.getProperty("byteman.writerFrozen"))) {
@@ -102,7 +122,7 @@ public class ConcurrentVersionCreationTest {
             // Small delay to ensure Thread A is fully inside waitFor
             Thread.sleep(100);
 
-            // Thread B creates its version; on exit, Byteman signals Thread A
+            // Thread B enters createArtifactVersion; Byteman signals Thread A
             return storage.createArtifactVersion(
                     groupId, artifactId, null, ArtifactType.OPENAPI,
                     ContentWrapperDto.builder()
@@ -121,8 +141,9 @@ public class ConcurrentVersionCreationTest {
                 "Byteman rule should have set the writerFrozen flag");
 
         // Both versions must have unique versionOrder values.
-        // Without the SELECT FOR UPDATE fix, concurrent MAX(versionOrder) queries
-        // could return the same value, producing duplicate versionOrder.
+        // Without the artifacts-row lock, concurrent MAX(versionOrder) queries on an
+        // empty (or populated) versions result set could return the same value,
+        // producing duplicate versionOrder.
         Assertions.assertNotEquals(resultA.getVersionOrder(), resultB.getVersionOrder(),
                 "Both versions must have different versionOrder values, but both got "
                         + resultA.getVersionOrder());

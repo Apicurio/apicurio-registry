@@ -8,7 +8,7 @@ import {
     EmptyStateVariant
 } from "@patternfly/react-core";
 import { ExclamationTriangleIcon } from "@patternfly/react-icons";
-import { CodeEditor, Language } from "@patternfly/react-code-editor";
+import { RegistryPatternFlyCodeEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
 
 export interface TabError {
     errorMessage: string,
@@ -84,14 +84,14 @@ export const ErrorTabContent: FunctionComponent<ErrorTabContentProps> = (props: 
             {
                 isShowDetails ?
                     <div className="ace-wrapper pf-c-empty-state pf-m-lg" id="ace-wrapper">
-                        <CodeEditor
+                        <RegistryPatternFlyCodeEditor
                             isDarkTheme={false}
                             isLineNumbersVisible={true}
                             isReadOnly={true}
                             isMinimapVisible={false}
                             isLanguageLabelVisible={false}
                             code={errorDetail()}
-                            language={Language.json}
+                            language="json"
                             onEditorDidMount={(editor) => { editor.layout(); }}
                             width={editorWidth}
                             height={editorHeight}

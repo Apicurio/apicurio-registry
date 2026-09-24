@@ -2,7 +2,13 @@ name: Backport
 
 # Automatically cherry-picks merged PRs to maintenance branches when labeled.
 # Add the "backport/3.3.x" label to a PR before or after merging to trigger a
-# cherry-pick PR against the 3.3.x LTS branch.
+# cherry-pick PR against the 3.3.x LTS branch. This fires both when a labeled,
+# already-merged PR is closed, and when the label is added to a PR that was
+# merged before the label existed.
+#
+# If a backport branch for the PR already exists (e.g. the label was added,
+# removed, and re-added), the run is skipped instead of failing or duplicating
+# the backport PR.
 #
 # On conflict, the action opens a draft PR with conflict markers for manual
 # resolution. Uses the apicurio-ci PAT so the backport PR triggers CI workflows
@@ -10,7 +16,7 @@ name: Backport
 
 on:
   pull_request_target:
-    types: [closed]
+    types: [closed, labeled]
     branches: [main]
 
 permissions:
@@ -23,9 +29,25 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       github.event.pull_request.merged == true &&
+      (github.event.action != 'labeled' || github.event.label.name == 'backport/3.3.x') &&
       contains(github.event.pull_request.labels.*.name, 'backport/3.3.x')
     steps:
+      - name: Check for existing backport
+        id: check-existing
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="backport/${{ github.event.pull_request.number }}-to-3.3.x"
+          ENCODED_BRANCH="${BRANCH/\//%2F}"
+          if gh api "repos/${{ github.repository }}/branches/${ENCODED_BRANCH}" >/dev/null 2>&1; then
+            echo "Backport branch $BRANCH already exists, skipping."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Backport
+        if: steps.check-existing.outputs.exists == 'false'
         uses: kiegroup/git-backporting@v4
         with:
           target-branch: 3.3.x

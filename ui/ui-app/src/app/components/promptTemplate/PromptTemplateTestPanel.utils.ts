@@ -89,3 +89,8 @@ export const shouldAcceptRenderResponse = (
 ): boolean => {
     return requestId === latestRequestId && requestVersionIdentity === currentVersionIdentity;
 };
+
+/** Text shown when a Render request fails: ProblemDetails detail, then title, then the error message. */
+export const renderErrorMessage = (err: any): string => {
+    return err?.detail || err?.title || err?.message || "Error rendering prompt template";
+};

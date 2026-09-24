@@ -250,7 +250,7 @@
     <netty.version>4.1.136.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.18.0</kafka-oauth-client.version>
-    <debezium.version>3.6.2.Final</debezium.version>
+    <debezium.version>3.6.3.Final</debezium.version>
     <pulsar-clients.version>4.2.4</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
@@ -327,7 +327,7 @@
     <embedded-postgres.version>2.2.2</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>
-    <strimzi-test-container.version>0.116.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.117.0</strimzi-test-container.version>
 
     <!-- Iceberg -->
     <iceberg.version>1.11.0</iceberg.version>

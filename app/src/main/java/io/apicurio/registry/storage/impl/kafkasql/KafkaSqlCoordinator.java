@@ -18,9 +18,8 @@ import java.util.concurrent.TimeoutException;
  * is used to communicate between the Kafka consumer thread and the waiting HTTP/API thread, where the HTTP
  * thread is waiting for an operation to be completed by the Kafka consumer thread.
  *
- * Uses a single ConcurrentHashMap of CompletableFuture to atomically associate "result ready" with "wake up
- * waiter", eliminating the dual-map desynchronization bugs that existed with the previous CountDownLatch +
- * returnValues approach.
+ * Each pending operation is a single CompletableFuture in one map, so delivering the result and waking the
+ * waiter are one step.
  */
 @ApplicationScoped
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
@@ -29,10 +28,14 @@ public class KafkaSqlCoordinator {
     @Inject
     Instance<KafkaSqlConfiguration> configuration;
 
+    // Declared as ConcurrentHashMap rather than Map: the Byteman rule in KafkaSqlCoordinatorRaceTest
+    // matches on ConcurrentHashMap.remove.
     private final ConcurrentHashMap<UUID, CompletableFuture<Object>> pending = new ConcurrentHashMap<>();
 
     /**
-     * Creates a UUID for a single operation.
+     * Creates a UUID for a single operation and registers a pending entry under it. The
+     * entry is removed by waitForResponse when a caller waits, or by forget when the send
+     * fails; a caller that does neither leaks it.
      */
     public UUID createUUID() {
         UUID uuid = UUID.randomUUID();
@@ -41,11 +44,7 @@ public class KafkaSqlCoordinator {
     }
 
     /**
-     * Waits for a response to the operation with the given UUID. There is a CompletableFuture for each
-     * operation. The caller waiting for the response will block until the future is completed and then
-     * proceed. We also remove the future from the map here since it's not needed anymore.
-     *
-     * @param uuid
+     * Blocks until the operation with the given UUID completes or times out, then removes its entry.
      */
     public Object waitForResponse(UUID uuid) {
         CompletableFuture<Object> future = pending.get(uuid);
@@ -63,6 +62,9 @@ public class KafkaSqlCoordinator {
             }
             return result;
         } catch (TimeoutException e) {
+            // No cause, deliberately: ProblemDetails.detail renders only the root cause, and the
+            // TimeoutException from CompletableFuture.get() has a null message, so chaining it
+            // would reduce detail to "TimeoutException: " and drop the operation UUID.
             throw new RegistryException(
                     "[KafkaSqlCoordinator] Timed out waiting for a Kafka Sql response for operation " + uuid);
         } catch (InterruptedException e) {
@@ -93,31 +95,27 @@ public class KafkaSqlCoordinator {
         }
 
         // If there is no pending future, then there is no HTTP thread waiting for
-        // a response. This means one of two possible things:
-        // 1) We're in a cluster and the HTTP thread is on another node
-        // 2) We're starting up and consuming all the old journal entries
+        // a response on this node. Among the reasons: we're in a cluster and the HTTP
+        // thread is on another node, we're starting up and consuming old journal entries,
+        // or the entry was already removed (see createUUID). Dropping the response is
+        // correct in all of them.
         CompletableFuture<Object> future = pending.get(uuid);
-        if (future == null) {
-            return;
+        if (future != null) {
+            future.complete(returnValue);
         }
-
-        // Otherwise, complete the future with the return value. This will
-        // notify the HTTP thread that the operation is complete and there is
-        // a return value waiting for it.
-        future.complete(returnValue);
     }
 
     /**
-     * Removes the pending entry for the given UUID without completing it. For use when
-     * the submitted message failed before reaching the journal topic: no response will
-     * ever arrive for it, so the entry must not linger in the pending map. The normal
-     * cleanup path is waitForResponse's finally block, which only runs when a caller
-     * actually waits.
+     * Removes the entry without completing it, for a send that failed. Nobody can be waiting on
+     * it: submitMessage hands the UUID to its caller only once the send has succeeded.
      */
     void forget(UUID uuid) {
         pending.remove(uuid);
     }
 
+    /**
+     * Test-only: the number of operations currently registered and not yet cleaned up.
+     */
     int pendingCount() {
         return pending.size();
     }

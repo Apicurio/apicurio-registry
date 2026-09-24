@@ -3,7 +3,7 @@ package io.apicurio.registry.storage.impl.search;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import io.apicurio.registry.a2a.A2AConstants;
-import io.apicurio.registry.content.extract.AgentCardStructuredContentExtractor;
+import io.apicurio.registry.agents.content.extract.AgentCardStructuredContentExtractor;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.types.ArtifactType;

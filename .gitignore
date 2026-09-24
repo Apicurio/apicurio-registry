@@ -29,6 +29,7 @@ website
 
 apicurio-codegen
 /docs/.jbang/
+/docs/superpowers/
 
 python-sdk/dist
 python-sdk/kiota_tmp

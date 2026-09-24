@@ -4,6 +4,7 @@ import { RenderPromptResponse, RenderPromptValidationError } from "@models/Rende
 import {
     buildInitialValues,
     buildVersionIdentity,
+    renderErrorMessage,
     shouldAcceptRenderResponse
 } from "./PromptTemplateTestPanel.utils";
 import { VariableSchema } from "./promptTemplateVariables";
@@ -112,7 +113,7 @@ export const usePromptTemplateTestPanelState = (
                 )) {
                     return;
                 }
-                setError(err?.message || "Error rendering prompt template");
+                setError(renderErrorMessage(err));
             })
             .finally(() => {
                 if (!shouldAcceptRenderResponse(

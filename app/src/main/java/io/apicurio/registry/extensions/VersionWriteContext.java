@@ -1,5 +1,6 @@
 package io.apicurio.registry.extensions;
 
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.storage.RegistryStorage;
 
 /**
@@ -21,8 +22,7 @@ public final class VersionWriteContext {
 
     private final Operation operation;
     private final RegistryStorage storage;
-    private final String groupId;
-    private final String artifactId;
+    private final GA ga;
     private final String artifactType;
     private final String owner;
 
@@ -30,17 +30,16 @@ public final class VersionWriteContext {
      * @param operation    the kind of write
      * @param storage      the storage the write goes to; hooks that register or update related
      *                     artifacts must use this instance
-     * @param groupId      the raw group id ({@code null} for the default group)
-     * @param artifactId   the artifact id
+     * @param ga           the artifact being written to. Not a {@code GAV}: on create the version is often
+     *                     assigned by storage only after the hooks have run
      * @param artifactType the artifact type
      * @param owner        the principal performing the write
      */
-    public VersionWriteContext(Operation operation, RegistryStorage storage, String groupId, String artifactId,
-            String artifactType, String owner) {
+    public VersionWriteContext(Operation operation, RegistryStorage storage, GA ga, String artifactType,
+            String owner) {
         this.operation = operation;
         this.storage = storage;
-        this.groupId = groupId;
-        this.artifactId = artifactId;
+        this.ga = ga;
         this.artifactType = artifactType;
         this.owner = owner;
     }
@@ -60,12 +59,8 @@ public final class VersionWriteContext {
         return storage;
     }
 
-    public String getGroupId() {
-        return groupId;
-    }
-
-    public String getArtifactId() {
-        return artifactId;
+    public GA getGa() {
+        return ga;
     }
 
     public String getArtifactType() {

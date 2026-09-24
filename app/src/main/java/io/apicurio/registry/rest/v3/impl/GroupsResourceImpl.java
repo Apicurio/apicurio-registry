@@ -42,7 +42,6 @@ import io.apicurio.registry.rest.v3.impl.shared.ProtobufExporter;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.extensions.ArtifactVersionWriteHook;
-import io.apicurio.registry.extensions.PreparedContent;
 import io.apicurio.registry.extensions.PromptRenderHandler;
 import io.apicurio.registry.extensions.VersionWriteContext;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
@@ -1241,8 +1240,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     resolvedReferences);
             if (data.getState() != VersionState.DISABLED) {
                 afterPublish = beforePublish(new VersionWriteContext(VersionWriteContext.Operation.PUBLISH_DRAFT,
-                        storage, gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), vmd.getArtifactType(),
-                        securityIdentity.getPrincipal().getName()), typedContent);
+                        storage, gav, vmd.getArtifactType(), securityIdentity.getPrincipal().getName()),
+                        typedContent);
             }
         }
 
@@ -1486,17 +1485,17 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             // Let write hooks (e.g. embedded schema extraction) rewrite the content
             final VersionWriteContext writeContext = new VersionWriteContext(
-                    VersionWriteContext.Operation.CREATE_ARTIFACT, storage,
-                    new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, owner);
+                    VersionWriteContext.Operation.CREATE_ARTIFACT, storage, new GA(groupId, artifactId),
+                    artifactType, owner);
             ContentHandle effectiveContent = content;
             String effectiveContentType = contentType;
             List<ArtifactReferenceDto> autoReferences = new ArrayList<>();
             if (content != null) {
-                PreparedContent prepared = prepareContent(writeContext, content, contentType);
+                ContentWrapperDto prepared = prepareContent(writeContext, content, contentType);
                 if (prepared != null) {
                     effectiveContent = prepared.getContent();
                     effectiveContentType = prepared.getContentType();
-                    autoReferences.addAll(prepared.getAddedReferences());
+                    autoReferences.addAll(prepared.getReferences());
                 }
             }
 
@@ -1640,16 +1639,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Let write hooks (e.g. embedded schema extraction) rewrite the content
         final VersionWriteContext writeContext = new VersionWriteContext(
-                VersionWriteContext.Operation.CREATE_VERSION, storage,
-                new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, owner);
+                VersionWriteContext.Operation.CREATE_VERSION, storage, new GA(groupId, artifactId),
+                artifactType, owner);
         ContentHandle effectiveContent = content;
         String effectiveContentType = ct;
         List<ArtifactReferenceDto> autoReferences = new ArrayList<>();
-        PreparedContent prepared = prepareContent(writeContext, content, ct);
+        ContentWrapperDto prepared = prepareContent(writeContext, content, ct);
         if (prepared != null) {
             effectiveContent = prepared.getContent();
             effectiveContentType = prepared.getContentType();
-            autoReferences.addAll(prepared.getAddedReferences());
+            autoReferences.addAll(prepared.getReferences());
         }
 
         // Transform the given references into dtos and merge with auto-extracted references
@@ -1959,7 +1958,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // fails this write exactly like any other content validation failure.
         List<Runnable> afterPublish = isDraftVersion ? List.of()
                 : beforePublish(new VersionWriteContext(VersionWriteContext.Operation.CREATE_VERSION, storage,
-                        groupId, artifactId, artifactType, owner), TypedContent.create(content, contentType));
+                        new GA(groupId, artifactId), artifactType, owner), TypedContent.create(content, contentType));
 
         EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder().name(name)
                 .description(description).labels(labels).build();
@@ -2018,21 +2017,24 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      *
      * @return the combined rewrite, or {@code null} if no hook changed the content
      */
-    private PreparedContent prepareContent(VersionWriteContext context, ContentHandle content,
+    private ContentWrapperDto prepareContent(VersionWriteContext context, ContentHandle content,
             String contentType) {
-        PreparedContent result = null;
+        ContentWrapperDto result = null;
         for (ArtifactVersionWriteHook hook : writeHooks) {
             ContentHandle currentContent = result != null ? result.getContent() : content;
             String currentContentType = result != null ? result.getContentType() : contentType;
-            PreparedContent prepared = hook.prepareContent(context,
+            ContentWrapperDto prepared = hook.prepareContent(context,
                     TypedContent.create(currentContent, currentContentType));
             if (prepared != null) {
                 List<ArtifactReferenceDto> references = new ArrayList<>();
                 if (result != null) {
-                    references.addAll(result.getAddedReferences());
+                    references.addAll(result.getReferences());
                 }
-                references.addAll(prepared.getAddedReferences());
-                result = new PreparedContent(prepared.getContent(), prepared.getContentType(), references);
+                if (prepared.getReferences() != null) {
+                    references.addAll(prepared.getReferences());
+                }
+                result = ContentWrapperDto.builder().content(prepared.getContent())
+                        .contentType(prepared.getContentType()).references(references).build();
             }
         }
         return result;

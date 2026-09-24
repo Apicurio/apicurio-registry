@@ -1,6 +1,7 @@
 package io.apicurio.registry.extensions;
 
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 
 /**
  * Extension point that lets an optional module take part in artifact version writes made through the
@@ -22,9 +23,11 @@ public interface ArtifactVersionWriteHook {
      *
      * @param context the write being performed
      * @param content the content as submitted, or as rewritten by a previous hook
-     * @return the replacement content, or {@code null} to leave the content unchanged
+     * @return the replacement content and type, with {@code references} holding only the references the
+     *         rewrite introduced (they are added to those submitted with the version), or {@code null} to
+     *         leave the content unchanged
      */
-    default PreparedContent prepareContent(VersionWriteContext context, TypedContent content) {
+    default ContentWrapperDto prepareContent(VersionWriteContext context, TypedContent content) {
         return null;
     }
 

@@ -27,7 +27,8 @@ public class OpenApiAgentCardWriteHook implements ArtifactVersionWriteHook {
         if (cardJson == null) {
             return null;
         }
-        return () -> openApiAgentCardService.createOrSyncCompanion(context.getStorage(), context.getGroupId(),
-                context.getArtifactId(), cardJson, context.getOwner());
+        return () -> openApiAgentCardService.createOrSyncCompanion(context.getStorage(),
+                context.getGa().getRawGroupIdWithNull(), context.getGa().getRawArtifactId(), cardJson,
+                context.getOwner());
     }
 }

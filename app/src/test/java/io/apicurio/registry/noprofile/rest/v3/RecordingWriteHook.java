@@ -3,12 +3,11 @@ package io.apicurio.registry.noprofile.rest.v3;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.extensions.ArtifactVersionWriteHook;
-import io.apicurio.registry.extensions.PreparedContent;
 import io.apicurio.registry.extensions.VersionWriteContext;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
-import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.types.RuleType;
 import jakarta.enterprise.context.ApplicationScoped;
 
@@ -36,17 +35,20 @@ public class RecordingWriteHook implements ArtifactVersionWriteHook {
     private final Queue<String> events = new ConcurrentLinkedQueue<>();
 
     @Override
-    public PreparedContent prepareContent(VersionWriteContext context, TypedContent content) {
+    public ContentWrapperDto prepareContent(VersionWriteContext context, TypedContent content) {
         if (!applies(context)) {
             return null;
         }
-        events.add("prepare:" + context.getOperation() + ":" + context.getArtifactId());
+        events.add("prepare:" + context.getOperation() + ":" + context.getGa().getRawArtifactId());
         String text = content.getContent().content();
         if (!text.contains(REWRITE_MARKER)) {
             return null;
         }
-        return new PreparedContent(ContentHandle.create(text.replace(REWRITE_MARKER, REWRITTEN_MARKER)),
-                content.getContentType(), List.<ArtifactReferenceDto> of());
+        return ContentWrapperDto.builder()
+                .content(ContentHandle.create(text.replace(REWRITE_MARKER, REWRITTEN_MARKER)))
+                .contentType(content.getContentType())
+                .references(List.of())
+                .build();
     }
 
     @Override
@@ -58,8 +60,8 @@ public class RecordingWriteHook implements ArtifactVersionWriteHook {
             throw new RuleViolationException("Rejected by test write hook", RuleType.VALIDITY,
                     ValidityLevel.FULL.name(), Set.of(new RuleViolation("contains " + REJECT_MARKER, "/description")));
         }
-        events.add("before:" + context.getOperation() + ":" + context.getArtifactId());
-        return () -> events.add("after:" + context.getOperation() + ":" + context.getArtifactId());
+        events.add("before:" + context.getOperation() + ":" + context.getGa().getRawArtifactId());
+        return () -> events.add("after:" + context.getOperation() + ":" + context.getGa().getRawArtifactId());
     }
 
     List<String> eventsFor(String artifactId) {
@@ -67,6 +69,7 @@ public class RecordingWriteHook implements ArtifactVersionWriteHook {
     }
 
     private static boolean applies(VersionWriteContext context) {
-        return context.getGroupId() != null && context.getGroupId().startsWith(GROUP_PREFIX);
+        String groupId = context.getGa().getRawGroupIdWithNull();
+        return groupId != null && groupId.startsWith(GROUP_PREFIX);
     }
 }

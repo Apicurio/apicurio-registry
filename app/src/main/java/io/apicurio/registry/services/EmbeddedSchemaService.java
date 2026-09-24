@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.extensions.ArtifactVersionWriteHook;
-import io.apicurio.registry.extensions.PreparedContent;
 import io.apicurio.registry.extensions.VersionWriteContext;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -49,15 +48,15 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
     Logger log;
 
     @Override
-    public PreparedContent prepareContent(VersionWriteContext context, TypedContent content) {
+    public ContentWrapperDto prepareContent(VersionWriteContext context, TypedContent content) {
         String contentType = content.getContentType();
         if (ArtifactType.MODEL_SCHEMA.equals(context.getArtifactType())) {
-            return extractModelSchemaEmbeddedSchemas(context.getStorage(), context.getGroupId(),
-                    context.getArtifactId(), content.getContent(), contentType, context.getOwner());
+            return extractModelSchemaEmbeddedSchemas(context.getStorage(), context.getGa().getRawGroupIdWithNull(),
+                    context.getGa().getRawArtifactId(), content.getContent(), contentType, context.getOwner());
         }
         if (ArtifactType.PROMPT_TEMPLATE.equals(context.getArtifactType())) {
-            return extractPromptTemplateEmbeddedSchemas(context.getStorage(), context.getGroupId(),
-                    context.getArtifactId(), content.getContent(), contentType, context.getOwner());
+            return extractPromptTemplateEmbeddedSchemas(context.getStorage(), context.getGa().getRawGroupIdWithNull(),
+                    context.getGa().getRawArtifactId(), content.getContent(), contentType, context.getOwner());
         }
         return null;
     }
@@ -74,7 +73,7 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
      * @param owner      the owner of the created artifacts
      * @return the rewritten content and the references to the registered schemas, or null if no extraction was performed
      */
-    public PreparedContent extractModelSchemaEmbeddedSchemas(RegistryStorage storage, String groupId,
+    public ContentWrapperDto extractModelSchemaEmbeddedSchemas(RegistryStorage storage, String groupId,
             String artifactId, ContentHandle content, String contentType, String owner) {
         try {
             JsonNode root = parseContent(content.content(), contentType);
@@ -126,11 +125,11 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
 
             // Serialize back to original format
             String modifiedContentStr = serializeContent(rootObj, contentType);
-            return new PreparedContent(
-                    ContentHandle.create(modifiedContentStr),
-                    contentType,
-                    references
-            );
+            return ContentWrapperDto.builder()
+                    .content(ContentHandle.create(modifiedContentStr))
+                    .contentType(contentType)
+                    .references(references)
+                    .build();
         } catch (Exception e) {
             log.warn("Failed to extract embedded schemas from MODEL_SCHEMA artifact: {}", e.getMessage());
             return null;
@@ -141,7 +140,7 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
      * Extract embedded schemas from a PROMPT_TEMPLATE artifact, auto-register them, and return
      * the modified content with $ref references.
      */
-    public PreparedContent extractPromptTemplateEmbeddedSchemas(RegistryStorage storage, String groupId,
+    public ContentWrapperDto extractPromptTemplateEmbeddedSchemas(RegistryStorage storage, String groupId,
             String artifactId, ContentHandle content, String contentType, String owner) {
         try {
             JsonNode root = parseContent(content.content(), contentType);
@@ -175,11 +174,11 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
             }
 
             String modifiedContentStr = serializeContent(rootObj, contentType);
-            return new PreparedContent(
-                    ContentHandle.create(modifiedContentStr),
-                    contentType,
-                    references
-            );
+            return ContentWrapperDto.builder()
+                    .content(ContentHandle.create(modifiedContentStr))
+                    .contentType(contentType)
+                    .references(references)
+                    .build();
         } catch (Exception e) {
             log.warn("Failed to extract embedded schemas from PROMPT_TEMPLATE artifact: {}", e.getMessage());
             return null;

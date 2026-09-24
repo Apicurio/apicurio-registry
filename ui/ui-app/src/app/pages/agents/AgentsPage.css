@@ -65,6 +65,10 @@
     font-size: 10px;
 }
 
+.agent-card .agent-url .agent-protocol-binding {
+    margin-left: 8px;
+}
+
 .agent-card .agent-capabilities {
     margin-bottom: 8px;
 }

@@ -17,7 +17,7 @@ import {
     Truncate
 } from "@patternfly/react-core";
 import { PencilAltIcon } from "@patternfly/react-icons";
-import { FromNow, If } from "@apicurio/common-ui-components";
+import { FromNow, If } from "@apitomy/common-ui-components";
 import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/models";
 import { labelsToAny } from "@utils/rest.utils.ts";
 import { VersionComments } from "@app/pages";

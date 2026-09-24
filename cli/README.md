@@ -207,11 +207,12 @@ acr config delete <property-name>
 
 #### Configuration Properties
 
-| Property                             | Default | Description                                                                                  |
-|---------------------------------------|---------|-----------------------------------------------------------------------------------------------|
-| `update.check-enabled`               | `true`  | Enable automatic update checks                                                               |
-| `update.timeout-seconds`             | `60`    | Timeout for update network requests                                                          |
-| `update.skip-checksum-verification`  | `false` | Skip SHA-256 verification of downloaded archives (for custom repos without `.sha256` files)  |
+| Property                             | Default | Description                                                                                                             |
+|---------------------------------------|---------|---------------------------------------------------------------------------------------------------------------------------|
+| `update.check-enabled`               | `true`  | Enable automatic update checks                                                                                          |
+| `update.timeout-seconds`             | `60`    | Timeout for update network requests                                                                                     |
+| `update.skip-checksum-verification`  | `false` | Skip SHA-256 verification of downloaded archives (for custom repos without `.sha256` files)                             |
+| `context.auto-update`                | `false` | Automatically save the group/artifact ID to the current context after `group create`/`get` and `artifact create`/`get` |
 
 #### Logging
 
@@ -219,6 +220,51 @@ Use `--verbose` to enable debug logging:
 
 ```bash
 acr --verbose artifact get my-artifact -g my-group
+```
+
+Verbose output includes the raw request and response of every Registry call, with requests
+prefixed by `>` and responses by `<`:
+
+```
+HTTP request:
+> GET http://localhost:8080/apis/registry/v3/groups/my-group
+> Authorization: <redacted>
+
+HTTP response:
+< 200 OK
+< Content-Type: application/json
+<
+< {"groupId":"my-group", ...}
+```
+
+Headers that carry credentials (`Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie`)
+are redacted, as are query parameters that carry them (`access_token`, `id_token`,
+`refresh_token`, `token`, `code`, `client_secret`, `assertion`, `api_key`, `apikey`). Everything
+else, including the rest of the URL and the request and response bodies, is logged as it is sent,
+so treat verbose output as sensitive. Bodies longer than 8192 characters are truncated.
+
+One command can produce more than one request record. A redirect is logged as a second request,
+tagged with its hop number, and the response that follows it says how many hops it took:
+
+```
+HTTP request:
+> GET http://localhost:8080/apis/registry/v3/groups/my-group
+
+HTTP request (redirect 1):
+> GET https://registry.example.com/apis/registry/v3/groups/my-group
+
+HTTP response (after 1 redirect):
+< 200 OK
+```
+
+A call that is retried, for example after an expired token is refreshed, is logged as another
+untagged request.
+
+HTTP traffic is logged under the `io.apicurio.registry.client.http` category, so it can be quieted
+on its own:
+
+```bash
+acr config set 'quarkus.log.category."io.apicurio.registry.client.http".level=WARNING'
 ```
 
 Verbose output can be noisy. To quiet a specific package while keeping the rest, set a
@@ -271,6 +317,15 @@ acr context delete --all
 ```
 
 Use `--no-switch-current` when creating a context to add it without switching to it.
+
+**Auto context update:**
+```bash
+acr config set context.auto-update=true
+```
+When enabled, `group create`/`get` and `artifact create`/`get` automatically save the resolved group and/or
+artifact ID to the current context, so subsequent commands don't need repeated `-g`/`-a` flags. Switching to a
+different group clears the artifact ID from the context, since the previous artifact no longer applies; re-getting
+the same group leaves it untouched. Disabled by default.
 
 ### Authentication
 
@@ -517,7 +572,7 @@ All filters are optional and can be combined. Additional filters include `--desc
 
 These options work with most commands:
 
-- `--verbose, -v` - Enable verbose output for debugging
+- `--verbose, -v` - Enable verbose output for debugging, including raw HTTP requests and responses
 - `--help, -h` - Show help information
 - `--output-type, -o` - Set output format (table or json)
 

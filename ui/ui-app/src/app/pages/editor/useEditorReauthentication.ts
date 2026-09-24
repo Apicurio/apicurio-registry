@@ -1,5 +1,5 @@
 import { RefObject, useEffect, useState } from "react";
-import { useAuth } from "@apicurio/common-ui-components";
+import { useAuth } from "@apitomy/common-ui-components";
 import { useReauthenticationService } from "@services/useReauthenticationService.ts";
 import { isErrorStatus } from "@utils/rest.utils.ts";
 import { SnapshotPersistenceResult } from "./useEditorDraftRecovery.ts";

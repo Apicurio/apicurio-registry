@@ -1,0 +1,54 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: perf-test
+spec:
+  app:
+    replicas: 1
+    storage:
+      type: postgresql
+      sql:
+        dataSource:
+          # Routed through toxiproxy.yaml, which injects ~15ms +/- 5ms latency to approximate a
+          # real managed-DB/different-AZ deployment rather than a same-node, near-zero-latency
+          # connection - see toxiproxy.yaml for the rationale.
+          url: "jdbc:postgresql://toxiproxy.default.svc:5433/registry"
+          username: "postgres"
+          password:
+            name: postgresql-credentials
+            key: password
+    # The default JDBC pool (max-size 100) was found to queue/exhaust under the higher
+    # concurrency this scenario is deliberately pushed to when measuring capacity - see the
+    # sizing guide's methodology section.
+    env:
+      - name: APICURIO_DATASOURCE_JDBC_MAX_SIZE
+        value: "400"
+      - name: APICURIO_DATASOURCE_JDBC_MIN_SIZE
+        value: "50"
+    # 1Gi (the operator's default) was found to be insufficient under sustained concurrent read
+    # load: old-gen heap usage reached ~99% within under two minutes at 200 concurrent clients,
+    # and the resulting GC pressure cascaded into database/connection-acquisition timeouts and
+    # application pod restarts - not a connection-pool or code-level bug, just not enough memory
+    # for this concurrency level with this JVM's default GC (Parallel GC, which does full
+    # stop-the-world collections). 2Gi resolved it completely in testing (sustained hours of
+    # 200-concurrent load with no restarts) - see the sizing guide's methodology section.
+    podTemplateSpec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            resources:
+              limits:
+                cpu: "2"
+                memory: 2Gi
+              requests:
+                cpu: "1"
+                memory: 1Gi
+    auth:
+      enabled: true
+      appClientId: registry-api
+      authServerUrl: "http://keycloak.default.svc:8080/realms/registry"
+      anonymousReadsEnabled: false
+      tls:
+        tlsVerificationType: none
+  ui:
+    replicas: 1

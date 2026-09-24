@@ -1,6 +1,7 @@
 ---
 description: Analyze a failing CI workflow run to diagnose the root cause
 argument-hint: [run-id-or-url]
+agent: ci-debugger
 ---
 
 Diagnose a failing GitHub Actions workflow run for the Apicurio Registry project.

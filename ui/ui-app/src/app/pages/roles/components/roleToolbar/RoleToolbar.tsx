@@ -1,6 +1,6 @@
 import { FunctionComponent, useState } from "react";
 import "./RoleToolbar.css";
-import { If, ObjectSelect } from "@apicurio/common-ui-components";
+import { If, ObjectSelect } from "@apitomy/common-ui-components";
 import {
     Button,
     ButtonVariant,

@@ -48,7 +48,7 @@ jobs:
 
       # JDK is only needed here for mvn versions:set
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -56,7 +56,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.19.0
+          node-version: 24.20.0
 
       - name: Set up json CLI
         run: npm install -g json
@@ -169,7 +169,7 @@ jobs:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up JDK 21
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -214,7 +214,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.19.0
+          node-version: 24.20.0
 
       - name: Build Registry UI
         working-directory: ui
@@ -252,7 +252,7 @@ jobs:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@5298d94fb55a4f185c602eeac5de1b553882abe2 # v1
+        uses: graalvm/setup-graalvm@0426e2e191540e8514dff98dc52a5f5146a2a276 # v1
         with:
           java-version: '23'
           distribution: 'graalvm-community'
@@ -319,7 +319,7 @@ jobs:
           done
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
         with:
           name: ${{ github.event.inputs.release-version }}
           tag_name: ${{ github.event.inputs.release-version }}
@@ -346,7 +346,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.19.0
+          node-version: 24.20.0
 
       - name: Set up json CLI
         run: npm install -g json

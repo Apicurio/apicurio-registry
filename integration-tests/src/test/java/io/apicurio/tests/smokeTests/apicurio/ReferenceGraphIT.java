@@ -30,12 +30,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * Integration tests for the Reference Graph API endpoint.
  */
 @Tag(SMOKE)
 @QuarkusIntegrationTest
+@Isolated
 class ReferenceGraphIT extends ApicurioRegistryBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ReferenceGraphIT.class);

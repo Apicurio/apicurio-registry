@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { Tooltip } from "@patternfly/react-core";
 import { DesktopIcon } from "@patternfly/react-icons";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 
 let testIdCounter: number = 1;
 

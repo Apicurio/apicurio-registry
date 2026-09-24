@@ -16,7 +16,7 @@ import {
     ChipFilterType,
     FilterChips,
     ObjectSelect
-} from "@apicurio/common-ui-components";
+} from "@apitomy/common-ui-components";
 import { FilterInput, EnhancedFilterType } from "./FilterInput";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 import { plural } from "pluralize";

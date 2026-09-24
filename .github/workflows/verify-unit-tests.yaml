@@ -10,6 +10,10 @@ on:
         type: string
         required: true
         description: 'Build artifact identifier (commit SHA)'
+      scalpel-enabled:
+        type: string
+        default: 'false'
+        description: 'Decide output: false on push to main or when the ci/disable-scalpel label is set'
 
 permissions:
   contents: read
@@ -22,10 +26,28 @@ jobs:
       fail-fast: false
       matrix:
         shard:
-          - name: app-rest
+          # app-rest used to be a single shard and was the PR critical path at ~35 min
+          # (61 classes, 3x the next shard). It is now split three ways: v3 (the bulk),
+          # ccompat, and a misc shard for the remaining rest subpackages (v2, mcptools,
+          # a2a, root-level classes). app-rest-misc must exclude everything app-rest-v3
+          # includes; .github/scripts/verify-test-shards.py enforces the partition.
+          - name: app-rest-v3
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,io.apicurio.registry.noprofile.ccompat.**"
+            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.v3.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+            # Quarkus forks share target/test-classes/test-classes.idx. Concurrent
+            # writers caused "Not a jandex index" during AllYamlTest discovery.
+            surefire-opts: "-Dsurefire.forkCount=1"
+          - name: app-ccompat
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.noprofile.ccompat.**"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+            surefire-opts: ""
+          - name: app-rest-misc
+            modules: "-pl app -am -Dfull -DcliSkipNative"
+            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.rest.v3.**"
+            maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
+            surefire-opts: ""
           - name: app-sql
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.storage.impl.sql.**,io.apicurio.registry.storage.impl.search.**,io.apicurio.registry.storage.impl.polling.**,io.apicurio.registry.storage.impl.readonly.**,io.apicurio.registry.storage.decorator.**,io.apicurio.registry.storage.dto.**,io.apicurio.registry.event.sql.**"
@@ -71,14 +93,41 @@ jobs:
             modules: "-Dfull -DcliSkipNative -pl !app,!distro/docker,!docs,!docs/config-generator,!docs/rest-api"
             test-filter: ""
             maven-opts: "-Xmx4g"
+            # Scalpel shadow carrier: the session covers every non-app module,
+            # so any non-app change produces a real shadow document here (what
+            # would have been skipped, per module, with the decisionId). An app
+            # change yields a skip-status document, because app is not in the
+            # session; the app-side assertion is the open half of REG-246.
+            scalpel-shadow: true
     steps:
+      # Resolved once in plain shell because the GitHub expression form of the
+      # same choice, `cond && 0 || 1`, is always 1: the number 0 is falsy in
+      # expression syntax, so the carrier would silently stay shallow. Every
+      # scalpel-touching step below reads these outputs instead of re-deriving
+      # the condition.
+      - name: Resolve Scalpel carrier settings
+        id: scalpel
+        run: |
+          if [ "${{ matrix.shard.scalpel-shadow }}" = "true" ] && [ "${{ inputs.scalpel-enabled }}" = "true" ]; then
+            echo "depth=0" >> "$GITHUB_OUTPUT"
+            echo "flags=-Dscalpel.enabled=true -Dscalpel.mode=shadow -Dscalpel.verifyFullBuild=true" >> "$GITHUB_OUTPUT"
+            echo "on=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "depth=1" >> "$GITHUB_OUTPUT"
+            echo "flags=" >> "$GITHUB_OUTPUT"
+            echo "on=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 1
+          # The shadow carrier diffs against the base branch, which a shallow
+          # clone cannot see. The same exception the scalpel-report job makes;
+          # every other shard stays shallow.
+          fetch-depth: ${{ steps.scalpel.outputs.depth }}
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -105,16 +154,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_OPTS: ${{ matrix.shard.maven-opts }}
+          # Resolved by the prep step; empty whenever the carrier is off.
+          # Unquoted on purpose, so the empty value expands to zero words.
+          SCALPEL_FLAGS: ${{ steps.scalpel.outputs.flags }}
         run: |
           # Each shard compiles the same modules but runs a different subset of tests via -Dtest= filters.
           # Pre-built artifacts from the Build job are downloaded but Maven still needs to resolve/compile.
           # -Dsurefire.failIfNoSpecifiedTests=false: don't fail if a shard's test filter matches zero tests
           # -Dsurefire.rerunFailingTestsCount=1: automatically retry flaky tests once
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # Scalpel writes under target/ from session start; the same guard
+          # the scalpel-report job keeps.
+          mkdir -p target
           ./mvnw verify \
             --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
+            $SCALPEL_FLAGS \
+            ${{ matrix.shard.surefire-opts }} \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -DskipCommitIdPlugin=true \
             -Dcheckstyle.skip=true \
@@ -150,3 +207,18 @@ jobs:
           name: flaky-tests-${{ matrix.shard.name }}
           path: flaky-tests-${{ matrix.shard.name }}.json
           retention-days: 1
+
+      - name: Upload Scalpel shadow document
+        if: always() && steps.scalpel.outputs.on == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: scalpel-shadow-${{ matrix.shard.name }}-${{ inputs.image-tag }}
+          path: |
+            target/scalpel-shadow.json
+            target/scalpel-shadow-history.jsonl
+          # Two absences are indistinguishable here: a skipped analysis
+          # writes neither file, and so does a Maven that died before the
+          # session started. Check the job log when the artifact is empty
+          # and the run is red.
+          if-no-files-found: ignore
+          retention-days: 7

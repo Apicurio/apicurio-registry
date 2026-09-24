@@ -15,7 +15,107 @@ max_contributor_prs: 1
 
 merge:
   strategy: rebase
-  delete_branch: true
+
+# Automatic reviewer assignment (#9005). Runs in the classify-pr job of
+# classify.yml when a PR opens or leaves draft, right after it has been given
+# its area/* labels. See the "Reviewer assignment" section of PR_LIFECYCLE.md.
+# Every key below is required; remove the whole section to switch it off.
+reviewer_assignment:
+  # Each signal scores 0-1 and these weights combine them; they add up to 1.
+  # Load is deliberately not one of them — see `fairness` below.
+  weights:
+    ownership: 0.55
+    interest: 0.30
+    issue_author: 0.15
+  ownership:
+    # Files with the largest changes first; one commits lookup per file.
+    max_files: 30
+    commits_per_file: 10
+    since_months: 12
+    # Commits this recent count recent_multiplier times.
+    recent_months: 3
+    recent_multiplier: 2
+    # History here says nothing about who understands a change.
+    ignore_paths:
+      - "**/package-lock.json"
+      - "**/go.sum"
+      - "**/poetry.lock"
+      - "go-sdk/pkg/**"
+  fairness:
+    # Load = PRs assigned in the window, whatever their state now, so working
+    # through a queue is not penalised. Assignments within recent_hours count
+    # recent_multiplier times. Load breaks exact ties and drives the swap; it
+    # is not a weighted signal, because measured next to the swap one changed
+    # nothing. Raw counts make specialists look idle; #10247 tracks measuring
+    # load against how many PRs each reviewer was eligible for instead.
+    window_days: 30
+    recent_hours: 48
+    recent_multiplier: 2
+    # The runner-up takes the PR if the winner's load is both swap_ratio times
+    # and swap_min_gap more than theirs, and the runner-up has interest in the
+    # PR's primary area (its strongest classifier label). Both load conditions,
+    # because at ~40 assignments a month an absolute gap of 3 is noise.
+    swap_ratio: 1.5
+    swap_min_gap: 3
+  # PRs by auto_accept bots (Renovate) skip scoring — ownership and interest
+  # say nothing about a version bump — and go to whoever here has had the
+  # fewest bot PRs in the fairness window. Counted separately from contributor
+  # PRs, so ~3 bot PRs a day do not skew contributor fairness.
+  bot_rotation:
+    reviewers:
+      - EricWittmann
+      - carlesarnal
+      - jsenko
+  # Who can be picked for contributor PRs (and suggested for maintainer PRs),
+  # and how much each wants PRs in an area, 0-1. Absolute, not a share: the
+  # weights do not add up to anything. A PR's interest score is the highest
+  # weight among its most specific area labels; a label no pattern matches
+  # counts 0.
+  #
+  #   area/ui     only area/ui
+  #   area/ui/*   area/ui and every label nested under it
+  #   area/*      every area label
+  #
+  # The most specific pattern wins, so 0 carves an area out of a broader one.
+  # Remove an entry to take someone out of rotation.
+  reviewers:
+    EricWittmann:
+      interest:
+        "area/*": 0.4
+        "area/ui/*": 1.0
+    carlesarnal:
+      interest:
+        "area/*": 0.4
+        "area/AI/*": 0.6
+        "area/AI/A2A": 1.0
+        "area/AI/prompt-templates": 1.0
+        "area/rest/iceberg": 1.0
+        "area/operator/*": 0.8
+        "area/serdes/*": 0.6
+    jsenko:
+      interest:
+        "area/*": 0.4
+        "area/operator/*": 0.6
+        "area/storage/gitops": 1.0
+        "area/CLI": 1.0
+        "area/AI/MCP": 1.0
+        "area/artifact-types/json-schema": 1.0
+        "area/CI/automation": 1.0
+        "area/performance/caching": 1.0
+    paoloantinori:
+      interest:
+        "area/build/*": 1.0
+        "area/observability": 1.0
+        "area/performance/*": 1.0
+        "area/CI": 1.0
+        "area/QE": 1.0
+    vandanayadav7:
+      interest:
+        "area/CLI": 1.0
+        "area/storage/gitops": 1.0
+    eameh:
+      interest:
+        "area/documentation": 1.0
 
 stale:
   days_until_stale: 7
@@ -27,19 +127,41 @@ stale:
   # 7 days — intentional, since the PR is explicitly stalled on the author.
   days_until_stale_waiting_on_author: 4
   days_until_close_waiting_on_author: 7
+  # Review latency: the maintainer-side counterpart to the timers above, for
+  # PRs labelled lifecycle/waiting-on-maintainer. These never close anything —
+  # the author has no action to take, so a close deadline would only punish
+  # them for our backlog. Measured from when the PR became waiting-on-
+  # maintainer, not from updated_at: only 2 of 84 maintainer-blocked PRs had
+  # been idle 7+ days, because bots and CI keep touching them while nobody
+  # reviews, so updated_at barely moves with review latency at all.
+  #
+  # The label and the ping are split because they cost different things. The
+  # label is free and queryable; the comment notifies every assignee and
+  # reviewer. Measured over the 84 maintainer-blocked PRs open when this was
+  # written (median 19 days blocked, max 49), 14/30 labels 47 of them while
+  # only the 13 worst generate mail.
+  days_until_review_overdue: 14
+  days_until_review_ping: 30
   stale_message: |
     This PR has been inactive. @{author}, please update or comment
     to keep it open. It will be closed {close_window} if no activity occurs.
-    Use `/unstale` to remove this label.
+    Use `/unstale` to remove this label.{assignees}
   close_message: |
     Closing this PR due to inactivity. Feel free to reopen if you
     want to continue working on it.
+  review_overdue_message: |
+    Thanks for your patience on this one — it has been waiting on a maintainer
+    review for {days} days.
+
+    @{author}, there is nothing you need to do here. A maintainer will take a look as soon as we can.
+    This PR will **not** be closed for inactivity while it is waiting on us.{reviewers}
 
 welcome_message: |
   Thanks for opening this PR!
 
-  A maintainer will review and accept it shortly. In the meantime, you can
-  continue pushing changes.
+  The Quick Check gate runs on every push. The full verification suite runs
+  once a maintainer approves the PR (it runs immediately for trusted
+  authors) and is the final merge gate.
 
   **Available commands:**
   | Command | Description |
@@ -50,8 +172,5 @@ welcome_message: |
   **Maintainer commands:**
   | Command | Description |
   |---------|-------------|
-  | `/accept` | Accept the PR and transition to ready-for-review, running the full test suite |
   | `/reject [reason]` | Reject and close the PR |
-  | `/skip-review` | Skip review requirement for small changes (tests still required) |
-  | `/auto-merge` | Toggle auto-merge |
-  | `/merge` | Merge the PR |
+  | `/merge` | Toggle auto-merge — GitHub merges automatically once required checks and review pass |

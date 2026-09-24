@@ -9,12 +9,14 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
+import static io.apicurio.registry.operator.Tags.FEATURE_A;
 import static io.apicurio.registry.operator.Tags.FEATURE_SETUP;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 @Tag(FEATURE)
+@Tag(FEATURE_A)
 @Tag(FEATURE_SETUP)
 public class OperatorConfigITTest extends ITBase {
 

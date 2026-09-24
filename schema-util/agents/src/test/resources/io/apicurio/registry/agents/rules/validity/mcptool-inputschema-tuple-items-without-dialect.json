@@ -1,0 +1,16 @@
+{
+  "name": "tuple_items_without_dialect_tool",
+  "description": "inputSchema declares no $schema and uses tuple-form 'items', which 2020-12 does not allow",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "coordinate": {
+        "type": "array",
+        "items": [
+          { "type": "string" },
+          { "type": "integer" }
+        ]
+      }
+    }
+  }
+}

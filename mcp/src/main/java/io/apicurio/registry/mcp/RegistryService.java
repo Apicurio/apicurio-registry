@@ -1,18 +1,26 @@
 package io.apicurio.registry.mcp;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.ArdFilter;
+import io.apicurio.registry.rest.client.models.ArdSearchQuery;
+import io.apicurio.registry.rest.client.models.ArdSearchRequest;
+import io.apicurio.registry.rest.client.models.ArdSearchResponse;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactSortBy;
 import io.apicurio.registry.rest.client.models.ArtifactTypeInfo;
 import io.apicurio.registry.rest.client.models.ConfigurationProperty;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateGroup;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.GroupSortBy;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.SearchedArtifact;
 import io.apicurio.registry.rest.client.models.SearchedGroup;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
@@ -31,7 +39,10 @@ import jakarta.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @ApplicationScoped
 public class RegistryService {
@@ -266,14 +277,56 @@ public class RegistryService {
         return client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(v);
     }
 
+    public String testSchemaRules(
+            String groupId,
+            String artifactId,
+            String versionContent,
+            String versionContentType
+    ) {
+        var v = new CreateVersion();
+        var c = new VersionContent();
+        c.setContentType(versionContentType);
+        c.setContent(versionContent);
+        v.setContent(c);
+
+        try {
+            client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(v, r -> {
+                r.queryParameters.dryRun = true;
+            });
+            return "Schema is valid and compatible.";
+        } catch (RuleViolationProblemDetails e) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Schema rules check failed: ").append(e.getDetail()).append("\n");
+            if (e.getCauses() != null) {
+                for (var cause : e.getCauses()) {
+                    sb.append("- ").append(cause.getDescription());
+                    if (cause.getContext() != null) {
+                        sb.append(" at ").append(cause.getContext());
+                    }
+                    sb.append("\n");
+                }
+            }
+            return sb.toString();
+        } catch (ApiException e) {
+            throw new ToolCallException("Failed to test schema rules: " + e.getMessage(), e);
+        }
+    }
+
     public void updateVersionState(
             String groupId,
             String artifactId,
             String versionExpression,
             String versionState
     ) {
+        VersionState state = Arrays.stream(VersionState.values())
+                .filter(v -> versionState != null && v.name().equalsIgnoreCase(versionState.trim()))
+                .findFirst()
+                .orElseThrow(() -> new ToolCallException(
+                        "Invalid version state: '" + versionState + "'. Accepted values (case-insensitive): "
+                                + Arrays.toString(VersionState.values())));
+
         var vs = new WrappedVersionState();
-        vs.setState(VersionState.valueOf(versionState));
+        vs.setState(state);
 
         client().groups().byGroupId(groupId)
                 .artifacts().byArtifactId(artifactId)
@@ -379,18 +432,19 @@ public class RegistryService {
     }
 
     public String searchAgentCards(String name, String skill, String capability) throws Exception {
-        var results = client().wellKnown().agents().get(config -> {
-            config.queryParameters.limit = 50;
+        var results = client().wellKnown().agents().get(r -> {
+            r.queryParameters.limit = config.paging().limit() + 1;
             if (name != null && !name.isBlank()) {
-                config.queryParameters.name = name;
+                r.queryParameters.name = name;
             }
             if (skill != null && !skill.isBlank()) {
-                config.queryParameters.skill = new String[]{ skill };
+                r.queryParameters.skill = new String[]{ skill };
             }
             if (capability != null && !capability.isBlank()) {
-                config.queryParameters.capability = new String[]{ capability };
+                r.queryParameters.capability = new String[]{ capability };
             }
         });
+        checkPagingLimit(results.getCount());
         return utils.toPrettyJson(results);
     }
 
@@ -404,15 +458,16 @@ public class RegistryService {
     }
 
     public String searchMcpTools(String name, String parameter) throws Exception {
-        var results = client().wellKnown().mcpTools().get(config -> {
-            config.queryParameters.limit = 50;
+        var results = client().wellKnown().mcpTools().get(r -> {
+            r.queryParameters.limit = config.paging().limit() + 1;
             if (name != null && !name.isBlank()) {
-                config.queryParameters.name = name;
+                r.queryParameters.name = name;
             }
             if (parameter != null && !parameter.isBlank()) {
-                config.queryParameters.parameter = new String[]{ parameter };
+                r.queryParameters.parameter = new String[]{ parameter };
             }
         });
+        checkPagingLimit(results.getCount());
         return utils.toPrettyJson(results);
     }
 
@@ -425,6 +480,54 @@ public class RegistryService {
         }
     }
 
+    /**
+     * Invokes the registry's {@code POST /.well-known/ard/search} endpoint (ARD - Agentic
+     * Resource Discovery). {@code type}, {@code tags}, {@code capabilities} and
+     * {@code publisher} are comma-separated lists that populate the corresponding
+     * {@code query.filter} keys (OR semantics within a key, AND semantics across keys), per
+     * the ARD spec.
+     */
+    public String ardSearch(
+            String text,
+            String type,
+            String tags,
+            String capabilities,
+            String publisher,
+            String pageToken,
+            Integer pageSize
+    ) throws Exception {
+        var query = new ArdSearchQuery();
+        query.setText(text);
+
+        Map<String, Object> filter = new HashMap<>();
+        putCommaSeparatedFilter(filter, "type", type);
+        putCommaSeparatedFilter(filter, "tags", tags);
+        putCommaSeparatedFilter(filter, "capabilities", capabilities);
+        putCommaSeparatedFilter(filter, "publisher", publisher);
+        if (!filter.isEmpty()) {
+            var ardFilter = new ArdFilter();
+            ardFilter.setAdditionalData(filter);
+            query.setFilter(ardFilter);
+        }
+
+        var request = new ArdSearchRequest();
+        request.setQuery(query);
+        request.setPageToken(pageToken);
+        request.setPageSize(pageSize);
+
+        ArdSearchResponse response = client().wellKnown().ard().search().post(request);
+        return utils.toPrettyJson(response);
+    }
+
+    private void putCommaSeparatedFilter(Map<String, Object> filter, String key, String value) {
+        if (value != null && !value.isBlank()) {
+            filter.put(key, Arrays.stream(value.split(","))
+                    .map(String::trim)
+                    .filter(v -> !v.isEmpty())
+                    .toList());
+        }
+    }
+
     public void updateConfigurationProperty(String propertyName, String propertyValue) {
         if (config.safeMode() && !List.of(
                 "apicurio.rest.mutability.artifact-version-content.enabled"
@@ -434,5 +537,16 @@ public class RegistryService {
         var p = new UpdateConfigurationProperty();
         p.setValue(propertyValue);
         client().admin().config().properties().byPropertyName(propertyName).put(p);
+    }
+
+    public void deleteGroup(String groupId) {
+        client().groups().byGroupId(groupId).delete();
+    }
+
+    public void createArtifactRule(String groupId, String artifactId, String ruleType, String ruleConfig) {
+        var createRule = new CreateRule();
+        createRule.setRuleType(RuleType.forValue(ruleType));
+        createRule.setConfig(ruleConfig);
+        client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
     }
 }

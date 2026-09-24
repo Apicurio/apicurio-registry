@@ -7,12 +7,14 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
+import io.apicurio.registry.rest.ParameterValidationUtils;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.ArtifactSortBy;
 import io.apicurio.registry.rest.v3.beans.ContractRule;
@@ -58,8 +60,7 @@ public class SearchResourceImpl implements SearchResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     private static final String CANONICAL_QUERY_PARAM_ERROR_MESSAGE = "When setting 'canonical' to 'true', the 'artifactType' query parameter is also required.";
-    private static final BigInteger MAX_INT_VALUE = BigInteger.valueOf(Integer.MAX_VALUE);
-    private static final BigInteger MAX_LIMIT = BigInteger.valueOf(1000);
+    private static final String CONTRACT_LABEL_PREFIX = "contract.*";
 
     @Inject
     @Current
@@ -143,8 +144,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofContentId(contentId));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, normalizeOffset(offset),
-                normalizeLimit(limit), skipCount != null && skipCount);
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
+                ParameterValidationUtils.normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("artifacts");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -193,8 +194,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, normalizeOffset(offset),
-                normalizeLimit(limit), skipCount != null && skipCount);
+        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
+                ParameterValidationUtils.normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("artifactsByContent");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -231,8 +232,8 @@ public class SearchResourceImpl implements SearchResource {
                     .forEach(filters::add);
         }
 
-        GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, normalizeOffset(offset),
-                normalizeLimit(limit));
+        GroupSearchResultsDto results = storage.searchGroups(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
+                ParameterValidationUtils.normalizeLimit(limit));
         otelMetrics.recordSearchRequest("groups");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -297,8 +298,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofStructure(structure));
         }
 
-        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, normalizeOffset(offset),
-                normalizeLimit(limit), skipCount != null && skipCount);
+        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
+                ParameterValidationUtils.normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("versions");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -355,8 +356,8 @@ public class SearchResourceImpl implements SearchResource {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
 
-        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, normalizeOffset(offset),
-                normalizeLimit(limit), skipCount != null && skipCount);
+        VersionSearchResultsDto results = storage.searchVersions(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
+                ParameterValidationUtils.normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("versionsByContent");
         return V3ApiUtil.dtoToSearchResults(results);
     }
@@ -433,33 +434,33 @@ public class SearchResourceImpl implements SearchResource {
 
         Set<SearchFilter> filters = new HashSet<>();
 
-        // All contracts have a contract.*.status label
-        filters.add(SearchFilter.ofLabel("contract."));
+        // Contract metadata is stored in labels within the reserved "contract.*" namespace.
+        // The key is "contract.{suffix}" when no contract id has been assigned yet (e.g.
+        // "contract.status"), or "contract.{contractId}.{suffix}" once a contract id exists
+        // (e.g. "contract.myid.status"). The trailing "*" is required for a prefix match
+        // covering both forms, since the SQL layer only treats "*" as a wildcard. Without it
+        // the filter becomes an exact match on "contract." and never matches anything.
+        filters.add(SearchFilter.ofLabel(CONTRACT_LABEL_PREFIX));
 
+        // Suffix filters match the label key by suffix. "contract.*" + suffix becomes
+        // "contract.%{suffix}" in SQL, where "%" covers the optional "{contractId}." segment
+        // (and the empty string), so both label forms above are matched.
         if (!StringUtil.isEmpty(status)) {
-            filters.add(SearchFilter.ofLabel("contract.", status));
+            filters.add(SearchFilter.ofLabel(CONTRACT_LABEL_PREFIX + ContractLabels.SUFFIX_STATUS, status));
         }
         if (!StringUtil.isEmpty(ownerTeam)) {
-            filters.add(SearchFilter.ofLabel("contract.", ownerTeam));
+            filters.add(SearchFilter.ofLabel(CONTRACT_LABEL_PREFIX + ContractLabels.SUFFIX_OWNER_TEAM, ownerTeam));
         }
         if (!StringUtil.isEmpty(compatibilityGroup)) {
-            filters.add(SearchFilter.ofLabel("contract.", compatibilityGroup));
+            filters.add(SearchFilter.ofLabel(
+                    CONTRACT_LABEL_PREFIX + ContractLabels.SUFFIX_COMPATIBILITY_GROUP, compatibilityGroup));
         }
 
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir,
-                normalizeOffset(offset), normalizeLimit(limit), false);
+                ParameterValidationUtils.normalizeOffset(offset), ParameterValidationUtils.normalizeLimit(limit),
+                false);
         otelMetrics.recordSearchRequest("contracts");
         return V3ApiUtil.dtoToSearchResults(results);
-    }
-
-    // Clamp the offset to [0, Integer.MAX_VALUE] so it never reaches storage as an invalid SQL query (500). See #8611.
-    private static int normalizeOffset(BigInteger offset) {
-        return offset.max(BigInteger.ZERO).min(MAX_INT_VALUE).intValue();
-    }
-
-    // Negative limit -> 1 (limit=0 keeps its empty-page semantics); cap at MAX_LIMIT to bound result size. See #8611.
-    private static int normalizeLimit(BigInteger limit) {
-        return limit.signum() < 0 ? 1 : limit.min(MAX_LIMIT).intValue();
     }
 
     /**

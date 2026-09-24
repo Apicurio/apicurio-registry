@@ -1,6 +1,6 @@
 import axios, { AxiosRequestConfig } from "axios";
 import { ContentTypes } from "@models/ContentTypes.ts";
-import { AuthService } from "@apicurio/common-ui-components";
+import { AuthService } from "@apitomy/common-ui-components";
 import { Buffer } from "buffer";
 import { AuthenticationProvider, Headers, RequestInformation, type RequestOption } from "@microsoft/kiota-abstractions";
 import { ConfigService } from "@services/useConfigService";

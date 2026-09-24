@@ -1,5 +1,5 @@
 import { FunctionComponent, useState } from "react";
-import { ObjectSelect } from "@apicurio/common-ui-components";
+import { ObjectSelect } from "@apitomy/common-ui-components";
 
 
 /**

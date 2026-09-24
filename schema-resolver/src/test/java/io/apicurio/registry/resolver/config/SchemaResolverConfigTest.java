@@ -94,6 +94,37 @@ public class SchemaResolverConfigTest {
     }
 
     /**
+     * Test TLS/SSL keystore configuration properties.
+     */
+    @Test
+    void testKeystoreConfiguration() {
+        Map<String, Object> originals = new HashMap<>();
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+
+        // Test defaults
+        assertNull(config.getTlsKeystoreLocation());
+        assertNull(config.getTlsKeystorePassword());
+        assertEquals("JKS", config.getTlsKeystoreType());
+        assertNull(config.getTlsClientCertificate());
+        assertNull(config.getTlsClientKey());
+
+        // Test setting values
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_LOCATION, "/path/to/keystore.jks");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_PASSWORD, "keystore123");
+        originals.put(SchemaResolverConfig.TLS_KEYSTORE_TYPE, "PKCS12");
+        originals.put(SchemaResolverConfig.TLS_CLIENT_CERTIFICATE, "/path/to/client-cert.pem");
+        originals.put(SchemaResolverConfig.TLS_CLIENT_KEY, "/path/to/client-key.pem");
+
+        config = new SchemaResolverConfig(originals);
+
+        assertEquals("/path/to/keystore.jks", config.getTlsKeystoreLocation());
+        assertEquals("keystore123", config.getTlsKeystorePassword());
+        assertEquals("PKCS12", config.getTlsKeystoreType());
+        assertEquals("/path/to/client-cert.pem", config.getTlsClientCertificate());
+        assertEquals("/path/to/client-key.pem", config.getTlsClientKey());
+    }
+
+    /**
      * Test proxy configuration properties.
      */
     @Test
@@ -302,5 +333,85 @@ public class SchemaResolverConfigTest {
 
         assertFalse(config.getCacheLatest());
         assertTrue(config.getFaultTolerantRefresh());
+    }
+
+    /**
+     * Test that client retry configuration exposes the expected defaults and honors overrides.
+     */
+    @Test
+    void testClientRetryConfigurationDefaults() {
+        SchemaResolverConfig config = new SchemaResolverConfig(new HashMap<>());
+
+        assertTrue(config.getClientRetryEnabled());
+        assertEquals(3L, config.getClientRetryMaxAttempts());
+        assertEquals(250L, config.getClientRetryDelayMs());
+        assertEquals(2.0, config.getClientRetryBackoffMultiplier());
+        assertEquals(10000L, config.getClientRetryMaxDelayMs());
+    }
+
+    @Test
+    void testClientRetryConfigurationCustomValues() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_ENABLED, false);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, 5L);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_DELAY_MS, 500L);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_BACKOFF_MULTIPLIER, "1.5");
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_DELAY_MS, 20000L);
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+
+        assertFalse(config.getClientRetryEnabled());
+        assertEquals(5L, config.getClientRetryMaxAttempts());
+        assertEquals(500L, config.getClientRetryDelayMs());
+        assertEquals(1.5, config.getClientRetryBackoffMultiplier());
+        assertEquals(20000L, config.getClientRetryMaxDelayMs());
+    }
+
+    /**
+     * A max-attempts value larger than Integer.MAX_VALUE must be rejected rather than silently
+     * truncated when it is later narrowed to an int for the underlying registry client.
+     */
+    @Test
+    void testClientRetryMaxAttemptsRejectsValueLargerThanIntRange() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, 4294967299L); // Integer.MAX_VALUE + 4
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                config::getClientRetryMaxAttempts);
+        assertTrue(ex.getMessage().contains(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS));
+    }
+
+    /**
+     * A backoff multiplier of NaN must be rejected. Left unvalidated, it bypasses the underlying
+     * client's "> 1.0" guard (NaN comparisons are always false) and produces undefined retry delays.
+     */
+    @Test
+    void testClientRetryBackoffMultiplierRejectsNaN() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_BACKOFF_MULTIPLIER, "NaN");
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                config::getClientRetryBackoffMultiplier);
+        assertTrue(ex.getMessage().contains(SchemaResolverConfig.CLIENT_RETRY_BACKOFF_MULTIPLIER));
+    }
+
+    /**
+     * A backoff multiplier of 1.0 or less must be rejected, matching the underlying client's
+     * requirement that the multiplier be greater than 1.0 for retry to make sense.
+     */
+    @Test
+    void testClientRetryBackoffMultiplierRejectsValueNotGreaterThanOne() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_BACKOFF_MULTIPLIER, 1.0);
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                config::getClientRetryBackoffMultiplier);
+        assertTrue(ex.getMessage().contains(SchemaResolverConfig.CLIENT_RETRY_BACKOFF_MULTIPLIER));
     }
 }

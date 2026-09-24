@@ -22,7 +22,7 @@ import {
     FlexItem
 } from "@patternfly/react-core";
 import { CodeBranchIcon, PencilAltIcon, PlusCircleIcon } from "@patternfly/react-icons";
-import { FromNow, If, ListWithToolbar } from "@apicurio/common-ui-components";
+import { FromNow, If, ListWithToolbar } from "@apitomy/common-ui-components";
 import {
     ArtifactMetaData,
     BranchMetaData,

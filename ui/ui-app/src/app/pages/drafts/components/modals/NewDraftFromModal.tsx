@@ -15,7 +15,7 @@ import {
 } from "@patternfly/react-core/deprecated";
 import { SearchedVersion } from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { VersionMetaData } from "@sdk/lib/generated-client/models";
 

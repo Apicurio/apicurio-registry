@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { getReauthenticationService } from "./useReauthenticationService";
-import { AuthService } from "@apicurio/common-ui-components";
+import { AuthService } from "@apitomy/common-ui-components";
 
 describe("useReauthenticationService", () => {
     const service = getReauthenticationService();

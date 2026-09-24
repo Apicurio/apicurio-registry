@@ -61,10 +61,10 @@ application consists of two main components that require separate OIDC configura
 - `QUARKUS_OIDC_CLIENT_ID` - Client ID for the API
 
 **For the UI:**
-- `APICURIO_AUTH_TYPE=oidc` - Set authentication type
-- `APICURIO_AUTH_URL` - OIDC auth URL
-- `APICURIO_AUTH_REDIRECT_URL` - Redirect URL after authentication
-- `APICURIO_AUTH_CLIENT_ID` - Client ID for the UI
+- `REGISTRY_AUTH_TYPE=oidc` - Set authentication type
+- `REGISTRY_AUTH_URL` - OIDC auth URL
+- `REGISTRY_AUTH_REDIRECT_URL` - Redirect URL after authentication
+- `REGISTRY_AUTH_CLIENT_ID` - Client ID for the UI
 
 ### 1.3 Default Role Expectations
 
@@ -533,16 +533,16 @@ QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH=roles
 # ======================
 
 # Set UI auth type to OIDC
-APICURIO_AUTH_TYPE=oidc
+REGISTRY_AUTH_TYPE=oidc
 
 # OIDC Auth URL (same as auth server URL)
-APICURIO_AUTH_URL=https://login.microsoftonline.com/12345678-1234-1234-1234-123456789abc/v2.0
+REGISTRY_AUTH_URL=https://login.microsoftonline.com/12345678-1234-1234-1234-123456789abc/v2.0
 
 # UI Client ID (can be same as API or separate)
-APICURIO_AUTH_CLIENT_ID=a1b2c3d4-e5f6-7890-abcd-ef1234567890
+REGISTRY_AUTH_CLIENT_ID=a1b2c3d4-e5f6-7890-abcd-ef1234567890
 
 # Redirect URL after authentication
-APICURIO_AUTH_REDIRECT_URL=http://localhost:8080
+REGISTRY_AUTH_REDIRECT_URL=http://localhost:8080
 
 # CRITICAL: Specify OIDC scopes including custom API scope
 # This ensures app roles are included in the JWT token

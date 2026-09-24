@@ -7,7 +7,7 @@ import {
     ChipFilterType,
     FilterChips,
     ObjectSelect
-} from "@apicurio/common-ui-components";
+} from "@apitomy/common-ui-components";
 import { DraftsFilterBy, DraftsSearchFilter, DraftsSearchResults, DraftsSortBy } from "@models/drafts";
 import { Paging } from "@models/Paging.ts";
 import { SortOrder } from "@models/SortOrder.ts";

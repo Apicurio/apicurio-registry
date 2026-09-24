@@ -53,12 +53,10 @@ public class HttpSslCipherSuiteRuntimeTest {
         SSLContext disallowedCtx = SSLContext.getInstance("TLSv1.3");
         disallowedCtx.init(null, trustAllCerts, new SecureRandom());
         SSLSocketFactory disallowedFactory = disallowedCtx.getSocketFactory();
-        Assertions.assertThrows(IOException.class, () -> {
-            try (SSLSocket socket = (SSLSocket) disallowedFactory.createSocket(host, port)) {
-                socket.setEnabledProtocols(new String[]{"TLSv1.3"});
-                socket.setEnabledCipherSuites(new String[]{"TLS_AES_128_GCM_SHA256"});
-                socket.startHandshake();
-            }
-        });
+        try (SSLSocket socket = (SSLSocket) disallowedFactory.createSocket(host, port)) {
+            socket.setEnabledProtocols(new String[]{"TLSv1.3"});
+            socket.setEnabledCipherSuites(new String[]{"TLS_AES_128_GCM_SHA256"});
+            Assertions.assertThrows(IOException.class, socket::startHandshake);
+        }
     }
 }

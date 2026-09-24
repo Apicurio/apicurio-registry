@@ -761,9 +761,10 @@ public class PromptRenderingServiceTest {
         RenderPromptResponse response = renderingService.render(content, variables,
                 "default", "conditional", "1.0");
 
-        // The render endpoint does not process {{#if}} blocks (see #8728); it must at least leave
-        // the markers alone rather than mangling them while substituting the variable inside.
-        Assertions.assertEquals("{{#if premium}}Hello Alice{{/if}}", response.getRendered());
+        // PR #9391 (#8728): the render endpoint now processes {{#if}} blocks.
+        // With premium=true the block is truthy, so the inner content is rendered
+        // and the markers themselves are removed.
+        Assertions.assertEquals("Hello Alice", response.getRendered());
     }
 
     @Test
@@ -1003,4 +1004,180 @@ public class PromptRenderingServiceTest {
             renderingService.render(content, variables, "default", "comment", "1.0");
         });
     }
+    // ===== Conditional Block Tests =====
+    // Verifies parity with MCP PromptTemplateConverter.processConditionalBlocks() semantics.
+
+    @Test
+    public void testIfBlockRenderedWhenVariableTruthy() {
+        // A non-null, non-false, non-empty-string value is truthy — the block must be included.
+        String yamlContent = """
+            templateId: if-truthy
+            template: "Start.{{#if showExtra}} Extra content.{{/if}} End."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("showExtra", true);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "if-truthy", "1.0");
+
+        Assertions.assertEquals("Start. Extra content. End.", response.getRendered());
+    }
+
+    @Test
+    public void testIfBlockOmittedWhenVariableFalsy() {
+        // Boolean false → falsy → block removed entirely.
+        String yamlContent = """
+            templateId: if-falsy
+            template: "Start.{{#if showExtra}} Extra content.{{/if}} End."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("showExtra", false);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "if-falsy", "1.0");
+
+        Assertions.assertEquals("Start. End.", response.getRendered());
+    }
+
+    @Test
+    public void testIfBlockOmittedWhenVariableMissing() {
+        // Missing variable → null → falsy → block removed.
+        String yamlContent = """
+            templateId: if-missing
+            template: "Before.{{#if optionalSection}} Optional.{{/if}} After."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = new HashMap<>(); // no optionalSection
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "if-missing", "1.0");
+
+        Assertions.assertEquals("Before. After.", response.getRendered());
+    }
+
+    @Test
+    public void testIfBlockOmittedWhenVariableEmptyString() {
+        // Empty string → falsy → block removed.
+        String yamlContent = """
+            templateId: if-empty-string
+            template: "A.{{#if tag}} Tagged.{{/if}} B."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("tag", "");
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "if-empty-string", "1.0");
+
+        Assertions.assertEquals("A. B.", response.getRendered());
+    }
+
+    @Test
+    public void testUnlessBlockRenderedWhenVariableFalsy() {
+        // Unless = logical complement: block shown when variable is falsy.
+        String yamlContent = """
+            templateId: unless-falsy
+            template: "{{#unless premium}}Free plan — upgrade to unlock.{{/unless}}"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("premium", false);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "unless-falsy", "1.0");
+
+        Assertions.assertEquals("Free plan \u2014 upgrade to unlock.", response.getRendered());
+    }
+
+    @Test
+    public void testUnlessBlockOmittedWhenVariableTruthy() {
+        // Unless with truthy var → block removed.
+        String yamlContent = """
+            templateId: unless-truthy
+            template: "{{#unless premium}}Upgrade now.{{/unless}}"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("premium", true);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "unless-truthy", "1.0");
+
+        Assertions.assertEquals("", response.getRendered());
+    }
+
+    @Test
+    public void testIfElseBlockTruthyBranch() {
+        // Truthy var → truthy (first) branch rendered.
+        String yamlContent = """
+            templateId: if-else-truthy
+            template: "Mode: {{#if verbose}}detailed{{else}}brief{{/if}}."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("verbose", true);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "if-else-truthy", "1.0");
+
+        Assertions.assertEquals("Mode: detailed.", response.getRendered());
+    }
+
+    @Test
+    public void testIfElseBlockFalsyBranch() {
+        // Falsy var → else (second) branch rendered.
+        String yamlContent = """
+            templateId: if-else-falsy
+            template: "Mode: {{#if verbose}}detailed{{else}}brief{{/if}}."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("verbose", false);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "if-else-falsy", "1.0");
+
+        Assertions.assertEquals("Mode: brief.", response.getRendered());
+    }
+
+    @Test
+    public void testConditionalBlockCombinedWithVariableSubstitution() {
+        // Conditional blocks and plain {{variable}} substitution must both work in one template.
+        String yamlContent = """
+            templateId: combined
+            template: "You are a {{role}} assistant.{{#if includeContext}} Context: {{context}}.{{/if}} Question: {{question}}"
+            variables:
+              role:
+                type: string
+              includeContext:
+                type: boolean
+              context:
+                type: string
+              question:
+                type: string
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("role", "helpful");
+        variables.put("includeContext", true);
+        variables.put("context", "Java programming");
+        variables.put("question", "What is a lambda?");
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "combined", "1.0");
+
+        String rendered = response.getRendered();
+        Assertions.assertTrue(rendered.contains("You are a helpful assistant."),
+                "Should contain role substitution");
+        Assertions.assertTrue(rendered.contains("Context: Java programming."),
+                "Should render if-block content when truthy, with inner variable substituted");
+        Assertions.assertTrue(rendered.contains("Question: What is a lambda?"),
+                "Should contain question substitution");
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+    }
 }
+

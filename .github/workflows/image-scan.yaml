@@ -11,9 +11,12 @@ permissions:
 
 jobs:
   vulnerability-scan:
-    name: Container vulnerability scan
+    name: Container vulnerability scan (${{ matrix.snapshot-tag }})
     runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio'
+    strategy:
+      matrix:
+        snapshot-tag: ['latest-snapshot', '3.3.x-snapshot']
     steps:
       - name: Checkout "${{ github.ref }}"
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -21,7 +24,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: quay.io/apicurio/apicurio-registry:latest-snapshot
+          image-ref: quay.io/apicurio/apicurio-registry:${{ matrix.snapshot-tag }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -29,6 +32,23 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           sarif_file: 'trivy-results.sarif'
+          category: 'trivy-${{ matrix.snapshot-tag }}'
+
+      - name: Run Trivy vulnerability scanner (mutable image)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: quay.io/apicurio/apicurio-registry:${{ matrix.snapshot-tag }}-mutable
+          format: 'sarif'
+          output: 'trivy-results-mutable.sarif'
+          severity: 'CRITICAL,HIGH'
+          vuln-type: 'os,library'
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results to GitHub Security tab (mutable image)
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: 'trivy-results-mutable.sarif'
+          category: 'trivy-${{ matrix.snapshot-tag }}-mutable'

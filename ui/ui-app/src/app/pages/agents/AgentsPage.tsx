@@ -38,7 +38,7 @@ import {
 } from "@services/useAgentService";
 import { Paging } from "@models/Paging.ts";
 import { useAppNavigation } from "@services/useAppNavigation.ts";
-import { FromNow, PleaseWaitModal } from "@apicurio/common-ui-components";
+import { FromNow, PleaseWaitModal } from "@apitomy/common-ui-components";
 import { CreateAgentModal, ImportAgentModal } from "@app/pages/agents/components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { CreateArtifact } from "@sdk/lib/generated-client/models";
@@ -171,6 +171,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     }, []);
 
     const renderAgentCard = (agent: AgentSearchResult): React.ReactElement => {
+        const primaryInterface = agent.supportedInterfaces?.[0];
         return (
             <Card
                 key={`${agent.groupId}-${agent.artifactId}`}
@@ -194,12 +195,17 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                         {agent.description || <span className="no-description">No description</span>}
                     </div>
 
-                    {agent.url && (
+                    {primaryInterface?.url && (
                         <div className="agent-url">
-                            <a href={agent.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
-                                {agent.url}
+                            <a href={primaryInterface.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+                                {primaryInterface.url}
                                 <ExternalLinkAltIcon className="external-icon" />
                             </a>
+                            {primaryInterface.protocolBinding && (
+                                <Label color="teal" isCompact className="agent-protocol-binding">
+                                    {primaryInterface.protocolBinding}
+                                </Label>
+                            )}
                         </div>
                     )}
 

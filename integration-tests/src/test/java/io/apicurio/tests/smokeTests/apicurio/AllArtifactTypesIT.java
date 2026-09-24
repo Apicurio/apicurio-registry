@@ -27,9 +27,11 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.parallel.Isolated;
 
 @Tag(SMOKE)
 @QuarkusIntegrationTest
+@Isolated
 class AllArtifactTypesIT extends ApicurioRegistryBaseIT {
 
     void doTest(String v1Resource, String v2Resource, String atype, String contentType) throws Exception {

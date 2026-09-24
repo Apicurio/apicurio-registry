@@ -2,6 +2,7 @@ package io.apicurio.tests;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.deployment.PortForwardManager;
+import io.apicurio.deployment.RegistryDeploymentManager;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -86,11 +87,21 @@ public class ApicurioRegistryBaseIT implements TestSeparator, Constants {
 
     protected RegistryClient createRegistryClient(Vertx vertx) {
         return RegistryClientFactory.create(
-                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx).retry(true, 5, 250));
+                RegistryClientOptions.create(getRegistryV3ApiUrl(), vertx)
+                        // A connection that stalls mid-request (no bytes, no error) otherwise
+                        // hangs the test until the JUnit timeout kills it — fail fast instead
+                        // and let the retry handler recover on a fresh connection.
+                        .requestTimeout(10_000, 60_000)
+                        .retry(true, 5, 250));
     }
 
     @BeforeAll
     void prepareRestAssured() throws Exception {
+        // Fail fast, with the real error, if test-infra setup failed rather than let every
+        // test class run against a broken/incomplete deployment and fail on unrelated,
+        // confusing assertions (see RegistryDeploymentManager#verifyDeploymentSucceeded).
+        RegistryDeploymentManager.verifyDeploymentSucceeded();
+
         vertx = Vertx.vertx();
         authServerUrlConfigured = Optional
                 .ofNullable(ConfigProvider.getConfig().getConfigValue("quarkus.oidc.token-path").getValue())

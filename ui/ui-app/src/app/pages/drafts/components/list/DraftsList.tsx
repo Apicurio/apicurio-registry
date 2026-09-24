@@ -10,7 +10,7 @@ import {
     Label,
     Truncate
 } from "@patternfly/react-core";
-import { FromNow, If, ObjectDropdown } from "@apicurio/common-ui-components";
+import { FromNow, If, ObjectDropdown } from "@apitomy/common-ui-components";
 import { DraftId } from "@app/pages/drafts/components/list/DraftId.tsx";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { DraftTypeIcon } from "@app/pages/drafts/components/DraftTypeIcon.tsx";

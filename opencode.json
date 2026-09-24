@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "github-copilot/claude-sonnet-5",
+  "small_model": "github-copilot/claude-haiku-4.5",
+  "agent": {
+    "plan": {
+      "model": "github-copilot/claude-opus-5",
+      "variant": "high"
+    },
+    "build": {
+      "model": "github-copilot/claude-sonnet-5"
+    }
+  }
+}

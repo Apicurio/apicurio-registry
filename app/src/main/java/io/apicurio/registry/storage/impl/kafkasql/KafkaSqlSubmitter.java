@@ -3,8 +3,6 @@ package io.apicurio.registry.storage.impl.kafkasql;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.storage.impl.util.ProducerActions;
-
-import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
@@ -24,6 +22,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 
 @ApplicationScoped
@@ -31,6 +30,8 @@ import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlSubmitter {
 
+    // Static rather than injected like the other kafkasql beans' loggers: KafkaSqlSubmitterTest
+    // builds this class with new, where an injected logger would be null.
     private static final Logger log = LoggerFactory.getLogger(KafkaSqlSubmitter.class);
 
     public static final String REQUEST_ID_HEADER = "req";
@@ -94,42 +95,58 @@ public class KafkaSqlSubmitter {
         blockOnResult(send(key, null, UUID.randomUUID()));
     }
 
+    /**
+     * Submits a message whose result a caller will wait for; pass the returned UUID to
+     * KafkaSqlCoordinator.waitForResponse (see createUUID). Messages nobody waits for go
+     * through submitFireAndForget instead.
+     */
     public CompletableFuture<UUID> submitMessage(KafkaSqlMessage message) {
         var key = message.getKey();
-        UUID requestId = coordinator.get().createUUID();
+        // Resolved once: a second lookup throwing on a cleanup path would lose the forget and
+        // replace the send failure the caller is waiting on with the lookup failure.
+        KafkaSqlCoordinator kafkaSqlCoordinator = coordinator.get();
+        UUID requestId = kafkaSqlCoordinator.createUUID();
         CompletableFuture<RecordMetadata> produced;
         try {
             produced = send(key, message, requestId);
-        } catch (RuntimeException e) {
+        } catch (Throwable e) {
             // The record never reached the broker, so no response will ever arrive for
             // this UUID; the entry registered above must not linger in the coordinator.
-            coordinator.get().forget(requestId);
+            kafkaSqlCoordinator.forget(requestId);
             throw e;
         }
         return produced
                 .thenApply(rm -> requestId)
                 .whenComplete((uuid, error) -> {
                     if (error != null) {
-                        // Same reason as above, for send failures that surface asynchronously.
-                        coordinator.get().forget(requestId);
+                        // Forgets even if the record did reach the log. A response arriving
+                        // later then finds no entry, and notifyResponse drops it.
+                        kafkaSqlCoordinator.forget(requestId);
                     }
                 });
     }
 
     /**
      * Submits a message that no caller will ever wait for (usage events, old-usage
-     * cleanup) without registering it in the coordinator: waitForResponse is the only
-     * thing that removes a registered entry, so registering one here would leak it.
-     * Best effort only: a failure surfacing asynchronously is logged and the message
-     * dropped, while a synchronous send failure still propagates to the caller, as it
-     * always has.
+     * cleanup) without registering it in the coordinator: nothing would ever wait on
+     * the entry and nothing would notify it, so registering one here would leak it.
+     * Best effort only: a failure thrown before the record reaches the producer (the
+     * lookups, the record construction) still propagates to the caller, as it always has.
+     * A Kafka client failure, synchronous or not, arrives in whenComplete as a failed future
+     * (AsyncProducer.apply converts a throw from send into one), where it is logged and the
+     * message dropped.
      */
     public void submitFireAndForget(KafkaSqlMessage message) {
         var key = message.getKey();
+        String messageType = key.getMessageType();
         send(key, message, UUID.randomUUID()).whenComplete((rm, error) -> {
             if (error != null) {
-                log.warn("Dropped fire-and-forget message of type {} after a failed send.",
-                        key.getMessageType(), error);
+                // One line per drop at WARN, the stack trace only at DEBUG: during a broker
+                // outage a single usage-telemetry flush can drop up to 2000 messages, and a
+                // trace for each would bury everything else in the log.
+                log.warn("Dropped fire-and-forget message of type {} after a failed send: {}",
+                        messageType, error.toString());
+                log.debug("Failed fire-and-forget send of type {}", messageType, error);
             }
         });
     }

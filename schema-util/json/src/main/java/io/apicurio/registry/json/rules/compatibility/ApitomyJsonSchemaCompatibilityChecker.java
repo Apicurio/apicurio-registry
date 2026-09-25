@@ -56,8 +56,12 @@ public class ApitomyJsonSchemaCompatibilityChecker extends AbstractCompatibility
                     + String.join("; ", result.getUnsupportedFeatures()));
         }
 
+        // The description is what a user whose upload was rejected reads, so it is the sentence
+        // Data Models curates for each difference type, as the legacy checker's is a sentence too.
+        // The difference type's constant name is not a code anything reads, and RuleViolation has
+        // no field for one.
         return result.getIncompatibleDifferences().stream()
-                .map(difference -> new SimpleCompatibilityDifference(difference.getDiffType().name(),
+                .map(difference -> new SimpleCompatibilityDifference(difference.getShortDescription(),
                         difference.getPathUpdated().toString()))
                 .collect(Collectors.toSet());
     }

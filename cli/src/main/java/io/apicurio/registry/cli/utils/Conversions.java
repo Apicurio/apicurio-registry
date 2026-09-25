@@ -4,11 +4,14 @@ import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
+import io.apicurio.registry.rest.v3.beans.BranchMetaData;
+import io.apicurio.registry.rest.v3.beans.BranchSearchResults;
 import io.apicurio.registry.rest.v3.beans.Comment;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.SearchedArtifact;
+import io.apicurio.registry.rest.v3.beans.SearchedBranch;
 import io.apicurio.registry.rest.v3.beans.SearchedGroup;
 import io.apicurio.registry.rest.v3.beans.SearchedVersion;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
@@ -160,6 +163,43 @@ public final class Conversions {
                 .build();
     }
 
+    public static BranchMetaData convert(io.apicurio.registry.rest.client.models.BranchMetaData branch) {
+        return BranchMetaData.builder()
+                .groupId(branch.getGroupId())
+                .artifactId(branch.getArtifactId())
+                .branchId(branch.getBranchId())
+                .description(branch.getDescription())
+                .systemDefined(branch.getSystemDefined())
+                .createdOn(convert(branch.getCreatedOn()))
+                .owner(branch.getOwner())
+                .modifiedOn(convert(branch.getModifiedOn()))
+                .modifiedBy(branch.getModifiedBy())
+                .build();
+    }
+
+    public static SearchedBranch convert(io.apicurio.registry.rest.client.models.SearchedBranch branch) {
+        return SearchedBranch.builder()
+                .groupId(branch.getGroupId())
+                .artifactId(branch.getArtifactId())
+                .branchId(branch.getBranchId())
+                .description(branch.getDescription())
+                .systemDefined(branch.getSystemDefined())
+                .createdOn(convert(branch.getCreatedOn()))
+                .owner(branch.getOwner())
+                .modifiedOn(convert(branch.getModifiedOn()))
+                .modifiedBy(branch.getModifiedBy())
+                .build();
+    }
+
+    public static BranchSearchResults convert(io.apicurio.registry.rest.client.models.BranchSearchResults searchResults) {
+        return BranchSearchResults.builder()
+                .branches(searchResults.getBranches().stream()
+                        .map(Conversions::convert)
+                        .collect(Collectors.toList()))
+                .count(searchResults.getCount())
+                .build();
+    }
+
     public static Comment convert(io.apicurio.registry.rest.client.models.Comment comment) {
         return Comment.builder()
                 .commentId(comment.getCommentId())
@@ -227,6 +267,10 @@ public final class Conversions {
     }
 
     public static String convertToString(Long value) {
+        return ofNullable(value).map(String::valueOf).orElse("");
+    }
+
+    public static String convertToString(Boolean value) {
         return ofNullable(value).map(String::valueOf).orElse("");
     }
 

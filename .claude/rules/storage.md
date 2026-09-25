@@ -1,12 +1,12 @@
 ---
 paths:
-  - "app/src/main/java/**/storage/**/*.java"
+  - "core/src/main/java/**/storage/**/*.java"
 ---
 # Storage Layer Patterns
 
 ## Architecture
-- `RegistryStorage` is the core interface (`app/src/.../storage/RegistryStorage.java`)
-- Implementations in `app/src/.../storage/impl/`:
+- `RegistryStorage` is the core interface (`core/src/.../storage/RegistryStorage.java`)
+- Implementations in `core/src/.../storage/impl/`:
   - `sql/` — Primary. PostgreSQL via JDBC. Canonical implementation.
   - `kafkasql/` — Kafka as journal, SQL as snapshot store. Replicates via Kafka topics.
   - `gitops/` — Git repository as backing store. File-based.

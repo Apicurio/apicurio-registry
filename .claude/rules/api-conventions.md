@@ -1,13 +1,14 @@
 ---
 paths:
-  - "app/src/main/java/**/rest/**/*.java"
-  - "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/**"
+  - "core/src/main/java/**/rest/**/*.java"
+  - "agents/src/main/java/**/rest/**/*.java"
+  - "core/src/main/resources-unfiltered/META-INF/resources/api-specifications/**"
   - "java-sdk/**/*.java"
 ---
 # REST API Conventions
 
 - API versioned at `/apis/registry/v3/`
-- Implementation in `app/src/.../rest/v3/impl/` (e.g., `GroupsResourceImpl.java`)
+- Implementation in `core/src/.../rest/v3/impl/` (e.g., `GroupsResourceImpl.java`)
 - Response DTOs defined in `java-sdk` (shared with clients)
 - Use `V3ApiUtil` for common response building
 - Error responses: structured JSON with error code, message, detail

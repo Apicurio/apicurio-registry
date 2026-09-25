@@ -79,7 +79,7 @@
     </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
-      <artifactId>apicurio-registry-app</artifactId>
+      <artifactId>apicurio-registry-core</artifactId>
       <type>test-jar</type>
       <exclusions>
         <exclusion>
@@ -274,7 +274,7 @@
               <artifactItems>
                 <artifactItem>
                   <groupId>${project.groupId}</groupId>
-                  <artifactId>apicurio-registry-app</artifactId>
+                  <artifactId>apicurio-registry-core</artifactId>
                   <version>${project.version}</version>
                   <type>jar</type>
                   <overWrite>true</overWrite>

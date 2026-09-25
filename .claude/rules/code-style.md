@@ -1,6 +1,7 @@
 ---
 paths:
-  - "app/src/**/*.java"
+  - "core/src/**/*.java"
+  - "agents/src/**/*.java"
   - "common/src/**/*.java"
   - "schema-util/**/src/**/*.java"
   - "serdes/**/src/**/*.java"

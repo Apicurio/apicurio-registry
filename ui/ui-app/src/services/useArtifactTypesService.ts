@@ -27,6 +27,16 @@ export class ArtifactTypes {
     public static MODEL_SCHEMA = "MODEL_SCHEMA";
     public static PROMPT_TEMPLATE = "PROMPT_TEMPLATE";
 
+    // Types provided by the optional agent registry feature. A server built without it
+    // (-DskipAgents) does not register them, so the UI must not offer agent-specific features.
+    public static AGENT_TYPES: string[] = [
+        ArtifactTypes.AGENT_CARD, ArtifactTypes.MCP_TOOL, ArtifactTypes.MODEL_SCHEMA, ArtifactTypes.PROMPT_TEMPLATE
+    ];
+
+    public static isAgentType(type: string | null | undefined): boolean {
+        return type !== undefined && type !== null && ArtifactTypes.AGENT_TYPES.includes(type);
+    }
+
     public static getTitle(type: string): string {
         let title: string = type;
         switch (type) {
@@ -257,9 +267,20 @@ const allTypesWithLabels = async (admin: AdminService): Promise<ArtifactTypeInfo
 };
 
 
+const agentTypesSupported = async (admin: AdminService): Promise<boolean> => {
+    return allTypes(admin).then(types => types.includes(ArtifactTypes.AGENT_CARD));
+};
+
+
 export interface ArtifactTypesService {
     allTypes(): Promise<string[]>;
     allTypesWithLabels(): Promise<ArtifactTypeInfo[]>;
+    /**
+     * Whether the server includes the optional agent registry feature, i.e. registers the agent
+     * artifact types. Agent-specific UI (visualizers, agent card editing, prompt testing) must be
+     * hidden when it does not: the endpoints behind it are absent.
+     */
+    agentTypesSupported(): Promise<boolean>;
 }
 
 export const useArtifactTypesService: () => ArtifactTypesService = (): ArtifactTypesService => {
@@ -273,6 +294,9 @@ export const useArtifactTypesService: () => ArtifactTypesService = (): ArtifactT
         },
         allTypesWithLabels(): Promise<ArtifactTypeInfo[]> {
             return allTypesWithLabels(adminRef.current);
+        },
+        agentTypesSupported(): Promise<boolean> {
+            return agentTypesSupported(adminRef.current);
         }
     }), []);
 };

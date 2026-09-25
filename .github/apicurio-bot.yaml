@@ -32,7 +32,8 @@ triage:
         anywhere:
           - 'rest +(api|API)'
         files:
-          - '^app/src/main/java/io/apicurio/registry/rest'
+          - '^core/src/main/java/io/apicurio/registry/rest'
+          - '^agents/src/main/java/io/apicurio/registry/rest'
     - labels:
         - area/rest-client
       patterns:

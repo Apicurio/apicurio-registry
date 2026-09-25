@@ -203,6 +203,8 @@ jobs:
           name: build-artifacts-${{ github.sha }}
           path: |
             app/target/
+            core/target/
+            agents/target/
             cli/target/
             common/target/
             contracts-rules/target/
@@ -216,6 +218,61 @@ jobs:
             utils/*/target/
             mcp/target/docker/
           retention-days: 1
+
+  # The agent registry feature is an optional module (agents/), included in the server unless
+  # -DskipAgents is set. Core's own tests already run without it on every PR (it is not on core's
+  # classpath), so this job only checks the packaging: the server built without agents must contain
+  # no agent jars, start, and serve none of the agent endpoints.
+  build-without-agents:
+    name: Build Server without Agents
+    runs-on: ubuntu-latest
+    needs: [decide]
+    if: needs.decide.outputs.run-build == 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
+
+      - name: Build the server without agents
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For downloading Kiota binary.
+        run: |
+          ./mvnw install -pl app -am --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
+            -DskipAgents -DskipTests \
+            -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Verify no agent jars were packaged
+        run: |
+          if grep -E 'apicurio-registry-(agents|schema-util-agents)' app/target/quarkus-app/quarkus-app-dependencies.txt; then
+            echo "::error::Agent jars found in a -DskipAgents server build"
+            exit 1
+          fi
+
+      - name: Smoke test the server without agents
+        run: |
+          # Health checks are served on the management interface, not the API port.
+          java -Dquarkus.http.port=8080 -Dquarkus.management.port=9000 -Dapicurio.features.experimental.enabled=true \
+            -Dapicurio.a2a.enabled=true -Dapicurio.ui.features.agents.enabled=true \
+            -jar app/target/quarkus-app/quarkus-run.jar > server.log 2>&1 &
+          for i in $(seq 1 90); do curl -sf localhost:9000/health/ready > /dev/null && break; sleep 1; done
+          curl -sf localhost:9000/health/ready > /dev/null || { cat server.log; exit 1; }
+          fail() { echo "::error::$1"; cat server.log; exit 1; }
+          TYPES=$(curl -sf localhost:8080/apis/registry/v3/admin/config/artifactTypes | jq -r '.[].name')
+          echo "$TYPES" | grep -qE '^(AGENT_CARD|MCP_TOOL|MODEL_SCHEMA|PROMPT_TEMPLATE)$' && fail "Agent artifact types registered"
+          [ "$(curl -s -o /dev/null -w '%{http_code}' localhost:8080/.well-known/agent.json)" = "404" ] || fail "/.well-known/agent.json is served"
+          [ "$(curl -sf localhost:8080/apis/registry/v3/system/uiConfig | jq -r '.features.agents')" = "false" ] || fail "UI agents feature is on"
+          echo "Server without agents OK"
 
   build-ui:
     name: Build UI Application
@@ -457,7 +514,7 @@ jobs:
   gate:
     name: Verification Gate
     if: always() && github.repository_owner == 'Apicurio'
-    needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
+    needs: [decide, lint-and-validate, build-java, build-without-agents, build-ui, unit-tests,
             cli-verify, go-sdk-freshness, sdk, console-plugin,
             integration-tests, extras, operator]
     runs-on: ubuntu-latest

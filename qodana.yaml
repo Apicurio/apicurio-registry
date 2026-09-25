@@ -15,7 +15,7 @@ exclude:
   - name: OptionalUsedAsFieldOrParameterType
 #- name: Proofreading
 #    paths:
-#      - app/src/main/resources-unfiltered/META-INF/resources/resources/js/redoc.standalone.js
+#      - core/src/main/resources-unfiltered/META-INF/resources/resources/js/redoc.standalone.js
 #      - ui/package-lock.json
 #      - ui/src/app/components/common/artifactTypeIcon.css
 # TODO Ultimate Plus version: fixesStrategy: cleanup/apply

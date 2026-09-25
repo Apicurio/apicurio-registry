@@ -336,7 +336,7 @@ no slash-free pattern. Scalpel rewrites a pattern without a slash to match at
 every depth, and 0.3.10 matched the root only, so the 0.4.x bump silently
 widened the old `*.md` and `LICENSE` entries from root files to the whole
 tree. Verified by probing the same in-tree change,
-`app/src/test/resources/git/invalid-content-ref/README.md`, against both pins:
+`core/src/test/resources/git/invalid-content-ref/README.md`, against both pins:
 0.3.10 attributes it to `app` (a test fixture `GitOpsStatusTest` loads), 0.4.2
 with the widened pattern excluded it and every other in-tree markdown file,
 111 tracked files in all. The list this branch ships drops the slash-free

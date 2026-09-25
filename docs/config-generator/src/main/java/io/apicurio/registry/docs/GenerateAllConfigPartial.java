@@ -344,7 +344,10 @@ public class GenerateAllConfigPartial {
 
         // TODO: include all the relevant jars, to be determined
         // Extract configuration from Jandex
-        extractConfigurations(baseDir + "/../app/target/apicurio-registry-app-" + currentVersion + ".jar", allConfiguration);
+        // The server's code lives in core and the (optional, but always documented) agents module;
+        // the app module only packages them and contains no classes.
+        extractConfigurations(baseDir + "/../core/target/apicurio-registry-core-" + currentVersion + ".jar", allConfiguration);
+        extractConfigurations(baseDir + "/../agents/target/apicurio-registry-agents-" + currentVersion + ".jar", allConfiguration);
 
         // TODO
         // How to handle dynamic RegistryProperties -> we can scan but the configuration is dynamic after it ...
@@ -353,7 +356,7 @@ public class GenerateAllConfigPartial {
         Properties props = new Properties();
         try {
             //load a properties file from class path, inside static method
-            props.load(new FileInputStream(baseDir + "/../app/src/main/resources/application.properties"));
+            props.load(new FileInputStream(baseDir + "/../core/src/main/resources/application.properties"));
         } catch (Exception e) {
             log.warn("Failed to load application.properties for configuration extraction", e);
         }

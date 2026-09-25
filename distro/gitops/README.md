@@ -274,6 +274,6 @@ bash distro/gitops/tests/test-safe-directory.sh
 
 ## Related Documentation
 
-- [GitOps Storage Overview](../../app/src/main/java/io/apicurio/registry/storage/impl/gitops/README.md) — architecture, configuration, management API, data format, error handling
+- [GitOps Storage Overview](../../core/src/main/java/io/apicurio/registry/storage/impl/gitops/README.md) — architecture, configuration, management API, data format, error handling
 - [Docker Compose Examples](../../examples/gitops/) — ready-to-run examples for local volume, HTTPS pull, and SSH pull
 - [GitOps Design Epic](https://github.com/Apicurio/apicurio-registry/issues/7480) — design document and implementation plan

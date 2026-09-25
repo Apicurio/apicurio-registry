@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Verify the app-module unit-test shards in verify-unit-tests.yaml partition the
+"""Verify the core-module unit-test shards in verify-unit-tests.yaml partition the
 test set exactly once.
 
-Every surefire-eligible test class in app/ must be claimed by exactly one app-*
+Every surefire-eligible test class in core/ must be claimed by exactly one app-*
 shard. A class claimed by none never runs in CI and fails silently, because the
 workflow passes -Dsurefire.failIfNoSpecifiedTests=false. A class claimed by two
 wastes a shard's budget.
@@ -20,12 +20,12 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-APP_TESTS = REPO / "app/src/test/java"
+APP_TESTS = REPO / "core/src/test/java"
 WORKFLOW = REPO / ".github/workflows/verify-unit-tests.yaml"
 
-# The 'non-app' shard selects by Maven -pl, not by -Dtest, so it is not part of
-# the app-module partition.
-NON_APP_SHARD = "non-app"
+# These shards select by Maven -pl, not by -Dtest, so they are not part of the
+# core-module partition: 'non-app' runs every other module, 'agents' the agents module.
+MODULE_SHARDS = {"non-app", "agents"}
 
 
 def is_surefire_name(stem):
@@ -94,7 +94,7 @@ def parse_shards():
                 value = value[len("-Dtest="):]
             shards.append((name, value))
             name = None
-    return [s for s in shards if s[0] != NON_APP_SHARD]
+    return [s for s in shards if s[0] not in MODULE_SHARDS]
 
 
 def main():

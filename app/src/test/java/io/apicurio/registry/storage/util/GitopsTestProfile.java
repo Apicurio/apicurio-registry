@@ -12,7 +12,8 @@ public class GitopsTestProfile implements QuarkusTestProfile {
     public Map<String, String> getConfigOverrides() {
         return Map.of(
                 "apicurio.storage.kind", "gitops",
-                "apicurio.features.experimental.enabled", "true"
+                "apicurio.features.experimental.enabled", "true",
+                "apicurio.ccompat.group-concat.enabled", "true"
         );
     }
 

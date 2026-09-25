@@ -13,3 +13,4 @@ versions:
     state: ENABLED
     description: Initial version
     content: ./content/petstore-1.0.0.yaml
+    contentMetadata: ./content-petstore.registry.yaml

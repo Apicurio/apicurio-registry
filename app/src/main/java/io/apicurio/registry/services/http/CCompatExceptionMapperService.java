@@ -41,7 +41,7 @@ import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
 @ApplicationScoped
-public class CCompatExceptionMapperService {
+public class CCompatExceptionMapperService implements ExceptionMapperService {
 
     private static final Map<Class<? extends Exception>, Integer> CONFLUENT_CODE_MAP;
 

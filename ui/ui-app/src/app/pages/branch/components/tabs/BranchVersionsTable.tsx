@@ -62,7 +62,7 @@ export const BranchVersionsTable: FunctionComponent<BranchVersionsTableProps> = 
                 <span>{ column.globalId }</span>
             );
         }
-        // Global id.
+        // Content id.
         if (colIndex === 2) {
             return (
                 <span>{ column.contentId }</span>

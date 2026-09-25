@@ -163,6 +163,71 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
 
+// proc-registering-base64-content-using-rest-api
+[id="registering-base64-content-using-rest-api_{context}"]
+== Registering base64-encoded content using the REST API
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can send UTF-8 schema or API content as base64 in a JSON request to avoid escaping quotation marks and line breaks in the content.
+Set `encoding` to `base64` in the `VersionContent` object.
+{registry} decodes the content before processing it.
+
+.Prerequisites
+* {registry} is running, and you have permission to create artifacts in `my-group`.
+* The `my-group` group exists.
+* You have installed `curl`, `base64`, and `jq`.
+* The `schema.json` file contains an Apache Avro schema.
+* The `REGISTRY_URL` environment variable contains the registry URL, and `ACCESS_TOKEN` contains a valid access token if authentication is enabled.
+
+.Procedure
+. Create the request body from your schema file:
++
+[source,bash]
+----
+$ base64 < schema.json | tr -d '\r\n' > schema.base64
+$ jq -n --rawfile content schema.base64 '{
+    artifactId: "encoded-schema",
+    artifactType: "AVRO",
+    firstVersion: {
+        version: "1.0.0",
+        content: {
+            content: $content,
+            contentType: "application/json",
+            encoding: "base64"
+        }
+    }
+}' > request.json
+----
++
+`contentType` describes the decoded schema, not the base64 text.
+The `encoding` value is case-sensitive.
+Omit `encoding` when sending unencoded content.
+. Register the artifact:
++
+[source,bash]
+----
+$ curl --fail-with-body -X POST \
+  "$REGISTRY_URL/apis/registry/v3/groups/my-group/artifacts" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data-binary @request.json
+----
++
+You can also set `encoding` in the `content` object when creating a version of an existing artifact.
+Invalid base64 content returns HTTP `400`.
+
+.Verification
+* Retrieve the version content and confirm that it contains the decoded schema:
++
+[source,bash]
+----
+$ curl --fail-with-body \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  "$REGISTRY_URL/apis/registry/v3/groups/my-group/artifacts/encoded-schema/versions/1.0.0/content"
+----
+
 // proc-managing-artifact-references-using-rest-api
 [id="managing-artifact-references-using-rest-api_{context}"]
 == Managing schema and API artifact references using {registry} REST API commands
@@ -336,6 +401,103 @@ NOTE: Some artifact types (for example, JSON Schema) allow circular dependencies
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
+// proc-inspecting-reference-graphs-using-rest-api
+[id="inspecting-reference-graphs-using-rest-api_{context}"]
+== Inspecting artifact reference graphs using the REST API
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can retrieve a reference graph to inspect the dependencies of an artifact version and the versions that depend on it.
+The graph includes indirect references, node and edge counts, and cycle information.
+
+.Prerequisites
+* {registry} is running, and the artifact version exists.
+* You have permission to read the artifact.
+* The `REGISTRY_URL` environment variable contains the registry URL, and `ACCESS_TOKEN` contains a valid access token if authentication is enabled.
+
+.Procedure
+* Request the reference graph for an artifact version:
++
+[source,bash]
+----
+$ curl --fail-with-body \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  "$REGISTRY_URL/apis/registry/v3/groups/my-group/artifacts/Item/versions/1.0.0/references/graph?direction=BOTH&depth=3"
+----
++
+The `direction` parameter accepts the following values:
++
+** `OUTBOUND`: Versions that the requested version references. This is the default.
+** `INBOUND`: Versions that reference the requested version.
+** `BOTH`: References in both directions.
++
+The default `depth` is `3`.
+Use `depth=1` for direct references or `depth=0` for unlimited traversal.
+A larger graph can take longer to retrieve.
+
+.Verification
+* Inspect the response fields:
++
+** `root` identifies the requested artifact version.
+** `nodes` lists artifact versions, including the root, with their group ID, artifact ID, and version.
+** `edges` links `sourceNodeId` to `targetNodeId` and includes the reference `name`.
+** `metadata` contains `totalNodes`, `totalEdges`, `maxDepth`, and `hasCycles`.
++
+The graph reports the references traversed within the requested depth.
+A `hasCycles` value of `false` does not rule out cycles beyond that depth.
+
+// proc-exporting-protobuf-using-rest-api
+[id="exporting-protobuf-using-rest-api_{context}"]
+== Exporting a Protobuf schema with its dependencies
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can download a Protobuf artifact version and its direct and indirect dependencies as a ZIP archive for use with the `protoc` compiler.
+{registry} organizes the files by package name and rewrites import statements to match those paths.
+
+.Prerequisites
+* {registry} contains the Protobuf artifact version and all its registered references.
+* You have permission to read the artifact.
+* You have installed `curl` and `unzip`.
+* The `REGISTRY_URL` environment variable contains the registry URL, and `ACCESS_TOKEN` contains a valid access token if authentication is enabled.
+
+.Procedure
+. Download the schema package:
++
+[source,bash]
+----
+$ curl --fail-with-body \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  "$REGISTRY_URL/apis/registry/v3/groups/my-group/artifacts/my-schema/versions/1.0.0/export" \
+  --output my-schema-1.0.0.zip
+----
++
+This operation supports only `PROTOBUF` artifacts.
+For another artifact type, the server returns HTTP `400`.
+The export fails if a registered reference cannot be resolved.
+. Extract the archive:
++
+[source,bash]
+----
+$ unzip my-schema-1.0.0.zip -d my-schema
+----
++
+For example, a schema with artifact ID `my-schema` and package `com.example` appears at `com/example/my-schema.proto`.
+The archive contains separate files for dependencies, including schemas in different packages.
+
+.Verification
+* List the archive entries and check that the schema and its dependencies are present:
++
+[source,bash]
+----
+$ unzip -l my-schema-1.0.0.zip
+----
++
+This archive contains Protobuf source files.
+Use the administrative export operation to create an archive for the registry import operation.
+
 // proc-exporting-importing-using-rest-api
 [id="searching-artifacts-using-rest-api_{context}"]
 == Searching for schema and API artifacts using {registry} REST API commands
@@ -416,7 +578,9 @@ The canonicalization endpoint operates on the content exactly as provided and do
 [role="_abstract"]
 As an administrator, you can use the Core Registry API v3 to export data from one {registry} instance and import into another {registry} instance, so you can migrate data between different instances.
 
-Use the Core Registry API v3 to export and import data in `.zip` format between {registry} instances. All the artifact data contained in the {registry} instance is exported in the `.zip` file.
+The export operation creates a ZIP archive containing registry data and metadata.
+By default, it includes all groups and global rules.
+You can limit the export to a single group by specifying the `groupId` query parameter.
 
 .Prerequisites
 
@@ -437,6 +601,20 @@ $ curl MY-REGISTRY-URL/apis/registry/v3/admin/export \
 +
 `MY-REGISTRY-URL` is the
 hostname on which the source {registry} is deployed. For example: `\http://my-source-registry:8080`.
++
+To export only one group, add the `groupId` query parameter instead:
++
+[source,bash]
+----
+$ curl --fail-with-body --get MY-REGISTRY-URL/apis/registry/v3/admin/export \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data-urlencode "groupId=my-group" \
+  --output my-group-data.zip
+----
++
+A group export excludes global rules and artifacts in other groups.
+If the group's artifacts reference artifacts in another group, include those dependencies in your migration plan.
+The specified group must exist.
 
 . Import the registry data into your target {registry} instance:
 +
@@ -449,10 +627,199 @@ $ curl -X POST "MY-REGISTRY-URL/apis/registry/v3/admin/import" \
 +
 `MY-REGISTRY-URL` is the
 hostname on which the target {registry} is deployed. For example: `\http://my-target-registry:8080`.
++
+When importing a group export, use the file name `my-group-data.zip` instead.
+By default, the target registry must be empty, and the import preserves global IDs and content IDs.
+To import into a nonempty registry, set `requireEmptyRegistry=false` and set both `X-Registry-Preserve-GlobalId` and `X-Registry-Preserve-ContentId` headers to `false` to generate IDs on the target.
+These options do not resolve conflicts between existing artifact coordinates.
 
+.Verification
+* Retrieve the imported artifacts and versions from the target registry and compare their content with the source.
+Check the server log for failed or skipped entities because an import can skip an individual entity without failing the entire request.
 
 [role="_additional-resources"]
 .Additional resources
 * {registry-rest-api}
 //* For details on export tools for migrating from {registry} version 1.x to 2.x, see link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/exportV1[Apicurio Registry export utility for 1.x versions].
 
+
+// ref-registry-import-archive-format
+[id="registry-import-archive-format_{context}"]
+== Registry import archive format
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The administrative import operation accepts a ZIP archive of registry entities, including metadata and schema content.
+An archive of schema files alone does not contain the metadata required for import.
+You can use the version 3 archive format to prepare data outside {registry}.
+
+.Archive entries
+[cols="2,3",options="header"]
+|===
+|Entry pattern |Purpose
+|`manifest-<timestamp>.Manifest.json`
+|Export format and source system metadata. The archive must contain one manifest.
+|`content/<hash>.Content.json`
+|Content ID, content hash, canonical hash or artifact type, media type, and serialized references.
+|`content/<hash>.Content.data`
+|Raw schema or API bytes. Each content metadata file has a matching data file with the same name before the extension.
+|`groups/<groupId>.Group.json`
+|Group metadata.
+|`groups/<groupId>/artifacts/<artifactId>/MetaData.Artifact.json`
+|Artifact metadata, including the artifact type.
+|`groups/<groupId>/artifacts/<artifactId>/versions/<version>.ArtifactVersion.json`
+|Version metadata, including its global ID and the content ID that links it to a content entry.
+|`groups/<groupId>/artifacts/<artifactId>/branches/<branchId>.Branch.json`
+|Branch metadata and an ordered list of version strings.
+|`rules/<ruleType>.GlobalRule.json`
+|A global rule. Group exports exclude these entries.
+|`groups/<groupId>/rules/<ruleType>.GroupRule.json`
+|A group rule.
+|`groups/<groupId>/artifacts/<artifactId>/rules/<ruleType>.ArtifactRule.json`
+|An artifact rule.
+|`groups/<groupId>/artifacts/<artifactId>/contract-rules/<name>.ContractRule.json`
+|A contract rule. Each entry has a distinct name.
+|`comments/<name>.Comment.json`
+|A comment associated with a version's global ID.
+|===
+
+The entity type suffix, such as `.ArtifactVersion.json`, is case-sensitive.
+The importer reads entity fields from the JSON body and processes entities in dependency order, independently of their order in the archive.
+The default group uses `default` in archive paths and `null` for the `groupId` field in entity JSON.
+
+.Core entity fields
+[cols="1,3",options="header"]
+|===
+|Entity |Fields and relationships
+|Manifest
+|`exportVersion` identifies the archive format, for example, `3.0`. `systemVersion` identifies the source registry version, for example, `3.0.0`. Other fields include `systemName`, `systemDescription`, `exportedOn`, `exportedBy`, and `dbVersion`.
+|Content
+|`contentId` identifies the content entry. `contentType` describes the raw bytes. `contentHash` is the SHA-256 hash of the bytes followed by the UTF-8 `serializedReferences` string when references exist. The registry canonical hash uses canonical content bytes followed by the serialized references when present. For content without references, you can omit `canonicalHash` and supply `artifactType` so that the importer computes the canonical hash.
+|Group and artifact
+|`groupId` identifies the group. An artifact also has `artifactId` and `artifactType`. Metadata fields include `owner`, `createdOn`, `modifiedBy`, `modifiedOn`, `description`, and `labels`. Artifact metadata can also include `name`.
+|Version
+|`groupId`, `artifactId`, and `version` identify the version. `globalId` is unique across versions. `contentId` refers to a content entry. `versionOrder` records the numeric creation order within the artifact. `state` contains a version state such as `ENABLED`. Version metadata can also include `name`, `description`, `labels`, ownership, and timestamps.
+|Branch
+|`groupId`, `artifactId`, and `branchId` identify the branch. `versions` contains version strings in branch order. `systemDefined` identifies system branches, including `latest`. Ownership and timestamps describe the branch.
+|===
+
+Entity timestamps such as `createdOn` and `modifiedOn` use milliseconds since the Unix epoch.
+The `serializedReferences` field contains a JSON-encoded string, not a JSON array.
+Each reference includes `name`, `groupId`, `artifactId`, and `version`.
+For content without references, omit this field or use `null`.
+
+For content with references, supply a `canonicalHash` that matches the registry's canonicalization and reference serialization. Do not rely on automatic canonicalization when the referenced versions exist only in the archive: the importer processes content before versions and resolves references from the target registry. A registry export includes the stored canonical hashes.
+
+An import preserves IDs by default.
+The archive must use consistent content IDs, global IDs, and artifact coordinates across related entries, even when the import generates new IDs.
+Branches require explicit branch entries; importing versions alone does not populate the `latest` branch.
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rest-api}
+
+// proc-preparing-registry-import-archive
+[id="preparing-registry-import-archive_{context}"]
+== Preparing a registry import archive from a schema file
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can build a version 3 import archive from a local schema without first exporting data from a registry.
+This example creates one Apache Avro artifact, one version, and a `latest` branch.
+
+.Prerequisites
+* You have installed Python 3 and `curl`.
+* The `schema.json` file contains a valid Apache Avro schema without external references.
+* The target registry is empty, and you have administrator access.
+* The `REGISTRY_URL` environment variable contains the target registry URL, and `ACCESS_TOKEN` contains a valid access token if authentication is enabled.
+
+.Procedure
+. Save the following script as `create-import.py`:
++
+[source,python]
+----
+import hashlib
+import json
+import time
+import zipfile
+from pathlib import Path
+
+content = Path("schema.json").read_bytes()
+content_hash = hashlib.sha256(content).hexdigest()
+timestamp = int(time.time() * 1000)
+metadata = {
+    "owner": "import-user",
+    "createdOn": timestamp,
+    "modifiedBy": "import-user",
+    "modifiedOn": timestamp,
+}
+coordinates = {"groupId": "import-example", "artifactId": "my-schema"}
+artifact_path = "groups/import-example/artifacts/my-schema"
+entries = {
+    "manifest.Manifest.json": {
+        "exportVersion": "3.0",
+        "systemVersion": "3.0.0",
+        "systemName": "Offline import",
+        "exportedOn": timestamp,
+    },
+    f"content/{content_hash}.Content.json": {
+        "contentId": 1,
+        "contentHash": content_hash,
+        "contentType": "application/json",
+        "artifactType": "AVRO",
+    },
+    "groups/import-example.Group.json": {
+        **metadata, "groupId": "import-example",
+    },
+    f"{artifact_path}/MetaData.Artifact.json": {
+        **metadata, **coordinates, "artifactType": "AVRO",
+    },
+    f"{artifact_path}/versions/1.0.0.ArtifactVersion.json": {
+        **metadata, **coordinates,
+        "globalId": 1, "contentId": 1,
+        "version": "1.0.0", "versionOrder": 1, "state": "ENABLED",
+    },
+    f"{artifact_path}/branches/latest.Branch.json": {
+        **metadata, **coordinates,
+        "branchId": "latest", "systemDefined": True, "versions": ["1.0.0"],
+    },
+}
+with zipfile.ZipFile("registry-import.zip", "w", zipfile.ZIP_DEFLATED) as archive:
+    for name, entity in entries.items():
+        archive.writestr(name, json.dumps(entity))
+    archive.writestr(f"content/{content_hash}.Content.data", content)
+----
++
+The example uses matching `contentId` values in the content and version entries.
+It supplies `artifactType` so that the importer computes the canonical hash.
+The manifest identifies version 3 archive data, independently of the target registry's minor version.
+. Run the script:
++
+[source,bash]
+----
+$ python3 create-import.py
+----
+. Import the archive:
++
+[source,bash]
+----
+$ curl --fail-with-body -X POST \
+  "$REGISTRY_URL/apis/registry/v3/admin/import" \
+  -H "Content-Type: application/zip" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data-binary @registry-import.zip
+----
+
+.Verification
+* Retrieve the imported version and compare it with `schema.json`:
++
+[source,bash]
+----
+$ curl --fail-with-body \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  "$REGISTRY_URL/apis/registry/v3/groups/import-example/artifacts/my-schema/versions/1.0.0/content"
+----
++
+Check the server log for import warnings if the artifact, version, or content is missing.

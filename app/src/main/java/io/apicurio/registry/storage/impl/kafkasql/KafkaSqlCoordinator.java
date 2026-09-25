@@ -6,16 +6,20 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
-import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Coordinates "write" responses across threads in the Kafka-SQL artifactStore implementation. Basically this
  * is used to communicate between the Kafka consumer thread and the waiting HTTP/API thread, where the HTTP
  * thread is waiting for an operation to be completed by the Kafka consumer thread.
+ *
+ * Each pending operation is a single CompletableFuture in one map, so delivering the result and waking the
+ * waiter are one step.
  */
 @ApplicationScoped
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
@@ -24,56 +28,61 @@ public class KafkaSqlCoordinator {
     @Inject
     Instance<KafkaSqlConfiguration> configuration;
 
-    private static final Object NULL = new Object();
-    private Map<UUID, CountDownLatch> latches = new ConcurrentHashMap<>();
-    private Map<UUID, Object> returnValues = new ConcurrentHashMap<>();
+    // Declared as ConcurrentHashMap rather than Map: the Byteman rule in KafkaSqlCoordinatorRaceTest
+    // matches on ConcurrentHashMap.remove.
+    private final ConcurrentHashMap<UUID, CompletableFuture<Object>> pending = new ConcurrentHashMap<>();
 
     /**
-     * Creates a UUID for a single operation.
+     * Creates a UUID for a single operation and registers a pending entry under it. The
+     * entry is removed by waitForResponse when a caller waits, or by forget when the send
+     * fails; a caller that does neither leaks it.
      */
     public UUID createUUID() {
         UUID uuid = UUID.randomUUID();
-        latches.put(uuid, new CountDownLatch(1));
+        pending.put(uuid, new CompletableFuture<>());
         return uuid;
     }
 
     /**
-     * Waits for a response to the operation with the given UUID. There is a countdown latch for each
-     * operation. The caller waiting for the response will wait for the countdown to happen and then proceed.
-     * We also remove the latch from the Map here since it's not needed anymore.
-     *
-     * @param uuid
-     * @throws InterruptedException
+     * Blocks until the operation with the given UUID completes or times out, then removes its entry.
      */
     public Object waitForResponse(UUID uuid) {
+        CompletableFuture<Object> future = pending.get(uuid);
+        if (future == null) {
+            throw new RegistryException(
+                    "[KafkaSqlCoordinator] No pending operation for UUID " + uuid);
+        }
         try {
-            boolean completed = latches.get(uuid).await(
+            Object result = future.get(
                     configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
-            if (!completed) {
-                throw new RegistryException(
-                        "[KafkaSqlCoordinator] Timed out waiting for a Kafka Sql response for operation " + uuid);
-            }
-
-            Object rval = returnValues.remove(uuid);
-            if (rval == NULL) {
-                return null;
-            } else if (rval instanceof RuntimeException) {
+            if (result instanceof RuntimeException) {
                 // Rethrow any RuntimeException to preserve the original exception type
                 // for proper handling by exception mappers.
-                throw (RuntimeException) rval;
+                throw (RuntimeException) result;
             }
-            return rval;
+            return result;
+        } catch (TimeoutException e) {
+            // No cause, deliberately: ProblemDetails.detail renders only the root cause, and the
+            // TimeoutException from CompletableFuture.get() has a null message, so chaining it
+            // would reduce detail to "TimeoutException: " and drop the operation UUID.
+            throw new RegistryException(
+                    "[KafkaSqlCoordinator] Timed out waiting for a Kafka Sql response for operation " + uuid);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RegistryException(
                     "[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
+        } catch (ExecutionException e) {
+            // Unreachable: notifyResponse uses complete(), never completeExceptionally().
+            // Required because CompletableFuture.get() declares this checked exception.
+            throw new RegistryException(
+                    "[KafkaSqlCoordinator] Error waiting for response.", e.getCause());
         } finally {
-            latches.remove(uuid);
-            returnValues.remove(uuid);
+            pending.remove(uuid);
         }
     }
 
     /**
-     * Countdown the latch for the given UUID. This will wake up the thread waiting for the response so that
+     * Complete the future for the given UUID. This will wake up the thread waiting for the response so that
      * it can proceed.
      *
      * @param uuid
@@ -85,25 +94,30 @@ public class KafkaSqlCoordinator {
             return;
         }
 
-        // Retrieve the latch in a single atomic call to avoid a TOCTOU race where
-        // waitForResponse removes the latch between a containsKey check and a get.
-        // If there is no countdown latch, then there is no HTTP thread waiting for
-        // a response. This means one of two possible things:
-        // 1) We're in a cluster and the HTTP thread is on another node
-        // 2) We're starting up and consuming all the old journal entries
-        CountDownLatch latch = latches.get(uuid);
-        if (latch == null) {
-            return;
+        // If there is no pending future, then there is no HTTP thread waiting for
+        // a response on this node. Among the reasons: we're in a cluster and the HTTP
+        // thread is on another node, we're starting up and consuming old journal entries,
+        // or the entry was already removed (see createUUID). Dropping the response is
+        // correct in all of them.
+        CompletableFuture<Object> future = pending.get(uuid);
+        if (future != null) {
+            future.complete(returnValue);
         }
+    }
 
-        // Otherwise, put the return value in the Map and countdown the latch. The latch
-        // countdown will notify the HTTP thread that the operation is complete and there is
-        // a return value waiting for it.
-        if (returnValue == null) {
-            returnValue = NULL;
-        }
-        returnValues.put(uuid, returnValue);
-        latch.countDown();
+    /**
+     * Removes the entry without completing it, for a send that failed. Nobody can be waiting on
+     * it: submitMessage hands the UUID to its caller only once the send has succeeded.
+     */
+    void forget(UUID uuid) {
+        pending.remove(uuid);
+    }
+
+    /**
+     * Test-only: the number of operations currently registered and not yet cleaned up.
+     */
+    int pendingCount() {
+        return pending.size();
     }
 
 }

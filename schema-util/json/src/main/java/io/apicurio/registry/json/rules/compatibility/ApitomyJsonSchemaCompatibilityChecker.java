@@ -58,7 +58,7 @@ public class ApitomyJsonSchemaCompatibilityChecker extends AbstractCompatibility
 
         return result.getIncompatibleDifferences().stream()
                 .map(difference -> new SimpleCompatibilityDifference(difference.getDiffType().name(),
-                        difference.getPathUpdated()))
+                        difference.getPathUpdated().toString()))
                 .collect(Collectors.toSet());
     }
 }

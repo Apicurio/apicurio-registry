@@ -226,7 +226,7 @@
     <failsafe.rerunFailingTestsCount>0</failsafe.rerunFailingTestsCount>
 
     <!-- Apitomy Data Models (OpenAPI and AsyncAPI support) -->
-    <apitomy-data-models.version>4.0.0-beta.1-SNAPSHOT</apitomy-data-models.version>
+    <apitomy-data-models.version>4.0.0-beta.1</apitomy-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>26.1</graphql.version>

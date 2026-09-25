@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 import jakarta.enterprise.inject.Instance;
 import org.jboss.byteman.contrib.bmunit.BMRule;
 import org.jboss.byteman.contrib.bmunit.BMRules;
+import org.jboss.byteman.contrib.bmunit.BMUnitConfig;
 import org.jboss.byteman.contrib.bmunit.WithByteman;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -44,6 +45,9 @@ import static org.mockito.Mockito.when;
  * if the agent setup breaks.
  */
 @WithByteman
+// Required even with the defaults, or the next Byteman class in the JVM fails its setup.
+// See the Byteman section of DEVELOPING.md.
+@BMUnitConfig
 @Isolated // Uses JVM-global System.setProperty for Byteman coordination; cannot run in parallel with other tests.
 class KafkaSqlCoordinatorRaceTest {
 

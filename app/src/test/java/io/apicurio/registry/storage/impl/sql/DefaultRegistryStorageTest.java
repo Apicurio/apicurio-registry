@@ -59,6 +59,10 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
         duplicate.versionOrder = first.getVersionOrder();
         duplicate.state = VersionState.ENABLED;
         duplicate.contentId = first.getContentId();
+        // The entity's epoch default (0L) falls below MySQL TIMESTAMP's 1970-01-01 00:00:01 floor,
+        // so MySQL would reject the insert for the datetime before UQ_versions_3 is evaluated.
+        duplicate.createdOn = System.currentTimeMillis();
+        duplicate.modifiedOn = System.currentTimeMillis();
 
         RuntimeSqlException e = Assertions.assertThrows(RuntimeSqlException.class,
                 () -> storage.importArtifactVersion(duplicate));

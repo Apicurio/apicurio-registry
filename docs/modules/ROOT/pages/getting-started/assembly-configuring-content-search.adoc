@@ -1,0 +1,426 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="configuring-content-search_{context}"]
+= Configuring content and structure searches
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+You can connect {registry} to Elasticsearch to find artifact versions by their content or structural elements, such as schema names, fields, and operations.
+
+IMPORTANT: Content and structure searches are experimental. Their configuration and behavior can change between releases.
+
+
+// con-registry-content-search
+[id="registry-content-search_{context}"]
+== Content and structure search
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+Content search matches words in artifact content. Structure search matches elements that {registry} extracts from that content, such as an OpenAPI schema named `Order` or a Protobuf message named `Customer`.
+
+{registry} stores artifact data in its configured storage and maintains a separate search index in Elasticsearch. Elasticsearch does not replace the primary storage. Only searches that include a `content` or `structure` filter use the search index. Searches that use only metadata filters continue to use the primary storage.
+
+The search index contains artifact version content and metadata. Protect access to Elasticsearch with the same care as access to {registry} storage.
+
+Index updates run asynchronously after changes to artifacts. Search results can lag behind writes and deletions. Content and structure searches require an available search index and do not fall back to metadata search when Elasticsearch is unavailable.
+
+
+// proc-enabling-registry-content-search
+[id="enabling-registry-content-search_{context}"]
+== Enabling content search
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can enable the search index on an existing {registry} deployment by configuring an Elasticsearch connection and restarting the application.
+
+.Prerequisites
+* You have installed {registry}.
+* You have an Elasticsearch cluster that the {registry} application can reach. Its version is compatible with the Elasticsearch Java client included in your {registry} release.
+* You have access to the deployment configuration and Elasticsearch credentials, if authentication is enabled.
+
+.Procedure
+. Add the following environment variables to the {registry} application configuration:
++
+[source,bash]
+----
+APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true
+APICURIO_SEARCH_INDEX_ENABLED=true
+QUARKUS_ELASTICSEARCH_HOSTS=elasticsearch:9200
+----
++
+Replace `elasticsearch:9200` with the hostname and port of your Elasticsearch cluster. For multiple hosts, use a comma-separated list.
+. If Elasticsearch requires authentication, configure `QUARKUS_ELASTICSEARCH_USERNAME` and supply `QUARKUS_ELASTICSEARCH_PASSWORD` from your deployment's secret management system.
++
+For an HTTPS connection, configure `QUARKUS_ELASTICSEARCH_PROTOCOL=https` and the certificate trust settings for your Elasticsearch client. Match these settings to the cluster configuration.
+. Restart the {registry} application to apply the configuration.
+
+.Verification
+* Check the application logs for `Elasticsearch search index ENABLED` and any connection or indexing errors.
+* Submit a content or structure search for an existing artifact version after the initial index build. Confirm that the expected version is in the results.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:searching-version-content-api_{context}[Searching version content with the REST API]
+* link:https://quarkus.io/guides/elasticsearch[Quarkus Elasticsearch client configuration]
+* link:https://www.elastic.co/docs/reference/elasticsearch/clients/java[Elasticsearch Java client compatibility]
+
+
+// proc-trying-content-search-compose
+[id="trying-content-search-compose_{context}"]
+== Trying content search with Docker Compose
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can run {registry} and Elasticsearch locally to evaluate content search before you configure an existing deployment.
+
+.Prerequisites
+* You have installed Docker and Docker Compose.
+* You have selected a {registry} container image version.
+
+.Procedure
+. Create a `compose.yaml` file with the following content:
++
+[source,yaml]
+----
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.3
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  registry:
+    image: apicurio/apicurio-registry:VERSION
+    environment:
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_SEARCH_INDEX_ENABLED: "true"
+      QUARKUS_ELASTICSEARCH_HOSTS: "elasticsearch:9200"
+      APICURIO_SEARCH_INDEX_ELASTICSEARCH_NUMBER_OF_REPLICAS: "0"
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+----
++
+Replace `VERSION` with the container image version. The example pairs Elasticsearch 9.2.3 with the 9.2.3 Java client in the {registry} 3.4 build. For another {registry} release, select an Elasticsearch version compatible with its Java client. This local example uses in-memory registry storage and disables Elasticsearch authentication. It is intended for evaluation; it does not preserve registry data when you recreate the container.
+. Start the services:
++
+[source,bash]
+----
+docker compose up -d
+----
+. Check the application logs:
++
+[source,bash]
+----
+docker compose logs registry
+----
+
+.Verification
+* Register an artifact with the REST API, then search for a word in its content at `http://localhost:8080/apis/registry/v3/search/versions`.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-managing-registry-artifacts-api.adoc[Managing artifacts with the REST API]
+
+
+// proc-configuring-content-search-operator
+[id="configuring-content-search-operator_{context}"]
+== Configuring content search with the {operator}
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can configure the Elasticsearch connection in the `spec.app.searchIndex` section of an `ApicurioRegistry3` custom resource.
+
+.Prerequisites
+* You have installed the {operator} and created an `ApicurioRegistry3` custom resource.
+* You have an Elasticsearch cluster that the {registry} application pods can reach.
+* You have created a secret containing the Elasticsearch password in the same namespace as the custom resource, if Elasticsearch requires authentication.
+
+.Procedure
+. Add the search index configuration to your existing `registry.yaml` custom resource file:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: my-registry
+spec:
+  app:
+    searchIndex:
+      enabled: true
+      hosts: "elasticsearch:9200"
+      indexName: "apicurio-registry"
+      username: "registry-search"
+      password:
+        name: elasticsearch-credentials
+        key: password
+----
++
+Preserve your existing storage and deployment settings. Replace the hostname, username, and secret reference with your values. Omit `username` and `password` if your cluster does not require authentication.
++
+The {operator} sets the environment variables for experimental features, search indexing, the Elasticsearch hosts, and any supplied credentials and index name. The password reference uses `name` and `key` directly under `password`.
+. If your cluster requires HTTPS, add the client protocol and certificate trust settings to your existing `spec.app.podTemplateSpec` configuration.
++
+For example, set the protocol on the application container:
++
+[source,yaml]
+----
+spec:
+  app:
+    podTemplateSpec:
+      spec:
+        containers:
+          - name: apicurio-registry-app
+            env:
+              - name: QUARKUS_ELASTICSEARCH_PROTOCOL
+                value: https
+----
+. Apply the updated custom resource:
++
+[source,bash,subs="attributes"]
+----
+{kubernetes-client} apply -f registry.yaml
+----
+
+.Verification
+* Check the application pod logs for connection or indexing errors, then search for an existing artifact version.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-deploying-registry-operator.adoc[Deploying with the {operator}]
+* link:https://quarkus.io/guides/elasticsearch[Quarkus Elasticsearch client configuration]
+
+
+// proc-searching-version-content-api
+[id="searching-version-content-api_{context}"]
+== Searching version content with the REST API
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the `content` and `structure` query parameters on `GET /apis/registry/v3/search/versions` to find versions by their content and combine the results with metadata filters.
+
+.Prerequisites
+* You have enabled the search index and indexed artifact versions.
+* You have the {registry} API URL and permission to search versions.
+* You have installed `curl`.
+
+.Procedure
+. Set the API URL for your deployment:
++
+[source,bash]
+----
+export REGISTRY_URL=http://localhost:8080/apis/registry/v3
+----
+. Search for versions whose content includes `customer`:
++
+[source,bash]
+----
+curl --get "$REGISTRY_URL/search/versions" \
+  --data-urlencode 'content=customer'
+----
++
+For a deployment that requires authentication, include the authentication headers that your deployment uses. If the query contains several words, all query terms must match the indexed content.
+. Search for OpenAPI versions that define a schema named `Order`:
++
+[source,bash]
+----
+curl --get "$REGISTRY_URL/search/versions" \
+  --data-urlencode 'structure=openapi:schema:Order'
+----
+. To narrow the results, combine content and structure filters with metadata filters:
++
+[source,bash]
+----
+curl --get "$REGISTRY_URL/search/versions" \
+  --data-urlencode 'content=payment' \
+  --data-urlencode 'structure=schema:Invoice' \
+  --data-urlencode 'artifactType=OPENAPI' \
+  --data-urlencode 'groupId=payments'
+----
++
+The request returns versions that satisfy all of the filters. You can also set `limit` and `offset` to page through the results.
+
+.Verification
+* Check the `versions` array and `count` in the response. An empty `versions` array means that no indexed versions match the filters on the requested page.
+
+.Troubleshooting
+* If the response states that content search requires an Elasticsearch search index, check that indexing is enabled and that startup indexing has finished.
+* If a recent change is missing from the results, allow time for the asynchronous index update and repeat the search. Check the application logs if the results remain incomplete.
+
+
+// proc-searching-version-content-console
+[id="searching-version-content-console_{context}"]
+== Searching version content in the web console
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the *Content* and *Structure* filters in the web console to search artifact versions without writing a REST request.
+
+.Prerequisites
+* You have enabled the search index and indexed artifact versions.
+* You have access to the {registry} web console.
+
+.Procedure
+. Open the *Search* page.
+. In the *Search for* field, select *Versions*.
+. In the filter selector, select *Content* or *Structure*.
+. Enter a search value, such as `customer` for content or `openapi:schema:Order` for structure, and press Enter to add the filter.
+. Optional: Add metadata filters, such as *Type* or *Group*, to narrow the results.
+
+.Verification
+* Check that the results include the expected artifact versions. Use *Refresh* to repeat the search after an index update.
+
+.Troubleshooting
+* If *Content* and *Structure* are unavailable, confirm that you selected *Versions* and that the application has search indexing enabled.
+
+
+// ref-registry-structure-search-formats
+[id="registry-structure-search-formats_{context}"]
+== Structure search formats
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The `structure` filter accepts an exact element identifier or a text query. The format determines how Elasticsearch matches the query against extracted elements.
+
+.Structure filter formats
+[cols="2,3,5",options="header"]
+|===
+|Format |Example |Behavior
+|`type:kind:name`
+|`openapi:schema:Order`
+|Matches the complete element identifier after conversion to lowercase. The artifact type, element kind, and name must match. The name can contain additional colons.
+|`kind:name`
+|`schema:Order`
+|Searches the extracted element text for both `schema` and `Order` across artifact types. This is a text search, not an exact element identifier match.
+|`name`
+|`Order`
+|Searches the extracted element text across artifact types and element kinds.
+|===
+
+Artifact type identifiers in exact queries use the registry type name, such as `json`, `protobuf`, or `agent_card`. For example, `json:property:customerId` matches a JSON Schema property named `customerId`.
+
+
+// ref-registry-searchable-elements
+[id="registry-searchable-elements_{context}"]
+== Searchable structural elements
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Each artifact type defines the structural elements that {registry} extracts for search. Use the element kinds with the `structure` filter to narrow a query.
+
+.Artifact types and extracted element kinds
+[cols="2,5",options="header"]
+|===
+|Artifact type identifier |Element kinds
+|`AGENT_CARD`
+|`skill`, `capability`, `inputmode`, `outputmode`, `protocolbinding`, `protocolversion`, `url`, `securityscheme`, `tag`
+|`ASYNCAPI`
+|`channel`, `message`, `schema`, `operation`, `tag`, `server`, `parameter`, `security_scheme`
+|`AVRO`
+|`name`, `field`, `type`, `enum_symbol`, `namespace`
+|`GRAPHQL`
+|`type`, `field`, `enum`, `input`, `interface`, `union`, `directive`
+|`ICEBERG_TABLE`
+|`name`, `column`, `partition`, `sort`
+|`ICEBERG_VIEW`
+|`name`, `column`, `sql`
+|`JSON`
+|`id`, `property`, `definition`, `required`
+|`MCP_TOOL`
+|`parameter`
+|`MODEL_SCHEMA`
+|`modelid`, `provider`, `inputproperty`, `outputproperty`
+|`OPENAPI`
+|`schema`, `path`, `operation`, `tag`, `parameter`, `security_scheme`, `server`
+|`PROMPT_TEMPLATE`
+|`templateid`, `variable`, `outputproperty`
+|`PROTOBUF`
+|`package`, `message`, `field`, `enum`, `service`, `rpc`
+|`THRIFT`
+|`namespace`, `struct`, `enum`, `union`, `exception`, `service`, `typedef`, `const`
+|`WSDL`
+|`service`, `port`, `binding`, `portType`, `operation`, `message`, `element`, `complexType`, `simpleType`
+|`XML`
+|`element`, `namespace`
+|`XSD`
+|`element`, `complexType`, `simpleType`, `attribute`, `attributeGroup`, `group`
+|===
+
+Extraction depends on the content and format. For example, OpenAPI schema names come from component definitions, and XSD type names come from top-level schema declarations. Types without a structured extractor, and content that an extractor cannot parse, have no extracted elements. Their raw content remains available for content search, subject to the content size limit.
+
+
+// ref-registry-content-search-configuration
+[id="registry-content-search-configuration_{context}"]
+== Search index configuration
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+You can configure the search index name, shard counts, and content size limit independently of the primary storage settings.
+
+.Search index properties
+[cols="4,2,5",options="header"]
+|===
+|Property |Default |Description
+|`apicurio.features.experimental.enabled`
+|`false`
+|Experimental feature setting. Set to `true` when configuring content search.
+|`apicurio.search.index.enabled`
+|`false`
+|Enables indexing and content and structure searches.
+|`apicurio.search.index.elasticsearch.index-name`
+|`apicurio-registry`
+|Name of the Elasticsearch index. Use separate index names for independent registry deployments.
+|`apicurio.search.index.elasticsearch.number-of-shards`
+|`1`
+|Number of primary shards when {registry} creates the index.
+|`apicurio.search.index.elasticsearch.number-of-replicas`
+|`1`
+|Number of replica shards when {registry} creates the index. The local single-node example uses `0`.
+|`apicurio.search.index.content.max-size`
+|`1048576`
+|Maximum number of characters from each artifact version to index for content search. This limit does not change stored artifact content.
+|===
+
+Elasticsearch connection properties use the `quarkus.elasticsearch` prefix. The connection settings include `hosts`, `protocol`, `username`, and `password`. {registry} disables the Quarkus Elasticsearch health check by default and provides a separate readiness check for startup indexing.
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://quarkus.io/guides/elasticsearch[Quarkus Elasticsearch client configuration]
+
+
+// con-registry-search-index-operations
+[id="registry-search-index-operations_{context}"]
+== Search index operation and limitations
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+The search index is a secondary copy of registry data. Index updates and rebuilds affect when artifact versions become visible in content and structure searches.
+
+On startup, {registry} creates the index if necessary. If the index contains no artifact versions, {registry} rebuilds it from primary storage. A distributed lock in Elasticsearch selects one registry replica to run the startup rebuild. Other replicas skip that rebuild, so their search results can be incomplete until indexing finishes.
+
+When an upgrade changes the index mapping version, {registry} deletes and recreates the search index before rebuilding it. The primary storage retains artifact data. Rebuilding a large index can extend startup time. Check the logs for indexing errors and verify representative search results after a rebuild; application readiness alone does not confirm that every version was indexed.
+
+During normal operation, a background worker processes index updates. The delay before results reflect a change depends on the indexing workload and Elasticsearch refreshes. A successful artifact write does not confirm that its search index update has completed.
+
+Edits to draft version content do not currently trigger an index update. Finalizing the draft triggers reindexing of that version. Until then, content and structure searches can continue to match the content from before the edit.
+
+For content search, {registry} indexes only the first `apicurio.search.index.content.max-size` characters of each version. The default is 1,048,576 characters. Terms beyond that limit do not match a content query. Structured extraction receives the complete artifact content and is separate from this truncation.

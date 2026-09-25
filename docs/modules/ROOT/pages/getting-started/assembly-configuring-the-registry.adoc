@@ -6,9 +6,176 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can set important configuration options for your {registry} deployment, including the {registry} web console, logging, health checks, and observability.
+You can configure your {registry} deployment, including file-based secrets, HTTP caching, the web console, logging, health checks, and observability.
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
+
+// proc-configuring-file-based-secrets
+[id="configuring-file-based-secrets_{context}"]
+== Loading configuration values from files
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can load a {registry} configuration value from a file, such as a mounted secret, to keep the value out of the deployment's environment variables.
+
+.Prerequisites
+* You can update and restart the {registry} deployment.
+* The file contains the required configuration value and is readable by the {registry} process.
+
+.Procedure
+. Mount the file in the {registry} container, for example, at `/run/secrets/db_password`.
+Use file permissions that restrict access to the processes that need the value.
+. Set the environment variable for the configuration property with an additional `_FILE` suffix:
++
+[source,properties]
+----
+APICURIO_DATASOURCE_PASSWORD_FILE=/run/secrets/db_password
+----
++
+Alternatively, configure the property with a `.file` suffix in the server configuration:
++
+[source,properties]
+----
+apicurio.datasource.password.file=/run/secrets/db_password
+----
++
+The file value takes precedence over a directly configured value for `apicurio.datasource.password`.
+{registry} removes leading and trailing whitespace from the file contents.
+This mechanism applies to configuration properties resolved by the server, including properties other than passwords.
+. Restart the deployment to load the value.
++
+{registry} caches the value after reading the file.
+Restart the deployment after changing the file or its configured path.
+
+.Verification
+* Check the server log for a message that confirms the file was loaded for `apicurio.datasource.password`.
+The message identifies the property without displaying the secret value.
+
+.Troubleshooting
+* If the server reports that the file is missing or unreadable, check the mounted path and file permissions.
+A configured file that cannot be read causes configuration resolution to fail; the server does not fall back to the directly configured value.
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-config-reference}
+
+
+// proc-configuring-registry-http-caching
+[id="configuring-registry-http-caching_{context}"]
+== Enabling HTTP caching for artifact content
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can enable HTTP cache headers for supported v3 content endpoints so that a reverse proxy can serve repeated requests from its cache.
+
+.Prerequisites
+* You can update and restart the {registry} deployment.
+* A reverse proxy cache is available in front of {registry}.
+* An artifact version is available for testing content requests.
+
+.Procedure
+. Enable HTTP caching in the server configuration:
++
+[source,properties]
+----
+apicurio.http-caching.enabled=true
+----
++
+The equivalent environment variable is `APICURIO_HTTP_CACHING_ENABLED=true`.
+. Set expiration times that match how long your clients can tolerate stale content.
+For example, the following configuration caches highly cacheable content for one hour and uses shorter periods for content that can change:
++
+[source,properties]
+----
+apicurio.http-caching.high-cacheability.max-age-seconds=3600
+apicurio.http-caching.moderate-cacheability.max-age-seconds=30
+apicurio.http-caching.low-cacheability.max-age-seconds=10
+----
+. Configure the reverse proxy to use `Surrogate-Control`, `ETag`, and `Vary` response headers.
++
+The default `Vary` headers are `Accept`, `Accept-Encoding`, and `Authorization`.
+Configure the proxy to keep responses for different credentials separate and to enforce your access policy when serving cached responses.
+{registry} does not invalidate proxy entries when content access or version state changes.
+. Restart the {registry} deployment to apply the configuration.
+
+.Verification
+* Request an existing artifact version through the proxy and inspect its response headers:
++
+[source,bash]
+----
+curl --include \
+  "https://registry.example.com/apis/registry/v3/groups/my-group/artifacts/my-schema/versions/1.0.0/content"
+----
++
+Replace the URL and artifact coordinates with values from your deployment, and supply authentication if required.
+For a successful cacheable response, check for `ETag`, `Surrogate-Control`, and `Vary` headers.
+With the default diagnostic headers enabled, `X-Cache-Cacheability` identifies the selected cacheability level.
+Use the proxy's cache-hit statistics or logs to verify that repeated requests use its cache.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-http-cache-behavior_{context}[HTTP cache behavior]
+* {registry-config-reference}
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/http-caching[HTTP caching example with Varnish]
+
+
+// ref-registry-http-cache-behavior
+[id="registry-http-cache-behavior_{context}"]
+== HTTP cache behavior
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+{registry} assigns a cacheability level to supported v3 content responses based on the request, version state, and reference handling.
+
+.HTTP cacheability levels
+[cols="1,1,3",options="header"]
+|===
+|Level
+|Default expiration
+|Typical behavior
+
+|`HIGH`
+|864,000 seconds (10 days)
+|Content identified by an immutable identifier or a specific immutable version can use the longest expiration.
+
+|`MODERATE`
+|30 seconds
+|Requests that use version expressions, such as a branch, or retrieve mutable draft content need a shorter expiration.
+
+|`LOW`
+|10 seconds
+|Responses whose dependencies can change or whose content identity cannot be determined use the shortest expiration.
+
+|`NONE`
+|Not applicable
+|The response does not receive a `Surrogate-Control` caching policy.
+|===
+
+Activation::
+HTTP caching is disabled by default.
+Set `apicurio.http-caching.enabled=true` and keep at least one cacheability expiration greater than zero to activate it.
+Setting an individual expiration to zero or a negative value suppresses the caching policy for that level.
+
+Scope::
+Cache headers apply to supported v3 content operations, including content retrieved by global ID and by group, artifact, and version.
+The server evaluates the request and can reduce its cacheability because of reference handling or version mutability.
+
+Response headers::
+`Surrogate-Control` specifies the proxy expiration policy.
+`ETag` identifies the response representation, and `Vary` identifies request headers that distinguish cached representations.
+These headers do not enable browser caching; the API's `Cache-Control` policy remains `no-cache, no-store`.
+
+Expiration and invalidation::
+Cached responses can remain available until the proxy refreshes or expires them.
+Automatic invalidation of reverse proxy entries is not available.
+Choose shorter expiration times when content changes or access changes must reach clients sooner.
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-config-reference}
 
 
 // proc-configuring-registry-ui

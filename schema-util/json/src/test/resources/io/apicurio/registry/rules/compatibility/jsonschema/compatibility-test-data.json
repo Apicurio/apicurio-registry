@@ -2549,8 +2549,9 @@
     {
       "enabled": true,
       "id": "Complex: oneOf 1",
-      "skipLegacy": "The legacy checker compares oneOf like anyOf: after the change a value can match two branches, which oneOf rejects (Apitomy/apitomy-data-models#1232).",
-      "compatibility": "none",
+      "skipLegacy": "The legacy checker compares oneOf like anyOf: after the change a string of 6 to 10 characters matches both branches, which oneOf rejects (Apitomy/apitomy-data-models#1232).",
+      "skipApitomy": "Over-strict forward, like the legacy checker: narrowing the maxLength branch only removes strings that matched both branches and were invalid anyway, which branch-by-branch matching does not see (Apitomy/apitomy-data-models#1042, CC10).",
+      "compatibility": "forward",
       "original": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "oneOf": [

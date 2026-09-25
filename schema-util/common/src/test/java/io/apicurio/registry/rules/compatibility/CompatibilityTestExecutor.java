@@ -89,6 +89,14 @@ public class CompatibilityTestExecutor {
                             logFail(caseId, resultBackward, resultForward);
                         }
                         break;
+                    case "forward":
+                        if (!resultBackward.isCompatible() && resultForward.isCompatible()) {
+                            log.debug("OK caseId: {}", caseId);
+                        } else {
+                            failed.add(caseId);
+                            logFail(caseId, resultBackward, resultForward);
+                        }
+                        break;
                     case "both":
                         if (resultBackward.isCompatible() && resultForward.isCompatible()) {
                             log.debug("OK caseId: {}", caseId);

@@ -152,14 +152,26 @@ Tests that use Byteman to force a specific thread interleaving live in
 ./mvnw test -pl :apicurio-registry-app -Pbyteman
 ```
 
+That command also runs the regular `app` suite. To run only the Byteman tests, name them
+with `-Dtest=ConcurrentVersionCreationTest,...`.
+
 They sit in their own source root because Byteman is LGPL and may not appear in the
 default build. Only the profile adds that root, so a new test put anywhere else will
 either fail the license scan or not compile. Put new Byteman tests in
-`app/src/test-byteman/java` and nothing else is needed.
+`app/src/test-byteman/java`.
+
+Every `@WithByteman` class also carries `@BMUnitConfig`, even when it sets nothing. BMUnit
+pushes a configuration for each Byteman class but pops it only when that annotation is
+present, so without it the next Byteman class in the same JVM fails with "BMUnit test class
+configuration pushed without prior pop!".
 
 Two things to expect. An IDE that has not enabled the profile shows these files as
 non-source with every symbol unresolved. And no CI workflow activates `-Pbyteman`, so
 these tests run locally only.
+
+Run `clean` when you go back to a build without the profile. The Byteman classes stay in
+`app/target/test-classes` from the earlier build, and a later default build does not remove
+them.
 
 ## Running with Postgres (docker-compose)
 

@@ -937,11 +937,12 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         long start = System.currentTimeMillis();
 
-        Set<SearchFilter> filters = Collections.emptySet();
+        // Filtered to this test's groups, because other tests share the store and add their own.
+        Set<SearchFilter> filters = Collections.singleton(SearchFilter.ofGroupId(groupIdPrefix + "*"));
         GroupSearchResultsDto results = storage().searchGroups(filters, OrderBy.groupId, OrderDirection.asc,
                 0, 10);
         Assertions.assertNotNull(results);
-        Assertions.assertEquals(51, results.getCount());
+        Assertions.assertEquals(50, results.getCount());
         Assertions.assertNotNull(results.getGroups());
         Assertions.assertEquals(10, results.getGroups().size());
 

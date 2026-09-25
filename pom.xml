@@ -259,6 +259,9 @@
     <woodstox-core.version>7.2.2</woodstox-core.version>
     <jgit.version>7.7.1.202607240634-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
+    <!-- Only the byteman profile in app/pom.xml reads this. It stays out of dependencyManagement
+         because the license scan reads the profile-less model, where Byteman (LGPL) must not appear. -->
+    <byteman.version>4.0.27</byteman.version>
     <assertj.core.version>3.27.7</assertj.core.version>
     <semver4j.version>6.0.0</semver4j.version>
     <slf4j.version>2.0.17</slf4j.version>

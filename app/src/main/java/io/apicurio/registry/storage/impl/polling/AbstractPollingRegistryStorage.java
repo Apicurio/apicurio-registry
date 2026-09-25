@@ -190,6 +190,12 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                                     storageName(), active == green ? "green" : "blue", state);
                             try {
                                 var pollResult = pollingDataSourceManager.poll();
+                                if (status.getSyncState() == PollingStorageStatus.SyncState.ERROR) {
+                                    status = status.toBuilder()
+                                            .syncState(PollingStorageStatus.SyncState.IDLE)
+                                            .errors(Collections.emptyList())
+                                            .build();
+                                }
                                 if (pollResult.isHasChanges()) {
                                     debouncer.onChange(pollResult);
                                 }
@@ -199,6 +205,12 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                                 }
                             } catch (Exception e) {
                                 log.error("{} poll/load failed: {}", storageName(), e.getMessage(), e);
+                                status = status.toBuilder()
+                                        .syncState(PollingStorageStatus.SyncState.ERROR)
+                                        .errors(List.of(new PollingError(
+                                                "Poll failed: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName())
+                                        )))
+                                        .build();
                             }
                         }
                     }
@@ -245,7 +257,12 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
             log.error("{} failed to load data into inactive storage: {}", storageName(), e.getMessage(), e);
             status = status.toBuilder()
                     .syncState(PollingStorageStatus.SyncState.ERROR)
-                    .errors(List.of(new PollingError("Transient error: " + e.getMessage())))
+                    .errors(List.of(new PollingError(
+                            "Transient error: " +
+                                    (e.getMessage() != null
+                                            ? e.getMessage()
+                                            : e.getClass().getSimpleName())
+                    )))
                     .build();
         }
     }

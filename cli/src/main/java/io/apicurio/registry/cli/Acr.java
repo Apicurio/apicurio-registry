@@ -56,7 +56,8 @@ import static picocli.CommandLine.ScopeType.INHERIT;
                 "0: Successful execution.",
                 "1: Application error.",
                 "2: Input validation error.",
-                "3: {{product-name}} server error."
+                "3: {{product-name}} server error.",
+                "4: Transient failure (timeout, service unavailable, connection error). Retrying may succeed."
         }
 )
 public class Acr {

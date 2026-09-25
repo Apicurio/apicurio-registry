@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.Set;
 
 import io.apicurio.registry.asyncapi.content.AsyncApiContentAccepter;
@@ -21,26 +22,10 @@ import io.apicurio.registry.avro.content.extract.AvroStructuredContentExtractor;
 import io.apicurio.registry.avro.content.refs.AvroReferenceFinder;
 import io.apicurio.registry.avro.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.avro.rules.validity.AvroContentValidator;
-import io.apicurio.registry.content.AgentCardContentAccepter;
-import io.apicurio.registry.content.McpToolContentAccepter;
-import io.apicurio.registry.content.ModelSchemaContentAccepter;
 import io.apicurio.registry.content.OdcsContractContentAccepter;
-import io.apicurio.registry.content.PromptTemplateContentAccepter;
 import io.apicurio.registry.content.canon.YamlContentCanonicalizer;
-import io.apicurio.registry.content.dereference.ModelSchemaDereferencer;
-import io.apicurio.registry.content.dereference.PromptTemplateDereferencer;
-import io.apicurio.registry.content.extract.AgentCardContentExtractor;
-import io.apicurio.registry.content.extract.AgentCardStructuredContentExtractor;
-import io.apicurio.registry.content.extract.McpToolContentExtractor;
-import io.apicurio.registry.content.extract.McpToolStructuredContentExtractor;
-import io.apicurio.registry.content.extract.ModelSchemaContentExtractor;
-import io.apicurio.registry.content.extract.ModelSchemaStructuredContentExtractor;
-import io.apicurio.registry.content.extract.PromptTemplateContentExtractor;
-import io.apicurio.registry.content.extract.PromptTemplateStructuredContentExtractor;
 import io.apicurio.registry.content.refs.AvroReferenceArtifactIdentifierExtractor;
-import io.apicurio.registry.content.refs.ModelSchemaReferenceFinder;
 import io.apicurio.registry.content.refs.OdcsContractReferenceFinder;
-import io.apicurio.registry.content.refs.PromptTemplateReferenceFinder;
 import io.apicurio.registry.graphql.content.GraphQLContentAccepter;
 import io.apicurio.registry.graphql.content.canon.GraphQLContentCanonicalizer;
 import io.apicurio.registry.graphql.content.extract.GraphQLStructuredContentExtractor;
@@ -82,15 +67,7 @@ import io.apicurio.registry.protobuf.content.extract.ProtobufStructuredContentEx
 import io.apicurio.registry.protobuf.content.refs.ProtobufReferenceFinder;
 import io.apicurio.registry.protobuf.rules.compatibility.ProtobufCompatibilityChecker;
 import io.apicurio.registry.protobuf.rules.validity.ProtobufContentValidator;
-import io.apicurio.registry.rules.compatibility.AgentCardCompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.McpToolCompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.ModelSchemaCompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.PromptTemplateCompatibilityChecker;
-import io.apicurio.registry.rules.validity.AgentCardContentValidator;
-import io.apicurio.registry.rules.validity.McpToolContentValidator;
-import io.apicurio.registry.rules.validity.ModelSchemaContentValidator;
 import io.apicurio.registry.rules.validity.OdcsContractContentValidator;
-import io.apicurio.registry.rules.validity.PromptTemplateContentValidator;
 import io.apicurio.registry.thrift.content.ThriftContentAccepter;
 import io.apicurio.registry.thrift.content.canon.ThriftContentCanonicalizer;
 import io.apicurio.registry.thrift.content.extract.ThriftStructuredContentExtractor;
@@ -215,24 +192,6 @@ public class StandardArtifactTypeProviderRegistry {
                 .validator(XmlContentValidator::new)
                 .structuredContentExtractor(XmlStructuredContentExtractor::new)
                 .build());
-        PROVIDERS.put(ArtifactType.AGENT_CARD, new ProviderConfig.Builder()
-                .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
-                .accepter(AgentCardContentAccepter::new)
-                .compatibilityChecker(AgentCardCompatibilityChecker::new)
-                .canonicalizer(JsonContentCanonicalizer::new)
-                .validator(AgentCardContentValidator::new)
-                .extractor(AgentCardContentExtractor::new)
-                .structuredContentExtractor(AgentCardStructuredContentExtractor::new)
-                .build());
-        PROVIDERS.put(ArtifactType.MCP_TOOL, new ProviderConfig.Builder()
-                .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
-                .accepter(McpToolContentAccepter::new)
-                .compatibilityChecker(McpToolCompatibilityChecker::new)
-                .canonicalizer(JsonContentCanonicalizer::new)
-                .validator(McpToolContentValidator::new)
-                .extractor(McpToolContentExtractor::new)
-                .structuredContentExtractor(McpToolStructuredContentExtractor::new)
-                .build());
         PROVIDERS.put(ArtifactType.ICEBERG_TABLE, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
                 .accepter(IcebergTableContentAccepter::new)
@@ -261,30 +220,6 @@ public class StandardArtifactTypeProviderRegistry {
                 .referenceFinder(OpenRpcReferenceFinder::new)
                 .supportsReferencesWithContext(true)
                 .build());
-        PROVIDERS.put(ArtifactType.MODEL_SCHEMA, new ProviderConfig.Builder()
-                .contentTypes(Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML))
-                .accepter(ModelSchemaContentAccepter::new)
-                .compatibilityChecker(ModelSchemaCompatibilityChecker::new)
-                .canonicalizer(JsonContentCanonicalizer::new)
-                .validator(ModelSchemaContentValidator::new)
-                .extractor(ModelSchemaContentExtractor::new)
-                .dereferencer(ModelSchemaDereferencer::new)
-                .referenceFinder(ModelSchemaReferenceFinder::new)
-                .structuredContentExtractor(ModelSchemaStructuredContentExtractor::new)
-                .supportsReferencesWithContext(true)
-                .build());
-        PROVIDERS.put(ArtifactType.PROMPT_TEMPLATE, new ProviderConfig.Builder()
-                .contentTypes(Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML, ContentTypes.TEXT_PROMPT_TEMPLATE))
-                .accepter(PromptTemplateContentAccepter::new)
-                .compatibilityChecker(PromptTemplateCompatibilityChecker::new)
-                .canonicalizer(YamlContentCanonicalizer::new)
-                .validator(PromptTemplateContentValidator::new)
-                .extractor(PromptTemplateContentExtractor::new)
-                .dereferencer(PromptTemplateDereferencer::new)
-                .referenceFinder(PromptTemplateReferenceFinder::new)
-                .structuredContentExtractor(PromptTemplateStructuredContentExtractor::new)
-                .supportsReferencesWithContext(true)
-                .build());
         PROVIDERS.put(ArtifactType.ODCS_CONTRACT, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_YAML))
                 .accepter(OdcsContractContentAccepter::new)
@@ -299,22 +234,89 @@ public class StandardArtifactTypeProviderRegistry {
                 .validator(ThriftContentValidator::new)
                 .structuredContentExtractor(ThriftStructuredContentExtractor::new)
                 .build());
+        PROVIDERS.putAll(loadContributedProviders(PROVIDERS));
+    }
+
+    /**
+     * Order in which providers are returned, and therefore the order in which their content accepters
+     * are tried during artifact type auto-detection (first match wins). Types contributed through
+     * {@link ArtifactTypeProviderContributor} are listed here by name so that detection behaves the
+     * same whether or not a type lives in core; types not listed are appended in discovery order.
+     */
+    private static final List<String> DETECTION_ORDER = List.of(
+            ArtifactType.PROTOBUF,
+            ArtifactType.OPENAPI,
+            ArtifactType.ASYNCAPI,
+            ArtifactType.JSON,
+            ArtifactType.AVRO,
+            ArtifactType.GRAPHQL,
+            ArtifactType.KCONNECT,
+            ArtifactType.WSDL,
+            ArtifactType.XSD,
+            ArtifactType.XML,
+            ArtifactType.AGENT_CARD,
+            ArtifactType.MCP_TOOL,
+            ArtifactType.ICEBERG_TABLE,
+            ArtifactType.ICEBERG_VIEW,
+            ArtifactType.OPENRPC,
+            ArtifactType.MODEL_SCHEMA,
+            ArtifactType.PROMPT_TEMPLATE,
+            ArtifactType.ODCS_CONTRACT,
+            ArtifactType.THRIFT
+    );
+
+    private static final List<String> ORDERED_TYPES = orderTypes(PROVIDERS.keySet());
+
+    /**
+     * Collects the provider configurations of every {@link ArtifactTypeProviderContributor} on the classpath.
+     *
+     * @param coreProviders the providers already registered by core, used to reject duplicates
+     * @return the contributed configurations, in discovery order
+     */
+    static Map<String, ProviderConfig> loadContributedProviders(Map<String, ProviderConfig> coreProviders) {
+        return mergeContributions(coreProviders, ServiceLoader.load(ArtifactTypeProviderContributor.class,
+                StandardArtifactTypeProviderRegistry.class.getClassLoader()));
+    }
+
+    static Map<String, ProviderConfig> mergeContributions(Map<String, ProviderConfig> coreProviders,
+            Iterable<ArtifactTypeProviderContributor> contributors) {
+        Map<String, ProviderConfig> contributed = new LinkedHashMap<>();
+        for (ArtifactTypeProviderContributor contributor : contributors) {
+            contributor.getProviderConfigs().forEach((type, config) -> {
+                if (coreProviders.containsKey(type) || contributed.containsKey(type)) {
+                    throw new IllegalStateException("Artifact type provider registered more than once: " + type);
+                }
+                contributed.put(type, config);
+            });
+        }
+        return contributed;
+    }
+
+    static List<String> orderTypes(Set<String> types) {
+        List<String> ordered = new ArrayList<>();
+        DETECTION_ORDER.stream().filter(types::contains).forEach(ordered::add);
+        types.stream().filter(type -> !ordered.contains(type)).forEach(ordered::add);
+        return ordered;
     }
 
     /**
      * Creates a fresh set of standard artifact type utility providers per factory instance.
      * <p>
+     * The set includes the core types plus any types contributed through
+     * {@link ArtifactTypeProviderContributor}.
+     * </p>
+     * <p>
      * Note: Fresh provider instances are returned per call to prevent aliasing bugs across
      * factory instances, since {@link AbstractArtifactTypeUtilProvider} lazy-caches mutable
      * component references in volatile fields.
      *
-     * @return a new list of built-in provider instances in registration order
+     * @return a new list of built-in provider instances in detection order
      */
     public static List<ArtifactTypeUtilProvider> createStandardProviders() {
         List<ArtifactTypeUtilProvider> providers = new ArrayList<>();
-        PROVIDERS.forEach((type, config) ->
-                providers.add(new ConfigurableArtifactTypeUtilProvider(type, config))
-        );
+        for (String type : ORDERED_TYPES) {
+            providers.add(new ConfigurableArtifactTypeUtilProvider(type, PROVIDERS.get(type)));
+        }
         return providers;
     }
 

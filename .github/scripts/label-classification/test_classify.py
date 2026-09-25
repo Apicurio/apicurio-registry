@@ -27,6 +27,8 @@ import yaml
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+import classify
+
 
 def load_config():
     config_path = Path(__file__).parent / "label-descriptions.yml"
@@ -72,25 +74,12 @@ def issue_text(issue):
     return text
 
 
-def classify_issue(issue_embedding, label_embeddings, labels_config, default_threshold, max_labels):
-    scores = {}
-    for label_name, label_emb in label_embeddings.items():
-        scores[label_name] = float(cosine_similarity(issue_embedding, label_emb))
-
-    sorted_labels = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    selected = [
-        (name, score) for name, score in sorted_labels
-        if score >= labels_config[name].get("threshold", default_threshold)
-    ]
-    selected = selected[:max_labels]
-
-    result = set(name for name, _ in selected)
-    for name, _ in selected:
-        parent = labels_config[name].get("parent")
-        if parent:
-            result.add(parent)
-
-    return result, scores
+def classify_issue(issue_embedding, label_embeddings, config):
+    """The production selection logic, not a copy of it: a harness that
+    re-implements selection measures its own reimplementation, and quietly
+    stops measuring CI the first time the two drift (they already had once —
+    the copy predated nested-label preference)."""
+    return classify.classify_area_labels(issue_embedding, label_embeddings, config)
 
 
 def fbeta(precision, recall, beta=2.0):
@@ -114,7 +103,6 @@ def main():
     config = load_config()
     label_config = config["area_labels"]
     default_threshold = label_config["threshold"]
-    max_labels = label_config["max_labels"]
     all_labels = label_config["labels"]
 
     labels_to_test = all_labels
@@ -220,8 +208,7 @@ def main():
         for i, issue in enumerate(recent_issues):
             human_labels = {l["name"] for l in issue.get("labels", []) if l["name"].startswith("area/")}
             predicted, scores = classify_issue(
-                recent_embeddings[i], label_embeddings, all_labels,
-                default_threshold, max_labels,
+                recent_embeddings[i], label_embeddings, config,
             )
 
             for label in predicted:

@@ -28,10 +28,12 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JsonSchemaRemoteReferenceTest {
 
@@ -146,7 +148,43 @@ class JsonSchemaRemoteReferenceTest {
                         List.of(toTypedContent(EXISTING_SCHEMA)), toTypedContent(proposedSchema),
                         Collections.emptyMap()));
 
-        assertFalse(exception.getMessage().isBlank(),
-                "The failure should say which reference could not be resolved");
+        assertTrue(exception.getMessage().contains("missing-schema.json"),
+                () -> "The failure should say which reference could not be resolved: " + exception.getMessage());
+    }
+
+    /**
+     * Referenced artifacts may refer back to each other. The dereferencer detects such a cycle by
+     * the identity of the documents it is already inside, so the resolver has to hand back the same
+     * schema each time it is asked for the same reference. The legacy checker cannot follow a
+     * reference inside a referenced artifact at all, so this covers the Apitomy checker only.
+     */
+    @Test
+    void mutuallyReferencingArtifactsAreCompared() {
+        var checker = new ApitomyJsonSchemaCompatibilityChecker();
+        String schema = """
+                {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "type": "object",
+                  "properties": {"node": {"$ref": "node.json"}}
+                }
+                """;
+        var references = Map.of(
+                "node.json", toTypedContent("""
+                        {
+                          "type": "object",
+                          "properties": {"value": {"type": "string"}, "next": {"$ref": "list.json"}}
+                        }
+                        """),
+                "list.json", toTypedContent("""
+                        {
+                          "type": "object",
+                          "properties": {"head": {"$ref": "node.json"}}
+                        }
+                        """));
+
+        var result = checker.testCompatibility(CompatibilityLevel.BACKWARD, List.of(toTypedContent(schema)),
+                toTypedContent(schema), references);
+
+        assertTrue(result.isCompatible(), "An unchanged schema is compatible, whatever it references");
     }
 }

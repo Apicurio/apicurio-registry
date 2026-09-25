@@ -6,6 +6,7 @@ import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.core.System;
 import io.apicurio.registry.limits.RegistryLimitsConfiguration;
 import io.apicurio.registry.logging.Logged;
@@ -17,6 +18,7 @@ import io.apicurio.registry.rest.v3.beans.UserInterfaceConfig;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigAuth;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigFeatures;
 import io.apicurio.registry.rest.v3.beans.UserInterfaceConfigUi;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.ui.UserInterfaceConfigProperties;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -49,6 +51,10 @@ public class SystemResourceImpl implements SystemResource {
     @Inject
     ElasticsearchSearchConfig esSearchConfig;
 
+    @Inject
+    @Current
+    RegistryStorage storage;
+
     /**
      * @see io.apicurio.registry.rest.v3.SystemResource#getSystemInfo()
      */
@@ -77,7 +83,7 @@ public class SystemResourceImpl implements SystemResource {
                         .build())
                 .auth(uiAuthConfig())
                 .features(UserInterfaceConfigFeatures.builder()
-                        .readOnly("true".equals(uiConfig.featureReadOnly))
+                        .readOnly("true".equals(uiConfig.featureReadOnly) || storage.isReadOnly())
                         .breadcrumbs("true".equals(uiConfig.featureBreadcrumbs))
                         .roleManagement(authConfig.isRbacEnabled() && "application".equals(authConfig.getRoleSource()))
                         .deleteGroup(restConfig.isGroupDeletionEnabled())

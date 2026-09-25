@@ -6800,7 +6800,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AiCatalog"
+                  "$ref": "#/components/schemas/ArdAgentsResponse"
                 }
               }
             },
@@ -10053,9 +10053,26 @@
             "items": {
               "$ref": "#/components/schemas/AiCatalogEntry"
             }
+          }
+        }
+      },
+      "ArdAgentsResponse": {
+        "description": "Response body for the ARD GET /agents endpoint.",
+        "required": [
+          "items","total"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AiCatalogEntry"
+            }
           },
-          "nextPageToken": {
-            "description": "Opaque pagination token for retrieving the next page of ARD list results. Only populated by the ARD `GET /agents` endpoint; absent from the static `/.well-known/ai-catalog.json` projection.",
+          "total": {
+            "type": "integer"
+          },
+          "pageToken": {
             "type": "string"
           }
         }

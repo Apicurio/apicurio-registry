@@ -4,6 +4,7 @@ import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.AiCatalog;
+import io.apicurio.registry.rest.v3.beans.ArdAgentsResponse;
 import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
 import io.apicurio.registry.rest.v3.beans.ArdExploreResponse;
 import io.apicurio.registry.rest.v3.beans.ArdSearchRequest;
@@ -234,7 +235,7 @@ public interface WellKnownResource {
     @GET
     @Path("/ard/agents")
     @Produces(MediaType.APPLICATION_JSON)
-    AiCatalog ardListAgents(
+    ArdAgentsResponse ardListAgents(
             @QueryParam("filter") String filter,
             @QueryParam("orderBy") String orderBy,
             @QueryParam("pageSize") @DefaultValue("20") Integer pageSize,

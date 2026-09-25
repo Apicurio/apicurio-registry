@@ -14,6 +14,7 @@ import io.quarkus.arc.ManagedContext;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.jboss.byteman.contrib.bmunit.BMRule;
+import org.jboss.byteman.contrib.bmunit.BMUnitConfig;
 import org.jboss.byteman.contrib.bmunit.WithByteman;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -36,17 +37,15 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * <p>Run with:
  * {@code ./mvnw test -pl :apicurio-registry-app -Pbyteman -Dtest=ConcurrentVersionCreationTest}.
- * No CI workflow activates {@code -Pbyteman}, so this does not run in the pipeline yet.
- *
- * <p>There is deliberately no {@code @EnabledIfSystemProperty} guard on {@code byteman.agent}.
- * This class lives in {@code src/test-byteman/java}, a source root only the profile adds, so it
- * cannot compile without the profile, and the profile is what puts the agent flags on the
- * surefire command line. A guard could only ever turn a broken agent setup into a silent skip,
- * which every shard would report as green because they all run with
- * {@code -Dsurefire.failIfNoSpecifiedTests=false}.
+ * See the Byteman section of DEVELOPING.md for why this lives in its own source root. That root
+ * compiles only under the profile, so the class needs no enabled-if guard, which could only turn
+ * a broken agent setup into a silent skip.
  */
 @QuarkusTest
 @WithByteman
+// Required even with the defaults, or the next Byteman class in the JVM fails its setup.
+// See the Byteman section of DEVELOPING.md.
+@BMUnitConfig
 // The rule fires only on threads this test names, so it cannot reach another test's calls.
 // @Isolated is belt and braces for any future parallel run.
 @Isolated
@@ -77,19 +76,19 @@ public class ConcurrentVersionCreationTest {
      * writer crossed the barrier alone. A rendezvous that times out writes nothing at all:
      * Helper.rendezvous throws ExecuteException while the setProperty argument is still being
      * evaluated, and Byteman rethrows it out of createArtifactVersion rather than swallowing it,
-     * so it surfaces as an ExecutionException from Future.get. Verified against the bytecode of
-     * Helper and Rendezvous in byteman 4.0.27.
+     * so it surfaces as an ExecutionException from Future.get.
      */
     private static final String PROP_ARRIVAL_PREFIX = "byteman.rendezvousArrival.";
 
-    private static final int[] ARRIVAL_SLOTS = { 0, 1, -1 };
+    private static final int[] ARRIVAL_SLOTS = {0, 1, -1};
 
     private static final String RENDEZVOUS_ID = "versionOrder-race";
 
+    private static final String GROUP_ID = ConcurrentVersionCreationTest.class.getSimpleName();
+
     private static final int RENDEZVOUS_TIMEOUT_MS = 15_000;
 
-    /** Twice the barrier budget, so a stuck rendezvous always expires first and fails with a
-     *  Byteman message rather than as an opaque Future timeout. */
+    /** Twice the barrier budget, so a stuck rendezvous normally expires first. */
     private static final long RESULT_TIMEOUT_MS = 2L * RENDEZVOUS_TIMEOUT_MS;
 
     /** Past the barrier deadline, because a thread parked in a rendezvous ignores interrupts. */
@@ -115,22 +114,20 @@ public class ConcurrentVersionCreationTest {
      *
      * <p>The artifact is created with null content, so it starts with zero versions. That detail
      * is the whole point of this test and must not be "simplified" by seeding a first version.
-     * Serializing version creators with SELECT ... FOR UPDATE over the artifact's version rows
-     * works only when at least one version row already exists; at the READ COMMITTED isolation
-     * level both engines here run at, a SELECT ... FOR UPDATE matching no rows takes no lock, so
-     * two first-version creators are not serialized. Both then take the first-version branch of
-     * insertVersion, which writes a literal versionOrder = 1. Seeding a version would make the
-     * FOR UPDATE match a row, serialize the threads, and leave the test green against the bug.
+     * With zero versions both writers count zero and take the first-version branch of
+     * insertVersion, which writes a literal versionOrder = 1. A lock taken on version rows would
+     * match nothing here and serialize nobody, which is why the fix locks the parent row.
      *
      * <p>Coordination is a two-party Byteman rendezvous placed immediately after the
      * ensureContentAndGetId call inside createArtifactVersion. The window is narrow at both ends.
      * It has to stay upstream of the row lock, because under the fix the second thread blocks on
-     * that lock and never reaches any later line, so a barrier below it would deadlock on correct
-     * code. It also has to stay downstream of ensureContentAndGetId, which hashes the content,
-     * canonicalizes it (paying classloading and a shared class-initialization lock on first use)
-     * and inserts the content row in its own transaction. At method entry all of that would sit
-     * between the barrier and the versionOrder read, so one thread could fall far enough behind
-     * for the other to finish, which again passes against unfixed code.
+     * that lock and never reaches any later line, so a barrier below it would stall until a lock
+     * or rendezvous timeout and fail on correct code. It also has to stay downstream of
+     * ensureContentAndGetId, which hashes the content, canonicalizes it (paying classloading and
+     * a shared class-initialization lock on first use) and inserts the content row in its own
+     * transaction. At method entry all of that would sit between the barrier and the
+     * versionOrder read, so one thread could fall far enough behind for the other to finish,
+     * which again passes against unfixed code.
      *
      * <p>The two threads submit different content on purpose. Identical content would make them
      * contend on the content unique constraint inside ensureContentAndGetId, adding a second
@@ -138,7 +135,7 @@ public class ConcurrentVersionCreationTest {
      *
      * <p>Both threads pass an explicit and distinct version name. With a null name both writers
      * take the first-version branch, which substitutes the literal string "1"
-     * (SqlVersionRepository:542-545), so a single insert would break UQ_versions_1
+     * (SqlVersionRepository.createArtifactVersionRaw), so a single insert would break UQ_versions_1
      * (groupId, artifactId, version) and UQ_versions_3 (groupId, artifactId, versionOrder) at
      * once and the resulting VersionAlreadyExistsException could not say which. Distinct names
      * keep UQ_versions_1 satisfied, leaving UQ_versions_3 as the only constraint two racing
@@ -147,22 +144,23 @@ public class ConcurrentVersionCreationTest {
      * <p>That gives the regression two shapes. Reverting the lock alone leaves UQ_versions_3 in
      * place, so the database rejects the duplicate order and it arrives as
      * VersionAlreadyExistsException, which the catch below turns back into a named assertion.
-     * Reverting the DDL and the upgrades/110 scripts as well removes the constraint, both rows
-     * are written, and the versionOrder assertion reports 1 and 1.
+     * Removing UQ_versions_3 from h2.ddl as well lets both rows be written, and the versionOrder
+     * assertion reports 1 and 1. The test database is created fresh from h2.ddl, so the
+     * upgrades/110 scripts and db-version play no part in that run.
+     *
+     * <p>The fix under test is lockArtifactForVersionWrite, an UPDATE on the parent artifacts row
+     * taken before the version count.
      *
      * <p>The race runs only against H2, the default @QuarkusTest datasource. PostgreSQL behaves
-     * the same way at READ COMMITTED, so it is the production dialect this reproduces on, and it
-     * still has no regression test under this path. MySQL InnoDB gap-locks the empty range at
-     * REPEATABLE READ, its default here. On mssql the pre-fix code already issued
-     * selectMaxVersionOrderForUpdate through the SQLServerSqlStatements override, which carries
-     * WITH (UPDLOCK, HOLDLOCK) and whose key-range locks cover an empty result set, so mssql may
-     * never have been exposed.
+     * the same way at READ COMMITTED, so it is the production dialect this is expected to
+     * reproduce on, but it still has no regression test under this path.
      */
     @Test
     @BMRule(name = "hold both first-version writers at the same line before either inserts",
         targetClass = "io.apicurio.registry.storage.impl.sql.AbstractSqlRegistryStorage",
         targetMethod = "createArtifactVersion",
         targetLocation = "AFTER INVOKE ensureContentAndGetId",
+        // Byteman rule text has no imports, so java.lang names are written out in full.
         condition = "java.lang.Thread.currentThread().getName().startsWith(\""
                 + RACE_THREAD_PREFIX + "\")",
         // createRendezvous runs on every firing rather than once during setup, because a rule
@@ -175,20 +173,19 @@ public class ConcurrentVersionCreationTest {
                 + " + rendezvous(\"" + RENDEZVOUS_ID + "\", " + RENDEZVOUS_TIMEOUT_MS + "),"
                 + " \"true\")")
     public void testConcurrentFirstVersionCreationGetsDifferentVersionOrder() throws Exception {
-        String groupId = "ConcurrentVersionCreationTest";
         for (int iteration = 0; iteration < RACE_ITERATIONS; iteration++) {
-            runOneRace(groupId, iteration);
+            runOneRace(iteration);
         }
     }
 
-    private void runOneRace(String groupId, int iteration) throws Exception {
+    private void runOneRace(int iteration) throws Exception {
         String artifactId = TestUtils.generateArtifactId("versionOrderRace" + iteration);
         clearArrivals();
 
         // Null content creates the artifact row with NO versions, so both racing threads below
-        // create a first version, which is the path that takes no lock. versionBranches is only
-        // read when versionContent is non-null, so pass null rather than a list nothing reads.
-        storage.createArtifact(groupId, artifactId, ArtifactType.OPENAPI, null, null,
+        // create a first version. versionBranches is only read when versionContent is non-null,
+        // so pass null rather than a list nothing reads.
+        storage.createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
                 null, null, null, false, false, null);
 
         ExecutorService executor = raceExecutor();
@@ -198,13 +195,13 @@ public class ConcurrentVersionCreationTest {
         try {
             Future<ArtifactVersionMetaDataDto> futureA = submitInRequestScope(executor,
                     () -> storage.createArtifactVersion(
-                            groupId, artifactId, VERSION_A, ArtifactType.OPENAPI,
+                            GROUP_ID, artifactId, VERSION_A, ArtifactType.OPENAPI,
                             contentOf(OPENAPI_V1),
                             null, List.of(), false, false, null));
 
             Future<ArtifactVersionMetaDataDto> futureB = submitInRequestScope(executor,
                     () -> storage.createArtifactVersion(
-                            groupId, artifactId, VERSION_B, ArtifactType.OPENAPI,
+                            GROUP_ID, artifactId, VERSION_B, ArtifactType.OPENAPI,
                             contentOf(OPENAPI_V2),
                             null, List.of(), false, false, null));
 
@@ -217,10 +214,15 @@ public class ConcurrentVersionCreationTest {
             } catch (TimeoutException e) {
                 // A bare TimeoutException says nothing about which thread hung or whether the
                 // barrier was reached, and those are the two things worth knowing.
-                throw new AssertionError("Iteration " + iteration + " timed out after "
-                        + RESULT_TIMEOUT_MS + "ms waiting for the racing creates. A done="
-                        + futureA.isDone() + ", B done=" + futureB.isDone() + ", "
-                        + arrivalSnapshot(), e);
+                AssertionError timeout = new AssertionError("Iteration " + iteration
+                        + " timed out after " + RESULT_TIMEOUT_MS + "ms waiting for the racing"
+                        + " creates. A done=" + futureA.isDone() + ", B done=" + futureB.isDone()
+                        + ", " + arrivalSnapshot(), e);
+                // A thread that finished while the other hung may hold the rendezvous timeout,
+                // the one message that says which side never reached the barrier.
+                attachFailure(timeout, futureA);
+                attachFailure(timeout, futureB);
+                throw timeout;
             } catch (ExecutionException e) {
                 if (e.getCause() instanceof VersionAlreadyExistsException) {
                     // This is the regression, reported by the database rather than by the
@@ -236,9 +238,12 @@ public class ConcurrentVersionCreationTest {
                 }
                 // Anything else keeps its own type, including the ExecuteException a rendezvous
                 // timeout raises. Attach the arrivals, the only evidence of whether the barrier
-                // was reached at all.
+                // was reached at all, and the other thread's failure: if B died before the
+                // barrier, A's rendezvous timeout is only the symptom.
                 e.addSuppressed(new IllegalStateException(
                         "iteration " + iteration + ", " + arrivalSnapshot()));
+                attachFailure(e, futureA);
+                attachFailure(e, futureB);
                 throw e;
             }
         } finally {
@@ -252,8 +257,7 @@ public class ConcurrentVersionCreationTest {
 
         // The threads really met at the barrier. Without this, a rule that stopped matching would
         // turn the iteration into two sequential creates that pass for the wrong reason. The -1
-        // check comes first because it names the specific failure: a writer that called
-        // rendezvous on an id that was absent, deleted or already complete.
+        // check comes first because it names the specific failure (see PROP_ARRIVAL_PREFIX).
         Assertions.assertNull(arrival(-1),
                 "a writer passed the barrier without meeting anyone");
         Assertions.assertEquals("true", arrival(0),
@@ -278,7 +282,7 @@ public class ConcurrentVersionCreationTest {
                 "Iteration " + iteration + ": concurrent first-version creates must produce"
                         + " versionOrder 1 and 2, but got " + resultA.getVersionOrder() + " and "
                         + resultB.getVersionOrder());
-        Assertions.assertEquals(2L, storage.countArtifactVersions(groupId, artifactId),
+        Assertions.assertEquals(2L, storage.countArtifactVersions(GROUP_ID, artifactId),
                 "Both versions must be persisted");
     }
 
@@ -302,6 +306,21 @@ public class ConcurrentVersionCreationTest {
         }
     }
 
+    /** Attaches the future's failure unless it is the one target already carries as its cause. */
+    private static void attachFailure(Throwable target, Future<?> future) {
+        if (future.isDone()) {
+            try {
+                future.get();
+            } catch (ExecutionException e) {
+                if (e.getCause() != target.getCause()) {
+                    target.addSuppressed(e.getCause());
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
     private static String arrival(int ordinal) {
         return System.getProperty(PROP_ARRIVAL_PREFIX + ordinal);
     }
@@ -313,7 +332,11 @@ public class ConcurrentVersionCreationTest {
     }
 
     private static String arrivalSnapshot() {
-        return "arrivals 0=" + arrival(0) + " 1=" + arrival(1) + " -1=" + arrival(-1);
+        StringBuilder snapshot = new StringBuilder("arrivals");
+        for (int slot : ARRIVAL_SLOTS) {
+            snapshot.append(' ').append(slot).append('=').append(arrival(slot));
+        }
+        return snapshot.toString();
     }
 
     private static ContentWrapperDto contentOf(String content) {

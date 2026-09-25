@@ -5,6 +5,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
+import java.util.Map;
 import java.util.Set;
 import org.jboss.logging.Logger;
 
@@ -13,6 +15,25 @@ public class UpdateNotifier {
 
     private static final Logger log = Logger.getLogger(UpdateNotifier.class);
     private static final Duration CHECK_INTERVAL = Duration.ofDays(1);
+
+    /**
+     * How long the next check is deferred after a single failed one. Much shorter than
+     * {@link #CHECK_INTERVAL} so a transient failure — a dropped network, a proxy, a timeout —
+     * recovers quickly, while still being long enough that a command run in a loop does not pay for
+     * a network attempt every time.
+     * <p>
+     * The backoff is kept in the CLI config rather than expressed with MicroProfile Fault Tolerance,
+     * because each command is a separate short-lived process: the state that has to survive is the
+     * gap between two invocations, not retries within one.
+     */
+    static final Duration FAILURE_RETRY_INTERVAL = Duration.ofMinutes(15);
+
+    /**
+     * Upper bound on the recorded consecutive-failure count. The backoff saturates at
+     * {@link #CHECK_INTERVAL} well before this, so the cap exists only to keep the stored value and
+     * the doubling below bounded however long a failure persists.
+     */
+    static final int MAX_FAILURE_COUNT = 30;
 
     private static final Set<String> SKIP_COMMANDS = Set.of("install", "update", "version", "config");
 
@@ -69,7 +90,11 @@ public class UpdateNotifier {
                 }
             }
 
-            var lastCheck = props.get("internal.update.last-check");
+            if (isBackingOffAfterFailure(props)) {
+                return false;
+            }
+
+            var lastCheck = props.get(Update.CONFIG_LAST_CHECK);
             if (lastCheck != null) {
                 var last = Instant.parse(lastCheck);
                 var elapsed = Duration.between(last, Instant.now());
@@ -83,6 +108,68 @@ public class UpdateNotifier {
         } catch (Exception e) {
             log.debugf("Update check skipped: could not read config: %s", e.getMessage());
             return false;
+        }
+    }
+
+    /**
+     * Reports whether the previous check failed recently enough that the next one should be skipped.
+     * <p>
+     * Without this, a check that fails is never recorded, so the auto-check hook retries it on every
+     * single command: a persistent problem (an unreachable repository, no network, a proxy) costs a
+     * network attempt and two lines of output every time the user runs anything.
+     */
+    private boolean isBackingOffAfterFailure(Map<String, String> props) {
+        var lastFailure = props.get(Update.CONFIG_LAST_FAILURE);
+        if (lastFailure == null) {
+            return false;
+        }
+        Instant failedAt;
+        try {
+            failedAt = Instant.parse(lastFailure);
+        } catch (DateTimeParseException ex) {
+            // Parsed defensively on purpose: an unreadable marker must not disable update checks
+            // permanently, which is what letting this propagate to the caller's catch would do.
+            log.debugf("Ignoring unparseable update failure timestamp: %s", lastFailure);
+            return false;
+        }
+        var retryAt = failedAt.plus(failureBackoff(parseFailureCount(props.get(Update.CONFIG_FAILURE_COUNT))));
+        if (Instant.now().isBefore(retryAt)) {
+            log.debugf("Update check skipped: previous check failed, next attempt at %s", retryAt);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Returns how long to wait after {@code failureCount} consecutive failed checks, doubling
+     * {@link #FAILURE_RETRY_INTERVAL} for each one and never exceeding {@link #CHECK_INTERVAL}, so a
+     * repeatedly failing check is never attempted more often than a healthy one.
+     *
+     * @param failureCount consecutive failures recorded so far; zero means no backoff
+     */
+    static Duration failureBackoff(int failureCount) {
+        if (failureCount <= 0) {
+            return Duration.ZERO;
+        }
+        var doublings = Math.min(failureCount - 1, MAX_FAILURE_COUNT);
+        var backoff = FAILURE_RETRY_INTERVAL.multipliedBy(1L << doublings);
+        return backoff.compareTo(CHECK_INTERVAL) > 0 ? CHECK_INTERVAL : backoff;
+    }
+
+    /**
+     * Reads the recorded consecutive-failure count, clamped to {@code [0, }{@link #MAX_FAILURE_COUNT}
+     * {@code ]}. The value lives in a user-editable config file, so anything absent, malformed or out
+     * of range is treated as "no failures recorded" rather than being allowed to fail the check.
+     */
+    static int parseFailureCount(String value) {
+        if (value == null) {
+            return 0;
+        }
+        try {
+            var count = Integer.parseInt(value.trim());
+            return Math.max(0, Math.min(count, MAX_FAILURE_COUNT));
+        } catch (NumberFormatException ex) {
+            return 0;
         }
     }
 

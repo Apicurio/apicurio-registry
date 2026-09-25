@@ -2,6 +2,8 @@ package io.apicurio.registry.operator;
 
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.feat.ConsolePluginManager;
+import io.apicurio.registry.operator.feat.PrometheusRuleManager;
+import io.apicurio.registry.operator.metrics.MetricsManager;
 import io.apicurio.registry.operator.resource.ActivationConditions;
 import io.apicurio.registry.operator.resource.app.AppDeploymentResource;
 import io.apicurio.registry.operator.resource.app.AppHorizontalPodAutoscalerResource;
@@ -21,6 +23,7 @@ import io.apicurio.registry.operator.resource.ui.UIIngressResource;
 import io.apicurio.registry.operator.resource.ui.UINetworkPolicyResource;
 import io.apicurio.registry.operator.resource.ui.UIPodDisruptionBudgetResource;
 import io.apicurio.registry.operator.resource.ui.UIServiceResource;
+import io.apicurio.registry.operator.status.MetricsUnavailableConditionManager;
 import io.apicurio.registry.operator.status.OperatorErrorConditionManager;
 import io.apicurio.registry.operator.status.StatusManager;
 import io.apicurio.registry.operator.updater.IngressCRUpdater;
@@ -204,8 +207,23 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
         }
 
         ConsolePluginManager.reconcileConsolePluginCR(context.getClient(), primary);
+        PrometheusRuleManager.reconcilePrometheusRule(context.getClient(), primary);
 
-        return UpdateControl.patchStatus(StatusManager.get(primary).applyStatus(primary, context));
+        // Has to run before the status is assembled, so that a collection failure is reported as a condition
+        // on this same pass.
+        if (MetricsManager.isEnabled(primary)) {
+            MetricsManager.get(primary).collect(primary, context.getClient(),
+                    StatusManager.get(primary).getConditionManager(MetricsUnavailableConditionManager.class));
+        }
+
+        var updateControl = UpdateControl.patchStatus(StatusManager.get(primary).applyStatus(primary, context));
+
+        if (MetricsManager.isEnabled(primary)) {
+            // Reconciliation is otherwise driven purely by watch events, which would leave the reported
+            // metrics untouched for as long as nothing else about the deployment changes.
+            return updateControl.rescheduleAfter(MetricsManager.scrapeInterval(primary));
+        }
+        return updateControl;
     }
 
     @Override
@@ -224,8 +242,10 @@ public class ApicurioRegistry3Reconciler implements Reconciler<ApicurioRegistry3
     @Override
     public DeleteControl cleanup(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context) {
         ConsolePluginManager.deleteConsolePluginCR(context.getClient(), primary);
+        PrometheusRuleManager.deletePrometheusRule(context.getClient(), primary);
         deleteCRContext(primary);
         StatusManager.clean(primary);
+        MetricsManager.clean(primary);
         return DeleteControl.defaultDelete();
     }
 }

@@ -310,13 +310,44 @@
     <!-- Kiota -->
     <kiota.libs.version>1.9.3</kiota.libs.version>
     <kiota.community.version>0.0.38</kiota.community.version>
-    <!-- 0.0.39 retries transient ETXTBSY during process startup (JDK-8068370). -->
+    <!-- 0.0.39 retries transient ETXTBSY during process startup
+         (https://bugs.openjdk.org/browse/JDK-8068370) and publishes
+         the binary by renaming a temporary file within the destination folder
+         (KiotaMojo.downloadAndExtract), so a concurrent module sees either no binary or a
+         complete one. That is what makes a shared kiota.binary.folder safe across builds.
+         It does not pass ATOMIC_MOVE: the guarantee is rename(2) on the default filesystem
+         provider, not the API, so it holds on the POSIX systems this builds on and not on
+         Windows, where a rename over a file another process has open fails instead. -->
     <kiota.maven.plugin.version>0.0.39</kiota.maven.plugin.version>
 
     <kiota.version>1.28.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
-    <kiota.binary.folder>${session.executionRootDirectory}/target/kiota-binary</kiota.binary.folder>
+    <!-- Deliberately in the local repository, not under target/. KiotaMojo skips the download
+         when <folder>/<kiota.version>/<binary> exists, so the binary survives `mvn clean` and
+         any workflow that caches ~/.m2/repository carries it between runs.
+         Under .cache/ rather than under io/kiota/, where the path would have the shape of a
+         resolved artifact of a groupId that really exists.
+         os.detected.classifier gives each platform its own directory, so a Linux container
+         that mounts a macOS host's ~/.m2 does not try to execute the host's binary. It
+         carries no libc component, but Kiota publishes no musl asset either, so an Alpine
+         container is no worse off here than it was before.
+         .github/scripts/validate-kiota-folder.py checks this property, the profiles and the
+         settings.localRepository anchor that can move it while leaving it reading as expected,
+         in the root pom and in the two consumers, the os-maven-plugin extension that
+         substitutes the classifier, <targetBinaryFolder> in the two java-sdk poms, and -D on
+         a workflow command line. Other routes are deliberately not checked, and they are not
+         all local. Checked into this repository, so a -D there moves the folder for every CI
+         job: .mvn/maven.config, which every Maven invocation reads; the mvnw wrapper; a
+         composite action under .github/actions; and a Makefile or Dockerfile that runs Maven.
+         The verify jobs also pass .github/ci-settings.xml with -s, so a <localRepository>
+         there is the pipeline's repository. Local only: -D on an interactive shell and a
+         developer's own settings.xml. These are accepted risks rather than blind spots:
+         asserting the resolved value at build time would cover every route at once and is
+         tracked separately, while the checks above are what catch the two routes a
+         resolved-value check cannot see, the extension missing and a consumer hardcoding
+         the folder. -->
+    <kiota.binary.folder>${settings.localRepository}/.cache/kiota-binary/${os.detected.classifier}</kiota.binary.folder>
 
     <!-- Groovy scripting -->
     <groovy.version>5.1.1</groovy.version>
@@ -1058,6 +1089,19 @@
   </dependencyManagement>
 
   <build>
+    <extensions>
+      <!-- Sets os.detected.*, which kiota.binary.folder uses to give each platform its own
+           cache directory. Declared at the root so the substitution holds in every
+           invocation shape: a module-level declaration does resolve the root property in a
+           from-root reactor build, but an -N build of the root alone leaves the placeholder
+           literal. Extensions are inherited, so any module that registers this one locally is
+           doing so redundantly. -->
+      <extension>
+        <groupId>kr.motd.maven</groupId>
+        <artifactId>os-maven-plugin</artifactId>
+        <version>${os-maven-plugin.version}</version>
+      </extension>
+    </extensions>
     <pluginManagement>
       <plugins>
         <plugin>

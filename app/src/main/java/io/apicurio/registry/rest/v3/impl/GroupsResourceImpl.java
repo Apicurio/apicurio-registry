@@ -6,7 +6,6 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.OwnershipTransferAuthorizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.contracts.ContractLabels;
-import io.apicurio.registry.storage.dto.PromotionStage;
 import io.apicurio.registry.contracts.odcs.OdcsContract;
 import io.apicurio.registry.contracts.odcs.OdcsParser;
 import io.apicurio.registry.contracts.odcs.OdcsExporter;
@@ -795,6 +794,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());
+        config.setOnFailure(data.getOnFailure() != null
+                ? RuleAction.valueOf(data.getOnFailure().value()) : RuleAction.ERROR);
 
         if (!storage.isGroupExists(new GroupId(groupId).getRawGroupIdWithNull())) {
             throw new GroupNotFoundException(groupId);
@@ -818,10 +819,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
+        dto.setOnFailure(data.getOnFailure() != null
+                ? RuleAction.valueOf(data.getOnFailure().value())
+                : storage.getGroupRule(new GroupId(groupId).getRawGroupIdWithNull(), ruleType)
+                        .getOnFailure());
         storage.updateGroupRule(new GroupId(groupId).getRawGroupIdWithNull(), ruleType, dto);
         Rule rval = new Rule();
         rval.setRuleType(ruleType);
         rval.setConfig(data.getConfig());
+        rval.setOnFailure(Rule.OnFailure.fromValue(dto.getOnFailure().name()));
         return rval;
     }
 
@@ -846,6 +852,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Rule rval = new Rule();
         rval.setConfig(dto.getConfiguration());
         rval.setRuleType(ruleType);
+        rval.setOnFailure(Rule.OnFailure.fromValue(dto.getOnFailure().name()));
         return rval;
     }
 
@@ -892,6 +899,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         RuleConfigurationDto config = new RuleConfigurationDto();
         config.setConfiguration(data.getConfig());
+        config.setOnFailure(data.getOnFailure() != null
+                ? RuleAction.valueOf(data.getOnFailure().value()) : RuleAction.ERROR);
 
         if (!storage.isArtifactExists(new GroupId(groupId).getRawGroupIdWithNull(), artifactId)) {
             throw new ArtifactNotFoundException(groupId, artifactId);
@@ -932,6 +941,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         Rule rval = new Rule();
         rval.setConfig(dto.getConfiguration());
         rval.setRuleType(ruleType);
+        rval.setOnFailure(Rule.OnFailure.fromValue(dto.getOnFailure().name()));
         return rval;
     }
 
@@ -956,10 +966,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         RuleConfigurationDto dto = new RuleConfigurationDto(data.getConfig());
+        dto.setOnFailure(data.getOnFailure() != null
+                ? RuleAction.valueOf(data.getOnFailure().value())
+                : storage.getArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
+                        ruleType).getOnFailure());
         storage.updateArtifactRule(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, ruleType, dto);
         Rule rval = new Rule();
         rval.setRuleType(ruleType);
         rval.setConfig(data.getConfig());
+        rval.setOnFailure(Rule.OnFailure.fromValue(dto.getOnFailure().name()));
         return rval;
     }
 

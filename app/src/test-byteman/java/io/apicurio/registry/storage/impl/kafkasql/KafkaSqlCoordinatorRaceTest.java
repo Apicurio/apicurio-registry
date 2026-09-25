@@ -18,6 +18,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
@@ -72,6 +73,17 @@ class KafkaSqlCoordinatorRaceTest {
      * the waiter parked for the whole freeze budget with no error anywhere.
      */
     private static final String RENDEZVOUS_KEY = "coordinator-race";
+
+    private static final String RACE_THREAD_PREFIX = "coordinator-race-";
+
+    /**
+     * Leads both rule conditions. The rules target the class, so without it a waitForResponse or
+     * notifyResponse from any other coordinator in the fork, such as a Quarkus app left running
+     * by an earlier test, could fire the freeze or take the release. {@code @Isolated} does not
+     * cover those background threads.
+     */
+    private static final String ON_RACE_THREAD = "java.lang.Thread.currentThread().getName()"
+            + ".startsWith(\"" + RACE_THREAD_PREFIX + "\")";
 
     /**
      * The pass criterion (see the class javadoc). Written before signalWake, so it records that
@@ -154,7 +166,7 @@ class KafkaSqlCoordinatorRaceTest {
             targetClass = "io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator",
             targetMethod = "waitForResponse",
             targetLocation = "AT INVOKE java.util.concurrent.ConcurrentHashMap.remove",
-            condition = "NOT flagged(\"" + FLAG_WAITER_FROZEN + "\")",
+            condition = ON_RACE_THREAD + " AND NOT flagged(\"" + FLAG_WAITER_FROZEN + "\")",
             action = "flag(\"" + FLAG_WAITER_FROZEN + "\");"
                     + "java.lang.System.setProperty(\"" + PROP_WAITER_FROZEN + "\", \"true\");"
                     + "waitFor(\"" + RENDEZVOUS_KEY + "\", " + FREEZE_BUDGET_MS + ");"
@@ -189,7 +201,8 @@ class KafkaSqlCoordinatorRaceTest {
             //
             // The cost is a notifier that cannot be interrupted out of the block. A third notify
             // landing inside the freeze would hang it; the bounded get keeps that diagnosable.
-            condition = "flagged(\"" + FLAG_WAITER_FROZEN + "\") "
+            condition = ON_RACE_THREAD
+                    + " AND flagged(\"" + FLAG_WAITER_FROZEN + "\") "
                     + "AND NOT flagged(\"" + FLAG_WAITER_RESUMED + "\") "
                     + "AND NOT flagged(\"" + FLAG_WAITER_RELEASED + "\")",
             action = "flag(\"" + FLAG_WAITER_RELEASED + "\");"
@@ -198,7 +211,7 @@ class KafkaSqlCoordinatorRaceTest {
     })
     void testNotifyDuringCleanupWindowDoesNotCrashOrDeadlock() throws Exception {
         UUID uuid = coordinator.createUUID();
-        ExecutorService executor = Executors.newFixedThreadPool(2);
+        ExecutorService executor = raceExecutor();
 
         // Assigned in the finally and checked after it, so a failure inside the try is not masked
         // while the drain still runs on every exit path. When the try does fail, the drain result
@@ -212,7 +225,8 @@ class KafkaSqlCoordinatorRaceTest {
             });
 
             Future<?> notifierFuture = executor.submit(() -> {
-                await().atMost(Duration.ofMillis(NOTIFIER_ARM_TIMEOUT_MS))
+                await("waiter reached the cleanup window")
+                        .atMost(Duration.ofMillis(NOTIFIER_ARM_TIMEOUT_MS))
                         .pollInterval(Duration.ofMillis(10))
                         .until(() -> "true".equals(System.getProperty(PROP_WAITER_FROZEN)));
                 coordinator.notifyResponse(uuid, "second-response");
@@ -245,6 +259,13 @@ class KafkaSqlCoordinatorRaceTest {
         if (drainFailure != null) {
             Assertions.fail(drainFailure);
         }
+    }
+
+    /** Names the worker threads so {@link #ON_RACE_THREAD} matches them. */
+    private static ExecutorService raceExecutor() {
+        AtomicInteger counter = new AtomicInteger();
+        return Executors.newFixedThreadPool(2,
+                r -> new Thread(r, RACE_THREAD_PREFIX + counter.incrementAndGet()));
     }
 
     /**

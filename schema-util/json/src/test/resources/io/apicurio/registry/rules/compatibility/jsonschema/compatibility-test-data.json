@@ -20,8 +20,7 @@
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "string"
       },
-      "updated": true,
-      "skipApitomy": "Boolean root schema not supported until union-as-root (G1)"
+      "updated": true
     },
     {
       "enabled": true,
@@ -2550,7 +2549,9 @@
     {
       "enabled": true,
       "id": "Complex: oneOf 1",
-      "compatibility": "backward",
+      "skipLegacy": "The legacy checker compares oneOf like anyOf: after the change a string of 6 to 10 characters matches both branches, which oneOf rejects (Apitomy/apitomy-data-models#1232).",
+      "skipApitomy": "Over-strict forward, like the legacy checker: narrowing the maxLength branch only removes strings that matched both branches and were invalid anyway, which branch-by-branch matching does not see (Apitomy/apitomy-data-models#1042, CC10).",
+      "compatibility": "forward",
       "original": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "oneOf": [
@@ -2604,7 +2605,8 @@
     {
       "enabled": true,
       "id": "Complex: oneOf 3",
-      "compatibility": "backward",
+      "skipLegacy": "The legacy checker compares oneOf like anyOf: after the change a value can match two branches, which oneOf rejects (Apitomy/apitomy-data-models#1232).",
+      "compatibility": "none",
       "original": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "oneOf": [
@@ -2848,6 +2850,7 @@
     {
       "enabled": true,
       "id": "Conditional: then",
+      "skipApitomy": "Deliberately conservative: an added 'type' in a 'then'/'else' branch is judged without the enclosing schema, which already fixes it (Apitomy/apitomy-data-models#1242).",
       "compatibility": "backward",
       "original": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -2929,6 +2932,7 @@
     {
       "enabled": true,
       "id": "Conditional: else",
+      "skipApitomy": "Deliberately conservative: an added 'type' in a 'then'/'else' branch is judged without the enclosing schema, which already fixes it (Apitomy/apitomy-data-models#1242).",
       "compatibility": "backward",
       "original": {
         "$schema": "http://json-schema.org/draft-07/schema#",

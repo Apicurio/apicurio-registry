@@ -25,6 +25,8 @@ import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.OutboxEvent;
+import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.dto.PeerSearchResultsDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
@@ -969,6 +971,47 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void deleteRoleMapping(String principalId) throws RegistryStorageException;
 
     /**
+     * Creates a peer registry.
+     *
+     * @param peer
+     */
+    void createPeer(PeerDto peer) throws RegistryStorageException;
+
+    /**
+     * Gets the details of a single peer registry.
+     *
+     * @param peerId
+     */
+    PeerDto getPeer(String peerId) throws RegistryStorageException;
+
+    /**
+     * Gets the list of all the peer registries.
+     */
+    List<PeerDto> getPeers() throws RegistryStorageException;
+
+    /**
+     * Search for peer registries.
+     *
+     * @param offset the number of peers to skip
+     * @param limit the result size limit
+     */
+    PeerSearchResultsDto searchPeers(int offset, int limit) throws RegistryStorageException;
+
+    /**
+     * Updates a single peer registry.
+     *
+     * @param peer
+     */
+    void updatePeer(PeerDto peer) throws RegistryStorageException;
+
+    /**
+     * Deletes a single peer registry.
+     *
+     * @param peerId
+     */
+    void deletePeer(String peerId) throws RegistryStorageException;
+
+    /**
      * Deletes ALL user data. Does not delete global data, such as log configuration.
      */
     void deleteAllUserData();
@@ -1208,6 +1251,8 @@ public interface RegistryStorage extends DynamicConfigStorage {
     boolean isGlobalRuleExists(RuleType rule) throws RegistryStorageException;
 
     boolean isRoleMappingExists(String principalId);
+
+    boolean isPeerExists(String peerId);
 
     void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash);
 

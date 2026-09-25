@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 110);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 109);
 
 CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -15,10 +15,6 @@ CREATE INDEX IDX_config_1 ON config(modifiedOn);
 
 CREATE TABLE acls (principalId VARCHAR(256) NOT NULL, role VARCHAR(32) NOT NULL, principalName VARCHAR(256));
 ALTER TABLE acls ADD PRIMARY KEY (principalId);
-
-CREATE TABLE peers (peerId VARCHAR(256) NOT NULL, url VARCHAR(1024) NOT NULL, name VARCHAR(512), description VARCHAR(1024), enabled BOOLEAN NOT NULL DEFAULT TRUE, credentialSecretRef VARCHAR(256));
-ALTER TABLE peers ADD PRIMARY KEY (peerId);
-CREATE INDEX IDX_peers_1 ON peers(enabled);
 
 CREATE TABLE downloads (downloadId VARCHAR(128) NOT NULL, expires BIGINT NOT NULL, context VARCHAR(1024));
 ALTER TABLE downloads ADD PRIMARY KEY (downloadId);

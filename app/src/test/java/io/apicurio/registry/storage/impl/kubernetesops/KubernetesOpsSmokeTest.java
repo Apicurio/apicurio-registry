@@ -27,7 +27,9 @@ import static java.util.Objects.requireNonNull;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(KubernetesOpsTestProfile.class)
@@ -83,6 +85,16 @@ class KubernetesOpsSmokeTest {
         assertEquals(YAMLObjectMapper.YAML_MAPPER.readTree(content.bytes()),
                 YAMLObjectMapper.YAML_MAPPER.readTree(version.getContent().bytes()));
 
+        // Peers
+        var peers = storage.getPeers();
+        assertEquals(1, peers.size());
+        var peer = peers.get(0);
+        assertEquals("eu-registry", peer.getPeerId());
+        assertEquals("https://registry.eu.example.com", peer.getUrl());
+        assertEquals("EU registry", peer.getName());
+        assertTrue(peer.isEnabled());
+        assertEquals("eu-registry", peer.getCredentialSecretRef());
+
         // Waiting to load smoke02
         configMapStore.load("git/smoke02");
         await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
@@ -104,10 +116,41 @@ class KubernetesOpsSmokeTest {
         content = loadFile("git/smoke02/content/Person.json");
         assertEquals(MAPPER.readTree(content.bytes()), MAPPER.readTree(version.getContent().bytes()));
 
+        // Peers removed (omitted/empty peers list wipes the previously loaded peer)
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
+
         // Waiting to load empty
         configMapStore.load("git/empty");
         await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
                 equalTo(Set.of()));
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
+    }
+
+    @Test
+    void peerReloadUpdatesFieldsAndOmittedEnabledDefaultsToTrue() throws Exception {
+        var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
+
+        configMapStore.load("git/peers-update-1");
+        await().atMost(Duration.ofSeconds(30)).until(() -> storage.getPeers().size(), equalTo(1));
+        var before = storage.getPeers().get(0);
+        assertEquals("update-test-peer", before.getPeerId());
+        assertEquals("https://before.example.com", before.getUrl());
+        assertEquals("Before Update", before.getName());
+        assertFalse(before.isEnabled());
+        assertEquals("before-cred", before.getCredentialSecretRef());
+
+        // Reload the same peer id with different field values and enabled omitted entirely.
+        configMapStore.load("git/peers-update-2");
+        await().atMost(Duration.ofSeconds(30))
+                .until(() -> storage.getPeers().size() == 1
+                        && "https://after.example.com".equals(storage.getPeers().get(0).getUrl()));
+        var after = storage.getPeers().get(0);
+        assertEquals("update-test-peer", after.getPeerId());
+        assertEquals("After Update", after.getName());
+        // enabled is omitted in this load; it must default to true fresh, not carry over the
+        // previous load's explicit enabled: false.
+        assertTrue(after.isEnabled());
+        assertEquals("after-cred", after.getCredentialSecretRef());
     }
 
     @ActivateRequestContext

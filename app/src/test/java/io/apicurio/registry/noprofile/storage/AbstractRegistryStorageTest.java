@@ -11,6 +11,9 @@ import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.InvalidPeerException;
+import io.apicurio.registry.storage.error.PeerAlreadyExistsException;
+import io.apicurio.registry.storage.error.PeerNotFoundException;
 import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
@@ -922,6 +925,110 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     }
 
     @Test
+    public void testPeers() {
+        storage().deleteAllUserData();
+        try {
+            testPeersBody();
+        } finally {
+            // Runs even if an assertion above fails, so a failed run does not leave peer rows
+            // behind for the next test in this class (or the next run of this one) to trip over.
+            storage().deleteAllUserData();
+        }
+    }
+
+    private void testPeersBody() {
+        Assertions.assertTrue(storage().getPeers().isEmpty());
+
+        PeerDto peer1 = PeerDto.builder().peerId("peer-test-1").url("https://peer1.example.com")
+                .name("Peer One").description("First test peer").enabled(true)
+                .credentialSecretRef("peer1-cred").build();
+        PeerDto peer2 = PeerDto.builder().peerId("peer-test-2").url("https://peer2.example.com")
+                .enabled(true).build();
+        PeerDto peer3 = PeerDto.builder().peerId("peer-test-3").url("https://peer3.example.com")
+                .enabled(false).build();
+
+        storage().createPeer(peer1);
+        storage().createPeer(peer2);
+        storage().createPeer(peer3);
+
+        PeerDto fetched = storage().getPeer("peer-test-1");
+        Assertions.assertEquals("peer-test-1", fetched.getPeerId());
+        Assertions.assertEquals("https://peer1.example.com", fetched.getUrl());
+        Assertions.assertEquals("Peer One", fetched.getName());
+        Assertions.assertEquals("First test peer", fetched.getDescription());
+        Assertions.assertTrue(fetched.isEnabled());
+        Assertions.assertEquals("peer1-cred", fetched.getCredentialSecretRef());
+
+        List<PeerDto> all = storage().getPeers();
+        Assertions.assertEquals(3, all.size());
+        Assertions.assertTrue(all.stream()
+                .anyMatch(p -> "peer-test-3".equals(p.getPeerId()) && !p.isEnabled()));
+
+        PeerSearchResultsDto page1 = storage().searchPeers(0, 2);
+        Assertions.assertEquals(3, page1.getCount());
+        Assertions.assertEquals(2, page1.getPeers().size());
+        Assertions.assertEquals("peer-test-1", page1.getPeers().get(0).getPeerId());
+        Assertions.assertEquals("peer-test-2", page1.getPeers().get(1).getPeerId());
+
+        PeerSearchResultsDto page2 = storage().searchPeers(2, 2);
+        Assertions.assertEquals(3, page2.getCount());
+        Assertions.assertEquals(1, page2.getPeers().size());
+        Assertions.assertEquals("peer-test-3", page2.getPeers().get(0).getPeerId());
+
+        Assertions.assertThrows(PeerAlreadyExistsException.class, () -> storage().createPeer(peer1));
+
+        PeerDto updated = PeerDto.builder().peerId("peer-test-1")
+                .url("https://peer1-updated.example.com").name("Peer One Updated")
+                .description("Updated description").enabled(false)
+                .credentialSecretRef("peer1-cred-updated").build();
+        storage().updatePeer(updated);
+        PeerDto reFetched = storage().getPeer("peer-test-1");
+        Assertions.assertEquals("https://peer1-updated.example.com", reFetched.getUrl());
+        Assertions.assertEquals("Peer One Updated", reFetched.getName());
+        Assertions.assertEquals("Updated description", reFetched.getDescription());
+        Assertions.assertFalse(reFetched.isEnabled());
+        Assertions.assertEquals("peer1-cred-updated", reFetched.getCredentialSecretRef());
+
+        Assertions.assertThrows(PeerNotFoundException.class, () -> storage()
+                .updatePeer(PeerDto.builder().peerId("peer-does-not-exist").url("https://x.example.com").build()));
+
+        storage().deletePeer("peer-test-1");
+        Assertions.assertThrows(PeerNotFoundException.class, () -> storage().getPeer("peer-test-1"));
+
+        Assertions.assertThrows(PeerNotFoundException.class, () -> storage().deletePeer("peer-does-not-exist"));
+        Assertions.assertThrows(PeerNotFoundException.class, () -> storage().getPeer("peer-does-not-exist"));
+
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage()
+                .createPeer(PeerDto.builder().peerId("local").url("https://x.example.com").build()));
+
+        Assertions.assertThrows(InvalidPeerException.class,
+                () -> storage().createPeer(PeerDto.builder().peerId("peer-test-invalid-1")
+                        .url("https://x.example.com").credentialSecretRef("../etc/passwd").build()));
+
+        Assertions.assertThrows(InvalidPeerException.class,
+                () -> storage().createPeer(PeerDto.builder().peerId("peer-test-invalid-2")
+                        .url("https://user:pass@x.example.com").build()));
+
+        // Peer ids are lowercase-only so identity is consistent across SQL dialects: MySQL's
+        // peers table collates case-insensitively, so an uppercase id would address a different
+        // row than the same id in lowercase on Postgres/H2 if it were allowed through. Covered
+        // here (not just at the validator level) so it is exercised against a real MySQL
+        // database too, via MysqlStorageTest extending this class.
+        Assertions.assertThrows(InvalidPeerException.class,
+                () -> storage().createPeer(PeerDto.builder().peerId("Peer-Test-Case")
+                        .url("https://case.example.com").build()));
+
+        // Case rejection also applies on update, not just create.
+        PeerDto lowercaseForUpdateCheck = PeerDto.builder().peerId("peer-test-case-update")
+                .url("https://case-update.example.com").enabled(true).build();
+        storage().createPeer(lowercaseForUpdateCheck);
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage()
+                .updatePeer(PeerDto.builder().peerId("PEER-TEST-CASE-UPDATE")
+                        .url("https://case-update-2.example.com").build()));
+        storage().deletePeer("peer-test-case-update");
+    }
+
+    @Test
     public void testSearchGroups() throws Exception {
         String groupIdPrefix = "testSearchGroups-";
         for (int idx = 1; idx <= 50; idx++) {
@@ -1180,6 +1287,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         final String artifactId2 = "testArtifact-2";
         final String principal = "testPrincipal";
         final String role = "testRole";
+        final String peerId = "test-peer";
 
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         storage().createGroup(GroupMetaDataDto.builder().groupId(group1).build());
@@ -1202,6 +1310,8 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         storage().createGlobalRule(RuleType.VALIDITY,
                 RuleConfigurationDto.builder().configuration("FULL").build());
         storage().createRoleMapping(principal, role, null);
+        storage().createPeer(PeerDto.builder().peerId(peerId).url("https://peer.example.com").enabled(true)
+                .build());
 
         // Verify data exists
 
@@ -1212,6 +1322,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
                 storage().getArtifactVersionContent(group2, artifactId2, artifactDto2.getVersion()));
         Assertions.assertEquals(1, storage().getGlobalRules().size());
         Assertions.assertEquals(role, storage().getRoleForPrincipal(principal));
+        Assertions.assertEquals(peerId, storage().getPeer(peerId).getPeerId());
     }
 
     private int countStorageEntities() {
@@ -1227,6 +1338,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         int res = count.get();
         // Count data that is not exported
         res += storage().getRoleMappings().size();
+        res += storage().getPeers().size();
         return res;
     }
 
@@ -1235,7 +1347,7 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         // Delete first to cleanup after other tests
         storage().deleteAllUserData();
         createSomeUserData();
-        Assertions.assertEquals(12, countStorageEntities());
+        Assertions.assertEquals(13, countStorageEntities());
         storage().deleteAllUserData();
         Assertions.assertEquals(0, countStorageEntities());
     }

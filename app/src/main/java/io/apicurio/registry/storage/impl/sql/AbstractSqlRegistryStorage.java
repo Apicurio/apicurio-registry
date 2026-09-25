@@ -166,6 +166,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     SqlCommentRepository commentRepository;
     SqlConfigRepository configRepository;
     SqlRoleMappingRepository roleMappingRepository;
+    SqlPeerRepository peerRepository;
     SqlDownloadRepository downloadRepository;
     SqlSequenceRepository sequenceRepository;
     SqlExportRepository exportRepository;
@@ -272,6 +273,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         sequenceRepository = new SqlSequenceRepository(handleFactory, sqlStatements, log);
         configRepository = new SqlConfigRepository(handleFactory, sqlStatements, log);
         roleMappingRepository = new SqlRoleMappingRepository(handleFactory, sqlStatements, log);
+        peerRepository = new SqlPeerRepository(handleFactory, sqlStatements, log);
         downloadRepository = new SqlDownloadRepository(handleFactory, sqlStatements, log);
         eventRepository = new SqlEventRepository(handleFactory, sqlStatements, log, eventsTopic);
         usageRepository = new SqlUsageRepository(handleFactory, sqlStatements);
@@ -1466,6 +1468,42 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public void createPeer(PeerDto peer) throws RegistryStorageException {
+
+        peerRepository.createPeer(peer);
+    }
+
+    @Override
+    public PeerDto getPeer(String peerId) throws RegistryStorageException {
+
+        return peerRepository.getPeer(peerId);
+    }
+
+    @Override
+    public List<PeerDto> getPeers() throws RegistryStorageException {
+
+        return peerRepository.getPeers();
+    }
+
+    @Override
+    public PeerSearchResultsDto searchPeers(int offset, int limit) throws RegistryStorageException {
+
+        return peerRepository.searchPeers(offset, limit);
+    }
+
+    @Override
+    public void updatePeer(PeerDto peer) throws RegistryStorageException {
+
+        peerRepository.updatePeer(peer);
+    }
+
+    @Override
+    public void deletePeer(String peerId) throws RegistryStorageException {
+
+        peerRepository.deletePeer(peerId);
+    }
+
+    @Override
     public String createDownload(DownloadContextDto context) throws RegistryStorageException {
 
         return downloadRepository.createDownload(context);
@@ -1676,6 +1714,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public boolean isRoleMappingExists(String principalId) {
 
         return roleMappingRepository.isRoleMappingExists(principalId);
+    }
+
+    @Override
+    public boolean isPeerExists(String peerId) {
+
+        return peerRepository.isPeerExists(peerId);
     }
 
     @Override

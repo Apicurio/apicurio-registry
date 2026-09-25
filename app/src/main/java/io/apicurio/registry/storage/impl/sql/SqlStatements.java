@@ -638,6 +638,26 @@ public interface SqlStatements {
     public String selectRoleMappingCountByPrincipal();
 
     /*
+     * The next few statements support peers
+     */
+
+    public String insertPeer();
+
+    public String deletePeer();
+
+    public String deleteAllPeers();
+
+    public String selectPeerById();
+
+    public String selectPeers();
+
+    public String countPeers();
+
+    public String updatePeer();
+
+    public String selectPeerCountById();
+
+    /*
      * The next few statements support group rule management.
      */
 

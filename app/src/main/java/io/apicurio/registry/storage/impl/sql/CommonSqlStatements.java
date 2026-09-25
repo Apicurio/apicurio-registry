@@ -1100,6 +1100,70 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertPeer()
+     */
+    @Override
+    public String insertPeer() {
+        return "INSERT INTO peers (peerId, url, name, description, enabled, credentialSecretRef) VALUES (?, ?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deletePeer()
+     */
+    @Override
+    public String deletePeer() {
+        return "DELETE FROM peers WHERE peerId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteAllPeers()
+     */
+    @Override
+    public String deleteAllPeers() {
+        return "DELETE FROM peers ";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectPeerById()
+     */
+    @Override
+    public String selectPeerById() {
+        return "SELECT p.* FROM peers p WHERE p.peerId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectPeers()
+     */
+    @Override
+    public String selectPeers() {
+        return "SELECT p.* FROM peers p ORDER BY p.peerId";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#countPeers()
+     */
+    @Override
+    public String countPeers() {
+        return "SELECT count(p.peerId) FROM peers p ";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updatePeer()
+     */
+    @Override
+    public String updatePeer() {
+        return "UPDATE peers SET url = ?, name = ?, description = ?, enabled = ?, credentialSecretRef = ? WHERE peerId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectPeerCountById()
+     */
+    @Override
+    public String selectPeerCountById() {
+        return "SELECT COUNT(p.peerId) FROM peers p WHERE p.peerId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertDownload()
      */
     @Override

@@ -513,13 +513,47 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals(VersionState.DEPRECATED, v2.getState());
     }
 
+    private ArtifactVersionMetaDataDto updateAndVerifyTime(String groupId, String artifactId, String version, EditableVersionMetaDataDto dto, long previousModifiedOn) throws Exception {
+        // Execute the update exactly once
+        storage().updateArtifactVersionMetaData(groupId, artifactId, version, dto);
+
+        // Read the metadata
+        ArtifactVersionMetaDataDto metaData = storage().getArtifactVersionMetaData(groupId, artifactId, version);
+
+        // Poll the READ until the timestamp advances (accommodating async storage like KafkaSQL)
+        // Never call the update again in this loop.
+        int attempts = 0;
+        while (metaData.getModifiedOn() <= previousModifiedOn && attempts < 50) {
+            Thread.sleep(50);
+            metaData = storage().getArtifactVersionMetaData(groupId, artifactId, version);
+            attempts++;
+        }
+
+        // Functional assertions should happen outside the polling logic
+        Assertions.assertTrue(metaData.getModifiedOn() > previousModifiedOn, "modifiedOn should be refreshed (was " + metaData.getModifiedOn() + ", previous was " + previousModifiedOn + ")");
+        return metaData;
+    }
+
     @Test
     public void testUpdateArtifactVersionMetaData() throws Exception {
-        String artifactId = "testUpdateArtifactVersionMetaData-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
         EditableVersionMetaDataDto versionMetaDataDto = EditableVersionMetaDataDto.builder().name("Empty API")
                 .description("An example API design using OpenAPI.").build();
+
+        // 0. Determine the default test identity dynamically
+        String dummyArtifactId = "testUpdateArtifactVersionMetaData-dummy";
+        storage().createArtifact(GROUP_ID, dummyArtifactId, ArtifactType.OPENAPI,
+                null, null, ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                        .content(content).build(),
+                versionMetaDataDto, Collections.emptyList(), false, false, null);
+        storage().updateArtifactVersionMetaData(GROUP_ID, dummyArtifactId, "1", EditableVersionMetaDataDto.builder().name("dummy").build());
+        String defaultPrincipal = storage().getArtifactVersionMetaData(GROUP_ID, dummyArtifactId, "1").getModifiedBy();
+
+        // Ensure we use a creation owner that is definitively different from the test's default principal
         String staleOwner = "stale-creation-user";
+        Assertions.assertNotEquals(defaultPrincipal, staleOwner, "Test setup error: staleOwner must be different from default test principal");
+
+        String artifactId = "testUpdateArtifactVersionMetaData-1";
         ArtifactVersionMetaDataDto dto = storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
                 null, null, ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
                         .content(content).build(),
@@ -531,20 +565,61 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         Assertions.assertEquals("An example API design using OpenAPI.", dto.getDescription());
         Assertions.assertNull(dto.getLabels());
         Assertions.assertEquals("1", dto.getVersion());
+        Assertions.assertEquals(staleOwner, dto.getOwner()); // Will map to initial modifiedBy as well
         Assertions.assertEquals(staleOwner, dto.getModifiedBy());
 
-        String newName = "Updated Name";
-        String newDescription = "Updated description.";
+        long originalModifiedOn = dto.getModifiedOn();
+
+        // a) name-only update
+        EditableVersionMetaDataDto nameOnly = EditableVersionMetaDataDto.builder().name("Updated Name").build();
+        ArtifactVersionMetaDataDto metaData1 = updateAndVerifyTime(GROUP_ID, artifactId, "1", nameOnly, originalModifiedOn);
+        Assertions.assertEquals("Updated Name", metaData1.getName());
+        Assertions.assertEquals(defaultPrincipal, metaData1.getModifiedBy());
+
+        long newModifiedOn1 = metaData1.getModifiedOn();
+
+        // b) description-only update
+        EditableVersionMetaDataDto descOnly = EditableVersionMetaDataDto.builder().description("Updated description.").build();
+        ArtifactVersionMetaDataDto metaData2 = updateAndVerifyTime(GROUP_ID, artifactId, "1", descOnly, newModifiedOn1);
+        Assertions.assertEquals("Updated description.", metaData2.getDescription());
+        Assertions.assertEquals(defaultPrincipal, metaData2.getModifiedBy());
+
+        long newModifiedOn2 = metaData2.getModifiedOn();
+
+        // c) labels-only update
         Map<String, String> newLabels = new HashMap<>();
         newLabels.put("foo", "bar");
-        newLabels.put("ting", "bin");
-        EditableVersionMetaDataDto emd = new EditableVersionMetaDataDto(newName, newDescription, newLabels);
-        storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1", emd);
+        EditableVersionMetaDataDto labelsOnly = EditableVersionMetaDataDto.builder().labels(newLabels).build();
+        ArtifactVersionMetaDataDto metaData3 = updateAndVerifyTime(GROUP_ID, artifactId, "1", labelsOnly, newModifiedOn2);
+        Assertions.assertEquals(newLabels, metaData3.getLabels());
+        Assertions.assertEquals(defaultPrincipal, metaData3.getModifiedBy());
 
-        ArtifactVersionMetaDataDto metaData = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
-        Assertions.assertNotNull(metaData);
-        Assertions.assertEquals(newName, metaData.getName());
-        Assertions.assertEquals(newDescription, metaData.getDescription());
+        long newModifiedOn3 = metaData3.getModifiedOn();
+
+        // d) update containing multiple fields
+        Map<String, String> multiLabels = new HashMap<>();
+        multiLabels.put("ting", "bin");
+        EditableVersionMetaDataDto multiUpdate = EditableVersionMetaDataDto.builder()
+                .name("Multi Name")
+                .description("Multi Desc")
+                .labels(multiLabels)
+                .build();
+        ArtifactVersionMetaDataDto metaData4 = updateAndVerifyTime(GROUP_ID, artifactId, "1", multiUpdate, newModifiedOn3);
+        Assertions.assertEquals("Multi Name", metaData4.getName());
+        Assertions.assertEquals("Multi Desc", metaData4.getDescription());
+        Assertions.assertEquals(multiLabels, metaData4.getLabels());
+        Assertions.assertEquals(defaultPrincipal, metaData4.getModifiedBy());
+
+        // e) empty/no-op update
+        EditableVersionMetaDataDto emptyUpdate = EditableVersionMetaDataDto.builder().build();
+        storage().updateArtifactVersionMetaData(GROUP_ID, artifactId, "1", emptyUpdate);
+
+        ArtifactVersionMetaDataDto metaData5 = storage().getArtifactVersionMetaData(GROUP_ID, artifactId, "1");
+        // modifiedOn and modifiedBy should NOT have changed since no fields were updated
+        // Note: Because there's no storage abstraction to test outbox events directly here,
+        // asserting no timestamp change acts as our verification that the update was skipped.
+        Assertions.assertEquals(metaData4.getModifiedOn(), metaData5.getModifiedOn());
+        Assertions.assertEquals(defaultPrincipal, metaData5.getModifiedBy());
     }
 
     @Test

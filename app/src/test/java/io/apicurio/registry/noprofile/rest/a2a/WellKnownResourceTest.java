@@ -15,6 +15,8 @@ import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import java.util.UUID;
+import java.util.List;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -29,6 +31,44 @@ import static org.hamcrest.Matchers.notNullValue;
 @QuarkusTest
 @TestProfile(ExperimentalFeaturesEnabledProfile.class)
 public class WellKnownResourceTest extends AbstractResourceTestBase {
+
+    @Test
+    public void longSkillIdsRemainDiscoverableWithoutPrefixCollisions() throws Exception {
+        String group = TestUtils.generateGroupId();
+        String skill = "long-" + UUID.randomUUID() + "x".repeat(260);
+        createAgentCard(group,"long-skill",AGENT_CARD_CONTENT.replace("test-skill",skill));
+        createAgentCard(group,"long-skill-other",AGENT_CARD_CONTENT.replace("test-skill",skill + "other"));
+        givenAtRoot().queryParam("skill",skill).get("/.well-known/agents").then().statusCode(200)
+                .body("count",equalTo(1)).body("agents[0].artifactId", equalTo("long-skill"));
+        givenAtRoot().queryParam("skill",skill + "other").get("/.well-known/agents").then().statusCode(200)
+                .body("count",equalTo(1)).body("agents[0].artifactId", equalTo("long-skill-other"));
+    }
+
+    @Test
+    public void blankStructuredFiltersReturnClientErrors() {
+        for (String parameter : List.of("skill", "capability", "inputMode", "outputMode")) {
+            for (String value : List.of("", " ", "\t")) {
+                givenAtRoot().queryParam(parameter, value).get("/.well-known/agents").then()
+                        .statusCode(400);
+            }
+        }
+        for (String value : List.of(":false", "streaming:", "streaming: ", "streaming:unknown")) {
+            givenAtRoot().queryParam("capability", value).get("/.well-known/agents").then().statusCode(400);
+        }
+    }
+
+    @Test
+    public void structuredFiltersUsePublishedSqlIndex() throws Exception {
+        String group = TestUtils.generateGroupId();
+        String skill = "sql-" + UUID.randomUUID();
+        createAgentCard(group,"matching",AGENT_CARD_CONTENT.replace("test-skill",skill));
+        createAgentCard(group,"other",AGENT_CARD_CONTENT.replace("test-skill",skill + "-other"));
+        givenAtRoot().queryParam("skill",skill).queryParam("capability","pushNotifications:false")
+                .queryParam("inputMode","text").get("/.well-known/agents").then().statusCode(200)
+                .body("count",equalTo(1)).body("agents[0].artifactId",equalTo("matching"));
+        givenAtRoot().queryParam("skill",skill).queryParam("capability","streaming:false")
+                .get("/.well-known/agents").then().statusCode(200).body("count",equalTo(0));
+    }
 
     private String serverRootUrl;
 

@@ -13,6 +13,8 @@ import io.apicurio.registry.rest.v3.beans.Comment;
 import io.apicurio.registry.rest.v3.beans.ConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.GroupMetaData;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.Peer;
+import io.apicurio.registry.rest.v3.beans.PeerSearchResults;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
 import io.apicurio.registry.rest.v3.beans.SearchedArtifact;
@@ -32,6 +34,8 @@ import io.apicurio.registry.storage.dto.CommentDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.dto.PeerSearchResultsDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
@@ -301,6 +305,24 @@ public final class V3ApiUtil {
         results.setRoleMappings(dto.getRoleMappings().stream().map(rm -> {
             return dtoToRoleMapping(rm);
         }).collect(Collectors.toList()));
+        return results;
+    }
+
+    public static Peer dtoToPeer(PeerDto dto) {
+        Peer peer = new Peer();
+        peer.setPeerId(dto.getPeerId());
+        peer.setUrl(dto.getUrl());
+        peer.setName(dto.getName());
+        peer.setDescription(dto.getDescription());
+        peer.setEnabled(dto.isEnabled());
+        peer.setCredentialSecretRef(dto.getCredentialSecretRef());
+        return peer;
+    }
+
+    public static PeerSearchResults dtoToPeerSearchResults(PeerSearchResultsDto dto) {
+        PeerSearchResults results = new PeerSearchResults();
+        results.setCount((int) dto.getCount());
+        results.setPeers(dto.getPeers().stream().map(V3ApiUtil::dtoToPeer).collect(Collectors.toList()));
         return results;
     }
 

@@ -501,6 +501,32 @@ The following {registry} configuration options are available for each component 
 |Download link expiry
 |===
 
+== federation
+.federation configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.federation.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Enable federation with peer registries, including the peer management API _(experimental)_
+|`apicurio.federation.peer.insecure-http.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Allow peer registry URLs that use plain HTTP instead of HTTPS
+|`apicurio.federation.peer.loopback.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests
+|===
+
 == gitops
 .gitops configuration options
 [.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]

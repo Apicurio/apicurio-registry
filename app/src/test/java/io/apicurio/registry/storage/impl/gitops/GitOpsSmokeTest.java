@@ -14,6 +14,7 @@ import io.apicurio.registry.util.JsonObjectMapper;
 import io.apicurio.registry.util.YAMLObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.restassured.http.ContentType;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -23,10 +24,12 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import static io.restassured.RestAssured.get;
+import static io.restassured.RestAssured.given;
 import static java.util.Objects.requireNonNull;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.containsString;
@@ -102,6 +105,21 @@ public class GitOpsSmokeTest {
         assertEquals("EU registry", peer.getName());
         assertTrue(peer.isEnabled());
         assertEquals("eu-registry", peer.getCredentialSecretRef());
+
+        // The peer management API serves the declarative peers and rejects writes as read-only
+        get("/apis/registry/v3/admin/peers")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("peers[0].peerId", equalTo("eu-registry"))
+                .body("peers[0].url", equalTo("https://registry.eu.example.com"))
+                .body("peers[0].credentialSecretRef", equalTo("eu-registry"));
+        given().contentType(ContentType.JSON)
+                .body(Map.of("peerId", "rest-peer", "url", "https://rest.example.com"))
+                .post("/apis/registry/v3/admin/peers")
+                .then()
+                .statusCode(409)
+                .body("name", equalTo("ReadOnlyStorageException"));
 
         // --- Load smoke02: Different artifact, no rules ---
         testRepository.load("git/smoke02");

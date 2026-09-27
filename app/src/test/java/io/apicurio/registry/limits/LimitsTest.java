@@ -2,6 +2,7 @@ package io.apicurio.registry.limits;
 
 import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -9,6 +10,9 @@ import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.metrics.StorageMetricsStore;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.cdi.Current;
@@ -21,10 +25,12 @@ import jakarta.inject.Inject;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.Map;
 
 @QuarkusTest
@@ -36,9 +42,37 @@ public class LimitsTest extends AbstractResourceTestBase {
     @Current
     RegistryStorage storage;
 
+    @Inject
+    StorageMetricsStore storageMetricsStore;
+
     @BeforeAll
     public void cleanUpData() {
         storage.deleteAllUserData();
+    }
+
+    @BeforeEach
+    public void cleanUpBeforeEachTest() {
+        storage.deleteAllUserData();
+        storageMetricsStore.resetTotalSchemasCounter();
+        storageMetricsStore.resetArtifactsCounter();
+    }
+
+    @Test
+    public void testCreateArtifactVersionRejectsNameOverConfiguredLimit() throws Exception {
+        InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        Assertions.assertNotNull(jsonSchema);
+        String schema = IoUtil.toString(jsonSchema);
+        String artifactId = TestUtils.generateArtifactId();
+        createArtifact(artifactId, ArtifactType.JSON, schema, ContentTypes.APPLICATION_JSON);
+
+        EditableVersionMetaDataDto metaData = new EditableVersionMetaDataDto();
+        metaData.setName(StringUtils.repeat('a', 513));
+        ContentWrapperDto content = new ContentWrapperDto();
+        content.setContent(ContentHandle.create(schema));
+
+        Assertions.assertThrows(LimitExceededException.class, () -> storage.createArtifactVersion(
+                GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, "2", ArtifactType.JSON,
+                content, metaData, Collections.emptyList(), false, false, null));
     }
 
     @Test

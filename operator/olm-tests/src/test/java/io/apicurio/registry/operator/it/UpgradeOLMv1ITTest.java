@@ -7,6 +7,7 @@ import io.apicurio.registry.operator.utils.RetryTest;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.test.junit.QuarkusTest;
 import org.eclipse.microprofile.config.ConfigProvider;
+import org.awaitility.core.ConditionFactory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -18,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -76,6 +78,7 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
     private KubernetesClient client;
     private String namespace;
     private boolean cleanup;
+    private volatile Instant extensionFailureSince;
 
     @Override
     public KubernetesClient getClient() {
@@ -117,6 +120,7 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
 
     private void setUp() throws Exception {
         setDefaultAwaitilityTimings();
+        extensionFailureSince = null;
         namespace = ITBase.calculateNamespace();
         client = ITBase.createK8sClient(namespace);
         ITBase.createNamespace(client, namespace);
@@ -518,6 +522,7 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
      * line is dropped so OLM v1 resolves the version itself.
      */
     private void deployClusterExtension(String channel, Semver version) throws Exception {
+        extensionFailureSince = null;
         try {
             createResource(client, namespace, "olmv1/cluster-catalog.yaml");
             waitForClusterCatalogServing(client, namespace, CATALOG_NAME);
@@ -545,13 +550,72 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
         }
     }
 
+    private ConditionFactory upgradeAwait() {
+        return await().atMost(UPGRADE_TIMEOUT).ignoreExceptions()
+                .failFast("ClusterExtension installation failed", this::clusterExtensionInstallationFailed);
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean clusterExtensionInstallationFailed() {
+        try {
+            var ce = client.genericKubernetesResources("olm.operatorframework.io/v1", "ClusterExtension")
+                    .inNamespace(namespace).withName(CLUSTER_EXTENSION_NAME).get();
+            if (ce == null) {
+                extensionFailureSince = null;
+                return false;
+            }
+            var conditions = (List<Map<String, Object>>) ce.get("status", "conditions");
+            if (conditions == null) {
+                extensionFailureSince = null;
+                return false;
+            }
+            for (var condition : conditions) {
+                var message = String.valueOf(condition.get("message"));
+                var reason = String.valueOf(condition.get("reason"));
+                var type = String.valueOf(condition.get("type"));
+                var status = String.valueOf(condition.get("status"));
+
+                // Fast-fail immediately on RBAC privilege-escalation rejections
+                if (message != null && (message.contains("is attempting to grant RBAC permissions not currently held")
+                        || (message.contains("is forbidden") && message.contains("ClusterRole")))) {
+                    log.error("ClusterExtension {} RBAC privilege-escalation rejection, terminal: {}",
+                            CLUSTER_EXTENSION_NAME, message);
+                    return true;
+                }
+
+                // Check for persistent installation failure (>90s)
+                if (("Installed".equals(type) && "False".equals(status) && "Failed".equals(reason))
+                        || ("Progressing".equals(type) && "True".equals(status) && "Retrying".equals(reason))) {
+                    if (extensionFailureSince == null) {
+                        extensionFailureSince = Instant.now();
+                        log.warn("ClusterExtension {} condition failure (watching): {} - {}",
+                                CLUSTER_EXTENSION_NAME, reason, message);
+                        return false;
+                    }
+                    if (Duration.between(extensionFailureSince, Instant.now())
+                            .compareTo(Duration.ofSeconds(90)) > 0) {
+                        log.error("ClusterExtension {} failed for >90s, terminal: {} - {}",
+                                CLUSTER_EXTENSION_NAME, reason, message);
+                        return true;
+                    }
+                    return false;
+                }
+            }
+            extensionFailureSince = null;
+            return false;
+        } catch (Exception e) {
+            // Transient API errors must not trip the fail-fast check
+            return false;
+        }
+    }
+
     /**
      * Waits until a registry operator deployment ({@code apicurio-registry-operator-v*}) is ready and
      * returns the version OLM actually resolved, parsed from that deployment's name.
      */
     private Semver waitForResolvedOperatorVersion() {
         var resolved = new AtomicReference<Semver>();
-        await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+        upgradeAwait().untilAsserted(() -> {
             var ready = client.apps().deployments().inNamespace(namespace).list().getItems().stream()
                     .filter(d -> d.getMetadata().getName().startsWith(OPERATOR_DEPLOYMENT_PREFIX))
                     .filter(d -> Integer.valueOf(1).equals(d.getStatus().getReadyReplicas()))
@@ -568,7 +632,7 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
 
     private void waitForOperatorVersion(Semver version) {
         var name = deploymentName(version);
-        await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+        upgradeAwait().untilAsserted(() -> {
             var deployment = client.apps().deployments().inNamespace(namespace)
                     .withName(name).get();
             assertThat(deployment).as("Deployment " + name + " should exist").isNotNull();
@@ -581,7 +645,7 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
 
     private void verifyUpgradeTo(Semver targetVersion) {
         var name = deploymentName(targetVersion);
-        await().atMost(UPGRADE_TIMEOUT).ignoreExceptions().untilAsserted(() -> {
+        upgradeAwait().untilAsserted(() -> {
             var deployment = client.apps().deployments().inNamespace(namespace)
                     .withName(name).get();
             assertThat(deployment)
@@ -610,6 +674,7 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
                 .inNamespace(namespace)
                 .resource(ce)
                 .update();
+        extensionFailureSince = null;
         log.info("Patched ClusterExtension catalog source: channel={}, version={}", channel, version);
     }
 }

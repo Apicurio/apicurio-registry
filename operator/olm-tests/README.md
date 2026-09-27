@@ -54,14 +54,17 @@ version:
 (`apicurio-registry-operator-installer`), the one OLM v1 uses to apply the bundle. OLM v1 enforces RBAC
 escalation prevention, so the installer can only grant permissions it already holds. This role must
 therefore be a **superset** of everything the operator could be granted at runtime, including the
-SDK-generated `namespaces get/list/watch` that a watch-all-namespaces operator needs. It is not the
-operator's runtime RBAC, it is the set the installer is allowed to hand out.
+SDK-generated `namespaces get/list/watch` that a watch-all-namespaces operator needs, as well as the
+historical CR and status verbs (`create`/`delete` on `apicurioregistries3` and `apicurioregistries3/status`)
+requested by older bundles in the catalog during upgrade tests. It is not the operator's runtime RBAC,
+it is the set the installer is allowed to hand out.
 
 `RbacInstallerSyncTest` (in the controller module) guards this superset relationship against the
 operator's declared RBAC in `controller/src/main/deploy/rbac/namespaced`, plus the
 `namespaces get/list/watch` rule that OLM v1 injects via AllNamespaces promotion (which is not declared
-there). Both the declared workload verbs and the promotion-injected `namespaces` rule are therefore
-checked without a cluster; the live OLM v1 smoke run is the end-to-end backstop, not the only guard.
+there) and the historical verbs required by upgrade tests. Both the declared workload verbs and the
+promotion-injected/historical rules are therefore checked without a cluster; the live OLM v1 smoke
+run is the end-to-end backstop, not the only guard.
 
 ## How the tests model each scenario
 

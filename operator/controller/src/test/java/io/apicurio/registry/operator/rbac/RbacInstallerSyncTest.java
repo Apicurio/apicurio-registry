@@ -74,6 +74,33 @@ class RbacInstallerSyncTest {
                 OLM_V1_INSTALLER_CLUSTER_ROLE, String.join("\n", missing)).isEmpty();
     }
 
+    /**
+     * Historical verbs requested by older published bundles in catalogs (e.g. 3.3.1-r1). The installer
+     * ClusterRole must retain them so that OLM v1 upgrade and channel-switch tests do not fail
+     * Kubernetes RBAC privilege-escalation checks when installing older bundles.
+     */
+    private static final Set<String> HISTORICAL_BUNDLE_REQUIRED_TUPLES = Set.of(
+            "registry.apicur.io/apicurioregistries3/create",
+            "registry.apicur.io/apicurioregistries3/delete",
+            "registry.apicur.io/apicurioregistries3/status/create",
+            "registry.apicur.io/apicurioregistries3/status/delete",
+            "registry.apicur.io/apicurioregistries3/status/get",
+            "registry.apicur.io/apicurioregistries3/status/list",
+            "registry.apicur.io/apicurioregistries3/status/watch");
+
+    @Test
+    void olmV1InstallerRetainsHistoricalBundlePermissionsForUpgrades() throws IOException {
+        Set<String> installerTuples = tuples(loadClusterRoleRules(OLM_V1_INSTALLER_CLUSTER_ROLE));
+
+        Set<String> missing = new TreeSet<>(HISTORICAL_BUNDLE_REQUIRED_TUPLES);
+        missing.removeAll(installerTuples);
+
+        assertThat(missing).withFailMessage(
+                "The OLM v1 installer ClusterRole (%s) must retain historical permissions required to install "
+                        + "older bundles in upgrade tests without privilege-escalation failure:%n%s",
+                OLM_V1_INSTALLER_CLUSTER_ROLE, String.join("\n", missing)).isEmpty();
+    }
+
     private static List<PolicyRule> loadClusterRoleRules(Path path) throws IOException {
         try (InputStream in = Files.newInputStream(path)) {
             return Serialization.unmarshal(in, ClusterRole.class).getRules();

@@ -217,10 +217,14 @@ endef
 
 # Registries (e.g. quay.io) occasionally return transient 5xx errors on push.
 # Retry a few times with a short backoff instead of failing the whole job.
+# Bound each attempt so an unresponsive registry fails instead of hanging (#10284).
+DOCKER_PUSH_TIMEOUT ?= 600
+# Extra `opm alpha render-template` options, e.g. --skip-tls-verify for a CI-local registry.
+OPM_RENDER_OPTS ?=
 define docker_push_retry
     @{ \
 		for i in 1 2 3; do \
-			docker push $(1) && break; \
+			$$(command -v timeout >/dev/null 2>&1 && echo timeout $(DOCKER_PUSH_TIMEOUT)) docker push $(1) && break; \
 			if [ $$i -eq 3 ]; then \
 				echo "docker push $(1) failed after 3 attempts"; \
 				exit 1; \
@@ -467,7 +471,7 @@ catalog-build: install-opm install-yq ## TODO
 	YQ=$(YQ) bash scripts/catalog-channels.sh $(CATALOG_TARGET_DIR)/catalog.template.yaml $(CHANNEL)
 	cat $(CATALOG_TARGET_DIR)/catalog.template.yaml | envsubst >$(CATALOG_TARGET_DIR)/catalog.yaml
 	# Build
-	cd $(CATALOG_TARGET_DIR) && $(OPM) alpha render-template basic catalog.yaml --output=yaml >configs/index.yaml
+	cd $(CATALOG_TARGET_DIR) && $(OPM) alpha render-template basic catalog.yaml $(OPM_RENDER_OPTS) --output=yaml >configs/index.yaml
 	cd $(CATALOG_TARGET_DIR) && $(OPM) generate dockerfile configs
 	# Workaround for Docker error: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 3)
 	sed -i 's|^FROM \(.*\) as builder$$|FROM \1 AS builder|g' $(CATALOG_TARGET_DIR)/configs.Dockerfile

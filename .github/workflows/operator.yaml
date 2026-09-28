@@ -12,19 +12,25 @@ permissions:
 
 env:
   KUBERNETES_VERSION: v1.33.3
-  # Operator/operand/gitops-sync: saved as artifacts, pushed to localhost:5000 in test shards.
-  # Bundle/catalog: pushed to ttl.sh by build job (opm requires HTTPS for catalog-build).
+  # All images are built once, saved as artifacts and loaded in the test shards; nothing is pushed
+  # to a public registry (#10284). Operator/operand/gitops-sync are pushed to the plain-HTTP
+  # localhost:5000 registry for the kubelet. Bundle/catalog use a local TLS registry name, see
+  # .github/scripts/olm-ci-registry.sh.
   REGISTRY_APP_IMAGE: localhost:5000/apicurio-registry:${{ github.sha }}
   REGISTRY_GITOPS_SYNC_IMAGE: localhost:5000/apicurio-registry-gitops-sync:${{ github.sha }}
   IMAGE: localhost:5000/apicurio-registry-3-operator:${{ github.sha }}
-  BUNDLE_IMAGE: ttl.sh/apicurio-registry-3-operator-bundle-${{ github.sha }}:8h
-  CATALOG_IMAGE: ttl.sh/apicurio-registry-3-operator-catalog-${{ github.sha }}:8h
+  OLM_REGISTRY_HOST: registry.olm-ci.local:5443
+  BUNDLE_IMAGE: registry.olm-ci.local:5443/apicurio-registry-3-operator-bundle:${{ github.sha }}
+  CATALOG_IMAGE: registry.olm-ci.local:5443/apicurio-registry-3-operator-catalog:${{ github.sha }}
 
 jobs:
 
   operator-build:
     name: Build Operator
     runs-on: ubuntu-latest
+    # Normally ~7 minutes; bound it so a stuck push or download fails fast instead of hanging
+    # until the 6-hour default.
+    timeout-minutes: 45
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
 
@@ -57,10 +63,15 @@ jobs:
         run: |
           make image-build
 
-      # OLM bundle and catalog: opm requires an HTTPS registry to pull the bundle
-      # image during catalog-build. We use ttl.sh for the build step only (opm needs
-      # it), then save the final images as artifacts for test shards.
+      # opm pulls the new bundle image while rendering the catalog, so it has to be in a registry.
+      # The local TLS registry uses a throwaway CA, hence --skip-tls-verify (still HTTPS, which the
+      # historical bundles on quay.io also require).
+      - name: Start OLM CI registry
+        timeout-minutes: 5
+        run: bash .github/scripts/olm-ci-registry.sh build
+
       - name: Build and push OLM bundle
+        timeout-minutes: 10
         working-directory: operator
         run: |
           ROLLING_CHANNEL_ARG=""
@@ -73,7 +84,10 @@ jobs:
           make $ROLLING_CHANNEL_ARG bundle
 
       - name: Build and push OLM catalog
+        timeout-minutes: 15
         working-directory: operator
+        env:
+          OPM_RENDER_OPTS: --skip-tls-verify
         run: |
           ROLLING_CHANNEL_ARG=""
           # base_ref is empty on pull_request_review events; check the PR payload's base
@@ -89,13 +103,14 @@ jobs:
         run: |
           make INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 
-      # Save operator/operand/gitops-sync images as artifacts for test shards.
-      # Bundle/catalog are already on ttl.sh (pushed by make bundle/catalog above).
+      # Save all images as artifacts for the test shards.
       - name: Save Docker images
         run: |
           docker save "$REGISTRY_APP_IMAGE" -o /tmp/operator-test-registry-app.tar
           docker save "$REGISTRY_GITOPS_SYNC_IMAGE" -o /tmp/operator-test-gitops-sync.tar
           docker save "$IMAGE" -o /tmp/operator-test-operator.tar
+          docker save "$BUNDLE_IMAGE" -o /tmp/operator-test-bundle.tar
+          docker save "$CATALOG_IMAGE" -o /tmp/operator-test-catalog.tar
 
       - name: Upload Docker images
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -389,7 +404,6 @@ jobs:
           curl -sf http://localhost:5000/v2/ || (echo "Registry not ready after 10s"; exit 1)
 
       # Load pre-built images into Docker, then push to the local registry.
-      # Operator/operand/gitops-sync use localhost:5000; bundle/catalog use ttl.sh.
       - name: Load and push images to local registry
         run: |
           docker load -i /tmp/operator-test-operator.tar
@@ -399,21 +413,23 @@ jobs:
           docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
           docker push "$IMAGE"
 
-      - name: Pre-pull OLM bundle and catalog images
+      # With driver=none the kubelet shares the host Docker image store and these (non-:latest)
+      # tags get IfNotPresent semantics, so loading is enough for OLM v0 (catalog pod, bundle unpack).
+      - name: Load OLM bundle and catalog images
+        if: matrix.olm-enable == 'true'
         run: |
-          # ttl.sh pulls occasionally stall for 10+ minutes mid-test (catalog pod stuck
-          # Pending until the setup timeout). Pull once up front with retries; with
-          # driver=none the kubelet shares the host docker image store, so pods using
-          # these (non-:latest) images get IfNotPresent semantics and never pull during
-          # tests.
-          for img in "$BUNDLE_IMAGE" "$CATALOG_IMAGE"; do
-            for i in 1 2 3; do
-              docker pull "$img" && break
-              echo "Pull failed for $img (attempt $i/3), retrying..."
-              sleep 5
-            done
-            docker image inspect "$img" > /dev/null || { echo "Could not pull $img"; exit 1; }
-          done
+          docker load -i /tmp/operator-test-bundle.tar
+          docker load -i /tmp/operator-test-catalog.tar
+
+      # OLM v1 (catalogd, operator-controller) pulls images itself from inside pods, so it needs a
+      # registry reachable from the pod network with a certificate it trusts.
+      - name: Serve OLM bundle and catalog images for OLM v1
+        if: matrix.olm-v1-enable == 'true'
+        timeout-minutes: 10
+        run: |
+          bash .github/scripts/olm-ci-registry.sh olmv1
+          docker push "$BUNDLE_IMAGE"
+          docker push "$CATALOG_IMAGE"
 
       # -Dtest.operator.timeout.long=600: extend default Awaitility timeout from 420s (7 min)
       #   to 600s (10 min) for slow Kafka/OLM startups on shared runners. This is read by

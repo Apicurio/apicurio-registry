@@ -51,6 +51,7 @@ import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactIdException;
+import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
@@ -1398,6 +1399,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (data.getFirstVersion() != null) {
             boolean contentRequired = true;
             if (data.getArtifactType() != null) {
+                if (!factory.getAllArtifactTypes().contains(data.getArtifactType())) {
+                    throw new InvalidArtifactTypeException("Invalid or unknown artifact type: " + data.getArtifactType());
+                }
                 Set<String> contentTypes = factory.getArtifactTypeProvider(data.getArtifactType()).getContentTypes();
                 contentRequired = !contentTypes.isEmpty();
             }

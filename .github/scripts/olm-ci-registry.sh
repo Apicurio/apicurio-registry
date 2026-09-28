@@ -4,20 +4,19 @@
 # The bundle and catalog images are named $OLM_REGISTRY_HOST/... (default registry.olm-ci.local:5443)
 # and never leave the workflow, so CI no longer depends on a public ephemeral registry such as ttl.sh.
 #
-#   build   Build job. Serves the registry with a throwaway self-signed CA so `make bundle catalog` can
-#           push, and opm (run with --skip-tls-verify) can pull the new bundle while rendering the
-#           catalog. HTTPS is kept because opm's --use-http would also apply to the historical bundles
-#           on quay.io.
+#   host    Registry trusted by the host only, with a throwaway self-signed CA. Used by the build job
+#           (`make bundle catalog` push; opm pulls the new bundle with --skip-tls-verify while rendering,
+#           HTTPS because opm's --use-http would also apply to the historical bundles on quay.io), and
+#           by the OLM v0 job, whose images the kubelet pulls through the host Docker daemon (Minikube
+#           driver=none). OLM v0 needs a registry, not just `docker load`: its catalog unpack pod uses
+#           imagePullPolicy: Always.
 #   olmv1   OLM v1 test job. catalogd and operator-controller pull images themselves from inside pods,
 #           so the registry must be reachable from the pod network and trusted by them. Its certificate
 #           is issued by OLM v1's own cert-manager ClusterIssuer (olmv1-ca), whose CA both components
 #           already load via --pull-cas-dir, and CoreDNS resolves the registry name to the node.
-#
-# OLM v0 and the kubelet use the host Docker image store (Minikube driver=none), so the OLM v0 job
-# only needs `docker load` and no registry.
 set -euo pipefail
 
-MODE=${1:?usage: olm-ci-registry.sh build|olmv1}
+MODE=${1:?usage: olm-ci-registry.sh host|olmv1}
 HOST_PORT=${OLM_REGISTRY_HOST:-registry.olm-ci.local:5443}
 NAME=${HOST_PORT%:*}
 PORT=${HOST_PORT##*:}
@@ -38,7 +37,7 @@ wait_for() {
 }
 
 case "$MODE" in
-build)
+host)
     openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=olm-ci-ca" \
         -keyout "$WORK/ca.key" -out "$WORK/ca.crt" 2>/dev/null
     openssl req -newkey rsa:2048 -nodes -subj "/CN=$NAME" \
@@ -95,7 +94,7 @@ print("\n".join(lines))
     kubectl -n kube-system rollout status deployment/coredns --timeout=120s
     ;;
 *)
-    echo "Unknown mode: $MODE (expected build or olmv1)" >&2
+    echo "Unknown mode: $MODE (expected host or olmv1)" >&2
     exit 1
     ;;
 esac

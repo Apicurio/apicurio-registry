@@ -68,7 +68,7 @@ jobs:
       # historical bundles on quay.io also require).
       - name: Start OLM CI registry
         timeout-minutes: 5
-        run: bash .github/scripts/olm-ci-registry.sh build
+        run: bash .github/scripts/olm-ci-registry.sh host
 
       - name: Build and push OLM bundle
         timeout-minutes: 10
@@ -413,21 +413,21 @@ jobs:
           docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
           docker push "$IMAGE"
 
-      # With driver=none the kubelet shares the host Docker image store and these (non-:latest)
-      # tags get IfNotPresent semantics, so loading is enough for OLM v0 (catalog pod, bundle unpack).
-      - name: Load OLM bundle and catalog images
+      # OLM v0: the kubelet pulls through the host Docker daemon (driver=none), and the catalog
+      # unpack pod uses imagePullPolicy: Always, so a host-trusted registry is needed.
+      # OLM v1: catalogd and operator-controller pull from inside pods, so the registry must be
+      # reachable from the pod network with a certificate they trust.
+      - name: Serve OLM bundle and catalog images
         if: matrix.olm-enable == 'true'
-        run: |
-          docker load -i /tmp/operator-test-bundle.tar
-          docker load -i /tmp/operator-test-catalog.tar
-
-      # OLM v1 (catalogd, operator-controller) pulls images itself from inside pods, so it needs a
-      # registry reachable from the pod network with a certificate it trusts.
-      - name: Serve OLM bundle and catalog images for OLM v1
-        if: matrix.olm-v1-enable == 'true'
         timeout-minutes: 10
         run: |
-          bash .github/scripts/olm-ci-registry.sh olmv1
+          if [ "${{ matrix.olm-v1-enable }}" = "true" ]; then
+            bash .github/scripts/olm-ci-registry.sh olmv1
+          else
+            bash .github/scripts/olm-ci-registry.sh host
+          fi
+          docker load -i /tmp/operator-test-bundle.tar
+          docker load -i /tmp/operator-test-catalog.tar
           docker push "$BUNDLE_IMAGE"
           docker push "$CATALOG_IMAGE"
 

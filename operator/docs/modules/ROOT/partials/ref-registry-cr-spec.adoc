@@ -483,7 +483,7 @@ endif::[]
 | `app/auth/tls/tlsVerificationType`
 | string
 | `required`
-| TLS verification type: `required` (validate the certificate chain and verify the hostname), `certificate-validation` (validate the certificate chain only), `none` (disable verification)
+| TLS verification type: `required` (validate the certificate chain and verify the hostname), `certificate-validation` (validate the certificate chain; hostname verification is skipped only when a custom truststore is configured), `none` (disable verification)
 
 | `app/auth/tls/truststoreSecretRef`
 | SecretKeyRef

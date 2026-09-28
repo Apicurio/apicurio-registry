@@ -886,7 +886,7 @@ Configure TLS for OIDC connections:
 |Default
 
 |`tlsVerificationType`
-|TLS verification type. `required` validates the certificate chain and verifies the hostname. `certificate-validation` validates the certificate chain but does not verify the hostname. `none` disables certificate and hostname verification.
+|TLS verification type. `required` validates the certificate chain and verifies the hostname. `certificate-validation` validates the certificate chain and, when a custom truststore is configured, skips hostname verification. Without a custom truststore, hostname verification stays enabled. `none` disables certificate and hostname verification.
 |String
 |`required`
 

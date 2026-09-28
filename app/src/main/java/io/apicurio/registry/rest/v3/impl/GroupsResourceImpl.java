@@ -1895,7 +1895,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         switch (ifExists) {
             case CREATE_VERSION:
-                return updateArtifactInternal(groupId, artifactId, theVersion, dryRun);
+                return updateArtifactInternal(groupId, artifactId, theVersion,
+                        prepareUpdateContent(groupId, artifactId, theVersion), dryRun);
             case FIND_OR_CREATE_VERSION:
                 return handleIfExistsReturnOrUpdate(groupId, artifactId, theVersion, canonical, dryRun);
             default:
@@ -1905,16 +1906,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     private CreateArtifactResponse handleIfExistsReturnOrUpdate(String groupId, String artifactId,
             CreateVersion theVersion, boolean canonical, Boolean dryRun) {
+        // Match against the content as it would be stored: write hooks may rewrite it (e.g. embedded
+        // schemas replaced by $refs), so the submitted content would never match an existing version.
+        ContentWrapperDto prepared = prepareUpdateContent(groupId, artifactId, theVersion);
         try {
             // Find the version
-            TypedContent content = TypedContent.create(
-                    ContentHandle.create(resolveContent(theVersion.getContent())),
-                    theVersion.getContent().getContentType());
-            List<ArtifactReferenceDto> referenceDtos = toReferenceDtos(
-                    theVersion.getContent().getReferences());
+            TypedContent content = TypedContent.create(prepared.getContent(), prepared.getContentType());
             ArtifactVersionMetaDataDto vmdDto = this.storage.getArtifactVersionMetaDataByContent(
                     new GroupId(groupId).getRawGroupIdWithNull(), artifactId, canonical, content,
-                    referenceDtos);
+                    prepared.getReferences());
             VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);
 
             // Need to also return the artifact metadata
@@ -1925,29 +1925,52 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         } catch (ArtifactNotFoundException nfe) {
             // This is OK - we'll update the artifact if there is no matching content already there.
         }
-        return updateArtifactInternal(groupId, artifactId, theVersion, dryRun);
+        return updateArtifactInternal(groupId, artifactId, theVersion, prepared, dryRun);
+    }
+
+    /**
+     * Runs the write hooks' content rewrite for a version added through createArtifact's ifExists
+     * handling, the same way createArtifactVersion does.
+     *
+     * @return the content, content type and references (submitted plus hook-added) to store
+     */
+    private ContentWrapperDto prepareUpdateContent(String groupId, String artifactId, CreateVersion theVersion) {
+        ContentHandle content = ContentHandle.create(resolveContent(theVersion.getContent()));
+        String contentType = theVersion.getContent().getContentType();
+        // Transform the given references into dtos and set the contentId, this will also detect if any of the
+        // passed references does not exist.
+        List<ArtifactReferenceDto> references = toReferenceDtos(theVersion.getContent().getReferences());
+        VersionWriteContext writeContext = new VersionWriteContext(VersionWriteContext.Operation.CREATE_VERSION,
+                storage, new GA(groupId, artifactId), lookupArtifactType(groupId, artifactId),
+                securityIdentity.getPrincipal().getName());
+        ContentWrapperDto prepared = prepareContent(writeContext, content, contentType);
+        if (prepared != null) {
+            content = prepared.getContent();
+            contentType = prepared.getContentType();
+            references.addAll(prepared.getReferences());
+        }
+        return ContentWrapperDto.builder().content(content).contentType(contentType).references(references)
+                .build();
     }
 
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     protected CreateArtifactResponse updateArtifactInternal(String groupId, String artifactId,
-            CreateVersion theVersion, Boolean dryRun) {
+            CreateVersion theVersion, ContentWrapperDto prepared, Boolean dryRun) {
         String version = theVersion.getVersion();
         String name = theVersion.getName();
         String description = theVersion.getDescription();
         List<String> branches = theVersion.getBranches();
         Map<String, String> labels = theVersion.getLabels();
         List<ArtifactReference> references = theVersion.getContent().getReferences();
-        String contentType = theVersion.getContent().getContentType();
-        ContentHandle content = ContentHandle.create(resolveContent(theVersion.getContent()));
+        String contentType = prepared.getContentType();
+        ContentHandle content = prepared.getContent();
         boolean isDraftVersion = theVersion.getIsDraft() != null && theVersion.getIsDraft();
 
         String artifactType = lookupArtifactType(groupId, artifactId);
 
         final String owner = securityIdentity.getPrincipal().getName();
 
-        // Transform the given references into dtos and set the contentId, this will also detect if any of the
-        // passed references does not exist.
-        final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
+        final List<ArtifactReferenceDto> referencesAsDtos = prepared.getReferences();
 
         // Apply rules only if not a draft version (unless draft production mode is enabled)
         if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {

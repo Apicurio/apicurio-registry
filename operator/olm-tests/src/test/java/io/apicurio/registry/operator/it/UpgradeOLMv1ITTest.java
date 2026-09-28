@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -75,10 +74,11 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
 
     private static CatalogInfo catalog;
 
+    private static final String RBAC_ESCALATION_MESSAGE = "is attempting to grant RBAC permissions not currently held";
+
     private KubernetesClient client;
     private String namespace;
     private boolean cleanup;
-    private volatile Instant extensionFailureSince;
 
     @Override
     public KubernetesClient getClient() {
@@ -120,7 +120,6 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
 
     private void setUp() throws Exception {
         setDefaultAwaitilityTimings();
-        extensionFailureSince = null;
         namespace = ITBase.calculateNamespace();
         client = ITBase.createK8sClient(namespace);
         ITBase.createNamespace(client, namespace);
@@ -522,7 +521,6 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
      * line is dropped so OLM v1 resolves the version itself.
      */
     private void deployClusterExtension(String channel, Semver version) throws Exception {
-        extensionFailureSince = null;
         try {
             createResource(client, namespace, "olmv1/cluster-catalog.yaml");
             waitForClusterCatalogServing(client, namespace, CATALOG_NAME);
@@ -550,61 +548,42 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
         }
     }
 
+    /**
+     * Awaits with {@link #UPGRADE_TIMEOUT}, but fails immediately if the ClusterExtension reports an RBAC
+     * privilege-escalation rejection. That rejection is deterministic (the installer SA lacks a permission
+     * the bundle requests), so waiting out the full timeout only delays an actionable error (#10276).
+     * Other {@code Progressing}/{@code Retrying} states are left to the normal timeout because OLM v1 also
+     * reports them for recoverable conditions.
+     */
     private ConditionFactory upgradeAwait() {
         return await().atMost(UPGRADE_TIMEOUT).ignoreExceptions()
-                .failFast("ClusterExtension installation failed", this::clusterExtensionInstallationFailed);
+                .failFast("ClusterExtension install rejected by RBAC privilege-escalation prevention",
+                        this::clusterExtensionRbacRejected);
     }
 
     @SuppressWarnings("unchecked")
-    private boolean clusterExtensionInstallationFailed() {
+    private boolean clusterExtensionRbacRejected() {
         try {
             var ce = client.genericKubernetesResources("olm.operatorframework.io/v1", "ClusterExtension")
                     .inNamespace(namespace).withName(CLUSTER_EXTENSION_NAME).get();
             if (ce == null) {
-                extensionFailureSince = null;
                 return false;
             }
             var conditions = (List<Map<String, Object>>) ce.get("status", "conditions");
             if (conditions == null) {
-                extensionFailureSince = null;
                 return false;
             }
             for (var condition : conditions) {
-                var message = String.valueOf(condition.get("message"));
-                var reason = String.valueOf(condition.get("reason"));
-                var type = String.valueOf(condition.get("type"));
-                var status = String.valueOf(condition.get("status"));
-
-                // Fast-fail immediately on RBAC privilege-escalation rejections
-                if (message != null && (message.contains("is attempting to grant RBAC permissions not currently held")
-                        || (message.contains("is forbidden") && message.contains("ClusterRole")))) {
-                    log.error("ClusterExtension {} RBAC privilege-escalation rejection, terminal: {}",
+                if (condition.get("message") instanceof String message
+                        && message.contains(RBAC_ESCALATION_MESSAGE)) {
+                    log.error("ClusterExtension {} rejected by RBAC privilege-escalation prevention: {}",
                             CLUSTER_EXTENSION_NAME, message);
                     return true;
                 }
-
-                // Check for persistent installation failure (>90s)
-                if (("Installed".equals(type) && "False".equals(status) && "Failed".equals(reason))
-                        || ("Progressing".equals(type) && "True".equals(status) && "Retrying".equals(reason))) {
-                    if (extensionFailureSince == null) {
-                        extensionFailureSince = Instant.now();
-                        log.warn("ClusterExtension {} condition failure (watching): {} - {}",
-                                CLUSTER_EXTENSION_NAME, reason, message);
-                        return false;
-                    }
-                    if (Duration.between(extensionFailureSince, Instant.now())
-                            .compareTo(Duration.ofSeconds(90)) > 0) {
-                        log.error("ClusterExtension {} failed for >90s, terminal: {} - {}",
-                                CLUSTER_EXTENSION_NAME, reason, message);
-                        return true;
-                    }
-                    return false;
-                }
             }
-            extensionFailureSince = null;
             return false;
         } catch (Exception e) {
-            // Transient API errors must not trip the fail-fast check
+            // Transient API errors must not trip the fail-fast check.
             return false;
         }
     }
@@ -674,7 +653,6 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
                 .inNamespace(namespace)
                 .resource(ce)
                 .update();
-        extensionFailureSince = null;
         log.info("Patched ClusterExtension catalog source: channel={}, version={}", channel, version);
     }
 }

@@ -99,14 +99,12 @@ rules:
       - list
       - watch
 
-  # Kept in sync with the operator's runtime permissions on the parent CR and its /status. OLM v1
-  # always installs AllNamespaces (cluster-scoped), and historical bundles in the catalog (e.g.
-  # 3.3.1-r1 or older releases) as well as the cluster overlay grant the full verb set on both
-  # apicurioregistries3 and apicurioregistries3/status -- not the narrower namespaced subset. Under
-  # escalation prevention the installer SA can only create that ClusterRole if it holds every verb
-  # in it, so this must mirror the full superset. An installer holding only get/list/patch/update/watch
-  # on the CR and patch/update on /status cannot grant an older bundle's create/delete on the CR or
-  # create/delete/get/list/watch on /status, causing OLM v1 privilege-escalation rejection.
+  # The CR and its /status need the full verb set, not just the runtime subset in rbac/namespaced.
+  # Upgrade and channel-switch tests first install older bundles from the catalog, and bundles released
+  # before the namespace/cluster RBAC split (#9035) request the rbac/cluster tier, including create/delete
+  # on the CR and create/delete/get/list/watch on /status. Under escalation prevention the installer SA
+  # can only grant what it holds, so without these verbs the older bundle's ClusterRole is rejected
+  # (#10276). RbacInstallerSyncTest asserts this role is a superset of the rbac/cluster tier.
   - apiGroups:
       - registry.apicur.io
     resources:

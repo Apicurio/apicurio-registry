@@ -45,6 +45,7 @@ class RbacInstallerSyncTest {
     private static final Path NAMESPACED_CLUSTER_ROLE = Path
             .of("src/main/deploy/rbac/namespaced/cluster-role.yaml");
     private static final Path NAMESPACED_ROLE = Path.of("src/main/deploy/rbac/namespaced/role.yaml");
+    private static final Path CLUSTER_TIER_CLUSTER_ROLE = Path.of("src/main/deploy/rbac/cluster/cluster-role.yaml");
     private static final Path OLM_V1_INSTALLER_CLUSTER_ROLE = Path
             .of("../olm-tests/src/test/deploy/olmv1/cluster-role.yaml");
 
@@ -75,30 +76,23 @@ class RbacInstallerSyncTest {
     }
 
     /**
-     * Historical verbs requested by older published bundles in catalogs (e.g. 3.3.1-r1). The installer
-     * ClusterRole must retain them so that OLM v1 upgrade and channel-switch tests do not fail
-     * Kubernetes RBAC privilege-escalation checks when installing older bundles.
+     * The cluster-scoped RBAC tier, which is what bundles released before the namespace/cluster split
+     * (#9035) request, e.g. {@code create}/{@code delete} on the CR and its {@code /status}. OLM v1 upgrade
+     * and channel-switch tests install such older bundles from the catalog first, so the installer role
+     * must hold these permissions too or the install is rejected by RBAC escalation prevention (#10276).
      */
-    private static final Set<String> HISTORICAL_BUNDLE_REQUIRED_TUPLES = Set.of(
-            "registry.apicur.io/apicurioregistries3/create",
-            "registry.apicur.io/apicurioregistries3/delete",
-            "registry.apicur.io/apicurioregistries3/status/create",
-            "registry.apicur.io/apicurioregistries3/status/delete",
-            "registry.apicur.io/apicurioregistries3/status/get",
-            "registry.apicur.io/apicurioregistries3/status/list",
-            "registry.apicur.io/apicurioregistries3/status/watch");
-
     @Test
-    void olmV1InstallerRetainsHistoricalBundlePermissionsForUpgrades() throws IOException {
+    void olmV1InstallerIsSupersetOfClusterTierPermissions() throws IOException {
+        Set<String> clusterTierTuples = tuples(loadClusterRoleRules(CLUSTER_TIER_CLUSTER_ROLE));
         Set<String> installerTuples = tuples(loadClusterRoleRules(OLM_V1_INSTALLER_CLUSTER_ROLE));
 
-        Set<String> missing = new TreeSet<>(HISTORICAL_BUNDLE_REQUIRED_TUPLES);
+        Set<String> missing = new TreeSet<>(clusterTierTuples);
         missing.removeAll(installerTuples);
 
         assertThat(missing).withFailMessage(
-                "The OLM v1 installer ClusterRole (%s) must retain historical permissions required to install "
-                        + "older bundles in upgrade tests without privilege-escalation failure:%n%s",
-                OLM_V1_INSTALLER_CLUSTER_ROLE, String.join("\n", missing)).isEmpty();
+                "The OLM v1 installer ClusterRole (%s) is missing permissions granted by the cluster RBAC tier "
+                        + "(%s), which older bundles installed by the upgrade tests request:%n%s",
+                OLM_V1_INSTALLER_CLUSTER_ROLE, CLUSTER_TIER_CLUSTER_ROLE, String.join("\n", missing)).isEmpty();
     }
 
     private static List<PolicyRule> loadClusterRoleRules(Path path) throws IOException {

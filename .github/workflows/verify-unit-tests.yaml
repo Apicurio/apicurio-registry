@@ -92,7 +92,9 @@ jobs:
           # The optional agent registry module (see agents/pom.xml). Selected by -pl, not by -Dtest,
           # so like non-app it is outside the core partition checked by verify-test-shards.py.
           - name: agents
-            modules: "-pl agents -am -Dfull -DcliSkipNative"
+            # -am builds core and the rest upstream; -DskipTests keeps their suites out of this shard
+            # (core has its own shards), -Dagents.skipTests=false re-enables only the agents tests.
+            modules: "-pl agents -am -Dfull -DcliSkipNative -DskipTests -Dagents.skipTests=false"
             test-filter: ""
             maven-opts: "-Xmx4g"
           - name: non-app

@@ -23,6 +23,9 @@
     <maven.compiler.release>21</maven.compiler.release>
     <argLine/>
     <surefire.maxHeap>4g</surefire.maxHeap>
+    <!-- Follows -DskipTests unless set explicitly; see the surefire configuration below. -->
+    <skipTests>false</skipTests>
+    <agents.skipTests>${skipTests}</agents.skipTests>
   </properties>
 
   <dependencies>
@@ -148,6 +151,9 @@
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <!-- Lets CI run only this module's tests while still building its upstream (-am) with
+               -DskipTests -Dagents.skipTests=false: core's suite runs in its own shards. -->
+          <skipTests>${agents.skipTests}</skipTests>
           <forkCount>1</forkCount>
           <argLine>@{argLine} -Xmx${surefire.maxHeap}</argLine>
           <systemPropertyVariables>

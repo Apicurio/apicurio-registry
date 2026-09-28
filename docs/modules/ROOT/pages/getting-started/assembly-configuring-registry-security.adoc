@@ -957,7 +957,7 @@ IMPORTANT: Even with `client_credentials` working, the tokens *do not include th
 [role="_abstract"]
 When running Dex in production, consider the following:
 
-* *TLS*: Configure Dex with proper TLS by using Ingress termination or its own certificate. In the {registry} CR, set `spec.app.auth.tls.tlsVerificationType` to `certificate` and provide a truststore if using a private CA.
+* *TLS*: Configure Dex with proper TLS by using Ingress termination or its own certificate. In the {registry} CR, set `spec.app.auth.tls.tlsVerificationType` to `required` and provide a truststore if using a private CA.
 * *High availability*: Run multiple Dex replicas. For better HA, switch Dex's storage backend from Kubernetes CRDs to PostgreSQL.
 * *Network policies*: Restrict access so that only {registry} pods and the ingress controller can reach Dex. Ensure Dex can reach your upstream identity providers.
 * *Secret management*: Store the Dex client secret securely by using {kubernetes} Secrets or a secrets manager such as HashiCorp Vault.

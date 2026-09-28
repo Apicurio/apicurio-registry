@@ -11,6 +11,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +23,7 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests for the MCP tool well-known discovery endpoints.
@@ -413,6 +415,36 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
             }
             """;
 
+    private static final String COMPAT_UNTYPED_OUTPUT_TOOL = """
+            {
+                "name": "untyped_output",
+                "title": "Untyped Output Tool",
+                "description": "Declares object keywords without a type, so it may emit any value",
+                "inputSchema": { "type": "object" },
+                "outputSchema": {
+                    "properties": {
+                        "untyped_page_field": { "type": "string" }
+                    },
+                    "additionalProperties": false
+                }
+            }
+            """;
+
+    private static final String COMPAT_UNTYPED_CONSUMER_TOOL = """
+            {
+                "name": "untyped_consumer",
+                "title": "Untyped Output Consumer",
+                "description": "Accepts objects only, so it cannot accept every value the source may emit",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "untyped_page_field": { "type": "string" }
+                    },
+                    "additionalProperties": false
+                }
+            }
+            """;
+
     private static final String PAGINATED_SOURCE_TOOL = """
             {
                 "name": "paginated_source",
@@ -472,6 +504,27 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testFindCompatibleToolsExcludesCandidatesTypedAgainstAnUntypedOutput() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String sourceId = "untyped-output-source";
+        String candidateId = "untyped-output-candidate";
+
+        createMcpTool(groupId, sourceId, COMPAT_UNTYPED_OUTPUT_TOOL);
+        createMcpTool(groupId, candidateId, COMPAT_UNTYPED_CONSUMER_TOOL);
+
+        // The source declares object keywords but no type, so it may emit a value the candidate rejects.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", sourceId)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body(artifactIdsInGroup(groupId), not(hasItem(candidateId)));
+    }
+
+    @Test
     public void testFindCompatibleToolsNoOutputSchema() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String sourceId = "no-output-source";
@@ -513,7 +566,8 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
 
         // The scan covers every MCP tool in the registry, and tools created by other tests stay
         // registered, so pages are checked against the unpaginated count rather than a constant.
-        int total = givenAtRoot()
+        // That count is itself checked here, where the 500 candidate scan cap bounds the page.
+        Response unpaginated = givenAtRoot()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
@@ -525,7 +579,9 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .statusCode(200)
                 .body(artifactIdsInGroup(groupId), hasItems("compat-page-1", "compat-page-2"))
                 .extract()
-                .path("count");
+                .response();
+        int total = unpaginated.path("count");
+        assertEquals(total, unpaginated.jsonPath().getList("tools").size());
 
         // Paginated result: limit=1 returns only one tool but count stays total
         givenAtRoot()

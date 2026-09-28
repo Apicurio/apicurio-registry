@@ -118,7 +118,52 @@ class CrossToolCompatibilityServiceTest {
 
         assertIncompatible(result, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
                 "/outputSchema/type", "/inputSchema/type",
-                "The producer's output type is not accepted by the consumer"));
+                "The producer may emit a value whose type the consumer does not accept"));
+    }
+
+    @Test
+    void testOutputSchemaWithoutTypeIsNotCompatibleWithTypedInput() {
+        PairCompatibility result = compare(
+                "{'properties':{'x':{'type':'string'}},'additionalProperties':false}",
+                "{'type':'object','properties':{'x':{'type':'string'}},'additionalProperties':false}");
+
+        assertIncompatible(result, unrestrictedOutputType());
+    }
+
+    @Test
+    void testOutputSchemaWithOnlyRequiredAndNoTypeIsNotCompatibleWithTypedInput() {
+        PairCompatibility result = compare("{'required':['x']}", "{'type':'object'}");
+
+        assertIncompatible(result, unrestrictedOutputType());
+    }
+
+    @Test
+    void testOutputSchemaWithoutTypeReportsOneReasonWhateverTheInputTypeIs() {
+        PairCompatibility result = compare(
+                "{'properties':{'x':{'type':'string'}},'additionalProperties':false}",
+                "{'type':'string'}");
+
+        assertIncompatible(result, unrestrictedOutputType());
+    }
+
+    @Test
+    void testOutputSchemaWithoutTypeIsComparedAsDeclaredAgainstAnUntypedInput() {
+        PairCompatibility result = compare(
+                "{'properties':{'x':{'type':'string'}},'additionalProperties':false}",
+                "{'properties':{'x':{'type':'string'}}}");
+
+        assertCompatible(result);
+    }
+
+    @Test
+    void testUnrestrictedOutputTypeIsInvalidatedByALimitationOnTheOutputSchema() {
+        PairCompatibility result = compare(
+                "{'properties':{'x':{'type':'string'}},'additionalProperties':false,'enum':[{'x':'s'}]}",
+                "{'type':'object','properties':{'x':{'type':'string'}},'additionalProperties':false}");
+
+        assertEquals(CompatibilityVerdict.INDETERMINATE, result.verdict());
+        assertTrue(result.reasons().isEmpty());
+        assertEquals(List.of("/outputSchema/enum"), limitationPointers(result));
     }
 
     @Test
@@ -569,6 +614,12 @@ class CrossToolCompatibilityServiceTest {
 
         assertEquals(CompatibilityVerdict.INDETERMINATE, result.verdict());
         assertEquals(List.of(LimitationCode.COMPARISON_FAILED), limitationCodes(result));
+    }
+
+    private static CompatibilityReason unrestrictedOutputType() {
+        return new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED, "/outputSchema",
+                "/inputSchema/type",
+                "The producer may emit a value whose type the consumer does not accept");
     }
 
     private PairCompatibility compare(String outputSchema, String inputSchema) {

@@ -33,6 +33,13 @@ record SchemaProjection(SchemaSide side, String base, JsonNode original, ObjectN
     }
 
     /**
+     * Whether the schema restricts the value to one type. Object keywords do not restrict it.
+     */
+    boolean declaresType() {
+        return projected.path(TYPE).isTextual();
+    }
+
+    /**
      * Whether the root object declares properties but leaves {@code additionalProperties}
      * unset, so that the engine assumes it can also emit undeclared properties.
      */

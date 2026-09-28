@@ -49,9 +49,7 @@ final class DifferenceAttributor {
     Optional<List<CompatibilityReason>> attribute(Difference difference) {
         String path = difference.getPathUpdated();
         return switch (path) {
-            case ENGINE_ROOT, ENGINE_ROOT_TYPE -> Optional.of(List.of(new CompatibilityReason(
-                    ReasonCode.TYPE_NOT_ACCEPTED, producer.typePointer(), consumer.typePointer(),
-                    "The producer's output type is not accepted by the consumer")));
+            case ENGINE_ROOT, ENGINE_ROOT_TYPE -> Optional.of(List.of(outputTypeNotAccepted()));
             case ENGINE_REQUIRED -> requiredMember(difference);
             case ENGINE_ADDITIONAL_PROPERTIES, ENGINE_ADDITIONAL_PROPERTIES_SCHEMA ->
                     undeclaredProperties();
@@ -60,6 +58,24 @@ final class DifferenceAttributor {
             default -> path.startsWith(ENGINE_PROPERTY_PREFIX) ? propertyInBoth(path)
                     : Optional.empty();
         };
+    }
+
+    /**
+     * The engine reads object keywords as an object schema, so a producer that declares no
+     * {@code type} is compared as if it could emit nothing but objects, and no difference is
+     * reported for the values it may emit beside them.
+     */
+    Optional<CompatibilityReason> unrestrictedOutputType() {
+        if (producer.declaresType() || !consumer.declaresType()) {
+            return Optional.empty();
+        }
+        return Optional.of(outputTypeNotAccepted());
+    }
+
+    private CompatibilityReason outputTypeNotAccepted() {
+        return new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED, producer.typePointer(),
+                consumer.typePointer(),
+                "The producer may emit a value whose type the consumer does not accept");
     }
 
     private Optional<List<CompatibilityReason>> requiredMember(Difference difference) {

@@ -334,16 +334,16 @@ public class AdminResourceImpl implements AdminResource {
         // The input should be a ZIP file
         // Unpack the ZIP file to the local file system (temp)
         Path tempDirectory = null;
-        try (ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8)) {
-            tempDirectory = Files.createTempDirectory(Paths.get(importExportProps.workDir),
-                    "apicurio-import_");
-            IoUtil.unpackToDisk(zip, tempDirectory, importExportProps.zipMaxEntrySize,
-                    importExportProps.zipMaxTotalSize, importExportProps.zipMaxEntryCount);
-        } catch (IOException e) {
-            throw new BadRequestException("Error importing data: " + e.getMessage(), e);
-        }
-
         try {
+            try (ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8)) {
+                tempDirectory = Files.createTempDirectory(Paths.get(importExportProps.workDir),
+                        "apicurio-import_");
+                IoUtil.unpackToDisk(zip, tempDirectory, importExportProps.zipMaxEntrySize,
+                        importExportProps.zipMaxTotalSize, importExportProps.zipMaxEntryCount);
+            } catch (IOException e) {
+                throw new BadRequestException("Error importing data: " + e.getMessage(), e);
+            }
+
             // EntityReader reader reads all unpacked entities from the file system
             final EntityReader reader = new EntityReader(tempDirectory);
 
@@ -381,10 +381,13 @@ public class AdminResourceImpl implements AdminResource {
                 this.storage.importData(stream, preserveGlobalId, preserveContentId);
             }
         } finally {
-            try {
-                FileUtils.deleteDirectory(tempDirectory.toFile());
-            } catch (IOException e) {
-                // Best effort
+            // Clean up the temp work directory whether extraction/import succeeded or failed.
+            if (tempDirectory != null) {
+                try {
+                    FileUtils.deleteDirectory(tempDirectory.toFile());
+                } catch (IOException e) {
+                    log.warn("Failed to clean up import work directory: {}", tempDirectory, e);
+                }
             }
         }
     }

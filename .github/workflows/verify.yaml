@@ -89,12 +89,13 @@ jobs:
       - name: Verify unit test shard partition
         run: python3 .github/scripts/verify-test-shards.py
 
-      # The scalpel summary contract is merge-blocking, so its suite runs in
-      # the Gate too: it pins the extension version's report schema and the
-      # buildAllIfNoChanges setting the summary's projections stand on, and
-      # scripts-tests.yaml alone would leave a red suite non-blocking.
-      # jq is preinstalled on ubuntu-latest, the same assumption that
-      # workflow makes.
+      # The scalpel summary suite runs in the Gate because scripts-tests.yaml
+      # alone would leave a red suite non-blocking. It pins the extension
+      # version's report schema and the buildAllIfNoChanges setting the
+      # summary's projections stand on, and checks that every Scalpel run
+      # gets the base branch from Decide.
+      # jq is preinstalled on ubuntu-latest, the same assumption
+      # scripts-tests.yaml makes.
       - name: Test scalpel summary script
         run: bash .github/scripts/scalpel-summary.test.sh
 
@@ -291,6 +292,7 @@ jobs:
     with:
       image-tag: ${{ github.sha }}
       scalpel-enabled: ${{ needs.decide.outputs.scalpel-enabled }}
+      scalpel-base-branch: ${{ needs.decide.outputs.scalpel-base-branch }}
 
   # Scalpel Report (affected-module detection, data collection only).
   # Not in the Gate: a failure here never blocks a PR.
@@ -310,7 +312,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          # Full history: Scalpel diffs against the base branch (GITHUB_BASE_REF)
+          # Full history: Scalpel diffs against the base branch
           fetch-depth: 0
 
       - name: Set up JDK 21
@@ -323,10 +325,13 @@ jobs:
         uses: ./.github/actions/setup-maven-cache
 
       - name: Generate Scalpel report
+        env:
+          SCALPEL_BASE_BRANCH: ${{ needs.decide.outputs.scalpel-base-branch }}
         run: |
           # Scalpel writes the report at session start, before validate has
           # necessarily created target/ on the root aggregator. Keep this.
           mkdir -p target
+          [ -n "$SCALPEL_BASE_BRANCH" ] || echo "::warning::No scalpel-base-branch from Decide, so Scalpel runs without scalpel.baseBranch"
           # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
           # reportFile restates the documented default so the upload path
           # below cannot drift if upstream changes it.
@@ -335,6 +340,7 @@ jobs:
             -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Dscalpel.enabled=true \
             -Dscalpel.mode=report \
+            ${SCALPEL_BASE_BRANCH:+"-Dscalpel.baseBranch=$SCALPEL_BASE_BRANCH"} \
             -Dscalpel.reportFile=target/scalpel-report.json \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5

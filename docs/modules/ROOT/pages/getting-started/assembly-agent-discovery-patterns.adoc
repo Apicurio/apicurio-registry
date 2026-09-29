@@ -355,6 +355,20 @@ Follow semantic versioning for agent cards:
 |Each value in the `tags` array within each skill (deduplicated across skills)
 |===
 
+[NOTE]
+====
+Artifact-level structured content search is supported by `sql`, `kafkasql`, `gitops`, and `kubernetesops`. The index follows the latest published, non-disabled branch tip. Draft writes do not replace published entries; publication, disable/restore, deletion and imported versions/branches refresh the index transactionally.
+
+Import populates the index without requiring re-upload. OpenAPI/AsyncAPI YAML is normalized to JSON before extraction. Full `type:kind:value`, partial `kind:value`, and plain `value` filters use case-insensitive exact value matching; SQL wildcard characters in partial kinds are treated literally. Blank components are rejected. Negated structure filters require a positive artifact-type constraint to avoid matching unrelated artifact families. Elasticsearch full-text/version-level search remains a separate feature.
+
+Values are indexed using a SHA-256 equality key over the full lowercased value, not a truncated prefix. Long skill IDs sharing their first 256 characters therefore remain distinct. Live indexing, upgrade backfill and lookup use the same encoding; original values remain in artifact content. Empty or whitespace-only `skill`, `capability`, `inputMode`, and `outputMode` parameters return HTTP 400. Capability suffixes must be `:true` or `:false`.
+====
+
+[NOTE]
+====
+Database upgrade 110 backfills existing published content for built-in types with structured extractors, skipping no-op extractors. It follows the published branch tip, with a latest-published-version fallback when imported branch metadata is absent. Progress is logged every 500 artifacts. Plan for a one-time startup cost proportional to eligible content. Extraction errors are logged and counted; SQL failures abort the transaction instead of claiming a successful partially aborted write. Custom provider backfill requires a separately registered provider available to the upgrader.
+====
+
 Design your agent cards with consistent skill IDs and capability names across your organization. With consistent naming, discovery queries return accurate results. For example, use `translation` rather than `translate` or `translator` as the skill ID across all translation agents.
 
 [role="_additional-resources"]

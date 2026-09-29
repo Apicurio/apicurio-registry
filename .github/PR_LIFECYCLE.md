@@ -353,5 +353,7 @@ The orchestrator is configured in `.github/pr-lifecycle.yml`:
 
 The orchestrator is enabled by default on all PRs. To exclude a specific PR, a maintainer
 can add the `orchestrator/disabled` label. This reverts the PR to legacy behavior (full
-test suite on every push, `DO NOT MERGE` label support).
+test suite on every push, `DO NOT MERGE` label support). Adding or removing the label
+re-runs the latest Verify run for the PR's head commit, so the change takes effect
+without a new push.
 </content>

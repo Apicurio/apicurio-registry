@@ -27,8 +27,15 @@ name: Verify
 on:
   push:
     branches: [main, '3.3.x']
+  # No labeled/unlabeled: a label change never alters the SHA, and a run it
+  # started cancelled the in-flight suite (the push run for that SHA) and then
+  # skipped everything, leaving a failed Verification Gate as the most recent
+  # check-run — which re-running could not fix, since the re-run replays the
+  # same label event. The one label Decide reads, orchestrator/disabled, is
+  # handled by the orchestrator re-running this workflow when a maintainer
+  # changes it (see handleLabelChange in pr-lifecycle.js).
   pull_request:
-    types: [opened, reopened, synchronize, labeled, unlabeled]
+    types: [opened, reopened, synchronize]
     branches: [main, '3.3.x']
   # No branches: filter here — pull_request_review does not support one.
   # In practice every PR targets main or 3.3.x, so this is a non-issue.

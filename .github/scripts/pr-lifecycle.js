@@ -1100,6 +1100,12 @@ async function handleLabelChange({ github, context, core }) {
   const config = loadConfig();
   if (isMaintainer(config, actor) && MAINTAINER_EDITABLE.includes(label.name)) {
     core.info(`PR #${pr.number} label ${action}: ${label.name} by maintainer ${actor} (allowed)`);
+    // Decide reads orchestrator/disabled, but verify.yaml no longer triggers
+    // on label events (a label run cancelled the in-flight suite and left a
+    // failed gate behind), so re-run it here to let Decide see the change.
+    if (label.name === LABELS.DISABLED) {
+      await retriggerWorkflowRun(api, pr, core, 'verify.yaml');
+    }
     return;
   }
 

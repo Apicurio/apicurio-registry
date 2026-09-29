@@ -3,7 +3,12 @@ package io.apicurio.registry.rules.validity;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.json.rules.validity.JsonSchemaContentValidator;
 import io.apicurio.registry.rules.validity.ValiditySmokeTest.TestCases.TestCase;
+import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -15,7 +20,6 @@ import java.util.stream.Stream;
 
 import static io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor.MAPPER;
 import static io.apicurio.registry.rules.compatibility.CompatibilityTestExecutor.readResource;
-import static io.apicurio.registry.json.rules.compatibility.jsonschema.JsonUtil.readSchema;
 
 public class ValiditySmokeTest {
 
@@ -41,7 +45,9 @@ public class ValiditySmokeTest {
             objectNode.put("$schema", vesionEntry.getValue());
 
             try {
-                readSchema(objectNode.toString(), Map.of(), false);
+                new JsonSchemaContentValidator().validate(ValidityLevel.FULL,
+                        TypedContent.create(ContentHandle.create(objectNode.toString()), ContentTypes.APPLICATION_JSON),
+                        Map.of());
                 if (!testCase.expected.get(vesionEntry.getKey())) {
                     Assertions.fail("Test case '%s' failed on version %s, expected false but was true."
                             .formatted(testCase.description, vesionEntry.getKey()));
@@ -49,7 +55,8 @@ public class ValiditySmokeTest {
             } catch (Exception ex) {
                 if (testCase.expected.get(vesionEntry.getKey())) {
                     Assertions.fail("Test case '%s' failed on version %s, expected true but was false: %s"
-                            .formatted(testCase.description, vesionEntry.getKey(), ex.getMessage()));
+                            .formatted(testCase.description, vesionEntry.getKey(),
+                                    ex instanceof RuleViolationException rve ? rve.getDetailMessage() : ex.getMessage()));
                 }
             }
         }

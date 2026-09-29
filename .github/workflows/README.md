@@ -47,7 +47,9 @@ workflow via `needs:` and a single `if:` condition each.
   (`gh pr view --json reviewDecision` == `APPROVED`), re-evaluated fresh on
   every `pull_request_review: submitted` event
 - `orchestrator/disabled` label → full suite runs regardless (unless
-  `DO NOT MERGE` is also present)
+  `DO NOT MERGE` is also present). Verify does not trigger on label events,
+  so when a maintainer changes this label the orchestrator re-runs the latest
+  Verify run for the head SHA (unless it is green or still running)
 - Push to main → always full suite
 
 Deciding this from author identity and review state instead of a bot-applied

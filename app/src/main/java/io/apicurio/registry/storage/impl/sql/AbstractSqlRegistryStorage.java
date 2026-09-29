@@ -1244,10 +1244,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         });
     }
 
-    /**
-     * Returns true when the given version is the artifact's latest version (highest versionOrder). Used to
-     * keep the artifact-scoped structured-content index aligned with the latest version's content.
-     */
     @Override
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {

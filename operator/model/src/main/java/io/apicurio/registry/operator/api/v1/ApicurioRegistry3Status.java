@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.JsonDeserializer.None;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.apicurio.registry.operator.api.v1.status.Condition;
+import io.apicurio.registry.operator.api.v1.status.MetricsStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -18,13 +19,14 @@ import lombok.ToString;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
 import static com.fasterxml.jackson.annotation.Nulls.SKIP;
 import static lombok.AccessLevel.PRIVATE;
 
 @JsonInclude(NON_NULL)
-@JsonPropertyOrder({"conditions"})
+@JsonPropertyOrder({"conditions", "metrics"})
 @JsonDeserialize(using = None.class)
 @NoArgsConstructor
 @AllArgsConstructor(access = PRIVATE)
@@ -54,6 +56,15 @@ public class ApicurioRegistry3Status {
     private List<Condition> conditions = new ArrayList<>();
 
     /**
+     * Metrics collected by the operator from the Apicurio Registry application Pods.
+     */
+    @JsonProperty("metrics")
+    @JsonPropertyDescription("""
+            Metrics collected by the operator from the Apicurio Registry application Pods.""")
+    @JsonSetter(nulls = SKIP)
+    private MetricsStatus metrics;
+
+    /**
      * Check that the statuses are semantically equivalent (i.e. ignoring observedGeneration, condition order, timestamps, etc.).
      */
     public static boolean isEquivalent(ApicurioRegistry3Status left, ApicurioRegistry3Status right) {
@@ -81,6 +92,6 @@ public class ApicurioRegistry3Status {
                 return false;
             }
         }
-        return true;
+        return Objects.equals(left.metrics, right.metrics);
     }
 }

@@ -85,6 +85,18 @@ public class AppSpec extends ComponentSpec {
     private OTelSpec otel;
 
     /**
+     * Configure operator-side collection of Apicurio Registry metrics.
+     */
+    @JsonProperty("metrics")
+    @JsonPropertyDescription("""
+            Configure operator-side collection of Apicurio Registry metrics.
+            When enabled, the operator scrapes the management interface of each application Pod and reports
+            a summary in `status.metrics`.
+            """)
+    @JsonSetter(nulls = SKIP)
+    private MetricsSpec metrics;
+
+    /**
      * Configure Elasticsearch-based search indexing for Apicurio Registry.
      */
     @JsonProperty("searchIndex")

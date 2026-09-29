@@ -11,6 +11,7 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -162,6 +163,21 @@ public class VersionSearchTest extends AbstractResourceTestBase {
             Assertions.assertEquals(car2.getVersion().getContentId(),
                     negatedResults.getVersions().get(0).getContentId());
         });
+    }
+
+    @Test
+    void testFilterByStructureWithoutSearchIndex() {
+        ContentSearchNotSupportedException exception = Assertions.assertThrows(
+                ContentSearchNotSupportedException.class,
+                () -> storage.searchVersions(
+                        Set.of(SearchFilter.ofStructure("schema-validation")),
+                        OrderBy.globalId,
+                        OrderDirection.asc,
+                        0,
+                        10,
+                        false));
+
+        Assertions.assertTrue(exception.getMessage().contains("search index"));
     }
 
     /**

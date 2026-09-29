@@ -22,6 +22,7 @@ public class ArtifactRuleEntity extends Entity {
     public String artifactId;
     public RuleType type;
     public String configuration;
+    public String onFailure;
 
     /**
      * @see Entity#getEntityType()

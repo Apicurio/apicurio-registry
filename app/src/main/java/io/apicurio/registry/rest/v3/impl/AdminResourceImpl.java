@@ -51,6 +51,7 @@ import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.DownloadContextType;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
+import io.apicurio.registry.storage.dto.RuleAction;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
 import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
@@ -223,6 +224,8 @@ public class AdminResourceImpl implements AdminResource {
 
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
+        configDto.setOnFailure(data.getOnFailure() != null
+                ? RuleAction.valueOf(data.getOnFailure().value()) : RuleAction.ERROR);
         storage.createGlobalRule(data.getRuleType(), configDto);
     }
 
@@ -255,6 +258,7 @@ public class AdminResourceImpl implements AdminResource {
         Rule ruleBean = new Rule();
         ruleBean.setRuleType(ruleType);
         ruleBean.setConfig(dto.getConfiguration());
+        ruleBean.setOnFailure(Rule.OnFailure.fromValue(dto.getOnFailure().name()));
         return ruleBean;
     }
 
@@ -274,11 +278,17 @@ public class AdminResourceImpl implements AdminResource {
         RuleConfigurationDto configDto = new RuleConfigurationDto();
         configDto.setConfiguration(data.getConfig());
         try {
+            RuleConfigurationDto existing = storage.getGlobalRule(ruleType);
+            configDto.setOnFailure(data.getOnFailure() != null
+                    ? RuleAction.valueOf(data.getOnFailure().value()) : existing.getOnFailure());
             storage.updateGlobalRule(ruleType, configDto);
         } catch (RuleNotFoundException ruleNotFoundException) {
             // This global rule doesn't exist in artifactStore - if the rule exists in the default
             // global rules, override the default by creating a new global rule
             if (rulesProperties.isDefaultGlobalRuleConfigured(ruleType)) {
+                configDto.setOnFailure(data.getOnFailure() != null
+                        ? RuleAction.valueOf(data.getOnFailure().value())
+                        : rulesProperties.getDefaultGlobalRuleConfiguration(ruleType).getOnFailure());
                 storage.createGlobalRule(ruleType, configDto);
             } else {
                 throw ruleNotFoundException;
@@ -287,6 +297,7 @@ public class AdminResourceImpl implements AdminResource {
         Rule ruleBean = new Rule();
         ruleBean.setRuleType(ruleType);
         ruleBean.setConfig(data.getConfig());
+        ruleBean.setOnFailure(Rule.OnFailure.fromValue(configDto.getOnFailure().name()));
         return ruleBean;
     }
 

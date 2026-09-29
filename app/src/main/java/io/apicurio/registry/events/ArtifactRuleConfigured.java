@@ -23,6 +23,7 @@ public class ArtifactRuleConfigured extends OutboxEvent {
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", groupId).put("artifactId", artifactId)
                 .put("ruleType", ruleType.value()).put("rule", rule.getConfiguration())
+                .put("onFailure", rule.getOnFailure().name())
                 .put("eventType", ARTIFACT_RULE_CONFIGURED.name());
 
         return new ArtifactRuleConfigured(id, groupId + "-" + artifactId, jsonObject);

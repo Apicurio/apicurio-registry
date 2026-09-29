@@ -94,7 +94,7 @@ public class AdminResourceTest extends AbstractResourceTestBase {
         {
             given().when().get("/registry/v3/admin/rules/VALIDITY").then().statusCode(200)
                     .contentType(ContentType.JSON).body("ruleType", equalTo("VALIDITY"))
-                    .body("config", equalTo("FULL"));
+                    .body("config", equalTo("FULL")).body("onFailure", equalTo("ERROR"));
         }
 
         // Try to add the rule again - should get a 409

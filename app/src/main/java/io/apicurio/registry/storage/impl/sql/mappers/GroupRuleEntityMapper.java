@@ -27,6 +27,7 @@ public class GroupRuleEntityMapper implements RowMapper<GroupRuleEntity> {
         entity.groupId = RegistryContentUtils.denormalizeGroupId(rs.getString("groupId"));
         entity.type = RuleType.fromValue(rs.getString("type"));
         entity.configuration = rs.getString("configuration");
+        entity.onFailure = rs.getString("onFailure");
         return entity;
     }
 

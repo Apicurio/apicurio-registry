@@ -1589,9 +1589,9 @@ The following {registry} configuration options are available for each component 
 |Path to a configuration file containing a list of supported artifact types.
 |`apicurio.compat.json-schema.use-apitomy`
 |`boolean`
-|`false`
+|`true`
 |`3.3.1`
-|Use the Apitomy Data Models JSON Schema compatibility checker instead of the everit-based one. _(experimental)_
+|Use the Apitomy Data Models JSON Schema compatibility checker, which supports drafts 4, 6, 7, 2019-09 and 2020-12. Set to false to use the legacy everit-based checker instead, which supports drafts 4 to 7 only, is deprecated, and will be removed.
 |===
 
 == ui

@@ -39,8 +39,8 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     @Getter
     private String configFile;
 
-    @ConfigProperty(name = "apicurio.compat.json-schema.use-apitomy", defaultValue = "false")
-    @Info(category = ConfigPropertyCategory.CATEGORY_TYPES, description = "Use the Apitomy Data Models JSON Schema compatibility checker instead of the everit-based one.", availableSince = "3.3.1", experimental = true)
+    @ConfigProperty(name = "apicurio.compat.json-schema.use-apitomy", defaultValue = "true")
+    @Info(category = ConfigPropertyCategory.CATEGORY_TYPES, description = "Use the Apitomy Data Models JSON Schema compatibility checker, which supports drafts 4, 6, 7, 2019-09 and 2020-12. Set to false to use the legacy everit-based checker instead, which supports drafts 4 to 7 only, is deprecated, and will be removed.", availableSince = "3.3.1")
     boolean useApitomyJsonSchemaChecker;
 
     @PostConstruct
@@ -54,18 +54,21 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
             loadStandardProviders();
         }
 
-        applyExperimentalOverrides();
+        selectJsonSchemaCompatibilityChecker();
     }
 
-    private void applyExperimentalOverrides() {
+    private void selectJsonSchemaCompatibilityChecker() {
         if (useApitomyJsonSchemaChecker) {
-            log.info("Using Apitomy Data Models JSON Schema compatibility checker (experimental).");
             providers.stream()
                     .filter(p -> ArtifactType.JSON.equals(p.getArtifactType()))
                     .filter(AbstractArtifactTypeUtilProvider.class::isInstance)
                     .map(AbstractArtifactTypeUtilProvider.class::cast)
                     .findFirst()
                     .ifPresent(p -> p.setCompatibilityChecker(new ApitomyJsonSchemaCompatibilityChecker()));
+        } else {
+            log.warn("Using the legacy everit-based JSON Schema compatibility checker, because "
+                    + "'apicurio.compat.json-schema.use-apitomy' is false. It supports drafts 4 to 7 only, "
+                    + "is deprecated, and will be removed.");
         }
     }
 

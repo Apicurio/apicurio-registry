@@ -10,7 +10,9 @@ on:
     types: [created]
   workflow_run:
     workflows: ["Verify", "Quick Check"]
-    types: [completed]
+    # requested: only for the gate-status job (pending as soon as a Verify run
+    # starts); test-result handles completed only.
+    types: [requested, completed]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -223,7 +225,8 @@ jobs:
     runs-on: ubuntu-latest
     if: |
       github.repository_owner == 'Apicurio' &&
-      github.event_name == 'workflow_run'
+      github.event_name == 'workflow_run' &&
+      github.event.action == 'completed'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -243,6 +246,48 @@ jobs:
             await handler.handleTestResult({ github, context, core });
 
   # ==========================================================================
+  # Verification Gate status (Verify workflow requested/completed)
+  # ==========================================================================
+  # Posts the "Verification Gate" commit status (the required check) on the
+  # run's head commit, from the newest Verify run for that commit. Runs in the
+  # privileged workflow_run context, which is what lets it post for fork PRs;
+  # so, like test-result, it never checks out or executes the run's code, and
+  # handleGateStatus looks runs up by workflow file through the API instead of
+  # trusting the triggering payload (a PR can add a workflow named "Verify").
+  #
+  # Not filtered on orchestrator/disabled: branch protection requires the
+  # status on every PR.
+  #
+  # Serialized per commit. Each run recomputes from the current state of all
+  # Verify runs for the commit, so a queued job superseded (and cancelled) by
+  # a newer one for the same commit loses nothing.
+  gate-status:
+    name: Verification Gate Status
+    runs-on: ubuntu-latest
+    if: |
+      github.repository_owner == 'Apicurio' &&
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.name == 'Verify'
+    concurrency:
+      group: verification-gate-${{ github.event.workflow_run.head_sha }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+      statuses: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        # Base branch only, never the run's head SHA (see test-result).
+
+      - name: Post Verification Gate status
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handleGateStatus({ github, context, core });
+
+  # ==========================================================================
   # Failure Notification
   # ==========================================================================
   failure-notify:
@@ -252,7 +297,7 @@ jobs:
       github.repository_owner == 'Apicurio' &&
       failure() &&
       github.event_name != 'schedule'
-    needs: [pr-opened, pr-synchronize, pr-ready-for-review, pr-converted-to-draft, pr-review-submitted, command, label-guard, test-result, reconcile]
+    needs: [pr-opened, pr-synchronize, pr-ready-for-review, pr-converted-to-draft, pr-review-submitted, command, label-guard, test-result, gate-status, reconcile]
     steps:
       - name: Post warning comment
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
@@ -291,6 +336,14 @@ jobs:
     name: Reconcile
     runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && github.event_name == 'workflow_dispatch'
+    # The workflow-level permissions plus statuses: write, to re-sync the
+    # Verification Gate status (job-level permissions replace, not extend).
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+      issues: write
+      statuses: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -312,6 +365,13 @@ jobs:
     name: Stale Detection
     runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio' && github.event_name == 'schedule'
+    # As reconcile: the sweep re-syncs every open PR's Verification Gate.
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+      issues: write
+      statuses: write
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7

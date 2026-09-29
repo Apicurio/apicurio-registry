@@ -107,6 +107,54 @@ class RegistryClientFacadeFactoryTest {
     }
 
     @Test
+    void testBuildClientOptionsRetryDefaultsMatchLegacyHardcodedBehavior() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+
+        Assertions.assertTrue(options.isRetryEnabled());
+        Assertions.assertEquals(3, options.getMaxRetryAttempts());
+        Assertions.assertEquals(250L, options.getRetryDelayMs());
+        Assertions.assertEquals(2.0, options.getBackoffMultiplier());
+        Assertions.assertEquals(10000L, options.getMaxRetryDelayMs());
+    }
+
+    @Test
+    void testBuildClientOptionsRetryCustomValues() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, 7L);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_DELAY_MS, 100L);
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_BACKOFF_MULTIPLIER, "1.75");
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_DELAY_MS, 5000L);
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+
+        Assertions.assertTrue(options.isRetryEnabled());
+        Assertions.assertEquals(7, options.getMaxRetryAttempts());
+        Assertions.assertEquals(100L, options.getRetryDelayMs());
+        Assertions.assertEquals(1.75, options.getBackoffMultiplier());
+        Assertions.assertEquals(5000L, options.getMaxRetryDelayMs());
+    }
+
+    @Test
+    void testBuildClientOptionsRetryDisabled() {
+        Map<String, Object> originals = new HashMap<>();
+        originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_ENABLED, false);
+        // These should be ignored because retry is disabled.
+        originals.put(SchemaResolverConfig.CLIENT_RETRY_MAX_ATTEMPTS, 99L);
+
+        SchemaResolverConfig config = new SchemaResolverConfig(originals);
+        RegistryClientOptions options = RegistryClientFacadeFactory.buildClientOptions(config, null);
+
+        Assertions.assertFalse(options.isRetryEnabled());
+    }
+
+    @Test
     void testBuildClientOptionsJks() {
         Map<String, Object> originals = new HashMap<>();
         originals.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");

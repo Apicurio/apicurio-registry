@@ -12,8 +12,6 @@ type AiCatalog struct {
 	entries []AiCatalogEntryable
 	// Information about the AI Catalog host (this registry instance).
 	host AiCatalogHostable
-	// Opaque pagination token for retrieving the next page of ARD list results. Only populated by the ARD `GET /agents` endpoint; absent from the static `/.well-known/ai-catalog.json` projection.
-	nextPageToken *string
 	// The specVersion property
 	specVersion *string
 }
@@ -73,16 +71,6 @@ func (m *AiCatalog) GetFieldDeserializers() map[string]func(i878a80d2330e89d2689
 		}
 		return nil
 	}
-	res["nextPageToken"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetNextPageToken(val)
-		}
-		return nil
-	}
 	res["specVersion"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetStringValue()
 		if err != nil {
@@ -100,12 +88,6 @@ func (m *AiCatalog) GetFieldDeserializers() map[string]func(i878a80d2330e89d2689
 // returns a AiCatalogHostable when successful
 func (m *AiCatalog) GetHost() AiCatalogHostable {
 	return m.host
-}
-
-// GetNextPageToken gets the nextPageToken property value. Opaque pagination token for retrieving the next page of ARD list results. Only populated by the ARD `GET /agents` endpoint; absent from the static `/.well-known/ai-catalog.json` projection.
-// returns a *string when successful
-func (m *AiCatalog) GetNextPageToken() *string {
-	return m.nextPageToken
 }
 
 // GetSpecVersion gets the specVersion property value. The specVersion property
@@ -130,12 +112,6 @@ func (m *AiCatalog) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a0e6c0
 	}
 	{
 		err := writer.WriteObjectValue("host", m.GetHost())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("nextPageToken", m.GetNextPageToken())
 		if err != nil {
 			return err
 		}
@@ -170,11 +146,6 @@ func (m *AiCatalog) SetHost(value AiCatalogHostable) {
 	m.host = value
 }
 
-// SetNextPageToken sets the nextPageToken property value. Opaque pagination token for retrieving the next page of ARD list results. Only populated by the ARD `GET /agents` endpoint; absent from the static `/.well-known/ai-catalog.json` projection.
-func (m *AiCatalog) SetNextPageToken(value *string) {
-	m.nextPageToken = value
-}
-
 // SetSpecVersion sets the specVersion property value. The specVersion property
 func (m *AiCatalog) SetSpecVersion(value *string) {
 	m.specVersion = value
@@ -185,10 +156,8 @@ type AiCatalogable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetEntries() []AiCatalogEntryable
 	GetHost() AiCatalogHostable
-	GetNextPageToken() *string
 	GetSpecVersion() *string
 	SetEntries(value []AiCatalogEntryable)
 	SetHost(value AiCatalogHostable)
-	SetNextPageToken(value *string)
 	SetSpecVersion(value *string)
 }

@@ -582,6 +582,7 @@ These options work with most commands:
 - `1` - Application error
 - `2` - Input validation error
 - `3` - Apicurio Registry server error
+- `4` - Transient failure (timeout, service unavailable, connection error). Retrying may succeed.
 
 ## Development
 

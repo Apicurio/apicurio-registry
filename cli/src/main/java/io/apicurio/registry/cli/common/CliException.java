@@ -8,6 +8,7 @@ public class CliException extends RuntimeException {
     public static final int APPLICATION_ERROR_RETURN_CODE = 1;
     public static final int VALIDATION_ERROR_RETURN_CODE = 2;
     public static final int SERVER_ERROR_RETURN_CODE = 3;
+    public static final int TRANSIENT_ERROR_RETURN_CODE = 4;
 
     @Getter
     private int code;

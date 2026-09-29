@@ -94,6 +94,7 @@
     <module>utils/tests</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
+    <module>schema-util/agents</module>
     <module>schema-util/asyncapi</module>
     <module>schema-util/avro</module>
     <module>schema-util/common</module>
@@ -225,7 +226,7 @@
     <failsafe.rerunFailingTestsCount>0</failsafe.rerunFailingTestsCount>
 
     <!-- Apitomy Data Models (OpenAPI and AsyncAPI support) -->
-    <apitomy-data-models.version>3.1.3</apitomy-data-models.version>
+    <apitomy-data-models.version>4.0.0-beta.1</apitomy-data-models.version>
 
     <!-- GraphQL -->
     <graphql.version>26.1</graphql.version>
@@ -483,6 +484,18 @@
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-schema-util-provider</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-util-provider</artifactId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
+        <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-schema-util-agents</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

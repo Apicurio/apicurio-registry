@@ -54,8 +54,11 @@ jobs:
       - name: Run the tests
         working-directory: python-sdk
         run: |
-          docker run -d -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
-          sleep 5
+          docker run -d --name registry -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
+          # Wait for the API rather than a fixed sleep: when the registry is not up yet, the SDK tests
+          # fall back to starting a local jar that does not exist in this job.
+          for i in $(seq 1 60); do curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null && break; sleep 1; done
+          curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null || { docker logs registry; exit 1; }
           make test
 
   verify-go-sdk:
@@ -87,6 +90,9 @@ jobs:
       - name: Run the tests
         working-directory: go-sdk
         run: |
-          docker run -d -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
-          sleep 5
+          docker run -d --name registry -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
+          # Wait for the API rather than a fixed sleep: when the registry is not up yet, the SDK tests
+          # fall back to starting a local jar that does not exist in this job.
+          for i in $(seq 1 60); do curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null && break; sleep 1; done
+          curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null || { docker logs registry; exit 1; }
           make test

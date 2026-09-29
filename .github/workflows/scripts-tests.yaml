@@ -1,6 +1,6 @@
 name: Scripts Tests
 
-# Unit tests for the Node scripts under .github/scripts.
+# Unit tests for the scripts under .github/scripts, Node, shell and Python alike.
 #
 # These deliberately do NOT live in pr-validation.yml, even though it already
 # had a test step: that workflow runs on pull_request_target and checks out the
@@ -14,11 +14,18 @@ name: Scripts Tests
 on:
   pull_request:
     types: [opened, reopened, synchronize]
-    branches: [main]
+    branches: [main, '3.3.x']
     paths:
       - '.github/scripts/**'
       - '.github/pr-lifecycle.yml'
       - '.github/workflows/scripts-tests.yaml'
+      # scalpel-summary.test.sh asserts the pinned Scalpel version still writes
+      # the report schema the summary reads, so a bump has to run these tests.
+      - '.mvn/extensions.xml'
+      # The same suite cross-checks the buildAllIfNoChanges pin behind the
+      # summary's empty-reactor full-build projections, so that setting has to
+      # run them too.
+      - '.mvn/maven.config'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -40,10 +47,36 @@ jobs:
         with:
           node-version: 24.20.0
 
+      - name: Set up Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.14.7'
+
+      # classify.py's unit tests need only these two. sentence-transformers is
+      # deliberately not installed: classify.py imports it lazily, so the
+      # decision logic is testable without a multi-hundred-MB torch download on
+      # every PR that touches a script.
+      - name: Install Python dependencies
+        run: python -m pip install pyyaml numpy
+
       # Listed individually rather than as a directory: `node --test <dir>`
       # resolves the argument as a module on Node 24 and fails.
-      - name: Run unit tests
+      # pr-reviewer-assignment.test.js also checks the shipped pr-lifecycle.yml
+      # and label-descriptions.yml, reading them through yq (preinstalled on
+      # ubuntu-latest, and what the other workflows use to read that config).
+      - name: Run Node unit tests
         run: |
           node --test .github/scripts/pr-validation.test.js \
                       .github/scripts/pr-lifecycle.test.js \
-                      .github/scripts/issue-assignment.test.js
+                      .github/scripts/issue-assignment.test.js \
+                      .github/scripts/pr-reviewer-assignment.test.js
+
+      # jq is preinstalled on ubuntu-latest, which is the same assumption the
+      # scalpel-report job in verify.yaml makes.
+      - name: Run shell script tests
+        run: bash .github/scripts/scalpel-summary.test.sh
+
+      # test_classify.py (no _unit suffix) is deliberately not run here — it is
+      # an accuracy harness that needs the model, the network and a `gh` token.
+      - name: Run Python unit tests
+        run: python .github/scripts/label-classification/test_classify_unit.py

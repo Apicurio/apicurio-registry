@@ -39,7 +39,7 @@ See [SECURITY.md](SECURITY.md) for details.
 
 For general questions and development discussions, use the
 [cncf-apicurio-registry-dev@lists.cncf.io](mailto:cncf-apicurio-registry-dev@lists.cncf.io) mailing list
-or the [#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+or the [#apicurio-registry channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
 
 ## Getting started and where to ask
 

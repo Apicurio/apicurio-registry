@@ -15,6 +15,7 @@ import io.apicurio.registry.rest.v3.beans.AgentInterface;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResult;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.AiCatalog;
+import io.apicurio.registry.rest.v3.beans.ArdAgentsResponse;
 import io.apicurio.registry.rest.v3.beans.AiCatalogEntry;
 import io.apicurio.registry.rest.v3.beans.AiCatalogHost;
 import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
@@ -234,13 +235,29 @@ public class WellKnownResourceImpl implements WellKnownResource {
         String baseUrl = getBaseUrl();
         String publisherDomain = resolvePublisherDomain();
 
+        Set<SearchFilter> structureFilters = new HashSet<>();
+        addStructureFilters(structureFilters, "skill", skills);
+        addStructureFilters(structureFilters, "inputmode", inputModes);
+        addStructureFilters(structureFilters, "outputmode", outputModes);
+        if (capabilities != null) {
+            for (String capability : capabilities) {
+                requireNonBlankStructuredFilter("capability", capability);
+                String[] parts = capability.split(":", 2);
+                requireNonBlankStructuredFilter("capability", parts[0]);
+                if (parts.length == 2 && !"true".equals(parts[1]) && !"false".equals(parts[1])) {
+                    throw new BadRequestException("Capability filter must use true or false");
+                }
+                SearchFilter filter = SearchFilter.ofStructure("agent_card:capability:" + parts[0]);
+                structureFilters.add(parts.length == 2 && "false".equals(parts[1]) ? filter.negated() : filter);
+            }
+        }
         // Delegate candidate collection (including the single, shared visibility-filtering
         // implementation) to the same core that backs the AI Catalog / ARD endpoints.
         // Structured skill/capability/input-mode/output-mode filters have no equivalent in
         // AiCatalogEntry, so they are evaluated afterwards against each surviving candidate's
         // Agent Card content.
         List<SearchedArtifactDto> matched = new ArrayList<>();
-        for (AiCatalogCandidate candidate : collectAiCatalogCandidates(baseUrl, publisherDomain, name)) {
+        for (AiCatalogCandidate candidate : collectAiCatalogCandidates(baseUrl, publisherDomain, name, structureFilters)) {
             if (!AiCatalogConstants.MEDIA_TYPE_AGENT_CARD.equals(candidate.entry.getType())) {
                 continue;
             }
@@ -907,7 +924,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public AiCatalog ardListAgents(String filter, String orderBy, Integer pageSize, String pageToken) {
+    public ArdAgentsResponse ardListAgents(String filter, String orderBy, Integer pageSize, String pageToken) {
         if (!ardConfig.isEnabled()) {
             throw new NotFoundException("ARD support is disabled");
         }
@@ -941,9 +958,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         String nextPageToken = toIndex < total ? encodePageToken(toIndex) : null;
 
-        AiCatalog catalog = buildAiCatalog(publisherDomain, entries);
-        catalog.setNextPageToken(nextPageToken);
-        return catalog;
+        ArdAgentsResponse response = new ArdAgentsResponse();
+        response.setItems(entries);
+        response.setTotal(total);
+        response.setPageToken(nextPageToken);
+
+        return response;
     }
 
     @Override
@@ -1033,9 +1053,30 @@ public class WellKnownResourceImpl implements WellKnownResource {
      */
     private List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
             String textFilter) {
+        return collectAiCatalogCandidates(baseUrl, publisherDomain, textFilter, Set.of());
+    }
+
+    private void addStructureFilters(Set<SearchFilter> filters, String kind, List<String> values) {
+        if (values != null) {
+            for (String value : values) {
+                requireNonBlankStructuredFilter(kind, value);
+                filters.add(SearchFilter.ofStructure("agent_card:" + kind + ":" + value));
+            }
+        }
+    }
+
+    private void requireNonBlankStructuredFilter(String parameter, String value) {
+        if (value == null || value.isBlank()) {
+            throw new BadRequestException("Structured filter '" + parameter + "' must not be blank");
+        }
+    }
+
+    private List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
+            String textFilter, Set<SearchFilter> structureFilters) {
         List<AiCatalogCandidate> candidates = new ArrayList<>();
 
         Set<SearchFilter> agentFilters = new HashSet<>();
+        agentFilters.addAll(structureFilters);
         agentFilters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
         if (!StringUtil.isEmpty(textFilter)) {
             agentFilters.add(SearchFilter.ofPartialName(textFilter));

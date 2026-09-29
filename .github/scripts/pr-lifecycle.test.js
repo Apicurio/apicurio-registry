@@ -440,6 +440,103 @@ test('/reject is rejected for a non-maintainer', async () => {
 });
 
 // ---------------------------------------------------------------------------
+// Label guard — orchestrator/disabled re-runs Verify, because verify.yaml no
+// longer triggers on label events itself
+// ---------------------------------------------------------------------------
+
+// latestVerifyRun is what listWorkflowRuns returns for verify.yaml (or null).
+function labelGuardWorld(prLabels, latestVerifyRun) {
+  const w = makeWorld(prLabels);
+  w.calls.runLookups = [];
+  w.calls.reRuns = [];
+  w.github.rest.actions.listWorkflowRuns = async ({ workflow_id, head_sha }) => {
+    w.calls.runLookups.push({ workflow_id, head_sha });
+    return { data: { workflow_runs: latestVerifyRun ? [latestVerifyRun] : [] } };
+  };
+  w.github.rest.actions.reRunWorkflow = async ({ run_id }) => { w.calls.reRuns.push(run_id); };
+  return w;
+}
+
+function labelContext(action, labelName, sender) {
+  return {
+    repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+    payload: {
+      action,
+      label: { name: labelName },
+      sender: { login: sender },
+      pull_request: { number: 42, head: { sha: SHA } },
+    },
+  };
+}
+
+test('label guard: maintainer adding orchestrator/disabled re-runs the failed Verify run for the head SHA', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = labelGuardWorld([LABELS.READY_FOR_REVIEW, LABELS.DISABLED],
+      { id: 777, status: 'completed', conclusion: 'failure' });
+    await lifecycle.handleLabelChange({
+      github: w.github, context: labelContext('labeled', LABELS.DISABLED, 'maintainer-jane'), core: w.core,
+    });
+    assert.deepEqual(w.calls.runLookups, [{ workflow_id: 'verify.yaml', head_sha: SHA }]);
+    assert.deepEqual(w.calls.reRuns, [777]);
+    assert.deepEqual(w.calls.removed, []);
+    assert.deepEqual(w.calls.comments, []);
+  });
+});
+
+test('label guard: maintainer removing orchestrator/disabled re-runs the failed Verify run too', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = labelGuardWorld([LABELS.READY_FOR_REVIEW],
+      { id: 778, status: 'completed', conclusion: 'cancelled' });
+    await lifecycle.handleLabelChange({
+      github: w.github, context: labelContext('unlabeled', LABELS.DISABLED, 'maintainer-jane'), core: w.core,
+    });
+    assert.deepEqual(w.calls.reRuns, [778]);
+    assert.deepEqual(w.calls.added, []);
+  });
+});
+
+test('label guard: orchestrator/disabled leaves a green or running Verify run alone', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    for (const run of [
+      { id: 779, status: 'completed', conclusion: 'success' },
+      { id: 780, status: 'in_progress', conclusion: null },
+    ]) {
+      const w = labelGuardWorld([LABELS.READY_FOR_REVIEW, LABELS.DISABLED], run);
+      await lifecycle.handleLabelChange({
+        github: w.github, context: labelContext('labeled', LABELS.DISABLED, 'maintainer-jane'), core: w.core,
+      });
+      assert.deepEqual(w.calls.reRuns, [], `run ${run.id} (${run.status}/${run.conclusion}) must not be re-run`);
+    }
+  });
+});
+
+test('label guard: other maintainer-editable labels do not touch Verify', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = labelGuardWorld([LABELS.WAITING_ON_AUTHOR],
+      { id: 781, status: 'completed', conclusion: 'failure' });
+    await lifecycle.handleLabelChange({
+      github: w.github, context: labelContext('labeled', LABELS.WAITING_ON_AUTHOR, 'maintainer-jane'), core: w.core,
+    });
+    assert.deepEqual(w.calls.runLookups, []);
+    assert.deepEqual(w.calls.reRuns, []);
+  });
+});
+
+test('label guard: non-maintainer adding orchestrator/disabled is reverted and does not re-run Verify', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = labelGuardWorld([LABELS.READY_FOR_REVIEW, LABELS.DISABLED],
+      { id: 782, status: 'completed', conclusion: 'failure' });
+    await lifecycle.handleLabelChange({
+      github: w.github, context: labelContext('labeled', LABELS.DISABLED, 'random-user'), core: w.core,
+    });
+    assert.deepEqual(w.calls.removed, [LABELS.DISABLED]);
+    assert.equal(w.calls.comments.length, 1);
+    assert.ok(w.calls.comments[0].includes('@random-user'));
+    assert.deepEqual(w.calls.reRuns, []);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Legacy label migration — retired labels from the old bot-driven-promotion
 // design are cleaned up (or migrated to their native equivalent) on the next
 // reconcile, rather than left stuck on old PRs forever. Exercised through

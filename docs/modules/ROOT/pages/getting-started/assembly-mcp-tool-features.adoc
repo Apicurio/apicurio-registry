@@ -361,11 +361,15 @@ curl -X POST "http://localhost:8080/apis/registry/v3/groups/mcp-tools/artifacts"
 a|Complete validation including:
 
 * Required `name` field (non-empty string)
-* Required `inputSchema` field (object with `type` = `"object"` per spec docs guidance)
+* Required `inputSchema` field (object with `type` = `"object"` per spec docs guidance) that is a valid JSON Schema document
 * Optional `title` and `description` must be strings if present
-* Optional `outputSchema` must be an object if present
+* Optional `outputSchema` must be an object that is a valid JSON Schema document if present
 * Optional `annotations` validated as ToolAnnotations: `title` (string), `audience` (array of strings), `priority` (number 0-1). Note: `annotations.title` validation follows spec docs guidance; `audience` values are not restricted to the `Role` enum for forward compatibility.
 |===
+
+At the `FULL` level, {registry} validates `inputSchema`, and `outputSchema` when it is present, against the meta-schema of the JSON Schema dialect that each one declares in its `$schema` keyword. When a schema does not declare `$schema`, {registry} uses JSON Schema 2020-12, which is the default dialect in the MCP specification. {registry} supports JSON Schema draft-04, draft-06, draft-07, 2019-09, and 2020-12. A `$schema` value that is not a string, or that declares any other dialect, is reported as a rule violation, and the schema is not validated against a different dialect.
+
+IMPORTANT: If you already use the `FULL` validity level for MCP tool definitions, {registry} now rejects a tool definition whose `inputSchema` or `outputSchema` is not a valid JSON Schema document, for example a property that declares `"type": "strng"`. Rules are applied when content is submitted, so versions that are already stored are not revalidated.
 
 // ref-mcp-compatibility-checking
 [id="mcp-compatibility-checking_{context}"]

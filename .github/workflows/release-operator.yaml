@@ -378,13 +378,16 @@ jobs:
             exit 0
           fi
 
-          git checkout main
+          # Wait for the pipeline-built bundle, then refresh catalog history in
+          # case a preceding catalog submission merged while we were waiting.
+          BUNDLE_IMG=$(bash ../registry/operator/scripts/published-bundle.sh "$PACKAGE_VERSION")
+          git fetch origin main
+          git checkout -B main origin/main
           git checkout -b "${RELEASE_BRANCH}-catalog"
           TITLE="Update FBC catalogs for Apicurio Registry Operator $PACKAGE_VERSION"
 
           MINOR_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
           CSV_NAME="$PKG_NAME.v$PACKAGE_VERSION"
-          BUNDLE_IMG="quay.io/apicurio/apicurio-registry-3-operator-bundle:$PACKAGE_VERSION"
 
           if [ "$BRANCH" = "main" ]; then
             CHANNELS="3.x $MINOR_CHANNEL"
@@ -400,6 +403,7 @@ jobs:
             chmod +x ../../bin/yq
           fi
           YQ="../../bin/yq"
+          PREVIOUS_CSV=$($YQ '.spec.replaces // ""' "../../../registry/operator/target/bundle/$PKG_NAME/$PACKAGE_VERSION/manifests/$PKG_NAME.clusterserviceversion.yaml")
 
           for tpl in catalog-templates/v4.*.yaml; do
             echo "  Updating $tpl"
@@ -407,16 +411,26 @@ jobs:
               CH_EXISTS=$($YQ ".entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .name" "$tpl" 2>/dev/null || true)
               CH_HEAD=$($YQ ".entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries[0].name" "$tpl" 2>/dev/null || true)
 
-              if [ -z "$CH_EXISTS" ] || [ "$CH_EXISTS" = "null" ]; then
+              if [ "$CH_HEAD" = "$CSV_NAME" ]; then
+                echo "    $CH already contains $CSV_NAME as its head"
+              elif [ -z "$CH_EXISTS" ] || [ "$CH_EXISTS" = "null" ]; then
                 echo "    Creating new channel $CH"
                 $YQ -i ".entries |= . + [{\"schema\": \"olm.channel\", \"package\": \"$PKG_NAME\", \"name\": \"$CH\", \"entries\": [{\"name\": \"$CSV_NAME\"}]}]" "$tpl"
+                if [ -n "$PREVIOUS_CSV" ]; then
+                  $YQ -i "(.entries[] | select(.schema == \"olm.channel\" and .name == \"$CH\") | .entries[0].replaces) = \"$PREVIOUS_CSV\"" "$tpl"
+                fi
               elif [ -n "$CH_HEAD" ] && [ "$CH_HEAD" != "null" ]; then
                 $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\", \"replaces\": \"$CH_HEAD\"}] + ." "$tpl"
               else
                 $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\"}]" "$tpl"
+                if [ -n "$PREVIOUS_CSV" ]; then
+                  $YQ -i "(.entries[] | select(.schema == \"olm.channel\" and .name == \"$CH\") | .entries[0].replaces) = \"$PREVIOUS_CSV\"" "$tpl"
+                fi
               fi
             done
-            $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$tpl"
+            if ! $YQ -e ".entries[] | select(.schema == \"olm.bundle\" and .image == \"$BUNDLE_IMG\")" "$tpl" >/dev/null 2>&1; then
+              $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$tpl"
+            fi
           done
 
           make catalogs
@@ -446,23 +460,13 @@ jobs:
       - name: Update Makefile
         working-directory: registry/operator
         run: |
-          OLD_PREV=$(make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
-          OLD_CHANNEL=$(echo "$OLD_PREV" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
-          NEW_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
-          if [ "$OLD_CHANNEL" != "$NEW_CHANNEL" ]; then
-            echo "OLD_PREVIOUS_CHANNEL=$OLD_CHANNEL" >> $GITHUB_ENV
-          fi
           make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
           git add Makefile
 
       - name: Update catalog template
         working-directory: registry/operator
         run: |
-          CATALOG_ARGS=""
-          if [ -n "${OLD_PREVIOUS_CHANNEL:-}" ]; then
-            CATALOG_ARGS="OLD_PREVIOUS_CHANNEL=$OLD_PREVIOUS_CHANNEL"
-          fi
-          make $CATALOG_ARGS release-catalog-template-update
+          make release-catalog-template-update
           git add "$(make VAR=CATALOG_DIR variable-get)"
 
       - name: Update install file
@@ -505,15 +509,8 @@ jobs:
           cd operator
           if [ "$RELEASE_CHANNEL" = "$MAIN_CHANNEL" ]; then
             # Same minor as main — full catalog update
-            OLD_PREV=$(make VAR=PREVIOUS_PACKAGE_VERSION variable-get)
-            OLD_CH=$(echo "$OLD_PREV" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
-            NEW_CH=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
-            CATALOG_ARGS=""
-            if [ "$OLD_CH" != "$NEW_CH" ]; then
-              CATALOG_ARGS="OLD_PREVIOUS_CHANNEL=$OLD_CH"
-            fi
             make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
-            make $CATALOG_ARGS release-catalog-template-update
+            make release-catalog-template-update
           else
             # Maintenance release from an older minor — only update its channel
             # and add the bundle image. Do NOT touch PREVIOUS_PACKAGE_VERSION,

@@ -8,6 +8,11 @@ on:
         type: string
         required: true
         description: 'Docker image tag (commit SHA)'
+      snapshot-tag:
+        type: string
+        required: false
+        default: 'latest-snapshot'
+        description: 'Snapshot tag prefix (e.g. latest-snapshot or 3.3.x-snapshot)'
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -29,7 +34,7 @@ jobs:
       image-name: 'apicurio/apicurio-registry'
       dockerfile: './distro/docker/target/docker/Dockerfile.jvm'
       context: './distro/docker/target/docker'
-      tag: 'latest-snapshot'
+      tag: ${{ inputs.snapshot-tag }}
       maven-build: false
       download-artifact: 'build-artifacts-${{ inputs.image-tag }}'
       platforms: 'linux/amd64,linux/arm64'
@@ -46,7 +51,7 @@ jobs:
       image-name: 'apicurio/apicurio-registry'
       dockerfile: './distro/docker/target/docker/Dockerfile.mutable.jvm'
       context: './distro/docker/target/docker'
-      tag: 'latest-snapshot-mutable'
+      tag: '${{ inputs.snapshot-tag }}-mutable'
       maven-build: false
       download-artifact: 'build-artifacts-${{ inputs.image-tag }}'
       platforms: 'linux/amd64,linux/arm64'
@@ -63,7 +68,7 @@ jobs:
       image-name: 'apicurio/apicurio-registry-mcp-server'
       dockerfile: './mcp/target/docker/Dockerfile.jvm'
       context: './mcp/target/docker'
-      tag: 'latest-snapshot'
+      tag: ${{ inputs.snapshot-tag }}
       push-to-dockerhub: false
       maven-build: false
       download-artifact: 'build-artifacts-${{ inputs.image-tag }}'
@@ -79,7 +84,7 @@ jobs:
       image-name: 'apicurio/apicurio-registry-ui'
       dockerfile: './ui/Dockerfile'
       context: './ui'
-      tag: 'latest-snapshot'
+      tag: ${{ inputs.snapshot-tag }}
       npm-build: true
       npm-build-dir: 'ui'
       platforms: 'linux/amd64,linux/arm64'
@@ -96,7 +101,7 @@ jobs:
       image-name: 'apicurio/apicurio-registry-gitops-sync'
       dockerfile: './distro/gitops/Dockerfile'
       context: './distro/gitops'
-      tag: 'latest-snapshot'
+      tag: ${{ inputs.snapshot-tag }}
       push-to-dockerhub: false
       platforms: 'linux/amd64,linux/arm64'
     secrets:
@@ -142,5 +147,5 @@ jobs:
               --push \
               --file ./support-chat/src/main/docker/Dockerfile.jvm \
               --platform linux/amd64,linux/arm64 \
-              --tag quay.io/apicurio/apicurio-registry-support-chat:latest-snapshot \
+              --tag quay.io/apicurio/apicurio-registry-support-chat:${{ inputs.snapshot-tag }} \
               ./support-chat

@@ -878,8 +878,9 @@ async function countOpenPrsByAuthor(github, owner, repo, author, excludePr) {
 // Drafts never reach here — they're ignored until marked ready for review.
 async function initNewPr(github, owner, repo, api, config, pr, core) {
   const trusted = isAutoAccepted(config, pr.user.login);
+  const limitExempt = (config.pr_limit_exempt || []).includes(pr.user.login);
 
-  if (!trusted) {
+  if (!trusted && !limitExempt) {
     const existingPrs = await countOpenPrsByAuthor(github, owner, repo, pr.user.login, pr.number);
     const maxPrs = config.max_contributor_prs ?? 1;
     if (existingPrs.length >= maxPrs) {

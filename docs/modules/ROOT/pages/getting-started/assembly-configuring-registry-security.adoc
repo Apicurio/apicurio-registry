@@ -256,8 +256,9 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 +
 NOTE: When you enable roles in {registry}, you must also create the same roles in Azure AD as application roles. The default roles expected by {registry} are `sr-admin`, `sr-developer`, and `sr-readonly`.
 
-. In {registry} UI, configure the following environment variables:
+. Configure the following environment variables for the {registry} web console to enable OIDC authentication with Azure AD ID tokens:
 +
+.Configuration for the {registry} web console with Azure AD
 [.table-expandable,width="100%",cols="6,5,4",options="header"]
 |===
 |Environment variable

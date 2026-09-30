@@ -15,19 +15,19 @@
   },
   "scripts": {
     "clean": "rimraf dist lib/generated-client .kiota",
-    "kiota-info": "cross-env KIOTA_VERSION=v1.23.0 kiota info -l typescript",
-    "generate-sources": "cross-env KIOTA_VERSION=v1.23.0 kiota generate --serializer none --deserializer none -l typescript -d ../common/src/main/resources/META-INF/openapi.json -c ApicurioRegistryClient -o ./lib/generated-client",
+    "kiota-info": "cross-env KIOTA_VERSION=v1.35.0 kiota info -l typescript",
+    "generate-sources": "cross-env KIOTA_VERSION=v1.35.0 kiota generate --serializer none --deserializer none -l typescript -d ../common/src/main/resources/META-INF/openapi.json -c ApicurioRegistryClient -o ./lib/generated-client",
     "build": "tsc --p ./tsconfig-build.json && vite build",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "test": "vitest run"
   },
   "peerDependencies": {
-    "@microsoft/kiota-abstractions": "1.0.0-preview.102",
-    "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.102",
-    "@microsoft/kiota-serialization-form": "1.0.0-preview.102",
-    "@microsoft/kiota-serialization-json": "1.0.0-preview.102",
-    "@microsoft/kiota-serialization-multipart": "1.0.0-preview.102",
-    "@microsoft/kiota-serialization-text": "1.0.0-preview.102"
+    "@microsoft/kiota-abstractions": "1.0.0-preview.109",
+    "@microsoft/kiota-http-fetchlibrary": "1.0.0-preview.109",
+    "@microsoft/kiota-serialization-form": "1.0.0-preview.109",
+    "@microsoft/kiota-serialization-json": "1.0.0-preview.109",
+    "@microsoft/kiota-serialization-multipart": "1.0.0-preview.109",
+    "@microsoft/kiota-serialization-text": "1.0.0-preview.109"
   },
   "devDependencies": {
     "@apicurio/eslint-config": "1.0.0",

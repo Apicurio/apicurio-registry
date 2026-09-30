@@ -23,8 +23,9 @@ Deploy and configure {registry} instances by using the {operator} on
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-The {operator} installs the `ApicurioRegistry3` custom resource definition (CRD). You use the `ApicurioRegistry3` CR to deploy and manage {registry} instances on {kubernetes}. The custom resource enables you to declaratively configure all aspects of your {registry} deployment,
-including storage, authentication, networking, and component-specific settings.
+The {operator} installs the `ApicurioRegistry3` custom resource definition (CRD). You use the `ApicurioRegistry3` CR to deploy and manage {registry} instances on {kubernetes}.
+
+The custom resource enables you to declaratively configure all aspects of your {registry} deployment, including storage, authentication, networking, and component-specific settings.
 
 NOTE: Additional `ApicurioRegistry3` custom resource examples are available in the {registry} upstream repository.
 
@@ -66,7 +67,9 @@ IMPORTANT: The default embedded H2 configuration is not suitable for production 
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can deploy a basic {registry} instance by using the default storage configuration (SQL with an embedded H2 database). You do not need to specify a storage type in the CR. When omitted, {registry} defaults to an embedded H2 database. This configuration is suitable for development and testing environments only.
+You can deploy a basic {registry} instance by using the default storage configuration (SQL with an embedded H2 database). This configuration is suitable for development and testing environments only.
+
+You do not need to specify a storage type in the CR. When omitted, {registry} defaults to an embedded H2 database.
 
 .Prerequisites
 * You must have cluster administrator access to an {kubernetes} cluster.
@@ -262,9 +265,9 @@ the database.
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can deploy {registry} with KafkaSQL storage. KafkaSQL uses Apache Kafka as the primary
-data store, with an embedded H2 database as a local SQL store that {registry} rebuilds from the Kafka journal on each startup. This configuration is suitable for production environments
-when you configure persistent Kafka storage.
+You can deploy {registry} with KafkaSQL storage, which uses Apache Kafka as the primary data store. This configuration is suitable for production environments when you configure persistent Kafka storage.
+
+KafkaSQL uses an embedded H2 database as a local SQL store that {registry} rebuilds from the Kafka journal on each startup.
 
 .Prerequisites
 * You must have cluster administrator access to an {kubernetes} cluster.

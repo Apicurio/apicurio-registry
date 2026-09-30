@@ -6,7 +6,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-In {registry}, compatibility modes determine which changes are permitted when you upload a new version of an artifact. Because these rules vary depending on the data format (such as Avro, JSON Schema, Protobuf, OpenAPI, or XSD), each artifact type has its own specific criteria for what constitutes a compatible or incompatible change.
+In {registry}, compatibility modes determine which changes are permitted when you upload a new version of an artifact. Each artifact type has its own specific criteria for what constitutes a compatible or incompatible change.
+
+These criteria vary depending on the data format, such as Avro, JSON Schema, Protobuf, OpenAPI, or XSD.
 
 [role="_additional-resources"]
 .Additional resources
@@ -21,6 +23,7 @@ In {registry}, compatibility modes determine which changes are permitted when yo
 
 [role="_abstract"]
 When you add a new version of an artifact to {registry}, you can configure the `COMPATIBILITY` rule to check whether the new content is compatible with existing versions.
+
 Compatibility checking helps you ensure that producers and consumers can continue to work together without disruption when schemas evolve.
 
 You can configure the `COMPATIBILITY` rule at three levels. {registry} applies these rules in order of precedence, where the most specific level always overrides the broader levels:
@@ -167,8 +170,9 @@ As a result, Version 3 passes the `BACKWARD` check but fails the `BACKWARD_TRANS
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-{registry} uses a custom library to analyze differences between JSON Schema versions.
-Because JSON Schema uses a constraint-based validation model, the following table describes common changes and whether they maintain or break backward compatibility. For JSON Schema, forward compatibility is the inverse of backward compatibility: a change that makes the schema more permissive is backward compatible but forward incompatible, and a change that makes the schema more restrictive is forward compatible but backward incompatible.
+{registry} uses a custom library to analyze differences between JSON Schema versions. Because JSON Schema uses a constraint-based validation model, forward compatibility is the inverse of backward compatibility.
+
+A change that makes the schema more permissive is backward compatible but forward incompatible, and a change that makes the schema more restrictive is forward compatible but backward incompatible. The following table describes common changes and whether they maintain or break backward compatibility.
 
 .JSON Schema compatibility changes
 [%header,cols="3,1,5"]
@@ -420,8 +424,9 @@ The following table describes common changes and whether they maintain or break 
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-{registry} checks XML Schema Definition (XSD) compatibility by comparing elements, attributes, types, and constraints between versions.
-The following table describes common changes and whether they maintain or break backward and forward compatibility. Actual compatibility can depend on content model details, default values, namespace usage, element ordering, and extension or restriction semantics. Use this table as a general guide and test your specific schema changes.
+{registry} checks XML Schema Definition (XSD) compatibility by comparing elements, attributes, types, and constraints between versions. Use the common change types as a general guide and test your specific schema changes.
+
+The following table describes common changes and whether they maintain or break backward and forward compatibility. Actual compatibility can depend on content model details, default values, namespace usage, element ordering, and extension or restriction semantics.
 
 .XSD schema compatibility changes
 [%header,cols="3,1,1,5"]

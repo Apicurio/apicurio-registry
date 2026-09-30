@@ -6,7 +6,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-Teams that build event-driven architectures with {registry} face recurring questions about how to manage schemas over time. Poor answers lead to production incidents, schema sprawl, and compatibility failures. {registry} provides compatibility rules, artifact references, version states, and serializer/deserializer (SerDes) validation to help you manage every phase of the schema lifecycle.
+{registry} provides compatibility rules, artifact references, version states, and serializer/deserializer (SerDes) validation to help you manage every phase of the schema lifecycle in event-driven architectures.
+
+Teams that build event-driven architectures with {registry} face recurring questions about how to manage schemas over time, and poor answers lead to production incidents, schema sprawl, and compatibility failures.
 
 The following sections cover the schema lifecycle from initial design to retirement, including shared type references, safe evolution patterns, data structure recommendations, state management, runtime validation, and event-driven integration.
 
@@ -656,7 +658,9 @@ These validation layers apply to any Kafka producer. If your architecture includ
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-Event-driven architectures that use change data capture (CDC) and messaging platforms require coordination between schema producers, consumers, and {registry}. You integrate {registry} with tools such as Debezium to automate schema registration and enforce compatibility throughout the data pipeline.
+Event-driven architectures that use change data capture (CDC) and messaging platforms require coordination between schema producers, consumers, and {registry}.
+
+You integrate {registry} with tools such as Debezium to automate schema registration and enforce compatibility throughout the data pipeline.
 
 **Debezium integration with {registry}**
 

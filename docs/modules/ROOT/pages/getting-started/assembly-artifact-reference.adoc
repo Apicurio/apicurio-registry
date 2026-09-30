@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-This chapter provides reference information on the supported artifact types, states, and metadata that are stored in {registry}.
+Look up the artifact types that {registry} supports, including AI/ML types, the states that artifact versions move through, and the metadata that {registry} stores for groups, artifacts, and artifact versions.
 
 [role="_additional-resources"]
 .Additional resources
@@ -314,7 +314,9 @@ For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoin
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-When an artifact version is added to a {registry} artifact, a set of metadata properties is created and stored along with the artifact version content. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact version is created.
+When you add a new version to an artifact, {registry} creates a set of metadata properties and stores them along with the artifact version content.
+
+This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact version is created.
 
 .{registry} system-generated metadata
 [.table-expandable,width="100%",cols="1,1,2",options="header"]

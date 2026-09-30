@@ -21,6 +21,14 @@
       <groupId>io.gatling.highcharts</groupId>
       <artifactId>gatling-charts-highcharts</artifactId>
       <version>${gatling.version}</version>
+      <!-- Gatling pulls in logback (LGPL-2.1/EPL-2.0) transitively via gatling-commons but only
+           uses the SLF4J API; slf4j-simple (declared below) is used as the logging backend. -->
+      <exclusions>
+        <exclusion>
+          <groupId>ch.qos.logback</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>
@@ -34,9 +42,9 @@
       <version>${slf4j.version}</version>
     </dependency>
     <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <version>1.6.4</version>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-simple</artifactId>
+      <version>${slf4j.version}</version>
       <scope>runtime</scope>
     </dependency>
   </dependencies>

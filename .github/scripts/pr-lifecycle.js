@@ -356,6 +356,15 @@ const VERIFY_RESULT_JOB = 'Verify Result';
 // runs from before the switch) keep reporting through that check-run.
 const LEGACY_GATE_JOB = 'Verification Gate';
 
+// GitHub only re-runs a workflow run within 30 days of its initial run
+// (created_at). An hour's margin, so a check made just inside the window
+// doesn't lose the race with the re-run request.
+const RERUN_WINDOW_MS = (30 * 24 - 1) * 60 * 60 * 1000;
+
+function rerunExpired(run) {
+  return Date.now() - new Date(run.created_at).getTime() >= RERUN_WINDOW_MS;
+}
+
 // A re-run restarts an old run, and is as recent as the moment it
 // restarted: run_started_at is the start of the latest attempt.
 function runRecency(run) {
@@ -437,6 +446,11 @@ function gateStatusFor(run, jobs) {
     case 'success':
       return { state: 'success', description: 'Full suite passed' };
     case 'skipped':
+      // Approval re-runs this run (maybeRunFullSuite), which GitHub no longer
+      // allows. Only a new commit gets a Verify run that can still run it.
+      if (rerunExpired(run)) {
+        return { state: 'pending', description: "Full suite not run; this Verify run is over 30 days old and can't be re-run: update the branch" };
+      }
       return { state: 'pending', description: 'Full suite not run yet: needs an approving review (or PR is a draft)' };
     case 'cancelled':
       return { state: 'failure', description: 'Full suite was cancelled' };
@@ -522,20 +536,31 @@ const MAX_FULL_SUITE_RERUN_ATTEMPT = 5;
 // Re-runs only when the newest run has finished and its Verify Result was
 // skipped. A run still in progress is picked up when it completes
 // (handleTestResult), and a run that ran the suite is never re-run from here.
-// Returns true when it started a re-run.
+//
+// Returns 'rerun' when it started a re-run, 'expired' when the suite is
+// required but the run is past GitHub's re-run window, otherwise null. An
+// expired run is reported, not worked around: the only way to a new Verify
+// run is a new commit, and updating the author's branch is not the
+// orchestrator's call (it pushes a merge commit onto their branch, and may
+// dismiss the approval that made the suite required). The Verification Gate
+// status says what to do (gateStatusFor), and /retry replies.
 async function maybeRunFullSuite(api, config, pr, core) {
   const newest = await newestReportingRun(api, pr.head.sha);
-  if (!newest) return false;
+  if (!newest) return null;
   const { run, jobs } = newest;
   // No jobs are listed for a run still in progress, so it stops here too.
   const result = jobs.find(j => j.name === VERIFY_RESULT_JOB);
-  if (!result || result.conclusion !== 'skipped') return false;
+  if (!result || result.conclusion !== 'skipped') return null;
 
-  if (!fullSuiteRequired(config, pr, await api.getReviewDecision(pr.number))) return false;
+  if (!fullSuiteRequired(config, pr, await api.getReviewDecision(pr.number))) return null;
 
+  if (rerunExpired(run)) {
+    core.warning(`PR #${pr.number} full suite is required but Verify run ${run.id} is over 30 days old and can't be re-run; the branch needs updating`);
+    return 'expired';
+  }
   if (run.run_attempt >= MAX_FULL_SUITE_RERUN_ATTEMPT) {
     core.warning(`PR #${pr.number} Verify run ${run.id} skipped the full suite on attempt ${run.run_attempt} although it looks required; not re-running it again`);
-    return false;
+    return null;
   }
   try {
     await api.reRunWorkflow(run.id);
@@ -543,12 +568,12 @@ async function maybeRunFullSuite(api, config, pr, core) {
     // Another handler (a Verify completion, a second review) re-ran it first.
     if ((await api.getRun(run.id)).status !== 'completed') {
       core.info(`PR #${pr.number} Verify run ${run.id} was already re-run`);
-      return false;
+      return null;
     }
     throw e;
   }
   core.info(`PR #${pr.number} full suite now required, re-running Verify run ${run.id} (attempt ${run.run_attempt + 1})`);
-  return true;
+  return 'rerun';
 }
 
 // Resolves the open PRs a workflow run belongs to. Re-run attempts may lose
@@ -1283,12 +1308,24 @@ async function cmdRetry(github, api, config, core, pr, actor, isAuthor, maintain
   // The full suite is required now but the Verify run skipped it (e.g. the
   // review relay never ran). That run is green, so the failed-run handling
   // below would leave it alone.
-  if (await maybeRunFullSuite(api, config, freshPr, core)) {
+  const fullSuite = await maybeRunFullSuite(api, config, freshPr, core);
+  if (fullSuite === 'rerun') {
     await api.postComment(pr.number,
       `Retrying: reconciled PR state and started the full suite, which the ` +
       `last Verify run skipped because it was not required yet.`
     );
     core.info(`PR #${pr.number} retry: reconciled + started the full suite by ${actor}`);
+    return;
+  }
+  if (fullSuite === 'expired') {
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state, but the full suite can't be started for this ` +
+      `commit. Its Verify run skipped the suite and is over 30 days old, which is past ` +
+      `the window in which GitHub allows re-running it. Update the branch (or push) to ` +
+      `get a new Verify run. If that dismisses the current approval, the suite runs ` +
+      `once the PR is approved again.`
+    );
+    core.info(`PR #${pr.number} retry: reconciled, full suite blocked by an expired Verify run, by ${actor}`);
     return;
   }
 
@@ -1469,7 +1506,7 @@ async function handleTestResult({ github, context, core }) {
     // An approval that landed while this run was still deciding to skip the
     // suite: the review relay found the run in progress and left it. Its
     // completion is the other half. A run re-started here has no result yet.
-    if (!isFastGate && await maybeRunFullSuite(api, config, pr, core)) continue;
+    if (!isFastGate && await maybeRunFullSuite(api, config, pr, core) === 'rerun') continue;
 
     if (asFastGate) {
       if (workflowRun.conclusion === 'success') {

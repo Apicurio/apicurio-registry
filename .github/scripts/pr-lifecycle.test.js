@@ -574,7 +574,12 @@ function gateWorld({ runs = [], jobs = {}, current = null } = {}) {
   return w;
 }
 
-function verifyRun(id, { status = 'completed', conclusion = 'success', startedAt = '2026-01-01T00:00:00Z' } = {}) {
+// Timestamps relative to now: GitHub only re-runs a run within 30 days of
+// its first run, and the code checks that against the clock.
+const hoursAgo = h => new Date(Date.now() - h * 60 * 60 * 1000).toISOString();
+const DAYS_31_AGO = hoursAgo(31 * 24);
+
+function verifyRun(id, { status = 'completed', conclusion = 'success', startedAt = hoursAgo(1) } = {}) {
   return {
     id, name: 'Verify', status, conclusion,
     created_at: startedAt, run_started_at: startedAt,
@@ -607,6 +612,14 @@ test('gate status: Verify Result skipped (full suite not required yet) posts pen
   const [status] = await postedGate(w);
   assert.equal(status.state, 'pending');
   assert.equal(status.description, 'Full suite not run yet: needs an approving review (or PR is a draft)');
+});
+
+test('gate status: a skipped run past the 30-day re-run window says to update the branch', async () => {
+  const w = gateWorld({ runs: [verifyRun(1, { startedAt: DAYS_31_AGO })], jobs: { 1: resultJob('skipped') } });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.description, "Full suite not run; this Verify run is over 30 days old and can't be re-run: update the branch");
+  assert.ok(status.description.length <= 140, 'GitHub caps status descriptions at 140 characters');
 });
 
 test('gate status: Verify Result failure or cancellation posts failure', async () => {
@@ -865,6 +878,30 @@ test('review relay: stops re-running a run that keeps skipping, and says so', as
   assert.ok(w.warnings[0].includes('attempt 5'));
 });
 
+test('review relay: a run past the 30-day re-run window is not re-run, and nothing throws', async () => {
+  const run = { ...verifyRun(7, { startedAt: DAYS_31_AGO }), run_attempt: 1 };
+  const w = rerunWorld({ runs: [run], jobs: skippedJobs });
+  w.github.rest.actions.reRunWorkflow = async () => { throw new Error('must not be called'); };
+  assert.deepEqual(await relay(w), []);
+  assert.equal(w.warnings.length, 1);
+  assert.ok(w.warnings[0].includes('over 30 days old'));
+});
+
+test('review relay: the 30-day window counts from the first run, not the latest attempt', async () => {
+  // A recent re-run attempt doesn't reset GitHub's window.
+  const run = { ...verifyRun(7, { startedAt: hoursAgo(1) }), created_at: DAYS_31_AGO, run_attempt: 2 };
+  const w = rerunWorld({ runs: [run], jobs: skippedJobs });
+  w.github.rest.actions.reRunWorkflow = async () => { throw new Error('must not be called'); };
+  assert.deepEqual(await relay(w), []);
+});
+
+test('review relay: a re-run of a run first started 29 days ago is still attempted', async () => {
+  // run_started_at moves with each attempt; the window counts from created_at.
+  const run = { ...verifyRun(7, { startedAt: hoursAgo(1) }), created_at: hoursAgo(29 * 24), run_attempt: 2 };
+  const w = rerunWorld({ runs: [run], jobs: skippedJobs });
+  assert.deepEqual(await relay(w), [7]);
+});
+
 test('review relay: a fork PR (no pull_requests in the event) is found by its head commit', async () => {
   const w = rerunWorld({ runs: [skippedRun()], jobs: skippedJobs });
   assert.deepEqual(await relay(w, { pullRequests: [] }), [7]);
@@ -896,6 +933,26 @@ test('Verify completion: an approval that landed while the run was skipping re-r
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
   assert.deepEqual(w.calls.reRuns, [7]);
   assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
+});
+
+test('/retry explains when the skipped Verify run is past the 30-day re-run window', async () => {
+  const run = { ...verifyRun(7, { startedAt: DAYS_31_AGO }), run_attempt: 1 };
+  const w = rerunWorld({ runs: [run], jobs: skippedJobs });
+  await lifecycle.handleComment({
+    github: w.github,
+    context: {
+      repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+      payload: {
+        comment: { id: 1, body: '/retry', user: { login: 'contributor' } },
+        issue: { number: 42, pull_request: {} },
+      },
+    },
+    core: w.core,
+  });
+  assert.deepEqual(w.calls.reRuns, []);
+  assert.equal(w.calls.comments.length, 1);
+  assert.ok(w.calls.comments[0].includes('over 30 days old'));
+  assert.ok(w.calls.comments[0].includes('Update the branch'));
 });
 
 test('/retry starts the full suite when it is required but the last Verify run skipped it', async () => {
@@ -1147,7 +1204,7 @@ test('stale: the sweep starts the full suite for an approved PR whose Verify run
     w.github.rest.actions = {
       listWorkflowRuns: async () => ({ data: { workflow_runs: [{
         id: 7, name: 'Verify', status: 'completed', conclusion: 'success', run_attempt: 1,
-        created_at: '2026-01-01T00:00:00Z', html_url: 'https://example.com/run/7',
+        created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(), html_url: 'https://example.com/run/7',
       }] } }),
       listJobsForWorkflowRun: async () => ({ data: { jobs: [{ name: 'Verify Result', conclusion: 'skipped' }] } }),
       reRunWorkflow: async ({ run_id }) => reRuns.push(run_id),

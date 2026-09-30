@@ -10,9 +10,12 @@ on:
     types: [created]
   workflow_run:
     workflows: ["Verify", "Quick Check"]
-    # requested: only for the gate-status job (pending as soon as a Verify run
-    # starts); test-result handles completed only.
-    types: [requested, completed]
+    # requested and in_progress are only for the gate-status job, so the
+    # Verification Gate goes pending as soon as a Verify run exists and again
+    # when an attempt actually starts. in_progress is what catches a re-run
+    # attempt and a fork run that was waiting for approval, neither of which
+    # is a newly requested run. test-result handles completed only.
+    types: [requested, in_progress, completed]
   workflow_dispatch:
     inputs:
       pr_number:
@@ -246,7 +249,7 @@ jobs:
             await handler.handleTestResult({ github, context, core });
 
   # ==========================================================================
-  # Verification Gate status (Verify workflow requested/completed)
+  # Verification Gate status (Verify workflow requested/in_progress/completed)
   # ==========================================================================
   # Posts the "Verification Gate" commit status (the required check) on the
   # run's head commit, from the newest Verify run for that commit. Runs in the

@@ -657,6 +657,22 @@ test('gate status: a re-run of an older run counts as newest (run_started_at, no
   assert.equal(status.target_url, 'https://example.com/run/1');
 });
 
+test('gate status: a re-run attempt that has started turns a green gate from the previous attempt pending', async () => {
+  // Same run id and URL as the green status; only the attempt changed. The
+  // unchanged-status check must not swallow this.
+  const w = gateWorld({
+    runs: [verifyRun(1, { status: 'in_progress', conclusion: null, startedAt: '2026-01-01T12:00:00Z' })],
+    current: {
+      context: 'Verification Gate', state: 'success',
+      description: 'Full suite passed', target_url: 'https://example.com/run/1',
+    },
+  });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.description, 'Full suite is running');
+  assert.equal(status.target_url, 'https://example.com/run/1');
+});
+
 test('gate status: a run cancelled while still queued (no jobs) is passed over for the one before it', async () => {
   const w = gateWorld({
     runs: [

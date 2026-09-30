@@ -463,7 +463,7 @@ async function syncGateStatus(api, sha, core) {
   return null;
 }
 
-// workflow_run (requested/completed) for Verify. Deliberately not filtered
+// workflow_run (requested/in_progress/completed) for Verify. Deliberately not filtered
 // on orchestrator/disabled: branch protection requires the status on every
 // PR, lifecycle-managed or not.
 async function handleGateStatus({ github, context, core }) {

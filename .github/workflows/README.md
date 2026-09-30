@@ -83,7 +83,8 @@ for the run (author not yet trusted/reviewed, or a draft). It still runs, and
 fails, if Decide itself did not succeed.
 
 The orchestrator's `gate-status` job (`pr-lifecycle.yml`, triggered by
-`workflow_run` `requested` and `completed` for Verify) posts the status from
+`workflow_run` `requested`, `in_progress` and `completed` for Verify, so a
+re-run attempt is picked up when it starts) posts the status from
 the **newest** Verify run for the commit. "Newest" means the most recently
 *started* attempt (`run_started_at`), so a re-run counts, and an older run
 finishing after a newer one does not:

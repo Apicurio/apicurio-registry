@@ -18,7 +18,8 @@
        "if (registry.registerDefaultSerializer) {}" guards in the generated client, which tsc
        rejects with TS2774 (only reported under strictNullChecks). tsc cannot suppress a single
        error code, so relax strictNullChecks until Kiota stops emitting the empty guards.
-       Emitted .d.ts files are identical either way. */
+       Emitted .d.ts files are identical either way.
+       Upstream: https://github.com/microsoft/kiota/issues/8303 */
     "strictNullChecks": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,

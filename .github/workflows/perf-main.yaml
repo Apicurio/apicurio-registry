@@ -74,7 +74,7 @@ jobs:
         working-directory: perf-tests
         run: docker build -t "$PERF_TEST_IMAGE" .
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         id: minikube-setup
         continue-on-error: true
         timeout-minutes: 10
@@ -84,7 +84,7 @@ jobs:
           olm-enable: 'false'
           olm-v1-enable: 'false'
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
         if: steps.minikube-setup.outcome == 'failure'
         timeout-minutes: 10
         with:

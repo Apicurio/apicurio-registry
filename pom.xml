@@ -304,7 +304,7 @@
     <!-- Plugin Deps -->
     <version.puppycrawl>13.11.0</version.puppycrawl>
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.1.10</proto-plugin.version>
+    <proto-plugin.version>5.1.11</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->

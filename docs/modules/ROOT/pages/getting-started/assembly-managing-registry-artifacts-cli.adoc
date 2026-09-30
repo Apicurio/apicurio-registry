@@ -852,7 +852,7 @@ Category overrides apply only when you use `--verbose`.
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following tables describe CLI global options, exit codes, available commands, rule types, and CLI configuration properties.
+Look up the {registry} CLI global options, exit codes, available commands, supported rule types, and CLI configuration properties.
 
 The following options are available for most CLI commands:
 

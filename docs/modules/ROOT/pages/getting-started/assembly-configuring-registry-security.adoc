@@ -1080,7 +1080,9 @@ You can set the following environment variables to configure authentication for 
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-By default, {registry} supports authentication by using OpenID Connect. Users or API clients must obtain an access token to make authenticated calls to the {registry} REST API. However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration options to `true`:
+By default, {registry} supports authentication by using OpenID Connect. Because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication.
+
+With OpenID Connect, users or API clients must obtain an access token to make authenticated calls to the {registry} REST API. To enable HTTP basic authentication, set the following configuration options to `true`:
 
 .Configuration for {registry} HTTP basic authentication
 [%header,cols="4,4,1,1"]
@@ -1606,8 +1608,7 @@ endif::[]
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-Browsers enforce a same-origin policy that prevents a web page served from one origin (for example, `\https://my-app.example.com`) from making HTTP requests to a different origin (for example, `\https://registry.example.com`).
-CORS is the mechanism by which a server explicitly allows cross-origin requests by including specific HTTP response headers such as `Access-Control-Allow-Origin`.
+Browsers enforce a same-origin policy that prevents a web page served from one origin from making HTTP requests to a different origin. CORS is the mechanism by which a server explicitly allows cross-origin requests by including specific HTTP response headers such as `Access-Control-Allow-Origin`.
 
 Consider a typical scenario where your browser application runs at `\https://my-app.example.com` and {registry} runs at `\https://registry.example.com`.
 When your JavaScript code calls the {registry} REST API:
@@ -1811,6 +1812,7 @@ services:
 
 [role="_abstract"]
 When you use OIDC authentication (for example, {keycloak}), CORS and authentication work together.
+
 Your browser application must send an `Authorization` header with a bearer token, and the {registry} CORS configuration must allow that header for authenticated cross-origin requests to succeed.
 
 The `authorization` header is already included in the default allowed headers, so you typically only need to configure the allowed origins.

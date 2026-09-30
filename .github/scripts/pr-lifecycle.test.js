@@ -204,6 +204,26 @@ test('non-trusted author already at max open PRs is closed automatically', async
   });
 });
 
+test('an account in pr_limit_exempt is not closed at the open-PR cap, and is still not trusted', async () => {
+  // apicurio-ci opens one backport PR per merged backport/* PR, so several
+  // are routinely open at once (#10332 was closed with #10265 open).
+  await withConfig({ maintainers: [], max_contributor_prs: 1, pr_limit_exempt: ['apicurio-ci'], merge: { strategy: 'rebase' }, welcome_message: 'hi {author}' }, async () => {
+    const w = makeWorld([]);
+    w.github.paginate = async (fn) => fn === w.github.rest.pulls.list
+      ? [{ number: 7, user: { login: 'apicurio-ci' } }]
+      : [];
+    let closed = false;
+    w.github.rest.pulls.update = async ({ state }) => { closed = state === 'closed'; };
+    await lifecycle.handlePrOpened({ github: w.github, context: openedContext(openedPr('apicurio-ci')), core: w.core });
+
+    assert.ok(!closed, 'an exempt account must not be closed at the open-PR cap');
+    assert.ok(w.calls.added.includes(LABELS.READY_FOR_REVIEW));
+    assert.equal(w.calls.comments.length, 1);
+    assert.ok(w.calls.comments[0].startsWith('hi apicurio-ci'), 'gets the contributor welcome');
+    assert.ok(!w.calls.comments[0].includes('trusted author'), 'not the trusted-author message');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // checkAndTransitionToReady (via Quick Check fast-gate result) — promotes to
 // ready-to-merge once approved AND fast-gated. No more review-skipped bypass:

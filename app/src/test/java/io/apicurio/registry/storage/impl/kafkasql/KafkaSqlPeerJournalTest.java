@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.error.InvalidPeerException;
 import io.apicurio.registry.storage.error.PeerNotFoundException;
 import io.apicurio.registry.storage.impl.kafkasql.messages.CreatePeer1Message;
 import io.apicurio.registry.storage.impl.kafkasql.messages.DeletePeer1Message;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -105,6 +107,41 @@ public class KafkaSqlPeerJournalTest extends AbstractResourceTestBase {
         }
     }
 
+    @Test
+    public void testInvalidPeerIdIsRejectedBeforeJournalSubmission() throws Exception {
+        String peerId = "journal-peer-case-" + UUID.randomUUID();
+        String uppercasePeerId = peerId.toUpperCase(Locale.ROOT);
+        kafkaSqlRegistryStorage.createPeer(PeerDto.builder().peerId(peerId).url("https://peer.example.com")
+                .enabled(true).build());
+        try {
+            PeerDto uppercasePeer = PeerDto.builder().peerId(uppercasePeerId)
+                    .url("https://peer-updated.example.com").enabled(true).build();
+            Assertions.assertThrows(InvalidPeerException.class,
+                    () -> kafkaSqlRegistryStorage.deletePeer(uppercasePeerId));
+            Assertions.assertThrows(InvalidPeerException.class,
+                    () -> kafkaSqlRegistryStorage.createPeer(uppercasePeer));
+            Assertions.assertThrows(InvalidPeerException.class,
+                    () -> kafkaSqlRegistryStorage.updatePeer(uppercasePeer));
+            Assertions.assertEquals("https://peer.example.com", kafkaSqlRegistryStorage.getPeer(peerId).getUrl());
+
+            // Every journal message uses the same partition key, so anything the rejected calls
+            // had submitted would be read before this delete.
+            List<ConsumerRecord<String, String>> journal = readJournalThrough(
+                    () -> kafkaSqlRegistryStorage.deletePeer(peerId), DeletePeer1Message.class.getSimpleName(),
+                    peerId);
+
+            Assertions.assertTrue(journal.stream()
+                    .anyMatch(r -> CreatePeer1Message.class.getSimpleName().equals(messageType(r))
+                            && peerId.equals(extractPeerId(r.value()))),
+                    "Expected the journal read to include the earlier create of '" + peerId + "'.");
+            Assertions.assertTrue(journal.stream().noneMatch(r -> uppercasePeerId.equals(extractPeerId(r.value()))),
+                    "A peer operation with an invalid id reached the KafkaSQL journal.");
+            Assertions.assertFalse(kafkaSqlRegistryStorage.isPeerExists(peerId));
+        } finally {
+            deletePeerIgnoringNotFound(peerId);
+        }
+    }
+
     private void deletePeerIgnoringNotFound(String peerId) {
         try {
             kafkaSqlRegistryStorage.deletePeer(peerId);
@@ -160,6 +197,18 @@ public class KafkaSqlPeerJournalTest extends AbstractResourceTestBase {
      * record.
      */
     private String assertOperationIsJournaled(Runnable operation, String expectedType, String expectedPeerId) {
+        List<ConsumerRecord<String, String>> records = readJournalThrough(operation, expectedType, expectedPeerId);
+        return records.get(records.size() - 1).value();
+    }
+
+    /**
+     * Runs the given storage operation and reads the KafkaSQL journal from the beginning until the
+     * message produced by that operation is found, as matched by
+     * {@link #assertOperationIsJournaled(Runnable, String, String)}. Returns every record read, in
+     * journal order, ending with the matched record.
+     */
+    private List<ConsumerRecord<String, String>> readJournalThrough(Runnable operation, String expectedType,
+            String expectedPeerId) {
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(
                 Map.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
                         System.getProperty("bootstrap.servers.external"),
@@ -172,26 +221,31 @@ public class KafkaSqlPeerJournalTest extends AbstractResourceTestBase {
             operation.run();
 
             long deadline = System.currentTimeMillis() + 15000;
-            String foundValue = null;
-            while (System.currentTimeMillis() < deadline && foundValue == null) {
+            List<ConsumerRecord<String, String>> records = new ArrayList<>();
+            boolean found = false;
+            while (System.currentTimeMillis() < deadline && !found) {
                 for (ConsumerRecord<String, String> record : consumer.poll(Duration.ofMillis(500))) {
-                    Header header = record.headers().lastHeader(KafkaSqlSubmitter.MESSAGE_TYPE_HEADER);
-                    if (header != null
-                            && expectedType.equals(new String(header.value(), StandardCharsets.UTF_8))
+                    records.add(record);
+                    if (expectedType.equals(messageType(record))
                             && expectedPeerId.equals(extractPeerId(record.value()))) {
-                        foundValue = record.value();
+                        found = true;
                         break;
                     }
                 }
             }
 
-            Assertions.assertNotNull(foundValue, "Expected a " + expectedType + " message for peer '"
+            Assertions.assertTrue(found, "Expected a " + expectedType + " message for peer '"
                     + expectedPeerId + "' to be produced to the KafkaSQL journal topic, but none was "
                     + "found. This means the operation bypassed the journal and would not be "
                     + "replicated across nodes.");
-            return foundValue;
+            return records;
         } finally {
             consumer.close();
         }
+    }
+
+    private String messageType(ConsumerRecord<String, String> record) {
+        Header header = record.headers().lastHeader(KafkaSqlSubmitter.MESSAGE_TYPE_HEADER);
+        return header == null ? null : new String(header.value(), StandardCharsets.UTF_8);
     }
 }

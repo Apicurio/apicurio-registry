@@ -1009,23 +1009,35 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
                 () -> storage().createPeer(PeerDto.builder().peerId("peer-test-invalid-2")
                         .url("https://user:pass@x.example.com").build()));
 
+        Assertions.assertTrue(storage().isPeerExists("peer-test-2"));
+        Assertions.assertFalse(storage().isPeerExists("peer-test-1"));
+        Assertions.assertFalse(storage().isPeerExists("peer-does-not-exist"));
+
         // Peer ids are lowercase-only so identity is consistent across SQL dialects: MySQL's
         // peers table collates case-insensitively, so an uppercase id would address a different
         // row than the same id in lowercase on Postgres/H2 if it were allowed through. Covered
         // here (not just at the validator level) so it is exercised against a real MySQL
         // database too, via MysqlStorageTest extending this class.
-        Assertions.assertThrows(InvalidPeerException.class,
-                () -> storage().createPeer(PeerDto.builder().peerId("Peer-Test-Case")
-                        .url("https://case.example.com").build()));
-
-        // Case rejection also applies on update, not just create.
-        PeerDto lowercaseForUpdateCheck = PeerDto.builder().peerId("peer-test-case-update")
-                .url("https://case-update.example.com").enabled(true).build();
-        storage().createPeer(lowercaseForUpdateCheck);
+        storage().createPeer(PeerDto.builder().peerId("peer-test-case").url("https://case.example.com")
+                .enabled(true).build());
         Assertions.assertThrows(InvalidPeerException.class, () -> storage()
-                .updatePeer(PeerDto.builder().peerId("PEER-TEST-CASE-UPDATE")
-                        .url("https://case-update-2.example.com").build()));
-        storage().deletePeer("peer-test-case-update");
+                .createPeer(PeerDto.builder().peerId("PEER-TEST-CASE").url("https://case-2.example.com").build()));
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage()
+                .updatePeer(PeerDto.builder().peerId("PEER-TEST-CASE").url("https://case-2.example.com").build()));
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage().getPeer("PEER-TEST-CASE"));
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage().isPeerExists("PEER-TEST-CASE"));
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage().deletePeer("PEER-TEST-CASE"));
+        Assertions.assertThrows(InvalidPeerException.class, () -> storage().deletePeer("Peer-Test-Case"));
+
+        Assertions.assertTrue(storage().isPeerExists("peer-test-case"));
+        PeerDto caseSurvivor = storage().getPeer("peer-test-case");
+        Assertions.assertEquals("https://case.example.com", caseSurvivor.getUrl());
+        Assertions.assertTrue(caseSurvivor.isEnabled());
+        Assertions.assertEquals(List.of("peer-test-case"), storage().getPeers().stream().map(PeerDto::getPeerId)
+                .filter("peer-test-case"::equalsIgnoreCase).toList());
+
+        storage().deletePeer("peer-test-case");
+        Assertions.assertFalse(storage().isPeerExists("peer-test-case"));
     }
 
     @Test

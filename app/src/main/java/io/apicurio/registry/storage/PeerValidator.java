@@ -44,7 +44,7 @@ public final class PeerValidator {
         validateDescription(peer.getDescription());
     }
 
-    private static void validatePeerId(String peerId) {
+    public static void validatePeerId(String peerId) {
         if (peerId == null || peerId.isBlank()) {
             throw new InvalidPeerException("Peer id is required.");
         }

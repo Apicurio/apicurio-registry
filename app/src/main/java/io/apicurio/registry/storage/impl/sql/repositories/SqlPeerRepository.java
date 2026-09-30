@@ -61,6 +61,7 @@ public class SqlPeerRepository {
      * Delete a peer.
      */
     public void deletePeer(String peerId) throws RegistryStorageException {
+        PeerValidator.validatePeerId(peerId);
         log.debug("Deleting a peer row for: {}", peerId);
         handles.withHandle(handle -> {
             int rowCount = handle.createUpdate(sqlStatements.deletePeer())
@@ -77,6 +78,7 @@ public class SqlPeerRepository {
      * Get a peer by ID.
      */
     public PeerDto getPeer(String peerId) throws RegistryStorageException {
+        PeerValidator.validatePeerId(peerId);
         log.debug("Selecting a single peer for: {}", peerId);
         return handles.withHandle(handle -> {
             Optional<PeerDto> res = handle.createQuery(sqlStatements.selectPeerById())
@@ -157,6 +159,7 @@ public class SqlPeerRepository {
      * Check if a peer exists.
      */
     public boolean isPeerExists(String peerId) {
+        PeerValidator.validatePeerId(peerId);
         return handles.withHandleNoException(handle -> {
             return handle.createQuery(sqlStatements.selectPeerCountById())
                     .bind(0, peerId)

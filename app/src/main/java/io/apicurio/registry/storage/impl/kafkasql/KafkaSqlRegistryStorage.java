@@ -1106,6 +1106,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
      */
     @Override
     public void deletePeer(String peerId) throws RegistryStorageException {
+        PeerValidator.validatePeerId(peerId);
         var message = new DeletePeer1Message(peerId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);

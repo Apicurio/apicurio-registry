@@ -6,6 +6,7 @@ import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
@@ -17,6 +18,7 @@ public class RegistryLimitsServiceUnitTest {
     @BeforeEach
     public void setUp() {
         limitsService = new RegistryLimitsService();
+        limitsService.log = LoggerFactory.getLogger(RegistryLimitsService.class);
         config = new RegistryLimitsConfiguration();
 
         config.setMaxArtifactPropertiesCount(1L);

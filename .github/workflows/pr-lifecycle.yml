@@ -265,7 +265,10 @@ jobs:
   # Verify runs for the commit, so a queued job superseded (and cancelled) by
   # a newer one for the same commit loses nothing.
   gate-status:
-    name: Verification Gate Status
+    # Not "Verification Gate ...": like every job here, it also shows up as a
+    # skipped check on PRs (from this workflow's pull_request_target runs),
+    # right next to the real Verification Gate status, and read like it.
+    name: Sync Gate Status
     runs-on: ubuntu-latest
     if: |
       github.repository_owner == 'Apicurio' &&

@@ -9,7 +9,8 @@ on:
   issue_comment:
     types: [created]
   workflow_run:
-    workflows: ["Verify", "Quick Check"]
+    # Review Relay (review-relay.yaml) is only for the review-relay job.
+    workflows: ["Verify", "Quick Check", "Review Relay"]
     # requested and in_progress are only for the gate-status job, so the
     # Verification Gate goes pending as soon as a Verify run exists and again
     # when an attempt actually starts. in_progress is what catches a re-run
@@ -138,13 +139,11 @@ jobs:
   # ==========================================================================
   # Same-repo PRs only: pull_request_review gives GITHUB_TOKEN the same
   # restricted, secret-less, read-only token for fork PRs that pull_request
-  # does (see verify.yaml's own pull_request_review trigger, which only needs
-  # to read/build/test, not write). This job needs write access to update
-  # labels, so fork PR reviews are left to the slower but still-correct path:
-  # verify.yaml's own pull_request_review trigger re-evaluates Decide and
-  # runs the full suite regardless of fork status (building/testing only
-  # needs read access), and its completion already reconciles labels via the
-  # existing workflow_run handler below.
+  # does. This job needs write access to update labels, so fork PR reviews are
+  # left to the slower but still-correct path: the review-relay job below
+  # starts the full suite once it is required, and that run's completion
+  # reconciles labels via test-result. Starting the suite is also done only by
+  # review-relay, for fork and same-repo PRs alike, so there is one path.
   pr-review-submitted:
     name: Review Submitted
     runs-on: ubuntu-latest
@@ -229,7 +228,8 @@ jobs:
     if: |
       github.repository_owner == 'Apicurio' &&
       github.event_name == 'workflow_run' &&
-      github.event.action == 'completed'
+      github.event.action == 'completed' &&
+      github.event.workflow_run.name != 'Review Relay'
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -291,6 +291,49 @@ jobs:
             await handler.handleGateStatus({ github, context, core });
 
   # ==========================================================================
+  # Review Relay (a review was submitted or dismissed)
+  # ==========================================================================
+  # Re-runs the PR head commit's Verify run when the review made the full
+  # suite required and that run skipped it (handleReviewRelay /
+  # maybeRunFullSuite). The relay workflow exists only to get the review here,
+  # into a privileged context that can re-run a workflow for fork PRs too.
+  # Like test-result, it never checks out or executes the triggering run's
+  # code, and it takes only the commit from the event: the PR, its review
+  # decision and its Verify runs are read back through the API.
+  review-relay:
+    name: Review Relay
+    runs-on: ubuntu-latest
+    if: |
+      github.repository_owner == 'Apicurio' &&
+      github.event_name == 'workflow_run' &&
+      github.event.action == 'completed' &&
+      github.event.workflow_run.name == 'Review Relay'
+    # Serialized per commit, so two reviews in quick succession don't both
+    # re-run the same run. Each recomputes from the current state, so a queued
+    # one superseded (and cancelled) by a newer one loses nothing.
+    concurrency:
+      group: review-relay-${{ github.event.workflow_run.head_sha }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: write
+      pull-requests: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        # Base branch only, never the run's head SHA (see test-result).
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Start the full suite if now required
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-lifecycle.js');
+            await handler.handleReviewRelay({ github, context, core });
+
+  # ==========================================================================
   # Failure Notification
   # ==========================================================================
   failure-notify:
@@ -300,7 +343,7 @@ jobs:
       github.repository_owner == 'Apicurio' &&
       failure() &&
       github.event_name != 'schedule'
-    needs: [pr-opened, pr-synchronize, pr-ready-for-review, pr-converted-to-draft, pr-review-submitted, command, label-guard, test-result, gate-status, reconcile]
+    needs: [pr-opened, pr-synchronize, pr-ready-for-review, pr-converted-to-draft, pr-review-submitted, command, label-guard, test-result, gate-status, review-relay, reconcile]
     steps:
       - name: Post warning comment
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9

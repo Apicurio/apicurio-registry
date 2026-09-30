@@ -44,8 +44,13 @@ workflow via `needs:` and a single `if:` condition each.
 - author is a maintainer or in `auto_accept` (e.g. Renovate) → full suite runs
   immediately, on every push
 - otherwise → full suite runs once the PR has a current approving review
-  (`gh pr view --json reviewDecision` == `APPROVED`), re-evaluated fresh on
-  every `pull_request_review: submitted` event
+  (`gh pr view --json reviewDecision` == `APPROVED`). The push's run skips it
+  before then. Verify does not trigger on reviews: a review fires
+  `review-relay.yaml`, and the orchestrator re-runs the push's run once the
+  suite is required and that run skipped it (`maybeRunFullSuite`), so each
+  commit has one Verify run and one set of checks. The same check runs when a
+  skipping run completes (an approval that landed mid-run), on `/retry` and in
+  the 6-hourly sweep
 - `orchestrator/disabled` label → full suite runs regardless (unless
   `DO NOT MERGE` is also present). Verify does not trigger on label events,
   so when a maintainer changes this label the orchestrator re-runs the latest
@@ -246,6 +251,7 @@ non-Java changes (docs, UI).
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
 | `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `gate` (Verify Result) aggregates the run; the orchestrator turns it into the `Verification Gate` status, the single required check | N/A |
+| `review-relay.yaml` | PR review submitted/dismissed | No-op with no permissions; exists so the review reaches `pr-lifecycle.yml` via `workflow_run`, which can re-run Verify for fork PRs too | seconds |
 | `build-java`/`build-ui` (jobs in `verify.yaml`) | Called by verify | Parallel Java (`mvnw install -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention. The sole build for a commit, shared by every other job in the same run via `needs:` | ~6 min |
 | `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
 | `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads a JSON artifact plus a summary for offline analysis (see [Reading the Scalpel report](#reading-the-scalpel-report)). Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |

@@ -309,7 +309,8 @@ full technical description. In short:
   on every run:
   - author is a maintainer or in `auto_accept` (e.g. Renovate) → runs immediately
   - otherwise → runs once the PR has a current approving review (`reviewDecision ==
-    APPROVED`), re-evaluated automatically on every review submission
+    APPROVED`): the approval makes the orchestrator re-run the push's Verify run,
+    which skipped the suite, so the PR keeps a single set of Verify checks
   - `orchestrator/disabled` label → runs regardless (unless `DO NOT MERGE` is also
     present), the legacy escape hatch for PRs excluded from the lifecycle entirely
 

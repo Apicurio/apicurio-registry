@@ -1,19 +1,3 @@
-/*
- * Copyright 2026 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.apicurio.registry.config;
 
 import io.quarkus.runtime.Startup;
@@ -123,13 +107,16 @@ public class DeprecatedPropertiesCheck {
 
             if (isOldPresent) {
                 if (def.isRemoved()) {
-                    String msg = def.getReplacementName() != null
-                            ? String.format("Property '%s' was removed in %s. Use '%s' instead.",
-                                    def.getOldName(), def.getRemoveInVersion(), def.getReplacementName())
-                            : String.format("Property '%s' was removed in %s.",
-                                    def.getOldName(), def.getRemoveInVersion());
-                    log.error(msg);
-                    violations.add(msg);
+                    if (def.getReplacementName() != null) {
+                        log.error("Property '{}' was removed in {}. Use '{}' instead.",
+                                def.getOldName(), def.getRemoveInVersion(), def.getReplacementName());
+                        violations.add(String.format("Property '%s' was removed in %s. Use '%s' instead.",
+                                def.getOldName(), def.getRemoveInVersion(), def.getReplacementName()));
+                    } else {
+                        log.error("Property '{}' was removed in {}.", def.getOldName(), def.getRemoveInVersion());
+                        violations.add(String.format("Property '%s' was removed in %s.",
+                                def.getOldName(), def.getRemoveInVersion()));
+                    }
                 } else {
                     if (isReplacementPresent) {
                         log.warn("Both '{}' (deprecated since {}) and '{}' are configured. '{}' will take precedence.",

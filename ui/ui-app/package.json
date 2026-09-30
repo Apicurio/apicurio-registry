@@ -61,7 +61,7 @@
     "buffer": "6.0.3",
     "html-to-image": "1.11.13",
     "luxon": "3.7.2",
-    "monaco-editor": "0.55.1",
+    "monaco-editor": "0.57.0",
     "oidc-client-ts": "3.5.0",
     "pluralize": "8.0.0",
     "react": "19.2.8",

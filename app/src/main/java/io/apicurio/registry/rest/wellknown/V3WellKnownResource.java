@@ -4,6 +4,7 @@ import io.apicurio.registry.rest.v3.WellResource;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.AiCatalog;
+import io.apicurio.registry.rest.v3.beans.ArdAgentsResponse;
 import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
 import io.apicurio.registry.rest.v3.beans.ArdExploreResponse;
 import io.apicurio.registry.rest.v3.beans.ArdSearchRequest;
@@ -85,7 +86,7 @@ public class V3WellKnownResource implements WellResource {
     }
 
     @Override
-    public AiCatalog ardListAgents(String filter, String orderBy, BigInteger pageSize, String pageToken) {
+    public ArdAgentsResponse ardListAgents(String filter, String orderBy, BigInteger pageSize, String pageToken) {
         Integer size = pageSize != null ? pageSize.intValue() : 20;
         return delegate.ardListAgents(filter, orderBy, size, pageToken);
     }

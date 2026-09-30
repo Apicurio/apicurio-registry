@@ -4,7 +4,7 @@ paths:
   - "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/mcp-registry/**"
   - "app/src/test/java/io/apicurio/registry/noprofile/mcpregistry/**/*.java"
   - "app/src/test/java/io/apicurio/registry/auth/McpRegistryAuth*.java"
-  - "schema-util/common/src/main/java/io/apicurio/registry/**/McpServer*.java"
+  - "schema-util/agents/src/main/java/io/apicurio/registry/agents/**/McpServer*.java"
 ---
 # MCP Registry API
 
@@ -17,7 +17,7 @@ https://github.com/modelcontextprotocol/registry/blob/739b70e8bc1bea203c5a35ab69
 - `app/src/main/resources-unfiltered/META-INF/resources/api-specifications/mcp-registry/v0/openapi.json`
   generates JAX-RS interfaces/beans during the Maven build. Never edit generated files.
 - `McpServerContentValidator` uses the pinned **2025-12-11 draft-07 server.json schema**
-  bundled in schema-util/common. All assertion keywords match the upstream dated
+  bundled in schema-util/agents. All assertion keywords match the upstream dated
   schema; explanatory annotations are omitted. See its provenance/license document.
 - `McpServerRequestReader` validates raw JSON before bean conversion, preventing
   Jackson scalar coercion from accepting invalid types. No publisher schema URL is

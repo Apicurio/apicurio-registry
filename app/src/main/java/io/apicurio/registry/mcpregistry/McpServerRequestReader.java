@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.mcpregistry.rest.v0.beans.Server;
-import io.apicurio.registry.rules.validity.McpServerContentValidator;
+import io.apicurio.registry.agents.rules.validity.McpServerContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.ContentTypes;

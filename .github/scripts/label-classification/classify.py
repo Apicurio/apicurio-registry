@@ -220,28 +220,81 @@ def cosine_similarity(a, b):
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
 
+def parent_of(name, labels):
+    """The label `name` nests under: the longest configured label that its name
+    extends by whole `/` segments, or None for a top-level label.
+
+    Derived from the name rather than declared, so the hierarchy is exactly the
+    one a maintainer sees on GitHub and cannot drift from it. "Longest
+    configured" rather than "drop the last segment" so that a gap in the chain
+    (area/a/b/c configured without area/a/b) still nests under area/a. The
+    first segment on its own ("area") is a namespace, never a label."""
+    parts = name.split("/")
+    for end in range(len(parts) - 1, 1, -1):
+        candidate = "/".join(parts[:end])
+        if candidate in labels:
+            return candidate
+    return None
+
+
+def ancestors_of(name, labels):
+    """Every label `name` nests under, nearest first."""
+    result = []
+    parent = parent_of(name, labels)
+    while parent:
+        result.append(parent)
+        parent = parent_of(parent, labels)
+    return result
+
+
 def classify_area_labels(issue_embedding, label_embeddings, config):
+    """Pick area labels, preferring the most nested label available.
+
+    Candidates are every label that clears its own threshold, taken strongest
+    first. Each one either:
+      - is skipped, if a more nested label under it is already picked — it
+        comes along as an ancestor anyway;
+      - takes over the slot of an ancestor already picked, without costing a
+        second one — area/storage/sql replaces area/storage, it does not sit
+        next to it;
+      - or claims a new slot, while fewer than max_labels are taken.
+    Finally every pick brings its ancestors, free of the budget.
+
+    Nesting only ever narrows a pick; it never lowers a bar. A child still has
+    to clear its own threshold — a strong area/AI score does not, by itself,
+    make an issue area/AI/MCP.
+    """
     label_config = config["area_labels"]
     default_threshold = label_config["threshold"]
     labels = label_config["labels"]
+    max_labels = label_config["max_labels"]
 
     scores = {}
     for label_name in labels:
         score = cosine_similarity(issue_embedding, label_embeddings[label_name])
         scores[label_name] = float(score)
 
-    sorted_labels = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    selected = [
-        (name, score) for name, score in sorted_labels
-        if score >= labels[name].get("threshold", default_threshold)
-    ]
-    selected = selected[:label_config["max_labels"]]
+    # Name as the tie-breaker so equal scores cannot reorder between runs.
+    qualified = sorted(
+        (name for name, score in scores.items()
+         if score >= labels[name].get("threshold", default_threshold)),
+        key=lambda name: (-scores[name], name))
 
-    result = set(name for name, _ in selected)
-    for name, _ in selected:
-        parent = labels[name].get("parent")
-        if parent:
-            result.add(parent)
+    picks = []
+    for name in qualified:
+        ancestors = ancestors_of(name, labels)
+        if any(name in ancestors_of(pick, labels) for pick in picks):
+            continue
+        superseded = [pick for pick in picks if pick in ancestors]
+        if superseded:
+            # At most one: picks never nest under one another.
+            picks[picks.index(superseded[0])] = name
+        elif len(picks) < max_labels:
+            picks.append(name)
+
+    result = set(picks)
+    for pick in picks:
+        result.update(ancestors_of(pick, labels))
 
     return result, scores
 

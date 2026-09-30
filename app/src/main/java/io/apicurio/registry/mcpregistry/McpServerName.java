@@ -1,6 +1,6 @@
 package io.apicurio.registry.mcpregistry;
 
-import io.apicurio.registry.rules.validity.McpServerContentValidator;
+import io.apicurio.registry.agents.rules.validity.McpServerContentValidator;
 import jakarta.ws.rs.BadRequestException;
 
 /**

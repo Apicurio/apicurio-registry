@@ -136,7 +136,7 @@ class ClassifyAreaLabelsTest(unittest.TestCase):
     def test_selecting_a_child_label_pulls_in_its_parent(self):
         config = area_config({
             "area/storage": {},
-            "area/storage/sql": {"parent": "area/storage"},
+            "area/storage/sql": {},
         })
         # The child matches; the parent on its own would score 0.
         embeddings = {"area/storage": V[1], "area/storage/sql": V[0]}
@@ -149,7 +149,7 @@ class ClassifyAreaLabelsTest(unittest.TestCase):
         config = area_config({
             "area/other": {},
             "area/storage": {},
-            "area/storage/sql": {"parent": "area/storage"},
+            "area/storage/sql": {},
         }, max_labels=2)
         embeddings = {
             "area/storage/sql": mixed(0, 0.9),
@@ -169,6 +169,127 @@ class ClassifyAreaLabelsTest(unittest.TestCase):
 
         self.assertEqual(selected, set())
         self.assertEqual(len(scores), 2)
+
+
+class NestedLabelPreferenceTest(unittest.TestCase):
+    """When a parent and its child both qualify, the child is the answer and
+    the parent is implied — it must not spend a second slot saying less."""
+
+    def test_a_qualifying_child_takes_its_parents_slot(self):
+        # Parent outscores the child, and the budget is exactly one: without the
+        # preference the parent would take the only slot and the child would be
+        # capped.
+        config = area_config({"area/storage": {}, "area/storage/sql": {}}, max_labels=1)
+        embeddings = {"area/storage": mixed(0, 0.9), "area/storage/sql": mixed(0, 0.5)}
+
+        selected, _ = classify.classify_area_labels(V[0], embeddings, config)
+
+        self.assertEqual(selected, {"area/storage/sql", "area/storage"})
+
+    def test_a_parent_scoring_below_its_picked_child_does_not_cost_a_slot(self):
+        config = area_config({
+            "area/storage": {}, "area/storage/sql": {}, "area/other": {},
+        }, max_labels=2)
+        embeddings = {
+            "area/storage/sql": mixed(0, 0.9),
+            "area/storage": mixed(0, 0.8),
+            "area/other": mixed(0, 0.7),
+        }
+
+        selected, _ = classify.classify_area_labels(V[0], embeddings, config)
+
+        # Pre-preference this would have been {sql, storage} with area/other
+        # capped, even though storage was implied by sql anyway.
+        self.assertEqual(selected, {"area/storage/sql", "area/storage", "area/other"})
+
+    def test_a_freed_parent_slot_goes_to_the_next_best_label(self):
+        config = area_config({
+            "area/storage": {}, "area/storage/sql": {}, "area/a": {}, "area/b": {},
+        }, max_labels=2)
+        embeddings = {
+            "area/storage": mixed(0, 0.9),
+            "area/a": mixed(0, 0.8),
+            "area/b": mixed(0, 0.7),
+            "area/storage/sql": mixed(0, 0.6),
+        }
+
+        selected, _ = classify.classify_area_labels(V[0], embeddings, config)
+
+        # sql replaces storage in place; area/b stays capped because the budget
+        # is still full with {sql, a}.
+        self.assertEqual(selected, {"area/storage/sql", "area/storage", "area/a"})
+
+    def test_two_qualifying_siblings_each_take_a_slot(self):
+        config = area_config({
+            "area/storage": {}, "area/storage/sql": {}, "area/storage/kafkasql": {},
+        }, max_labels=2)
+        embeddings = {
+            "area/storage": mixed(0, 0.9),
+            "area/storage/sql": mixed(0, 0.8),
+            "area/storage/kafkasql": mixed(0, 0.7),
+        }
+
+        selected, _ = classify.classify_area_labels(V[0], embeddings, config)
+
+        self.assertEqual(selected,
+                         {"area/storage/sql", "area/storage/kafkasql", "area/storage"})
+
+    def test_a_parent_is_kept_when_no_child_qualifies(self):
+        # The preference narrows a pick; it never lowers a child's threshold.
+        config = area_config({"area/AI": {}, "area/AI/MCP": {}})
+        embeddings = {"area/AI": V[0], "area/AI/MCP": mixed(0, 0.30)}
+
+        selected, _ = classify.classify_area_labels(V[0], embeddings, config)
+
+        self.assertEqual(selected, {"area/AI"})
+
+    def test_a_grandchild_brings_every_ancestor(self):
+        config = area_config({"area/a": {}, "area/a/b": {}, "area/a/b/c": {}})
+        embeddings = {"area/a": V[1], "area/a/b": V[1], "area/a/b/c": V[0]}
+
+        selected, _ = classify.classify_area_labels(V[0], embeddings, config)
+
+        self.assertEqual(selected, {"area/a/b/c", "area/a/b", "area/a"})
+
+    def test_a_grandchild_supersedes_a_picked_grandparent(self):
+        config = area_config({"area/a": {}, "area/a/b": {}, "area/a/b/c": {}}, max_labels=1)
+        embeddings = {"area/a": mixed(0, 0.9), "area/a/b": V[1], "area/a/b/c": mixed(0, 0.5)}
+
+        selected, _ = classify.classify_area_labels(V[0], embeddings, config)
+
+        self.assertEqual(selected, {"area/a/b/c", "area/a/b", "area/a"})
+
+    def test_equal_scores_select_deterministically(self):
+        labels = {f"area/l{i}": {} for i in range(4)}
+        config = area_config(labels, max_labels=2)
+        embeddings = {name: V[0] for name in labels}
+
+        selected, _ = classify.classify_area_labels(V[0], embeddings, config)
+
+        self.assertEqual(selected, {"area/l0", "area/l1"})
+
+
+class HierarchyTest(unittest.TestCase):
+
+    LABELS = {"area/storage": {}, "area/storage/sql": {}, "area/a": {}, "area/a/b/c": {}}
+
+    def test_a_child_nests_under_its_name_prefix(self):
+        self.assertEqual(classify.parent_of("area/storage/sql", self.LABELS), "area/storage")
+
+    def test_a_top_level_label_has_no_parent(self):
+        self.assertIsNone(classify.parent_of("area/storage", self.LABELS))
+
+    def test_a_prefix_that_is_not_a_configured_label_is_skipped(self):
+        # area/a/b is not configured, so area/a/b/c nests directly under area/a.
+        self.assertEqual(classify.parent_of("area/a/b/c", self.LABELS), "area/a")
+
+    def test_a_shared_string_prefix_is_not_nesting(self):
+        # Segments, not characters: area/storage-x is a sibling of area/storage.
+        self.assertIsNone(classify.parent_of("area/storage-x", self.LABELS))
+
+    def test_ancestors_are_listed_nearest_first(self):
+        labels = {"area/a": {}, "area/a/b": {}, "area/a/b/c": {}}
+        self.assertEqual(classify.ancestors_of("area/a/b/c", labels), ["area/a/b", "area/a"])
 
 
 class CappedLabelsTest(unittest.TestCase):
@@ -200,7 +321,7 @@ class CappedLabelsTest(unittest.TestCase):
     def test_a_parent_below_its_own_threshold_is_not_reported_as_capped(self):
         config = area_config({
             "area/storage": {},
-            "area/storage/sql": {"parent": "area/storage"},
+            "area/storage/sql": {},
         }, max_labels=4)
         scores = {"area/storage/sql": 0.9, "area/storage": 0.01}
 
@@ -414,12 +535,33 @@ class ConfigTest(unittest.TestCase):
         for name, label in self.config["area_labels"]["labels"].items():
             self.assertTrue(label.get("description", "").strip(), f"{name} has no description")
 
-    def test_every_parent_reference_resolves_to_a_configured_label(self):
+    def test_labels_carry_only_known_keys(self):
+        # Nesting comes from the name. A leftover `parent:` or `children:` key
+        # would look authoritative while being ignored.
+        for name, label in self.config["area_labels"]["labels"].items():
+            self.assertLessEqual(set(label), {"description", "threshold"},
+                                 f"{name} has unexpected keys")
+
+    def test_every_nested_label_has_its_immediate_parent_configured(self):
+        # parent_of tolerates gaps, but the shipped config should not rely on
+        # that: a missing middle label is almost always a typo or a rename that
+        # was only half done.
         labels = self.config["area_labels"]["labels"]
-        for name, label in labels.items():
-            parent = label.get("parent")
-            if parent:
-                self.assertIn(parent, labels, f"{name} has an unknown parent {parent}")
+        for name in labels:
+            segments = name.split("/")
+            if len(segments) > 2:
+                self.assertIn("/".join(segments[:-1]), labels,
+                              f"{name} nests under a label that is not configured")
+
+    def test_label_names_are_unique_ignoring_case(self):
+        # GitHub label names are case-insensitive; two entries differing only in
+        # case would be the same label there.
+        names = [name.lower() for name in self.config["area_labels"]["labels"]]
+        self.assertEqual(len(names), len(set(names)))
+
+    def test_every_label_is_in_the_area_namespace(self):
+        for name in self.config["area_labels"]["labels"]:
+            self.assertTrue(name.startswith("area/"), name)
 
     def test_every_issue_type_has_an_id(self):
         for name, type_config in self.config["issue_types"]["types"].items():

@@ -280,7 +280,13 @@ Response: Agent Card JSON document
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Agent Cards support three visibility levels, controlled by the `apicurio.agent.visibility` artifact label. When OIDC or basic authentication is enabled, `GET /.well-known/agents` and the AI Catalog and ARD endpoints described in xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] enforce visibility.
+Agent Cards support three visibility levels, controlled by the `apicurio.agent.visibility` artifact label.
+ifndef::service-registry-downstream[]
+When OIDC or basic authentication is enabled, `GET /.well-known/agents` and the AI Catalog and ARD endpoints described in xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] enforce visibility.
+endif::[]
+ifdef::service-registry-downstream[]
+When OIDC or basic authentication is enabled, `GET /.well-known/agents` and the AI Catalog and ARD endpoints enforce visibility.
+endif::[]
 
 .Agent visibility levels
 [cols="1,3",options="header"]
@@ -871,6 +877,8 @@ Verify the following conditions:
 .Additional resources
 * xref:getting-started/assembly-llm-artifact-types-implementation.adoc[LLM Artifact Types]
 * xref:getting-started/assembly-agent-discovery-patterns.adoc[Agent discovery and multi-agent orchestration]
+ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery]
+endif::[]
 * link:https://google.github.io/A2A/[A2A Protocol Specification]
 * xref:getting-started/assembly-configuring-the-registry.adoc[{registry} configuration]

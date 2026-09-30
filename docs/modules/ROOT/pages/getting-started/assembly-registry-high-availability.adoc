@@ -720,9 +720,11 @@ Alternatively, export and import topics using Kafka's console consumer or CLI to
 the topics might contain binary data, which might be affected by text file encoding, make sure they are exported
 correctly when using CLI tools.
 
+ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
 * xref:getting-started/guide-exporting-registry-kafka-topic-data.adoc[]
+endif::[]
 
 [id="ha-backup-restore-testing_{context}"]
 == Testing backup and restore

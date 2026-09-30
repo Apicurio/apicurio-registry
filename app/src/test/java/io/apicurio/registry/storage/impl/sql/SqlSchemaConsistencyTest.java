@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.InputStream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Verifies that {@code db-version} matches an existing {@code upgrades/<db-version>/} directory
@@ -15,7 +17,9 @@ class SqlSchemaConsistencyTest {
     private static final String[] DIALECTS = { "h2", "mssql", "mysql", "postgresql" };
 
     // Version that introduced the peers table. Update only if that migration is renumbered.
-    private static final int PEERS_DB_VERSION = 110;
+    private static final int PEERS_DB_VERSION = 111;
+
+    private static final Pattern CREATE_PEERS_TABLE = Pattern.compile("CREATE TABLE (IF NOT EXISTS )?peers \\(");
 
     @Test
     void testUpgradeScriptsExistForCurrentDbVersion() {
@@ -55,9 +59,13 @@ class SqlSchemaConsistencyTest {
             String upgradeDdl = readResource(upgradePath);
             Assertions.assertNotNull(upgradeDdl, "Missing peers upgrade DDL for dialect '" + dialect
                     + "': " + upgradePath);
-            Assertions.assertTrue(upgradeDdl.contains("CREATE TABLE peers"),
+            Matcher createPeers = CREATE_PEERS_TABLE.matcher(upgradeDdl);
+            Assertions.assertTrue(createPeers.find(),
                     "Upgrade DDL for dialect '" + dialect + "' at version " + PEERS_DB_VERSION
                             + " does not create the peers table.");
+            Assertions.assertTrue(upgradeDdl.indexOf("UPDATE apicurio SET propValue") > createPeers.start(),
+                    "Upgrade DDL for dialect '" + dialect + "' at version " + PEERS_DB_VERSION
+                            + " must bump db_version only after creating the peers table.");
         }
     }
 

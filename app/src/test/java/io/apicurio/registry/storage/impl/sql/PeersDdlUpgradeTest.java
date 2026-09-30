@@ -18,7 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Executes the real 109-to-110 upgrade path end to end, instead of only checking that the
+ * Executes the real 110-to-111 upgrade path end to end, instead of only checking that the
  * upgrade DDL text mentions the peers table. Bootstraps a throwaway H2 database from the exact
  * pre-peers schema this project shipped before this change, seeds it with a representative
  * pre-existing row, runs {@link SqlStatements#databaseUpgrade(int, int)} for real (the same
@@ -30,13 +30,13 @@ class PeersDdlUpgradeTest {
     private static final Logger LOG = LoggerFactory.getLogger(PeersDdlUpgradeTest.class);
 
     @Test
-    void testRealUpgradeFrom109PreservesDataAndAddsPeers() throws Exception {
+    void testRealUpgradeFrom110PreservesDataAndAddsPeers() throws Exception {
         SqlStatements sqlStatements = new H2SqlStatements();
         AgroalDataSource dataSource = createThrowawayH2DataSource();
         try {
             HandleFactory handles = new DefaultHandleFactory(dataSource, LOG, new ConnectionRetryConfig());
 
-            // 1. Bootstrap the real pre-peers (db_version 109) schema, as it existed before this change.
+            // 1. Bootstrap the real pre-peers (db_version 110) schema, as it existed before this change.
             handles.withHandleNoException((Handle handle) -> {
                 for (String statement : parseDdl("pre-peers-schema/h2.ddl")) {
                     handle.createUpdate(statement).execute();
@@ -53,13 +53,13 @@ class PeersDdlUpgradeTest {
             });
 
             // Sanity check: confirm the pre-upgrade version and that peers does not exist yet.
-            Assertions.assertEquals(109, currentDbVersion(handles));
+            Assertions.assertEquals(110, currentDbVersion(handles));
             Assertions.assertFalse(tableExists(handles, "peers"));
 
             // 3. Run the real upgrade path: the exact statement list the production
-            // AbstractSqlRegistryStorage#upgradeDatabaseRaw executes for a 109 -> 110 database,
-            // parsed from the packaged upgrades/110/h2.upgrade.ddl resource.
-            List<String> upgradeStatements = sqlStatements.databaseUpgrade(109, 110);
+            // AbstractSqlRegistryStorage#upgradeDatabaseRaw executes for a 110 -> 111 database,
+            // parsed from the packaged upgrades/111/h2.upgrade.ddl resource.
+            List<String> upgradeStatements = sqlStatements.databaseUpgrade(110, 111);
             Assertions.assertFalse(upgradeStatements.isEmpty(), "Expected at least one upgrade statement.");
             handles.withHandleNoException((Handle handle) -> {
                 for (String statement : upgradeStatements) {
@@ -69,7 +69,7 @@ class PeersDdlUpgradeTest {
             });
 
             // 4. Assert the version was actually bumped and the peers table actually exists now.
-            Assertions.assertEquals(110, currentDbVersion(handles));
+            Assertions.assertEquals(111, currentDbVersion(handles));
             Assertions.assertTrue(tableExists(handles, "peers"));
 
             // 5. Assert pre-existing data survived the upgrade untouched.
@@ -108,6 +108,17 @@ class PeersDdlUpgradeTest {
             peerRepository.updatePeer(updated);
             Assertions.assertEquals("https://peer-updated.example.com", peerRepository.getPeer(peerId).getUrl());
             Assertions.assertFalse(peerRepository.getPeer(peerId).isEnabled());
+
+            // 7. H2 DDL commits implicitly, so an upgrade interrupted before the version marker is
+            // retried from the start: running the script again must succeed and keep existing rows.
+            handles.withHandleNoException((Handle handle) -> {
+                for (String statement : upgradeStatements) {
+                    handle.createUpdate(statement).execute();
+                }
+                return null;
+            });
+            Assertions.assertEquals(111, currentDbVersion(handles));
+            Assertions.assertEquals("https://peer-updated.example.com", peerRepository.getPeer(peerId).getUrl());
 
             peerRepository.deletePeer(peerId);
             Assertions.assertThrows(PeerNotFoundException.class, () -> peerRepository.getPeer(peerId));

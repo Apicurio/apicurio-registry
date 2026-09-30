@@ -304,6 +304,19 @@ test('Quick Check success DOES promote a reviewed PR even though an earlier not-
   assert.ok(w.calls.added.includes(LABELS.READY_TO_MERGE));
 });
 
+test('Verify run that did not require the full suite (Verify Result skipped) does not mark the PR full-verified', async () => {
+  // Current shape of a "not required yet" run: the run succeeds, because
+  // Verify Result is skipped rather than failed. Nothing ran, so the suite
+  // is pending, not verified.
+  const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER], {
+    suiteRuns: greenSuite(),
+    suiteJobs: { Verify: [{ name: 'Decide / Decide', conclusion: 'success' }, { name: 'Verify Result', conclusion: 'skipped' }] },
+  });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
+  assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
+  assert.equal(w.calls.comments.length, 0);
+});
+
 test('Verify failure at ready-to-merge reverts to ready-for-review', async () => {
   const w = makeWorld([LABELS.READY_TO_MERGE, LABELS.TESTED, LABELS.FULL_VERIFIED], { approved: true, suiteRuns: greenSuite({ Verify: 'failure' }) });
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'failure'), core: w.core });
@@ -537,6 +550,200 @@ test('label guard: non-maintainer adding orchestrator/disabled is reverted and d
 });
 
 // ---------------------------------------------------------------------------
+// Verification Gate commit status — the required check, posted from the
+// newest Verify run for the commit (handleGateStatus / syncGateStatus)
+// ---------------------------------------------------------------------------
+
+// runs: what listWorkflowRuns returns for verify.yaml. jobs: run id -> jobs.
+// current: the Verification Gate status already on the commit, if any.
+function gateWorld({ runs = [], jobs = {}, current = null } = {}) {
+  const w = makeWorld([LABELS.READY_FOR_REVIEW]);
+  w.calls.runLookups = [];
+  w.calls.statuses = [];
+  w.github.rest.actions.listWorkflowRuns = async ({ workflow_id, head_sha }) => {
+    w.calls.runLookups.push({ workflow_id, head_sha });
+    return { data: { workflow_runs: runs } };
+  };
+  w.github.rest.actions.listJobsForWorkflowRun = async ({ run_id }) => ({ data: { jobs: jobs[run_id] ?? [] } });
+  w.github.rest.repos = {
+    getCombinedStatusForRef: async () => ({ data: { statuses: current ? [current] : [] } }),
+    createCommitStatus: async ({ sha, state, context, description, target_url }) => {
+      w.calls.statuses.push({ sha, state, context, description, target_url });
+    },
+  };
+  return w;
+}
+
+function verifyRun(id, { status = 'completed', conclusion = 'success', startedAt = '2026-01-01T00:00:00Z' } = {}) {
+  return {
+    id, name: 'Verify', status, conclusion,
+    created_at: startedAt, run_started_at: startedAt,
+    html_url: `https://example.com/run/${id}`,
+  };
+}
+
+const resultJob = conclusion => [{ name: 'Decide / Decide', conclusion: 'success' }, { name: 'Verify Result', conclusion }];
+
+function gateEvent(name = 'Verify', conclusion = 'success') {
+  return runPayload(name, conclusion);
+}
+
+async function postedGate(w, name = 'Verify', conclusion = 'success') {
+  await lifecycle.handleGateStatus({ github: w.github, context: gateEvent(name, conclusion), core: w.core });
+  return w.calls.statuses;
+}
+
+test('gate status: Verify Result success posts success, linked to that run', async () => {
+  const w = gateWorld({ runs: [verifyRun(1)], jobs: { 1: resultJob('success') } });
+  assert.deepEqual(await postedGate(w), [{
+    sha: SHA, state: 'success', context: 'Verification Gate',
+    description: 'Full suite passed', target_url: 'https://example.com/run/1',
+  }]);
+  assert.deepEqual(w.calls.runLookups, [{ workflow_id: 'verify.yaml', head_sha: SHA }]);
+});
+
+test('gate status: Verify Result skipped (full suite not required yet) posts pending, not success', async () => {
+  const w = gateWorld({ runs: [verifyRun(1)], jobs: { 1: resultJob('skipped') } });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.description, 'Full suite not run yet: needs an approving review (or PR is a draft)');
+});
+
+test('gate status: Verify Result failure or cancellation posts failure', async () => {
+  for (const [conclusion, description] of [['failure', 'Full suite failed'], ['cancelled', 'Full suite was cancelled']]) {
+    const w = gateWorld({ runs: [verifyRun(1, { conclusion: 'failure' })], jobs: { 1: resultJob(conclusion) } });
+    const [status] = await postedGate(w);
+    assert.equal(status.state, 'failure', conclusion);
+    assert.equal(status.description, description);
+  }
+});
+
+test('gate status: a run still in progress posts pending', async () => {
+  const w = gateWorld({ runs: [verifyRun(1, { status: 'in_progress', conclusion: null })] });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.description, 'Full suite is running');
+});
+
+test('gate status: a fork run awaiting workflow approval posts pending', async () => {
+  const w = gateWorld({ runs: [verifyRun(1, { conclusion: 'action_required' })] });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.description, 'Waiting for a maintainer to approve the workflow run');
+});
+
+test('gate status: an older run finishing green does not override a newer run still in progress', async () => {
+  const w = gateWorld({
+    runs: [
+      verifyRun(1, { startedAt: '2026-01-01T10:00:00Z' }),
+      verifyRun(2, { status: 'in_progress', conclusion: null, startedAt: '2026-01-01T11:00:00Z' }),
+    ],
+    jobs: { 1: resultJob('success') },
+  });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.target_url, 'https://example.com/run/2');
+});
+
+test('gate status: a re-run of an older run counts as newest (run_started_at, not created_at)', async () => {
+  const rerun = verifyRun(1, { startedAt: '2026-01-01T12:00:00Z' });
+  rerun.created_at = '2026-01-01T10:00:00Z';
+  const w = gateWorld({
+    runs: [verifyRun(2, { conclusion: 'failure', startedAt: '2026-01-01T11:00:00Z' }), rerun],
+    jobs: { 1: resultJob('success'), 2: resultJob('failure') },
+  });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'success');
+  assert.equal(status.target_url, 'https://example.com/run/1');
+});
+
+test('gate status: a re-run attempt that has started turns a green gate from the previous attempt pending', async () => {
+  // Same run id and URL as the green status; only the attempt changed. The
+  // unchanged-status check must not swallow this.
+  const w = gateWorld({
+    runs: [verifyRun(1, { status: 'in_progress', conclusion: null, startedAt: '2026-01-01T12:00:00Z' })],
+    current: {
+      context: 'Verification Gate', state: 'success',
+      description: 'Full suite passed', target_url: 'https://example.com/run/1',
+    },
+  });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.description, 'Full suite is running');
+  assert.equal(status.target_url, 'https://example.com/run/1');
+});
+
+test('gate status: a run cancelled while still queued (no jobs) is passed over for the one before it', async () => {
+  const w = gateWorld({
+    runs: [
+      verifyRun(1, { startedAt: '2026-01-01T10:00:00Z' }),
+      verifyRun(2, { conclusion: 'cancelled', startedAt: '2026-01-01T11:00:00Z' }),
+    ],
+    jobs: { 1: resultJob('success'), 2: [] },
+  });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'success');
+  assert.equal(status.target_url, 'https://example.com/run/1');
+});
+
+test('gate status: a run that ended before Verify Result reported posts failure', async () => {
+  const w = gateWorld({
+    runs: [verifyRun(1, { conclusion: 'cancelled' })],
+    jobs: { 1: [{ name: 'Decide / Decide', conclusion: 'success' }, { name: 'Build Java Application (no tests)', conclusion: 'cancelled' }] },
+  });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'failure');
+  assert.equal(status.description, 'Verify run ended (cancelled) before reporting a result');
+});
+
+test('gate status: a legacy run (its own Verification Gate job) is left to that check-run', async () => {
+  const w = gateWorld({
+    runs: [verifyRun(1, { conclusion: 'failure' })],
+    jobs: { 1: [{ name: 'Decide / Decide', conclusion: 'success' }, { name: 'Verification Gate', conclusion: 'failure' }] },
+  });
+  assert.deepEqual(await postedGate(w), []);
+});
+
+test('gate status: no Verify run for the commit posts nothing', async () => {
+  const w = gateWorld({ runs: [] });
+  assert.deepEqual(await postedGate(w), []);
+});
+
+test('gate status: an unchanged status is not re-posted', async () => {
+  const w = gateWorld({
+    runs: [verifyRun(1)], jobs: { 1: resultJob('success') },
+    current: {
+      context: 'Verification Gate', state: 'success',
+      description: 'Full suite passed', target_url: 'https://example.com/run/1',
+    },
+  });
+  assert.deepEqual(await postedGate(w), []);
+});
+
+test('gate status: the triggering payload is not trusted, only verify.yaml runs looked up by file', async () => {
+  // A PR can add its own workflow named "Verify" that reports success. The
+  // event claims success; the real verify.yaml run for the commit failed.
+  const w = gateWorld({ runs: [verifyRun(1, { conclusion: 'failure' })], jobs: { 1: resultJob('failure') } });
+  const [status] = await postedGate(w, 'Verify', 'success');
+  assert.equal(status.state, 'failure');
+  assert.deepEqual(w.calls.runLookups, [{ workflow_id: 'verify.yaml', head_sha: SHA }]);
+});
+
+test('gate status: Quick Check events are ignored', async () => {
+  const w = gateWorld({ runs: [verifyRun(1)], jobs: { 1: resultJob('success') } });
+  assert.deepEqual(await postedGate(w, 'Quick Check'), []);
+  assert.deepEqual(w.calls.runLookups, []);
+});
+
+test('gate status: reconcile re-syncs the status for the PR head commit', async () => {
+  const w = gateWorld({ runs: [verifyRun(1)], jobs: { 1: resultJob('success') } });
+  await lifecycle.handleReconcile({ github: w.github, context: reconcileContext(), core: w.core, prNumber: 42 });
+  assert.equal(w.calls.statuses.length, 1);
+  assert.equal(w.calls.statuses[0].state, 'success');
+  assert.equal(w.calls.statuses[0].sha, SHA);
+});
+
+// ---------------------------------------------------------------------------
 // Legacy label migration — retired labels from the old bot-driven-promotion
 // design are cleaned up (or migrated to their native equivalent) on the next
 // reconcile, rather than left stuck on old PRs forever. Exercised through
@@ -733,6 +940,29 @@ test('stale: closes once the grace period has elapsed', async () => {
     });
     await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
     assert.deepEqual(w.calls.closed, [{ pull_number: 42, state: 'closed' }]);
+  });
+});
+
+test('stale: the sweep re-syncs the Verification Gate even on an orchestrator/disabled PR', async () => {
+  // Branch protection requires the status on every PR, so the fallback for a
+  // missed workflow_run event must not be skipped with the lifecycle work.
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({ labels: [LABELS.DISABLED] });
+    const statuses = [];
+    w.github.rest.actions = {
+      listWorkflowRuns: async () => ({ data: { workflow_runs: [{
+        id: 1, name: 'Verify', status: 'completed', conclusion: 'success',
+        created_at: '2026-01-01T00:00:00Z', html_url: 'https://example.com/run/1',
+      }] } }),
+      listJobsForWorkflowRun: async () => ({ data: { jobs: [{ name: 'Verify Result', conclusion: 'success' }] } }),
+    };
+    w.github.rest.repos = {
+      getCombinedStatusForRef: async () => ({ data: { statuses: [] } }),
+      createCommitStatus: async ({ sha, state }) => statuses.push({ sha, state }),
+    };
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.deepEqual(statuses, [{ sha: SHA, state: 'success' }]);
+    assert.deepEqual(w.calls.closed, []);
   });
 });
 

@@ -1,15 +1,20 @@
 package io.apicurio.registry.rules.validity;
 
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.rules.validity.JsonSchemaContentValidator;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Tests the JSON Schema content validator.
@@ -60,6 +65,40 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
         JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
         validator.validate(ValidityLevel.FULL, citizen,
                 Collections.singletonMap("https://example.com/city.json", city));
+    }
+
+    /**
+     * A reference Registry has no content for must not be fetched, or an uploaded schema could make
+     * the server request any URL. It is loaded as a schema that accepts anything instead. Both
+     * libraries the validator loads schemas with are covered.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"http://json-schema.org/draft-07/schema#", "https://json-schema.org/draft/2020-12/schema"})
+    public void testReferenceWithoutContentIsNotFetched(String draft) throws Exception {
+        TypedContent content = TypedContent.create(ContentHandle.create("""
+                {
+                  "$schema": "%s",
+                  "type": "object",
+                  "properties": { "x": { "$ref": "http://127.0.0.1:1/missing.json" } }
+                }
+                """.formatted(draft)), ContentTypes.APPLICATION_JSON);
+        new JsonSchemaContentValidator().validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    /**
+     * A reference recorded for the artifact that its content does not use is most likely a typo in
+     * the reference name, so it is rejected rather than ignored.
+     */
+    @Test
+    public void testUnusedReferenceIsRejected() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("jsonschema-valid-d7.json");
+        TypedContent city = resourceToTypedContentHandle("city.json");
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class,
+                () -> new JsonSchemaContentValidator().validate(ValidityLevel.FULL, content,
+                        Map.of("https://example.com/city.json", city)));
+        String description = error.getCauses().iterator().next().getDescription();
+        Assertions.assertTrue(description.contains("Unused reference records: https://example.com/city.json"),
+                () -> "The violation should name the unused reference: " + description);
     }
 
     @Test

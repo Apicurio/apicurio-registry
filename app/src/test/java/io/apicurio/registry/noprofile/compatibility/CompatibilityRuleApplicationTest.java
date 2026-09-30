@@ -239,6 +239,27 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testJsonSchemaUnsupportedDraftCompatibilityIsUnprocessable() throws Exception {
+        String artifactId = "testJsonSchemaUnsupportedDraftCompatibilityIsUnprocessable";
+        String v1 = "{\"$schema\": \"https://json-schema.org/draft/2020-12/schema\", \"type\": \"object\"}";
+        String v2 = "{\"$schema\": \"https://json-schema.org/draft/2020-12/schema\", \"type\": \"object\", "
+                + "\"properties\": {\"name\": {\"type\": \"string\"}}}";
+        createArtifact(artifactId, ArtifactType.JSON, v1, ContentTypes.APPLICATION_JSON);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.BACKWARD.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(createRule);
+
+        // The everit-based checker cannot load draft 2020-12 and throws SchemaException,
+        // which is rethrown as UnprocessableSchemaException (previously a 500).
+        var exception = Assertions.assertThrows(ApiException.class, () -> {
+            createArtifactVersion(artifactId, v2, ContentTypes.APPLICATION_JSON);
+        });
+        Assertions.assertEquals(422, exception.getResponseStatusCode());
+    }
+
+    @Test
     public void testCompatibilityRuleApplication_FullTransitive() throws Exception {
         String artifactId = "testCompatibilityRuleApplication_FullTransitive";
 

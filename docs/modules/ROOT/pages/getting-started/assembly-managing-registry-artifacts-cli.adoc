@@ -668,9 +668,11 @@ For `sync`, JSON status output requires `--wait`. Without `--wait`, the command 
 .Verification
 * Check that the `sources` values match the expected commits. The CLI reports the server status; a successful command exit alone does not verify which commit the registry loaded.
 
+ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
 * xref:getting-started/assembly-configuring-gitops-storage.adoc[]
+endif::[]
 
 
 [id="validating-gitops-using-registry-cli_{context}"]
@@ -716,9 +718,11 @@ By default, the CLI attempts to delete the task when it finishes waiting, includ
 .Verification
 * Check the command exit code and the reported validation result. Successful validation reports `success`.
 
+ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
 * xref:getting-started/assembly-configuring-gitops-storage.adoc[]
+endif::[]
 
 
 [id="registry-cli-gitops-options_{context}"]

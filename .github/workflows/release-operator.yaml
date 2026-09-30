@@ -21,7 +21,7 @@ jobs:
   release-build:
     name: Build & Publish
     if: github.repository_owner == 'Apicurio'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     outputs:
       release-version: ${{ steps.config.outputs.release-version }}
@@ -168,7 +168,7 @@ jobs:
     name: Test (${{ matrix.name }})
     needs: release-build
     if: needs.release-build.outputs.run-tests == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     strategy:
       fail-fast: false
@@ -260,7 +260,7 @@ jobs:
     name: Post-Release
     needs: [release-build, release-test]
     if: always() && needs.release-build.result == 'success' && (needs.release-test.result == 'success' || needs.release-test.result == 'skipped')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
     env:
       RELEASE_VERSION: ${{ needs.release-build.outputs.release-version }}

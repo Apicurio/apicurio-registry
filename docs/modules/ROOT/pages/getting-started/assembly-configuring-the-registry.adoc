@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can set important configuration options for your {registry} deployment, including the {registry} web console, logging, health checks, and observability.
+You can set important configuration options for your {registry} deployment, including the {registry} web console, logging, HTTP compression, health checks, and observability.
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
@@ -244,6 +244,395 @@ The registry applies the change within a few seconds. The value is stored in the
 ----
 $ acr server-config reset apicurio.log.level
 ----
+
+// con-registry-http-compression
+[id="registry-http-compression_{context}"]
+== HTTP compression in {registry}
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+{registry} 3.3.2 and later gzip-compresses REST API responses for clients that accept gzip, and decompresses gzip-encoded request bodies. Compression reduces the bandwidth that large schemas and search results consume, and most clients and SDKs benefit from it without additional configuration.
+
+**Response compression**
+
+{registry} compresses a REST API response only when all of the following conditions are true:
+
+* The request includes an `Accept-Encoding` header that accepts gzip. An explicit `gzip` token with a quality value greater than `0`, or a wildcard `*` when the header does not refuse gzip explicitly, both count as acceptance. The check is case-insensitive.
+* The response does not already carry a `Content-Encoding` header.
+* The media type of the response is in the `quarkus.http.compress-media-types` list. The list covers text-based content such as JSON, XML, YAML, GraphQL, and Protobuf schema definitions, but not opaque binary content such as `application/zip` or `application/octet-stream`.
+* The dynamic `apicurio.rest.compression.enabled` property is `true`, which is the default.
+
+{registry} does not apply a minimum size threshold. It compresses every response that meets the preceding conditions, including small ones.
+
+When {registry} compresses a response, it sets the `Content-Encoding: gzip` header, removes the `Content-Length` header that described the uncompressed body, and adds `Vary: Accept-Encoding` so that caches and content delivery networks store the compressed and uncompressed variants separately.
+
+**Request decompression**
+
+The Quarkus HTTP layer decompresses request bodies that carry the `Content-Encoding: gzip` header before {registry} processes them. Request decompression is always on. The `apicurio.rest.compression.enabled` property does not affect it. The `quarkus.http.limits.max-body-size` limit of 50 MB applies to the decompressed payload, so {registry} rejects a small gzip payload that expands beyond the limit with an HTTP `400` or `413` status code.
+
+The Kiota-based SDKs, such as the TypeScript SDK and the Go SDK, gzip-compress request bodies by default. Web browsers send the `Accept-Encoding` header automatically, and command-line tools such as `curl` send it when you use the `--compressed` option.
+
+**Registry REST controls and Quarkus HTTP settings**
+
+Two configuration layers control compression:
+
+* The `apicurio.rest.compression.enabled` property is a REST control in {registry}. It is dynamic, so you can change it at runtime without a restart by using the admin configuration REST API, the CLI, or the *Settings* tab of the web console. It acts as a runtime switch for response compression only.
+* The `quarkus.http.enable-compression`, `quarkus.http.enable-decompression`, and `quarkus.http.compress-media-types` properties are Quarkus HTTP settings. Quarkus fixes them at build time, so you cannot change the values in the {registry} image by setting environment variables on a running instance. {registry} enables all of them in its default build.
+
+{registry} serves its REST API through RESTEasy Classic, which writes responses outside the Quarkus HTTP route chain that `quarkus.http.enable-compression` acts on. For this reason, a writer interceptor in {registry} performs the response compression, and it reads the `quarkus.http.compress-media-types` list to decide which media types to compress. The Quarkus `quarkus.http.enable-decompression` setting is what decompresses request bodies.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-http-compression-properties_{context}[]
+* xref:disabling-http-response-compression_{context}[]
+* xref:verifying-http-compression_{context}[]
+
+
+// ref-registry-http-compression-properties
+[id="registry-http-compression-properties_{context}"]
+== HTTP compression configuration properties
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The following tables list the {registry} and Quarkus properties that control HTTP compression, the media types that {registry} compresses, the HTTP headers involved, and how {registry} interprets common `Accept-Encoding` values.
+
+.{registry} REST compression property
+[.table-expandable,width="100%",cols="4,3,2,5",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`apicurio.rest.compression.enabled`
+|`APICURIO_REST_COMPRESSION_ENABLED`
+|`true`
+|Enables gzip compression of REST API responses. This property is dynamic. You can change it at runtime by using the admin configuration REST API, the CLI, or the web console. Available since 3.3.2.
+|===
+
+To set the default for a deployment, set the `APICURIO_REST_COMPRESSION_ENABLED` environment variable to `false` on the {registry} container, for example in the `env` block of the custom resource that the {operator} manages. A value that you set at runtime takes precedence over the environment variable.
+
+{registry} exposes a dynamic property for runtime changes only when the matching `.dynamic.allow` property is `true`. For this property, `apicurio.rest.compression.enabled.dynamic.allow` defaults to the value of `apicurio.config.dynamic.allow-all`, which is `true`. Replicas that did not make a runtime change pick it up within the configuration refresh interval, which is one minute by default.
+
+.Quarkus HTTP compression properties
+[.table-expandable,width="100%",cols="4,3,2,5",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`quarkus.http.enable-compression`
+|`QUARKUS_HTTP_ENABLE_COMPRESSION`
+|`true`
+|Enables response compression in the Quarkus HTTP layer. Fixed at build time. The {registry} writer interceptor, not this setting, compresses REST API responses.
+
+|`quarkus.http.enable-decompression`
+|`QUARKUS_HTTP_ENABLE_DECOMPRESSION`
+|`true`
+|Decompresses request bodies that carry a `Content-Encoding: gzip` header. Fixed at build time.
+
+|`quarkus.http.compress-media-types`
+|`QUARKUS_HTTP_COMPRESS_MEDIA_TYPES`
+|See the following list
+|Comma-separated list of response media types that are eligible for compression. Fixed at build time. Setting this property replaces the Quarkus default list rather than extending it.
+
+|`quarkus.http.limits.max-body-size`
+|`QUARKUS_HTTP_LIMITS_MAX_BODY_SIZE`
+|`52428800` (50 MB)
+|Maximum request body size. For gzip-encoded requests, the limit applies to the decompressed payload.
+|===
+
+{registry} compresses responses with the following media types:
+
+* `text/html`, `text/plain`, `text/xml`, `text/css`, `text/javascript`, and `text/x-prompt-template`
+* `application/javascript`, `application/json`, `application/graphql+json`, `application/graphql`, `application/xhtml+xml`, `application/xml`, and `application/x-yaml`
+* `application/x-protobuf` and `application/x-thrift`
+
+Binary media types, such as the `application/zip` that the admin export endpoint returns and `application/octet-stream`, are not in the list, so {registry} never compresses them.
+
+The Confluent-compatible API can also produce `application/vnd.schemaregistry.v1+json` and `application/vnd.schemaregistry+json`. These media types are not in the list, so a response that {registry} negotiates as one of them is not compressed.
+
+.HTTP headers that compression uses
+[.table-expandable,width="100%",cols="3,2,6",options="header"]
+|===
+|Header
+|Direction
+|Behavior
+
+|`Accept-Encoding`
+|Request
+|Tells {registry} which content codings the client accepts. {registry} compresses the response only when this header accepts gzip.
+
+|`Content-Encoding`
+|Request
+|Set `Content-Encoding: gzip` to send a gzip-compressed request body. {registry} decompresses the body before it processes the request.
+
+|`Content-Encoding`
+|Response
+|{registry} sets `Content-Encoding: gzip` on every compressed response. A response without this header is uncompressed.
+
+|`Vary`
+|Response
+|{registry} adds `Vary: Accept-Encoding` to every compressed response so that caches store the compressed and uncompressed variants separately.
+
+|`Content-Length`
+|Response
+|{registry} removes the `Content-Length` header of the uncompressed body from a compressed response.
+|===
+
+.Accept-Encoding values and the resulting response
+[.table-expandable,width="100%",cols="4,2,6",options="header"]
+|===
+|`Accept-Encoding` value
+|Compressed
+|Reason
+
+|`gzip`
+|Yes
+|Explicit gzip acceptance.
+
+|`gzip, deflate` or `deflate, gzip;q=0.8`
+|Yes
+|Gzip is listed with a quality value greater than `0`. The order and the other codings do not matter.
+
+|`GZIP`
+|Yes
+|Token matching is case-insensitive.
+
+|`*` or `br, *`
+|Yes
+|The wildcard accepts any coding that the header does not list explicitly, including gzip.
+
+|`gzip;q=0` or `gzip;q=0, *;q=0.5`
+|No
+|An explicit `gzip;q=0` refuses gzip and takes precedence over the wildcard.
+
+|`*;q=0`
+|No
+|The wildcard refuses every coding that the header does not list explicitly.
+
+|`deflate`, `br`, or `identity`
+|No
+|Gzip is not listed and there is no wildcard.
+
+|Header absent
+|No
+|{registry} never compresses a response when the client does not send `Accept-Encoding`.
+|===
+
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-http-compression_{context}[]
+* {registry-config-reference}
+
+
+// proc-disabling-http-response-compression
+[id="disabling-http-response-compression_{context}"]
+== Disabling HTTP response compression at runtime
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can turn gzip compression of REST API responses off and on without restarting {registry} by changing the dynamic `apicurio.rest.compression.enabled` property. Disable it when a proxy in front of {registry} already compresses responses, or when you need to inspect uncompressed responses.
+
+Request decompression stays active regardless of this setting.
+
+.Prerequisites
+* You have administrator access to the {registry} instance.
+* The {registry} version is 3.3.2 or later.
+
+.Procedure
+. Check the current value of the property:
++
+[source,bash]
+----
+$ curl http://localhost:8080/apis/registry/v3/admin/config/properties/apicurio.rest.compression.enabled
+----
++
+The response is a JSON object with `name`, `value`, `type`, `label`, and `description` fields. The default `value` is `"true"`.
+. Set the property to `false` by using the admin configuration REST API:
++
+[source,bash]
+----
+$ curl -X PUT -H "Content-Type: application/json" \
+  -d '{"value": "false"}' \
+  http://localhost:8080/apis/registry/v3/admin/config/properties/apicurio.rest.compression.enabled
+----
++
+Alternatively, use the CLI:
++
+[source,bash]
+----
+$ acr server-config set apicurio.rest.compression.enabled false
+----
++
+Alternatively, in the {registry} web console, click the *Settings* tab, and in the *Additional properties* section, set the *Compression* switch to *Off*.
++
+{registry} stores the value in its storage, so the setting persists across restarts. Other replicas apply the change within the configuration refresh interval, which is one minute by default.
+. To restore the default, reset the property:
++
+[source,bash]
+----
+$ acr server-config reset apicurio.rest.compression.enabled
+----
++
+The equivalent REST API call is `DELETE /apis/registry/v3/admin/config/properties/apicurio.rest.compression.enabled`.
+
+.Verification
+* A request that includes the `Accept-Encoding: gzip` header returns a response without a `Content-Encoding` header while the property is `false`.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:verifying-http-compression_{context}[]
+ifndef::service-registry-downstream[]
+* {managing-registry-artifacts-ui}
+endif::[]
+
+
+// proc-verifying-http-compression
+[id="verifying-http-compression_{context}"]
+== Verifying HTTP compression with curl
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can confirm that {registry} compresses responses and decompresses request bodies by inspecting the HTTP headers that `curl` sends and receives. Run these checks after you deploy {registry} behind a new proxy or ingress controller, or when a client reports garbled or oversized responses.
+
+.Prerequisites
+* The {registry} version is 3.3.2 or later, and the instance is reachable, for example at `\http://localhost:8080`.
+* The `curl` and `gzip` commands are installed.
+* You have write access to a group in {registry} to test request decompression.
+
+.Procedure
+. Request a JSON resource with the `Accept-Encoding: gzip` header and print only the response headers:
++
+[source,bash]
+----
+$ curl -sS -o /dev/null -D - -H "Accept-Encoding: gzip" \
+  http://localhost:8080/apis/registry/v3/system/info
+----
++
+A compressed response includes the following headers:
++
+[source,http]
+----
+Content-Encoding: gzip
+Vary: Accept-Encoding
+----
+. Repeat the request without the `Accept-Encoding` header and confirm that the response has no `Content-Encoding` header:
++
+[source,bash]
+----
+$ curl -sS -o /dev/null -D - http://localhost:8080/apis/registry/v3/system/info
+----
+. To read a compressed response body on the command line, add the `--compressed` option, which sends `Accept-Encoding` and decodes the body:
++
+[source,bash]
+----
+$ curl -sS --compressed http://localhost:8080/apis/registry/v3/system/info
+----
+. Create a gzip-compressed request body that creates an artifact:
++
+[source,bash]
+----
+$ cat > create-artifact.json <<'EOF'
+{
+  "artifactId": "compression-test",
+  "artifactType": "JSON",
+  "firstVersion": {
+    "content": {
+      "content": "{\"type\": \"object\"}",
+      "contentType": "application/json"
+    }
+  }
+}
+EOF
+$ gzip create-artifact.json
+----
+. Send the compressed body with the `Content-Encoding: gzip` header:
++
+[source,bash]
+----
+$ curl -sS -X POST -H "Content-Type: application/json" \
+  -H "Content-Encoding: gzip" \
+  --data-binary @create-artifact.json.gz \
+  http://localhost:8080/apis/registry/v3/groups/default/artifacts
+----
++
+{registry} decompresses the body and returns an HTTP `200` response that describes the new artifact.
+
+.Verification
+* The first request returns `Content-Encoding: gzip` and `Vary: Accept-Encoding`, and the second request returns neither header.
+* The `POST` request returns a JSON response whose `artifact.artifactId` value is `compression-test`.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-http-compression-troubleshooting_{context}[]
+* xref:disabling-http-response-compression_{context}[]
+
+
+// ref-registry-http-compression-troubleshooting
+[id="registry-http-compression-troubleshooting_{context}"]
+== HTTP compression troubleshooting
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The following table lists common symptoms that clients and proxies produce when HTTP compression does not behave as expected, with the cause and the action to take.
+
+.HTTP compression symptoms, causes, and actions
+[.table-expandable,width="100%",cols="4,4,5",options="header"]
+|===
+|Symptom
+|Cause
+|Action
+
+|The client sends `Accept-Encoding: gzip`, but the response has no `Content-Encoding` header.
+a|One of the following:
+
+* The `apicurio.rest.compression.enabled` property is `false`.
+* The response media type is not in the `quarkus.http.compress-media-types` list, for example the `application/zip` that the admin export endpoint returns, or a Confluent-compatible API response negotiated as `application/vnd.schemaregistry.v1+json`.
+* The header refuses gzip, for example `gzip;q=0` or `*;q=0`.
+* A proxy between the client and {registry} removed or rewrote the `Accept-Encoding` header, or decompressed the response before forwarding it.
+|Check the property value with `GET /apis/registry/v3/admin/config/properties/apicurio.rest.compression.enabled`. Send the same request directly to the {registry} service, bypassing the proxy, and compare the headers. Configure the proxy to forward `Accept-Encoding` unchanged.
+
+|`curl` prints binary characters instead of JSON.
+|The response is gzip-compressed, and `curl` does not decode it unless you ask it to.
+|Add the `--compressed` option to `curl`, or pipe the output through `gunzip`.
+
+|A client receives a response that is gzip-compressed twice, or a client library reports a decoding error.
+|A reverse proxy, ingress controller, or content delivery network in front of {registry} compresses responses that already carry `Content-Encoding: gzip`. {registry} itself never compresses a response that already has a `Content-Encoding` header.
+|Configure the proxy to skip responses that already have a `Content-Encoding` header, or set `apicurio.rest.compression.enabled` to `false` and let the proxy compress.
+
+|A cache or content delivery network serves a compressed response to a client that did not accept gzip, or the reverse.
+|The cache ignores the `Vary: Accept-Encoding` header that {registry} sets on compressed responses.
+|Configure the cache to key stored responses on the `Accept-Encoding` header, or set `apicurio.rest.compression.enabled` to `false`.
+
+|A gzip-compressed request body fails with an HTTP `400` status code, or {registry} reports that it cannot parse the request.
+a|One of the following:
+
+* The client sets `Content-Encoding: gzip` but sends an uncompressed body.
+* A proxy decompressed the body but forwarded the `Content-Encoding: gzip` header, or removed the header but forwarded the compressed bytes.
+* A version of {registry} earlier than 3.3.2 received the request. Earlier versions do not decompress request bodies.
+|Confirm that the `Content-Encoding` header matches the body encoding at the point where the request reaches {registry}. For versions of {registry} earlier than 3.3.2, disable request compression in the client. For example, the TypeScript SDK accepts `useDefaultMiddlewares = false` as the fourth argument of `RegistryClientFactory.createRegistryClient()`.
+
+|A gzip-compressed request body fails with an HTTP `400` or `413` status code although the compressed payload is small.
+|The decompressed payload exceeds the `quarkus.http.limits.max-body-size` limit of 50 MB. {registry} applies the limit to the decompressed size to prevent decompression-bomb attacks.
+|Reduce the size of the request body.
+
+|Setting `QUARKUS_HTTP_ENABLE_COMPRESSION`, `QUARKUS_HTTP_ENABLE_DECOMPRESSION`, or `QUARKUS_HTTP_COMPRESS_MEDIA_TYPES` on a running instance has no effect.
+|Quarkus fixes these properties at build time, so the values in the {registry} image cannot change at runtime.
+|Use the dynamic `apicurio.rest.compression.enabled` property to control response compression at runtime.
+|===
+
+[role="_additional-resources"]
+.Additional resources
+* xref:verifying-http-compression_{context}[]
+* xref:registry-http-compression-properties_{context}[]
+
 
 [id="registry-rest-metrics-distribution_{context}"]
 == REST request metrics distribution configuration

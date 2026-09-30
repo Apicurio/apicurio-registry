@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.impl.polling;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -22,6 +23,7 @@ import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
@@ -30,6 +32,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -203,6 +206,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
 
     private void processArtifact(ProcessingState state, PollingDataFile artifactFile, Artifact artifact) {
         boolean artifactImported = false;
+        List<String> importedVersions = new ArrayList<>();
 
         var group = processGroupRef(state, artifact.getGroupId());
         if (group != null) {
@@ -269,6 +273,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
 
                     log.trace("Importing {}",e);
                     state.getStorage().importArtifactVersion(e);
+                    importedVersions.add(version.getVersion());
                     state.incrementVersionCount();
                 } catch (Exception ex) {
                     state.recordError(artifactFile, "Could not import artifact version '%s': %s",
@@ -276,6 +281,23 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                             ex.getMessage());
                 }
             }
+
+            if (artifactImported) {
+                try {
+                    BranchEntity latestBranch = BranchEntity.builder().groupId(artifact.getGroupId())
+                            .artifactId(artifact.getArtifactId()).branchId(BranchId.LATEST.getRawBranchId())
+                            .systemDefined(true).owner(artifact.getOwner())
+                            .createdOn(TimestampParser.parse(artifact.getCreatedOn(), state.getCommitTime()))
+                            .modifiedBy(artifact.getOwner())
+                            .modifiedOn(TimestampParser.parse(artifact.getModifiedOn(), state.getCommitTime()))
+                            .versions(importedVersions).build();
+                    state.getStorage().importBranch(latestBranch);
+                } catch (Exception ex) {
+                    state.recordError(artifactFile, "Could not import latest branch for artifact '%s': %s",
+                            artifact.getGroupId() + ":" + artifact.getArtifactId(), ex.getMessage());
+                }
+            }
+
             processArtifactRules(state, artifact);
             artifactFile.setProcessed(true);
         }

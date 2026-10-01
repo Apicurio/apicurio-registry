@@ -7,6 +7,7 @@ package io.apicurio.registry.events.dto;
 
 import io.apicurio.registry.storage.StorageEventType;
 import io.apicurio.registry.storage.dto.OutboxEvent;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,7 +66,23 @@ public class CloudEventConverter {
             log.warn("No CloudEvent mapping for event type: {}, dropping event {}", eventType, event.getId());
             return null;
         }
-        return CloudEventDto.from(event, source, cloudEventType);
+        CloudEventDto dto = new CloudEventDto().withId(event.getId()).withSource(source).withType(cloudEventType)
+                .withTime(event.getTimestamp()).withData(normalizePayload(event.getPayload()));
+        dto.validate();
+        return dto;
+    }
+
+    /**
+     * Registry events carry their payload as a {@link JSONObject}, which Jackson does not
+     * understand: it introspects the bean properties and emits {@code {"mapType":...,"empty":...}}
+     * instead of the payload. Convert to a plain {@link java.util.Map} so the payload survives
+     * serialization by any Jackson {@code ObjectMapper}.
+     */
+    private static Object normalizePayload(Object payload) {
+        if (payload instanceof JSONObject jsonObject) {
+            return jsonObject.toMap();
+        }
+        return payload;
     }
 
     /**

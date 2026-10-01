@@ -11,6 +11,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
+import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +23,7 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Tests for the MCP tool well-known discovery endpoints.
@@ -352,11 +354,27 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
             }
             """;
 
-    private static final String COMPAT_MATCHING_TOOL = """
+    private static final String COMPAT_RECORDS_CONSUMER_TOOL = """
+            {
+                "name": "records_consumer",
+                "title": "Records Consumer",
+                "description": "Consumes the records and total that the source produces",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "records": { "type": "array" },
+                        "total": { "type": "integer" }
+                    },
+                    "required": ["records"]
+                }
+            }
+            """;
+
+    private static final String COMPAT_OPTIONAL_INPUT_TOOL = """
             {
                 "name": "record_processor",
                 "title": "Record Processor",
-                "description": "Process search result records",
+                "description": "Also accepts an optional format that the source does not declare",
                 "inputSchema": {
                     "type": "object",
                     "properties": {
@@ -397,6 +415,36 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
             }
             """;
 
+    private static final String COMPAT_UNTYPED_OUTPUT_TOOL = """
+            {
+                "name": "untyped_output",
+                "title": "Untyped Output Tool",
+                "description": "Declares object keywords without a type, so it may emit any value",
+                "inputSchema": { "type": "object" },
+                "outputSchema": {
+                    "properties": {
+                        "untyped_page_field": { "type": "string" }
+                    },
+                    "additionalProperties": false
+                }
+            }
+            """;
+
+    private static final String COMPAT_UNTYPED_CONSUMER_TOOL = """
+            {
+                "name": "untyped_consumer",
+                "title": "Untyped Output Consumer",
+                "description": "Accepts objects only, so it cannot accept every value the source may emit",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "untyped_page_field": { "type": "string" }
+                    },
+                    "additionalProperties": false
+                }
+            }
+            """;
+
     private static final String PAGINATED_SOURCE_TOOL = """
             {
                 "name": "paginated_source",
@@ -430,13 +478,17 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
     public void testFindCompatibleToolsSuccess() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String sourceId = "source-db-search";
-        String candidateId = "candidate-processor";
+        String candidateId = "candidate-records-consumer";
+        String optionalInputId = "candidate-processor";
         String incompatibleId = "incompatible-proc";
 
         createMcpTool(groupId, sourceId, COMPAT_SOURCE_TOOL);
-        createMcpTool(groupId, candidateId, COMPAT_MATCHING_TOOL);
+        createMcpTool(groupId, candidateId, COMPAT_RECORDS_CONSUMER_TOOL);
+        createMcpTool(groupId, optionalInputId, COMPAT_OPTIONAL_INPUT_TOOL);
         createMcpTool(groupId, incompatibleId, COMPAT_INCOMPATIBLE_TOOL);
 
+        // The source does not set additionalProperties, so a candidate with an optional typed
+        // input the source does not declare cannot be proven compatible and is not returned.
         givenAtRoot()
                 .when()
                 .contentType(CT_JSON)
@@ -445,9 +497,31 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
                 .then()
                 .statusCode(200)
-                .body("count", equalTo(1))
-                .body("tools", hasSize(1))
-                .body("tools[0].artifactId", equalTo(candidateId));
+                .body(artifactIdsInGroup(groupId), hasItem(candidateId))
+                .body(artifactIdsInGroup(groupId), not(hasItem(optionalInputId)))
+                .body(artifactIdsInGroup(groupId), not(hasItem(incompatibleId)))
+                .body(artifactIdsInGroup(groupId), not(hasItem(sourceId)));
+    }
+
+    @Test
+    public void testFindCompatibleToolsExcludesCandidatesTypedAgainstAnUntypedOutput() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String sourceId = "untyped-output-source";
+        String candidateId = "untyped-output-candidate";
+
+        createMcpTool(groupId, sourceId, COMPAT_UNTYPED_OUTPUT_TOOL);
+        createMcpTool(groupId, candidateId, COMPAT_UNTYPED_CONSUMER_TOOL);
+
+        // The source declares object keywords but no type, so it may emit a value the candidate rejects.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", sourceId)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body(artifactIdsInGroup(groupId), not(hasItem(candidateId)));
     }
 
     @Test
@@ -490,19 +564,24 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
         createMcpTool(groupId, "compat-page-1", PAGINATED_COMPATIBLE_TOOL);
         createMcpTool(groupId, "compat-page-2", PAGINATED_COMPATIBLE_TOOL);
 
-        // Full result: 2 compatible tools, count reflects total
-        givenAtRoot()
+        // The scan covers every MCP tool in the registry, and tools created by other tests stay
+        // registered, so pages are checked against the unpaginated count rather than a constant.
+        // That count is itself checked here, where the 500 candidate scan cap bounds the page.
+        Response unpaginated = givenAtRoot()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", sourceId)
                 .queryParam("offset", 0)
-                .queryParam("limit", 100)
+                .queryParam("limit", 500)
                 .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
                 .then()
                 .statusCode(200)
-                .body("count", equalTo(2))
-                .body("tools", hasSize(2));
+                .body(artifactIdsInGroup(groupId), hasItems("compat-page-1", "compat-page-2"))
+                .extract()
+                .response();
+        int total = unpaginated.path("count");
+        assertEquals(total, unpaginated.jsonPath().getList("tools").size());
 
         // Paginated result: limit=1 returns only one tool but count stays total
         givenAtRoot()
@@ -515,22 +594,26 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
                 .then()
                 .statusCode(200)
-                .body("count", equalTo(2))
+                .body("count", equalTo(total))
                 .body("tools", hasSize(1));
 
-        // Offset beyond results: empty page, count unchanged
+        // Offset at the end of the results: empty page, count unchanged
         givenAtRoot()
                 .when()
                 .contentType(CT_JSON)
                 .pathParam("groupId", groupId)
                 .pathParam("artifactId", sourceId)
-                .queryParam("offset", 100)
+                .queryParam("offset", total)
                 .queryParam("limit", 10)
                 .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
                 .then()
                 .statusCode(200)
-                .body("count", equalTo(2))
+                .body("count", equalTo(total))
                 .body("tools", hasSize(0));
+    }
+
+    private static String artifactIdsInGroup(String groupId) {
+        return "tools.findAll { it.groupId == '" + groupId + "' }.artifactId";
     }
 
     private void createMcpTool(String groupId, String artifactId, String content) throws Exception {

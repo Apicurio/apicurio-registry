@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -115,13 +116,16 @@ public class JsonSchemaCheckerContractTest {
     }
 
     /**
-     * Every difference becomes a {@code RuleViolation} in the API response, so both fields have to
-     * be populated whichever checker produced it.
+     * Every difference becomes a {@code RuleViolation} in the API response, which is what a user
+     * whose upload was rejected reads, so both fields have to be populated whichever checker
+     * produced it.
      * <p>
-     * The two do not agree on what they contain — the legacy checker reports
-     * {@code "String type max length decreased"} at {@code /maxLength}, the Apitomy adapter reports
-     * {@code STRING_TYPE_MAX_LENGTH_DECREASED} at {@code /} — so this asserts only what a caller
-     * can rely on from either. Narrowing that gap is tracked separately.
+     * Both checkers report a change inside a nested schema at the keyword that changed, as a JSON
+     * Pointer into the schema, so the context is asserted exactly. The descriptions are worded
+     * differently — the legacy checker says {@code "String type max length decreased"}, Data Models
+     * {@code "The 'maxLength' string-length limit was decreased."} — so what is asserted is that
+     * the description is a sentence rather than a constant name such as
+     * {@code STRING_TYPE_MAX_LENGTH_DECREASED}, which the Apitomy adapter used to report.
      */
     @ParameterizedTest(name = "{0}")
     @MethodSource("checkers")
@@ -129,15 +133,15 @@ public class JsonSchemaCheckerContractTest {
         String existing = """
                 {
                   "$schema": "http://json-schema.org/draft-07/schema#",
-                  "type": "string",
-                  "maxLength": 10
+                  "type": "object",
+                  "properties": {"name": {"type": "string", "maxLength": 10}}
                 }
                 """;
         String proposed = """
                 {
                   "$schema": "http://json-schema.org/draft-07/schema#",
-                  "type": "string",
-                  "maxLength": 5
+                  "type": "object",
+                  "properties": {"name": {"type": "string", "maxLength": 5}}
                 }
                 """;
 
@@ -145,15 +149,15 @@ public class JsonSchemaCheckerContractTest {
                 json(proposed), Map.of());
 
         assertFalse(result.isCompatible(), "Decreasing maxLength is not backward compatible");
-        assertFalse(result.getIncompatibleDifferences().isEmpty(),
-                "An incompatible result must say what was incompatible");
+        assertEquals(1, result.getIncompatibleDifferences().size(),
+                () -> "One edit, one violation: " + result.getIncompatibleDifferences());
 
-        result.getIncompatibleDifferences().forEach(difference -> {
-            var violation = difference.asRuleViolation();
-            assertFalse(violation.getDescription() == null || violation.getDescription().isBlank(),
-                    "Every violation needs a description");
-            assertTrue(violation.getContext() != null && violation.getContext().startsWith("/"),
-                    "Every violation needs a context rooted at '/'");
-        });
+        var violation = result.getIncompatibleDifferences().iterator().next().asRuleViolation();
+        var description = violation.getDescription();
+        assertFalse(description == null || description.isBlank(), "Every violation needs a description");
+        assertTrue(description.contains(" ") && !description.contains("_"),
+                () -> "The description is prose for the user, not a constant name: " + description);
+        assertEquals("/properties/name/maxLength", violation.getContext(),
+                "The context points at the keyword that changed");
     }
 }

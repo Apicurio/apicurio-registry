@@ -213,7 +213,7 @@ The following `$type` values are supported:
 |Description
 
 |`registry-v0`
-|Registry configuration including global rules and settings
+|Registry configuration including global rules, settings, and peer registries
 
 |`group-v0`
 |Group definition
@@ -457,6 +457,10 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 |`properties`
 |list of properties
 |Configuration properties. Each property has `name` and `value`.
+
+|`peers`
+|list of peers
+|Peer registries for federated search. Each peer has `peerId` (required, must be unique and cannot be `local`, which is reserved), `url` (required), optional `name` and `description`, `enabled` (boolean, defaults to `true` when omitted), and an optional `credentialSecretRef` (a reference to a credential, never a secret value). The full list is replaced on every load: omitting the field, or setting it to an empty list, removes all previously loaded peers.
 |===
 
 .group-v0 fields

@@ -57,6 +57,12 @@ func (m *AdminRequestBuilder) ImportEscaped() *ImportRequestBuilder {
 	return NewImportRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
+// Peers collection to manage the peer registries this registry federates with.
+// returns a *PeersRequestBuilder when successful
+func (m *AdminRequestBuilder) Peers() *PeersRequestBuilder {
+	return NewPeersRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // RoleMappings collection to manage role mappings for authenticated principals
 // returns a *RoleMappingsRequestBuilder when successful
 func (m *AdminRequestBuilder) RoleMappings() *RoleMappingsRequestBuilder {

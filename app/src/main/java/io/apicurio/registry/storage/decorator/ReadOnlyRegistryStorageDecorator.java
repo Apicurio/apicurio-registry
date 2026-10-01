@@ -314,6 +314,21 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
         delegate.updateRoleMapping(principalId, role);
     }
 
+    public void createPeer(PeerDto peer) throws RegistryStorageException {
+        checkReadOnly();
+        delegate.createPeer(peer);
+    }
+
+    public void updatePeer(PeerDto peer) throws RegistryStorageException {
+        checkReadOnly();
+        delegate.updatePeer(peer);
+    }
+
+    public void deletePeer(String peerId) throws RegistryStorageException {
+        checkReadOnly();
+        delegate.deletePeer(peerId);
+    }
+
     public void deleteAllUserData() throws RegistryStorageException {
         checkReadOnly();
         delegate.deleteAllUserData();

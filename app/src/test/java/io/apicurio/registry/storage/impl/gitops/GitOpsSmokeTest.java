@@ -6,12 +6,15 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.storage.util.GitopsTestProfile;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.JsonObjectMapper;
 import io.apicurio.registry.util.YAMLObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.restassured.http.ContentType;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -21,17 +24,21 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import static io.restassured.RestAssured.get;
+import static io.restassured.RestAssured.given;
 import static java.util.Objects.requireNonNull;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
@@ -89,6 +96,31 @@ public class GitOpsSmokeTest {
         assertEquals(YAMLObjectMapper.YAML_MAPPER.readTree(expectedContent.bytes()),
                 YAMLObjectMapper.YAML_MAPPER.readTree(version.getContent().bytes()));
 
+        // Peers
+        var peers = storage.getPeers();
+        assertEquals(1, peers.size());
+        var peer = peers.get(0);
+        assertEquals("eu-registry", peer.getPeerId());
+        assertEquals("https://registry.eu.example.com", peer.getUrl());
+        assertEquals("EU registry", peer.getName());
+        assertTrue(peer.isEnabled());
+        assertEquals("eu-registry", peer.getCredentialSecretRef());
+
+        // The peer management API serves the declarative peers and rejects writes as read-only
+        get("/apis/registry/v3/admin/peers")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("peers[0].peerId", equalTo("eu-registry"))
+                .body("peers[0].url", equalTo("https://registry.eu.example.com"))
+                .body("peers[0].credentialSecretRef", equalTo("eu-registry"));
+        given().contentType(ContentType.JSON)
+                .body(Map.of("peerId", "rest-peer", "url", "https://rest.example.com"))
+                .post("/apis/registry/v3/admin/peers")
+                .then()
+                .statusCode(409)
+                .body("name", equalTo("ReadOnlyStorageException"));
+
         // --- Load smoke02: Different artifact, no rules ---
         testRepository.load("git/smoke02");
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
@@ -111,6 +143,9 @@ public class GitOpsSmokeTest {
         assertEquals(JsonObjectMapper.MAPPER.readTree(personContent.bytes()),
                 JsonObjectMapper.MAPPER.readTree(version.getContent().bytes()));
 
+        // Peers removed (omitted/empty peers list wipes the previously loaded peer)
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
+
         // --- Load data without registry config → rejected by safety check, smoke02 data preserved ---
         testRepository.load("git/invalid-content-ref");
         await().pollDelay(Duration.ofSeconds(5)).untilAsserted(() -> {
@@ -118,11 +153,40 @@ public class GitOpsSmokeTest {
             assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
         });
 
+        // --- Load data with an invalid peer (reserved id "local") → rejected by PeerValidator,
+        // smoke02 data preserved ---
+        testRepository.load("git/peers-invalid");
+
+        // Wait for the status endpoint to actually report the rejection of this specific
+        // revision. Checking only that the previous data is still served is not enough: that
+        // state is already true before the invalid commit is even processed, so a slow poll
+        // could pass without ever proving the invalid revision was rejected. The polling status
+        // model does not expose a per-error revision/commit id (an ERROR status keeps the
+        // *previous successful* sync's source marker, not the rejected one), so the specific
+        // error detail below is the strongest available correlation.
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("ERROR"))
+                    .body("errors", hasSize(1))
+                    .body("errors[0].detail", containsString("Peer id 'local' is reserved."));
+        });
+
+        // Previous data should still be served because the failed load does not cause a swap
+        assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
+
+        // Admin writes against this read-only storage are rejected with a 409-mapped exception
+        assertThrows(ReadOnlyStorageException.class,
+                () -> storage.createPeer(PeerDto.builder().peerId("rejected").url("https://example.com").build()));
+
         // --- Load empty: Everything cleared (proves the system recovers after invalid data) ---
         testRepository.load("git/empty");
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
             assertEquals(Set.of(), withContext(() -> storage.getArtifactIds(10)));
         });
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
 
         // Still ready (empty is a valid state after initial load)
         await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> assertTrue(storage.isReady()));
@@ -169,6 +233,38 @@ public class GitOpsSmokeTest {
                     .body("errors", hasSize(1))
                     .body("errors[0].detail", containsString("Rule " + expectedRuleType + " violation"));
         });
+    }
+
+    @Test
+    void peerReloadUpdatesFieldsAndOmittedEnabledDefaultsToTrue() throws Exception {
+        var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        testRepository.load("git/peers-update-1");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var peers = storage.getPeers();
+            assertEquals(1, peers.size());
+            assertEquals("https://before.example.com", peers.get(0).getUrl());
+        });
+        var before = storage.getPeers().get(0);
+        assertEquals("update-test-peer", before.getPeerId());
+        assertEquals("Before Update", before.getName());
+        assertFalse(before.isEnabled());
+        assertEquals("before-cred", before.getCredentialSecretRef());
+
+        // Reload the same peer id with different field values and enabled omitted entirely.
+        testRepository.load("git/peers-update-2");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var peers = storage.getPeers();
+            assertEquals(1, peers.size());
+            assertEquals("https://after.example.com", peers.get(0).getUrl());
+        });
+        var after = storage.getPeers().get(0);
+        assertEquals("update-test-peer", after.getPeerId());
+        assertEquals("After Update", after.getName());
+        // enabled is omitted in this load; it must default to true fresh, not carry over the
+        // previous load's explicit enabled: false.
+        assertTrue(after.isEnabled());
+        assertEquals("after-cred", after.getCredentialSecretRef());
     }
 
     @Test

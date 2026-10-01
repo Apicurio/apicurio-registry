@@ -10,6 +10,8 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.federation.FederationConfig;
+import io.apicurio.registry.federation.PeerAddressPolicy;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -35,20 +37,26 @@ import io.apicurio.registry.rest.v3.beans.DownloadRef;
 import io.apicurio.registry.rest.v3.beans.GitOpsStatus;
 import io.apicurio.registry.rest.v3.beans.GitOpsValidateRequest;
 import io.apicurio.registry.rest.v3.beans.GitOpsValidateTask;
+import io.apicurio.registry.rest.v3.beans.NewPeer;
+import io.apicurio.registry.rest.v3.beans.Peer;
+import io.apicurio.registry.rest.v3.beans.PeerSearchResults;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.SnapshotMetaData;
 import io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty;
+import io.apicurio.registry.rest.v3.beans.UpdatePeer;
 import io.apicurio.registry.rest.v3.beans.UpdateRole;
 import io.apicurio.registry.rest.v3.impl.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
+import io.apicurio.registry.storage.PeerValidator;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.UsageAggregationJob;
 import io.apicurio.registry.storage.UsageTelemetryConfig;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.DownloadContextType;
+import io.apicurio.registry.storage.dto.PeerDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -106,11 +114,14 @@ import java.util.zip.ZipInputStream;
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_DOWNLOAD;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_FOR_BROWSER;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_NAME;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PEER;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PEER_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PRINCIPAL_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PROPERTY_CONFIGURATION;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ROLE_MAPPING;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE_TYPE;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_UPDATE_PEER;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_UPDATE_ROLE;
 import static io.apicurio.registry.utils.DtoUtil.appAuthPropertyToRegistry;
 import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
@@ -121,6 +132,7 @@ import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
 public class AdminResourceImpl implements AdminResource {
 
     private static final String TELEMETRY_NOT_ENABLED = "Usage telemetry is not enabled on this registry instance.";
+    private static final String FEDERATION_NOT_ENABLED = "Federation is not enabled on this registry instance.";
     private static final String PARAM_GROUP_ID = "groupId";
     private static final String PARAM_ARTIFACT_ID = "artifactId";
 
@@ -171,6 +183,12 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     UsageAggregationJob usageAggregationJob;
+
+    @Inject
+    FederationConfig federationConfig;
+
+    @Inject
+    PeerAddressPolicy peerAddressPolicy;
 
     /**
      * @see io.apicurio.registry.rest.v3.AdminResource#listArtifactTypes()
@@ -485,6 +503,90 @@ public class AdminResourceImpl implements AdminResource {
     @RoleBasedAccessApiOperation
     public void deleteRoleMapping(String principalId) {
         storage.deleteRoleMapping(principalId);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#listPeers(java.math.BigInteger, java.math.BigInteger)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public PeerSearchResults listPeers(BigInteger limit, BigInteger offset) {
+        requireFederationEnabled();
+        return V3ApiUtil.dtoToPeerSearchResults(storage.searchPeers(
+                ParameterValidationUtils.normalizeOffset(offset), ParameterValidationUtils.normalizeLimit(limit)));
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#createPeer(io.apicurio.registry.rest.v3.beans.NewPeer)
+     */
+    @Override
+    @MethodMetadata(extractParameters = {"0", MPK_PEER})
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public void createPeer(NewPeer data) {
+        requireFederationEnabled();
+        PeerDto peer = PeerDto.builder().peerId(data.getPeerId()).url(data.getUrl()).name(data.getName())
+                .description(data.getDescription()).enabled(data.getEnabled() == null || data.getEnabled())
+                .credentialSecretRef(data.getCredentialSecretRef()).build();
+        validatePeer(peer);
+        storage.createPeer(peer);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#getPeer(java.lang.String)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public Peer getPeer(String peerId) {
+        requireFederationEnabled();
+        PeerValidator.validatePeerId(peerId);
+        return V3ApiUtil.dtoToPeer(storage.getPeer(peerId));
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#updatePeer(java.lang.String,
+     *      io.apicurio.registry.rest.v3.beans.UpdatePeer)
+     */
+    @Override
+    @MethodMetadata(extractParameters = {"0", MPK_PEER_ID, "1", MPK_UPDATE_PEER})
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public void updatePeer(String peerId, UpdatePeer data) {
+        requireFederationEnabled();
+        ParameterValidationUtils.requireParameter("enabled", data.getEnabled());
+        PeerDto peer = PeerDto.builder().peerId(peerId).url(data.getUrl()).name(data.getName())
+                .description(data.getDescription()).enabled(data.getEnabled())
+                .credentialSecretRef(data.getCredentialSecretRef()).build();
+        validatePeer(peer);
+        storage.updatePeer(peer);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#deletePeer(java.lang.String)
+     */
+    @Override
+    @MethodMetadata(extractParameters = {"0", MPK_PEER_ID})
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public void deletePeer(String peerId) {
+        requireFederationEnabled();
+        PeerValidator.validatePeerId(peerId);
+        storage.deletePeer(peerId);
+    }
+
+    private void requireFederationEnabled() {
+        if (!federationConfig.isEnabled()) {
+            throw new ConflictException(FEDERATION_NOT_ENABLED);
+        }
+    }
+
+    /**
+     * Applies the structural checks every storage variant applies, then the outbound address
+     * policy, which depends on configuration and is therefore enforced here rather than in storage.
+     */
+    private void validatePeer(PeerDto peer) {
+        PeerValidator.validate(peer);
+        peerAddressPolicy.validateUrl(peer.getUrl());
     }
 
     /**

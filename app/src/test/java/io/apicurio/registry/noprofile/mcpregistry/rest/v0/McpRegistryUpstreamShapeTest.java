@@ -32,7 +32,7 @@ class McpRegistryUpstreamShapeTest extends AbstractResourceTestBase {
         JSONObject response = new JSONObject(json);
         assertEquals(name, response.getJSONObject("server").getString("name"));
         try (InputStream stream = getClass().getResourceAsStream(
-                "/io/apicurio/registry/rules/validity/mcp-server-2025-12-11.json")) {
+                "/io/apicurio/registry/agents/rules/validity/mcp-server-2025-12-11.json")) {
             assertNotNull(stream);
             Schema manifest = SchemaLoader.builder().schemaJson(new JSONObject(new JSONTokener(stream)))
                     .draftV7Support().build().load().build();

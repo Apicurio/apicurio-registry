@@ -88,7 +88,7 @@ still go stale.
 | Command | Description |
 |---------|-------------|
 | `/unstale` | Remove the stale label |
-| `/retry` | Re-run the lifecycle orchestrator and retry failed tests |
+| `/retry` | Re-run the lifecycle orchestrator, retry failed tests, and re-run a failed PR validation |
 | `/assign-me` | Self-assign an open issue to volunteer for implementation |
 | `/unassign-me` | Release an issue you are currently assigned to |
 
@@ -118,7 +118,7 @@ Contributors can self-assign open issues by commenting `/assign-me` (or `/claim`
 | `/reject [reason]` | Close a PR that should not be worked further |
 | `/merge` | Toggle native GitHub auto-merge — it merges automatically once required checks pass and the PR has an approving review |
 | `/unstale` | Remove the stale label |
-| `/retry` | Re-run the lifecycle orchestrator and retry failed tests |
+| `/retry` | Re-run the lifecycle orchestrator, retry failed tests, and re-run a failed PR validation |
 
 There is no `/accept` or `/skip-review` command any more: there is no triage stage to
 accept a PR into, and every author needs an actual approving review before a PR can

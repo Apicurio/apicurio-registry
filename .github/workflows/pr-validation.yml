@@ -1,8 +1,8 @@
 name: PR Validation
 
-# Validates submission quality (issue link, DCO sign-off) and flags duplicate
-# PRs. Independent of the lifecycle state machine: this runs on every PR
-# regardless of lifecycle state, and a red check here never blocks /accept.
+# Validates submission quality (issue link, DCO sign-off, milestone) and flags
+# duplicate PRs. Independent of the lifecycle state machine: this runs on every
+# PR regardless of lifecycle state.
 #
 # pull_request_target rather than pull_request: the job has to add a label and
 # post a comment, and a pull_request run from a fork gets a read-only token, so
@@ -17,6 +17,12 @@ on:
     # stay red until an unrelated push after a maintainer sets the milestone.
     types: [opened, reopened, synchronize, edited, milestoned, demilestoned]
     branches: [main, '3.3.x']
+  # The milestone check also covers every open issue a PR closes, and setting
+  # that issue's milestone is an issues event, not a PR event: without this the
+  # PR stayed red until an unrelated push. The revalidate job re-runs the
+  # validation of each open PR that closes the issue.
+  issues:
+    types: [milestoned, demilestoned]
 
 permissions:
   contents: read
@@ -24,14 +30,16 @@ permissions:
   issues: write
 
 concurrency:
-  group: pr-validation-${{ github.event.pull_request.number }}
+  # Issue events have no PR number; without their own group they would all
+  # share one and cancel each other.
+  group: pr-validation-${{ github.event.pull_request.number || format('issue-{0}', github.event.issue.number) }}
   cancel-in-progress: true
 
 jobs:
   validate:
     name: Validate PR
     runs-on: ubuntu-latest
-    if: github.repository_owner == 'Apicurio'
+    if: github.repository_owner == 'Apicurio' && github.event_name == 'pull_request_target'
     steps:
       # No ref: is given, so this checks out the base branch, never the PR head.
       - name: Checkout Code
@@ -53,3 +61,29 @@ jobs:
           script: |
             const handler = require('./.github/scripts/pr-validation.js');
             await handler.validate({ github, context, core });
+
+  # A separate job, so an issue event doesn't create a "Validate PR" check on
+  # the default branch's head commit. Like validate, it never checks out or
+  # runs PR code.
+  revalidate:
+    name: Revalidate PRs closing the issue
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio' && github.event_name == 'issues'
+    permissions:
+      contents: read
+      actions: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Convert config to JSON
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Re-run validation for PRs closing this issue
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const handler = require('./.github/scripts/pr-validation.js');
+            await handler.revalidateForIssue({ github, context, core });

@@ -44,10 +44,17 @@ workflow via `needs:` and a single `if:` condition each.
 - author is a maintainer or in `auto_accept` (e.g. Renovate) → full suite runs
   immediately, on every push
 - otherwise → full suite runs once the PR has a current approving review
-  (`gh pr view --json reviewDecision` == `APPROVED`), re-evaluated fresh on
-  every `pull_request_review: submitted` event
+  (`gh pr view --json reviewDecision` == `APPROVED`). The push's run skips it
+  before then. Verify does not trigger on reviews: a review fires
+  `review-relay.yaml`, and the orchestrator re-runs the push's run once the
+  suite is required and that run skipped it (`maybeRunFullSuite`), so each
+  commit has one Verify run and one set of checks. The same check runs when a
+  skipping run completes (an approval that landed mid-run), on `/retry` and in
+  the 6-hourly sweep
 - `orchestrator/disabled` label → full suite runs regardless (unless
-  `DO NOT MERGE` is also present)
+  `DO NOT MERGE` is also present). Verify does not trigger on label events,
+  so when a maintainer changes this label the orchestrator re-runs the latest
+  Verify run for the head SHA (unless it is green or still running)
 - Push to main → always full suite
 
 Deciding this from author identity and review state instead of a bot-applied
@@ -71,23 +78,49 @@ Push to main always runs everything regardless of change detection.
 
 ### Verification Gate
 
-The `gate` job in `verify.yaml` is the **single required check** for branch
-protection. It runs with `if: always()` and aggregates every job in the same
-run via `needs.*.result`. For non-push events it then does one more thing:
-it fails outright if `needs.decide.outputs.lifecycle-ready != 'true'`.
+The **single required check** for branch protection is the `Verification Gate`
+**commit status** on the PR head commit. No job in `verify.yaml` is required.
 
-That check exists because a skipped required job counts as "passing" for
-branch protection purposes, and every job in `verify.yaml` is skipped by
-Decide whenever the full suite was not required for this run — without it,
-native "Merge pull request" would be unblocked the moment Decide+Gate
-complete for any PR, regardless of whether the full suite had ever actually
-run for the commit. Checking Decide's own output (the same static value that
-already gated every job above via `needs:`) means this cannot disagree with
-the rest of the run — there is nothing to race against, unlike a live
-re-fetch of current PR/label state would be. The failure this produces
-during normal PR review is expected, not a sign of anything broken: it
-clears on its own once the full suite subsequently runs and passes (for a
-trusted author, immediately; for everyone else, once a review lands).
+The `gate` job in `verify.yaml` is named `Verify Result`. It runs with
+`if: always()` and aggregates every job in the same run via
+`needs.*.result`. It is **skipped** when Decide did not require the full suite
+for the run (author not yet trusted/reviewed, or a draft). It still runs, and
+fails, if Decide itself did not succeed.
+
+On this branch, the orchestrator is `main`'s: `pr-lifecycle.yml` runs from
+the default branch for every event it handles (`workflow_run`, `schedule`,
+`issue_comment`, and `pull_request_target`), so the copies of
+`pr-lifecycle.yml`/`pr-lifecycle.js` here are not executed.
+
+The orchestrator's `gate-status` job (`pr-lifecycle.yml`, triggered by
+`workflow_run` `requested`, `in_progress` and `completed` for Verify, so a
+re-run attempt is picked up when it starts) posts the status from
+the **newest** Verify run for the commit. "Newest" means the most recently
+*started* attempt (`run_started_at`), so a re-run counts, and an older run
+finishing after a newer one does not:
+
+| Newest Verify run | `Verification Gate` status |
+|---|---|
+| queued / in progress | pending: full suite is running |
+| awaiting fork workflow approval | pending |
+| `Verify Result` skipped | pending: full suite not run yet |
+| `Verify Result` success | success |
+| `Verify Result` failed / cancelled, or run ended before it reported | failure |
+| has a legacy `Verification Gate` job (3.3.x, pre-switch runs) | left alone; that check-run is the result |
+
+Why a status and not the job's check-run: every workflow run is its own check
+suite, and the PR page keeps the latest Gate from each run (grouped by event),
+so a PR could show a red Gate from an old run next to the green one that
+counted. A commit status is replaced in place per context, so a PR shows
+exactly one, current `Verification Gate`. A skipped required check-run would
+also count as passing, which is why the old Gate job had to fail on purpose
+during review. The status can say "pending" instead.
+
+Runs are looked up through the API by workflow **file** (`verify.yaml`), never
+from the triggering event, because a PR can add a workflow of its own named
+"Verify". The Stale Detection sweep (every 6 hours) and manual Reconcile
+re-sync the status in case a `workflow_run` event was missed, including on
+`orchestrator/disabled` PRs.
 
 The PR lifecycle orchestrator (`pr-lifecycle.js`) independently tracks
 `verify.yaml`'s latest run by head SHA before applying `lifecycle/full-verified`.
@@ -222,7 +255,8 @@ non-Java changes (docs, UI).
 
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
-| `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `gate` (Verification Gate) is the single required check | N/A |
+| `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `gate` (Verify Result) aggregates the run; the orchestrator turns it into the `Verification Gate` status, the single required check | N/A |
+| `review-relay.yaml` | PR review submitted/dismissed | No-op with no permissions; exists so the review reaches `pr-lifecycle.yml` via `workflow_run`, which can re-run Verify for fork PRs too | seconds |
 | `build-java`/`build-ui` (jobs in `verify.yaml`) | Called by verify | Parallel Java (`mvnw install -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention. The sole build for a commit, shared by every other job in the same run via `needs:` | ~6 min |
 | `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
 | `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads JSON artifact for offline analysis. Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |

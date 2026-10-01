@@ -1,28 +1,23 @@
-/*
- * Copyright 2026 The Apicurio Authors
- *
- * Licensed under the Apache Software License version 2.0, available at http://www.apache.org/licenses/LICENSE-2.0
- */
 package io.apicurio.registry.events.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.quarkus.runtime.annotations.RegisterForReflection;
-import org.json.JSONObject;
 
 import java.time.Instant;
 
 /**
- * CloudEvents 1.0 specification-compliant data transfer object.
+ * CloudEvents 1.0 specification-compliant envelope.
  * <p>
- * This class represents a CloudEvent with all required and optional fields
- * as defined in the CloudEvents 1.0 specification.
+ * See <a href="https://github.com/cloudevents/spec/blob/v1.0.0/cloudevents/spec.md">the CloudEvents 1.0
+ * spec</a> for the attribute definitions. {@code id}, {@code source}, {@code type} and
+ * {@code specversion} are required; {@code subject}, {@code datacontenttype} and {@code time} are
+ * optional.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({ "specversion", "id", "source", "type", "datacontenttype", "data", "time" })
+@JsonPropertyOrder({ "specversion", "id", "source", "type", "subject", "datacontenttype", "data", "time" })
 @RegisterForReflection
 public class CloudEventDto {
 
@@ -37,6 +32,9 @@ public class CloudEventDto {
 
     @JsonProperty("type")
     private String type;
+
+    @JsonProperty("subject")
+    private String subject;
 
     @JsonProperty("datacontenttype")
     private String datacontenttype = "application/json";
@@ -66,13 +64,18 @@ public class CloudEventDto {
         return this;
     }
 
+    public CloudEventDto withSubject(String subject) {
+        this.subject = subject;
+        return this;
+    }
+
     public CloudEventDto withDatacontenttype(String datacontenttype) {
         this.datacontenttype = datacontenttype;
         return this;
     }
 
     public CloudEventDto withData(Object data) {
-        this.data = normalizeData(data);
+        this.data = data;
         return this;
     }
 
@@ -118,6 +121,14 @@ public class CloudEventDto {
         this.type = type;
     }
 
+    public String getSubject() {
+        return subject;
+    }
+
+    public void setSubject(String subject) {
+        this.subject = subject;
+    }
+
     public String getDatacontenttype() {
         return datacontenttype;
     }
@@ -131,20 +142,7 @@ public class CloudEventDto {
     }
 
     public void setData(Object data) {
-        this.data = normalizeData(data);
-    }
-
-    /**
-     * Registry events carry their payload as an {@link JSONObject}, which Jackson does not
-     * understand: it introspects the bean properties and emits {@code {"mapType":...,"empty":...}}
-     * instead of the payload. Convert to a plain {@link java.util.Map} so the payload survives
-     * serialization by any Jackson {@code ObjectMapper}.
-     */
-    private static Object normalizeData(Object data) {
-        if (data instanceof JSONObject jsonObject) {
-            return jsonObject.toMap();
-        }
-        return data;
+        this.data = data;
     }
 
     public Instant getTime() {
@@ -156,38 +154,40 @@ public class CloudEventDto {
     }
 
     /**
-     * Factory method to create a CloudEventDto from an OutboxEvent.
-     * <p>
-     * Validates that the resulting event carries all CloudEvents 1.0 required attributes
-     * ({@code id}, {@code source}, {@code type}) so callers cannot construct a spec-invalid
+     * Validates that this event carries all CloudEvents 1.0 required attributes ({@code id},
+     * {@code source}, {@code type}, {@code specversion}), so callers cannot emit a spec-invalid
      * event whose required fields silently disappear from the wire output.
+     * <p>
+     * Validation decisions, scoped to what this PR's producers (internal, not user-facing) can
+     * actually emit:
+     * <ul>
+     * <li>{@code specversion}: only checked for non-blank, not pinned to the literal
+     * {@code "1.0"}. Every producer in this codebase uses the field's default value; rejecting
+     * anything other than the exact default would just be re-validating our own constant. If a
+     * future producer needs to emit a different CloudEvents spec version, that becomes a real
+     * value to validate against.</li>
+     * <li>{@code source}: only checked for non-blank. The CloudEvents 1.0 spec requires
+     * {@code source} to be a URI-reference (RFC 3986), but this PR does not add that check —
+     * doing so requires deciding how to handle producers that pass identifiers rather than URIs
+     * (e.g. plain aggregate ids), which is the open question tracked in #9324. Left unvalidated
+     * deliberately rather than silently, pending that decision.</li>
+     * </ul>
      *
-     * @param event the outbox event
-     * @param source the event source URI (e.g., "/apicurio-registry")
-     * @param eventType the CloudEvent type string (e.g., "io.apicurio.registry.artifact.created")
-     * @return the CloudEventDto
-     * @throws IllegalArgumentException if the event is null or any required attribute is null/blank
+     * @throws IllegalArgumentException if any required attribute is null/blank
      */
-    public static CloudEventDto from(OutboxEvent event, String source, String eventType) {
-        if (event == null) {
-            throw new IllegalArgumentException("OutboxEvent must not be null");
+    public void validate() {
+        if (isBlank(specversion)) {
+            throw new IllegalArgumentException("CloudEvent 'specversion' is a required attribute and must not be blank");
         }
-        CloudEventDto dto = new CloudEventDto()
-                .withId(event.getId())
-                .withSource(source)
-                .withType(eventType)
-                .withTime(event.getTimestamp())
-                .withData(event.getPayload());
-        if (isBlank(dto.getId())) {
+        if (isBlank(id)) {
             throw new IllegalArgumentException("CloudEvent 'id' is a required attribute and must not be blank");
         }
-        if (isBlank(dto.getSource())) {
+        if (isBlank(source)) {
             throw new IllegalArgumentException("CloudEvent 'source' is a required attribute and must not be blank");
         }
-        if (isBlank(dto.getType())) {
+        if (isBlank(type)) {
             throw new IllegalArgumentException("CloudEvent 'type' is a required attribute and must not be blank");
         }
-        return dto;
     }
 
     private static boolean isBlank(String value) {

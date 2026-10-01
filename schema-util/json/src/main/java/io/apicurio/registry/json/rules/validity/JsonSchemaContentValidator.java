@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.JsonUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.validity.AbstractContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
@@ -48,7 +47,7 @@ public class JsonSchemaContentValidator extends AbstractContentValidator {
             }
         } else if (level == ValidityLevel.FULL) {
             try {
-                JsonUtil.readSchema(content.getContent().content(), resolvedReferences);
+                JsonSchemaLoader.load(content.getContent().content(), resolvedReferences);
             } catch (SchemaException e) {
                 String context = e.getSchemaLocation();
                 String description = e.getMessage();

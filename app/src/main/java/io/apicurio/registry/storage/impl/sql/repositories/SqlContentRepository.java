@@ -632,10 +632,14 @@ public class SqlContentRepository {
         final List<ArtifactReferenceDto> finalReferences = references;
 
         handles.withHandleNoException(handle -> {
+            // Allocate before the existence check so contentId allocation is unchanged from the
+            // insert-and-catch-duplicate behavior; the check only avoids a failing INSERT.
             long contentId = sequenceRepository.nextContentIdRaw(handle);
-
+            if (contentIdFromHashRaw(handle, finalContentHash).isPresent()) {
+                return null;
+            }
             try {
-                handle.createUpdate(sqlStatements.insertContent())
+                int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())
                         .bind(0, contentId)
                         .bind(1, finalCanonicalContentHash)
                         .bind(2, finalContentHash)
@@ -643,6 +647,9 @@ public class SqlContentRepository {
                         .bind(4, content.getContent().bytes())
                         .bind(5, finalSerializedReferences)
                         .execute();
+                if (inserted == 0) {
+                    return null;
+                }
             } catch (Exception e) {
                 if (sqlStatements.isPrimaryKeyViolation(e)) {
                     log.debug("Content with content hash {} already exists: {}", finalContentHash, content);

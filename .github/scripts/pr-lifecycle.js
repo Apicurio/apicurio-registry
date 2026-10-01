@@ -256,6 +256,11 @@ function createApi(github, owner, repo) {
       return data.workflow_runs[0] || null;
     },
 
+    getRun: async (runId) => {
+      const { data } = await github.rest.actions.getWorkflowRun({ owner, repo, run_id: runId });
+      return data;
+    },
+
     reRunWorkflow: async (runId) => {
       try {
         await github.rest.actions.reRunWorkflow({ owner, repo, run_id: runId });
@@ -267,6 +272,48 @@ function createApi(github, owner, repo) {
     approveWorkflowRun: async (runId) => {
       await github.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/approve', {
         owner, repo, run_id: runId,
+      });
+    },
+
+    // Looked up by workflow file, never by workflow name: a PR can add a
+    // workflow of its own called "Verify", and its runs must not count.
+    listVerifyRuns: async (headSha) => {
+      const { data } = await github.rest.actions.listWorkflowRuns({
+        owner, repo, workflow_id: VERIFY_WORKFLOW_FILE,
+        head_sha: headSha, per_page: 30,
+      });
+      return data.workflow_runs;
+    },
+
+    listRunJobs: async (runId) => {
+      const { data } = await github.rest.actions.listJobsForWorkflowRun({
+        owner, repo, run_id: runId, per_page: 100,
+      });
+      return data.jobs;
+    },
+
+    // GitHub's own review verdict, the value Decide reads (gh pr view
+    // --json reviewDecision). isApproved() is only an approximation of it.
+    getReviewDecision: async (prNumber) => {
+      const data = await github.graphql(
+        `query($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) { pullRequest(number: $number) { reviewDecision } }
+        }`,
+        { owner, repo, number: prNumber }
+      );
+      return data.repository.pullRequest.reviewDecision;
+    },
+
+    getGateStatus: async (sha) => {
+      const { data } = await github.rest.repos.getCombinedStatusForRef({
+        owner, repo, ref: sha, per_page: 100,
+      });
+      return data.statuses.find(s => s.context === GATE_STATUS_CONTEXT) || null;
+    },
+
+    setGateStatus: async (sha, { state, description, target_url }) => {
+      await github.rest.repos.createCommitStatus({
+        owner, repo, sha, state, description, target_url, context: GATE_STATUS_CONTEXT,
       });
     },
 
@@ -287,9 +334,10 @@ function createApi(github, owner, repo) {
 // Two-tier CI routing: the fast gate (quick-check.yaml, workflow name "Quick
 // Check") covers PR iteration; the full suite (verify.yaml — build, unit
 // tests, CLI, SDKs, console plugin, integration tests, extra tests, operator
-// tests, and on push, publishing) is the pre-merge gate. It runs on its own
-// native triggers (push for trusted authors, review submission for everyone
-// else) rather than a bot-applied label. verify.yaml has a single Decide
+// tests, and on push, publishing) is the pre-merge gate. It runs on push
+// for trusted authors and, for everyone else, when approval makes it
+// required (maybeRunFullSuite re-runs the push's run), rather than on a
+// bot-applied label. verify.yaml has a single Decide
 // job shared by every job in it, so there is exactly one workflow (and one
 // answer to "is the full suite required") to track for full-verified —
 // unlike the fast gate, which is intentionally a separate, independent
@@ -297,6 +345,31 @@ function createApi(github, owner, repo) {
 const FAST_GATE_WORKFLOW = 'Quick Check';
 const FULL_SUITE_WORKFLOWS = ['Verify'];
 const FULL_SUITE_WORKFLOW_FILES = ['verify.yaml'];
+const VERIFY_WORKFLOW_FILE = 'verify.yaml';
+
+// The required branch-protection check: a commit status, posted by
+// syncGateStatus from the Verify Result job of the newest Verify run.
+const GATE_STATUS_CONTEXT = 'Verification Gate';
+const VERIFY_RESULT_JOB = 'Verify Result';
+// Before the status existed, verify.yaml's gate job was itself the required
+// check under this name. Runs that still have it (the 3.3.x branch, and
+// runs from before the switch) keep reporting through that check-run.
+const LEGACY_GATE_JOB = 'Verification Gate';
+
+// GitHub only re-runs a workflow run within 30 days of its initial run
+// (created_at). An hour's margin, so a check made just inside the window
+// doesn't lose the race with the re-run request.
+const RERUN_WINDOW_MS = (30 * 24 - 1) * 60 * 60 * 1000;
+
+function rerunExpired(run) {
+  return Date.now() - new Date(run.created_at).getTime() >= RERUN_WINDOW_MS;
+}
+
+// A re-run restarts an old run, and is as recent as the moment it
+// restarted: run_started_at is the start of the latest attempt.
+function runRecency(run) {
+  return new Date(run.run_started_at || run.created_at).getTime();
+}
 
 // Aggregates the latest run of each full-suite workflow for a commit.
 // Returns:
@@ -311,7 +384,7 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
   for (const run of data.workflow_runs) {
     if (!FULL_SUITE_WORKFLOWS.includes(run.name)) continue;
     const prev = latest.get(run.name);
-    if (!prev || new Date(run.created_at) > new Date(prev.created_at)) {
+    if (!prev || runRecency(run) > runRecency(prev)) {
       latest.set(run.name, run);
     }
   }
@@ -323,22 +396,24 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
     }
   }
   for (const run of latest.values()) {
+    const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
+      owner, repo, run_id: run.id, per_page: 100,
+    });
+    // Verify Result is skipped, and the run succeeds, when Decide did not
+    // require the full suite (author not yet trusted, PR not yet approved):
+    // nothing ran, so the suite is still pending, not verified.
+    const result = jobs.find(j => j.name === VERIFY_RESULT_JOB);
+    if (result && result.conclusion === 'skipped') {
+      core.info(`Full suite for ${headSha}: ${run.name} did not require the full suite yet, treating as pending`);
+      return { status: 'pending' };
+    }
     if (run.conclusion !== 'success') {
-      // verify.yaml's Gate job intentionally fails (not skips) while Decide
-      // has not required the full suite yet (author isn't trusted and the
-      // PR isn't approved), as the only way to make the required
-      // branch-protection check honestly reflect "not satisfied yet"
-      // instead of the false-pass a skipped required job would produce
-      // (see verify.yaml's Gate for the full reasoning). That failure is
-      // expected and must NOT be treated as a genuine full-suite failure
-      // here — every job in the run other than Gate itself is either
-      // success or skipped in that case, since Decide gated all of them on
-      // the same not-yet-ready state. Only trust 'failure' when some other
+      // Runs from before the Verification Gate status (see LEGACY_GATE_JOB)
+      // signalled "not required yet" differently: their gate job failed on
+      // purpose while every other job was skipped. That failure is not a
+      // genuine full-suite failure, so only trust 'failure' when some other
       // job actually failed.
-      const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
-        owner, repo, run_id: run.id, per_page: 100,
-      });
-      const realFailure = jobs.some(j => j.name !== 'Verification Gate' && j.conclusion === 'failure');
+      const realFailure = jobs.some(j => j.name !== LEGACY_GATE_JOB && j.conclusion === 'failure');
       if (!realFailure) {
         core.info(`Full suite for ${headSha}: ${run.name}'s only failure is its own not-ready-to-merge-yet check, treating as pending`);
         return { status: 'pending' };
@@ -349,10 +424,223 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
   return { status: 'success' };
 }
 
-// Used by /retry. Both verify.yaml and quick-check.yaml now trigger natively
-// off PR events (push, review submission) — nothing needs to force a
-// re-run purely because the bot changed a label — so this only ever
-// re-runs a workflow that is actually stuck or failed.
+// ---------------------------------------------------------------------------
+// Verification Gate commit status
+// ---------------------------------------------------------------------------
+
+// Maps a Verify run to the Verification Gate status it should produce, or
+// null for a legacy run whose own gate job is still the check.
+function gateStatusFor(run, jobs) {
+  if (run.status !== 'completed') {
+    return { state: 'pending', description: 'Full suite is running' };
+  }
+  if (run.conclusion === 'action_required') {
+    return { state: 'pending', description: 'Waiting for a maintainer to approve the workflow run' };
+  }
+  const result = jobs.find(j => j.name === VERIFY_RESULT_JOB);
+  if (!result) {
+    if (jobs.some(j => j.name === LEGACY_GATE_JOB)) return null;
+    return { state: 'failure', description: `Verify run ended (${run.conclusion}) before reporting a result` };
+  }
+  switch (result.conclusion) {
+    case 'success':
+      return { state: 'success', description: 'Full suite passed' };
+    case 'skipped':
+      // Approval re-runs this run (maybeRunFullSuite), which GitHub no longer
+      // allows. Only a new commit gets a Verify run that can still run it.
+      if (rerunExpired(run)) {
+        return { state: 'pending', description: "Full suite not run; this Verify run is over 30 days old and can't be re-run: update the branch" };
+      }
+      return { state: 'pending', description: 'Full suite not run yet: needs an approving review (or PR is a draft)' };
+    case 'cancelled':
+      return { state: 'failure', description: 'Full suite was cancelled' };
+    default:
+      return { state: 'failure', description: 'Full suite failed' };
+  }
+}
+
+// Posts the Verification Gate status for a commit from its newest Verify run.
+// Recomputed from scratch every time, from runs looked up by workflow file,
+// so it never trusts the event that triggered it and cannot be left behind
+// by an older run finishing after a newer one. Idempotent: an unchanged
+// status is not re-posted. Returns the status it wants, or null when it
+// leaves the commit alone.
+// The Verify run that counts for a commit: the most recently started attempt,
+// with its jobs (empty while it is still running). Null when there is none.
+async function newestReportingRun(api, sha) {
+  const runs = (await api.listVerifyRuns(sha)).sort((a, b) => runRecency(b) - runRecency(a));
+  for (const run of runs) {
+    const jobs = run.status === 'completed' ? await api.listRunJobs(run.id) : [];
+    // A run superseded while still queued is cancelled without ever
+    // starting a job. It never reported anything; the run that superseded
+    // it is the one that counts.
+    if (run.conclusion === 'cancelled' && jobs.length === 0) continue;
+    return { run, jobs };
+  }
+  return null;
+}
+
+async function syncGateStatus(api, sha, core) {
+  const newest = await newestReportingRun(api, sha);
+  if (!newest) {
+    core.info(`${sha.substring(0, 7)}: no Verify run yet, leaving Verification Gate alone`);
+    return null;
+  }
+  const { run, jobs } = newest;
+  const status = gateStatusFor(run, jobs);
+  if (!status) {
+    core.info(`${sha.substring(0, 7)}: newest Verify run ${run.id} predates the Verification Gate status, leaving it alone`);
+    return null;
+  }
+  const desired = { ...status, target_url: run.html_url };
+  const current = await api.getGateStatus(sha);
+  if (current && current.state === desired.state
+      && current.description === desired.description
+      && current.target_url === desired.target_url) {
+    core.info(`${sha.substring(0, 7)}: Verification Gate already ${desired.state}`);
+    return desired;
+  }
+  await api.setGateStatus(sha, desired);
+  core.info(`${sha.substring(0, 7)}: Verification Gate -> ${desired.state} (${desired.description}), from run ${run.id}`);
+  return desired;
+}
+
+// ---------------------------------------------------------------------------
+// Starting the full suite once it becomes required
+// ---------------------------------------------------------------------------
+
+// Mirrors Decide (verify-decide.yaml) for a pull_request run: whether a run
+// starting now would require the full suite. Must stay in step with it.
+// maybeRunFullSuite re-runs a skipped run only when this says the suite is
+// required, so a disagreement would re-run a run Decide keeps skipping.
+function fullSuiteRequired(config, pr, reviewDecision) {
+  if (pr.draft) return false;
+  if (hasLabel(pr, LABELS.DISABLED)) return !hasLabel(pr, 'DO NOT MERGE');
+  if (isAutoAccepted(config, pr.user.login)) return true;
+  return reviewDecision === 'APPROVED';
+}
+
+// Backstop for the case fullSuiteRequired exists to prevent: a skipped run
+// that keeps being re-run because Decide disagrees. A handful of attempts
+// covers GitHub's review state catching up with an approval that has just
+// landed; past it, a person has to look.
+const MAX_FULL_SUITE_RERUN_ATTEMPT = 5;
+
+// The full suite runs once per commit, in the pull_request Verify run. For an
+// author who isn't trusted, that run skips it (Decide sees no approval), and
+// approving the PR later does not start a new run: verify.yaml has no review
+// trigger, so there is exactly one Verify run, and one set of checks, per
+// commit. Instead, once the suite is required, the orchestrator re-runs that
+// run; Decide re-evaluates live and runs the suite this time.
+//
+// Re-runs only when the newest run has finished and its Verify Result was
+// skipped. A run still in progress is picked up when it completes
+// (handleTestResult), and a run that ran the suite is never re-run from here.
+//
+// Returns 'rerun' when it started a re-run, 'expired' when the suite is
+// required but the run is past GitHub's re-run window, otherwise null. An
+// expired run is reported, not worked around: the only way to a new Verify
+// run is a new commit, and updating the author's branch is not the
+// orchestrator's call (it pushes a merge commit onto their branch, and may
+// dismiss the approval that made the suite required). The Verification Gate
+// status says what to do (gateStatusFor), and /retry replies.
+async function maybeRunFullSuite(api, config, pr, core) {
+  const newest = await newestReportingRun(api, pr.head.sha);
+  if (!newest) return null;
+  const { run, jobs } = newest;
+  // No jobs are listed for a run still in progress, so it stops here too.
+  const result = jobs.find(j => j.name === VERIFY_RESULT_JOB);
+  if (!result || result.conclusion !== 'skipped') return null;
+
+  if (!fullSuiteRequired(config, pr, await api.getReviewDecision(pr.number))) return null;
+
+  if (rerunExpired(run)) {
+    core.warning(`PR #${pr.number} full suite is required but Verify run ${run.id} is over 30 days old and can't be re-run; the branch needs updating`);
+    return 'expired';
+  }
+  if (run.run_attempt >= MAX_FULL_SUITE_RERUN_ATTEMPT) {
+    core.warning(`PR #${pr.number} Verify run ${run.id} skipped the full suite on attempt ${run.run_attempt} although it looks required; not re-running it again`);
+    return null;
+  }
+  try {
+    await api.reRunWorkflow(run.id);
+  } catch (e) {
+    // Another handler (a Verify completion, a second review) re-ran it first.
+    if ((await api.getRun(run.id)).status !== 'completed') {
+      core.info(`PR #${pr.number} Verify run ${run.id} was already re-run`);
+      return null;
+    }
+    throw e;
+  }
+  core.info(`PR #${pr.number} full suite now required, re-running Verify run ${run.id} (attempt ${run.run_attempt + 1})`);
+  return 'rerun';
+}
+
+// Resolves the open PRs a workflow run belongs to. Re-run attempts may lose
+// the pull_requests array from the workflow_run payload, and fork PRs always
+// have an empty array. Falls back to searching for PRs by the head SHA, using
+// the head repository owner (which differs from the base owner for fork PRs).
+async function resolveRunPrs(github, owner, repo, workflowRun, core) {
+  let prRefs = workflowRun.pull_requests || [];
+  if (prRefs.length) return prRefs;
+  const headOwner = workflowRun.head_repository?.owner?.login || owner;
+  const { data: prs } = await github.rest.pulls.list({
+    owner, repo, state: 'open', head: `${headOwner}:${workflowRun.head_branch}`, per_page: 10,
+  });
+  prRefs = prs.filter(p => p.head.sha === workflowRun.head_sha);
+  if (!prRefs.length) {
+    // Last resort: scan all open PRs by head SHA (covers edge cases where
+    // the head-branch filter above misses, e.g. a stale/renamed branch).
+    const { data: openPrs } = await github.rest.pulls.list({
+      owner, repo, state: 'open', per_page: 50,
+    });
+    prRefs = openPrs.filter(p => p.head.sha === workflowRun.head_sha);
+  }
+  if (prRefs.length) {
+    core.info(`Resolved ${prRefs.length} PR(s) from head branch lookup (re-run fallback)`);
+  } else {
+    core.info(`No open PR found for branch ${workflowRun.head_branch} / SHA ${workflowRun.head_sha}, skipping`);
+  }
+  return prRefs;
+}
+
+// workflow_run completed for Review Relay (review-relay.yaml), which a review
+// being submitted or dismissed triggers. The relay exists only to get here:
+// the pull_request_review event gives fork PRs a read-only token, which cannot
+// re-run a workflow, while workflow_run always runs privileged. Nothing from
+// the relay is trusted beyond which commit it was for; the PR, its review
+// decision and its Verify runs are all read back through the API.
+async function handleReviewRelay({ github, context, core }) {
+  const workflowRun = context.payload.workflow_run;
+  const { owner, repo } = context.repo;
+  const api = createApi(github, owner, repo);
+  const config = loadConfig();
+  for (const prRef of await resolveRunPrs(github, owner, repo, workflowRun, core)) {
+    const pr = await api.getPr(prRef.number);
+    // The review is for a commit that is no longer the head: the push that
+    // replaced it has its own Verify run, and that run decides.
+    if (pr.head.sha !== workflowRun.head_sha) continue;
+    await maybeRunFullSuite(api, config, pr, core);
+  }
+}
+
+// workflow_run (requested/in_progress/completed) for Verify. Deliberately not filtered
+// on orchestrator/disabled: branch protection requires the status on every
+// PR, lifecycle-managed or not.
+async function handleGateStatus({ github, context, core }) {
+  const run = context.payload.workflow_run;
+  if (!FULL_SUITE_WORKFLOWS.includes(run.name)) {
+    core.info(`Unhandled workflow ${run.name}, skipping`);
+    return;
+  }
+  const { owner, repo } = context.repo;
+  await syncGateStatus(createApi(github, owner, repo), run.head_sha, core);
+}
+
+// Used by /retry. Both verify.yaml and quick-check.yaml trigger natively
+// off pushes (and an approval re-runs verify.yaml via maybeRunFullSuite) —
+// nothing needs to force a re-run purely because the bot changed a label —
+// so this only ever re-runs a workflow that is actually stuck or failed.
 async function retriggerVerify(api, pr, core, isTrustedAuthor) {
   // The full suite is the relevant workflow once approved+tested (about to
   // merge) or for a trusted author (it runs from the start for them);
@@ -530,8 +818,8 @@ async function setAutoMerge(api, config, pr, core) {
 
 // Promotes ready-for-review to ready-to-merge once approved and fast-gated.
 // Purely a status transition now — it does not gate or trigger anything:
-// the full suite already runs on its own native triggers (PR push for
-// trusted authors, review submission for everyone else), and merging (if
+// the full suite already runs on its own (PR push for trusted authors,
+// approval via maybeRunFullSuite for everyone else), and merging (if
 // auto-merge was enabled via /merge) is entirely GitHub's own job from here.
 async function checkAndTransitionToReady(api, pr, core, reviews) {
   if (!reviews) reviews = await api.getReviews(pr.number);
@@ -751,8 +1039,9 @@ async function countOpenPrsByAuthor(github, owner, repo, author, excludePr) {
 // Drafts never reach here — they're ignored until marked ready for review.
 async function initNewPr(github, owner, repo, api, config, pr, core) {
   const trusted = isAutoAccepted(config, pr.user.login);
+  const limitExempt = (config.pr_limit_exempt || []).includes(pr.user.login);
 
-  if (!trusted) {
+  if (!trusted && !limitExempt) {
     const existingPrs = await countOpenPrsByAuthor(github, owner, repo, pr.user.login, pr.number);
     const maxPrs = config.max_contributor_prs ?? 1;
     if (existingPrs.length >= maxPrs) {
@@ -894,18 +1183,11 @@ async function handlePrReadyForReview({ github, context, core }) {
   await initNewPr(github, owner, repo, api, config, pr, core);
 }
 
-// Fires when a review is submitted. verify.yaml (the full suite) already
-// reacts to this natively (pull_request_review: submitted) for non-trusted
-// authors; this reconciles labels (waiting-on-*, ready-to-merge) right away
-// instead of waiting for the next label-change event or the periodic sweep.
-// Fires when a review is submitted. verify.yaml has its own native
-// pull_request_review trigger (safe — GitHub gives it the same restricted,
-// secret-less fork-PR token as pull_request, and GITHUB_REF/GITHUB_SHA
-// already resolve to the PR's merge branch, same as pull_request), so it
-// re-evaluates Decide and starts the full suite on its own the moment a
-// review lands. This just keeps the display labels (waiting-on-*,
-// ready-to-merge) in sync right away instead of waiting for the next
-// label-change event or the periodic sweep.
+// Fires when a review is submitted (same-repo PRs only, see pr-lifecycle.yml).
+// Starting the full suite is not done here but by handleReviewRelay, for
+// fork and same-repo PRs alike. This just keeps the display labels
+// (waiting-on-*, ready-to-merge) in sync right away instead of waiting for
+// the next label-change event or the periodic sweep.
 async function handlePrReviewSubmitted({ github, context, core }) {
   const pr = context.payload.pull_request;
   const { owner, repo } = context.repo;
@@ -1024,6 +1306,30 @@ async function cmdRetry(github, api, config, core, pr, actor, isAuthor, maintain
   const freshPr = await api.getPr(pr.number);
   await reconcile(github, api, freshPr, core);
 
+  // The full suite is required now but the Verify run skipped it (e.g. the
+  // review relay never ran). That run is green, so the failed-run handling
+  // below would leave it alone.
+  const fullSuite = await maybeRunFullSuite(api, config, freshPr, core);
+  if (fullSuite === 'rerun') {
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state and started the full suite, which the ` +
+      `last Verify run skipped because it was not required yet.`
+    );
+    core.info(`PR #${pr.number} retry: reconciled + started the full suite by ${actor}`);
+    return;
+  }
+  if (fullSuite === 'expired') {
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state, but the full suite can't be started for this ` +
+      `commit. Its Verify run skipped the suite and is over 30 days old, which is past ` +
+      `the window in which GitHub allows re-running it. Update the branch (or push) to ` +
+      `get a new Verify run. If that dismisses the current approval, the suite runs ` +
+      `once the PR is approved again.`
+    );
+    core.info(`PR #${pr.number} retry: reconciled, full suite blocked by an expired Verify run, by ${actor}`);
+    return;
+  }
+
   // The workflow that matters depends on lifecycle state: the fast gate
   // (quick-check.yaml) during iteration, the full suite (verify.yaml) at
   // ready-to-merge or for trusted authors (it runs from the start for them).
@@ -1100,6 +1406,12 @@ async function handleLabelChange({ github, context, core }) {
   const config = loadConfig();
   if (isMaintainer(config, actor) && MAINTAINER_EDITABLE.includes(label.name)) {
     core.info(`PR #${pr.number} label ${action}: ${label.name} by maintainer ${actor} (allowed)`);
+    // Decide reads orchestrator/disabled, but verify.yaml no longer triggers
+    // on label events (a label run cancelled the in-flight suite and left a
+    // failed gate behind), so re-run it here to let Decide see the change.
+    if (label.name === LABELS.DISABLED) {
+      await retriggerWorkflowRun(api, pr, core, 'verify.yaml');
+    }
     return;
   }
 
@@ -1152,32 +1464,9 @@ async function handleTestResult({ github, context, core }) {
 
   const { owner, repo } = context.repo;
   const api = createApi(github, owner, repo);
+  const config = loadConfig();
 
-  // Re-run attempts may lose the pull_requests array from the workflow_run
-  // payload, and fork PRs always have an empty array. Fall back to
-  // searching for PRs by the head SHA, using the head repository owner
-  // (which differs from the base owner for fork PRs).
-  let prRefs = workflowRun.pull_requests || [];
-  if (!prRefs.length) {
-    const headOwner = workflowRun.head_repository?.owner?.login || owner;
-    const { data: prs } = await github.rest.pulls.list({
-      owner, repo, state: 'open', head: `${headOwner}:${workflowRun.head_branch}`, per_page: 10,
-    });
-    prRefs = prs.filter(p => p.head.sha === workflowRun.head_sha);
-    if (!prRefs.length) {
-      // Last resort: scan all open PRs by head SHA (covers edge cases where
-      // the head-branch filter above misses, e.g. a stale/renamed branch).
-      const { data: openPrs } = await github.rest.pulls.list({
-        owner, repo, state: 'open', per_page: 50,
-      });
-      prRefs = openPrs.filter(p => p.head.sha === workflowRun.head_sha);
-    }
-    if (!prRefs.length) {
-      core.info(`No open PR found for branch ${workflowRun.head_branch} / SHA ${workflowRun.head_sha}, skipping`);
-      return;
-    }
-    core.info(`Resolved ${prRefs.length} PR(s) from head branch lookup (re-run fallback)`);
-  }
+  const prRefs = await resolveRunPrs(github, owner, repo, workflowRun, core);
 
   for (const prRef of prRefs) {
     const pr = await api.getPr(prRef.number);
@@ -1205,8 +1494,8 @@ async function handleTestResult({ github, context, core }) {
       }
     }
     // Unlike before, the full-suite branch below is NOT gated on
-    // lifecycle/ready-to-merge: verify.yaml now triggers on its own native
-    // events (push for trusted authors, review submission for everyone
+    // lifecycle/ready-to-merge: the full suite runs as soon as Decide
+    // requires it (on push for trusted authors, on approval for everyone
     // else), so it can legitimately complete before the fast gate/review has
     // finished promoting the PR.
 
@@ -1214,6 +1503,11 @@ async function handleTestResult({ github, context, core }) {
       core.info(`PR #${pr.number} head SHA mismatch (PR: ${pr.head.sha}, run: ${workflowRun.head_sha}), skipping`);
       continue;
     }
+
+    // An approval that landed while this run was still deciding to skip the
+    // suite: the review relay found the run in progress and left it. Its
+    // completion is the other half. A run re-started here has no result yet.
+    if (!isFastGate && await maybeRunFullSuite(api, config, pr, core) === 'rerun') continue;
 
     if (asFastGate) {
       if (workflowRun.conclusion === 'success') {
@@ -1726,6 +2020,17 @@ async function handleStale({ github, context, core }) {
   });
 
   for (const listed of prs) {
+    // Fallback for a missed workflow_run event (a review relay or a Verify
+    // completion). Before the DISABLED skip: those PRs need the required
+    // status too, and their full suite can be skipped as well (draft, or
+    // DO NOT MERGE).
+    try {
+      await maybeRunFullSuite(api, config, listed, core);
+      await syncGateStatus(api, listed.head.sha, core);
+    } catch (err) {
+      core.warning(`PR #${listed.number} full suite / Verification Gate sync failed: ${err.message}`);
+    }
+
     if (hasLabel(listed, LABELS.DISABLED)) continue;
 
     // Reconcile all PRs targeting main, then re-read. Everything below keys
@@ -1855,6 +2160,7 @@ async function handleReconcile({ github, context, core, prNumber }) {
   const api = createApi(github, owner, repo);
   const pr = await api.getPr(prNumber);
   core.info(`Reconciling PR #${prNumber} via workflow_dispatch`);
+  await syncGateStatus(api, pr.head.sha, core);
   await reconcile(github, api, pr, core);
 }
 
@@ -1867,6 +2173,8 @@ module.exports = {
   handleComment,
   handleLabelChange,
   handleTestResult,
+  handleGateStatus,
+  handleReviewRelay,
   handleStale,
   handleReconcile,
   reconcile,

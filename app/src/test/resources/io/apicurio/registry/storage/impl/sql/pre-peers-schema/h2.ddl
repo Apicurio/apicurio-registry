@@ -1,10 +1,10 @@
 -- *********************************************************************
--- DDL for the Apicurio Registry - Database: PostgreSQL 10+
+-- DDL for the Apicurio Registry - Database: H2
 -- *********************************************************************
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 111);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 110);
 
 CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -16,13 +16,9 @@ CREATE INDEX IDX_config_1 ON config(modifiedOn);
 CREATE TABLE acls (principalId VARCHAR(256) NOT NULL, role VARCHAR(32) NOT NULL, principalName VARCHAR(256));
 ALTER TABLE acls ADD PRIMARY KEY (principalId);
 
-CREATE TABLE peers (peerId VARCHAR(256) NOT NULL, url VARCHAR(1024) NOT NULL, name VARCHAR(512), description VARCHAR(1024), enabled BOOLEAN NOT NULL DEFAULT TRUE, credentialSecretRef VARCHAR(256));
-ALTER TABLE peers ADD PRIMARY KEY (peerId);
-CREATE INDEX IDX_peers_1 ON peers(enabled);
-
 CREATE TABLE downloads (downloadId VARCHAR(128) NOT NULL, expires BIGINT NOT NULL, context VARCHAR(1024));
 ALTER TABLE downloads ADD PRIMARY KEY (downloadId);
-CREATE INDEX IDX_down_1 ON downloads USING HASH (expires);
+CREATE HASH INDEX IDX_down_1 ON downloads(expires);
 
 CREATE TABLE global_rules (type VARCHAR(32) NOT NULL, configuration TEXT NOT NULL);
 ALTER TABLE global_rules ADD PRIMARY KEY (type);
@@ -30,8 +26,8 @@ ALTER TABLE global_rules ADD PRIMARY KEY (type);
 CREATE TABLE content (contentId BIGINT NOT NULL, canonicalHash VARCHAR(64) NOT NULL, contentHash VARCHAR(64) NOT NULL, contentType VARCHAR(64) NOT NULL, content BYTEA NOT NULL, refs TEXT);
 ALTER TABLE content ADD PRIMARY KEY (contentId);
 ALTER TABLE content ADD CONSTRAINT UQ_content_1 UNIQUE (contentHash);
-CREATE INDEX IDX_content_1 ON content USING HASH (canonicalHash);
-CREATE INDEX IDX_content_2 ON content USING HASH (contentHash);
+CREATE HASH INDEX IDX_content_1 ON content(canonicalHash);
+CREATE HASH INDEX IDX_content_2 ON content(contentHash);
 
 CREATE TABLE content_references (contentId BIGINT NOT NULL, groupId VARCHAR(512), artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), name VARCHAR(512) NOT NULL);
 ALTER TABLE content_references ADD PRIMARY KEY (contentId, name);
@@ -52,8 +48,8 @@ ALTER TABLE group_rules ADD CONSTRAINT FK_grules_1 FOREIGN KEY (groupId) REFEREN
 
 CREATE TABLE artifacts (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, owner VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedBy VARCHAR(256), modifiedOn TIMESTAMP WITHOUT TIME ZONE, name VARCHAR(512), description VARCHAR(1024), labels TEXT);
 ALTER TABLE artifacts ADD PRIMARY KEY (groupId, artifactId);
-CREATE INDEX IDX_artifacts_0 ON artifacts USING HASH (type);
-CREATE INDEX IDX_artifacts_1 ON artifacts USING HASH (owner);
+CREATE HASH INDEX IDX_artifacts_0 ON artifacts(type);
+CREATE HASH INDEX IDX_artifacts_1 ON artifacts(owner);
 CREATE INDEX IDX_artifacts_2 ON artifacts(createdOn);
 CREATE INDEX IDX_artifacts_3 ON artifacts(name);
 CREATE INDEX IDX_artifacts_4 ON artifacts(description);
@@ -84,12 +80,12 @@ ALTER TABLE versions ADD CONSTRAINT UQ_versions_2 UNIQUE (globalId, versionOrder
 ALTER TABLE versions ADD CONSTRAINT FK_versions_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
 ALTER TABLE versions ADD CONSTRAINT FK_versions_2 FOREIGN KEY (contentId) REFERENCES content(contentId);
 CREATE INDEX IDX_versions_1 ON versions(version);
-CREATE INDEX IDX_versions_2 ON versions USING HASH (state);
+CREATE HASH INDEX IDX_versions_2 ON versions(state);
 CREATE INDEX IDX_versions_3 ON versions(name);
 CREATE INDEX IDX_versions_4 ON versions(description);
-CREATE INDEX IDX_versions_5 ON versions USING HASH (owner);
+CREATE HASH INDEX IDX_versions_5 ON versions(owner);
 CREATE INDEX IDX_versions_6 ON versions(createdOn);
-CREATE INDEX IDX_versions_7 ON versions USING HASH (contentId);
+CREATE HASH INDEX IDX_versions_7 ON versions(contentId);
 CREATE INDEX IDX_versions_8 ON versions(modifiedOn);
 
 CREATE TABLE version_labels (globalId BIGINT NOT NULL, labelKey VARCHAR(256) NOT NULL, labelValue VARCHAR(512));
@@ -116,21 +112,18 @@ CREATE INDEX IDX_branch_versions_1 ON branch_versions(groupId, artifactId, branc
 CREATE INDEX IDX_branch_versions_2 ON branch_versions(branchId);
 CREATE INDEX IDX_branch_versions_3 ON branch_versions(branchOrder);
 
-CREATE TABLE contract_rules (ruleId BIGSERIAL NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, globalId BIGINT, ruleCategory VARCHAR(32) NOT NULL, orderIndex INT NOT NULL, ruleName VARCHAR(512) NOT NULL, kind VARCHAR(32) NOT NULL, ruleType VARCHAR(256) NOT NULL, mode VARCHAR(32) NOT NULL, expr TEXT, params TEXT, tags TEXT, onSuccess VARCHAR(32), onFailure VARCHAR(32), disabled BOOLEAN NOT NULL DEFAULT FALSE);
+CREATE TABLE contract_rules (ruleId BIGINT AUTO_INCREMENT NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, globalId BIGINT, ruleCategory VARCHAR(32) NOT NULL, orderIndex INT NOT NULL, ruleName VARCHAR(512) NOT NULL, kind VARCHAR(32) NOT NULL, ruleType VARCHAR(256) NOT NULL, mode VARCHAR(32) NOT NULL, expr TEXT, params TEXT, tags TEXT, onSuccess VARCHAR(32), onFailure VARCHAR(32), disabled BOOLEAN NOT NULL DEFAULT FALSE);
 ALTER TABLE contract_rules ADD PRIMARY KEY (ruleId);
 ALTER TABLE contract_rules ADD CONSTRAINT FK_contract_rules_1 FOREIGN KEY (globalId) REFERENCES versions(globalId) ON DELETE CASCADE;
 CREATE INDEX IDX_contract_rules_1 ON contract_rules(groupId, artifactId);
 CREATE INDEX IDX_contract_rules_2 ON contract_rules(globalId);
 
-CREATE TABLE contract_audit_log (auditId BIGSERIAL NOT NULL, groupId VARCHAR(512), artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), action VARCHAR(64) NOT NULL, principal VARCHAR(256), details TEXT, createdOn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE contract_audit_log (auditId BIGINT AUTO_INCREMENT NOT NULL, groupId VARCHAR(512), artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), action VARCHAR(64) NOT NULL, principal VARCHAR(256), details TEXT, createdOn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);
 ALTER TABLE contract_audit_log ADD PRIMARY KEY (auditId);
 CREATE INDEX IDX_contract_audit_1 ON contract_audit_log(groupId, artifactId);
 CREATE INDEX IDX_contract_audit_2 ON contract_audit_log(createdOn);
 
-CREATE TABLE outbox (id VARCHAR(128) NOT NULL, aggregatetype VARCHAR(255) NOT NULL, aggregateid VARCHAR(255) NOT NULL, type VARCHAR(255) NOT NULL, payload JSONB NOT NULL);
-ALTER TABLE outbox ADD PRIMARY KEY (id);
-
-CREATE TABLE schema_usage (globalId BIGINT NOT NULL, contentId BIGINT NOT NULL DEFAULT 0, clientId VARCHAR(256) NOT NULL, operation VARCHAR(32) NOT NULL, eventTimestamp BIGINT NOT NULL, recordedOn TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE schema_usage (globalId BIGINT NOT NULL, contentId BIGINT NOT NULL DEFAULT 0, clientId VARCHAR(256) NOT NULL, operation VARCHAR(32) NOT NULL, eventTimestamp BIGINT NOT NULL, recordedOn TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
 CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);
 CREATE INDEX IDX_schema_usage_3 ON schema_usage(eventTimestamp);

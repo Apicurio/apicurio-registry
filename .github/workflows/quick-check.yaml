@@ -15,7 +15,8 @@ name: Quick Check
 #
 # lifecycle/tested is driven by this workflow's completion (see
 # pr-lifecycle.js's FAST_GATE_WORKFLOW); lifecycle/full-verified is driven by
-# verify.yaml's Verification Gate.
+# verify.yaml's Verify Result job (also the source of the Verification Gate
+# status, the required check).
 
 on:
   pull_request:

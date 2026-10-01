@@ -17,12 +17,25 @@ import java.util.Set;
  * them, so the keywords that remain mean the same thing in every supported dialect. The one
  * keyword removed without a limitation is {@code format} on the producer, which cannot change a
  * verdict while no evaluated consumer keyword constrains the contents of a value.
+ *
+ * <p>Objects and arrays are projected to {@link #MAX_SCHEMA_DEPTH} levels below the schema root.
+ * Structure deeper than that is removed and reported as a
+ * {@link LimitationCode#DEPTH_LIMIT_REACHED} limitation, so that the comparison walks a bounded
+ * part of any schema, however deeply it nests.
  */
 final class SchemaProjector {
+
+    /**
+     * How many levels of objects and arrays below the schema root are projected. The deepest of
+     * the 125 tool schemas published by the GitHub MCP server nests three levels, an array of
+     * objects whose properties are scalars, so this leaves two levels of headroom.
+     */
+    static final int MAX_SCHEMA_DEPTH = 5;
 
     static final String TYPE = "type";
     static final String PROPERTIES = "properties";
     static final String REQUIRED = "required";
+    static final String ITEMS = "items";
     static final String ADDITIONAL_PROPERTIES = "additionalProperties";
 
     private static final String SCHEMA = "$schema";
@@ -30,11 +43,10 @@ final class SchemaProjector {
     private static final String NUMBER = "number";
     private static final String INTEGER = "integer";
 
+    private static final int ROOT_DEPTH = 0;
+
     private static final Set<String> NON_SEMANTIC = Set.of("title", "description", "default",
             "examples", "$comment");
-
-    private static final Set<String> NESTED_STRUCTURE = Set.of(PROPERTIES, REQUIRED, "items",
-            ADDITIONAL_PROPERTIES);
 
     private SchemaProjector() {
     }
@@ -62,89 +74,110 @@ final class SchemaProjector {
             }
         }
 
+        return new SchemaProjection(side, base, schema,
+                projectNode(schema, base, side, ROOT_DEPTH, limitations), limitations);
+    }
+
+    private static ObjectNode projectNode(JsonNode schema, String node, SchemaSide side, int depth,
+            List<CompatibilityLimitation> limitations) {
         ObjectNode projected = JsonNodeFactory.instance.objectNode();
         for (Map.Entry<String, JsonNode> field : schema.properties()) {
             String keyword = field.getKey();
-            if (SCHEMA.equals(keyword) || NON_SEMANTIC.contains(keyword)) {
+            if (NON_SEMANTIC.contains(keyword) || (depth == ROOT_DEPTH && SCHEMA.equals(keyword))) {
                 continue;
             }
             JsonNode value = field.getValue();
-            String pointer = JsonPointers.append(base, keyword);
+            String pointer = JsonPointers.append(node, keyword);
             switch (keyword) {
-                case TYPE -> projectType(value, base, pointer, side, projected, limitations);
-                case PROPERTIES -> projected.set(PROPERTIES,
-                        projectProperties(value, pointer, side, limitations));
+                case TYPE -> projectType(value, node, pointer, side, depth, projected, limitations);
                 case REQUIRED -> projected.set(REQUIRED, value);
-                case ADDITIONAL_PROPERTIES -> projected.set(ADDITIONAL_PROPERTIES,
-                        projectSubschema(value, pointer, side, limitations));
+                case PROPERTIES ->
+                        projectProperties(value, node, pointer, side, depth, projected, limitations);
+                case ITEMS -> projectItems(value, node, pointer, side, depth, projected, limitations);
+                case ADDITIONAL_PROPERTIES ->
+                        projectNested(value, ADDITIONAL_PROPERTIES, node, pointer, side, depth,
+                                projected, limitations);
                 default -> {
                     if (!droppedFromProducer(side, keyword)) {
-                        limitations.add(unsupportedKeyword(side, base, pointer, keyword));
+                        limitations.add(unsupportedKeyword(side, node, pointer, keyword));
                     }
                 }
             }
         }
-        return new SchemaProjection(side, base, schema, projected, limitations);
+        return projected;
     }
 
-    private static JsonNode projectProperties(JsonNode properties, String pointer, SchemaSide side,
+    private static void projectProperties(JsonNode properties, String node, String pointer,
+            SchemaSide side, int depth, ObjectNode projected,
             List<CompatibilityLimitation> limitations) {
         if (!properties.isObject()) {
-            return properties;
+            projected.set(PROPERTIES, properties);
+            return;
         }
-        ObjectNode projected = JsonNodeFactory.instance.objectNode();
+        if (depth == MAX_SCHEMA_DEPTH) {
+            limitations.add(depthLimitReached(side, node, pointer, PROPERTIES));
+            return;
+        }
+        ObjectNode projectedProperties = JsonNodeFactory.instance.objectNode();
         for (Map.Entry<String, JsonNode> property : properties.properties()) {
-            projected.set(property.getKey(), projectSubschema(property.getValue(),
-                    JsonPointers.append(pointer, property.getKey()), side, limitations));
+            projectedProperties.set(property.getKey(),
+                    projectSubschema(property.getValue(),
+                            JsonPointers.append(pointer, property.getKey()), side, depth + 1,
+                            limitations));
         }
-        return projected;
+        projected.set(PROPERTIES, projectedProperties);
+    }
+
+    /**
+     * Only a single schema is evaluated. The tuple form, a boolean and anything else are removed
+     * with a limitation, rather than replaced by a schema that would accept more than they do.
+     */
+    private static void projectItems(JsonNode items, String node, String pointer, SchemaSide side,
+            int depth, ObjectNode projected, List<CompatibilityLimitation> limitations) {
+        if (!items.isObject()) {
+            limitations.add(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, side, node,
+                    pointer, "'items' is evaluated only as a single schema"));
+            return;
+        }
+        projectNested(items, ITEMS, node, pointer, side, depth, projected, limitations);
+    }
+
+    private static void projectNested(JsonNode subschema, String keyword, String node, String pointer,
+            SchemaSide side, int depth, ObjectNode projected,
+            List<CompatibilityLimitation> limitations) {
+        if (subschema.isObject() && depth == MAX_SCHEMA_DEPTH) {
+            limitations.add(depthLimitReached(side, node, pointer, keyword));
+            return;
+        }
+        projected.set(keyword, projectSubschema(subschema, pointer, side, depth + 1, limitations));
     }
 
     /**
      * Boolean and malformed subschemas are kept as declared, for the engine to evaluate or reject.
      */
     private static JsonNode projectSubschema(JsonNode subschema, String node, SchemaSide side,
-            List<CompatibilityLimitation> limitations) {
-        if (!subschema.isObject()) {
-            return subschema;
-        }
-        ObjectNode projected = JsonNodeFactory.instance.objectNode();
-        for (Map.Entry<String, JsonNode> field : subschema.properties()) {
-            String keyword = field.getKey();
-            String pointer = JsonPointers.append(node, keyword);
-            if (TYPE.equals(keyword)) {
-                projectPropertyType(field.getValue(), node, pointer, side, projected, limitations);
-            } else if (NESTED_STRUCTURE.contains(keyword)) {
-                limitations.add(new CompatibilityLimitation(LimitationCode.DEPTH_LIMIT_REACHED, side,
-                        node, pointer, "Nested '" + keyword + "' is not evaluated yet"));
-            } else if (!NON_SEMANTIC.contains(keyword) && !droppedFromProducer(side, keyword)) {
-                limitations.add(unsupportedKeyword(side, node, pointer, keyword));
-            }
-        }
-        return projected;
-    }
-
-    private static void projectType(JsonNode type, String node, String pointer, SchemaSide side,
-            ObjectNode projected, List<CompatibilityLimitation> limitations) {
-        if (type.isArray()) {
-            limitations.add(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, side, node,
-                    pointer, "'type' given as an array is not evaluated yet"));
-        } else {
-            projected.set(TYPE, type);
-        }
+            int depth, List<CompatibilityLimitation> limitations) {
+        return subschema.isObject() ? projectNode(subschema, node, side, depth, limitations)
+                : subschema;
     }
 
     /**
-     * Reduces a property's union to the types it accepts: duplicates are dropped, and
-     * {@code integer} is dropped beside {@code number} because every integer is a number. A union
-     * left with one type is written as that type, so that two properties accepting the same values
-     * are written the same way. A list that does not name types is not evaluated; a {@code type}
-     * that is neither a list nor a name is left for the engine to reject.
+     * Reduces a union to the types it accepts: duplicates are dropped, and {@code integer} is
+     * dropped beside {@code number} because every integer is a number. A union left with one type
+     * is written as that type, so that two nodes accepting the same values are written the same
+     * way. A list that does not name types is not evaluated, and a {@code type} that is neither a
+     * list nor a name is left for the engine to reject. On the schema root a union is not
+     * evaluated at all.
      */
-    private static void projectPropertyType(JsonNode type, String node, String pointer, SchemaSide side,
-            ObjectNode projected, List<CompatibilityLimitation> limitations) {
+    private static void projectType(JsonNode type, String node, String pointer, SchemaSide side,
+            int depth, ObjectNode projected, List<CompatibilityLimitation> limitations) {
         if (!type.isArray()) {
             projected.set(TYPE, type);
+            return;
+        }
+        if (depth == ROOT_DEPTH) {
+            limitations.add(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, side, node,
+                    pointer, "'type' given as an array is not evaluated yet"));
             return;
         }
         List<String> names = new ArrayList<>();
@@ -180,6 +213,12 @@ final class SchemaProjector {
      */
     private static boolean droppedFromProducer(SchemaSide side, String keyword) {
         return side == SchemaSide.PRODUCER && FORMAT.equals(keyword);
+    }
+
+    private static CompatibilityLimitation depthLimitReached(SchemaSide side, String node,
+            String pointer, String keyword) {
+        return new CompatibilityLimitation(LimitationCode.DEPTH_LIMIT_REACHED, side, node, pointer,
+                "'" + keyword + "' nests deeper than the comparison evaluates");
     }
 
     private static CompatibilityLimitation unnamedTypes(SchemaSide side, String node, String pointer) {

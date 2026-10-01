@@ -445,6 +445,64 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
             }
             """;
 
+    private static final String COMPAT_NESTED_OUTPUT_TOOL = """
+            {
+                "name": "nested_output",
+                "title": "Nested Output Tool",
+                "description": "Emits a record nested inside the output object",
+                "inputSchema": { "type": "object" },
+                "outputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "nested_user": {
+                            "type": "object",
+                            "properties": { "nested_id": { "type": "string" } },
+                            "required": ["nested_id"],
+                            "additionalProperties": false
+                        }
+                    },
+                    "required": ["nested_user"],
+                    "additionalProperties": false
+                }
+            }
+            """;
+
+    private static final String COMPAT_NESTED_CONSUMER_TOOL = """
+            {
+                "name": "nested_consumer",
+                "title": "Nested Record Consumer",
+                "description": "Accepts the nested record that the source emits",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "nested_user": {
+                            "type": "object",
+                            "properties": { "nested_id": { "type": "string" } }
+                        }
+                    },
+                    "required": ["nested_user"]
+                }
+            }
+            """;
+
+    private static final String COMPAT_NESTED_MISMATCH_TOOL = """
+            {
+                "name": "nested_mismatch",
+                "title": "Nested Record Mismatch",
+                "description": "Requires another type for the nested property",
+                "inputSchema": {
+                    "type": "object",
+                    "properties": {
+                        "nested_user": {
+                            "type": "object",
+                            "properties": { "nested_id": { "type": "integer" } }
+                        }
+                    },
+                    "required": ["nested_user"]
+                }
+            }
+            """;
+
     private static final String PAGINATED_SOURCE_TOOL = """
             {
                 "name": "paginated_source",
@@ -522,6 +580,30 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body(artifactIdsInGroup(groupId), not(hasItem(candidateId)));
+    }
+
+    @Test
+    public void testFindCompatibleToolsEvaluatesNestedObjects() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String sourceId = "nested-output-source";
+        String acceptedId = "nested-output-accepted";
+        String rejectedId = "nested-output-rejected";
+
+        createMcpTool(groupId, sourceId, COMPAT_NESTED_OUTPUT_TOOL);
+        createMcpTool(groupId, acceptedId, COMPAT_NESTED_CONSUMER_TOOL);
+        createMcpTool(groupId, rejectedId, COMPAT_NESTED_MISMATCH_TOOL);
+
+        // The type of the nested property decides both candidates, which were undecided before.
+        givenAtRoot()
+                .when()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", sourceId)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}/compatible")
+                .then()
+                .statusCode(200)
+                .body(artifactIdsInGroup(groupId), hasItem(acceptedId))
+                .body(artifactIdsInGroup(groupId), not(hasItem(rejectedId)));
     }
 
     @Test

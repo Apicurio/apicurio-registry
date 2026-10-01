@@ -4,13 +4,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static io.apicurio.registry.mcptools.compatibility.SchemaProjector.ADDITIONAL_PROPERTIES;
+import static io.apicurio.registry.mcptools.compatibility.SchemaProjector.ITEMS;
 import static io.apicurio.registry.mcptools.compatibility.SchemaProjector.PROPERTIES;
-import static io.apicurio.registry.mcptools.compatibility.SchemaProjector.REQUIRED;
-import static io.apicurio.registry.mcptools.compatibility.SchemaProjector.TYPE;
 
 /**
  * A tool schema together with the draft-07 projection that the comparison engine evaluates.
@@ -32,105 +30,65 @@ record SchemaProjection(SchemaSide side, String base, JsonNode original, ObjectN
         return projected != null;
     }
 
-    /**
-     * Whether the schema restricts the value to one type. Object keywords do not restrict it.
-     */
-    boolean declaresType() {
-        return projected.path(TYPE).isTextual();
+    SchemaNode root() {
+        return new SchemaNode(null, original, projected, base);
     }
 
     /**
-     * Whether the root object declares properties but leaves {@code additionalProperties}
-     * unset, so that the engine assumes it can also emit undeclared properties.
+     * Whether any object in the projection declares properties but leaves
+     * {@code additionalProperties} unset, so that the engine assumes it can also emit undeclared
+     * properties.
      */
     boolean closable() {
-        JsonNode properties = projected.get(PROPERTIES);
-        return properties != null && properties.isObject() && !properties.isEmpty()
-                && !projected.has(ADDITIONAL_PROPERTIES);
+        return closable(projected);
     }
 
     ObjectNode closed() {
         return closed(projected);
     }
 
+    /**
+     * @return a copy of the projection with every object that declares properties, at any depth,
+     *         emitting only those properties
+     */
     static ObjectNode closed(ObjectNode projected) {
         ObjectNode closed = projected.deepCopy();
-        closed.set(ADDITIONAL_PROPERTIES, BooleanNode.FALSE);
+        close(closed);
         return closed;
     }
 
-    List<String> propertyNames() {
-        List<String> names = new ArrayList<>();
-        JsonNode properties = projected.path(PROPERTIES);
-        if (properties.isObject()) {
-            properties.fieldNames().forEachRemaining(names::add);
+    private static boolean closable(JsonNode node) {
+        if (!node.isObject()) {
+            return false;
         }
-        return names;
-    }
-
-    boolean declaresProperty(String name) {
-        return projected.path(PROPERTIES).has(name);
-    }
-
-    JsonNode projectedProperty(String name) {
-        return projected.path(PROPERTIES).get(name);
-    }
-
-    List<String> required() {
-        List<String> required = new ArrayList<>();
-        for (JsonNode member : original.path(REQUIRED)) {
-            if (member.isTextual()) {
-                required.add(member.asText());
+        if (openObject(node)) {
+            return true;
+        }
+        for (JsonNode property : node.path(PROPERTIES)) {
+            if (closable(property)) {
+                return true;
             }
         }
-        return required;
+        return closable(node.path(ITEMS)) || closable(node.path(ADDITIONAL_PROPERTIES));
     }
 
-    /**
-     * The projected {@code additionalProperties}, or {@code null} when it is not declared.
-     */
-    JsonNode additionalProperties() {
-        return projected.get(ADDITIONAL_PROPERTIES);
-    }
-
-    String rootPointer() {
-        return base;
-    }
-
-    String typePointer() {
-        return original.has(TYPE) ? JsonPointers.append(base, TYPE) : base;
-    }
-
-    String requiredPointer() {
-        return original.has(REQUIRED) ? JsonPointers.append(base, REQUIRED) : base;
-    }
-
-    String requiredMemberPointer(String name) {
-        JsonNode required = original.path(REQUIRED);
-        for (int index = 0; index < required.size(); index++) {
-            if (name.equals(required.get(index).asText())) {
-                return JsonPointers.append(base, REQUIRED, String.valueOf(index));
-            }
+    private static void close(JsonNode node) {
+        if (!node.isObject()) {
+            return;
         }
-        return requiredPointer();
+        ObjectNode object = (ObjectNode) node;
+        if (openObject(object)) {
+            object.set(ADDITIONAL_PROPERTIES, BooleanNode.FALSE);
+        }
+        for (JsonNode property : object.path(PROPERTIES)) {
+            close(property);
+        }
+        close(object.path(ITEMS));
+        close(object.path(ADDITIONAL_PROPERTIES));
     }
 
-    String additionalPropertiesPointer() {
-        return original.has(ADDITIONAL_PROPERTIES) ? JsonPointers.append(base, ADDITIONAL_PROPERTIES)
-                : base;
-    }
-
-    String propertyPointer(String name) {
-        return JsonPointers.append(base, PROPERTIES, name);
-    }
-
-    /**
-     * Points at the property's {@code type} keyword when it declares one, and at the property
-     * subschema otherwise.
-     */
-    String propertyTypePointer(String name) {
-        JsonNode property = original.path(PROPERTIES).path(name);
-        return property.has(TYPE) ? JsonPointers.append(base, PROPERTIES, name, TYPE)
-                : propertyPointer(name);
+    private static boolean openObject(JsonNode node) {
+        JsonNode properties = node.path(PROPERTIES);
+        return properties.isObject() && !properties.isEmpty() && !node.has(ADDITIONAL_PROPERTIES);
     }
 }

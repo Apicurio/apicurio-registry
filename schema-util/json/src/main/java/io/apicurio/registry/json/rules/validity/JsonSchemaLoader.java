@@ -54,7 +54,7 @@ final class JsonSchemaLoader {
         var references = findReferences(draft == VersionFlag.V4 ? "id" : "$id", null, jsonNode);
         checkNoUnusedReferences(references, resolvedReferences);
 
-        return VALIDATOR.validate(jsonNode, referencedDocuments(references, resolvedReferences)::get);
+        return VALIDATOR.validate(jsonNode, referencedDocuments(draft, references, resolvedReferences)::get);
     }
 
     // Do we want to do this as a separate rule?
@@ -78,10 +78,10 @@ final class JsonSchemaLoader {
      * The content of each document the schema refers to, by the reference without its fragment.
      * <p>
      * Validity doesn't depend on what a reference points to, so a document Registry has no content
-     * for is replaced by one that accepts anything. It contains each JSON Pointer the schema refers
-     * to it with, so references into it resolve too.
+     * for is replaced by one that accepts anything. It contains each JSON Pointer and each anchor the
+     * schema refers to it with, so references into it resolve too.
      */
-    private static Map<String, String> referencedDocuments(Set<URI> references,
+    private static Map<String, String> referencedDocuments(VersionFlag draft, Set<URI> references,
             Map<String, TypedContent> resolvedReferences) {
         var supplied = new HashMap<String, String>();
         var placeholders = new HashMap<String, ObjectNode>();
@@ -92,9 +92,11 @@ final class JsonSchemaLoader {
                 supplied.put(document, content.getContent().content());
             } else {
                 var placeholder = placeholders.computeIfAbsent(document, d -> MAPPER.createObjectNode());
-                var pointer = reference.getFragment();
-                if (pointer != null && pointer.startsWith("/")) {
-                    addPointer(placeholder, pointer);
+                var fragment = reference.getFragment();
+                if (fragment != null && fragment.startsWith("/")) {
+                    addPointer(placeholder, fragment);
+                } else if (fragment != null && !fragment.isEmpty()) {
+                    addAnchor(placeholder, draft, fragment);
                 }
             }
         }
@@ -108,6 +110,23 @@ final class JsonSchemaLoader {
         var text = reference.toString();
         var hash = text.indexOf('#');
         return hash < 0 ? text : text.substring(0, hash);
+    }
+
+    /**
+     * Adds a schema that accepts anything and is named by the given anchor, as the referencing draft
+     * spells one: {@code $anchor} from 2019-09, a location-independent identifier before that. The
+     * referenced document has no {@code $schema}, so it is read in the referencing schema's draft.
+     */
+    private static void addAnchor(ObjectNode placeholder, VersionFlag draft, String anchor) {
+        var modern = draft == VersionFlag.V201909 || draft == VersionFlag.V202012;
+        var definitions = placeholder.get(modern ? "$defs" : "definitions") instanceof ObjectNode existing
+                ? existing : placeholder.putObject(modern ? "$defs" : "definitions");
+        var definition = definitions.putObject("anchor-" + anchor);
+        if (modern) {
+            definition.put("$anchor", anchor);
+        } else {
+            definition.put(draft == VersionFlag.V4 ? "id" : "$id", "#" + anchor);
+        }
     }
 
     /** Adds an empty schema, which accepts anything, at the given JSON Pointer. */

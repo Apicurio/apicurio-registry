@@ -73,7 +73,8 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
     /**
      * A document Registry has no content for is never fetched: it is replaced by one that accepts
      * anything, so the schema is valid whatever the reference points to, including when the
-     * reference has a fragment. That holds for a reference inside supplied content too. A local
+     * reference has a fragment, a JSON Pointer or an anchor. That holds for a reference inside
+     * supplied content too. A local
      * server records whether any request was made.
      */
     @ParameterizedTest
@@ -97,10 +98,11 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
                       "properties": {
                         "a": { "$ref": "%s/missing.json" },
                         "b": { "$ref": "%s/missing.json#/definitions/b" },
-                        "c": { "$ref": "https://example.com/supplied.json" }
+                        "c": { "$ref": "https://example.com/supplied.json" },
+                        "e": { "$ref": "%s/missing.json#e" }
                       }
                     }
-                    """.formatted(draft, base, base)), ContentTypes.APPLICATION_JSON);
+                    """.formatted(draft, base, base, base)), ContentTypes.APPLICATION_JSON);
             TypedContent supplied = TypedContent.create(ContentHandle.create("""
                     { "properties": { "d": { "$ref": "%s/nested.json" } } }
                     """.formatted(base)), ContentTypes.APPLICATION_JSON);

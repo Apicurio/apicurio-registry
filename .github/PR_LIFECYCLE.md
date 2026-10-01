@@ -327,6 +327,9 @@ The orchestrator is configured in `.github/pr-lifecycle.yml`:
   full suite immediately (e.g. Renovate), without maintainer command access
 - **max_contributor_prs** — maximum concurrent open PRs for a non-trusted author
   before further ones are closed automatically (default: 1)
+- **pr_limit_exempt** — GitHub usernames `max_contributor_prs` does not apply to,
+  without trusting them otherwise (e.g. `apicurio-ci`, which opens a backport PR for
+  every merged `backport/*` PR)
 - **merge.strategy** — `rebase` (default) or `squash`
 - **stale.days_until_stale** — days of inactivity before marking as stale (default: 7)
 - **stale.days_until_close** — total days of inactivity before closing (default: 14)
@@ -353,5 +356,7 @@ The orchestrator is configured in `.github/pr-lifecycle.yml`:
 
 The orchestrator is enabled by default on all PRs. To exclude a specific PR, a maintainer
 can add the `orchestrator/disabled` label. This reverts the PR to legacy behavior (full
-test suite on every push, `DO NOT MERGE` label support).
+test suite on every push, `DO NOT MERGE` label support). Adding or removing the label
+re-runs the latest Verify run for the PR's head commit, so the change takes effect
+without a new push.
 </content>

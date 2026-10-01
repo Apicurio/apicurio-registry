@@ -270,6 +270,36 @@ function createApi(github, owner, repo) {
       });
     },
 
+    // Looked up by workflow file, never by workflow name: a PR can add a
+    // workflow of its own called "Verify", and its runs must not count.
+    listVerifyRuns: async (headSha) => {
+      const { data } = await github.rest.actions.listWorkflowRuns({
+        owner, repo, workflow_id: VERIFY_WORKFLOW_FILE,
+        head_sha: headSha, per_page: 30,
+      });
+      return data.workflow_runs;
+    },
+
+    listRunJobs: async (runId) => {
+      const { data } = await github.rest.actions.listJobsForWorkflowRun({
+        owner, repo, run_id: runId, per_page: 100,
+      });
+      return data.jobs;
+    },
+
+    getGateStatus: async (sha) => {
+      const { data } = await github.rest.repos.getCombinedStatusForRef({
+        owner, repo, ref: sha, per_page: 100,
+      });
+      return data.statuses.find(s => s.context === GATE_STATUS_CONTEXT) || null;
+    },
+
+    setGateStatus: async (sha, { state, description, target_url }) => {
+      await github.rest.repos.createCommitStatus({
+        owner, repo, sha, state, description, target_url, context: GATE_STATUS_CONTEXT,
+      });
+    },
+
     // GitHub represents runs awaiting fork PR approval as    // status=completed, conclusion=action_required. The API's status
     // query parameter accepts 'action_required' as a filter value even
     // though the run object itself stores it in the conclusion field.
@@ -297,6 +327,22 @@ function createApi(github, owner, repo) {
 const FAST_GATE_WORKFLOW = 'Quick Check';
 const FULL_SUITE_WORKFLOWS = ['Verify'];
 const FULL_SUITE_WORKFLOW_FILES = ['verify.yaml'];
+const VERIFY_WORKFLOW_FILE = 'verify.yaml';
+
+// The required branch-protection check: a commit status, posted by
+// syncGateStatus from the Verify Result job of the newest Verify run.
+const GATE_STATUS_CONTEXT = 'Verification Gate';
+const VERIFY_RESULT_JOB = 'Verify Result';
+// Before the status existed, verify.yaml's gate job was itself the required
+// check under this name. Runs that still have it (the 3.3.x branch, and
+// runs from before the switch) keep reporting through that check-run.
+const LEGACY_GATE_JOB = 'Verification Gate';
+
+// A re-run restarts an old run, and is as recent as the moment it
+// restarted: run_started_at is the start of the latest attempt.
+function runRecency(run) {
+  return new Date(run.run_started_at || run.created_at).getTime();
+}
 
 // Aggregates the latest run of each full-suite workflow for a commit.
 // Returns:
@@ -311,7 +357,7 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
   for (const run of data.workflow_runs) {
     if (!FULL_SUITE_WORKFLOWS.includes(run.name)) continue;
     const prev = latest.get(run.name);
-    if (!prev || new Date(run.created_at) > new Date(prev.created_at)) {
+    if (!prev || runRecency(run) > runRecency(prev)) {
       latest.set(run.name, run);
     }
   }
@@ -323,22 +369,24 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
     }
   }
   for (const run of latest.values()) {
+    const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
+      owner, repo, run_id: run.id, per_page: 100,
+    });
+    // Verify Result is skipped, and the run succeeds, when Decide did not
+    // require the full suite (author not yet trusted, PR not yet approved):
+    // nothing ran, so the suite is still pending, not verified.
+    const result = jobs.find(j => j.name === VERIFY_RESULT_JOB);
+    if (result && result.conclusion === 'skipped') {
+      core.info(`Full suite for ${headSha}: ${run.name} did not require the full suite yet, treating as pending`);
+      return { status: 'pending' };
+    }
     if (run.conclusion !== 'success') {
-      // verify.yaml's Gate job intentionally fails (not skips) while Decide
-      // has not required the full suite yet (author isn't trusted and the
-      // PR isn't approved), as the only way to make the required
-      // branch-protection check honestly reflect "not satisfied yet"
-      // instead of the false-pass a skipped required job would produce
-      // (see verify.yaml's Gate for the full reasoning). That failure is
-      // expected and must NOT be treated as a genuine full-suite failure
-      // here — every job in the run other than Gate itself is either
-      // success or skipped in that case, since Decide gated all of them on
-      // the same not-yet-ready state. Only trust 'failure' when some other
+      // Runs from before the Verification Gate status (see LEGACY_GATE_JOB)
+      // signalled "not required yet" differently: their gate job failed on
+      // purpose while every other job was skipped. That failure is not a
+      // genuine full-suite failure, so only trust 'failure' when some other
       // job actually failed.
-      const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
-        owner, repo, run_id: run.id, per_page: 100,
-      });
-      const realFailure = jobs.some(j => j.name !== 'Verification Gate' && j.conclusion === 'failure');
+      const realFailure = jobs.some(j => j.name !== LEGACY_GATE_JOB && j.conclusion === 'failure');
       if (!realFailure) {
         core.info(`Full suite for ${headSha}: ${run.name}'s only failure is its own not-ready-to-merge-yet check, treating as pending`);
         return { status: 'pending' };
@@ -347,6 +395,85 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
     }
   }
   return { status: 'success' };
+}
+
+// ---------------------------------------------------------------------------
+// Verification Gate commit status
+// ---------------------------------------------------------------------------
+
+// Maps a Verify run to the Verification Gate status it should produce, or
+// null for a legacy run whose own gate job is still the check.
+function gateStatusFor(run, jobs) {
+  if (run.status !== 'completed') {
+    return { state: 'pending', description: 'Full suite is running' };
+  }
+  if (run.conclusion === 'action_required') {
+    return { state: 'pending', description: 'Waiting for a maintainer to approve the workflow run' };
+  }
+  const result = jobs.find(j => j.name === VERIFY_RESULT_JOB);
+  if (!result) {
+    if (jobs.some(j => j.name === LEGACY_GATE_JOB)) return null;
+    return { state: 'failure', description: `Verify run ended (${run.conclusion}) before reporting a result` };
+  }
+  switch (result.conclusion) {
+    case 'success':
+      return { state: 'success', description: 'Full suite passed' };
+    case 'skipped':
+      return { state: 'pending', description: 'Full suite not run yet: needs an approving review (or PR is a draft)' };
+    case 'cancelled':
+      return { state: 'failure', description: 'Full suite was cancelled' };
+    default:
+      return { state: 'failure', description: 'Full suite failed' };
+  }
+}
+
+// Posts the Verification Gate status for a commit from its newest Verify run.
+// Recomputed from scratch every time, from runs looked up by workflow file,
+// so it never trusts the event that triggered it and cannot be left behind
+// by an older run finishing after a newer one. Idempotent: an unchanged
+// status is not re-posted. Returns the status it wants, or null when it
+// leaves the commit alone.
+async function syncGateStatus(api, sha, core) {
+  const runs = (await api.listVerifyRuns(sha)).sort((a, b) => runRecency(b) - runRecency(a));
+  for (const run of runs) {
+    const jobs = run.status === 'completed' ? await api.listRunJobs(run.id) : [];
+    // A run superseded while still queued is cancelled without ever
+    // starting a job. It never reported anything; the run that superseded
+    // it is the one that counts.
+    if (run.conclusion === 'cancelled' && jobs.length === 0) continue;
+
+    const status = gateStatusFor(run, jobs);
+    if (!status) {
+      core.info(`${sha.substring(0, 7)}: newest Verify run ${run.id} predates the Verification Gate status, leaving it alone`);
+      return null;
+    }
+    const desired = { ...status, target_url: run.html_url };
+    const current = await api.getGateStatus(sha);
+    if (current && current.state === desired.state
+        && current.description === desired.description
+        && current.target_url === desired.target_url) {
+      core.info(`${sha.substring(0, 7)}: Verification Gate already ${desired.state}`);
+      return desired;
+    }
+    await api.setGateStatus(sha, desired);
+    core.info(`${sha.substring(0, 7)}: Verification Gate -> ${desired.state} (${desired.description}), from run ${run.id}`);
+    return desired;
+  }
+  core.info(`${sha.substring(0, 7)}: no Verify run yet, leaving Verification Gate alone`);
+  return null;
+}
+
+// workflow_run (requested/in_progress/completed) for Verify. Deliberately not filtered
+// on orchestrator/disabled: branch protection requires the status on every
+// PR, lifecycle-managed or not.
+async function handleGateStatus({ github, context, core }) {
+  const run = context.payload.workflow_run;
+  if (!FULL_SUITE_WORKFLOWS.includes(run.name)) {
+    core.info(`Unhandled workflow ${run.name}, skipping`);
+    return;
+  }
+  const { owner, repo } = context.repo;
+  await syncGateStatus(createApi(github, owner, repo), run.head_sha, core);
 }
 
 // Used by /retry. Both verify.yaml and quick-check.yaml now trigger natively
@@ -751,8 +878,9 @@ async function countOpenPrsByAuthor(github, owner, repo, author, excludePr) {
 // Drafts never reach here — they're ignored until marked ready for review.
 async function initNewPr(github, owner, repo, api, config, pr, core) {
   const trusted = isAutoAccepted(config, pr.user.login);
+  const limitExempt = (config.pr_limit_exempt || []).includes(pr.user.login);
 
-  if (!trusted) {
+  if (!trusted && !limitExempt) {
     const existingPrs = await countOpenPrsByAuthor(github, owner, repo, pr.user.login, pr.number);
     const maxPrs = config.max_contributor_prs ?? 1;
     if (existingPrs.length >= maxPrs) {
@@ -1100,6 +1228,12 @@ async function handleLabelChange({ github, context, core }) {
   const config = loadConfig();
   if (isMaintainer(config, actor) && MAINTAINER_EDITABLE.includes(label.name)) {
     core.info(`PR #${pr.number} label ${action}: ${label.name} by maintainer ${actor} (allowed)`);
+    // Decide reads orchestrator/disabled, but verify.yaml no longer triggers
+    // on label events (a label run cancelled the in-flight suite and left a
+    // failed gate behind), so re-run it here to let Decide see the change.
+    if (label.name === LABELS.DISABLED) {
+      await retriggerWorkflowRun(api, pr, core, 'verify.yaml');
+    }
     return;
   }
 
@@ -1726,6 +1860,14 @@ async function handleStale({ github, context, core }) {
   });
 
   for (const listed of prs) {
+    // Fallback for a missed workflow_run event. Before the DISABLED skip:
+    // those PRs need the required status too.
+    try {
+      await syncGateStatus(api, listed.head.sha, core);
+    } catch (err) {
+      core.warning(`PR #${listed.number} Verification Gate sync failed: ${err.message}`);
+    }
+
     if (hasLabel(listed, LABELS.DISABLED)) continue;
 
     // Reconcile all PRs targeting main, then re-read. Everything below keys
@@ -1855,6 +1997,7 @@ async function handleReconcile({ github, context, core, prNumber }) {
   const api = createApi(github, owner, repo);
   const pr = await api.getPr(prNumber);
   core.info(`Reconciling PR #${prNumber} via workflow_dispatch`);
+  await syncGateStatus(api, pr.head.sha, core);
   await reconcile(github, api, pr, core);
 }
 
@@ -1867,6 +2010,7 @@ module.exports = {
   handleComment,
   handleLabelChange,
   handleTestResult,
+  handleGateStatus,
   handleStale,
   handleReconcile,
   reconcile,

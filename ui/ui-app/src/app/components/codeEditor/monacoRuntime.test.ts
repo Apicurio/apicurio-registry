@@ -27,11 +27,11 @@ function mockModules(): { loaderConfig: ReturnType<typeof vi.fn>; loaderInit: Re
         loader: { config: loaderConfig, init: loaderInit }
     }));
     vi.doMock("monaco-editor", () => ({ __monacoMarker: MONACO_MARKER }));
-    vi.doMock("monaco-editor/esm/vs/editor/editor.worker.js?worker", () => ({ default: EditorWorkerMock }));
-    vi.doMock("monaco-editor/esm/vs/language/json/json.worker.js?worker", () => ({ default: JsonWorkerMock }));
-    vi.doMock("monaco-editor/esm/vs/language/css/css.worker.js?worker", () => ({ default: CssWorkerMock }));
-    vi.doMock("monaco-editor/esm/vs/language/html/html.worker.js?worker", () => ({ default: HtmlWorkerMock }));
-    vi.doMock("monaco-editor/esm/vs/language/typescript/ts.worker.js?worker", () => ({ default: TypeScriptWorkerMock }));
+    vi.doMock("monaco-editor/editor/editor.worker.js?worker", () => ({ default: EditorWorkerMock }));
+    vi.doMock("monaco-editor/language/json/json.worker.js?worker", () => ({ default: JsonWorkerMock }));
+    vi.doMock("monaco-editor/language/css/css.worker.js?worker", () => ({ default: CssWorkerMock }));
+    vi.doMock("monaco-editor/language/html/html.worker.js?worker", () => ({ default: HtmlWorkerMock }));
+    vi.doMock("monaco-editor/language/typescript/ts.worker.js?worker", () => ({ default: TypeScriptWorkerMock }));
     vi.doMock("@editors/registerLanguages.ts", () => ({ registerCustomLanguages }));
 
     return { loaderConfig, loaderInit, registerCustomLanguages };

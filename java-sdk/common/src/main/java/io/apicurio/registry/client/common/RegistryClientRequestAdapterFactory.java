@@ -243,7 +243,7 @@ public class RegistryClientRequestAdapterFactory {
         }
 
         private long calculateRetryDelay(int attempt) {
-            double delay = initialRetryDelayMs * Math.pow(backoffMultiplier, attempt - 1);
+            double delay = initialRetryDelayMs * Math.pow(backoffMultiplier, (double) attempt - 1);
             return Math.min((long) delay, maxRetryDelayMs);
         }
     }

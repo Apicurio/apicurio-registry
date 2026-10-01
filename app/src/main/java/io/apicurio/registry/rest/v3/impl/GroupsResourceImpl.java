@@ -86,6 +86,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.nio.charset.StandardCharsets;
@@ -2279,7 +2280,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String prefix = ContractLabels.prefixFor(contractId);
         storage.transitionContractStatus(rawGroupId, artifactId,
                 currentMetadata.getStatus() != null ? currentMetadata.getStatus().name() : null,
-                targetStatus.name(), prefix, LocalDate.now().toString());
+                targetStatus.name(), prefix, LocalDate.now(ZoneId.systemDefault()).toString());
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,

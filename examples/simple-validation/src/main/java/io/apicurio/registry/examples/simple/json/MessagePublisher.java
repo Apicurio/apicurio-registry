@@ -57,6 +57,9 @@ public class MessagePublisher {
             } else {
                 System.err.println("Failed to publish message. Status: " + response.statusCode());
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Interrupted while publishing message: " + e.getMessage());
         } catch (Exception e) {
             System.err.println("Error publishing message: " + e.getMessage());
         }

@@ -257,6 +257,7 @@ public abstract class AbstractRegistryMojo extends AbstractMojo {
         } catch (ExecutionException e) {
             throw new MojoExecutionException(e);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new MojoFailureException(e);
         }
         closeClients();

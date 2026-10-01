@@ -234,12 +234,22 @@
             gap: 12px;
         }
 
-        .info-panel a {
+        .info-panel a,
+        .info-panel .link-button {
             color: #60a5fa;
             text-decoration: none;
         }
 
-        .info-panel a:hover {
+        .info-panel .link-button {
+            background: none;
+            border: none;
+            padding: 0;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .info-panel a:hover,
+        .info-panel .link-button:hover {
             text-decoration: underline;
         }
     </style>
@@ -272,7 +282,7 @@
                 </div>
             </div>
             <div class="input-area">
-                <input type="text" id="messageInput" placeholder="Ask about Apicurio Registry..." autofocus>
+                <input type="text" id="messageInput" placeholder="Ask about Apicurio Registry..." aria-label="Message">
                 <button id="sendBtn" onclick="sendMessage()">Send</button>
             </div>
         </div>
@@ -282,7 +292,7 @@
                 Powered by: <strong>PROMPT_TEMPLATE</strong> + <strong>MODEL_SCHEMA</strong> + <strong>RAG</strong>
             </div>
             <div>
-                <a href="#" onclick="endSession(); return false;">New Session</a> |
+                <button type="button" class="link-button" onclick="endSession()">New Session</button> |
                 <a href="/support/health" target="_blank">Health</a> |
                 <a href="/support/rag/status" target="_blank">RAG Status</a> |
                 <a href="/support/models" target="_blank">Models</a>
@@ -434,16 +444,16 @@
                 .replace(/^- (.+)$/gm, '<li>$1</li>')
                 .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
                 // Line breaks
-                .replace(/\n\n/g, '</p><p>')
-                .replace(/\n/g, '<br>');
+                .replaceAll('\n\n', '</p><p>')
+                .replaceAll('\n', '<br>');
 
             // Wrap in paragraph
             html = '<p>' + html + '</p>';
 
             // Fix list items
-            html = html.replace(/<\/p><li>/g, '<ul><li>');
-            html = html.replace(/<\/li><p>/g, '</li></ul><p>');
-            html = html.replace(/<\/li><br><li>/g, '</li><li>');
+            html = html.replaceAll('</p><li>', '<ul><li>');
+            html = html.replaceAll('</li><p>', '</li></ul><p>');
+            html = html.replaceAll('</li><br><li>', '</li><li>');
 
             return html;
         }

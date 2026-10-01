@@ -39,7 +39,7 @@ See [SECURITY.md](SECURITY.md) for details.
 
 For general questions and development discussions, use the
 [cncf-apicurio-registry-dev@lists.cncf.io](mailto:cncf-apicurio-registry-dev@lists.cncf.io) mailing list
-or the [#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+or the [#apicurio-registry channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
 
 ## Getting started and where to ask
 
@@ -105,10 +105,10 @@ CI runs in two tiers:
    gives you rapid feedback while iterating.
 2. **Full verification** (`Verify` workflow): the complete suite — build, unit
    tests, CLI, SDKs, console plugin, integration tests, extra tests, operator
-   tests, and the Verification Gate (the single required check for merging). It
-   runs immediately for maintainers and other trusted authors (e.g. Renovate), or
-   once your PR has an approving review otherwise — not gated by any label a
-   maintainer has to apply. It also always runs on every push to `main`. If it
+   tests. Its result is reported as the Verification Gate status (the single
+   required check for merging). It runs immediately for maintainers and other
+   trusted authors (e.g. Renovate), or once your PR has an approving review
+   otherwise — not gated by any label a maintainer has to apply. It also always runs on every push to `main`. If it
    fails, the PR reverts to `lifecycle/ready-for-review` and `lifecycle/tested` is
    cleared so it's clear a fresh fast-gate pass and review are needed again.
 

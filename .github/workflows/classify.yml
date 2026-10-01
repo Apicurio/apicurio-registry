@@ -1,7 +1,9 @@
 name: Classify
 
 # Assigns area/* labels (and, for issues, an issue type) using the embedding
-# classifier in .github/scripts/label-classification.
+# classifier in .github/scripts/label-classification, and then assigns (or,
+# for maintainer PRs, suggests) a reviewer for each PR — see the "Reviewer
+# assignment" section of .github/PR_LIFECYCLE.md.
 #
 # PRs are classified when they open, and when a draft is marked ready for
 # review — the same two moments the lifecycle orchestrator treats as a PR's
@@ -17,9 +19,10 @@ name: Classify
 #
 # Security note on pull_request_target: classify-pr needs a write token to apply
 # labels, so it must not run PR code. It never checks out the PR head — the
-# default checkout ref for pull_request_target is the base branch — and the
-# classifier only reads PR metadata (title, body, changed file paths) through
-# the API. Nothing from the PR is executed.
+# default checkout ref for pull_request_target is the base branch — and both
+# the classifier and the reviewer assignment only read PR metadata (title,
+# body, labels, changed file paths, linked issues) and repository history
+# through the API. Nothing from the PR is executed.
 
 on:
   issues:
@@ -43,7 +46,7 @@ on:
         default: ''
         type: string
       dry_run:
-        description: Print the scores without applying labels
+        description: Print the scores without applying labels or assigning a reviewer
         required: false
         default: false
         type: boolean
@@ -97,6 +100,7 @@ jobs:
     runs-on: ubuntu-latest
     # Labels on a PR are applied through the issues API, which is why both
     # scopes are needed; neither grants anything to PR code, which never runs.
+    # The same two scopes cover the reviewer assignment and its comment.
     permissions:
       contents: read
       issues: write
@@ -120,11 +124,41 @@ jobs:
           REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.pull_request.number || inputs.pr }}
           DRY_RUN: ${{ inputs.dry_run }}
+          OUTPUT: ${{ runner.temp }}/classification.json
         run: |
           set -euo pipefail
           case "$NUMBER" in
             ''|*[!0-9]*) echo "::error::PR number must be digits, got '$NUMBER'."; exit 1 ;;
           esac
-          args=(--repo "$REPO" --pr "$NUMBER")
+          args=(--repo "$REPO" --pr "$NUMBER" --output-json "$OUTPUT")
           if [ "${DRY_RUN:-}" = "true" ]; then args+=(--dry-run); fi
           python .github/scripts/label-classification/classify.py "${args[@]}"
+
+      # Reviewer assignment (#9005) reads the area labels just applied, which
+      # is why it lives here rather than in pr-lifecycle.yml. It still runs if
+      # classification failed: it falls back to whatever labels the PR has.
+      # The maintainer list and its own settings come from pr-lifecycle.yml.
+      - name: Convert config to JSON
+        if: ${{ !cancelled() }}
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Assign reviewer
+        if: ${{ !cancelled() }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          NUMBER: ${{ github.event.pull_request.number || inputs.pr }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          CLASSIFICATION_JSON: ${{ runner.temp }}/classification.json
+        with:
+          script: |
+            const prNumber = Number(process.env.NUMBER);
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+              core.setFailed(`PR number must be a positive integer, got '${process.env.NUMBER}'.`);
+              return;
+            }
+            const handler = require('./.github/scripts/pr-reviewer-assignment.js');
+            await handler.assignReviewer({
+              github, context, core, prNumber,
+              dryRun: process.env.DRY_RUN === 'true',
+              classificationPath: process.env.CLASSIFICATION_JSON,
+            });

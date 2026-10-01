@@ -1,9 +1,9 @@
-FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:53fc57721acb1941bef7fcd400e35353dace05087309ff482bb6814714d3095d
+FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:6e2216b796e97edb7145d55300b0251c15834f45c21004824976a3024a1f7a2b
 
 ENV APP_URL="quarkus-app" \
     JAVA_OPTIONS="-Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 
-ADD "$APP_URL" /deployments
+COPY "$APP_URL" /deployments
 
 USER root
 

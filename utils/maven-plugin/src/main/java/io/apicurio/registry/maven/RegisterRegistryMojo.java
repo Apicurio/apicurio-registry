@@ -454,6 +454,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                         }
                         registerArtifact(registryClient, artifact, references);
                     }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new MojoExecutionException(String.format(
+                            "Interrupted while registering artifact [%s] / [%s]", groupId, artifactId), e);
                 } catch (Exception e) {
                     errorCount++;
                     getLog().error(String.format("Exception while registering artifact [%s] / [%s]", groupId,
@@ -543,7 +547,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 try {
                     var car = registerWithAutoRefs(registryClient, refArtifact, index, registrationStack);
                     iresource.setRegistration(car);
-                } catch (IOException | ExecutionException | InterruptedException e) {
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                } catch (IOException | ExecutionException e) {
                     throw new RuntimeException(e);
                 }
             }

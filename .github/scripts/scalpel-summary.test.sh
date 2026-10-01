@@ -13,6 +13,7 @@
 set -uo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+repo_root=$(cd "$script_dir/../.." && pwd)
 subject="$script_dir/scalpel-summary.sh"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
@@ -126,38 +127,45 @@ check "v2 status: claims no numeric saving" \
   "$work/v2-status.json" lacks "$table"
 
 # The other status reason, and the one that inverted. Two things make it worth
-# its own fixture. Exhausting excludePaths projected a full build up to 0.4.0
-# and projects an empty one from 0.4.1, so the same reason string means opposite
-# things either side of the pin this repository moved. And the report sets
-# fullBuildTriggered to true on the outcome that builds nothing, so a summary
-# that read that field before the status would state the reverse of what the
-# pinned version does. Derived from the real status shape so the fields the
-# script does not read stay verbatim rather than drifting as a hand-typed copy.
+# its own fixture. Exhausting excludePaths projected a full build up to 0.4.0,
+# trimmed to empty from 0.4.1, and builds every module again once
+# scalpel.buildAllIfNoChanges=true is pinned, which .mvn/maven.config now does,
+# so the same reason string has meant opposite things across this
+# repository's pins and the deciding setting is named in the output. And the
+# report sets fullBuildTriggered to true on this outcome, which under the pin
+# is the truth, so a summary that read that field before the status would
+# happen to be right here and wrong everywhere the field disagrees with the
+# behaviour. Derived from the real status shape so the fields the script does
+# not read stay verbatim rather than drifting as a hand-typed copy.
 jq '.reason = "all changed files excluded by path filters"
     | .triggerFile = null
     | .changedFiles = ["claudedocs/9973-local-verification.md"]' \
   "$work/v2-status.json" > "$work/v2-exhausted.json"
-check "v2 exhausted: projects an empty build" \
-  "$work/v2-exhausted.json" has "**empty build**"
-check "v2 exhausted: does not project a full build" \
-  "$work/v2-exhausted.json" lacks "**full build**"
+check "v2 exhausted: projects a full build" \
+  "$work/v2-exhausted.json" has "**full build**"
+check "v2 exhausted: does not project an empty build" \
+  "$work/v2-exhausted.json" lacks "**empty build**"
 check "v2 exhausted: names the setting that decides it" \
   "$work/v2-exhausted.json" has '`scalpel.buildAllIfNoChanges`'
-check "v2 exhausted: warns that an older pin meant the opposite" \
+check "v2 exhausted: states the pinned value the full build stands on" \
+  "$work/v2-exhausted.json" has 'pinned to `true` in'
+check "v2 exhausted: states why the empty build is unreachable" \
+  "$work/v2-exhausted.json" has "NoGoalSpecifiedException"
+check "v2 exhausted: notes that 0.4.0 built every module too" \
   "$work/v2-exhausted.json" has "0.4.0 and earlier built every module"
 check "v2 exhausted: claims no numeric saving" \
   "$work/v2-exhausted.json" lacks "$table"
 
-# The only other reason that reaches trimReactorToEmpty. Both empty-build
+# The only other reason that reaches trimReactorToEmpty. Both empty-reactor
 # reasons are literals in extension3 of the pinned version, and this one does
 # not contain the "excluded by path filters" fragment, so a summary that keyed
-# the empty-build arm on that fragment alone projected a full build here. That
-# is the inversion this script exists to prevent.
+# the empty case on that fragment alone misreported this one even before the
+# flag was pinned. Both now project the same full build.
 reason_fixture "no changes detected" "$work/v2-empty.json"
-check "v2 no changes detected: projects an empty build" \
-  "$work/v2-empty.json" has "**empty build**"
-check "v2 no changes detected: does not project a full build" \
-  "$work/v2-empty.json" lacks "**full build**"
+check "v2 no changes detected: projects a full build" \
+  "$work/v2-empty.json" has "**full build**"
+check "v2 no changes detected: does not project an empty build" \
+  "$work/v2-empty.json" lacks "**empty build**"
 
 # The reasons that leave the reactor whole, in the two groups the script
 # distinguishes. Configuration stood Scalpel down in the first group; in the
@@ -287,11 +295,10 @@ check "v2 report missing the counts: does not blame the pin" \
 # guard that only fires on a wholly missing shape misses a single bad field.
 # Six values on one field sweep every guard arm: `null`, a quoted number and a
 # boolean all fail the type arm; -1 fails the non-negative arm; 1e999 and the
-# 20-digit integer are well-formed non-negative numbers that the subtraction
-# could hold, but they fail the consistency arm, because a build set larger
-# than the reactor is not a report the table should summarize. The other
-# three fields get one representative each, which covers the per-field half of
-# the guard.
+# 20-digit integer are well-formed non-negative numbers, but they fail the
+# consistency arms, because the skipped count cannot equal a subtraction that
+# large a build set makes negative, and the build set cannot equal affected
+# plus upstream at that magnitude.
 for bad in null '"42"' true -1 1e999 99999999999999999999; do
   jq --argjson v "$bad" '.buildSetSize = $v' "$work/v2-full.json" > "$work/v2-bad.json"
   check "buildSetSize $bad: refuses the table" \
@@ -319,6 +326,23 @@ jq '.skippedModules = ([range(10)] | map({key: ("m" + tostring), value: "NOT_AFF
   "$work/v2-full.json" > "$work/v2-bad.json"
 check "skippedModules not a list: refuses the table" \
   "$work/v2-bad.json" lacks "$table"
+
+# The two identities the table's own prose asserts, guarded as conjuncts so a
+# report violating either is refused rather than published. The first fixture
+# keeps the skipped-count subtraction consistent (0 == 3 - 3) so only the
+# build-set identity fires: affected 0 plus upstream 0 cannot equal a build
+# set of 3. The second sends the tested count past the reactor with every
+# other guard satisfiable.
+jq '.affectedModules = [] | .excludedUpstreamCount = 0
+    | .buildSetSize = 3 | .reactorModuleCount = 3 | .skippedModules = []' \
+  "$work/v2-full.json" > "$work/v2-bad-sum.json"
+check "build set above affected plus upstream: refuses the table" \
+  "$work/v2-bad-sum.json" lacks "$table"
+check "build set above affected plus upstream: names the inconsistency" \
+  "$work/v2-bad-sum.json" has "do not add up"
+jq '.testedModulesCount = 60' "$work/v2-full.json" > "$work/v2-bad-tested.json"
+check "tested count above the reactor: refuses the table" \
+  "$work/v2-bad-tested.json" lacks "$table"
 
 # The shipped schema types the counts as integers, so 47.0 is stricter than
 # the contract requires. The coercion is deliberate leniency for a producer
@@ -360,6 +384,31 @@ check "zero skip: does not accuse the producer of a report bug" \
 jq '.buildSetSize = 1' "$work/v2-zero-skip.json" > "$work/v2-zero-skip-bad.json"
 check "absent skippedModules against a trimmed build set: refuses the table" \
   "$work/v2-zero-skip-bad.json" lacks "$table"
+
+# --- a decision report with an empty build set -------------------------------
+# The real no-affected-modules shape: a change confined to a module outside the
+# default reactor (here operator/) writes an ordinary report with no status, a
+# zero build set and skippedModules naming all 57 modules. The counts are those
+# of a real 0.4.2 run on this repository (commit 0b35b825b's operator-only
+# change set); the shape is derived from the full fixture above, and only the
+# list lengths are read, so the elements are bare numbers. The report's
+# projection is an empty reactor, but a trimming build leaves the reactor whole
+# on Scalpel 0.4.2 with the flag either way, so the table's reactor-wide saving
+# would be the overstatement this summary exists to prevent.
+jq '.scalpelVersion = "0.4.2"
+    | .changedFiles = ["operator/install/install.yaml"]
+    | .excludedUpstreamCount = 0
+    | .buildSetSize = 0
+    | .testedModulesCount = 0
+    | .affectedModules = []
+    | .skippedModules = [range(57)]' \
+  "$work/v2-full.json" > "$work/v2-noaffect.json"
+check "v2 no affected modules: names the empty projection" \
+  "$work/v2-noaffect.json" has "empty build set"
+check "v2 no affected modules: states the reactor stays whole" \
+  "$work/v2-noaffect.json" has "leaves the reactor whole"
+check "v2 no affected modules: draws no saving table" \
+  "$work/v2-noaffect.json" lacks "$table"
 
 # --- a report-shaped trigger, from writeFullBuildReport ----------------------
 # The real producer shape for a scalpel.fullBuildTriggers match: no status
@@ -403,7 +452,7 @@ check "states that mode=report trimmed nothing" \
 # the pull request that moves the pin, which is where teaching the script a
 # newer schema belongs. The known-producer list lives in the script itself, so
 # one edit teaches both this gate and the script's own refusal message.
-pin_file="$(cd "$script_dir/../.." && pwd)/.mvn/extensions.xml"
+pin_file="$repo_root/.mvn/extensions.xml"
 writes_schema_2=$(sed -n 's/^known_schema_2="\([^"]*\)"$/\1/p' "$subject")
 
 pin=$(awk '
@@ -432,6 +481,43 @@ elif ! grep -qwF "$pin" <<<"$writes_schema_2"; then
 else
   echo "ok   pinned Scalpel $pin is a known schema 2 producer"
   pass=$((pass + 1))
+fi
+
+# --- the empty-reason projection stands on the buildAllIfNoChanges pin --------
+# Both empty-reactor reasons are projected as full builds on the strength of
+# -Dscalpel.buildAllIfNoChanges=true in .mvn/maven.config. Dropping or renaming
+# that pin silently turns the two status arms into false claims, and a
+# coordinated flip of both files defeats any test that reads the value back
+# from the script, because the arm interpolates the very variable being
+# flipped. This is the loud half, mirroring the schema pin above: the claimed
+# value is read out of the subject script (build_all_if_no_changes_pin),
+# cross-checked against maven.config itself, and required to be true, because
+# the full-build prose is only true when it is.
+# The zero-build-set arm is deliberately outside this guard: its claim stands
+# on the Scalpel version, not on the flag, and survives a deliberate flip.
+config_file="$repo_root/.mvn/maven.config"
+claimed_pin=$(sed -n 's/^build_all_if_no_changes_pin="\([^"]*\)"$/\1/p' "$subject")
+
+if [ -z "$claimed_pin" ]; then
+  echo "FAIL buildAllIfNoChanges pin: build_all_if_no_changes_pin not found in $subject"
+  fail=$((fail + 1))
+elif [ "$claimed_pin" != "true" ]; then
+  echo "FAIL buildAllIfNoChanges pin: scalpel-summary.sh claims"
+  echo "      buildAllIfNoChanges=$claimed_pin, but the empty-reactor arms state a"
+  echo "      full build, which is only true with the flag at true. With false the"
+  echo "      reactor empties and Maven dies in NoGoalSpecifiedException instead."
+  fail=$((fail + 1))
+elif grep -qFx -e "-Dscalpel.buildAllIfNoChanges=$claimed_pin" "$config_file"; then
+  echo "ok   buildAllIfNoChanges=$claimed_pin is pinned in .mvn/maven.config"
+  pass=$((pass + 1))
+else
+  echo "FAIL buildAllIfNoChanges pin: scalpel-summary.sh claims"
+  echo "      buildAllIfNoChanges=$claimed_pin, but -Dscalpel.buildAllIfNoChanges=$claimed_pin"
+  echo "      is not pinned in $config_file"
+  echo "      The excludePaths rationale in maven.config and the README section"
+  echo "      \"Reading the Scalpel report\" stand on the same pin. Restore it, or"
+  echo "      re-derive every claim that names it."
+  fail=$((fail + 1))
 fi
 
 echo

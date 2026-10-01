@@ -44,10 +44,17 @@ workflow via `needs:` and a single `if:` condition each.
 - author is a maintainer or in `auto_accept` (e.g. Renovate) → full suite runs
   immediately, on every push
 - otherwise → full suite runs once the PR has a current approving review
-  (`gh pr view --json reviewDecision` == `APPROVED`), re-evaluated fresh on
-  every `pull_request_review: submitted` event
+  (`gh pr view --json reviewDecision` == `APPROVED`). The push's run skips it
+  before then. Verify does not trigger on reviews: a review fires
+  `review-relay.yaml`, and the orchestrator re-runs the push's run once the
+  suite is required and that run skipped it (`maybeRunFullSuite`), so each
+  commit has one Verify run and one set of checks. The same check runs when a
+  skipping run completes (an approval that landed mid-run), on `/retry` and in
+  the 6-hourly sweep
 - `orchestrator/disabled` label → full suite runs regardless (unless
-  `DO NOT MERGE` is also present)
+  `DO NOT MERGE` is also present). Verify does not trigger on label events,
+  so when a maintainer changes this label the orchestrator re-runs the latest
+  Verify run for the head SHA (unless it is green or still running)
 - Push to main → always full suite
 
 Deciding this from author identity and review state instead of a bot-applied
@@ -71,23 +78,44 @@ Push to main always runs everything regardless of change detection.
 
 ### Verification Gate
 
-The `gate` job in `verify.yaml` is the **single required check** for branch
-protection. It runs with `if: always()` and aggregates every job in the same
-run via `needs.*.result`. For non-push events it then does one more thing:
-it fails outright if `needs.decide.outputs.lifecycle-ready != 'true'`.
+The **single required check** for branch protection is the `Verification Gate`
+**commit status** on the PR head commit. No job in `verify.yaml` is required.
 
-That check exists because a skipped required job counts as "passing" for
-branch protection purposes, and every job in `verify.yaml` is skipped by
-Decide whenever the full suite was not required for this run — without it,
-native "Merge pull request" would be unblocked the moment Decide+Gate
-complete for any PR, regardless of whether the full suite had ever actually
-run for the commit. Checking Decide's own output (the same static value that
-already gated every job above via `needs:`) means this cannot disagree with
-the rest of the run — there is nothing to race against, unlike a live
-re-fetch of current PR/label state would be. The failure this produces
-during normal PR review is expected, not a sign of anything broken: it
-clears on its own once the full suite subsequently runs and passes (for a
-trusted author, immediately; for everyone else, once a review lands).
+The `gate` job in `verify.yaml` is named `Verify Result`. It runs with
+`if: always()` and aggregates every job in the same run via
+`needs.*.result`. It is **skipped** when Decide did not require the full suite
+for the run (author not yet trusted/reviewed, or a draft). It still runs, and
+fails, if Decide itself did not succeed.
+
+The orchestrator's `gate-status` job (`pr-lifecycle.yml`, triggered by
+`workflow_run` `requested`, `in_progress` and `completed` for Verify, so a
+re-run attempt is picked up when it starts) posts the status from
+the **newest** Verify run for the commit. "Newest" means the most recently
+*started* attempt (`run_started_at`), so a re-run counts, and an older run
+finishing after a newer one does not:
+
+| Newest Verify run | `Verification Gate` status |
+|---|---|
+| queued / in progress | pending: full suite is running |
+| awaiting fork workflow approval | pending |
+| `Verify Result` skipped | pending: full suite not run yet |
+| `Verify Result` success | success |
+| `Verify Result` failed / cancelled, or run ended before it reported | failure |
+| has a legacy `Verification Gate` job (3.3.x, pre-switch runs) | left alone; that check-run is the result |
+
+Why a status and not the job's check-run: every workflow run is its own check
+suite, and the PR page keeps the latest Gate from each run (grouped by event),
+so a PR could show a red Gate from an old run next to the green one that
+counted. A commit status is replaced in place per context, so a PR shows
+exactly one, current `Verification Gate`. A skipped required check-run would
+also count as passing, which is why the old Gate job had to fail on purpose
+during review. The status can say "pending" instead.
+
+Runs are looked up through the API by workflow **file** (`verify.yaml`), never
+from the triggering event, because a PR can add a workflow of its own named
+"Verify". The Stale Detection sweep (every 6 hours) and manual Reconcile
+re-sync the status in case a `workflow_run` event was missed, including on
+`orchestrator/disabled` PRs.
 
 The PR lifecycle orchestrator (`pr-lifecycle.js`) independently tracks
 `verify.yaml`'s latest run by head SHA before applying `lifecycle/full-verified`.
@@ -222,7 +250,8 @@ non-Java changes (docs, UI).
 
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
-| `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `gate` (Verification Gate) is the single required check | N/A |
+| `verify.yaml` | PR, push to main | Main orchestrator: `decide` job determines what to run, `gate` (Verify Result) aggregates the run; the orchestrator turns it into the `Verification Gate` status, the single required check | N/A |
+| `review-relay.yaml` | PR review submitted/dismissed | No-op with no permissions; exists so the review reaches `pr-lifecycle.yml` via `workflow_run`, which can re-run Verify for fork PRs too | seconds |
 | `build-java`/`build-ui` (jobs in `verify.yaml`) | Called by verify | Parallel Java (`mvnw install -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention. The sole build for a commit, shared by every other job in the same run via `needs:` | ~6 min |
 | `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
 | `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads a JSON artifact plus a summary for offline analysis (see [Reading the Scalpel report](#reading-the-scalpel-report)). Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |
@@ -287,17 +316,22 @@ Not every run produces a decision table. When a changed file matches
 `scalpel.excludePaths` removes every changed file, Scalpel writes a status
 report instead: `status`, `reason`, and, since 0.4.1, the `triggerFile`
 responsible plus `changedFiles`, `decisionId` and `timings`. The summary names
-the file and reads the reason, because the two cases project opposite builds.
+the file and reads the reason, because the reason decides which explanation
+the run gets.
 
-Two reasons project an empty build. They are the only two that reach Scalpel's
-`trimReactorToEmpty`, and each is logged alongside `trimming reactor to empty
-(buildAllIfNoChanges=false)`: `all changed files excluded by path filters` and
-`no changes detected`. Only the first mentions path filters, so a summary that
-keyed the empty-build case on that phrase alone would report the second as a
-full build. Scalpel 0.4.0 and earlier built every module in both cases, so the
-same `reason` string means the opposite thing either side of the pin, and
-`scalpel.buildAllIfNoChanges` would restore the old behaviour if it were set,
-which this repository does not do.
+Two reasons would empty the reactor. They are the only two that reach Scalpel's
+`trimReactorToEmpty`: `all changed files excluded by path filters` and `no
+changes detected`. Only the first mentions path filters, so a summary that
+keyed the empty case on that phrase alone would misreport the second. Neither
+reason describes a working outcome in this repository: `.mvn/maven.config`
+pins `scalpel.buildAllIfNoChanges=true`, so a trimming build runs every module
+on both (the log line reads `building all modules (buildAllIfNoChanges=true)`),
+and with the Scalpel default of false the zero-project reactor dies in Maven
+proper with `NoGoalSpecifiedException`, because a session with no projects has
+no goals. Scalpel 0.4.0 and earlier built every module here too, so the empty
+build the reason's wording suggests has never been a reachable outcome on any
+pin of this extension. Both facts were verified on 0.4.2 in `mode=trim` with
+synthetic change sets (REG-304).
 
 Five reasons project a full build, because Scalpel returns without touching the
 reactor. Configuration stands it down in three of them, `disabled by
@@ -311,19 +345,44 @@ yields an incomplete set. A `failed` status carrying `change detection did not
 run (see build log)` leaves the reactor whole too, so it is a full build as
 well, but the cause rather than the projection is the part worth chasing.
 
-Three reasons never appear in this report at all, because Scalpel routes them to
-`target/scalpel-shadow.json`: `no modules affected by changes`, `no modules
-match includePaths filters` and `disabled by -pl project selection`. A run that
-hits one of those writes an ordinary report here, with no `status` field, so it
-is read as a decision table rather than as a skip.
+Three reasons never appear in this report as a status, because Scalpel routes
+them to `target/scalpel-shadow.json`: `no modules affected by changes`, `no
+modules match includePaths filters` and `disabled by -pl project selection`. A
+run that hits one of those writes an ordinary report here, with no `status`
+field, so it lands in the counts path rather than as a skip. The first of the
+three is reachable in this repository: a change confined to a module outside
+the default reactor, such as `operator/` or `mcp/`, or to a root-level file no
+pom names, affects no module this job's reactor builds. Its report carries a
+decision table with `buildSetSize` 0 and `skippedModules` naming all 57
+modules, but a trimming build does not perform that projection on Scalpel
+0.4.2, with `buildAllIfNoChanges` either way (verified with the operator-only
+change set of commit `0b35b825b`): the reactor stays whole and every module
+builds. The summary recognizes the zero build set and says so rather than
+drawing that table.
 
-The report also sets `fullBuildTriggered` to true on the exhaustion outcome,
-which does not mean a full build on the pinned version, and is why the summary
-branches on `status` and the reason before it reads that field. The summary
-matches each reason in full rather than by substring and refuses to name a
-projection for a reason it does not know, because the same `skipped` status
-covers both an empty build and a full one and there is no safe default. Of the
-two trigger patterns, only `scalpel.disableTriggers` is set in
+That root-level files sit in this family is why `scalpel.excludePaths` carries
+no slash-free pattern. Scalpel rewrites a pattern without a slash to match at
+every depth, and 0.3.10 matched the root only, so the 0.4.x bump silently
+widened the old `*.md` and `LICENSE` entries from root files to the whole
+tree. Verified by probing the same in-tree change,
+`app/src/test/resources/git/invalid-content-ref/README.md`, against both pins:
+0.3.10 attributes it to `app` (a test fixture `GitOpsStatusTest` loads), 0.4.2
+with the widened pattern excluded it and every other in-tree markdown file,
+111 tracked files in all. The list this branch ships drops the slash-free
+entries, which restores attribution for all of them and leaves root markdown
+and LICENSE unlisted: a change confined to those projects the zero-build-set
+report above instead, which under the pin builds every module.
+
+The report also sets `fullBuildTriggered` to true on the exhaustion outcome.
+Under this repository's `buildAllIfNoChanges=true` pin that is now the truth:
+the trimming build runs every module. Against the Scalpel default of false the
+same field states the opposite of the behaviour, because the reactor empties
+and the build fails rather than building everything, which is REG-307, so the
+summary still branches on `status` and the reason before it reads that field.
+The summary matches each reason in full rather than by substring and refuses
+to name a projection for a reason it does not know, because the same `skipped`
+status covers both an empty reactor and a full build and there is no safe
+default. Of the two trigger patterns, only `scalpel.disableTriggers` is set in
 `.mvn/maven.config`; `scalpel.fullBuildTriggers` is left at the Scalpel default.
 
 The summary understands report schema version 2, which is what the version
@@ -359,6 +418,20 @@ Scalpel 0.4.1 replayed over the last 40 first-parent commits of `main`, on
 Mean modules not built over all 40 runs: 53.7%. Over the 11 partially trimmed
 runs alone: 13.7%.
 
+Both empty-build rows are projections under `buildAllIfNoChanges=false`, which
+`.mvn/maven.config` no longer uses: with the pin at `true` the exhaustion runs
+build every module, and the zero-build-set runs build every module too, because
+a trimming build never applies that decision on Scalpel 0.4.2 with the flag
+either way. The rows above were counted under the pre-narrowing excludePaths
+list; under the list this branch ships the split moves to 12 exhausted and 8
+zero-build-set, and the total projecting a zero-module build stays 20 of 40.
+The behavior statements are 0.4.2 facts; the replay rows themselves are 0.4.1
+reports, whose schema is byte-identical to 0.4.2 by the hash check recorded in
+REG-245. The mean under the shipped configuration is the trimmed row alone,
+about 4% of module-builds, plus the test-time saving that
+`scalpel.skipTestsForUpstream` would add on the trimmed runs, which this
+replay did not measure and whose adoption is undecided (REG-303).
+
 An earlier replay of the same 40 commits on 0.4.0 put the mean at 5.8%. Almost
 all of that difference is one upstream fix,
 [maveniverse/scalpel#184](https://github.com/maveniverse/scalpel/issues/184):
@@ -388,7 +461,7 @@ re-measure rather than trusting it indefinitely.
 |----------|---------|---------|----------|
 | `validate-docs.yaml` | PR (docs/**), workflow_call | Runs `docs-playbook/_build-all.sh` to validate documentation builds | ~10 min |
 | `validate-openapi.yaml` | PR (openapi.json), workflow_call | Lints OpenAPI spec with `@rhoas/spectral-ruleset` | ~5 min |
-| `pr-validation.yml` | `pull_request_target` opened/reopened/synchronize/edited | Checks the PR body links an issue and every commit is DCO signed; flags possible duplicate PRs by linked issue or overlapping files. Independent of the lifecycle: a red check never blocks `/accept`, and PRs are not auto-closed. Uses `pull_request_target` (write token) instead of `pull_request` so it can comment/label on fork PRs; it never checks out the PR head, only the base branch and PR metadata via the API | <1 min |
+| `pr-validation.yml` | `pull_request_target` opened/reopened/synchronize/edited/milestoned/demilestoned | Checks the PR body links an issue, every commit is DCO signed, and the PR plus every issue it closes carries an open milestone; flags possible duplicate PRs by linked issue or overlapping files. Independent of the lifecycle: a red check never blocks a merge, and PRs are not auto-closed. Uses `pull_request_target` (write token) instead of `pull_request` so it can comment/label on fork PRs; it never checks out the PR head, only the base branch and PR metadata via the API. The milestone activity types matter because setting a milestone is the only way to clear that check | <1 min |
 
 ## Release Workflows
 
@@ -411,6 +484,7 @@ and tags starting with `3.`.
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
 | `pr-lifecycle.yml` | PR events, review submissions, comments, workflow_run, every 6 hours | Label-driven PR state machine. States: `ready-for-review` -> `ready-to-merge` (no triage stage — every PR starts at `ready-for-review`). Draft PRs are ignored until marked ready for review. Comment commands: `/reject`, `/merge` (toggles native GitHub auto-merge), `/unstale`, `/retry`. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close; 4/7 for PRs waiting on the author). PRs waiting on a maintainer are exempt from staleness entirely and instead get `lifecycle/review-overdue` at 14 days and a reviewer ping at 30, never a close. Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
+| `classify.yml` | Issue opened/edited, PR opened/ready for review (non-draft), workflow_dispatch | Embedding classifier (`.github/scripts/label-classification`) assigns `area/*` labels to issues and PRs, and an issue type to issues. For PRs, then picks a reviewer (`pr-reviewer-assignment.js`): assigns contributor PRs, posts a suggestion on maintainer PRs, rotates Renovate PRs. Configured by `reviewer_assignment` in `.github/pr-lifecycle.yml`; see [PR_LIFECYCLE.md](../PR_LIFECYCLE.md#reviewer-assignment). `pull_request_target`, but never checks out or runs PR code. Manual runs take `dry_run` to print scores without applying anything | 2-4 min |
 | `update-openapi.yaml` | Push to main (openapi.json changes) | Auto-copies v3 OpenAPI spec to v2 path, commits if changed, then validates via `validate-openapi.yaml` | 10-15 min |
 | `update-website.yaml` | Release event, workflow_dispatch | Updates `latestRelease.json` on apicurio.github.io with release metadata | 5-10 min |
 | `publish-docs.yaml` | Push to main (docs/**), workflow_dispatch | Builds documentation via Antora playbook and publishes to apicurio.github.io | 15-30 min |

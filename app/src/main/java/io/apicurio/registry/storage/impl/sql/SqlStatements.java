@@ -188,6 +188,10 @@ public interface SqlStatements {
      */
     public String insertContent();
 
+    default String insertContentIfAbsent() {
+        return insertContent();
+    }
+
     /**
      * A statement to update canonicalHash value in a row in the "content" table
      */
@@ -300,6 +304,16 @@ public interface SqlStatements {
     public String selectArtifactLabels();
 
     public String deleteArtifactLabelsByPrefix();
+
+    /**
+     * A statement to delete all rows in the artifact_structured_content table for a given artifact.
+     */
+    public String deleteArtifactStructuredContent();
+
+    /**
+     * A statement to insert a row into the artifact_structured_content table.
+     */
+    public String insertArtifactStructuredContent();
 
     /**
      * A statement to delete version labels matching a key prefix.

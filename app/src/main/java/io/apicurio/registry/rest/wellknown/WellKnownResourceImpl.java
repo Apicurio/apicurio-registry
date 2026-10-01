@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest.wellknown;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
@@ -15,6 +16,7 @@ import io.apicurio.registry.rest.v3.beans.AgentInterface;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResult;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.AiCatalog;
+import io.apicurio.registry.rest.v3.beans.ArdAgentsResponse;
 import io.apicurio.registry.rest.v3.beans.AiCatalogEntry;
 import io.apicurio.registry.rest.v3.beans.AiCatalogHost;
 import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
@@ -34,6 +36,10 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.mcptools.McpToolsConfig;
+import io.apicurio.registry.mcptools.compatibility.CompatibilityVerdict;
+import io.apicurio.registry.mcptools.compatibility.CrossToolCompatibilityService;
+import io.apicurio.registry.mcptools.compatibility.PairCompatibility;
+import io.apicurio.registry.mcptools.compatibility.PreparedProducer;
 import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResult;
 import io.apicurio.registry.rest.v3.beans.McpToolSearchResults;
@@ -77,9 +83,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -144,6 +148,9 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Inject
     McpToolsConfig mcpToolsConfig;
+
+    @Inject
+    CrossToolCompatibilityService crossToolCompatibility;
 
     @Inject
     AiCatalogConfig aiCatalogConfig;
@@ -234,13 +241,29 @@ public class WellKnownResourceImpl implements WellKnownResource {
         String baseUrl = getBaseUrl();
         String publisherDomain = resolvePublisherDomain();
 
+        Set<SearchFilter> structureFilters = new HashSet<>();
+        addStructureFilters(structureFilters, "skill", skills);
+        addStructureFilters(structureFilters, "inputmode", inputModes);
+        addStructureFilters(structureFilters, "outputmode", outputModes);
+        if (capabilities != null) {
+            for (String capability : capabilities) {
+                requireNonBlankStructuredFilter("capability", capability);
+                String[] parts = capability.split(":", 2);
+                requireNonBlankStructuredFilter("capability", parts[0]);
+                if (parts.length == 2 && !"true".equals(parts[1]) && !"false".equals(parts[1])) {
+                    throw new BadRequestException("Capability filter must use true or false");
+                }
+                SearchFilter filter = SearchFilter.ofStructure("agent_card:capability:" + parts[0]);
+                structureFilters.add(parts.length == 2 && "false".equals(parts[1]) ? filter.negated() : filter);
+            }
+        }
         // Delegate candidate collection (including the single, shared visibility-filtering
         // implementation) to the same core that backs the AI Catalog / ARD endpoints.
         // Structured skill/capability/input-mode/output-mode filters have no equivalent in
         // AiCatalogEntry, so they are evaluated afterwards against each surviving candidate's
         // Agent Card content.
         List<SearchedArtifactDto> matched = new ArrayList<>();
-        for (AiCatalogCandidate candidate : collectAiCatalogCandidates(baseUrl, publisherDomain, name)) {
+        for (AiCatalogCandidate candidate : collectAiCatalogCandidates(baseUrl, publisherDomain, name, structureFilters)) {
             if (!AiCatalogConstants.MEDIA_TYPE_AGENT_CARD.equals(candidate.entry.getType())) {
                 continue;
             }
@@ -524,14 +547,16 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
 
         StoredArtifactVersionDto sourceArtifact = fetchMcpToolArtifact(groupId, artifactId, version);
-        Map<String, String> sourceOutputProps = extractOutputProperties(sourceArtifact);
+        PreparedProducer producer = readToolRoot(sourceArtifact)
+                .map(crossToolCompatibility::prepareProducer)
+                .orElseGet(crossToolCompatibility::unreadableProducer);
 
-        if (sourceOutputProps.isEmpty()) {
+        if (!producer.canMatch()) {
             return McpCompatibleToolsResults.builder().count(0).tools(Collections.emptyList()).build();
         }
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
-        List<McpToolSearchResult> compatibleTools = findCompatibleCandidates(rawGroupId, artifactId, sourceOutputProps);
+        List<McpToolSearchResult> compatibleTools = findCompatibleCandidates(rawGroupId, artifactId, producer);
 
         return buildPaginatedCompatibleResults(compatibleTools, offset, limit);
     }
@@ -562,46 +587,18 @@ public class WellKnownResourceImpl implements WellKnownResource {
         }
     }
 
-    private Map<String, String> extractOutputProperties(StoredArtifactVersionDto sourceArtifact) {
-        Map<String, String> sourceOutputProps = new HashMap<>();
+    private Optional<JsonNode> readToolRoot(StoredArtifactVersionDto stored) {
         try {
-            JsonNode sourceRoot = mapper.readTree(sourceArtifact.getContent().content());
-            JsonNode outputSchema = sourceRoot.path("outputSchema");
-            if (outputSchema.isObject()) {
-                JsonNode properties = outputSchema.path(PROPERTIES_FIELD);
-                if (properties.isObject()) {
-                    Iterator<Map.Entry<String, JsonNode>> fields = properties.fields();
-                    while (fields.hasNext()) {
-                        Map.Entry<String, JsonNode> field = fields.next();
-                        sourceOutputProps.put(field.getKey(), extractJsonSchemaType(field.getValue()));
-                    }
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to parse source MCP tool outputSchema: {}", e.getMessage());
+            return Optional.of(mapper.readTree(stored.getContent().content()));
+        } catch (JsonProcessingException e) {
+            return Optional.empty();
         }
-        return sourceOutputProps;
-    }
-
-    /**
-     * Extracts the scalar JSON Schema type string from a property node.
-     *
-     * <p><b>Lenient by design:</b> Only the simple string form {@code {"type": "string"}} is
-     * matched.  Array forms such as {@code {"type": ["string","null"]}} or schema composition
-     * keywords ({@code oneOf}, {@code $ref}) return {@code null}, which causes
-     * {@link #candidateAcceptsAllProperties} to skip the type comparison entirely and treat
-     * the property as compatible.  This is intentional — MCP tool schemas are frequently
-     * nullable or polymorphic, and a strict rejection would produce false-negatives.  Callers
-     * that require strict type enforcement should perform their own JSON Schema validation.
-     */
-    private String extractJsonSchemaType(JsonNode node) {
-        return node.has("type") && node.get("type").isTextual()
-                ? node.get("type").asText() : null;
     }
 
     /**
      * Scans at most {@link #MAX_COMPATIBLE_CANDIDATE_SCAN} MCP tools and returns those whose
-     * {@code inputSchema} accepts every property produced by the source tool's {@code outputSchema}.
+     * compatibility verdict against the source tool is
+     * {@link CompatibilityVerdict#COMPATIBLE}, as decided by {@link CrossToolCompatibilityService}.
      *
      * <p><b>Authorization note:</b> candidate identity and metadata are exposed at the same
      * read-level scope as {@code searchMcpTools}, which also returns all MCP tools visible
@@ -611,7 +608,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
      * sole gate for both endpoints.
      */
     private List<McpToolSearchResult> findCompatibleCandidates(String rawGroupId, String sourceArtifactId,
-            Map<String, String> sourceOutputProps) {
+            PreparedProducer producer) {
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
 
@@ -626,75 +623,48 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         List<McpToolSearchResult> compatibleTools = new ArrayList<>();
         for (SearchedArtifactDto candidate : candidateResults.getArtifacts()) {
-            Optional<JsonNode> compatibleRoot = tryGetCompatibleCandidateRoot(
-                    candidate, rawGroupId, sourceArtifactId, sourceOutputProps);
-            compatibleRoot.ifPresent(root ->
-                    compatibleTools.add(convertToMcpToolSearchResultFromContent(candidate, root)));
+            if (sourceArtifactId.equals(candidate.getArtifactId())
+                    && isSameGroup(rawGroupId, candidate.getGroupId())) {
+                continue;
+            }
+            Optional<StoredArtifactVersionDto> candidateStored = fetchLatestCandidateContent(candidate);
+            if (candidateStored.isEmpty()) {
+                continue;
+            }
+            JsonNode candidateRoot = readToolRoot(candidateStored.get()).orElse(null);
+            PairCompatibility compatibility = candidateRoot == null
+                    ? crossToolCompatibility.unreadableConsumer(producer)
+                    : crossToolCompatibility.compare(producer, candidateRoot);
+            if (compatibility.verdict() == CompatibilityVerdict.COMPATIBLE) {
+                compatibleTools.add(convertToMcpToolSearchResultFromContent(candidate, candidateRoot));
+            }
         }
         return compatibleTools;
     }
 
     /**
-     * Fetches and parses the candidate's latest content exactly once, checks whether its
-     * {@code inputSchema} accepts all required output properties, and — if compatible —
-     * returns the already-parsed {@link JsonNode} so the caller can reuse it for result
-     * conversion without a second storage round-trip.
-     *
-     * @return the candidate's parsed content root when compatible; {@link Optional#empty()} otherwise
+     * Fetches the content of the candidate's latest enabled version. A candidate that has no
+     * enabled version, or that was deleted after the search, is skipped. Any other storage
+     * failure propagates.
      */
-    private Optional<JsonNode> tryGetCompatibleCandidateRoot(SearchedArtifactDto candidate,
-            String rawGroupId, String sourceArtifactId, Map<String, String> sourceOutputProps) {
-        if (sourceArtifactId.equals(candidate.getArtifactId())
-                && isSameGroup(rawGroupId, candidate.getGroupId())) {
-            return Optional.empty();
-        }
-
+    private Optional<StoredArtifactVersionDto> fetchLatestCandidateContent(SearchedArtifactDto candidate) {
         try {
             GA candidateGa = new GA(candidate.getGroupId(), candidate.getArtifactId());
             GAV candidateGav = VersionExpressionParser.parse(candidateGa, "branch=latest",
                     (g, branchId) -> storage.getBranchTip(g, branchId,
                             RetrievalBehavior.SKIP_DISABLED_LATEST));
-            StoredArtifactVersionDto candidateStored = storage.getArtifactVersionContent(
-                    candidateGav.getRawGroupIdWithNull(), candidateGav.getRawArtifactId(),
-                    candidateGav.getRawVersionId());
-
-            JsonNode candidateRoot = mapper.readTree(candidateStored.getContent().content());
-            JsonNode candidateInputSchema = candidateRoot.path("inputSchema");
-            if (candidateInputSchema.isObject()) {
-                JsonNode candidateProps = candidateInputSchema.path(PROPERTIES_FIELD);
-                if (candidateProps.isObject()
-                        && candidateAcceptsAllProperties(candidateProps, sourceOutputProps)) {
-                    return Optional.of(candidateRoot);
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Failed to evaluate compatibility for candidate MCP tool {}/{}: {}",
-                    candidate.getGroupId(), candidate.getArtifactId(), e.getMessage());
+            return Optional.of(storage.getArtifactVersionContent(candidateGav.getRawGroupIdWithNull(),
+                    candidateGav.getRawArtifactId(), candidateGav.getRawVersionId()));
+        } catch (ArtifactNotFoundException | VersionNotFoundException e) {
+            log.debug("Skipping compatible-tools candidate {}/{}: {}", candidate.getGroupId(),
+                    candidate.getArtifactId(), e.getMessage());
+            return Optional.empty();
         }
-        return Optional.empty();
     }
 
     private boolean isSameGroup(String sourceGroupId, String candidateGroupId) {
         return (sourceGroupId == null && candidateGroupId == null)
                 || (sourceGroupId != null && sourceGroupId.equals(candidateGroupId));
-    }
-
-    private boolean candidateAcceptsAllProperties(JsonNode candidateProps, Map<String, String> sourceOutputProps) {
-        for (Map.Entry<String, String> entry : sourceOutputProps.entrySet()) {
-            String reqProp = entry.getKey();
-            String reqType = entry.getValue();
-
-            if (!candidateProps.has(reqProp)) {
-                return false;
-            }
-            if (reqType != null) {
-                String candType = extractJsonSchemaType(candidateProps.get(reqProp));
-                if (candType != null && !reqType.equals(candType)) {
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 
     private McpCompatibleToolsResults buildPaginatedCompatibleResults(List<McpToolSearchResult> compatibleTools,
@@ -907,7 +877,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
-    public AiCatalog ardListAgents(String filter, String orderBy, Integer pageSize, String pageToken) {
+    public ArdAgentsResponse ardListAgents(String filter, String orderBy, Integer pageSize, String pageToken) {
         if (!ardConfig.isEnabled()) {
             throw new NotFoundException("ARD support is disabled");
         }
@@ -941,9 +911,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         String nextPageToken = toIndex < total ? encodePageToken(toIndex) : null;
 
-        AiCatalog catalog = buildAiCatalog(publisherDomain, entries);
-        catalog.setNextPageToken(nextPageToken);
-        return catalog;
+        ArdAgentsResponse response = new ArdAgentsResponse();
+        response.setItems(entries);
+        response.setTotal(total);
+        response.setPageToken(nextPageToken);
+
+        return response;
     }
 
     @Override
@@ -1033,9 +1006,30 @@ public class WellKnownResourceImpl implements WellKnownResource {
      */
     private List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
             String textFilter) {
+        return collectAiCatalogCandidates(baseUrl, publisherDomain, textFilter, Set.of());
+    }
+
+    private void addStructureFilters(Set<SearchFilter> filters, String kind, List<String> values) {
+        if (values != null) {
+            for (String value : values) {
+                requireNonBlankStructuredFilter(kind, value);
+                filters.add(SearchFilter.ofStructure("agent_card:" + kind + ":" + value));
+            }
+        }
+    }
+
+    private void requireNonBlankStructuredFilter(String parameter, String value) {
+        if (value == null || value.isBlank()) {
+            throw new BadRequestException("Structured filter '" + parameter + "' must not be blank");
+        }
+    }
+
+    private List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
+            String textFilter, Set<SearchFilter> structureFilters) {
         List<AiCatalogCandidate> candidates = new ArrayList<>();
 
         Set<SearchFilter> agentFilters = new HashSet<>();
+        agentFilters.addAll(structureFilters);
         agentFilters.add(SearchFilter.ofArtifactType(ArtifactType.AGENT_CARD));
         if (!StringUtil.isEmpty(textFilter)) {
             agentFilters.add(SearchFilter.ofPartialName(textFilter));

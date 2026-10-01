@@ -39,12 +39,10 @@ public class JdkSslContextFactory {
     private static final Logger log = Logger.getLogger(JdkSslContextFactory.class.getName());
 
     private static final Pattern PEM_CERT_PATTERN = Pattern.compile(
-            "-----BEGIN CERTIFICATE-----\\s*([A-Za-z0-9+/=\\s]+?)\\s*-----END CERTIFICATE-----",
-            Pattern.DOTALL);
+            "-----BEGIN CERTIFICATE-----([A-Za-z0-9+/=\\s]++)-----END CERTIFICATE-----");
 
     private static final Pattern PKCS8_KEY_PATTERN = Pattern.compile(
-            "-----BEGIN PRIVATE KEY-----\\s*([A-Za-z0-9+/=\\s]+?)\\s*-----END PRIVATE KEY-----",
-            Pattern.DOTALL);
+            "-----BEGIN PRIVATE KEY-----([A-Za-z0-9+/=\\s]++)-----END PRIVATE KEY-----");
 
     private static final String[] KEY_ALGORITHMS = {"RSA", "EC", "DSA"};
 
@@ -219,7 +217,7 @@ public class JdkSslContextFactory {
         return keyStore;
     }
 
-    private static List<X509Certificate> parsePemCertificates(String pemContent) throws Exception {
+    static List<X509Certificate> parsePemCertificates(String pemContent) throws Exception {
         List<X509Certificate> certificates = new ArrayList<>();
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
 
@@ -235,7 +233,7 @@ public class JdkSslContextFactory {
         return certificates;
     }
 
-    private static PrivateKey parsePemPrivateKey(String pemContent) throws Exception {
+    static PrivateKey parsePemPrivateKey(String pemContent) throws Exception {
         Matcher pkcs8Matcher = PKCS8_KEY_PATTERN.matcher(pemContent);
         if (pkcs8Matcher.find()) {
             String base64Key = pkcs8Matcher.group(1).replaceAll("\\s", "");

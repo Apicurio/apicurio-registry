@@ -22,6 +22,7 @@ import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.startsWith;
 
 /**
  * Tests for the MCP tool well-known discovery endpoints.
@@ -304,6 +305,91 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
                 .body("tools[0].artifactId", equalTo(artifactId))
                 .body("tools[0].title", equalTo("Database Search Tool"))
                 .body("tools[0].parameters", hasItems("query", "limit"));
+    }
+
+    @Test
+    public void testGetRegisteredMcpToolByExplicitVersion() throws Exception {
+        // #8735: getRegisteredMcpTool's optional "version" query param was only ever
+        // exercised implicitly (via the default "branch=latest" path). This pins an older
+        // version explicitly and confirms it - not the newer latest version - is returned.
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.MCP_TOOL);
+        CreateVersion firstVersion = new CreateVersion();
+        firstVersion.setVersion("1");
+        VersionContent firstContent = new VersionContent();
+        firstContent.setContent(SEARCH_DATABASE_TOOL);
+        firstContent.setContentType(ContentTypes.APPLICATION_JSON);
+        firstVersion.setContent(firstContent);
+        createArtifact.setFirstVersion(firstVersion);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        CreateVersion secondVersion = new CreateVersion();
+        secondVersion.setVersion("2");
+        VersionContent secondContent = new VersionContent();
+        secondContent.setContent(GET_WEATHER_TOOL);
+        secondContent.setContentType(ContentTypes.APPLICATION_JSON);
+        secondVersion.setContent(secondContent);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(secondVersion);
+
+        // No version specified: should resolve to the latest (version "2", get_weather).
+        givenAtRoot()
+                .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}")
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("get_weather"));
+
+        // Explicit version "1": should return the pinned older version (search_database),
+        // not latest.
+        givenAtRoot()
+                .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .queryParam("version", "1")
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}")
+                .then()
+                .statusCode(200)
+                .body("name", equalTo("search_database"));
+    }
+
+    @Test
+    public void testGetRegisteredMcpToolWithMissingVersionReturnsNotFound() throws Exception {
+        // #8735: a version query for a version that does not exist should 404, same as an
+        // unknown artifactId, rather than falling back to latest or erroring some other way.
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        createMcpTool(groupId, artifactId, SEARCH_DATABASE_TOOL);
+
+        givenAtRoot()
+                .when()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .queryParam("version", "999999")
+                .get("/.well-known/mcp-tools/{groupId}/{artifactId}")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    public void testGetMcpToolSchemaV1Headers() {
+        // #8735: getSchema sets Content-Type, Content-Disposition, and Cache-Control headers
+        // that were never asserted - only the 200 status and body fields were checked.
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/mcp-tool/v1")
+                .then()
+                .statusCode(200)
+                .header("Content-Type", startsWith("application/schema+json"))
+                .header("Content-Disposition", equalTo("inline; filename=\"mcp-tool-v1.json\""))
+                .header("Cache-Control", equalTo("public, max-age=86400"));
     }
 
     @Test

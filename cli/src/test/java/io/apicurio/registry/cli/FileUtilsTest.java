@@ -14,13 +14,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @EnabledOnOs({OS.LINUX, OS.MAC})
-public class FileUtilsTest {
+class FileUtilsTest {
 
     @TempDir
     Path directory;
 
     @Test
-    public void testCreateNewLink() throws IOException {
+    void testCreateNewLink() throws IOException {
         Path target = Files.writeString(directory.resolve("target"), "launcher");
         Path link = directory.resolve("acr");
 
@@ -31,7 +31,7 @@ public class FileUtilsTest {
     }
 
     @Test
-    public void testExistingLinkToSameTarget() throws IOException {
+    void testExistingLinkToSameTarget() throws IOException {
         Path target = Files.writeString(directory.resolve("target"), "launcher");
         Path link = Files.createSymbolicLink(directory.resolve("acr"), target);
 
@@ -42,7 +42,7 @@ public class FileUtilsTest {
     }
 
     @Test
-    public void testReplaceLinkToDifferentTarget() throws IOException {
+    void testReplaceLinkToDifferentTarget() throws IOException {
         Path oldTarget = Files.writeString(directory.resolve("old-target"), "old launcher");
         Path newTarget = Files.writeString(directory.resolve("new-target"), "new launcher");
         Path link = Files.createSymbolicLink(directory.resolve("acr"), oldTarget);
@@ -55,7 +55,7 @@ public class FileUtilsTest {
     }
 
     @Test
-    public void testReplaceDanglingLink() throws IOException {
+    void testReplaceDanglingLink() throws IOException {
         Path newTarget = Files.writeString(directory.resolve("new-target"), "new launcher");
         Path link = Files.createSymbolicLink(directory.resolve("acr"), directory.resolve("missing-target"));
 
@@ -66,7 +66,7 @@ public class FileUtilsTest {
     }
 
     @Test
-    public void testExistingRegularFileIsPreserved() throws IOException {
+    void testExistingRegularFileIsPreserved() throws IOException {
         Path target = Files.writeString(directory.resolve("target"), "launcher");
         Path link = Files.writeString(directory.resolve("acr"), "user file");
 

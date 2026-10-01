@@ -5,79 +5,56 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
-import com.github.erosb.jsonsKema.JsonParser;
-import com.github.erosb.jsonsKema.SchemaLoaderConfig;
+import com.networknt.schema.SpecVersion.VersionFlag;
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.exception.UnreachableCodeException;
+import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.types.RegistryException;
-import org.everit.json.schema.loader.SchemaClient;
-import org.everit.json.schema.loader.SchemaLoader;
-import org.everit.json.schema.loader.internal.ReferenceResolver;
-import org.json.JSONObject;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS;
-import static io.apicurio.registry.json.rules.validity.JsonSchemaVersion.DRAFT_7;
-import static io.apicurio.registry.json.rules.validity.JsonSchemaVersion.UNKNOWN;
-import static io.apicurio.registry.json.rules.validity.JsonSchemaVersion.detect;
 
 /**
- * Checks that a JSON Schema is valid by loading it into a schema library: everit for drafts 4, 6
- * and 7, jsonsKema for 2020-12. Loading fails if the schema is invalid, if it is draft 2019-09,
- * which neither library here supports, or if a reference recorded for the artifact is not used by
- * the content.
+ * Checks that the content of a JSON Schema artifact is a valid JSON Schema, in any of drafts 4, 6,
+ * 7, 2019-09 and 2020-12. The draft is chosen as the compatibility checker chooses it, and a
+ * {@code $schema} that names no known draft is read as draft 7. A reference recorded for the
+ * artifact that the content doesn't use is rejected.
  */
 final class JsonSchemaLoader {
 
-    private static final SchemaClient DENY_ALL_SCHEMA_CLIENT = url -> {
-        throw new IllegalStateException("External JSON Schema resolution is disabled");
-    };
+    private static final JsonSchemaDocumentValidator VALIDATOR = JsonSchemaDocumentValidator.builder()
+            .draftDetector(JsonSchemaDocumentValidator.dataModelsDraftDetector())
+            .treatUnrecognisedDraftAs(VersionFlag.V7)
+            .loadSchema(true)
+            .build();
 
-    // Numbers reach the schema library as written, rather than rounded through a double.
+    // Numbers reach the validator as written, rather than rounded through a double.
     private static final ObjectMapper MAPPER = new ObjectMapper()
-            .registerModule(new JsonOrgModule())
             .enable(USE_BIG_DECIMAL_FOR_FLOATS)
             .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
 
     private JsonSchemaLoader() {
     }
 
-    static void load(String content, Map<String, TypedContent> resolvedReferences)
+    /**
+     * @return each problem found; empty if the content is a valid JSON Schema
+     */
+    static List<RuleViolation> load(String content, Map<String, TypedContent> resolvedReferences)
             throws JsonProcessingException {
         var jsonNode = MAPPER.readTree(content);
+        var draft = VALIDATOR.draftOf(jsonNode).orElseThrow();
 
-        var version = detect(jsonNode);
-        if (version == UNKNOWN) {
-            // TODO: Make this configurable? Throw an exception?
-            version = DRAFT_7;
-        }
-
-        var references = findReferences(version, null, jsonNode);
+        var references = findReferences(draft == VersionFlag.V4 ? "id" : "$id", null, jsonNode);
         checkNoUnusedReferences(references, resolvedReferences);
 
-        // A reference Registry has no content for is loaded as a schema that accepts anything. This keeps
-        // the library from downloading it if it is http://, or opening a file if it is file://, so the only
-        // content ever read is what Registry supplies. Validity does not depend on what a reference points
-        // to, only on it being a valid URI.
-        var referencedContent = new HashMap<URI, String>();
-        for (var reference : references) {
-            var supplied = resolvedReferences.get(reference.toString());
-            referencedContent.put(reference, supplied != null ? supplied.getContent().content() : "{}");
-        }
-
-        switch (version) {
-            case DRAFT_4, DRAFT_6, DRAFT_7 -> loadWithEverit(jsonNode, referencedContent);
-            case DRAFT_2019_09 -> throw new RegistryException("JSON schema version 2019-09 is not supported yet.");
-            case DRAFT_2020_12 -> loadWithJsonsKema(jsonNode, referencedContent);
-            default -> throw new UnreachableCodeException("Unhandled case " + version);
-        }
+        return VALIDATOR.validate(jsonNode, referencedDocuments(references, resolvedReferences)::get);
     }
 
     // Do we want to do this as a separate rule?
@@ -98,46 +75,84 @@ final class JsonSchemaLoader {
     }
 
     /**
+     * The content of each document the schema refers to, by the reference without its fragment.
+     * <p>
+     * Validity doesn't depend on what a reference points to, so a document Registry has no content
+     * for is replaced by one that accepts anything. It contains each JSON Pointer the schema refers
+     * to it with, so references into it resolve too.
+     */
+    private static Map<String, String> referencedDocuments(Set<URI> references,
+            Map<String, TypedContent> resolvedReferences) {
+        var supplied = new HashMap<String, String>();
+        var placeholders = new HashMap<String, ObjectNode>();
+        for (var reference : references) {
+            var document = withoutFragment(reference);
+            var content = resolvedReferences.get(reference.toString());
+            if (content != null) {
+                supplied.put(document, content.getContent().content());
+            } else {
+                var placeholder = placeholders.computeIfAbsent(document, d -> MAPPER.createObjectNode());
+                var pointer = reference.getFragment();
+                if (pointer != null && pointer.startsWith("/")) {
+                    addPointer(placeholder, pointer);
+                }
+            }
+        }
+        var documents = new HashMap<String, String>();
+        placeholders.forEach((document, placeholder) -> documents.put(document, placeholder.toString()));
+        documents.putAll(supplied);
+        return documents;
+    }
+
+    private static String withoutFragment(URI reference) {
+        var text = reference.toString();
+        var hash = text.indexOf('#');
+        return hash < 0 ? text : text.substring(0, hash);
+    }
+
+    /** Adds an empty schema, which accepts anything, at the given JSON Pointer. */
+    private static void addPointer(ObjectNode placeholder, String pointer) {
+        var node = placeholder;
+        for (var token : pointer.substring(1).split("/", -1)) {
+            var name = token.replace("~1", "/").replace("~0", "~");
+            node = node.get(name) instanceof ObjectNode child ? child : node.putObject(name);
+        }
+    }
+
+    /**
      * Every {@code $ref} in the schema, resolved against the {@code $id} in scope where it appears.
      * There can be multiple {@code $id} keywords nested within the root schema resource, see
      * <a href="https://json-schema.org/blog/posts/understanding-lexical-dynamic-scopes">Understanding JSON Schema Lexical and Dynamic Scopes</a>.
      */
-    private static Set<URI> findReferences(JsonSchemaVersion version, URI idURI, JsonNode jsonNode) {
+    private static Set<URI> findReferences(String idKeyword, URI idURI, JsonNode jsonNode) {
         var result = new HashSet<URI>();
         if (jsonNode instanceof ObjectNode objectNode) {
-            var idNode = objectNode.get(version.getIdKeyword());
+            var idNode = objectNode.get(idKeyword);
             if (idNode != null && idNode.isTextual()) {
-                idURI = ReferenceResolver.resolve((URI) null, idNode.textValue());
+                idURI = resolve(null, idNode.textValue());
             }
             for (var property : objectNode.properties()) {
                 if ("$ref".equals(property.getKey())) {
                     if (property.getValue().isTextual()) {
-                        result.add(ReferenceResolver.resolve(idURI, property.getValue().textValue()));
+                        result.add(resolve(idURI, property.getValue().textValue()));
                     }
                 } else {
-                    result.addAll(findReferences(version, idURI, property.getValue()));
+                    result.addAll(findReferences(idKeyword, idURI, property.getValue()));
                 }
             }
         } else if (jsonNode.isArray()) {
             for (var element : jsonNode) {
-                result.addAll(findReferences(version, idURI, element));
+                result.addAll(findReferences(idKeyword, idURI, element));
             }
         }
         return result;
     }
 
-    private static void loadWithEverit(JsonNode jsonNode, Map<URI, String> referencedContent)
-            throws JsonProcessingException {
-        var builder = SchemaLoader.builder().useDefaults(true).draftV7Support().httpClient(DENY_ALL_SCHEMA_CLIENT);
-        referencedContent.forEach((reference, content) -> builder.registerSchemaByURI(reference, new JSONObject(content)));
-        builder.schemaJson(MAPPER.treeToValue(jsonNode, JSONObject.class));
-        builder.build().load().build();
-    }
-
-    private static void loadWithJsonsKema(JsonNode jsonNode, Map<URI, String> referencedContent)
-            throws JsonProcessingException {
-        var config = SchemaLoaderConfig.createDefaultConfig(referencedContent);
-        var json = new JsonParser(MAPPER.writeValueAsString(jsonNode)).parse();
-        new com.github.erosb.jsonsKema.SchemaLoader(json, config).load();
+    private static URI resolve(URI base, String reference) {
+        try {
+            return base == null ? new URI(reference) : base.resolve(reference);
+        } catch (URISyntaxException e) {
+            throw new RegistryException("Invalid reference: " + reference, e);
+        }
     }
 }

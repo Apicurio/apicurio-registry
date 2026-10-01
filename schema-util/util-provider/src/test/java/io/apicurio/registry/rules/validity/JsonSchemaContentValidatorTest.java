@@ -1,5 +1,6 @@
 package io.apicurio.registry.rules.validity;
 
+import com.sun.net.httpserver.HttpServer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.rules.validity.JsonSchemaContentValidator;
@@ -11,10 +12,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Tests the JSON Schema content validator.
@@ -51,11 +54,11 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
         RuleViolationException error = Assertions.assertThrows(RuleViolationException.class, () -> {
             validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
-        Assertions.assertFalse(error.getCauses().isEmpty());
-        Assertions.assertEquals("expected type: Number, found: Boolean",
-                error.getCauses().iterator().next().getDescription());
-        Assertions.assertEquals("#/items/properties/price/exclusiveMinimum",
-                error.getCauses().iterator().next().getContext());
+        // Draft 7 requires a number. The violation points at the keyword, as a JSON Pointer.
+        Assertions.assertTrue(error.getCauses().stream().anyMatch(cause ->
+                        "/items/properties/price/exclusiveMinimum".equals(cause.getContext())
+                                && "boolean found, number expected".equals(cause.getDescription())),
+                () -> "No violation at the keyword: " + error.getCauses());
     }
 
     @Test
@@ -68,21 +71,87 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
     }
 
     /**
-     * A reference Registry has no content for must not be fetched, or an uploaded schema could make
-     * the server request any URL. It is loaded as a schema that accepts anything instead. Both
-     * libraries the validator loads schemas with are covered.
+     * A document Registry has no content for is never fetched: it is replaced by one that accepts
+     * anything, so the schema is valid whatever the reference points to, including when the
+     * reference has a fragment. That holds for a reference inside supplied content too. A local
+     * server records whether any request was made.
      */
     @ParameterizedTest
-    @ValueSource(strings = {"http://json-schema.org/draft-07/schema#", "https://json-schema.org/draft/2020-12/schema"})
+    @ValueSource(strings = {"http://json-schema.org/draft-04/schema#", "http://json-schema.org/draft-06/schema#",
+            "http://json-schema.org/draft-07/schema#", "https://json-schema.org/draft/2019-09/schema",
+            "https://json-schema.org/draft/2020-12/schema"})
     public void testReferenceWithoutContentIsNotFetched(String draft) throws Exception {
+        List<String> requests = new CopyOnWriteArrayList<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", exchange -> {
+            requests.add(exchange.getRequestURI().toString());
+            exchange.sendResponseHeaders(404, -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            String base = "http://127.0.0.1:" + server.getAddress().getPort();
+            TypedContent content = TypedContent.create(ContentHandle.create("""
+                    {
+                      "$schema": "%s",
+                      "properties": {
+                        "a": { "$ref": "%s/missing.json" },
+                        "b": { "$ref": "%s/missing.json#/definitions/b" },
+                        "c": { "$ref": "https://example.com/supplied.json" }
+                      }
+                    }
+                    """.formatted(draft, base, base)), ContentTypes.APPLICATION_JSON);
+            TypedContent supplied = TypedContent.create(ContentHandle.create("""
+                    { "properties": { "d": { "$ref": "%s/nested.json" } } }
+                    """.formatted(base)), ContentTypes.APPLICATION_JSON);
+
+            new JsonSchemaContentValidator().validate(ValidityLevel.FULL, content,
+                    Map.of("https://example.com/supplied.json", supplied));
+            Assertions.assertEquals(List.of(), requests, "No document may be fetched");
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    /**
+     * Loading the schema catches what its meta-schema can't, such as a reference to a definition the
+     * schema doesn't have.
+     */
+    @ParameterizedTest
+    @ValueSource(strings = {"http://json-schema.org/draft-04/schema#", "http://json-schema.org/draft-07/schema#",
+            "https://json-schema.org/draft/2019-09/schema", "https://json-schema.org/draft/2020-12/schema"})
+    public void testMissingDefinitionIsRejected(String draft) throws Exception {
         TypedContent content = TypedContent.create(ContentHandle.create("""
                 {
                   "$schema": "%s",
-                  "type": "object",
-                  "properties": { "x": { "$ref": "http://127.0.0.1:1/missing.json" } }
+                  "definitions": { "a": { "type": "string" } },
+                  "properties": { "x": { "$ref": "#/definitions/missing" } }
                 }
                 """.formatted(draft)), ContentTypes.APPLICATION_JSON);
-        new JsonSchemaContentValidator().validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        Assertions.assertThrows(RuleViolationException.class,
+                () -> new JsonSchemaContentValidator().validate(ValidityLevel.FULL, content, Collections.emptyMap()));
+    }
+
+    /**
+     * A {@code $schema} that names no known draft, such as a custom meta-schema, is validated as
+     * draft 7, rather than rejected.
+     */
+    @Test
+    public void testUnrecognisedDraftIsReadAsDraft7() throws Exception {
+        JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
+        String schema = """
+                { "$schema": "https://example.com/my-meta-schema", "type": "number", "exclusiveMinimum": %s }
+                """;
+        validator.validate(ValidityLevel.FULL,
+                TypedContent.create(ContentHandle.create(schema.formatted("0")), ContentTypes.APPLICATION_JSON),
+                Collections.emptyMap());
+
+        // Draft 7 requires a number here, where draft 4 required a boolean.
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.FULL,
+                        TypedContent.create(ContentHandle.create(schema.formatted("true")), ContentTypes.APPLICATION_JSON),
+                        Collections.emptyMap()));
+        Assertions.assertEquals("/exclusiveMinimum", error.getCauses().iterator().next().getContext());
     }
 
     /**

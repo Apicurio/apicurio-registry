@@ -42,6 +42,8 @@ public class Artifact extends HasSchema {
 
     private List<Rule> rules;
 
+    private List<Branch> branches;
+
     /**
      * Version up to which rule validation is skipped (inclusive).
      * Versions after this are validated against their predecessors.

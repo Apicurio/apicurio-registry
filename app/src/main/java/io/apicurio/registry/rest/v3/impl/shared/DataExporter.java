@@ -1,5 +1,7 @@
 package io.apicurio.registry.rest.v3.impl.shared;
 
+import io.apicurio.registry.rest.v3.impl.shared.gitops.GitOpsEntityCollector;
+import io.apicurio.registry.rest.v3.impl.shared.gitops.GitOpsZipWriter;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.utils.impexp.v3.EntityWriter;
@@ -26,22 +28,25 @@ public class DataExporter {
     @Current
     RegistryStorage storage;
 
-    /**
-     * Exports all registry data.
-     */
     public Response exportData() {
-        return exportData(null);
+        return exportData(null, null);
     }
 
-    /**
-     * Exports registry data, optionally filtered by group.
-     *
-     * @param groupId if non-null, only data belonging to this group will be exported
-     */
     public Response exportData(String groupId) {
-        StreamingOutput stream = os -> {
+        return exportData(groupId, null);
+    }
+
+    public Response exportData(String groupId, String format) {
+        if ("gitops-v1".equals(format)) {
+            return exportGitOpsData(groupId);
+        }
+        return exportDefaultData(groupId);
+    }
+
+    private Response exportDefaultData(String groupId) {
+        final StreamingOutput stream = os -> {
             try (ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8)) {
-                EntityWriter writer = new EntityWriter(zip);
+                final EntityWriter writer = new EntityWriter(zip);
                 storage.exportData(groupId, entity -> {
                     try {
                         writer.writeEntity(entity);
@@ -63,4 +68,29 @@ public class DataExporter {
         return Response.ok(stream).type("application/zip").build();
     }
 
+    private Response exportGitOpsData(String groupId) {
+        final StreamingOutput stream = os -> {
+            try (ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8)) {
+                final GitOpsEntityCollector collector = new GitOpsEntityCollector();
+                storage.exportData(groupId, entity -> {
+                    collector.collect(entity);
+                    return null;
+                });
+
+                for (final String warning : collector.getWarnings()) {
+                    log.warn(warning);
+                }
+
+                final GitOpsZipWriter writer = new GitOpsZipWriter(zip, collector);
+                writer.write();
+                zip.flush();
+            } catch (IOException e) {
+                throw e;
+            } catch (Exception e) {
+                throw new IOException("GitOps export failed due to error writing entities", e);
+            }
+        };
+
+        return Response.ok(stream).type("application/zip").build();
+    }
 }

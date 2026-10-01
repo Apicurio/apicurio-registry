@@ -202,8 +202,14 @@ For direct command-line registration, use the equivalent properties `-Dartifacts
 [role="_additional-resources"]
 .Additional resources
 * xref:adding-artifacts-using-maven-plugin_{context}[]
-* xref:getting-started/assembly-managing-registry-artifacts-ui.adoc#publishing-drafts-using-console_{context}[]
-* xref:getting-started/assembly-managing-registry-artifacts-ui.adoc#draft-version-settings_{context}[]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-managing-registry-artifacts-ui.adoc#publishing-drafts-using-console_{context}[Publishing a draft version using the web console]
+* xref:getting-started/assembly-managing-registry-artifacts-ui.adoc#draft-version-settings_{context}[Draft version settings]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:publishing-drafts-using-console_{context}[]
+* xref:draft-version-settings_{context}[]
+endif::[]
 
 
 [id="downloading-artifacts-using-maven-plugin_{context}"]

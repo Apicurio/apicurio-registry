@@ -180,7 +180,9 @@ By default, draft registration skips content rules and content retrieval by glob
 [role="_additional-resources"]
 .Additional resources
 * xref:configuring-settings-using-console_{context}[]
-* xref:getting-started/assembly-deploying-registry-operator.adoc#enabling-version-mutability_{context}[]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-deploying-registry-operator.adoc#enabling-version-mutability_{context}[Artifact version mutability configuration]
+endif::[]
 
 
 [id="creating-editing-drafts-using-console_{context}"]

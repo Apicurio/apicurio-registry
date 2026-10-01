@@ -34,7 +34,7 @@ spec:
       redirectUri: "https://<registry-ui-route>/"
       anonymousReadsEnabled: true
       tls:
-        tlsVerificationType: "none"  # Set to "certificate" in production and provide a truststore
+        tlsVerificationType: "none"  # Set to "required" in production and provide a truststore
       authz:
         enabled: true
         readAccessEnabled: true

@@ -21,10 +21,10 @@ import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.app.compatibility.CompatibilityRuleExecutor;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apitomy.datamodels.jsonschema.compat.DiffType;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
@@ -141,27 +141,16 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
 
         Set<RuleViolation> ruleViolationCauses = ruleViolationException.getCauses();
         RuleViolation ageViolationCause = findCauseByContext(ruleViolationCauses, "/properties/age/type");
-        RuleViolation zipCodeViolationCause = findCauseByContext(ruleViolationCauses, "/properties/zipcode");
+        RuleViolation zipCodeViolationCause = findCauseByContext(ruleViolationCauses, "/properties/zipcode/type");
 
-        /*
-         * Explanation for why the following diff type is not SUBSCHEMA_TYPE_CHANGED:
-         *
-         * Consider the following schemas, with FORWARD compatibility checking (i.e. B is newer, but is
-         * checked in a reverse order): A: ``` { "type": "object", "properties": { "age": { "type": "integer",
-         * "minimum": 0 } } } ``` B: ``` { "type": "object", "properties": { "age": { "type": "string",
-         * "minimum": 0 } } } ``` A is incompatible with B, because the `type` property has been changed from
-         * `string` to `integer`, however the `minimum` property, which is found in number schemas remained in
-         * B. The Everit library parses subschema of the `age` property in B not as a string schema with an
-         * extra property, but as a "synthetic" allOf combined schema of string and number. The compatibility
-         * checking then compares this synthetic number subschema to the number schema in A.
-         */
-        Assertions.assertEquals("/properties/age/type", ageViolationCause.getContext());
-        Assertions.assertEquals(DiffType.NUMBER_TYPE_INTEGER_REQUIRED_FALSE_TO_TRUE.getDescription(),
+        // Both properties changed type, and each is reported at the 'type' keyword that changed.
+        Assertions.assertNotNull(ageViolationCause, () -> "No violation at /properties/age/type: " + ruleViolationCauses);
+        Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getShortDescription(),
                 ageViolationCause.getDescription());
-        Assertions.assertEquals("/properties/zipcode", zipCodeViolationCause.getContext());
-        Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(),
+        Assertions.assertNotNull(zipCodeViolationCause,
+                () -> "No violation at /properties/zipcode/type: " + ruleViolationCauses);
+        Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getShortDescription(),
                 zipCodeViolationCause.getDescription());
-
     }
 
     @Test
@@ -238,25 +227,36 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Assertions.assertEquals(422, exception.getResponseStatusCode());
     }
 
+    /**
+     * Draft 2020-12 schemas are compared like any other, now that the Data Models checker is the
+     * default. The legacy checker can't load them and reports them as unprocessable (422), which
+     * JsonSchemaDiffUtilTest covers. A compatible version is accepted and an incompatible one is
+     * rejected at the keyword that changed, so the verdict comes from a comparison rather than from
+     * the draft.
+     */
     @Test
-    public void testJsonSchemaUnsupportedDraftCompatibilityIsUnprocessable() throws Exception {
-        String artifactId = "testJsonSchemaUnsupportedDraftCompatibilityIsUnprocessable";
-        String v1 = "{\"$schema\": \"https://json-schema.org/draft/2020-12/schema\", \"type\": \"object\"}";
-        String v2 = "{\"$schema\": \"https://json-schema.org/draft/2020-12/schema\", \"type\": \"object\", "
-                + "\"properties\": {\"name\": {\"type\": \"string\"}}}";
-        createArtifact(artifactId, ArtifactType.JSON, v1, ContentTypes.APPLICATION_JSON);
+    public void testJsonSchemaDraft2020CompatibilityIsChecked() throws Exception {
+        String artifactId = "testJsonSchemaDraft2020CompatibilityIsChecked";
+        String schema = """
+                {
+                  "$schema": "https://json-schema.org/draft/2020-12/schema",
+                  "type": "object",
+                  "properties": { "name": { "type": "string", "maxLength": %d } }
+                }
+                """;
+        createArtifact(artifactId, ArtifactType.JSON, schema.formatted(10), ContentTypes.APPLICATION_JSON);
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.COMPATIBILITY);
         createRule.setConfig(CompatibilityLevel.BACKWARD.name());
         clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
                 .byArtifactId(artifactId).rules().post(createRule);
 
-        // The everit-based checker cannot load draft 2020-12 and throws SchemaException,
-        // which is rethrown as UnprocessableSchemaException (previously a 500).
-        var exception = Assertions.assertThrows(ApiException.class, () -> {
-            createArtifactVersion(artifactId, v2, ContentTypes.APPLICATION_JSON);
-        });
-        Assertions.assertEquals(422, exception.getResponseStatusCode());
+        createArtifactVersion(artifactId, schema.formatted(20), ContentTypes.APPLICATION_JSON);
+
+        var exception = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> createArtifactVersion(artifactId, schema.formatted(5), ContentTypes.APPLICATION_JSON));
+        Assertions.assertEquals(400, exception.getResponseStatusCode());
+        Assertions.assertEquals("/properties/name/maxLength", exception.getCauses().get(0).getContext());
     }
 
     @Test

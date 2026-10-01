@@ -10,7 +10,7 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
  * <p>
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@JsonPropertyOrder({ "groupId", "artifactId", "state", "version" })
+@JsonPropertyOrder({ "groupId", "artifactId", "previousState", "state", "version" })
 @RegisterForReflection
 public class ArtifactStateChange {
 
@@ -22,6 +22,14 @@ public class ArtifactStateChange {
      */
     @JsonProperty("artifactId")
     private String artifactId;
+
+    /**
+     * The state the artifact/version transitioned from. Absent when the resource had no prior state
+     * (e.g. immediately after creation).
+     */
+    @JsonProperty("previousState")
+    private String previousState;
+
     /**
      * (Required)
      */
@@ -54,6 +62,16 @@ public class ArtifactStateChange {
     @JsonProperty("artifactId")
     public void setArtifactId(String artifactId) {
         this.artifactId = artifactId;
+    }
+
+    @JsonProperty("previousState")
+    public String getPreviousState() {
+        return previousState;
+    }
+
+    @JsonProperty("previousState")
+    public void setPreviousState(String previousState) {
+        this.previousState = previousState;
     }
 
     /**

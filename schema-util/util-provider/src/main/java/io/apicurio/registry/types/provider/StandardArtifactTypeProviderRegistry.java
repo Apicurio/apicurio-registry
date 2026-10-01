@@ -256,6 +256,7 @@ public class StandardArtifactTypeProviderRegistry {
             ArtifactType.XML,
             ArtifactType.AGENT_CARD,
             ArtifactType.MCP_TOOL,
+            ArtifactType.MCP_SERVER,
             ArtifactType.ICEBERG_TABLE,
             ArtifactType.ICEBERG_VIEW,
             ArtifactType.OPENRPC,

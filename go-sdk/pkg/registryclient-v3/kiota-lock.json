@@ -1,8 +1,8 @@
 {
-  "descriptionHash": "2052C7043FF15C40F00B8E3F757FA0CD295BE7E4FE1007852DCCB7C4F5ABAEBE7C7F8D5D9E4EF542AAD21605B1FEB2139447FA54EE3469E0F8DA157DE0DA8E73",
+  "descriptionHash": "25DDC1D83105B53326AD64AE9F87BDC6D073117521A81FA2835A3E29C27D66B73595851571FBE1D62D3ADCD986ACA63E7FD12CBE2A63F930F5E429C1F097DCAA",
   "descriptionLocation": "../../v3.json",
   "lockFileVersion": "1.0.0",
-  "kiotaVersion": "1.23.0",
+  "kiotaVersion": "1.35.0",
   "clientClassName": "ApiClient",
   "typeAccessModifier": "Public",
   "clientNamespaceName": "github.com/apicurio/apicurio-registry/go-sdk/v3/pkg/registryclient-v3",
@@ -30,5 +30,6 @@
   ],
   "includePatterns": [],
   "excludePatterns": [],
-  "disabledValidationRules": []
+  "disabledValidationRules": [],
+  "allowedExternalOrigins": []
 }

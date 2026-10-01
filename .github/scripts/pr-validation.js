@@ -44,6 +44,17 @@ const MAINTAINER = 'maintainer';
 // The workflow file whose latest run carries a PR's "Validate PR" check.
 const VALIDATION_WORKFLOW_FILE = 'pr-validation.yml';
 
+// The base branches pr-validation.yml validates (its pull_request_target
+// branches filter). Issue events can't be filtered by branch, so
+// revalidateForIssue applies the same scope itself.
+const VALIDATED_BASE_BRANCHES = ['main', '3.3.x'];
+
+// How long revalidateForIssue waits for a validation run that is still going
+// before re-running it: such a run may already have read the old milestone.
+// A validation run normally takes well under a minute.
+const IN_PROGRESS_POLL_MS = 10 * 1000;
+const IN_PROGRESS_DEADLINE_MS = 3 * 60 * 1000;
+
 // Comparing files against every open PR costs one API call per PR. Above this
 // many open PRs we skip file-based duplicate detection rather than burn the
 // rate limit; issue-based detection still runs and is the more precise signal.
@@ -64,14 +75,75 @@ function isExemptAuthor(config, username) {
 }
 
 /**
- * Markdown with fenced code blocks and inline code spans removed. A closing
- * keyword quoted in code is being discussed, not used: explaining why a PR no
- * longer says ``Fixes #7317`` must not link #7317 again.
+ * Markdown with fenced code blocks and code spans removed. A closing keyword
+ * quoted in code is being discussed, not used: explaining why a PR no longer
+ * says ``Fixes #7317`` must not link #7317 again.
+ *
+ * Follows the CommonMark rules that matter here rather than a regex: a fence
+ * may be indented up to three spaces, is closed only by a fence of the same
+ * character at least as long, and an unclosed fence runs to the end; a code
+ * span ends at the next backtick run of exactly its length, may span lines,
+ * and never crosses a blank line.
  */
 function stripCode(markdown) {
-  return markdown
-    .replace(/^(```|~~~)[^\n]*\n[\s\S]*?^\1[^\n]*$/gm, '')
-    .replace(/`+[^`\n]*?`+/g, '');
+  const kept = [];
+  let fence = null;
+  for (const line of markdown.split('\n')) {
+    if (fence) {
+      const close = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
+      if (close && close[1][0] === fence.char && close[1].length >= fence.length) fence = null;
+      continue;
+    }
+    const open = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    // The info string of a backtick fence can't contain a backtick; that
+    // line is inline code instead.
+    if (open && !(open[1][0] === '`' && open[2].includes('`'))) {
+      fence = { char: open[1][0], length: open[1].length };
+      continue;
+    }
+    kept.push(line);
+  }
+  return kept.join('\n').split(/(\n[ \t]*\n)/).map(stripCodeSpans).join('');
+}
+
+// Code spans removed from one paragraph. A backtick run with no closing run
+// of the same length is literal text.
+function stripCodeSpans(paragraph) {
+  const runLength = at => {
+    let n = 0;
+    while (paragraph[at + n] === '`') n++;
+    return n;
+  };
+  let out = '';
+  let i = 0;
+  while (i < paragraph.length) {
+    if (paragraph[i] !== '`') {
+      out += paragraph[i++];
+      continue;
+    }
+    const n = runLength(i);
+    let j = i + n;
+    let close = -1;
+    while (j < paragraph.length) {
+      if (paragraph[j] !== '`') {
+        j++;
+        continue;
+      }
+      const m = runLength(j);
+      if (m === n) {
+        close = j;
+        break;
+      }
+      j += m;
+    }
+    if (close === -1) {
+      out += paragraph.slice(i, i + n);
+      i += n;
+    } else {
+      i = close + n;
+    }
+  }
+  return out;
 }
 
 /**
@@ -437,7 +509,8 @@ async function validate({ github, context, core }) {
 }
 
 /**
- * A linked issue's milestone changed. Re-runs the latest validation run of
+ * A linked issue's milestone changed, or it was closed or reopened (closed
+ * issues aren't milestone-checked). Re-runs the latest validation run of
  * every open PR that closes it.
  *
  * Validating here directly would update the comment and the label, but not
@@ -448,7 +521,8 @@ async function validate({ github, context, core }) {
  * re-run it (older than 30 days), does this validate directly, so that at
  * least the comment and the label are right.
  */
-async function revalidateForIssue({ github, context, core }) {
+async function revalidateForIssue({ github, context, core,
+                                   pollMs = IN_PROGRESS_POLL_MS, deadlineMs = IN_PROGRESS_DEADLINE_MS }) {
   const { owner, repo } = context.repo;
   const issue = context.payload.issue;
   // A PR's own milestone reaches the check through pull_request_target
@@ -458,16 +532,24 @@ async function revalidateForIssue({ github, context, core }) {
   const openPrs = await github.paginate(github.rest.pulls.list, {
     owner, repo, state: 'open', per_page: 100,
   });
-  const linking = openPrs.filter(p => extractLinkedIssues(p.body, owner, repo).has(issue.number));
-  core.info(`Issue #${issue.number} milestone changed; ${linking.length} open PR(s) close it`);
+  const linking = openPrs.filter(p => VALIDATED_BASE_BRANCHES.includes(p.base.ref)
+    && extractLinkedIssues(p.body, owner, repo).has(issue.number));
+  core.info(`Issue #${issue.number} ${context.payload.action}; ${linking.length} open PR(s) close it`);
 
   for (const pr of linking) {
     const { data } = await github.rest.actions.listWorkflowRuns({
       owner, repo, workflow_id: VALIDATION_WORKFLOW_FILE, head_sha: pr.head.sha, per_page: 1,
     });
-    const run = data.workflow_runs[0];
+    let run = data.workflow_runs[0];
+    // A run still going may have read the issue before this change. Let it
+    // finish, then re-run it.
+    for (let waited = 0; run && run.status !== 'completed' && waited < deadlineMs; waited += pollMs) {
+      await new Promise(resolve => setTimeout(resolve, pollMs));
+      run = (await github.rest.actions.getWorkflowRun({ owner, repo, run_id: run.id })).data;
+    }
     if (run && run.status !== 'completed') {
-      core.info(`PR #${pr.number} validation run ${run.id} is still running and reads milestones live`);
+      core.warning(`PR #${pr.number} validation run ${run.id} is still running after `
+        + `${deadlineMs / 1000}s; not re-running it. /retry re-runs it once it has finished.`);
       continue;
     }
     if (run) {

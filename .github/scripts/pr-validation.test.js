@@ -220,7 +220,7 @@ const CLOSED_MILESTONE = { title: '3.3.3', state: 'closed' };
  */
 function createFakeGithub({ commitsByPr = {}, openPrs = [], filesByPr = {},
                             issuesByNumber = {}, validationRunsBySha = {},
-                            reRunError = null } = {}) {
+                            reRunError = null, runPolls = {} } = {}) {
   const calls = {
     createdComments: [], updatedComments: [], addedLabels: [], removedLabels: [], listParams: [],
     runLookups: [], reRuns: [],
@@ -251,6 +251,12 @@ function createFakeGithub({ commitsByPr = {}, openPrs = [], filesByPr = {},
         reRunWorkflow: async ({ run_id }) => {
           if (reRunError) throw reRunError;
           calls.reRuns.push(run_id);
+        },
+        // runPolls[id]: the states successive getWorkflowRun calls return.
+        getWorkflowRun: async ({ run_id }) => {
+          calls.runPolls = (calls.runPolls || 0) + 1;
+          const states = runPolls[run_id] || [];
+          return { data: { id: run_id, ...(states.length > 1 ? states.shift() : states[0]) } };
         },
       },
       issues: {
@@ -655,6 +661,30 @@ test('extractLinkedIssues: a double-backtick span is code too', () => {
   assert.deepEqual([...extractLinkedIssues('Closes #5, not ``Fixes #6``', OWNER, REPO)], [5]);
 });
 
+test('extractLinkedIssues: fences indented up to three spaces, and unclosed fences, are code', () => {
+  assert.deepEqual([...extractLinkedIssues('Closes #1\n   ~~~\n   Fixes #42\n   ~~~\n', OWNER, REPO)], [1]);
+  assert.deepEqual([...extractLinkedIssues('Closes #1\n~~~\nFixes #42\n', OWNER, REPO)], [1]);
+  // Four spaces is not a fence (that line is an indented code block of its
+  // own), so the unindented line after it is prose, as in CommonMark.
+  assert.deepEqual([...extractLinkedIssues('Closes #1\n    ```\nFixes #42\n', OWNER, REPO)].sort(), [1, 42]);
+});
+
+test('extractLinkedIssues: a longer fence is only closed by a fence at least as long, of the same character', () => {
+  const body = 'Closes #1\n````\n```\nFixes #42\n~~~~\nFixes #43\n````\nResolves #2';
+  assert.deepEqual([...extractLinkedIssues(body, OWNER, REPO)].sort(), [1, 2]);
+});
+
+test('extractLinkedIssues: a code span ends at a run of exactly its length, across lines', () => {
+  assert.deepEqual([...extractLinkedIssues('Closes #1 `` a ` Fixes #42 ` b `` Resolves #2', OWNER, REPO)].sort(), [1, 2]);
+  assert.deepEqual([...extractLinkedIssues('Closes #1 `code\nFixes #42` Resolves #2', OWNER, REPO)].sort(), [1, 2]);
+});
+
+test('extractLinkedIssues: a code span never crosses a blank line, and an unmatched run is literal', () => {
+  // Across the blank line the two backticks would pair up and hide Fixes #3.
+  assert.deepEqual([...extractLinkedIssues('Closes #1 ` a\n\nFixes #3 ` b', OWNER, REPO)].sort(), [1, 3]);
+  assert.deepEqual([...extractLinkedIssues('a `` b Fixes #5', OWNER, REPO)], [5]);
+});
+
 test('stripCode: leaves prose alone', () => {
   assert.equal(stripCode('Closes #1 and Fixes #2'), 'Closes #1 and Fixes #2');
 });
@@ -778,18 +808,54 @@ test('revalidateForIssue(): re-runs the latest validation run of each open PR cl
   assert.deepEqual(calls.createdComments, [], 're-runs post their own comments');
 });
 
-test('revalidateForIssue(): a validation run still in progress is left alone', async (t) => {
+test('revalidateForIssue(): a run still in progress is re-run once it finishes', async (t) => {
+  // It may already have read the issue before the milestone changed.
   stubConfig(t, { auto_accept: [] });
   const { github, calls } = createFakeGithub({
     openPrs: [linkingPr(1, 'Closes #42', 'sha1')],
     validationRunsBySha: { sha1: [{ id: 101, status: 'in_progress', conclusion: null }] },
+    runPolls: { 101: [{ status: 'in_progress' }, { status: 'completed', conclusion: 'failure' }] },
   });
   const { core } = createFakeCore();
 
-  await revalidateForIssue({ github, context: issueEvent(42), core });
+  await revalidateForIssue({ github, context: issueEvent(42), core, pollMs: 0, deadlineMs: 1 });
+
+  assert.equal(calls.runPolls, 2);
+  assert.deepEqual(calls.reRuns, [101]);
+});
+
+test('revalidateForIssue(): a run still going past the deadline is left, with a warning', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const { github, calls } = createFakeGithub({
+    openPrs: [linkingPr(1, 'Closes #42', 'sha1')],
+    validationRunsBySha: { sha1: [{ id: 101, status: 'in_progress', conclusion: null }] },
+    runPolls: { 101: [{ status: 'in_progress' }] },
+  });
+  const { core, warnings } = createFakeCore();
+
+  await revalidateForIssue({ github, context: issueEvent(42), core, pollMs: 1, deadlineMs: 3 });
 
   assert.deepEqual(calls.reRuns, []);
-  assert.deepEqual(calls.createdComments, []);
+  assert.deepEqual(calls.createdComments, [], 'no direct validation over a run that is still going');
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /still running/);
+});
+
+test('revalidateForIssue(): PRs targeting a branch validation does not cover are skipped', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const { github, calls } = createFakeGithub({
+    openPrs: [
+      { ...linkingPr(1, 'Closes #42', 'sha1'), base: { ref: 'feature/x' } },
+      { ...linkingPr(2, 'Closes #42', 'sha2'), base: { ref: '3.3.x' } },
+    ],
+  });
+  const { core } = createFakeCore();
+  makeContext({ ...linkingPr(2, 'Closes #42', 'sha2'), base: { ref: '3.3.x' } });
+
+  await revalidateForIssue({ github, context: issueEvent(42), core });
+
+  assert.deepEqual(calls.runLookups, [{ workflow_id: 'pr-validation.yml', head_sha: 'sha2' }]);
+  assert.deepEqual(calls.createdComments.map(c => c.issue_number), [2]);
 });
 
 test('revalidateForIssue(): without a run to re-run, validates directly so the comment and label are right', async (t) => {

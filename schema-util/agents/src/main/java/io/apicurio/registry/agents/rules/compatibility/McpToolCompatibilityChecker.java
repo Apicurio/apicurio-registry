@@ -13,6 +13,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Compatibility checker for MCP tool definition artifacts.
@@ -122,11 +124,8 @@ public class McpToolCompatibilityChecker
             return Collections.emptySet();
         }
         if (typeNode.isArray()) {
-            Set<JsonNode> types = new HashSet<>(typeNode.size());
-            for (JsonNode item : typeNode) {
-                types.add(item);
-            }
-            return types;
+            return StreamSupport.stream(typeNode.spliterator(), false)
+                    .collect(Collectors.toSet());
         } else {
             return Collections.singleton(typeNode);
         }
@@ -137,11 +136,10 @@ public class McpToolCompatibilityChecker
             JsonNode node = types.iterator().next();
             return node.isTextual() ? node.asText() : node.toString();
         }
-        Set<String> sortedFormatted = new TreeSet<>();
-        for (JsonNode node : types) {
-            sortedFormatted.add(node.isTextual() ? "\"" + node.asText() + "\"" : node.toString());
-        }
-        return sortedFormatted.toString();
+        return types.stream()
+                .map(node -> node.isTextual() ? "\"" + node.asText() + "\"" : node.toString())
+                .collect(Collectors.toCollection(TreeSet::new))
+                .toString();
     }
 
     private Set<String> extractPropertyNames(JsonNode inputSchema) {
@@ -168,10 +166,7 @@ public class McpToolCompatibilityChecker
         if (requiredNode == null || !requiredNode.isArray() || requiredNode.isEmpty()) {
             return Collections.emptySet();
         }
-        Set<JsonNode> required = new HashSet<>(requiredNode.size());
-        for (JsonNode item : requiredNode) {
-            required.add(item);
-        }
-        return required;
+        return StreamSupport.stream(requiredNode.spliterator(), false)
+                .collect(Collectors.toSet());
     }
 }

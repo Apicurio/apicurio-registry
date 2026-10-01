@@ -590,7 +590,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     ArtifactVersionMetaDataDto vmdDto = createArtifactVersionRaw(handle, true, groupId,
                             artifactId, version, versionMetaData, owner, createdOn, contentId,
                             versionBranches, versionIsDraft);
-                    refreshStructuredContentRaw(handle, groupId, artifactId);
+                    // artifactType is exactly what was just inserted into the artifacts row above.
+                    refreshStructuredContentRaw(handle, groupId, artifactId, artifactType);
 
                     pair = ImmutablePair.of(amdDto, vmdDto);
                 } else {
@@ -651,6 +652,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     private void refreshStructuredContentRaw(Handle handle, String groupId, String artifactId) {
         String type = artifactRepository.getArtifactMetaData(groupId, artifactId).getArtifactType();
+        refreshStructuredContentRaw(handle, groupId, artifactId, type);
+    }
+
+    /**
+     * Variant for callers that already know the artifact's stored type. Skipping the metadata lookup
+     * matters on the create path: it runs while the globalId sequence row is locked, so every extra
+     * round trip there serializes all concurrent artifact creates.
+     */
+    private void refreshStructuredContentRaw(Handle handle, String groupId, String artifactId, String type) {
         if (!hasStructuredContentExtractor(type)) {
             return;
         }

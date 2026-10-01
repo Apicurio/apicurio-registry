@@ -37,7 +37,7 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     @ConfigProperty(name = "apicurio.artifact-types.config-file", defaultValue = "/tmp/apicurio-registry-artifact-types.json")
     @Info(category = ConfigPropertyCategory.CATEGORY_TYPES, description = "Path to a configuration file containing a list of supported artifact types.", availableSince = "3.1.0")
     @Getter
-    private String configFile;
+    String configFile;
 
     @ConfigProperty(name = "apicurio.compat.json-schema.use-apitomy", defaultValue = "true")
     @Info(category = ConfigPropertyCategory.CATEGORY_TYPES, description = "Use the Apitomy Data Models JSON Schema compatibility checker, which supports drafts 4, 6, 7, 2019-09 and 2020-12. Set to false to use the legacy everit-based checker instead, which supports drafts 4 to 7 only, is deprecated, and will be removed.", availableSince = "3.3.1")

@@ -7,8 +7,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-Implement multitenancy with {registry} on {kubernetes} using the {operator}.
-{registry} uses a multi-instance operator pattern. Each tenant receives a dedicated `ApicurioRegistry3` custom resource (CR), which the operator reconciles into an independent set of {kubernetes} resources. This approach provides strong isolation between tenants at the infrastructure level. It uses {kubernetes}-native mechanisms for security, resource management, and network segmentation.
+You can implement multitenancy with {registry} on {kubernetes} by using the {operator}. {registry} uses a multi-instance operator pattern in which each tenant receives a dedicated `ApicurioRegistry3` custom resource (CR).
+
+The {operator} reconciles each CR into an independent set of {kubernetes} resources. This approach provides strong isolation between tenants at the infrastructure level. It uses {kubernetes}-native mechanisms for security, resource management, and network segmentation.
 
 == Prerequisites
 

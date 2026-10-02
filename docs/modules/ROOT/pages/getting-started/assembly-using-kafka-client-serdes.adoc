@@ -6,7 +6,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-{registry} provides client serializers/deserializers (SerDes) for Kafka producer and consumer applications written in Java. Kafka producer applications use serializers to encode messages that conform to a specific event schema. Kafka consumer applications use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID. This ensures consistent schema use and helps to prevent data errors at runtime.
+{registry} provides client serializers/deserializers (SerDes) for Kafka producer and consumer applications written in Java, which ensures consistent schema use and helps to prevent data errors at runtime.
+
+Kafka producer applications use serializers to encode messages that conform to a specific event schema. Kafka consumer applications use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID.
 
 This chapter explains how to use Kafka client SerDes in your producer and consumer client applications.
 
@@ -105,7 +107,9 @@ When locating the global ID in the message payload, the format of the data begin
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-The Kafka client serializer uses _lookup strategies_ to determine the artifact ID and global ID under which the message schema is registered in {registry}. For a given topic and message, you can use different implementations of the `ArtifactReferenceResolverStrategy` Java interface to return a reference to an artifact in the registry.
+The Kafka client serializer uses _lookup strategies_ to determine the artifact ID and global ID under which the message schema is registered in {registry}.
+
+For a given topic and message, you can use different implementations of the `ArtifactReferenceResolverStrategy` Java interface to return a reference to an artifact in the registry.
 
 The classes for each strategy are in the `io.apicurio.registry.serde.strategy` package. Specific strategy classes for Avro SerDes are in the `io.apicurio.registry.serde.avro.strategy package`. The default strategy is the `TopicIdStrategy`, which looks for {registry} artifacts with the same name as the Kafka topic receiving messages.
 
@@ -277,7 +281,7 @@ The `register` goal uploads the schema artifact to the registry, using the `regi
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-This procedure describes how to configure a Kafka consumer client written in Java to use a schema from {registry}.
+You can configure a Kafka consumer client written in Java to use a schema from {registry}.
 
 .Prerequisites
 
@@ -320,7 +324,7 @@ The `KEY_DESERIALIZER_CLASS_CONFIG` and `VALUE_DESERIALIZER_CLASS_CONFIG` proper
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-This procedure describes how to configure a Kafka producer client written in Java to use a schema from {registry}.
+You can configure a Kafka producer client written in Java to use a schema from {registry}.
 
 .Prerequisites
 
@@ -356,7 +360,7 @@ The `KEY_SERIALIZER_CLASS_CONFIG` and `VALUE_SERIALIZER_CLASS_CONFIG` properties
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-This procedure describes how to configure a Kafka Streams client written in Java to use an Apache Avro schema from {registry}.
+You can configure a Kafka Streams client written in Java to use an Apache Avro schema from {registry}.
 
 .Prerequisites
 

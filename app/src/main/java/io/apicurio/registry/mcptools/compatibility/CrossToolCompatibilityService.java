@@ -1,6 +1,8 @@
 package io.apicurio.registry.mcptools.compatibility;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.JsonSchemaDiffLibrary;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.Difference;
@@ -29,9 +31,9 @@ import java.util.Set;
  * {@code inputSchema} the updated one of a backward compatibility check.
  *
  * <p>The engine assumes that an object without {@code additionalProperties} can emit any
- * undeclared property, so the producer is also compared with its root object closed. Mismatches
+ * undeclared property, so the producer is also compared with every such object closed. Mismatches
  * that only the open producer causes become a {@link LimitationCode#PRODUCER_OBJECT_OPEN}
- * limitation, never a reason.
+ * limitation on the object that was left open, never a reason.
  */
 @ApplicationScoped
 public class CrossToolCompatibilityService {
@@ -130,13 +132,20 @@ public class CrossToolCompatibilityService {
             return indeterminate(limitations);
         }
 
+        ObjectNode producerProjected = producer.projection().projected();
+        Optional<ObjectNode> producerRealigned = TypeAlignment.realign(producerProjected,
+                consumer.projected());
+        ObjectNode consumerProjected = TypeAlignment.realign(consumer.projected(), producerProjected)
+                .orElse(consumer.projected());
+
         Map<DifferenceKey, Difference> asWritten;
         Map<DifferenceKey, Difference> closed;
         try {
-            Schema consumerSchema = load(consumer.projected());
-            asWritten = incompatibleDifferences(producer.asWritten(), consumerSchema);
-            closed = producer.closed() == null ? asWritten
-                    : incompatibleDifferences(producer.closed(), consumerSchema);
+            Schema consumerSchema = load(consumerProjected);
+            ProducerRun run = producerRun(producer, producerRealigned);
+            asWritten = incompatibleDifferences(run.asWritten(), consumerSchema);
+            closed = run.closed() == null ? asWritten
+                    : incompatibleDifferences(run.closed(), consumerSchema);
         } catch (SchemaException | JSONException e) {
             log.debug("MCP tool inputSchema cannot be loaded for comparison", e);
             limitations.add(comparisonFailed(SchemaSide.CONSUMER, INPUT_SCHEMA_POINTER,
@@ -149,21 +158,20 @@ public class CrossToolCompatibilityService {
             return indeterminate(limitations);
         }
 
+        DifferenceAttributor attributor = new DifferenceAttributor(producer.projection(), consumer,
+                this::accepts);
         if (!closed.keySet().stream().allMatch(asWritten::containsKey)) {
             limitations.add(comparisonFailed(SchemaSide.PRODUCER, OUTPUT_SCHEMA_POINTER,
-                    "Closing the producer object introduced a mismatch"));
+                    "Closing the producer objects introduced a mismatch"));
         }
-        if (!asWritten.keySet().stream().allMatch(closed::containsKey)) {
+        for (String node : openObjects(asWritten, closed, attributor)) {
             limitations.add(new CompatibilityLimitation(LimitationCode.PRODUCER_OBJECT_OPEN,
-                    SchemaSide.PRODUCER, OUTPUT_SCHEMA_POINTER, OUTPUT_SCHEMA_POINTER,
-                    "The outputSchema does not set additionalProperties, so the verdict depends on the"
+                    SchemaSide.PRODUCER, node, node,
+                    "The object does not set additionalProperties, so the verdict depends on the"
                             + " producer emitting only the properties it declares"));
         }
 
-        DifferenceAttributor attributor = new DifferenceAttributor(producer.projection(), consumer,
-                this::accepts);
-        Set<CompatibilityReason> reasons = new LinkedHashSet<>();
-        attributor.unrestrictedOutputType().ifPresent(reasons::add);
+        Set<CompatibilityReason> reasons = new LinkedHashSet<>(attributor.unreportedMismatches());
         boolean unattributed = false;
         for (Map.Entry<DifferenceKey, Difference> difference : asWritten.entrySet()) {
             if (closed.containsKey(difference.getKey())) {
@@ -202,9 +210,63 @@ public class CrossToolCompatibilityService {
         return indeterminate(limitations);
     }
 
+    /**
+     * The producer nodes whose mismatches the closed run removes, which are the objects the
+     * verdict depends on being closed. A difference that cannot be placed is reported against the
+     * whole outputSchema.
+     */
+    private static Set<String> openObjects(Map<DifferenceKey, Difference> asWritten,
+            Map<DifferenceKey, Difference> closed, DifferenceAttributor attributor) {
+        Set<String> nodes = new LinkedHashSet<>();
+        for (Map.Entry<DifferenceKey, Difference> difference : asWritten.entrySet()) {
+            if (!closed.containsKey(difference.getKey())) {
+                nodes.add(attributor.producerNode(difference.getValue())
+                        .orElse(OUTPUT_SCHEMA_POINTER));
+            }
+        }
+        return nodes;
+    }
+
+    /**
+     * The producer schemas to compare with one consumer. The schemas loaded when the producer was
+     * prepared are reused unless that consumer's unions require the producer to be written the
+     * same way.
+     */
+    private ProducerRun producerRun(PreparedProducer producer, Optional<ObjectNode> realigned) {
+        if (realigned.isEmpty()) {
+            return new ProducerRun(producer.asWritten(), producer.closed());
+        }
+        ObjectNode projected = realigned.get();
+        Schema closed = producer.projection().closable()
+                ? load(SchemaProjection.closed(projected))
+                : null;
+        return new ProducerRun(load(projected), closed);
+    }
+
+    /**
+     * Whether every value the first subschema permits is accepted by the second. The engine reads
+     * the object and array keywords as a type, so the cases where one side declares no type are
+     * decided here: a subschema without a type permits values of every type, and the keywords this
+     * comparison evaluates constrain nothing but objects and arrays.
+     */
     private Optional<Boolean> accepts(JsonNode emitted, JsonNode accepted) {
+        if (BooleanNode.FALSE.equals(emitted)) {
+            return Optional.of(true);
+        }
+        if (BooleanNode.FALSE.equals(accepted)) {
+            return Optional.of(false);
+        }
+        if (!SchemaNode.declaresType(emitted) && SchemaNode.declaresType(accepted)) {
+            return Optional.of(false);
+        }
+        if (SchemaNode.declaresType(emitted) && !SchemaNode.declaresType(accepted)
+                && !SchemaNode.declaresStructuredType(emitted)) {
+            return Optional.of(true);
+        }
         try {
-            return Optional.of(incompatibleDifferences(load(emitted), load(accepted)).isEmpty());
+            return Optional.of(incompatibleDifferences(
+                    load(TypeAlignment.align(emitted, accepted)),
+                    load(TypeAlignment.align(accepted, emitted))).isEmpty());
         } catch (SchemaException | JSONException | IllegalStateException e) {
             return Optional.empty();
         }
@@ -261,5 +323,8 @@ public class CrossToolCompatibilityService {
     }
 
     private record DifferenceKey(DiffType type, String path, String updated) {
+    }
+
+    private record ProducerRun(Schema asWritten, Schema closed) {
     }
 }

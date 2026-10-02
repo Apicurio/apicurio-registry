@@ -94,7 +94,7 @@ a| Full
 |*JSON Schema*
 a| Full
 a| Full
-a| Mapping detection not supported
+a| Full
 |*OpenAPI*
 a| Full
 a| Full

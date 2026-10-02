@@ -177,9 +177,9 @@ Because JSON Schema uses a constraint-based validation model, the following tabl
 |Backward compatible?
 |Reason
 
-|Add a new optional property when `additionalProperties` is `false`
+|Add an optional property whose schema accepts every value the old schema allowed under that name
 |Yes
-|Old data can't contain the property, because the old schema rejected any property it didn't declare.
+|Old data remains valid. When `additionalProperties` is `false`, the old schema allowed no value, so any property schema qualifies. When `additionalProperties` is a schema, a property schema that accepts at least as much qualifies.
 
 |Remove a property from `required`
 |Yes
@@ -253,9 +253,9 @@ Because JSON Schema uses a constraint-based validation model, the following tabl
 |No
 |Old data with additional properties fails validation.
 
-|Add a new optional property when additional properties are allowed
+|Add an optional property whose schema is narrower than what the old schema allowed under that name
 |No
-|Before the change, a property of that name could hold any value. After it, only values that match the new property schema are valid. The change is forward compatible, so a `FORWARD` rule accepts it.
+|Old data with a value the new property schema rejects fails validation. For example, when `additionalProperties` is absent or `true`, any value was allowed, so adding a property with a `type` breaks compatibility. The change is forward compatible, so a `FORWARD` rule accepts it.
 
 |Change or narrow the `type` keyword
 |No
@@ -327,6 +327,12 @@ References to other artifacts are resolved from the artifact references that are
 No document is fetched over the network.
 If a reference can't be resolved, part of the schema can't be compared, so the check fails with HTTP status 422 instead of returning a result.
 
+Known over-strict verdicts::
+Where the check can't prove that a change is compatible, it reports it as incompatible, so it never accepts a breaking change. In the following cases, it reports a compatible change as incompatible. Future versions of Apitomy Data Models will handle them:
++
+* Adding a property whose schema accepts every value, for example one with only a `description`, when `additionalProperties` is absent or `true`.
+* Adding a `type` inside `then` or `else`, when an enclosing schema already requires that type.
+
 For a description and examples of every kind of change the check reports, see the link:https://www.apitomy.io/projects/data-models/docs/4.x/user-guide/schema-compatibility.html[Apitomy Data Models schema compatibility guide^].
 
 === Changes to JSON Schema compatibility checking in {registry} 3.4
@@ -362,9 +368,8 @@ Update anything that matches the previous text or contexts, for example:
 * A new `oneOf` subschema that can match the same values as an existing one is now reported as incompatible.
 The earlier checker compared `oneOf` like `anyOf`, and accepted such a change.
 
-* Adding a `type` inside `then` or `else` is reported as incompatible, even when an enclosing schema already requires that type, so the change accepts no less data.
-The earlier checker accepted such a change.
-A future version of Apitomy Data Models will take the enclosing schema into account.
+* Adding a `type` inside `then` or `else` that an enclosing schema already requires is reported as incompatible, where the earlier checker accepted it.
+See the known over-strict verdicts above.
 
 * The `apicurio.compat.json-schema.use-apitomy` configuration property, which selected the new checker in version 3.3, no longer has any effect, and is deprecated.
 If it is set, {registry} logs a warning at startup.

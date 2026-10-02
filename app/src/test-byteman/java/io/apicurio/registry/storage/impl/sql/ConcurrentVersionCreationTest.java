@@ -146,7 +146,7 @@ public class ConcurrentVersionCreationTest {
      * VersionAlreadyExistsException, which the catch below turns back into a named assertion.
      * Removing UQ_versions_3 from h2.ddl as well lets both rows be written, and the versionOrder
      * assertion reports 1 and 1. The test database is created fresh from h2.ddl, so the
-     * upgrades/110 scripts and db-version play no part in that run.
+     * upgrades/111 scripts and db-version play no part in that run.
      *
      * <p>The fix under test is lockArtifactForVersionWrite, an UPDATE on the parent artifacts row
      * taken before the version count.

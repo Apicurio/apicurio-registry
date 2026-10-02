@@ -178,13 +178,8 @@ public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
 
     @Override
     public void visitPropertySchemas(Map<String, SchemaWrapper> propertySchemas) {
-        @SuppressWarnings("serial")
-        Set<String> allPropertySchemaNames = new HashSet<String>() {
-            {
-                addAll(original.getPropertySchemas().keySet());
-                addAll(schema.getPropertySchemas().keySet());
-            }
-        };
+        Set<String> allPropertySchemaNames = new HashSet<>(original.getPropertySchemas().keySet());
+        allPropertySchemaNames.addAll(schema.getPropertySchemas().keySet());
 
         List<SchemaWrapper> addedPropertySchemas = new ArrayList<>();
         List<SchemaWrapper> removedPropertySchemas = new ArrayList<>();

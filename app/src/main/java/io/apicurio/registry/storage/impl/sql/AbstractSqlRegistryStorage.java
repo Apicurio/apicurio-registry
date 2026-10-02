@@ -590,7 +590,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     ArtifactVersionMetaDataDto vmdDto = createArtifactVersionRaw(handle, true, groupId,
                             artifactId, version, versionMetaData, owner, createdOn, contentId,
                             versionBranches, versionIsDraft);
-                    refreshStructuredContentRaw(handle, groupId, artifactId);
+                    // artifactType is exactly what was just inserted into the artifacts row above.
+                    refreshStructuredContentRaw(handle, groupId, artifactId, artifactType);
 
                     pair = ImmutablePair.of(amdDto, vmdDto);
                 } else {
@@ -651,6 +652,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     private void refreshStructuredContentRaw(Handle handle, String groupId, String artifactId) {
         String type = artifactRepository.getArtifactMetaData(groupId, artifactId).getArtifactType();
+        refreshStructuredContentRaw(handle, groupId, artifactId, type);
+    }
+
+    /**
+     * Variant for callers that already know the artifact's stored type. Skipping the metadata lookup
+     * matters on the create path: it runs while the globalId sequence row is locked, so every extra
+     * round trip there serializes all concurrent artifact creates.
+     */
+    private void refreshStructuredContentRaw(Handle handle, String groupId, String artifactId, String type) {
         if (!hasStructuredContentExtractor(type)) {
             return;
         }
@@ -1346,6 +1356,34 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public VersionState getArtifactVersionState(String groupId, String artifactId, String version) {
 
         return versionRepository.getArtifactVersionState(groupId, artifactId, version);
+    }
+
+    @Override
+    public void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
+        handles.withHandleNoException(handle -> {
+            // Validate every target before changing any of them. Nested repository calls share this
+            // handle and transaction, including outbox rows and label indexes.
+            for (String version : versions) {
+                versionRepository.getArtifactVersionMetaData(groupId, artifactId, version);
+            }
+            for (String version : versions) {
+                updateArtifactVersionState(groupId, artifactId, version, newState, false);
+                ArtifactVersionMetaDataDto metadata = versionRepository.getArtifactVersionMetaData(
+                        groupId, artifactId, version);
+                Map<String, String> merged = new HashMap<>();
+                if (metadata.getLabels() != null) {
+                    merged.putAll(metadata.getLabels());
+                }
+                merged.keySet().removeIf(key -> key.startsWith(labelPrefix));
+                merged.putAll(labels);
+                // Keep the canonical label map intact. Rebuilding it from the search index would
+                // truncate/lowercase unrelated publisher metadata.
+                versionRepository.updateArtifactVersionMetaData(groupId, artifactId, version,
+                        EditableVersionMetaDataDto.builder().labels(merged).build());
+            }
+            return null;
+        });
     }
 
     @Override

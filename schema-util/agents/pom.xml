@@ -12,7 +12,7 @@
   <packaging>jar</packaging>
   <name>Registry :: Schema Util :: Agents</name>
   <description>
-    AI/agent artifact types (AGENT_CARD, MCP_TOOL, MODEL_SCHEMA, PROMPT_TEMPLATE). Contributed to the
+    AI/agent artifact types (AGENT_CARD, MCP_TOOL, MCP_SERVER, MODEL_SCHEMA, PROMPT_TEMPLATE). Contributed to the
     standard artifact type registry via ServiceLoader when this jar is on the classpath.
   </description>
 
@@ -21,6 +21,17 @@
   </properties>
 
   <dependencies>
+
+    <dependency>
+      <groupId>com.github.erosb</groupId>
+      <artifactId>everit-json-schema</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>commons-logging</groupId>
+          <artifactId>commons-logging</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
 
     <dependency>
       <groupId>io.apicurio</groupId>

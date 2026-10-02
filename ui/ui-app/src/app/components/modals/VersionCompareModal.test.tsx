@@ -1,55 +1,25 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-
-/**
- * These tests drive the component's load effect directly rather than rendering it, which is the
- * same approach used by useThemeService.test.tsx. The vitest environment is "node", so there is no
- * DOM available to render into.
- *
- * The behaviour under test is that a load belonging to a superseded version pair can no longer
- * write state, which is what newLoaderGuard() provides. See #8880 for the original fix that
- * introduced the guard for the page loaders.
- */
-
-const setters: Record<string, any> = {};
-let effects: Array<{ fn: () => any; deps: any[] }> = [];
-let stateIndex = 0;
-// Order must match the useState call order in VersionCompareModal.tsx. If a useState is added
-// or reordered there, update this list, otherwise the assertions silently target the wrong
-// setter. expectedStateCount below turns that silent drift into a failing test.
-const stateNames = ["version1Content", "version2Content", "isLoading", "error"];
-const expectedStateCount = stateNames.length;
-
-vi.mock("react", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("react")>();
-    return {
-        ...actual,
-        useState: vi.fn((init: any) => {
-            const name = stateNames[stateIndex] ?? `extra${stateIndex}`;
-            stateIndex++;
-            if (!setters[name]) {
-                setters[name] = vi.fn();
-            }
-            return [typeof init === "function" ? init() : init, setters[name]];
-        }),
-        useEffect: vi.fn((fn: any, deps: any[]) => {
-            effects.push({ fn, deps });
-        })
-    };
-});
-
-// The vitest environment is "node", so PatternFly's CSS side effects cannot load. Only the load
-// effect is under test here, so the presentational imports are stubbed out.
-vi.mock("@patternfly/react-core", () => ({ Spinner: () => null, Alert: () => null }));
-vi.mock("@patternfly/react-core/deprecated", () => ({ Modal: () => null }));
-vi.mock("@app/components", () => ({ DiffView: () => null }));
-vi.mock("./VersionCompareModal.css", () => ({}));
+// @vitest-environment jsdom
+import "@testing-library/jest-dom/vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, render, screen } from "@testing-library/react";
+import { SearchedVersion } from "@sdk/lib/generated-client/models";
+import { VersionCompareModal } from "./VersionCompareModal";
 
 const getArtifactVersionContent = vi.fn();
 vi.mock("@services/useGroupsService.ts", () => ({
     useGroupsService: () => ({ getArtifactVersionContent })
 }));
 
-const deferred = () => {
+// The real DiffView mounts a Monaco editor; a plain stand-in keeps the assertions about content.
+vi.mock("@app/components", () => ({
+    DiffView: (props: { original: string; modified: string }) => (
+        <pre data-testid="diff">{`${props.original}|${props.modified}`}</pre>
+    )
+}));
+
+type Deferred = { promise: Promise<string>; resolve: (v: string) => void; reject: (e: unknown) => void };
+
+const deferred = (): Deferred => {
     let resolve!: (v: string) => void;
     let reject!: (e: unknown) => void;
     const promise = new Promise<string>((res, rej) => {
@@ -59,110 +29,100 @@ const deferred = () => {
     return { promise, resolve, reject };
 };
 
-const version = (name: string, createdOn: string) => ({ version: name, createdOn } as any);
+const version = (name: string, createdOn: string): SearchedVersion =>
+    ({ version: name, createdOn: new Date(createdOn) }) as SearchedVersion;
 
-/** Renders the component function once and returns the load effect that was registered. */
-const runComponent = async (version1: any, version2: any) => {
-    const { VersionCompareModal } = await import("./VersionCompareModal");
-    stateIndex = 0;
-    effects = [];
-    (VersionCompareModal as any)({
-        isOpen: true,
-        groupId: "g",
-        artifactId: "a",
-        version1,
-        version2,
-        onClose: vi.fn()
+const v1 = version("1", "2026-01-01");
+const v2 = version("2", "2026-01-02");
+const v3 = version("3", "2026-01-03");
+
+const modal = (version1: SearchedVersion, version2: SearchedVersion) => (
+    <VersionCompareModal
+        isOpen={true}
+        groupId="g"
+        artifactId="a"
+        version1={version1}
+        version2={version2}
+        onClose={() => {}}
+    />
+);
+
+/** Lets pending promise callbacks run and React apply the resulting state updates. */
+const flush = async (): Promise<void> => {
+    await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
     });
-    // If this fails, VersionCompareModal changed its useState calls and stateNames is stale.
-    expect(stateIndex).toBe(expectedStateCount);
-    // The first effect is the loader; the second resets state when the modal closes.
-    return effects[0];
 };
 
-describe("VersionCompareModal load guard", () => {
-    beforeEach(() => {
+/**
+ * Renders the modal for the pair (v1, v2), then switches it to (v1, v3) while the first load is
+ * still in flight. Returns the pending responses for both loads.
+ */
+const renderThenSwitchPair = async (): Promise<{ stale: Deferred[]; current: Deferred[] }> => {
+    const stale = [deferred(), deferred()];
+    const current = [deferred(), deferred()];
+    getArtifactVersionContent
+        .mockReturnValueOnce(stale[0].promise)
+        .mockReturnValueOnce(stale[1].promise)
+        .mockReturnValueOnce(current[0].promise)
+        .mockReturnValueOnce(current[1].promise);
+
+    const { rerender } = render(modal(v1, v2));
+    rerender(modal(v1, v3));
+    await flush();
+    return { stale, current };
+};
+
+describe("VersionCompareModal", () => {
+    afterEach(() => {
+        cleanup();
         vi.clearAllMocks();
-        for (const key of Object.keys(setters)) {
-            delete setters[key];
-        }
-        stateIndex = 0;
-        effects = [];
     });
 
-    it("ignores a resolution belonging to a superseded version pair", async () => {
-        const a1 = deferred();
-        const a2 = deferred();
-        getArtifactVersionContent.mockReturnValueOnce(a1.promise).mockReturnValueOnce(a2.promise);
+    it("shows the older version on the left", async () => {
+        getArtifactVersionContent.mockResolvedValueOnce("newer").mockResolvedValueOnce("older");
 
-        const first = await runComponent(version("1", "2026-01-01"), version("2", "2026-01-02"));
-        const cleanup = first.fn();
+        render(modal(v2, v1));
+        await flush();
 
-        // The user picks a different pair, so React cleans up the previous effect run.
-        cleanup?.();
-
-        a1.resolve("stale-content-1");
-        a2.resolve("stale-content-2");
-        await Promise.resolve();
-        await Promise.resolve();
-
-        expect(setters.version1Content).not.toHaveBeenCalled();
-        expect(setters.version2Content).not.toHaveBeenCalled();
+        expect(screen.getByTestId("diff")).toHaveTextContent("older|newer");
     });
 
-    it("does not clear the loading state from a superseded run", async () => {
-        const a1 = deferred();
-        const a2 = deferred();
-        getArtifactVersionContent.mockReturnValueOnce(a1.promise).mockReturnValueOnce(a2.promise);
+    it("ignores content that arrives late for a superseded version pair", async () => {
+        const { stale, current } = await renderThenSwitchPair();
 
-        const first = await runComponent(version("1", "2026-01-01"), version("2", "2026-01-02"));
-        const cleanup = first.fn();
-        setters.isLoading.mockClear();
-        cleanup?.();
+        current[0].resolve("current-1");
+        current[1].resolve("current-3");
+        await flush();
+        stale[0].resolve("stale-1");
+        stale[1].resolve("stale-2");
+        await flush();
 
-        a1.resolve("x");
-        a2.resolve("y");
-        await Promise.resolve();
-        await Promise.resolve();
-
-        expect(setters.isLoading).not.toHaveBeenCalled();
+        expect(screen.getByTestId("diff")).toHaveTextContent("current-1|current-3");
     });
 
-    it("does not surface an error from a superseded run", async () => {
-        const a1 = deferred();
-        const a2 = deferred();
-        getArtifactVersionContent.mockReturnValueOnce(a1.promise).mockReturnValueOnce(a2.promise);
+    it("keeps the spinner while the current pair is still loading", async () => {
+        const { stale } = await renderThenSwitchPair();
 
-        const first = await runComponent(version("1", "2026-01-01"), version("2", "2026-01-02"));
-        const cleanup = first.fn();
-        setters.error.mockClear();
-        cleanup?.();
+        stale[0].resolve("stale-1");
+        stale[1].resolve("stale-2");
+        await flush();
 
-        a1.reject(new Error("boom"));
-        a2.resolve("y");
-        await Promise.resolve();
-        await Promise.resolve();
-        await Promise.resolve();
-
-        expect(setters.error).not.toHaveBeenCalledWith("Failed to load version content. Please try again.");
+        expect(screen.getByText("Loading version content...")).toBeInTheDocument();
+        expect(screen.queryByTestId("diff")).not.toBeInTheDocument();
     });
 
-    it("still applies content for the current run, oldest version on the left", async () => {
-        const a1 = deferred();
-        const a2 = deferred();
-        getArtifactVersionContent.mockReturnValueOnce(a1.promise).mockReturnValueOnce(a2.promise);
+    it("does not show an error from a superseded version pair", async () => {
+        vi.spyOn(console, "error").mockImplementation(() => {});
+        const { stale, current } = await renderThenSwitchPair();
 
-        // version1 is the newer of the two, so the contents must be swapped.
-        const current = await runComponent(version("2", "2026-02-01"), version("1", "2026-01-01"));
-        current.fn();
+        current[0].resolve("current-1");
+        current[1].resolve("current-3");
+        await flush();
+        stale[0].reject(new Error("boom"));
+        await flush();
 
-        a1.resolve("newer-content");
-        a2.resolve("older-content");
-        await Promise.resolve();
-        await Promise.resolve();
-
-        expect(setters.version1Content).toHaveBeenCalledWith("older-content");
-        expect(setters.version2Content).toHaveBeenCalledWith("newer-content");
-        expect(setters.isLoading).toHaveBeenCalledWith(false);
+        expect(screen.queryByText("Failed to load version content. Please try again.")).not.toBeInTheDocument();
+        expect(screen.getByTestId("diff")).toHaveTextContent("current-1|current-3");
     });
 });

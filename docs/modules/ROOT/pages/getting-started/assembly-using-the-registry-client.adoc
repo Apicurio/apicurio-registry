@@ -7,7 +7,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can write a {registry} client application in Java, Typescript, Python, or Golang to manage artifacts stored in {registry}.
+You can write a client application in Java, Typescript, Python, or Golang to manage artifacts stored in {registry}.
 
 //INCLUDES
 
@@ -115,7 +115,7 @@ public class ClientExample {
 +
 The registry URL:: If you specify an example {registry} URL of `\https://my-registry.my-domain.com`, the client automatically appends `/apis/registry/v3`.
 The Vertx object:: Create a new Vertx object that the client uses for HTTP requests, so that you control its lifecycle.
-The registry client:: For more options when creating a {registry} client, see xref:registry-sdk-config_registry[].
+The registry client:: For more options when creating a client for {registry}, see xref:registry-sdk-config_registry[].
 Closing the client:: When you are done with the client, close the Vertx object to free its resources.
 
 .Results

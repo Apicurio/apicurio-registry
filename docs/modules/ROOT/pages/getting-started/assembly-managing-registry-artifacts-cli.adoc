@@ -199,7 +199,7 @@ Optional: To delete all contexts, use the `--all` option.
 You can log in to the {registry} instance of your current CLI context by using basic authentication or OAuth2 client credentials. The CLI stores secrets in the operating system keychain, and stores non-secret authentication settings in the context.
 
 .Prerequisites
-* You have configured a CLI context for a {registry} instance that requires authentication.
+* You have configured a CLI context for an instance of {registry} that requires authentication.
 * On Linux, the `secret-tool` utility (libsecret) is available for keychain storage. On macOS, the CLI uses the built-in keychain. On Windows, the CLI uses the built-in Credential Manager, which stores a secret of up to 2560 bytes.
 
 .Procedure
@@ -500,7 +500,7 @@ For the valid rule types and configuration values, see the rule types table in t
 You can use the CLI to assign {registry} roles to principals, such as user accounts or service accounts, when role-based authorization is enabled on the registry.
 
 .Prerequisites
-* You have configured a CLI context for a {registry} instance with role-based authorization enabled.
+* You have configured a CLI context for an instance of {registry} with role-based authorization enabled.
 * You are authenticated as a user with permission to manage role mappings.
 
 .Procedure

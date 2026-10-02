@@ -788,14 +788,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 lockArtifactForVersionWrite(handle, groupId, artifactId);
                 boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
+                indexNewVersionBeforeGlobalIdRaw(handle, groupId, artifactId, content, isDraft);
 
                 // Now create the version and return the new version metadata.
-                ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(handle, isFirstVersion,
+                return createArtifactVersionRaw(handle, isFirstVersion,
                         groupId, artifactId, version,
                         metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData, owner,
                         createdOn, contentId, branches, isDraft);
-                refreshStructuredContentRaw(handle, groupId, artifactId);
-                return versionDto;
             });
         } catch (Exception ex) {
             if (sqlStatements.isPrimaryKeyViolation(ex)) {
@@ -835,11 +834,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 // Safe to proceed — we hold the FOR UPDATE lock
                 boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
+                indexNewVersionBeforeGlobalIdRaw(handle, groupId, artifactId, content, isDraft);
                 ArtifactVersionMetaDataDto result = createArtifactVersionRaw(handle, isFirstVersion,
                         groupId, artifactId, version,
                         metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData,
                         owner, createdOn, contentId, branches, isDraft);
-                refreshStructuredContentRaw(handle, groupId, artifactId);
 
                 // Atomically update artifact-level metadata in the same transaction
                 if (artifactMetaData != null && artifactMetaData.getLabels() != null) {
@@ -879,6 +878,26 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throws RegistryStorageException {
 
         return versionRepository.countActiveArtifactVersions(groupId, artifactId);
+    }
+
+    /**
+     * Updates the structured-content index for a version that is about to be created on an existing,
+     * already-locked artifact. Must run BEFORE createArtifactVersionRaw, which locks the shared globalId
+     * sequence row until commit (every concurrent create in the registry queues on it). Equivalent to
+     * refreshing afterwards: a non-draft version is appended to the end of the 'latest' branch as an
+     * ENABLED version, so it becomes the indexed tip with exactly this content; a draft version is only
+     * added to the 'drafts' branch and leaves the index unchanged. The stored artifact type is used,
+     * not the caller's, matching refreshStructuredContentRaw.
+     */
+    private void indexNewVersionBeforeGlobalIdRaw(Handle handle, String groupId, String artifactId,
+            ContentWrapperDto content, boolean isDraft) {
+        if (isDraft) {
+            return;
+        }
+        String type = artifactRepository.getArtifactMetaData(groupId, artifactId).getArtifactType();
+        if (hasStructuredContentExtractor(type)) {
+            updateStructuredContentRaw(handle, groupId, artifactId, type, content);
+        }
     }
 
     private void lockArtifactForVersionWrite(Handle handle,

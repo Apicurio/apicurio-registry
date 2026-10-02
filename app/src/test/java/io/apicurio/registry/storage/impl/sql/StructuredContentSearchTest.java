@@ -9,6 +9,7 @@ import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
@@ -84,6 +85,26 @@ public class StructuredContentSearchTest {
         for (String invalid : List.of("", " ", "skill:", ":weather", "agent_card::weather")) {
             assertThrows(IllegalArgumentException.class, () -> matches(group,SearchFilter.ofStructure(invalid)));
         }
+    }
+
+    @Test
+    public void conditionalPublishIndexesNewTipAndRejectedOrDraftWritesLeaveIndexUnchanged() {
+        String group=group();
+        create(group,"agent","first");
+        storage.createArtifactVersionIfLatest(group,"agent","2","AGENT_CARD",content("second"),
+                EditableVersionMetaDataDto.builder().build(),List.of(),false,"test",1,null);
+        assertEquals(Set.of("agent"),matches(group,SearchFilter.ofStructure("skill:second")));
+        assertEquals(Set.of(),matches(group,SearchFilter.ofStructure("skill:first")));
+        // Stale base: the index rows written before the version insert must roll back with it.
+        assertThrows(CommitFailedException.class,()->storage.createArtifactVersionIfLatest(group,"agent","3",
+                "AGENT_CARD",content("stale"),EditableVersionMetaDataDto.builder().build(),List.of(),false,"test",
+                1,null));
+        assertEquals(Set.of(),matches(group,SearchFilter.ofStructure("skill:stale")));
+        assertEquals(Set.of("agent"),matches(group,SearchFilter.ofStructure("skill:second")));
+        storage.createArtifactVersionIfLatest(group,"agent","3","AGENT_CARD",content("draft-next"),
+                EditableVersionMetaDataDto.builder().build(),List.of(),true,"test",2,null);
+        assertEquals(Set.of(),matches(group,SearchFilter.ofStructure("skill:draft-next")));
+        assertEquals(Set.of("agent"),matches(group,SearchFilter.ofStructure("skill:second")));
     }
 
     @Test

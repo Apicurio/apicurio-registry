@@ -15,28 +15,38 @@ name: Verify
 #     bot-applied label, so there is no window where a stale run could
 #     mid-flight disagree with a promotion that happened after it started.
 #
-# The Verification Gate below is the single required check for branch
-# protection: it aggregates every job in this run and additionally fails
-# outright if Decide did not require the full suite for this run — a skipped
-# required job otherwise counts as "passing" for branch protection, and this
-# run skips everything below Decide until the PR is genuinely trusted/
-# reviewed. That failure is expected during normal review, not a bug: it is
-# what makes the required check honestly reflect "not verified yet" instead
-# of silently passing because nothing ran.
+# There is one Verify run per commit, from the push. When an approval makes
+# the full suite required after that run skipped it, the orchestrator re-runs
+# the same run (pr-lifecycle.js on main, maybeRunFullSuite, via
+# review-relay.yaml) rather than this workflow starting a second one: a
+# re-run keeps its check suite, so the PR shows one set of Verify checks per
+# commit, and an approval never repeats a suite that already ran.
+#
+# The single required check for branch protection is the "Verification Gate"
+# commit status, not a job in this file. The orchestrator (pr-lifecycle.yml
+# on main, gate-status job) posts it from the Verify Result job below, taken
+# from the newest Verify run for the PR head commit: pending while that run
+# is going or while Decide has not required the full suite yet (author not
+# yet trusted/reviewed), then success or failure.
 
 on:
   push:
     branches: [main, '3.3.x']
+  # No labeled/unlabeled: a label change never alters the SHA, and a run it
+  # started cancelled the in-flight suite (the push run for that SHA) and then
+  # skipped everything, leaving a failed gate behind that re-running could
+  # not fix, since the re-run replays the same label event. The one label
+  # Decide reads, orchestrator/disabled, is handled by the orchestrator
+  # re-running this workflow when a maintainer changes it.
+  #
+  # No pull_request_review: a review started a second run on a commit that
+  # already had one, repeating a full suite that had already run for a
+  # trusted author and showing two sets of checks. Reviews reach the
+  # orchestrator through review-relay.yaml instead, which re-runs this
+  # commit's run when the suite becomes required.
   pull_request:
-    types: [opened, reopened, synchronize, labeled, unlabeled]
+    types: [opened, reopened, synchronize]
     branches: [main, '3.3.x']
-  # No branches: filter here — pull_request_review does not support one.
-  # In practice every PR targets main or 3.3.x, so this is a non-issue.
-  # `dismissed` is included because dismissing a stale CHANGES_REQUESTED can
-  # flip reviewDecision to APPROVED, which Decide must re-evaluate — otherwise
-  # the full suite would stay skipped until the next push or new review.
-  pull_request_review:
-    types: [submitted, dismissed]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -375,16 +385,32 @@ jobs:
     secrets: inherit
 
   # ============================================================================
-  # VERIFICATION GATE: single required check for branch protection
+  # VERIFY RESULT: aggregates every job above
   #
-  # Aggregates every job above. Passes when all of them succeeded or were
-  # appropriately skipped by Decide (e.g. during PR review, when the full
-  # suite does not run) — see the live ready-to-merge check below for why
-  # that alone is not sufficient for a required check.
+  # Not a required check itself. The required check is the "Verification Gate"
+  # commit status, which the orchestrator (pr-lifecycle.yml on main,
+  # gate-status job) posts on the PR head commit from the NEWEST Verify run
+  # for that commit, reading this job's conclusion:
+  #   success -> Verification Gate success
+  #   skipped -> Verification Gate pending (full suite not required yet)
+  #   failure -> Verification Gate failure
+  # A commit status is replaced in place, so a PR shows exactly one, current
+  # Verification Gate however many Verify runs its commit has had.
+  #
+  # Skipped (not failed) when Decide did not require the full suite, so the
+  # PR page shows a neutral "skipped" rather than a red check during review.
+  # Being skipped is safe only because this job is no longer the required
+  # check; the orchestrator turns "skipped" into a pending status. It still
+  # runs, and fails, when Decide itself did not succeed.
   # ============================================================================
   gate:
-    name: Verification Gate
-    if: always() && github.repository_owner == 'Apicurio'
+    name: Verify Result
+    if: >-
+      always()
+      && github.repository_owner == 'Apicurio'
+      && (github.event_name == 'push'
+          || needs.decide.result != 'success'
+          || needs.decide.outputs.lifecycle-ready == 'true')
     needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
             cli-verify, go-sdk-freshness, sdk, console-plugin,
             integration-tests, extras, operator]
@@ -402,25 +428,6 @@ jobs:
           fi
           echo "All jobs passed or were appropriately skipped"
 
-      # A skipped required job counts as "passing" for branch protection, and
-      # every job above is skipped whenever Decide did not require the full
-      # suite for this run (author not yet trusted/reviewed). Checking
-      # Decide's own output — the same static value that already gated every
-      # job above via needs: — means this cannot disagree with the rest of
-      # the run: there is nothing to race against, unlike a live re-fetch of
-      # current PR state would be (Decide runs once, early; a live re-fetch
-      # here would run later, after everything above finished, and could see
-      # a promotion that happened in between — a stale pass for a suite that
-      # never actually ran). This step failing is expected throughout normal
-      # PR review — that is what makes the required check honestly reflect
-      # "not verified yet" instead of silently passing because Decide skipped
-      # everything.
-      - name: Verify this run's Decide required the full suite
-        if: github.event_name != 'push' && needs.decide.outputs.lifecycle-ready != 'true'
-        run: |
-          echo "::error::Decide did not require the full suite for this run (lifecycle-ready=${{ needs.decide.outputs.lifecycle-ready }}) — the author is not yet trusted/reviewed, so every job above was skipped. This is expected during PR review, not a failure: the full suite runs immediately for trusted authors, or once an approving review lands for everyone else, and this Gate passes once it subsequently completes."
-          exit 1
-
   # ============================================================================
   # PUBLISH: Push images (only on push to main)
   #
@@ -434,7 +441,7 @@ jobs:
   # on quay.io for twelve days and latest-snapshot-mutable never published at
   # all. The explicit result checks below restore the safety property that the
   # implicit success() was providing: publish only a commit that built cleanly
-  # and passed the Verification Gate.
+  # and passed Verify Result (the gate job).
   # ============================================================================
   publish:
     name: Publish Images

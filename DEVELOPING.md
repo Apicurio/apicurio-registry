@@ -49,7 +49,7 @@ The project uses a three-tier build system to allow developers to build only wha
 
 | Tier        | Flag      | What's included                                         | Use case                           |
 |-------------|-----------|--------------------------------------------------------|------------------------------------|
-| **Local**   | `-Dlocal` | Core server, Java SDK, schema utilities, serializers — skips javadoc, source JARs, checkstyle, assembly | Quick local development iteration |
+| **Local**   | `-Dlocal` | Core server, Java SDK, schema utilities, serializers â€” skips javadoc, source JARs, checkstyle, assembly | Quick local development iteration |
 | **Default** | *(none)*  | Local + CLI, docs, distribution                         | Normal development                 |
 | **Full**    | `-Dfull`  | Default + MCP server, Go SDK, operator, extra utilities | CI builds, releases                |
 
@@ -142,6 +142,13 @@ are in a separate module and need to be explicitly enabled:
 
 See the [integration tests module](integration-tests/) for test groups, deployment
 modes, and detailed usage instructions.
+
+### Authentication Test Resources
+
+When writing or migrating tests that require authentication:
+
+- **`MockOAuth2TestResource` (recommended for most auth tests):** Lightweight, embedded mock OIDC server based on `mock-oauth2-server` (starts in milliseconds, no Docker required). Use this for tests verifying bearer tokens, JWT roles/claims, or client credentials grant (e.g., annotate with `@TestProfile(MockOAuth2AuthTestProfile.class)` or `@QuarkusTestResource(MockOAuth2TestResource.class)`).
+- **`KeycloakTestContainerManager`:** Full Keycloak instance running via Testcontainers (requires Docker). Use only when tests specifically require real Keycloak realm configurations, Keycloak Admin REST API operations, or custom TLS certificate testing with Keycloak.
 
 ## Running with Postgres (docker-compose)
 

@@ -20,6 +20,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.rules.compatibility.ApitomyJsonSchemaCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Test;
 
@@ -63,7 +64,7 @@ class JsonSchemaRemoteReferenceTest {
                 }
                 """;
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> checker.testCompatibility(
+        UnprocessableSchemaException exception = assertThrows(UnprocessableSchemaException.class, () -> checker.testCompatibility(
                 CompatibilityLevel.BACKWARD,
                 Collections.singletonList(toTypedContent(EXISTING_SCHEMA)),
                 toTypedContent(proposedSchema), Collections.emptyMap()));
@@ -133,7 +134,7 @@ class JsonSchemaRemoteReferenceTest {
                 }
                 """;
 
-        var exception = assertThrows(IllegalStateException.class,
+        var exception = assertThrows(UnprocessableSchemaException.class,
                 () -> checker.testCompatibility(CompatibilityLevel.BACKWARD,
                         List.of(toTypedContent(EXISTING_SCHEMA)), toTypedContent(proposedSchema),
                         Collections.emptyMap()));

@@ -3,6 +3,7 @@ package io.apicurio.registry.json.rules.compatibility;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apitomy.datamodels.jsonschema.compat.JsonSchemaCompatibilityChecker;
 import io.apitomy.datamodels.jsonschema.ref.AnchorFragmentResolver;
 import io.apitomy.datamodels.jsonschema.ref.JsonSchemaRefDereferencer;
@@ -50,9 +51,10 @@ public class ApitomyJsonSchemaCompatibilityChecker extends AbstractCompatibility
         // the sub-schemas behind it were never compared, so any verdict understates what was
         // checked. Without this the caller is told whatever incidental difference the unresolved
         // $ref happened to produce, which for a mistyped reference is a property-narrowing report
-        // that says nothing about the real problem. The legacy checker throws here too.
+        // that says nothing about the real problem. UnprocessableSchemaException is what the REST
+        // layer reports as 422, as for any schema a checker can't process.
         if (result.hasUnsupportedFeatures()) {
-            throw new IllegalStateException("Compatibility could not be determined: "
+            throw new UnprocessableSchemaException("Compatibility could not be determined: "
                     + String.join("; ", result.getUnsupportedFeatures()));
         }
 

@@ -512,6 +512,46 @@ acr artifact version comment update -g <group-id> -a <artifact-id> -v <version> 
 acr artifact version comment delete -g <group-id> -a <artifact-id> -v <version> <comment-id>
 ```
 
+### Working with Branches
+
+Branches are named, ordered lists of versions within an artifact (for example a `latest`
+branch, or a `1.x` maintenance line). Every artifact has a system-defined `latest` branch.
+Branch commands use the `groupId`/`artifactId` from the current context when `-g`/`-a` are
+not given.
+
+**List branches (with pagination and JSON output):**
+```bash
+acr artifact branch -g <group-id> -a <artifact-id>
+acr artifact branch -g <group-id> -a <artifact-id> --page <page> --size <size>
+acr artifact branch -g <group-id> -a <artifact-id> --output-type json
+```
+
+**Create a branch (optionally seeded with an initial, tip-to-oldest version list):**
+```bash
+acr artifact branch create <branch-id> -g <group-id> -a <artifact-id> --description <description>
+acr artifact branch create <branch-id> -g <group-id> -a <artifact-id> --version 2.0.0 --version 1.0.0
+acr artifact branch create <branch-id> -g <group-id> -a <artifact-id> --version 2.0.0,1.0.0
+```
+
+**Get, update, or delete branch metadata:**
+```bash
+acr artifact branch get <branch-id> -g <group-id> -a <artifact-id>
+acr artifact branch update <branch-id> -g <group-id> -a <artifact-id> --description <description>
+acr artifact branch delete <branch-id> -g <group-id> -a <artifact-id>
+```
+
+**Manage the versions on a branch:**
+```bash
+# List the versions on a branch (supports --page/--size and --output-type)
+acr artifact branch version -g <group-id> -a <artifact-id> -b <branch-id>
+
+# Add a version to the tip of a branch
+acr artifact branch version add -g <group-id> -a <artifact-id> -b <branch-id> <version>
+
+# Replace the full, ordered (tip-to-oldest) list of versions on a branch
+acr artifact branch version replace -g <group-id> -a <artifact-id> -b <branch-id> <version> [<version>...]
+```
+
 ### Working with Rules
 
 Rules enforce content validation at the global, group, or artifact level.

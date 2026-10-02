@@ -1306,6 +1306,12 @@ async function cmdRetry(github, api, config, core, pr, actor, isAuthor, maintain
   const freshPr = await api.getPr(pr.number);
   await reconcile(github, api, freshPr, core);
 
+  // PR Validation is a workflow of its own, not part of the orchestrator, but
+  // /retry is where people go when a check looks stuck, e.g. after setting a
+  // milestone. A re-run of its latest run reads the current state; a green or
+  // running one is left alone.
+  await retriggerWorkflowRun(api, freshPr, core, 'pr-validation.yml');
+
   // The full suite is required now but the Verify run skipped it (e.g. the
   // review relay never ran). That run is green, so the failed-run handling
   // below would leave it alone.

@@ -13,11 +13,13 @@ import static org.hamcrest.Matchers.notNullValue;
 @QuarkusTest
 public class SystemResourceTest extends AbstractResourceTestBase {
 
-    private static final String READ_ONLY_PROPERTY_NAME = "apicurio.storage.read-only.enabled";
+    private static final String STORAGE_READ_ONLY_PROPERTY_NAME = "apicurio.storage.read-only.enabled";
+    private static final String UI_READ_ONLY_PROPERTY_NAME = "apicurio.ui.features.read-only.enabled";
 
     @AfterEach
-    public void resetStorageReadOnly() {
-        setStorageReadOnly(false);
+    public void resetReadOnlyProperties() {
+        updateConfigProperty(STORAGE_READ_ONLY_PROPERTY_NAME, false);
+        updateConfigProperty(UI_READ_ONLY_PROPERTY_NAME, false);
     }
 
     @Test
@@ -34,16 +36,31 @@ public class SystemResourceTest extends AbstractResourceTestBase {
         given().when().contentType(CT_JSON).get("/registry/v3/system/uiConfig").then().statusCode(200)
                 .body("features.readOnly", equalTo(false));
 
-        setStorageReadOnly(true);
+        updateConfigProperty(STORAGE_READ_ONLY_PROPERTY_NAME, true);
 
         given().when().contentType(CT_JSON).get("/registry/v3/system/uiConfig").then().statusCode(200)
                 .body("features.readOnly", equalTo(true));
     }
 
-    private void setStorageReadOnly(boolean readOnly) {
+    @Test
+    public void testUiReadOnlyFeatureFlagIsDynamic() {
+        // The property must be recognized by the admin config API (not 404), proving it is
+        // genuinely wired as a @Dynamic property rather than just claiming to be one.
+        given().when().pathParam("propertyName", UI_READ_ONLY_PROPERTY_NAME)
+                .get("/registry/v3/admin/config/properties/{propertyName}").then().statusCode(200)
+                .body("value", equalTo("false"));
+
+        updateConfigProperty(UI_READ_ONLY_PROPERTY_NAME, true);
+
+        // Toggling it must take effect immediately, with no server restart.
+        given().when().contentType(CT_JSON).get("/registry/v3/system/uiConfig").then().statusCode(200)
+                .body("features.readOnly", equalTo(true));
+    }
+
+    private void updateConfigProperty(String propertyName, boolean value) {
         UpdateConfigurationProperty update = new UpdateConfigurationProperty();
-        update.setValue(String.valueOf(readOnly));
-        given().when().contentType(CT_JSON).body(update).pathParam("propertyName", READ_ONLY_PROPERTY_NAME)
+        update.setValue(String.valueOf(value));
+        given().when().contentType(CT_JSON).body(update).pathParam("propertyName", propertyName)
                 .put("/registry/v3/admin/config/properties/{propertyName}").then().statusCode(204);
     }
 

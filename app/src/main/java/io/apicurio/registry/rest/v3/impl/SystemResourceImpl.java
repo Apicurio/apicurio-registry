@@ -83,7 +83,7 @@ public class SystemResourceImpl implements SystemResource {
                         .build())
                 .auth(uiAuthConfig())
                 .features(UserInterfaceConfigFeatures.builder()
-                        .readOnly("true".equals(uiConfig.featureReadOnly) || storage.isReadOnly())
+                        .readOnly(uiConfig.featureReadOnly.get() || storage.isReadOnly())
                         .breadcrumbs("true".equals(uiConfig.featureBreadcrumbs))
                         .roleManagement(authConfig.isRbacEnabled() && "application".equals(authConfig.getRoleSource()))
                         .deleteGroup(restConfig.isGroupDeletionEnabled())

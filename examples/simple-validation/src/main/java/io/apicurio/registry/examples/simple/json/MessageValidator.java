@@ -22,6 +22,7 @@ import com.networknt.schema.JsonSchemaFactory;
 import com.networknt.schema.SpecVersion.VersionFlag;
 import com.networknt.schema.SpecVersionDetector;
 import com.networknt.schema.ValidationMessage;
+import com.networknt.schema.resource.DisallowSchemaLoader;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -69,9 +70,13 @@ public class MessageValidator {
             jsonSchema = MAPPER.readTree(schemaIS);
         }
 
-        // The draft is the one the schema declares, or draft 7 if it declares none.
+        // The draft is the one the schema declares, or draft 7 if it declares none. The schema comes
+        // from the registry, so the validator refuses to fetch anything it refers to, from the network
+        // or the local file system or classpath; a $ref to another document fails instead.
         VersionFlag draft = SpecVersionDetector.detectOptionalVersion(jsonSchema, false).orElse(VersionFlag.V7);
-        return JsonSchemaFactory.getInstance(draft).getSchema(jsonSchema)
+        JsonSchemaFactory factory = JsonSchemaFactory.getInstance(draft, builder -> builder.schemaLoaders(
+                loaders -> loaders.values(List::clear).add(DisallowSchemaLoader.getInstance())));
+        return factory.getSchema(jsonSchema)
                 .validate(MAPPER.valueToTree(message)).stream()
                 .map(ValidationMessage::getMessage)
                 .toList();

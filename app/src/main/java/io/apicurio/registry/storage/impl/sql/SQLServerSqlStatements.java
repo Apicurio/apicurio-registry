@@ -148,7 +148,7 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
 
     @Override
     public String deleteAllOrphanedContent() {
-        return "DELETE FROM content WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId )";
+        return "DELETE FROM content WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = content.contentId)";
     }
 
     @Override

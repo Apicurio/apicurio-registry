@@ -1223,7 +1223,7 @@ You can configure {registry} to authenticate clients by validating their Kuberne
 
 IMPORTANT: Kubernetes-native authentication is an *experimental* feature. You must enable the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it; otherwise, the application fails at startup. You cannot enable Kubernetes-native authentication and OpenID Connect at the same time, because both use bearer tokens.
 
-NOTE: When you deploy {registry} with the Operator, you can configure this feature with the `spec.app.auth.kubernetesAuth` fields of the `ApicurioRegistry3` custom resource: `enabled`, `apiAudiences`, `cacheExpiration`, and `groupMapping` with `adminGroups`, `developerGroups`, and `readOnlyGroups`. The Operator adds the `kubernetes` mechanism to the priority list and sets the role source automatically.
+NOTE: When you deploy {registry} with the Operator, you can configure this feature with the `spec.app.auth.kubernetesAuth` fields of the `ApicurioRegistry3` custom resource: `enabled`, `apiAudiences`, `cacheExpiration`, and `groupMapping` with `adminGroups`, `developerGroups`, and `readOnlyGroups`. The Operator adds the `kubernetes` mechanism to the priority list and sets the role source automatically, but it does not enable the experimental features gate for this feature. You must also add the `APICURIO_FEATURES_EXPERIMENTAL_ENABLED` environment variable with the value `true` to `spec.app.env`; otherwise, the {registry} pod fails at startup.
 
 .Prerequisites
 * {registry} is deployed on a Kubernetes cluster.

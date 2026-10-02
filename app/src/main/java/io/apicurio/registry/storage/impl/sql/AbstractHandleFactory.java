@@ -124,6 +124,41 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         });
     }
 
+    @Override
+    public <R, X extends Exception> R withIsolatedHandleNoException(HandleCallback<R, X> callback) {
+        HandleImpl handle = null;
+        try {
+            Connection connection = ConnectionRetryUtil.getConnectionWithRetry(dataSource, retryConfig,
+                    log);
+            connection.setAutoCommit(false);
+            handle = new HandleImpl(connection);
+            R result = callback.withHandle(handle);
+            connection.commit();
+            return result;
+        } catch (Exception e) {
+            if (handle != null) {
+                try {
+                    log.debug("Isolated transaction will rollback.", e);
+                    handle.getConnection().rollback();
+                } catch (Exception rollbackException) {
+                    log.error("Could not roll back an isolated database transaction.", rollbackException);
+                }
+            }
+            if (e instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            throw new RegistryStorageException(e);
+        } finally {
+            if (handle != null) {
+                try {
+                    handle.close();
+                } catch (Exception e) {
+                    log.error("Could not close an isolated database connection.", e);
+                }
+            }
+        }
+    }
+
     private LocalState state() {
         return local.get().computeIfAbsent(dataSourceId, k -> new LocalState());
     }

@@ -14,6 +14,10 @@ on:
         type: string
         default: 'false'
         description: 'Decide output: false on push to main or when the ci/disable-scalpel label is set'
+      scalpel-base-branch:
+        type: string
+        default: ''
+        description: 'Decide output: origin/<PR base ref>, empty when Scalpel is off or the ref is missing'
 
 permissions:
   contents: read
@@ -108,10 +112,13 @@ jobs:
       # the condition.
       - name: Resolve Scalpel carrier settings
         id: scalpel
+        env:
+          SCALPEL_BASE_BRANCH: ${{ inputs.scalpel-base-branch }}
         run: |
           if [ "${{ matrix.shard.scalpel-shadow }}" = "true" ] && [ "${{ inputs.scalpel-enabled }}" = "true" ]; then
+            [ -n "$SCALPEL_BASE_BRANCH" ] || echo "::warning::No scalpel-base-branch from Decide, so Scalpel runs without scalpel.baseBranch"
             echo "depth=0" >> "$GITHUB_OUTPUT"
-            echo "flags=-Dscalpel.enabled=true -Dscalpel.mode=shadow -Dscalpel.verifyFullBuild=true" >> "$GITHUB_OUTPUT"
+            echo "flags=-Dscalpel.enabled=true -Dscalpel.mode=shadow -Dscalpel.verifyFullBuild=true${SCALPEL_BASE_BRANCH:+ -Dscalpel.baseBranch=$SCALPEL_BASE_BRANCH}" >> "$GITHUB_OUTPUT"
             echo "on=true" >> "$GITHUB_OUTPUT"
           else
             echo "depth=1" >> "$GITHUB_OUTPUT"
@@ -217,9 +224,10 @@ jobs:
           path: |
             target/scalpel-shadow.json
             target/scalpel-shadow-history.jsonl
-          # Two absences are indistinguishable here: a skipped analysis
-          # writes neither file, and so does a Maven that died before the
-          # session started. Check the job log when the artifact is empty
-          # and the run is red.
+          # No artifact means the shard was cancelled, timed out or killed
+          # before a full analysis wrote its document at session end, Maven
+          # did not reach Scalpel, or Scalpel rejected its configuration and
+          # built everything ("Error parsing configuration" in the job log).
+          # A skipped analysis writes its document early.
           if-no-files-found: ignore
           retention-days: 7

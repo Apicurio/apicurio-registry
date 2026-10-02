@@ -33,6 +33,8 @@ on:
         value: ${{ jobs.decide.outputs.run-console-plugin }}
       scalpel-enabled:
         value: ${{ jobs.decide.outputs.scalpel-enabled }}
+      scalpel-base-branch:
+        value: ${{ jobs.decide.outputs.scalpel-base-branch }}
 
 permissions:
   contents: read
@@ -56,6 +58,7 @@ jobs:
       run-operator: ${{ steps.decide.outputs.run-operator }}
       run-console-plugin: ${{ steps.decide.outputs.run-console-plugin }}
       scalpel-enabled: ${{ steps.decide.outputs.scalpel-enabled }}
+      scalpel-base-branch: ${{ steps.decide.outputs.scalpel-base-branch }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -117,6 +120,7 @@ jobs:
         id: decide
         env:
           GH_TOKEN: ${{ github.token }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           EVENT="${{ github.event_name }}"
 
@@ -223,10 +227,14 @@ jobs:
           # A push to main has no PR and no base branch to diff against, so
           # the consumers of this output stay off there too; deciding that
           # here keeps every scalpel consumer a plain pass-through.
+          # The base branch comes from the event payload, not GITHUB_BASE_REF,
+          # because GitHub leaves GITHUB_BASE_REF empty on pull_request_review.
+          # See "Reading the Scalpel report" in the workflows README.
           if [ "$EVENT" = "push" ] || has_label "ci/disable-scalpel"; then
             echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
           else
             echo "scalpel-enabled=true" >> "$GITHUB_OUTPUT"
+            echo "scalpel-base-branch=${PR_BASE_REF:+origin/$PR_BASE_REF}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Save decision summary

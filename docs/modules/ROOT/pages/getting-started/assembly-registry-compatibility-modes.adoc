@@ -167,7 +167,7 @@ As a result, Version 3 passes the `BACKWARD` check but fails the `BACKWARD_TRANS
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-{registry} uses a custom library to analyze differences between JSON Schema versions.
+{registry} checks JSON Schema compatibility with link:https://www.apitomy.io/projects/data-models/docs/4.x/user-guide/schema-compatibility.html[Apitomy Data Models^], which supports JSON Schema drafts 4, 6, 7, 2019-09, and 2020-12.
 Because JSON Schema uses a constraint-based validation model, the following table describes common changes and whether they maintain or break backward compatibility. For JSON Schema, forward compatibility is the inverse of backward compatibility: a change that makes the schema more permissive is backward compatible but forward incompatible, and a change that makes the schema more restrictive is forward compatible but backward incompatible.
 
 .JSON Schema compatibility changes
@@ -177,9 +177,9 @@ Because JSON Schema uses a constraint-based validation model, the following tabl
 |Backward compatible?
 |Reason
 
-|Add a new optional property
+|Add a new optional property when `additionalProperties` is `false`
 |Yes
-|Old data without the property remains valid under the new schema.
+|Old data can't contain the property, because the old schema rejected any property it didn't declare.
 
 |Remove a property from `required`
 |Yes
@@ -205,9 +205,17 @@ Because JSON Schema uses a constraint-based validation model, the following tabl
 |Yes
 |Making the additional properties schema more permissive accepts more data.
 
-|Increase the size of `oneOf` or `anyOf`
+|Add a subschema to `anyOf`
 |Yes
-|Adding alternatives to combined schemas accepts more data patterns.
+|Adding alternatives accepts more data.
+
+|Add a subschema to `oneOf` that can't match the same values as an existing one
+|Yes
+|Adding an alternative accepts more data, and no value can match two subschemas, which `oneOf` rejects.
+
+|Widen the `type` keyword
+|Yes
+|The new schema accepts every value the old one did. For example, `integer` to `number`, or `string` to `["string", "null"]`.
 
 |Decrease `minimum` or `exclusiveMinimum`
 |Yes
@@ -245,9 +253,17 @@ Because JSON Schema uses a constraint-based validation model, the following tabl
 |No
 |Old data with additional properties fails validation.
 
-|Change the `type` keyword
+|Add a new optional property when additional properties are allowed
+|No
+|Before the change, a property of that name could hold any value. After it, only values that match the new property schema are valid. The change is forward compatible, so a `FORWARD` rule accepts it.
+
+|Change or narrow the `type` keyword
 |No
 |Old data of the previous type fails validation. For example, changing `string` to `integer` breaks compatibility.
+
+|Add a subschema to `oneOf` that can match the same values as an existing one
+|No
+|A value that matches both subschemas is rejected by `oneOf`, so old data that matched only the original subschema can fail.
 
 |Add a `pattern` or `format` constraint
 |No
@@ -261,7 +277,7 @@ Because JSON Schema uses a constraint-based validation model, the following tabl
 |No
 |The new schema tightens the upper bound. Old data above the new bound fails validation.
 
-|Decrease the size of `oneOf` or `anyOf`
+|Remove a subschema from `oneOf` or `anyOf`
 |No
 |Removing alternatives from combined schemas causes some previously valid data to fail validation.
 
@@ -273,6 +289,85 @@ Because JSON Schema uses a constraint-based validation model, the following tabl
 |No
 |Old data with the previous constant value fails validation.
 |===
+
+=== What the JSON Schema compatibility check reports
+
+The compatibility check compares two versions by what they accept, rather than by how they are written, and reports each change that breaks compatibility at the place where it was made.
+
+Every draft::
+All drafts from 4 to 2020-12 are compared, including keywords introduced in 2019-09 and 2020-12, such as `prefixItems`, `unevaluatedProperties`, `dependentRequired`, `$defs`, and `$anchor`.
+A schema without `$schema` is read as draft 7.
+A schema whose `$schema` names no draft, such as a custom meta-schema, can't be compared yet, and the check fails with HTTP status 422.
+
+Versions in different drafts::
+A version can declare a different `$schema` from the previous one, and the two are compared by meaning.
+For example, a draft 7 tuple (`"items": [{"type": "string"}]`) rewritten in draft 2020-12 as `"prefixItems": [{"type": "string"}]` is compatible, because both accept the same data.
+
+Exact location::
+In a `BACKWARD` check, the `context` of each rule violation is a JSON Pointer into the new version that ends at the keyword that changed, and the `description` is a sentence.
+A change deep inside the schema is reported where it was made, not at the enclosing property.
+For example, decreasing `maxLength` from `10` to `5` on the property `b` of the object property `a` is reported as:
++
+[source,json]
+----
+{
+  "description": "The 'maxLength' string-length limit was decreased.",
+  "context": "/properties/a/properties/b/maxLength"
+}
+----
++
+A `FORWARD` check compares the two versions the other way round, so the `context` points into the previous version, and the `description` reads as if the previous version were the new one.
+
+`oneOf` and boolean schemas::
+`oneOf` accepts a value that matches exactly one of its subschemas, so a new subschema that can match the same values as an existing one is reported, even though it adds alternatives.
+Boolean schemas, `true` and `false`, are compared like any other schema.
+
+References::
+References to other artifacts are resolved from the artifact references that are stored with the version, including references inside the referenced artifacts, and references between artifacts that refer to each other.
+No document is fetched over the network.
+If a reference can't be resolved, part of the schema can't be compared, so the check fails with HTTP status 422 instead of returning a result.
+
+For a description and examples of every kind of change the check reports, see the link:https://www.apitomy.io/projects/data-models/docs/4.x/user-guide/schema-compatibility.html[Apitomy Data Models schema compatibility guide^].
+
+=== Changes to JSON Schema compatibility checking in {registry} 3.4
+
+Earlier versions of {registry} checked JSON Schema compatibility with a different checker, based on the everit library.
+If you used JSON Schema compatibility rules before version 3.4, note the following differences:
+
+* Artifacts in drafts 2019-09 and 2020-12 are now checked.
+The earlier checker couldn't load them, and the check failed with an error instead.
+
+* Rule violations are worded differently, and their `context` points at the keyword that changed.
+Update anything that matches the previous text or contexts, for example:
++
+[%header,cols="2,3,3"]
+|===
+|Change
+|Before 3.4
+|From 3.4
+
+|Change the `type` of property `a`
+|`Subschema type changed` at `/properties/a`
+|`The declared 'type' of the schema was changed.` at `/properties/a/type`
+
+|Add a property to `required`
+|`Object type property schemas narrowed` at `/propertySchemasAdded`
+|`A property was made 'required'.` at `/required/0`
+
+|Remove a value from `enum`
+|`Combined type subschema not compatible` at `/`
+|`A value was removed from the 'enum' allowed set.` at `/enum`
+|===
+
+* A new `oneOf` subschema that can match the same values as an existing one is now reported as incompatible.
+The earlier checker compared `oneOf` like `anyOf`, and accepted such a change.
+
+* Adding a `type` inside `then` or `else` is reported as incompatible, even when an enclosing schema already requires that type, so the change accepts no less data.
+The earlier checker accepted such a change.
+A future version of Apitomy Data Models will take the enclosing schema into account.
+
+* The `apicurio.compat.json-schema.use-apitomy` configuration property, which selected the new checker in version 3.3, no longer has any effect, and is deprecated.
+If it is set, {registry} logs a warning at startup.
 
 
 // ref-registry-compatibility-protobuf

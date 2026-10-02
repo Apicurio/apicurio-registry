@@ -1,9 +1,60 @@
 import { describe, expect, it } from "vitest";
 import {
+    classifyHandlebarsTag,
     extractTemplateVariableNames,
+    isSubstitutableVariableTag,
+    parseHandlebarsTagInner,
     reconcileTemplateVariables,
     VariableSchema
 } from "./promptTemplateVariables";
+
+describe("parseHandlebarsTagInner", () => {
+    it("strips whitespace-control tildes from block tags", () => {
+        expect(parseHandlebarsTagInner("{{~#each items~}}")).toEqual({
+            inner: "#each items",
+            head: "#each"
+        });
+    });
+
+    it("strips whitespace-control tildes from plain variables", () => {
+        expect(parseHandlebarsTagInner("{{~ name ~}}")).toEqual({
+            inner: "name",
+            head: "name"
+        });
+    });
+});
+
+describe("classifyHandlebarsTag", () => {
+    it("classifies whitespace-control block tags as blocks", () => {
+        expect(classifyHandlebarsTag("{{~#each items~}}")).toBe("block");
+        expect(classifyHandlebarsTag("{{~/if~}}")).toBe("block");
+    });
+
+    it("classifies whitespace-control variables in supported scope", () => {
+        expect(classifyHandlebarsTag("{{~ item ~}}")).toBe("variable");
+    });
+});
+
+describe("isSubstitutableVariableTag", () => {
+    it("accepts plain and triple-stash variables in supported scope", () => {
+        expect(isSubstitutableVariableTag("{{name}}")).toBe(true);
+        expect(isSubstitutableVariableTag("{{ name }}")).toBe(true);
+        expect(isSubstitutableVariableTag("{{{raw}}}")).toBe(true);
+    });
+
+    it("rejects block helpers, dotted paths, and @-prefixed tokens", () => {
+        expect(isSubstitutableVariableTag("{{#if user}}")).toBe(false);
+        expect(isSubstitutableVariableTag("{{/if}}")).toBe(false);
+        expect(isSubstitutableVariableTag("{{else}}")).toBe(false);
+        expect(isSubstitutableVariableTag("{{user.email}}")).toBe(false);
+        expect(isSubstitutableVariableTag("{{@index}}")).toBe(false);
+        expect(isSubstitutableVariableTag("{{{user.email}}}")).toBe(false);
+    });
+
+    it("rejects handlebars keywords that are not substitutable variables", () => {
+        expect(isSubstitutableVariableTag("{{this}}")).toBe(false);
+    });
+});
 
 describe("extractTemplateVariableNames", () => {
     it("returns an empty array when the template has no variables", () => {

@@ -55,20 +55,25 @@ New here? This section points you to the right place for whatever you need.
 
 ## Before you contribute
 
-To contribute, use GitHub Pull Requests, from your **own** fork.
+To contribute, use GitHub Pull Requests from your **own** fork.
 
 Also, make sure you have set up your Git authorship correctly:
 
-```
+```bash
 git config --global user.name "Your Full Name"
 git config --global user.email your.email@example.com
 ```
-
 If you use different computers to contribute, please make sure the name is the same on all your computers.
 
 We may use this information to acknowledge your contributions!
 
-### Claiming an issue
+### Compatibility
+
+Before opening a PR, review the [Developer Compatibility Guide](docs/dev/compatibility.md) when your change affects the REST API, Operator CRDs, configuration properties, database migrations, experimental features, or Operator/Registry compatibility.
+
+Changes with compatibility impact should include appropriate migration or documentation updates.
+
+## Claiming an issue
 
 Before you start working on an issue, let us know so we don't end up with duplicate effort:
 

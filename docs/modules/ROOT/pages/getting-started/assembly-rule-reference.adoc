@@ -94,7 +94,7 @@ a| Full
 |*JSON Schema*
 a| Full
 a| Full
-a| Mapping detection not supported
+a| Full
 |*OpenAPI*
 a| Full
 a| Full
@@ -134,6 +134,24 @@ a| Mapping detection not supported
 |===
 
 
+
+// ref-registry-rule-json-schema-validity
+[id="registry-rule-json-schema-validity_{context}"]
+== JSON Schema validity
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+With the `FULL` level, the `VALIDITY` rule checks that a JSON Schema artifact is a valid schema in JSON Schema draft 4, 6, 7, 2019-09, or 2020-12.
+
+* *Draft*: the draft is the one that `$schema` declares. A schema without `$schema` is validated as draft 7, as the compatibility rule reads it. A schema whose `$schema` names no draft, such as a custom meta-schema, is also validated as draft 7, but the compatibility rule can't compare it yet and fails with HTTP status 422.
+* *Meta-schema*: the schema must be valid against the meta-schema of its draft.
+* *References*: a reference within the schema must point at something that exists, such as a definition. A reference to another document is resolved against the artifact references recorded for the version. If {registry} has no content for it, the reference is accepted, because the validity of a schema doesn't depend on what an external reference points to. No document is fetched over the network. To require that every external reference is recorded, use the `INTEGRITY` rule.
+* *Unused references*: an artifact reference that the content doesn't use is rejected, because it's most likely a typo in the reference name.
+
+Each rule violation has a JSON Pointer to the problem as its `context`, for example `/items/properties/price/exclusiveMinimum`. More than one problem can be reported at once.
+
+The `SYNTAX_ONLY` level checks only that the content is well-formed JSON.
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc

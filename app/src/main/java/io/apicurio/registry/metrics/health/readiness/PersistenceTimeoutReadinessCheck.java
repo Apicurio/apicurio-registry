@@ -76,7 +76,7 @@ public class PersistenceTimeoutReadinessCheck extends AbstractErrorCounterHealth
         return timeoutSec;
     }
 
-    public void suspect() {
+    public synchronized void suspect() {
         this.suspectSuper();
     }
 }

@@ -41,6 +41,20 @@ const ISSUE_URL_PATTERN =
 const AUTHOR = 'author';
 const MAINTAINER = 'maintainer';
 
+// The state of one requirement in the comment. Every requirement is listed,
+// not just the failing ones, so the comment shows at a glance what is checked.
+// A missing milestone is "waiting" rather than "action needed" because the
+// author can't set one: a red cross would tell them they broke something.
+const PASSED = 'passed';
+const ACTION_NEEDED = 'action-needed';
+const WAITING = 'waiting';
+const NOT_CHECKED = 'not-checked';
+const STATUS_ICONS = { [PASSED]: '✅', [ACTION_NEEDED]: '❌', [WAITING]: '⏳', [NOT_CHECKED]: '➖' };
+
+function isBlocking(item) {
+  return item.status === ACTION_NEEDED || item.status === WAITING;
+}
+
 // The workflow file whose latest run carries a PR's "Validate PR" check.
 const VALIDATION_WORKFLOW_FILE = 'pr-validation.yml';
 
@@ -84,11 +98,21 @@ function isExemptAuthor(config, username) {
  * character at least as long, and an unclosed fence runs to the end; a code
  * span ends at the next backtick run of exactly its length, may span lines,
  * and never crosses a blank line.
+ *
+ * Removed code leaves a non-whitespace placeholder, and a fenced block also a
+ * paragraph break, so the text on either side can't join up into a closing
+ * reference that wasn't there ("Closes", a fence, "#42" on the next line).
+ *
+ * Fences inside block quotes or list items are not recognised; that would
+ * take a real Markdown parser, and quoting a fenced closing keyword that way
+ * in a PR description is rare.
  */
 function stripCode(markdown) {
   const kept = [];
   let fence = null;
-  for (const line of markdown.split('\n')) {
+  // Bodies edited on github.com use CRLF, and a trailing \r would stop a
+  // closing fence or a blank line from being recognised.
+  for (const line of markdown.replace(/\r\n?/g, '\n').split('\n')) {
     if (fence) {
       const close = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
       if (close && close[1][0] === fence.char && close[1].length >= fence.length) fence = null;
@@ -99,6 +123,7 @@ function stripCode(markdown) {
     // line is inline code instead.
     if (open && !(open[1][0] === '`' && open[2].includes('`'))) {
       fence = { char: open[1][0], length: open[1].length };
+      kept.push('', CODE_PLACEHOLDER, '');
       continue;
     }
     kept.push(line);
@@ -106,8 +131,11 @@ function stripCode(markdown) {
   return kept.join('\n').split(/(\n[ \t]*\n)/).map(stripCodeSpans).join('');
 }
 
-// Code spans removed from one paragraph. A backtick run with no closing run
-// of the same length is literal text.
+// Stands in for removed code; anything without whitespace or a '#' works.
+const CODE_PLACEHOLDER = '[code]';
+
+// Code spans replaced in one paragraph. A backtick run with no closing run of
+// the same length is literal text.
 function stripCodeSpans(paragraph) {
   const runLength = at => {
     let n = 0;
@@ -140,6 +168,7 @@ function stripCodeSpans(paragraph) {
       out += paragraph.slice(i, i + n);
       i += n;
     } else {
+      out += CODE_PLACEHOLDER;
       i = close + n;
     }
   }
@@ -193,12 +222,15 @@ function firstLine(message) {
 }
 
 function checkIssueLink(linkedIssues) {
+  const item = { name: 'Issue link', label: 'Issue link', audience: AUTHOR };
   if (linkedIssues.size > 0) {
-    return null;
+    const numbers = [...linkedIssues].sort((a, b) => a - b).map(n => `#${n}`);
+    return { ...item, status: PASSED, summary: `closes ${numbers.join(', ')}` };
   }
   return {
-    name: 'Issue link',
-    audience: AUTHOR,
+    ...item,
+    status: ACTION_NEEDED,
+    summary: 'no linked issue',
     detail: 'The PR body does not link an issue. Add a closing keyword such as '
       + '`Closes #1234` (or `Fixes`/`Resolves`, or the full issue URL) so the issue '
       + 'closes when this merges.',
@@ -222,17 +254,19 @@ function isMergeCommit(commit) {
 }
 
 function checkDcoSignOff(commits) {
+  const item = { name: 'DCO sign-off', label: 'DCO sign-off', audience: AUTHOR };
   const unsigned = commits.filter(c => !isMergeCommit(c) && !hasSignOff(c));
   if (unsigned.length === 0) {
-    return null;
+    return { ...item, status: PASSED, summary: 'every commit is signed off (merge commits are exempt)' };
   }
   const list = unsigned
-    .map(c => `  - \`${shortSha(c.sha)}\` ${firstLine(c.commit.message)}`)
+    .map(c => `- \`${shortSha(c.sha)}\` ${firstLine(c.commit.message)}`)
     .join('\n');
   return {
-    name: 'DCO sign-off',
-    audience: AUTHOR,
-    detail: `${unsigned.length} commit(s) are missing a \`Signed-off-by:\` trailer:\n\n${list}\n\n`
+    ...item,
+    status: ACTION_NEEDED,
+    summary: `${unsigned.length} commit(s) missing a \`Signed-off-by:\` trailer`,
+    detail: `${list}\n\n`
       + 'Sign off with `git commit -s`, or repair existing commits with '
       + '`git rebase --signoff upstream/main` and force-push.',
   };
@@ -272,35 +306,30 @@ async function fetchLinkedIssues(github, owner, repo, linkedIssues, core) {
  * check an outside contributor cannot clear themselves. The message says so.
  */
 function checkMilestone(pr, issues) {
-  const problems = [];
-
-  const describe = (subject, milestone) => {
+  const item = (label, status, summary) => ({ name: 'Milestone', label, audience: MAINTAINER, status, summary });
+  const milestoneItem = (label, milestone) => {
     if (!milestone) {
-      problems.push(`- ${subject} has no milestone.`);
-    } else if (milestone.state === 'closed') {
-      problems.push(`- ${subject} is on milestone \`${milestone.title}\`, which is closed.`);
+      return item(label, WAITING, 'not set');
     }
+    if (milestone.state === 'closed') {
+      return item(label, WAITING, `\`${milestone.title}\` is closed`);
+    }
+    return item(label, PASSED, `\`${milestone.title}\``);
   };
 
-  describe('This PR', pr.milestone);
+  const items = [milestoneItem('Milestone on this PR', pr.milestone)];
   for (const issue of issues) {
-    if (issue.state === 'closed') continue;
-    describe(`Issue #${issue.number}`, issue.milestone);
+    items.push(issue.state === 'closed'
+      ? item(`Milestone on #${issue.number}`, NOT_CHECKED, 'the issue is closed, so its milestone is not checked')
+      : milestoneItem(`Milestone on #${issue.number}`, issue.milestone));
   }
-
-  if (problems.length === 0) {
-    return null;
-  }
-  return {
-    name: 'Milestone',
-    audience: MAINTAINER,
-    detail: `${problems.join('\n')}\n\n`
-      + 'Setting a milestone requires triage permission, so **a maintainer has to '
-      + 'do this** — there is no action for the PR author here. The milestone '
-      + 'determines which release notes this work appears in. The check re-runs '
-      + 'on its own when the milestone is set, on this PR or on a linked issue.',
-  };
+  return items;
 }
+
+// Shown once under the maintainer section when a milestone is missing.
+const MILESTONE_NOTE = 'Setting a milestone requires triage permission, so **a maintainer has to '
+  + 'do this**. There is no action for the PR author here. The milestone '
+  + 'determines which release notes this work appears in.';
 
 async function findDuplicates(github, owner, repo, pr, linkedIssues, config, core) {
   const openPrs = await github.paginate(github.rest.pulls.list, {
@@ -343,21 +372,32 @@ async function findDuplicates(github, owner, repo, pr, linkedIssues, config, cor
   return { byIssue, byFile };
 }
 
-function buildComment(pr, violations, duplicates) {
+function buildComment(pr, items, duplicates) {
   const lines = [COMMENT_MARKER, '## PR validation', ''];
+  const blocking = items.filter(isBlocking);
 
-  if (violations.length === 0) {
-    lines.push('All validation checks passed.', '');
-  } else {
-    lines.push(`This PR has ${violations.length} validation issue(s).`, '');
-    for (const [audience, heading] of [[AUTHOR, 'For the author'], [MAINTAINER, 'For a maintainer']]) {
-      const owned = violations.filter(v => v.audience === audience);
-      if (owned.length === 0) continue;
-      lines.push(`### ${heading}`, '');
-      for (const violation of owned) {
-        lines.push(`#### ${violation.name}`, '', violation.detail, '');
+  lines.push(blocking.length === 0
+    ? 'All validation checks passed.'
+    : `This PR has ${blocking.length} validation issue(s).`, '');
+
+  for (const [audience, heading] of [[AUTHOR, 'For the author'], [MAINTAINER, 'For a maintainer']]) {
+    const owned = items.filter(i => i.audience === audience);
+    if (owned.length === 0) continue;
+    lines.push(`### ${heading}`, '');
+    for (const item of owned) {
+      lines.push(`- ${STATUS_ICONS[item.status]} **${item.label}:** ${item.summary}`);
+      if (isBlocking(item) && item.detail) {
+        // Indented, so it renders as part of the list item it explains.
+        lines.push('', ...item.detail.split('\n').map(l => (l ? `  ${l}` : l)), '');
       }
     }
+    lines.push('');
+    if (audience === MAINTAINER && owned.some(i => i.name === 'Milestone' && i.status === WAITING)) {
+      lines.push(MILESTONE_NOTE, '');
+    }
+  }
+
+  if (blocking.length > 0) {
     lines.push('The check re-runs on its own when you push or edit the description, '
       + 'and when a maintainer sets a milestone on this PR or on an issue it closes. '
       + 'To re-run it by hand, comment `/retry`. This does not close your PR.', '');
@@ -478,11 +518,12 @@ async function validate({ github, context, core }) {
 
   const linkedIssues = extractLinkedIssues(pr.body, owner, repo);
   const issues = await fetchLinkedIssues(github, owner, repo, linkedIssues, core);
-  const violations = [
+  const items = [
     checkIssueLink(linkedIssues),
     checkDcoSignOff(commits),
-    checkMilestone(pr, issues),
-  ].filter(Boolean);
+    ...checkMilestone(pr, issues),
+  ];
+  const violations = items.filter(isBlocking);
 
   let duplicates = { byIssue: [], byFile: [] };
   try {
@@ -492,7 +533,7 @@ async function validate({ github, context, core }) {
   }
 
   await upsertComment(github, owner, repo, pr.number,
-    buildComment(pr, violations, duplicates), COMMENT_MARKER, core);
+    buildComment(pr, items, duplicates), COMMENT_MARKER, core);
   await setFailedLabel(github, owner, repo, pr, violations.length > 0, core);
 
   try {
@@ -502,7 +543,7 @@ async function validate({ github, context, core }) {
   }
 
   if (violations.length > 0) {
-    core.setFailed(`PR validation failed: ${violations.map(v => v.name).join(', ')}`);
+    core.setFailed(`PR validation failed: ${[...new Set(violations.map(v => v.name))].join(', ')}`);
   } else {
     core.info('PR validation passed');
   }

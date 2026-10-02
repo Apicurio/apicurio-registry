@@ -123,13 +123,17 @@ test('hasSignOff: trailer email match is case-insensitive', () => {
   assert.equal(hasSignOff(commit), true);
 });
 
-test('checkIssueLink: returns null when at least one issue is linked', () => {
-  assert.equal(checkIssueLink(new Set([123])), null);
+test('checkIssueLink: passes and names the linked issues in order', () => {
+  const item = checkIssueLink(new Set([123, 45]));
+  assert.equal(item.status, 'passed');
+  assert.equal(item.summary, 'closes #45, #123');
 });
 
-test('checkIssueLink: returns a violation named "Issue link" when nothing is linked', () => {
-  const violation = checkIssueLink(new Set());
-  assert.equal(violation.name, 'Issue link');
+test('checkIssueLink: needs author action when nothing is linked', () => {
+  const item = checkIssueLink(new Set());
+  assert.equal(item.name, 'Issue link');
+  assert.equal(item.status, 'action-needed');
+  assert.equal(item.audience, 'author');
 });
 
 test('checkDcoSignOff: returns null when every commit is signed off by its own author', () => {
@@ -137,7 +141,7 @@ test('checkDcoSignOff: returns null when every commit is signed off by its own a
     { sha: 'aaaaaaaa1111', ...commitWith('fix: a\n\nSigned-off-by: A <a@example.com>', 'a@example.com') },
     { sha: 'bbbbbbbb2222', ...commitWith('fix: b\n\nSigned-off-by: B <b@example.com>', 'b@example.com') },
   ];
-  assert.equal(checkDcoSignOff(commits), null);
+  assert.equal(checkDcoSignOff(commits).status, 'passed');
 });
 
 test('checkDcoSignOff: flags the exact unsigned commits and reports their count', () => {
@@ -147,7 +151,8 @@ test('checkDcoSignOff: flags the exact unsigned commits and reports their count'
   ];
   const violation = checkDcoSignOff(commits);
   assert.equal(violation.name, 'DCO sign-off');
-  assert.match(violation.detail, /1 commit\(s\)/);
+  assert.equal(violation.status, 'action-needed');
+  assert.equal(violation.summary, '1 commit(s) missing a `Signed-off-by:` trailer');
   assert.match(violation.detail, /`bbbbbbbb`/);
   assert.doesNotMatch(violation.detail, /`aaaaaaaa`/);
 });
@@ -157,7 +162,7 @@ test('checkDcoSignOff: a trailer copied from a different commit does not satisfy
     { sha: 'aaaaaaaa1111', ...commitWith('fix: a\n\nSigned-off-by: A <a@example.com>', 'b@example.com') },
   ];
   const violation = checkDcoSignOff(commits);
-  assert.notEqual(violation, null);
+  assert.equal(violation.status, 'action-needed');
   assert.match(violation.detail, /`aaaaaaaa`/);
 });
 
@@ -170,7 +175,7 @@ test('checkDcoSignOff: an unsigned merge commit is exempt', () => {
       ...commitWith("Merge branch 'main' into fix/thing", 'a@example.com'),
     },
   ];
-  assert.equal(checkDcoSignOff(commits), null);
+  assert.equal(checkDcoSignOff(commits).status, 'passed');
 });
 
 test('checkDcoSignOff: the merge exemption does not cover single-parent commits', () => {
@@ -178,8 +183,8 @@ test('checkDcoSignOff: the merge exemption does not cover single-parent commits'
     { sha: 'bbbbbbbb2222', parents: [{ sha: 'aaaaaaaa1111' }], ...commitWith('fix: b', 'b@example.com') },
   ];
   const violation = checkDcoSignOff(commits);
-  assert.equal(violation.name, 'DCO sign-off');
-  assert.match(violation.detail, /1 commit\(s\)/);
+  assert.equal(violation.status, 'action-needed');
+  assert.equal(violation.summary, '1 commit(s) missing a `Signed-off-by:` trailer');
   assert.match(violation.detail, /`bbbbbbbb`/);
 });
 
@@ -548,34 +553,42 @@ test('validate(): a duplicate-detection failure still reports a real violation',
 // one is not the author's to fix, which is why the message says who must act.
 // ---------------------------------------------------------------------------
 
+// [label, status, summary] for each milestone item, for compact assertions.
+const milestoneRows = items => items.map(i => [i.label, i.status, i.summary]);
+
 test('checkMilestone(): passes when the PR and its issues are milestoned', () => {
-  const violation = checkMilestone(
+  const items = checkMilestone(
     { milestone: OPEN_MILESTONE },
     [{ number: 42, milestone: OPEN_MILESTONE }]
   );
-  assert.equal(violation, null);
+  assert.deepEqual(milestoneRows(items), [
+    ['Milestone on this PR', 'passed', `\`${OPEN_MILESTONE.title}\``],
+    ['Milestone on #42', 'passed', `\`${OPEN_MILESTONE.title}\``],
+  ]);
 });
 
-test('checkMilestone(): reports a PR with no milestone', () => {
-  const violation = checkMilestone({ milestone: null }, []);
-  assert.match(violation.detail, /This PR has no milestone/);
-  assert.match(violation.detail, /a maintainer has to do this/);
+test('checkMilestone(): a PR with no milestone waits on a maintainer', () => {
+  const [item] = checkMilestone({ milestone: null }, []);
+  assert.equal(item.audience, 'maintainer');
+  assert.deepEqual([item.status, item.summary], ['waiting', 'not set']);
 });
 
 test('checkMilestone(): a closed milestone counts as missing', () => {
-  const violation = checkMilestone({ milestone: CLOSED_MILESTONE }, []);
-  assert.match(violation.detail, /`3\.3\.3`, which is closed/);
+  const [item] = checkMilestone({ milestone: CLOSED_MILESTONE }, []);
+  assert.deepEqual([item.status, item.summary], ['waiting', '`3.3.3` is closed']);
 });
 
-test('checkMilestone(): reports each unmilestoned issue separately', () => {
-  const violation = checkMilestone({ milestone: OPEN_MILESTONE }, [
+test('checkMilestone(): reports each linked issue separately', () => {
+  const items = checkMilestone({ milestone: OPEN_MILESTONE }, [
     { number: 42, milestone: null },
     { number: 43, milestone: CLOSED_MILESTONE },
     { number: 44, milestone: OPEN_MILESTONE },
   ]);
-  assert.match(violation.detail, /Issue #42 has no milestone/);
-  assert.match(violation.detail, /Issue #43 is on milestone/);
-  assert.doesNotMatch(violation.detail, /Issue #44/);
+  assert.deepEqual(milestoneRows(items).slice(1), [
+    ['Milestone on #42', 'waiting', 'not set'],
+    ['Milestone on #43', 'waiting', '`3.3.3` is closed'],
+    ['Milestone on #44', 'passed', `\`${OPEN_MILESTONE.title}\``],
+  ]);
 });
 
 test('validate(): an unmilestoned PR fails the check and is labelled', async (t) => {
@@ -593,7 +606,8 @@ test('validate(): an unmilestoned PR fails the check and is labelled', async (t)
 
   assert.match(getFailed(), /Milestone/);
   assert.deepEqual(calls.addedLabels, [{ issue_number: 1, labels: ['lifecycle/validation-failed'] }]);
-  assert.match(calls.createdComments[0].body, /This PR has no milestone/);
+  assert.match(calls.createdComments[0].body, /- ⏳ \*\*Milestone on this PR:\*\* not set/);
+  assert.match(calls.createdComments[0].body, /a maintainer has to do this/);
 });
 
 test('validate(): a milestoned PR closing an unmilestoned issue still fails', async (t) => {
@@ -608,7 +622,7 @@ test('validate(): a milestoned PR closing an unmilestoned issue still fails', as
   await validate({ github, context: makeContext(pr), core });
 
   assert.match(getFailed(), /Milestone/);
-  assert.match(calls.createdComments[0].body, /Issue #42 has no milestone/);
+  assert.match(calls.createdComments[0].body, /- ⏳ \*\*Milestone on #42:\*\* not set/);
 });
 
 test('validate(): an issue that cannot be fetched is warned about, not failed', async (t) => {
@@ -685,6 +699,37 @@ test('extractLinkedIssues: a code span never crosses a blank line, and an unmatc
   assert.deepEqual([...extractLinkedIssues('a `` b Fixes #5', OWNER, REPO)], [5]);
 });
 
+test('extractLinkedIssues: CRLF bodies (edited on github.com) close fences and split paragraphs', () => {
+  // With a trailing \r the closing fence went unrecognised and hid Resolves #2.
+  assert.deepEqual([...extractLinkedIssues('Closes #1\r\n~~~\r\nFixes #42\r\n~~~\r\nResolves #2', OWNER, REPO)].sort(), [1, 2]);
+  // Across the CRLF blank line the backticks would pair up and hide Fixes #3.
+  assert.deepEqual([...extractLinkedIssues('Closes #1 ` a\r\n\r\nFixes #3 ` b', OWNER, REPO)].sort(), [1, 3]);
+});
+
+test('extractLinkedIssues: removed code never joins the text around it into a reference', () => {
+  assert.deepEqual([...extractLinkedIssues('Closes\n~~~\nexample\n~~~\n#42', OWNER, REPO)], []);
+  assert.deepEqual([...extractLinkedIssues('Clo`x`ses #42', OWNER, REPO)], []);
+  assert.deepEqual([...extractLinkedIssues('Closes `not a reference` #43', OWNER, REPO)], []);
+});
+
+test('validate(): a closed linked issue is listed as not checked, and does not fail the check', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = { number: 1, user: { login: 'contributor' }, body: 'Closes #7317', labels: [], draft: false, milestone: OPEN_MILESTONE };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    issuesByNumber: { 7317: { number: 7317, state: 'closed', milestone: null } },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), null);
+  const body = calls.createdComments[0].body;
+  assert.match(body, /All validation checks passed\./);
+  assert.match(body, /- ➖ \*\*Milestone on #7317:\*\* the issue is closed, so its milestone is not checked/);
+  assert.doesNotMatch(body, /a maintainer has to do this/);
+});
+
 test('stripCode: leaves prose alone', () => {
   assert.equal(stripCode('Closes #1 and Fixes #2'), 'Closes #1 and Fixes #2');
 });
@@ -693,27 +738,32 @@ test('stripCode: leaves prose alone', () => {
 // A closed linked issue's milestone is history (#10101)
 // ---------------------------------------------------------------------------
 
-test('checkMilestone(): a closed linked issue on a closed milestone is not a violation', () => {
-  const violation = checkMilestone({ milestone: OPEN_MILESTONE }, [
+test('checkMilestone(): a closed linked issue is listed as not checked, whatever its milestone', () => {
+  const items = checkMilestone({ milestone: OPEN_MILESTONE }, [
     { number: 7317, state: 'closed', milestone: CLOSED_MILESTONE },
     { number: 7318, state: 'closed', milestone: null },
   ]);
-  assert.equal(violation, null);
+  assert.deepEqual(milestoneRows(items).slice(1), [
+    ['Milestone on #7317', 'not-checked', 'the issue is closed, so its milestone is not checked'],
+    ['Milestone on #7318', 'not-checked', 'the issue is closed, so its milestone is not checked'],
+  ]);
 });
 
-test('checkMilestone(): an open linked issue on a closed milestone is still a violation', () => {
-  const violation = checkMilestone({ milestone: OPEN_MILESTONE }, [
+test('checkMilestone(): an open linked issue on a closed milestone is still waiting', () => {
+  const items = checkMilestone({ milestone: OPEN_MILESTONE }, [
     { number: 42, state: 'open', milestone: CLOSED_MILESTONE },
   ]);
-  assert.match(violation.detail, /Issue #42 is on milestone `3\.3\.3`, which is closed/);
+  assert.deepEqual(milestoneRows(items)[1], ['Milestone on #42', 'waiting', '`3.3.3` is closed']);
 });
 
 test('checkMilestone(): the PR itself still needs an open milestone when its issues are closed', () => {
-  const violation = checkMilestone({ milestone: CLOSED_MILESTONE }, [
+  const items = checkMilestone({ milestone: CLOSED_MILESTONE }, [
     { number: 7317, state: 'closed', milestone: CLOSED_MILESTONE },
   ]);
-  assert.match(violation.detail, /This PR is on milestone `3\.3\.3`/);
-  assert.doesNotMatch(violation.detail, /#7317/);
+  assert.deepEqual(milestoneRows(items), [
+    ['Milestone on this PR', 'waiting', '`3.3.3` is closed'],
+    ['Milestone on #7317', 'not-checked', 'the issue is closed, so its milestone is not checked'],
+  ]);
 });
 
 // ---------------------------------------------------------------------------
@@ -732,15 +782,17 @@ test('validate(): violations are grouped by who can fix them, author first', asy
 
   const body = calls.createdComments[0].body;
   const author = body.indexOf('### For the author');
-  const dco = body.indexOf('#### DCO sign-off');
+  const dco = body.indexOf('- ❌ **DCO sign-off:** 1 commit(s) missing');
   const maintainer = body.indexOf('### For a maintainer');
-  const milestone = body.indexOf('#### Milestone');
+  const milestone = body.indexOf('- ⏳ **Milestone on this PR:** not set');
   assert.ok(author >= 0 && dco > author && maintainer > dco && milestone > maintainer,
     'author section (with DCO) comes first, then the maintainer section (with Milestone)');
+  // The failing item's detail is indented under it, so it renders inside the list item.
+  assert.match(body, /\n  - `bbbbbbbb` fix: b\n/);
   assert.match(body, /comment `\/retry`/);
 });
 
-test('validate(): a PR blocked only on a maintainer has no author section', async (t) => {
+test('validate(): a PR blocked only on a maintainer shows the author items as passed', async (t) => {
   stubConfig(t, { auto_accept: [] });
   const pr = { number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false, milestone: null };
   const { github, calls } = createFakeGithub({ commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] } });
@@ -748,8 +800,11 @@ test('validate(): a PR blocked only on a maintainer has no author section', asyn
 
   await validate({ github, context: makeContext(pr), core });
 
-  assert.doesNotMatch(calls.createdComments[0].body, /For the author/);
-  assert.match(calls.createdComments[0].body, /### For a maintainer/);
+  const body = calls.createdComments[0].body;
+  assert.match(body, /### For the author\n\n- ✅ \*\*Issue link:\*\* closes #42\n- ✅ \*\*DCO sign-off:\*\* every commit is signed off/);
+  assert.match(body, /### For a maintainer\n\n- ⏳ \*\*Milestone on this PR:\*\* not set/);
+  assert.match(body, /- ✅ \*\*Milestone on #42:\*\* `3\.4\.0`/);
+  assert.match(body, /This PR has 1 validation issue\(s\)\./);
 });
 
 test('validate(): reads the PR back instead of trusting a stale event payload', async (t) => {

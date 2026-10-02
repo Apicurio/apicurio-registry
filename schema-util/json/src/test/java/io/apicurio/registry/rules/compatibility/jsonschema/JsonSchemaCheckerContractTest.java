@@ -5,6 +5,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.rules.compatibility.ApitomyJsonSchemaCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Test;
 
@@ -104,6 +105,22 @@ public class JsonSchemaCheckerContractTest {
                 () -> checker.testCompatibility(CompatibilityLevel.BACKWARD,
                         List.of(yaml(existingYaml)), yaml(proposedYaml), Map.of()),
                 "YAML should fail loudly rather than produce a verdict from an unparsed schema");
+    }
+
+    /**
+     * A {@code $schema} that names no draft, such as a custom meta-schema, can't be compared. That
+     * is reported as an unprocessable schema, which the REST layer turns into 422, rather than as an
+     * unexpected error.
+     */
+    @Test
+    void unrecognisedDraftIsUnprocessable() {
+        String schema = """
+                { "$schema": "https://example.com/my-meta-schema", "type": "string" }
+                """;
+
+        assertThrows(UnprocessableSchemaException.class,
+                () -> checker.testCompatibility(CompatibilityLevel.BACKWARD, List.of(json(schema)), json(schema),
+                        Map.of()));
     }
 
     /**

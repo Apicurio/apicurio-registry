@@ -4,6 +4,8 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
+import io.apitomy.datamodels.UnsupportedModelTypeException;
+import io.apitomy.datamodels.jsonschema.compat.CompatibilityCheckResult;
 import io.apitomy.datamodels.jsonschema.compat.JsonSchemaCompatibilityChecker;
 import io.apitomy.datamodels.jsonschema.ref.AnchorFragmentResolver;
 import io.apitomy.datamodels.jsonschema.ref.JsonSchemaRefDereferencer;
@@ -44,7 +46,13 @@ public class ApitomyJsonSchemaCompatibilityChecker extends AbstractCompatibility
                 .allowCrossVersionChecking(true)
                 .build();
 
-        var result = checker.checkBackward(existing, proposed);
+        CompatibilityCheckResult result;
+        try {
+            result = checker.checkBackward(existing, proposed);
+        } catch (UnsupportedModelTypeException e) {
+            // A $schema that names no draft the library knows, such as a custom meta-schema.
+            throw new UnprocessableSchemaException("Compatibility could not be determined: " + e.getMessage(), e);
+        }
 
         // AbstractCompatibilityChecker separates "not compatible" — report differences — from
         // "compatibility could not be determined" — throw. An unresolved reference is the second:

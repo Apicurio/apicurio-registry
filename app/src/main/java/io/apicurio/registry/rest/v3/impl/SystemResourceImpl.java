@@ -75,6 +75,8 @@ public class SystemResourceImpl implements SystemResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public UserInterfaceConfig getUIConfig() {
+        boolean readOnly = uiConfig.featureReadOnly.get() || storage.isReadOnly();
+
         return UserInterfaceConfig.builder()
                 .ui(UserInterfaceConfigUi.builder().contextPath(uiConfig.contextPath)
                         .navPrefixPath(uiConfig.navPrefixPath)
@@ -83,12 +85,12 @@ public class SystemResourceImpl implements SystemResource {
                         .build())
                 .auth(uiAuthConfig())
                 .features(UserInterfaceConfigFeatures.builder()
-                        .readOnly(uiConfig.featureReadOnly.get() || storage.isReadOnly())
+                        .readOnly(readOnly)
                         .breadcrumbs("true".equals(uiConfig.featureBreadcrumbs))
                         .roleManagement(authConfig.isRbacEnabled() && "application".equals(authConfig.getRoleSource()))
-                        .deleteGroup(restConfig.isGroupDeletionEnabled())
-                        .deleteArtifact(restConfig.isArtifactDeletionEnabled())
-                        .deleteVersion(restConfig.isArtifactVersionDeletionEnabled())
+                        .deleteGroup(restConfig.isGroupDeletionEnabled() && !readOnly)
+                        .deleteArtifact(restConfig.isArtifactDeletionEnabled() && !readOnly)
+                        .deleteVersion(restConfig.isArtifactVersionDeletionEnabled() && !readOnly)
                         .draftMutability(restConfig.isArtifactVersionMutabilityEnabled())
                         .agents(uiConfig.featureAgents.get())
                         .searchIndex(esSearchConfig.isEnabled())

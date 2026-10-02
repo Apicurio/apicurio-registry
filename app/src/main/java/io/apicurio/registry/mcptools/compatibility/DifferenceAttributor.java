@@ -2,8 +2,8 @@ package io.apicurio.registry.mcptools.compatibility;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.BooleanNode;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.Difference;
+import io.apitomy.datamodels.jsonschema.compat.DiffType;
+import io.apitomy.datamodels.jsonschema.compat.Difference;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,21 +12,16 @@ import java.util.function.BiFunction;
 
 /**
  * Attributes a difference reported by the comparison engine to the properties it concerns.
- * Engine paths are not JSON Pointers: property names in them are not escaped, and some
- * differences summarize a set of properties without naming them, so properties are identified
- * from the two projections, never by splitting a path.
+ * Engine paths are JSON Pointers into the consumer's projection, ending at the keyword that
+ * changed. A difference in which properties are declared is reported at {@code /properties}
+ * without naming them, so those properties are identified from the two projections.
  */
 final class DifferenceAttributor {
 
-    private static final String ENGINE_ROOT = "";
-    private static final String ENGINE_ROOT_TYPE = "/type";
-    private static final String ENGINE_REQUIRED = "/required";
-    private static final String ENGINE_ADDITIONAL_PROPERTIES = "/additionalProperties";
-    private static final String ENGINE_ADDITIONAL_PROPERTIES_SCHEMA = "/schemaOfAdditionalItems";
-    private static final String ENGINE_PROPERTIES_ONLY_IN_PRODUCER = "/propertySchemasRemoved";
-    private static final String ENGINE_PROPERTIES_ONLY_IN_CONSUMER = "/propertySchemasAdded";
-    private static final String ENGINE_PROPERTY_PREFIX = "/properties/";
-    private static final String ENGINE_TYPE_SUFFIX = "/type";
+    private static final String PROPERTIES = "properties";
+    private static final String REQUIRED = "required";
+    private static final String ADDITIONAL_PROPERTIES = "additionalProperties";
+    private static final String TYPE = "type";
 
     private final SchemaProjection producer;
     private final SchemaProjection consumer;
@@ -47,16 +42,15 @@ final class DifferenceAttributor {
      * Returns the reasons behind a difference, or empty when it cannot be attributed.
      */
     Optional<List<CompatibilityReason>> attribute(Difference difference) {
-        String path = difference.getPathUpdated();
-        return switch (path) {
-            case ENGINE_ROOT, ENGINE_ROOT_TYPE -> Optional.of(List.of(outputTypeNotAccepted()));
-            case ENGINE_REQUIRED -> requiredMember(difference);
-            case ENGINE_ADDITIONAL_PROPERTIES, ENGINE_ADDITIONAL_PROPERTIES_SCHEMA ->
-                    undeclaredProperties();
-            case ENGINE_PROPERTIES_ONLY_IN_PRODUCER -> propertiesOnlyInProducer();
-            case ENGINE_PROPERTIES_ONLY_IN_CONSUMER -> propertiesOnlyInConsumer();
-            default -> path.startsWith(ENGINE_PROPERTY_PREFIX) ? propertyInBoth(path)
-                    : Optional.empty();
+        List<String> path = difference.getPathUpdated().segments();
+        if (path.isEmpty() || path.equals(List.of(TYPE))) {
+            return Optional.of(List.of(outputTypeNotAccepted()));
+        }
+        return switch (path.get(0)) {
+            case REQUIRED -> requiredMember(difference, path);
+            case ADDITIONAL_PROPERTIES -> undeclaredProperties();
+            case PROPERTIES -> path.size() == 1 ? propertiesOnlyInOneSchema() : propertyInBoth(path.get(1));
+            default -> Optional.empty();
         };
     }
 
@@ -78,10 +72,12 @@ final class DifferenceAttributor {
                 "The producer may emit a value whose type the consumer does not accept");
     }
 
-    private Optional<List<CompatibilityReason>> requiredMember(Difference difference) {
-        String name = difference.getSubSchemaUpdated();
-        if (difference.getDiffType() != DiffType.OBJECT_TYPE_REQUIRED_PROPERTIES_MEMBER_ADDED
-                || !consumer.required().contains(name) || producer.required().contains(name)) {
+    private Optional<List<CompatibilityReason>> requiredMember(Difference difference, List<String> path) {
+        if (difference.getDiffType() != DiffType.OBJECT_TYPE_REQUIRED_PROPERTIES_MEMBER_ADDED || path.size() != 2) {
+            return Optional.empty();
+        }
+        String name = memberName(consumer.projected().path(REQUIRED), path.get(1));
+        if (name == null || !consumer.required().contains(name) || producer.required().contains(name)) {
             return Optional.empty();
         }
         String message = producer.declaresProperty(name)
@@ -101,10 +97,29 @@ final class DifferenceAttributor {
                 "The producer may emit undeclared properties that the consumer does not accept")));
     }
 
+    /**
+     * A difference in which properties are declared can come from either schema, so both are
+     * checked. Empty when it can't be explained.
+     */
+    private Optional<List<CompatibilityReason>> propertiesOnlyInOneSchema() {
+        Optional<List<CompatibilityReason>> inProducer = propertiesOnlyInProducer();
+        Optional<List<CompatibilityReason>> inConsumer = propertiesOnlyInConsumer();
+        if (inProducer.isEmpty() || inConsumer.isEmpty()) {
+            return Optional.empty();
+        }
+        List<CompatibilityReason> reasons = new ArrayList<>(inProducer.get());
+        reasons.addAll(inConsumer.get());
+        return reasons.isEmpty() ? Optional.empty() : Optional.of(reasons);
+    }
+
+    /**
+     * Reasons from properties only the producer declares: an empty list if there are none, or
+     * empty if they can't be decided.
+     */
     private Optional<List<CompatibilityReason>> propertiesOnlyInProducer() {
         JsonNode consumerAdditional = consumer.additionalProperties();
         if (consumerAdditional == null) {
-            return Optional.empty();
+            return Optional.of(List.of());
         }
         List<CompatibilityReason> reasons = new ArrayList<>();
         for (String name : producer.propertyNames()) {
@@ -124,14 +139,18 @@ final class DifferenceAttributor {
                         "The producer may emit '" + name + "', which the consumer does not accept"));
             }
         }
-        return reasons.isEmpty() ? Optional.empty() : Optional.of(reasons);
+        return Optional.of(reasons);
     }
 
+    /**
+     * Reasons from properties only the consumer declares: an empty list if there are none, or
+     * empty if they can't be decided.
+     */
     private Optional<List<CompatibilityReason>> propertiesOnlyInConsumer() {
         JsonNode producerAdditional = producer.additionalProperties();
         JsonNode emitted = producerAdditional == null ? BooleanNode.TRUE : producerAdditional;
         if (BooleanNode.FALSE.equals(emitted)) {
-            return Optional.empty();
+            return Optional.of(List.of());
         }
         List<CompatibilityReason> reasons = new ArrayList<>();
         for (String name : consumer.propertyNames()) {
@@ -148,21 +167,25 @@ final class DifferenceAttributor {
                         "The producer may emit '" + name + "' with a value the consumer does not accept"));
             }
         }
-        return reasons.isEmpty() ? Optional.empty() : Optional.of(reasons);
+        return Optional.of(reasons);
     }
 
-    private Optional<List<CompatibilityReason>> propertyInBoth(String path) {
-        List<String> matches = consumer.propertyNames().stream()
-                .filter(producer::declaresProperty)
-                .filter(name -> path.equals(ENGINE_PROPERTY_PREFIX + name)
-                        || path.equals(ENGINE_PROPERTY_PREFIX + name + ENGINE_TYPE_SUFFIX))
-                .toList();
-        if (matches.size() != 1) {
+    private Optional<List<CompatibilityReason>> propertyInBoth(String name) {
+        if (!consumer.declaresProperty(name) || !producer.declaresProperty(name)) {
             return Optional.empty();
         }
-        String name = matches.get(0);
         return Optional.of(List.of(new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
                 producer.propertyTypePointer(name), consumer.propertyTypePointer(name),
                 "The producer's value for '" + name + "' is not accepted by the consumer")));
+    }
+
+    /** The string at {@code index} in a {@code required} array, or {@code null}. */
+    private static String memberName(JsonNode required, String index) {
+        try {
+            JsonNode member = required.get(Integer.parseInt(index));
+            return member != null && member.isTextual() ? member.asText() : null;
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 }

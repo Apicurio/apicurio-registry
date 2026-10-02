@@ -1,22 +1,22 @@
 package io.apicurio.registry.mcptools.compatibility;
 
-import org.everit.json.schema.Schema;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import java.util.List;
 
 /**
- * A producer tool's {@code outputSchema}, projected and loaded once so that it can be compared
+ * A producer tool's {@code outputSchema}, projected and checked once so that it can be compared
  * with any number of consumers.
  */
 public final class PreparedProducer {
 
     private final List<CompatibilityLimitation> limitations;
     private final SchemaProjection projection;
-    private final Schema asWritten;
-    private final Schema closed;
+    private final JsonNode asWritten;
+    private final JsonNode closed;
 
     private PreparedProducer(List<CompatibilityLimitation> limitations, SchemaProjection projection,
-            Schema asWritten, Schema closed) {
+            JsonNode asWritten, JsonNode closed) {
         this.limitations = List.copyOf(limitations);
         this.projection = projection;
         this.asWritten = asWritten;
@@ -27,7 +27,7 @@ public final class PreparedProducer {
         return new PreparedProducer(limitations, null, null, null);
     }
 
-    static PreparedProducer loaded(SchemaProjection projection, Schema asWritten, Schema closed) {
+    static PreparedProducer prepared(SchemaProjection projection, JsonNode asWritten, JsonNode closed) {
         return new PreparedProducer(projection.limitations(), projection, asWritten, closed);
     }
 
@@ -50,7 +50,7 @@ public final class PreparedProducer {
         return projection;
     }
 
-    Schema asWritten() {
+    JsonNode asWritten() {
         return asWritten;
     }
 
@@ -58,7 +58,7 @@ public final class PreparedProducer {
      * The producer with its root object closed, or {@code null} when closing it would not change
      * what it emits.
      */
-    Schema closed() {
+    JsonNode closed() {
         return closed;
     }
 }

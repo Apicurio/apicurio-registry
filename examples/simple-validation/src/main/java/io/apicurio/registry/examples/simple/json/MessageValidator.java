@@ -16,22 +16,26 @@
 
 package io.apicurio.registry.examples.simple.json;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.SpecVersion.VersionFlag;
+import com.networknt.schema.SpecVersionDetector;
+import com.networknt.schema.ValidationMessage;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
-import org.everit.json.schema.Schema;
-import org.everit.json.schema.ValidationException;
-import org.everit.json.schema.loader.SchemaLoader;
-import org.json.JSONObject;
-import org.json.JSONTokener;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 /**
  * @author eric.wittmann@gmail.com
  */
 public class MessageValidator {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final String group;
     private final String artifactId;
@@ -55,20 +59,22 @@ public class MessageValidator {
      * Validates a message against the JSON Schema from the registry.
      *
      * @param message the message to validate
+     * @return a description of each way the message doesn't match the schema; empty if it matches
      * @throws IOException if there's an error fetching the schema
-     * @throws ValidationException if the message doesn't match the schema
      */
-    public void validate(MessageBean message) throws IOException, ValidationException {
-        JSONObject jsonSchema;
+    public List<String> validate(MessageBean message) throws IOException {
+        JsonNode jsonSchema;
         try (InputStream schemaIS = client.groups().byGroupId(group).artifacts().byArtifactId(artifactId)
                 .versions().byVersionExpression("1").content().get()) {
-            jsonSchema = new JSONObject(new JSONTokener(schemaIS));
+            jsonSchema = MAPPER.readTree(schemaIS);
         }
 
-        JSONObject jsonSubject = new JSONObject(message);
-
-        Schema schema = SchemaLoader.load(jsonSchema);
-        schema.validate(jsonSubject);
+        // The draft is the one the schema declares, or draft 7 if it declares none.
+        VersionFlag draft = SpecVersionDetector.detectOptionalVersion(jsonSchema, false).orElse(VersionFlag.V7);
+        return JsonSchemaFactory.getInstance(draft).getSchema(jsonSchema)
+                .validate(MAPPER.valueToTree(message)).stream()
+                .map(ValidationMessage::getMessage)
+                .toList();
     }
 
 }

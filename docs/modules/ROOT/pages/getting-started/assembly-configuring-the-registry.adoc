@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can set important configuration options for your {registry} deployment, including the {registry} web console, logging, health checks, and observability.
+You can set important configuration options for your {registry} deployment, including the {registry} web console, logging, health checks, observability, and the storage content cache.
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
@@ -272,6 +272,227 @@ The following properties control how {registry} publishes distribution statistic
 |`0.1,0.25,0.5,1.0,2.0,5.0,10.0`
 |Service level objective boundaries in seconds for the histogram buckets. Only used when the distribution type is `histogram`.
 |===
+
+// con-registry-storage-content-cache
+[id="registry-storage-content-cache_{context}"]
+== Storage content cache
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+{registry} keeps an in-memory, byte-weighted cache of immutable artifact content in front of the storage layer. The cache reduces storage round trips for reads that look up content by content ID or content hash, such as the Confluent-compatible schema lookup by ID that Kafka clients use.
+
+The cache is enabled by default and applies to every storage variant because {registry} adds it as a storage decorator. The storage content cache is separate from HTTP caching, which sets response headers so that a reverse proxy or CDN can cache REST responses outside {registry}. The content cache works inside the {registry} process and also serves requests that HTTP caching does not cover, such as Confluent-compatible requests, which {registry} returns without cache headers.
+
+*Cached reads*
+
+A cache entry holds the content bytes, the artifact type, and the parsed references for one piece of content. {registry} caches only reads whose result depends solely on an immutable content identifier:
+
+* Content by content ID, for example, `GET /apis/registry/v3/ids/contentIds/\{contentId}` and its `/references` variant.
+* Content by SHA-256 content hash, for example, `GET /apis/registry/v3/ids/contentHashes/\{contentHash}` and its `/references` variant.
+* Content and artifact type by content ID, which serves the Confluent-compatible `GET /apis/ccompat/v7/schemas/ids/\{id}` and `GET /apis/ccompat/v7/schemas/ids/\{id}/schema` requests when legacy ID mode is disabled, which is the default.
+
+{registry} does not cache reads that resolve content through a group, artifact, and version coordinate, or through a global ID, because that mapping can change over time.
+
+Content bytes never change for a given content ID or content hash, so the content-by-ID and content-by-hash entries have no expiry. {registry} evicts them only when a cache exceeds its size limit. The content-and-type entry also depends on whether an artifact version still references the content, so it has a bounded staleness window.
+
+{registry} coalesces concurrent misses for the same key into a single storage call. It never caches failed lookups, so a request for content that does not exist always reaches storage.
+
+*Bounded staleness window*
+
+{registry} returns `404 Not Found` for a content-and-type lookup when the content is orphaned, that is, when no artifact version references it. Orphan status can change after {registry} caches the entry, most commonly when you delete the last version that references the content. To keep the hot path fast, {registry} accepts a short window during which a cached content-and-type entry can be stale:
+
+* Each content-and-type entry expires `apicurio.storage.content-cache.hot-path.ttl-seconds` after {registry} writes it. The default is 30 seconds.
+* When you delete a single artifact version, {registry} resolves the content ID of that version before the delete and invalidates the matching content-and-type entry after the delete. If the lookup fails, the delete still completes and the entry expires through the TTL instead.
+* Other operations that can orphan content, such as deleting a whole artifact or group, importing data, or restoring a snapshot, do not invalidate entries. The TTL bounds the staleness for these cases.
+
+As a result, a Confluent-compatible schema lookup by ID can still succeed for up to the TTL after a bulk operation removes the last referencing version. Set the TTL to `0` to disable the content-and-type cache and remove the window at the cost of a storage query on every lookup.
+
+The scheduled orphaned content cleanup job, configured by `apicurio.storage.orphan-cleanup.every`, later removes orphaned content rows from storage. Content-by-ID and content-by-hash entries never expire, so a cached copy of removed content remains readable by content ID or content hash until {registry} evicts it or restarts.
+
+*Memory sizing*
+
+`apicurio.storage.content-cache.max-size` sets the maximum weight, in bytes, of each of the three caches separately, not of all caches together. The default is 64 MiB (`67108864` bytes) for each cache, so the caches can hold up to about 192 MiB of content in total. The same content can be present in more than one cache, for example, when clients request it by content ID and by content hash.
+
+{registry} weighs each entry as the size of the content bytes plus 64 bytes of overhead and 128 bytes for each reference. The weight estimates the payload, not the JVM objects that hold it. When you plan the JVM heap and the container memory limit, count up to three times the configured `max-size` toward the memory that {registry} uses under sustained load, in addition to the baseline memory that your capacity planning requires.
+
+To size the cache for your workload, compare the total size of the schemas that clients read most often with the per-cache limit. Use the cache metrics to confirm the result after a change.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:configuring-storage-content-cache_{context}[]
+* xref:storage-content-cache-reference_{context}[]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-registry-sizing-guide.adoc[]
+endif::[]
+
+
+// proc-configuring-storage-content-cache
+[id="configuring-storage-content-cache_{context}"]
+== Configuring the storage content cache
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can disable the storage content cache, change its size limit, or tune the staleness window for the content-and-type entry. {registry} reads these settings at startup, so you apply them by restarting {registry} with updated configuration properties or environment variables.
+
+.Prerequisites
+* {registry} is installed and you can change its configuration properties or environment variables.
+* You can reach the {registry} management port, `9000` by default, to read metrics.
+
+.Procedure
+. Decide whether to keep the cache enabled. To disable it entirely, set `apicurio.storage.content-cache.enabled` to `false`. The default value is `true`.
+. Set the per-cache size limit in bytes with `apicurio.storage.content-cache.max-size`. The default value is `67108864` (64 MiB). For example, set `134217728` to allow 128 MiB in each of the three caches.
+. Set the staleness window for the content-and-type entry with `apicurio.storage.content-cache.hot-path.ttl-seconds`. The default value is `30`. Set `0` to disable that cache and query storage on every Confluent-compatible schema lookup by ID.
+. Apply the settings and restart {registry}. Use configuration properties or the equivalent environment variables:
++
+.Example: Configuration properties
+[source,properties]
+----
+apicurio.storage.content-cache.enabled=true
+apicurio.storage.content-cache.max-size=134217728
+apicurio.storage.content-cache.hot-path.ttl-seconds=10
+----
++
+.Example: Environment variables in a container deployment
+[source,yaml]
+----
+environment:
+  APICURIO_STORAGE_CONTENT_CACHE_ENABLED: "true"
+  APICURIO_STORAGE_CONTENT_CACHE_MAX_SIZE: "134217728"
+  APICURIO_STORAGE_CONTENT_CACHE_HOT_PATH_TTL_SECONDS: "10"
+----
+
+.Verification
+. Request the same content twice by content ID. Replace `1` with a content ID that exists in your registry:
++
+[source,bash]
+----
+$ curl -s http://localhost:8080/apis/registry/v3/ids/contentIds/1 > /dev/null
+$ curl -s http://localhost:8080/apis/registry/v3/ids/contentIds/1 > /dev/null
+----
+. Read the cache metrics from the management port and filter for the content caches:
++
+[source,bash]
+----
+$ curl -s http://localhost:9000/metrics | grep 'cache="content'
+----
+. Confirm the behavior that matches your configuration:
++
+* When the cache is enabled, `cache_gets_total{cache="contentById",result="hit"}` increases on the second request and `cache_size{cache="contentById"}` is at least `1`.
+* When the cache is disabled, the output contains no series with a `cache="contentById"`, `cache="contentByHash"`, or `cache="contentAndTypeById"` tag.
+* When the TTL is `0`, the `cache="contentAndTypeById"` series are absent while the other two caches still report metrics.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-storage-content-cache_{context}[]
+* xref:storage-content-cache-reference_{context}[]
+* {registry-config-reference}
+
+
+// ref-storage-content-cache-reference
+[id="storage-content-cache-reference_{context}"]
+== Storage content cache properties and metrics
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The storage content cache has three configuration properties, three named caches, and five Micrometer meters for each cache, exposed at `/metrics` on the management port. The properties are available since {registry} 3.3.3.
+
+.Storage content cache configuration properties
+[.table-expandable,width="100%",cols="4,4,2,5",options="header"]
+|===
+|Property
+|Environment variable
+|Default
+|Description
+
+|`apicurio.storage.content-cache.enabled`
+|`APICURIO_STORAGE_CONTENT_CACHE_ENABLED`
+|`true`
+|Enables the storage content cache. When `false`, {registry} does not create the caches and every content read goes to storage.
+
+|`apicurio.storage.content-cache.max-size`
+|`APICURIO_STORAGE_CONTENT_CACHE_MAX_SIZE`
+|`67108864`
+|Maximum weight, in bytes, of each of the three caches. The limit applies to each cache separately, so the caches can hold up to three times this value in total.
+
+|`apicurio.storage.content-cache.hot-path.ttl-seconds`
+|`APICURIO_STORAGE_CONTENT_CACHE_HOT_PATH_TTL_SECONDS`
+|`30`
+|Number of seconds after which a content-and-type entry expires. Set `0` to disable the content-and-type cache. The other two caches are not affected.
+|===
+
+.Caches and the reads that they serve
+[.table-expandable,width="100%",cols="3,3,4,5",options="header"]
+|===
+|Cache name (`cache` tag)
+|Key
+|Expiry
+|Serves
+
+|`contentById`
+|Content ID
+|None. {registry} evicts entries only when the cache exceeds its size limit.
+|Content and references by content ID, including the REST API `/ids/contentIds/\{contentId}` requests and reference resolution for Confluent-compatible responses.
+
+|`contentByHash`
+|SHA-256 content hash
+|None. {registry} evicts entries only when the cache exceeds its size limit.
+|Content and references by content hash, including the REST API `/ids/contentHashes/\{contentHash}` requests.
+
+|`contentAndTypeById`
+|Content ID
+|`hot-path.ttl-seconds` after {registry} writes the entry, plus invalidation when you delete a single artifact version.
+|The Confluent-compatible `GET /schemas/ids/\{id}` and `GET /schemas/ids/\{id}/schema` requests when `apicurio.ccompat.legacy-id-mode.enabled` is `false`, which is the default.
+|===
+
+.Storage content cache metrics
+[.table-expandable,width="100%",cols="3,3,3,5",options="header"]
+|===
+|Micrometer meter
+|Prometheus name
+|Tags
+|Description
+
+|`cache.size`
+|`cache_size`
+|`cache`
+|Approximate number of entries currently in the cache.
+
+|`cache.gets`
+|`cache_gets_total`
+|`cache`, `result`
+|Number of lookups that returned a cached value (`result="hit"`) or loaded a new value from storage (`result="miss"`).
+
+|`cache.puts`
+|`cache_puts_total`
+|`cache`
+|Number of loads from storage, including lookups that failed because the content does not exist. A failed load does not add an entry.
+
+|`cache.evictions`
+|`cache_evictions_total`
+|`cache`
+|Number of entries removed by size-based eviction or expiry. The count excludes invalidations after a version delete.
+
+|`cache.eviction.weight`
+|`cache_eviction_weight_total`
+|`cache`
+|Total weight, in bytes, of the evicted entries. The count excludes invalidations after a version delete.
+|===
+
+*Reading the metrics*
+
+* The hit ratio for a cache is `hit / (hit + miss)` from `cache_gets_total`. A high ratio means that most reads avoid a storage round trip.
+* When `cache_evictions_total` and `cache_gets_total{result="miss"}` both grow steadily, the working set exceeds the per-cache limit. Raise `apicurio.storage.content-cache.max-size` if memory allows.
+* When the hit ratio stays high with few evictions, a smaller limit reclaims memory without affecting throughput.
+* When the cache is disabled, or when the TTL is `0` for the `contentAndTypeById` cache, {registry} does not register the corresponding series.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-storage-content-cache_{context}[]
+* xref:configuring-storage-content-cache_{context}[]
+* {registry-config-reference}
 
 [id="configuring-liveness-readiness-probes_{context}"]
 == Configuring {registry} health checks on OpenShift

@@ -26,7 +26,7 @@ infrastructure and workload.
 
 [role="_additional-resources"]
 .Additional resources
-* <<registry-sizing-methodology_{context}>>
+* xref:registry-sizing-methodology_{context}[]
 
 //INCLUDES
 
@@ -71,7 +71,7 @@ Traffic mix::
 The tests measure reads and writes separately, with traffic set to 100% reads or 100% writes.
 Resolving an existing schema by ID represents how producers and consumers use a schema registry
 for nearly every message. Registering a new schema is comparatively rare.
-The <<registry-sizing-sql-storage_{context}>> results explain why a blended traffic ratio can
+The xref:registry-sizing-sql-storage_{context}[] results explain why a blended traffic ratio can
 obscure the different limits on read and write throughput.
 
 Storage latency::
@@ -211,7 +211,7 @@ likely to increase read throughput further.
 
 Write throughput::
 Each write produces a message to a Kafka topic. Unlike
-<<registry-sizing-sql-storage_{context}>>, KafkaSQL storage does not serialize writes behind a
+xref:registry-sizing-sql-storage_{context}[], KafkaSQL storage does not serialize writes behind a
 single database row lock, and throughput increases with concurrency.
 +
 --
@@ -268,7 +268,7 @@ The following factors affect capacity planning:
 Separate read and write capacity::
 Size reads and writes separately because SQL storage has different, unrelated bottlenecks for
 each operation type. A blended requests-per-second figure can hide these limits and be misleading.
-See <<registry-sizing-sql-storage_{context}>>.
+See xref:registry-sizing-sql-storage_{context}[].
 If your write rate is more than incidental, treat the SQL write-throughput limit as a fixed budget
 independent of replica count or resources until
 link:https://github.com/Apicurio/apicurio-registry/issues/9847[issue #9847] is resolved.
@@ -307,7 +307,7 @@ Storage choice::
 High-throughput schema resolution is a common workload for Kafka producers and consumers that
 validate or resolve schemas. In these tests, the local materialized-view read path of KafkaSQL
 storage had substantially higher throughput than SQL storage. See
-<<registry-sizing-kafkasql-storage_{context}>>.
+xref:registry-sizing-kafkasql-storage_{context}[].
 KafkaSQL write throughput also increased with concurrency, unlike SQL write throughput.
 The tests did not exceed 200 concurrent writers. The figures exclude the time that KafkaSQL
 storage takes to start or catch up by replaying the underlying Kafka topic.

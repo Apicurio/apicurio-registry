@@ -18,7 +18,7 @@ Implement multitenancy with {registry} on {kubernetes} using the {operator}.
 
 [role="_additional-resources"]
 .Additional resources
-* xref:deploying-registry-operator_{context}[]
+* xref:getting-started/assembly-deploying-registry-operator.adoc[]
 
 //INCLUDES
 

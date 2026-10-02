@@ -15,7 +15,7 @@ NOTE: For general versioning policy, upgrade guidance within the 3.x series, and
 
 [role="_additional-resources"]
 .Additional resources
-* xref:versioning-support-policy_{context}[]
+* xref:getting-started/assembly-versioning-support-policy.adoc[]
 endif::[]
 
 

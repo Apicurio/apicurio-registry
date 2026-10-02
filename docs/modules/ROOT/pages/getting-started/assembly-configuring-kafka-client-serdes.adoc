@@ -73,9 +73,9 @@ public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> im
 [role="_additional-resources"]
 .Additional resources
 * xref:registry-serdes-config-props_{context}[]
-* xref:registry-serdes-types-avro_registry[]
-* xref:registry-serdes-types-json_registry[]
-* xref:registry-serdes-types-protobuf_registry[]
+* xref:registry-serdes-types-avro_{context}[]
+* xref:registry-serdes-types-json_{context}[]
+* xref:registry-serdes-types-protobuf_{context}[]
 * {kafka-client-serdes}
 * link:https://github.com/Apicurio/apicurio-registry/blob/main/utils/converter/src/main/java/io/apicurio/registry/utils/converter/SerdeBasedConverter.java[SerdeBasedConverter Java class]
 
@@ -454,7 +454,12 @@ For more details, see the https://quarkus.io/guides/config#overriding-properties
 
 [role="_additional-resources"]
 .Additional resources
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-using-the-registry-client.adoc#registry-sdk-config_{context}[{registry} Java SDK configuration]
+endif::[]
+ifdef::service-registry-downstream[]
 * xref:registry-sdk-config_{context}[]
+endif::[]
 * link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/config/SerdeConfig.java[SerdeConfig Java class]
 
 
@@ -981,7 +986,7 @@ In this example, {registry} stores two Protobuf artifacts, one for `TableInfo` a
 
 [role="_additional-resources"]
 .Additional resources
-* xref:registry-serdes-concepts-constants_registry[]
-* xref:registry-serdes-types-avro_registry[]
+* xref:registry-serdes-concepts-constants_{context}[]
+* xref:registry-serdes-types-avro_{context}[]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Protobuf Bean and Protobuf Find Latest examples]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[SerDes with references example]

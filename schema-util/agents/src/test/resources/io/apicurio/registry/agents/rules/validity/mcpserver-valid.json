@@ -1,0 +1,26 @@
+{
+  "name": "io.github.example/weather",
+  "title": "Weather",
+  "description": "A weather MCP server",
+  "version": "1.2.3",
+  "website_url": "https://example.com/weather",
+  "repository": {
+    "url": "https://github.com/example/weather",
+    "source": "github",
+    "id": "example/weather"
+  },
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@example/weather-mcp",
+      "version": "1.2.3",
+      "transport": { "type": "stdio" }
+    }
+  ],
+  "remotes": [
+    { "type": "streamable-http", "url": "https://weather.example.com/mcp" }
+  ],
+  "icons": [
+    { "src": "https://example.com/icon.png", "mimeType": "image/png" }
+  ]
+}

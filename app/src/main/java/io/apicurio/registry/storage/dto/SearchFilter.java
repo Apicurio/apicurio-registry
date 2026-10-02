@@ -100,6 +100,16 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.content, value);
     }
 
+    /**
+     * Creates a structured content filter, e.g. "agent_card:skill:translation".
+     * <p>
+     * Precondition for negated use: a negated structure filter compiles to NOT EXISTS on SQL storage,
+     * which is also true for artifacts that have no structured content at all. Callers that negate this
+     * filter must pair it with an {@link #ofArtifactType(String)} filter to constrain the result set, as
+     * the agent discovery endpoints do.
+     *
+     * @param value the structure filter value, must not be blank
+     */
     public static SearchFilter ofStructure(String value) {
         return new SearchFilter(SearchFilterType.structure, value);
     }

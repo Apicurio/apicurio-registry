@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Storage decorator that fires CDI events for search index updates. These events are observed by
@@ -219,6 +220,16 @@ public class SearchIndexEventDecorator extends RegistryStorageDecoratorBase
         // Fire event for search index update
         versionStateChangedEvent.fire(
                 new VersionStateChangedEvent(groupId, artifactId, version, globalId, oldState, newState));
+    }
+
+    public void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
+        delegate.updateArtifactVersionStates(groupId, artifactId, versions, newState, labelPrefix, labels);
+        for (String version : versions) {
+            ArtifactVersionMetaDataDto metadata = delegate.getArtifactVersionMetaData(groupId, artifactId, version);
+            versionCreatedEvent.fire(new VersionCreatedEvent(groupId, artifactId, version,
+                    metadata.getGlobalId(), metadata.getContentId()));
+        }
     }
 
     public void importData(EntityInputStream entities, boolean preserveGlobalId,

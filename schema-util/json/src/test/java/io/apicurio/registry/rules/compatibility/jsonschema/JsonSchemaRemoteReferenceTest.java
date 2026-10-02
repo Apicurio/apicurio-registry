@@ -17,17 +17,24 @@ package io.apicurio.registry.rules.compatibility.jsonschema;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.json.rules.compatibility.JsonSchemaCompatibilityChecker;
+import io.apicurio.registry.json.rules.compatibility.ApitomyJsonSchemaCompatibilityChecker;
+import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class JsonSchemaRemoteReferenceTest {
+
+    private final CompatibilityChecker checker = new ApitomyJsonSchemaCompatibilityChecker();
 
     private static final String EXISTING_SCHEMA = """
             {
@@ -44,7 +51,6 @@ class JsonSchemaRemoteReferenceTest {
 
     @Test
     void testUnresolvedRemoteReferenceFailsClosed() {
-        JsonSchemaCompatibilityChecker checker = new JsonSchemaCompatibilityChecker();
         String proposedSchema = """
                 {
                   "$id": "https://example.com/blank.schema.json",
@@ -58,7 +64,7 @@ class JsonSchemaRemoteReferenceTest {
                 }
                 """;
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class, () -> checker.testCompatibility(
+        UnprocessableSchemaException exception = assertThrows(UnprocessableSchemaException.class, () -> checker.testCompatibility(
                 CompatibilityLevel.BACKWARD,
                 Collections.singletonList(toTypedContent(EXISTING_SCHEMA)),
                 toTypedContent(proposedSchema), Collections.emptyMap()));
@@ -68,7 +74,6 @@ class JsonSchemaRemoteReferenceTest {
 
     @Test
     void testResolvedRemoteReferenceContentIsUsed() {
-        JsonSchemaCompatibilityChecker checker = new JsonSchemaCompatibilityChecker();
         String existingSchema = """
                 {
                   "$id": "https://example.com/schemas/root.json",
@@ -104,5 +109,72 @@ class JsonSchemaRemoteReferenceTest {
                         """)));
 
         assertFalse(result.isCompatible(), "Supplied referenced content should be used during compatibility checking");
+    }
+
+    /**
+     * A reference that Registry did not supply means the sub-schema behind it was never compared.
+     * {@code AbstractCompatibilityChecker} separates that from a determined incompatibility: the
+     * former is an error and must throw, the latter returns differences.
+     * <p>
+     * The adapter once reported {@code OBJECT_TYPE_PROPERTY_SCHEMAS_NARROWED} instead, the incidental
+     * difference left behind by the unresolved {@code $ref}, which told a user with a mistyped
+     * reference that their properties had been narrowed, and said nothing about the reference.
+     */
+    @Test
+    void unresolvedReferenceIsAnErrorNotAnIncompatibility() {
+        String proposedSchema = """
+                {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "type": "object",
+                  "properties": {
+                    "x": {
+                      "$ref": "missing-schema.json"
+                    }
+                  }
+                }
+                """;
+
+        var exception = assertThrows(UnprocessableSchemaException.class,
+                () -> checker.testCompatibility(CompatibilityLevel.BACKWARD,
+                        List.of(toTypedContent(EXISTING_SCHEMA)), toTypedContent(proposedSchema),
+                        Collections.emptyMap()));
+
+        assertTrue(exception.getMessage().contains("missing-schema.json"),
+                () -> "The failure should say which reference could not be resolved: " + exception.getMessage());
+    }
+
+    /**
+     * Referenced artifacts may refer back to each other. The dereferencer detects such a cycle by
+     * the identity of the documents it is already inside, so the resolver has to hand back the same
+     * schema each time it is asked for the same reference.
+     */
+    @Test
+    void mutuallyReferencingArtifactsAreCompared() {
+        var checker = new ApitomyJsonSchemaCompatibilityChecker();
+        String schema = """
+                {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "type": "object",
+                  "properties": {"node": {"$ref": "node.json"}}
+                }
+                """;
+        var references = Map.of(
+                "node.json", toTypedContent("""
+                        {
+                          "type": "object",
+                          "properties": {"value": {"type": "string"}, "next": {"$ref": "list.json"}}
+                        }
+                        """),
+                "list.json", toTypedContent("""
+                        {
+                          "type": "object",
+                          "properties": {"head": {"$ref": "node.json"}}
+                        }
+                        """));
+
+        var result = checker.testCompatibility(CompatibilityLevel.BACKWARD, List.of(toTypedContent(schema)),
+                toTypedContent(schema), references);
+
+        assertTrue(result.isCompatible(), "An unchanged schema is compatible, whatever it references");
     }
 }

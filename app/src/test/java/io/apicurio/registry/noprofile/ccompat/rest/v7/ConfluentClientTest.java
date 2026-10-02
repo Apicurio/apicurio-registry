@@ -542,6 +542,42 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                 "Registering the same schema under different subjects should return the same id");
     }
 
+    /**
+     * A schema the compatibility checker can't process is reported as an invalid schema, with the
+     * Confluent error code clients look for, not only the HTTP status: here, a JSON Schema whose
+     * reference can't be resolved, and one whose $schema names no known draft.
+     */
+    @Test
+    public void testRegisterSchemaTheCompatibilityCheckCannotProcess() throws Exception {
+        String subject = "testRegisterSchemaTheCompatibilityCheckCannotProcess";
+        confluentClient.updateCompatibility(CompatibilityLevel.BACKWARD.name, subject);
+        confluentClient.registerSchema(jsonSchemaRequest("""
+                { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object" }
+                """), subject, false);
+
+        for (String unprocessable : List.of("""
+                {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "type": "object",
+                  "properties": { "x": { "$ref": "missing.json" } }
+                }
+                """, """
+                { "$schema": "https://example.com/my-meta-schema", "type": "object" }
+                """)) {
+            RestClientException rce = Assertions.assertThrows(RestClientException.class,
+                    () -> confluentClient.registerSchema(jsonSchemaRequest(unprocessable), subject, false));
+            assertEquals(422, rce.getStatus(), unprocessable);
+            assertEquals(ErrorCode.INVALID_SCHEMA.value(), rce.getErrorCode(), unprocessable);
+        }
+    }
+
+    private static RegisterSchemaRequest jsonSchemaRequest(String schema) {
+        RegisterSchemaRequest request = new RegisterSchemaRequest();
+        request.setSchema(schema);
+        request.setSchemaType("JSON");
+        return request;
+    }
+
     @Test
     public void testRegisterInvalidSchemaBadType() throws Exception {
         String subject = "testRegisterInvalidSchemaBadType";

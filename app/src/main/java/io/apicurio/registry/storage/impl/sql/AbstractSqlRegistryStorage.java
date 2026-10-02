@@ -587,11 +587,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 // The artifact was successfully created! Create the version as well, if one was included.
                 ImmutablePair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> pair;
                 if (versionContent != null) {
+                    // Index the structured content BEFORE creating the version: createArtifactVersionRaw
+                    // locks the shared globalId sequence row until commit, so any work after it
+                    // serializes every concurrent create in the registry. For a new artifact the
+                    // result is identical to refreshing afterwards: its first version is the 'latest'
+                    // branch head and is ENABLED unless it is a draft (in which case nothing is
+                    // indexed), its content is exactly versionContent, and there are no prior rows.
+                    if (!versionIsDraft) {
+                        updateStructuredContentRaw(handle, groupId, artifactId, artifactType, versionContent);
+                    }
                     ArtifactVersionMetaDataDto vmdDto = createArtifactVersionRaw(handle, true, groupId,
                             artifactId, version, versionMetaData, owner, createdOn, contentId,
                             versionBranches, versionIsDraft);
-                    // artifactType is exactly what was just inserted into the artifacts row above.
-                    refreshStructuredContentRaw(handle, groupId, artifactId, artifactType);
 
                     pair = ImmutablePair.of(amdDto, vmdDto);
                 } else {
@@ -652,15 +659,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     private void refreshStructuredContentRaw(Handle handle, String groupId, String artifactId) {
         String type = artifactRepository.getArtifactMetaData(groupId, artifactId).getArtifactType();
-        refreshStructuredContentRaw(handle, groupId, artifactId, type);
-    }
-
-    /**
-     * Variant for callers that already know the artifact's stored type. Skipping the metadata lookup
-     * matters on the create path: it runs while the globalId sequence row is locked, so every extra
-     * round trip there serializes all concurrent artifact creates.
-     */
-    private void refreshStructuredContentRaw(Handle handle, String groupId, String artifactId, String type) {
         if (!hasStructuredContentExtractor(type)) {
             return;
         }

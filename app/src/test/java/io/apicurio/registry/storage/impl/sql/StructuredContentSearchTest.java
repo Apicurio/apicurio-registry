@@ -147,6 +147,16 @@ public class StructuredContentSearchTest {
     }
 
     @Test
+    public void draftFirstVersionIsNotIndexedOnCreate() {
+        String group=group();
+        storage.createArtifact(group,"agent","AGENT_CARD",EditableArtifactMetaDataDto.builder().build(),"1",
+                content("draft-only"),EditableVersionMetaDataDto.builder().build(),List.of(),true,false,"test");
+        assertEquals(Set.of(),matches(group,SearchFilter.ofStructure("skill:draft-only")));
+        storage.updateArtifactVersionState(group,"agent","1",VersionState.ENABLED,false);
+        assertEquals(Set.of("agent"),matches(group,SearchFilter.ofStructure("skill:draft-only")));
+    }
+
+    @Test
     public void publicationOrderRatherThanVersionOrderSelectsIndexedTip() {
         String group=group();
         storage.createArtifact(group,"agent","AGENT_CARD",EditableArtifactMetaDataDto.builder().build(),"1",

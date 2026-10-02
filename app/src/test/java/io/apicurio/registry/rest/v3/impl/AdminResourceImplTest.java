@@ -27,7 +27,9 @@ import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -63,6 +65,34 @@ class AdminResourceImplTest {
 
         // Then: the ZipInputStream, and with it the uploaded stream, was still closed
         assertTrue(data.closed, "Expected the ZipInputStream to be closed after a rejected import");
+    }
+
+    /**
+     * The import work directory is created before extraction starts, but the previous code only
+     * cleaned it up after a successful unpack. A rejected archive (e.g. one that trips the entry
+     * count limit) must not leave its "apicurio-import_*" work directory behind.
+     */
+    @Test
+    void testImportData_CleansUpWorkDirWhenExtractionFails(@TempDir Path workDir) throws Exception {
+        ImportExportConfigProperties props = new ImportExportConfigProperties();
+        props.workDir = workDir.toString();
+        props.zipMaxEntrySize = 1024;
+        props.zipMaxTotalSize = 1024;
+        props.zipMaxEntryCount = 1;
+
+        AdminResourceImpl resource = new AdminResourceImpl();
+        resource.importExportProps = props;
+
+        ByteArrayInputStream data = new ByteArrayInputStream(zipWithTwoEntries());
+
+        // When: the archive holds more entries than the configured limit allows
+        assertThrows(BadRequestException.class, () -> resource.importData(null, null, false, data));
+
+        // Then: no "apicurio-import_*" work directory was left behind in the import work directory
+        try (Stream<Path> entries = Files.list(workDir)) {
+            assertTrue(entries.findAny().isEmpty(),
+                    "Expected no leftover temp directories in the import work directory after a rejected import");
+        }
     }
 
     private static byte[] zipWithTwoEntries() throws IOException {

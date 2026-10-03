@@ -6,6 +6,7 @@ import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessageKey;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
 import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
+import io.apicurio.registry.storage.impl.sql.jdb.RuntimeSqlException;
 import io.apicurio.registry.types.RegistryException;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -58,6 +59,11 @@ public class KafkaSqlSink {
                     result != null ? result.toString() : "");
             log.debug("Kafka message successfully processed. Notifying listeners of response.");
             coordinator.get().notifyResponse(requestId, result);
+        } catch (RuntimeSqlException e) {
+            // The database rejected the write. During journal replay nobody waits for the response,
+            // so this line is the only trace that the node did not apply the message.
+            log.warn("Kafka message {} was not applied: {}", record.key().getMessageType(), e.getMessage());
+            coordinator.get().notifyResponse(requestId, e);
         } catch (RuntimeException e) {
             // Pass RuntimeException (including RegistryException) directly without wrapping
             // to preserve the original exception type for proper handling by exception mappers.

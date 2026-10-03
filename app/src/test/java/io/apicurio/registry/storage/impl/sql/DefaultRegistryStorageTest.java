@@ -75,8 +75,8 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
         ArtifactVersionMetaDataDto first = createFirstVersion(groupId, artifactId);
         String currentVersion = databaseVersion();
 
-        execute("ALTER TABLE versions DROP CONSTRAINT UQ_versions_3");
         boolean constraintRestored = false;
+        execute("ALTER TABLE versions DROP CONSTRAINT UQ_versions_3");
         try {
             storage.importArtifactVersion(duplicateOf(first, "2"));
             execute("UPDATE apicurio SET propValue = '110' WHERE propName = 'db_version'");
@@ -140,9 +140,9 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
         handles.withHandleNoException(handle -> {
             for (String statement : sqlStatements.databaseUpgrade(110, 111)) {
                 if (statement.startsWith("UPGRADER:")) {
-                    Assertions.assertEquals(DuplicateVersionOrderUpgrader.class.getName(),
-                            statement.substring("UPGRADER:".length()).trim());
-                    new DuplicateVersionOrderUpgrader().upgrade(handle);
+                    String className = statement.substring("UPGRADER:".length()).trim();
+                    Assertions.assertEquals(DuplicateVersionOrderUpgrader.class.getName(), className);
+                    ((IDbUpgrader) Class.forName(className).getConstructor().newInstance()).upgrade(handle);
                 } else {
                     handle.createUpdate(statement).execute();
                 }

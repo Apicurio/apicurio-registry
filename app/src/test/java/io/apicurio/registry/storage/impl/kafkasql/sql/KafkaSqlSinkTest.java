@@ -52,8 +52,8 @@ class KafkaSqlSinkTest {
 
         sink.processMessage(record("ImportArtifactVersion1Message"));
 
-        verify(log).warn("Kafka message {} was not applied: {}", "ImportArtifactVersion1Message",
-                rejected.getMessage());
+        verify(log).warn("Kafka message {} at partition {} offset {} was not applied: {}",
+                "ImportArtifactVersion1Message", 0, 42L, rejected.getMessage());
         verify(log, never()).debug(eq("Runtime exception detected: {}"), any(Object.class));
         verify(coordinator).notifyResponse(any(), same(rejected));
     }
@@ -65,13 +65,13 @@ class KafkaSqlSinkTest {
 
         sink.processMessage(record("CreateArtifactVersion8Message"));
 
-        verify(log, never()).warn(anyString(), any(Object.class), any(Object.class));
+        verify(log, never()).warn(anyString(), any(Object[].class));
         verify(log).debug(eq("Runtime exception detected: {}"), eq(conflict.getMessage()));
         verify(coordinator).notifyResponse(any(), same(conflict));
     }
 
     private ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record(String messageType) {
-        return new ConsumerRecord<>("journal", 0, 0L,
+        return new ConsumerRecord<>("journal", 0, 42L,
                 KafkaSqlMessageKey.builder().messageType(messageType).build(), message);
     }
 }

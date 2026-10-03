@@ -11,8 +11,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -410,7 +412,6 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
                 .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
     }
 
-
     /** Without per-resource authorization, search results carry no permissions field at all. */
     @Test
     public void testSearchResultsOmitPermissionsWithoutResourceBasedAuthorization() throws Exception {
@@ -429,5 +430,35 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
                 .getMap("versions[0]");
         Assertions.assertEquals("no-permissions", version.get("artifactId"));
         Assertions.assertFalse(version.containsKey("permissions"));
+    }
+
+    @Test
+    public void testSearchArtifactsPaginationDeterministicOnTies() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String artifactContent = resourceToString("openapi-empty.json");
+        int count = 5;
+
+        for (int idx = 0; idx < count; idx++) {
+            String artifactId = "Empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON, (ca) -> {
+                        ca.setName("TiedName");
+                    });
+        }
+
+        Set<String> seenArtifactIds = new HashSet<>();
+        for (int offset = 0; offset < count; offset++) {
+            String artifactId = given().when().queryParam("groupId", group).queryParam("orderby", "name")
+                    .queryParam("order", "asc").queryParam("offset", offset).queryParam("limit", 1)
+                    .get("/registry/v3/search/artifacts").then().statusCode(200)
+                    .body("count", equalTo(count)).body("artifacts.size()", equalTo(1))
+                    .extract().path("artifacts[0].artifactId");
+
+            Assertions.assertNotNull(artifactId);
+            Assertions.assertTrue(seenArtifactIds.add(artifactId),
+                    "Artifact " + artifactId + " was returned on multiple pages during offset pagination");
+        }
+
+        Assertions.assertEquals(count, seenArtifactIds.size());
     }
 }

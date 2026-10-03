@@ -280,6 +280,16 @@ public class SqlSearchRepository {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
+            // Primary key tiebreaker to ensure deterministic offset pagination when sort keys tie (#10410)
+            if (orderBy == OrderBy.groupId) {
+                orderByQuery.append(", a.artifactId ").append(orderDirection.name());
+            } else if (orderBy == OrderBy.artifactId) {
+                orderByQuery.append(", a.groupId ").append(orderDirection.name());
+            } else {
+                orderByQuery.append(", a.groupId ").append(orderDirection.name());
+                orderByQuery.append(", a.artifactId ").append(orderDirection.name());
+            }
+
             // Query for the artifacts
             String artifactsQuerySql = sqlStatements.selectTableTemplate("a.*", "artifacts", "a",
                     where.toString(), orderByQuery.toString());

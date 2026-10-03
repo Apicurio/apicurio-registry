@@ -165,6 +165,12 @@ pushes a configuration for each Byteman class but pops it only when that annotat
 present, so without it the next Byteman class in the same JVM fails with "BMUnit test class
 configuration pushed without prior pop!".
 
+Scope each rule so it cannot fire on threads outside the test. For threads the test creates,
+name them and require the prefix in the condition, for example
+`java.lang.Thread.currentThread().getName().startsWith("my-race-")`. While it is installed, a
+rule fires on every call to its target method in the JVM, including calls from threads an
+earlier `@QuarkusTest` left running, and `@Isolated` does not stop those.
+
 Two things to expect. An IDE that has not enabled the profile shows these files as
 non-source with every symbol unresolved. And no CI workflow activates `-Pbyteman`, so
 these tests run locally only.

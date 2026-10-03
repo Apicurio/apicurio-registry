@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -57,15 +58,17 @@ class OidcTokenStampedeTest {
     void concurrentClientCredentialsFetchResultsInSingleTokenRequest() throws Exception {
         int threadCount = 20;
         AtomicInteger tokenFetchCount = new AtomicInteger(0);
+        CountDownLatch secondFetch = new CountDownLatch(2);
 
-        // Mock the parent so getAccessToken counts invocations and simulates latency.
-        // The 200 ms delay widens the window in which threads without stampede
-        // prevention would all see a cache miss and fire redundant fetches.
+        // Mock the parent so getAccessToken counts invocations and holds the first fetch open
+        // for up to 200 ms. Without stampede prevention the other threads all see a cache miss
+        // in that window and fetch too, which releases the latch early.
         AppAuthenticationMechanism mockParent = mock(AppAuthenticationMechanism.class);
         when(mockParent.getAccessToken(any(Pair.class), anyString()))
                 .thenAnswer(invocation -> {
                     tokenFetchCount.incrementAndGet();
-                    Thread.sleep(200);
+                    secondFetch.countDown();
+                    secondFetch.await(200, TimeUnit.MILLISECONDS);
                     return new WrappedValue<>(
                             Duration.ofMinutes(10), Instant.now(), "mock-access-token");
                 });

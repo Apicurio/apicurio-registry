@@ -62,7 +62,8 @@ public class KafkaSqlSink {
         } catch (RuntimeSqlException e) {
             // The database rejected the write. During journal replay nobody waits for the response,
             // so this line is the only trace that the node did not apply the message.
-            log.warn("Kafka message {} was not applied: {}", record.key().getMessageType(), e.getMessage());
+            log.warn("Kafka message {} at partition {} offset {} was not applied: {}",
+                    record.key().getMessageType(), record.partition(), record.offset(), e.getMessage());
             coordinator.get().notifyResponse(requestId, e);
         } catch (RuntimeException e) {
             // Pass RuntimeException (including RegistryException) directly without wrapping

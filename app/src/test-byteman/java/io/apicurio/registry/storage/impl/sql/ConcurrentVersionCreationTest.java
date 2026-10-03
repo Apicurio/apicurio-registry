@@ -77,7 +77,10 @@ public class ConcurrentVersionCreationTest {
 
     private static final int RENDEZVOUS_TIMEOUT_MS = 15_000;
 
-    private static final long RESULT_TIMEOUT_MS = 2L * RENDEZVOUS_TIMEOUT_MS;
+    private static final int LOCK_TIMEOUT_MS = 15_000;
+
+    /** Longer than the barrier and the lock wait together, so either of those reports first. */
+    private static final long RESULT_TIMEOUT_MS = RENDEZVOUS_TIMEOUT_MS + LOCK_TIMEOUT_MS + 5_000L;
 
     /** A thread parked in a rendezvous ignores interrupts, so draining must outlast the barrier. */
     private static final long DRAIN_TIMEOUT_MS = RENDEZVOUS_TIMEOUT_MS + 5_000L;
@@ -94,7 +97,7 @@ public class ConcurrentVersionCreationTest {
         @Override
         public Map<String, String> getConfigOverrides() {
             return Map.of("apicurio.datasource.url", "jdbc:h2:mem:db_${quarkus.uuid};LOCK_TIMEOUT="
-                    + RENDEZVOUS_TIMEOUT_MS);
+                    + LOCK_TIMEOUT_MS);
         }
     }
 

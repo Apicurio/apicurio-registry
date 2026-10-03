@@ -5,7 +5,6 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Runs before UQ_versions_3 (groupId, artifactId, versionOrder) is added and fails the upgrade if
@@ -32,7 +31,7 @@ public class DuplicateVersionOrderUpgrader implements IDbUpgrader {
             throw new IllegalStateException("Cannot add the UQ_versions_3 constraint: " + duplicates.size()
                     + " versions share a versionOrder with another version of the same artifact."
                     + " Give each of them a distinct versionOrder or delete the extra ones, then restart."
-                    + duplicates.stream().collect(Collectors.joining("\n  ", "\n  ", "")));
+                    + "\n  " + String.join("\n  ", duplicates));
         }
     }
 }

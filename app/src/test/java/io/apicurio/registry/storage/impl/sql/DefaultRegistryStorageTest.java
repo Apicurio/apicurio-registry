@@ -51,11 +51,7 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
     public void testDuplicateVersionOrderIsRejected() {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactVersionMetaDataDto first = storage.createArtifact(groupId, artifactId,
-                ArtifactType.OPENAPI, null, "1",
-                ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
-                        .content(ContentHandle.create(OPENAPI_CONTENT)).build(),
-                null, Collections.emptyList(), false, false, null).getValue();
+        ArtifactVersionMetaDataDto first = createFirstVersion(groupId, artifactId);
         Assertions.assertEquals(1, first.getVersionOrder());
 
         RuntimeSqlException e = Assertions.assertThrows(RuntimeSqlException.class,
@@ -76,14 +72,9 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
     public void testUpgradeTo111FailsOnDuplicateVersionOrder() {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
-        ArtifactVersionMetaDataDto first = storage.createArtifact(groupId, artifactId,
-                ArtifactType.OPENAPI, null, "1",
-                ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
-                        .content(ContentHandle.create(OPENAPI_CONTENT)).build(),
-                null, Collections.emptyList(), false, false, null).getValue();
+        ArtifactVersionMetaDataDto first = createFirstVersion(groupId, artifactId);
 
         execute("ALTER TABLE versions DROP CONSTRAINT UQ_versions_3");
-        boolean constraintRestored = false;
         try {
             storage.importArtifactVersion(duplicateOf(first, "2"));
             execute("UPDATE apicurio SET propValue = '110' WHERE propName = 'db_version'");
@@ -99,20 +90,26 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
 
             storage.deleteArtifactVersion(groupId, artifactId, "2");
             upgradeTo111();
-            constraintRestored = true;
             Assertions.assertEquals("111", databaseVersion());
             // The constraint is back, so the same duplicate is rejected again.
             Assertions.assertThrows(RuntimeSqlException.class,
                     () -> storage.importArtifactVersion(duplicateOf(first, "3")));
-        } finally {
-            if (!constraintRestored) {
-                execute("DELETE FROM versions WHERE groupId = '" + groupId + "' AND artifactId = '"
-                        + artifactId + "' AND version <> '1'");
-                execute("ALTER TABLE versions ADD CONSTRAINT UQ_versions_3 UNIQUE (groupId, artifactId,"
-                        + " versionOrder)");
-                execute("UPDATE apicurio SET propValue = '111' WHERE propName = 'db_version'");
-            }
+        } catch (Throwable t) {
+            // Put the shared store back the way the other tests expect it.
+            execute("DELETE FROM versions WHERE groupId = '" + groupId + "' AND artifactId = '"
+                    + artifactId + "' AND version <> '1'");
+            execute("ALTER TABLE versions ADD CONSTRAINT UQ_versions_3 UNIQUE (groupId, artifactId,"
+                    + " versionOrder)");
+            execute("UPDATE apicurio SET propValue = '111' WHERE propName = 'db_version'");
+            throw t;
         }
+    }
+
+    private ArtifactVersionMetaDataDto createFirstVersion(String groupId, String artifactId) {
+        return storage.createArtifact(groupId, artifactId, ArtifactType.OPENAPI, null, "1",
+                ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                        .content(ContentHandle.create(OPENAPI_CONTENT)).build(),
+                null, Collections.emptyList(), false, false, null).getValue();
     }
 
     private ArtifactVersionEntity duplicateOf(ArtifactVersionMetaDataDto existing, String version) {
@@ -137,7 +134,7 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
             for (String statement : sqlStatements.databaseUpgrade(110, 111)) {
                 if (statement.startsWith("UPGRADER:")) {
                     Assertions.assertEquals(DuplicateVersionOrderUpgrader.class.getName(),
-                            statement.substring(9).trim());
+                            statement.substring("UPGRADER:".length()).trim());
                     new DuplicateVersionOrderUpgrader().upgrade(handle);
                 } else {
                     handle.createUpdate(statement).execute();

@@ -54,6 +54,7 @@ class KafkaSqlSinkTest {
 
         verify(log).warn("Kafka message {} was not applied: {}", "ImportArtifactVersion1Message",
                 rejected.getMessage());
+        verify(log, never()).debug(eq("Runtime exception detected: {}"), any(Object.class));
         verify(coordinator).notifyResponse(any(), same(rejected));
     }
 

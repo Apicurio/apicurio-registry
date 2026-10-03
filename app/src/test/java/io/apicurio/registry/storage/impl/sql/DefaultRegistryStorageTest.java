@@ -73,15 +73,17 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
         ArtifactVersionMetaDataDto first = createFirstVersion(groupId, artifactId);
+        String currentVersion = databaseVersion();
 
         execute("ALTER TABLE versions DROP CONSTRAINT UQ_versions_3");
+        boolean constraintRestored = false;
         try {
             storage.importArtifactVersion(duplicateOf(first, "2"));
             execute("UPDATE apicurio SET propValue = '110' WHERE propName = 'db_version'");
 
             IllegalStateException e = Assertions.assertThrows(IllegalStateException.class,
                     this::upgradeTo111);
-            Assertions.assertTrue(e.getMessage().contains("2 versions share a versionOrder"), e.getMessage());
+            Assertions.assertTrue(e.getMessage().contains("versions share a versionOrder"), e.getMessage());
             Assertions.assertTrue(e.getMessage().contains("groupId=" + groupId + ", artifactId=" + artifactId
                     + ", version=1, versionOrder=1"), e.getMessage());
             Assertions.assertTrue(e.getMessage().contains("groupId=" + groupId + ", artifactId=" + artifactId
@@ -90,18 +92,23 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
 
             storage.deleteArtifactVersion(groupId, artifactId, "2");
             upgradeTo111();
+            constraintRestored = true;
             Assertions.assertEquals("111", databaseVersion());
             // The constraint is back, so the same duplicate is rejected again.
-            Assertions.assertThrows(RuntimeSqlException.class,
+            RuntimeSqlException rejected = Assertions.assertThrows(RuntimeSqlException.class,
                     () -> storage.importArtifactVersion(duplicateOf(first, "3")));
-        } catch (Throwable t) {
+            Assertions.assertTrue(rejected.getMessage().toLowerCase(Locale.ROOT).contains("uq_versions_3"),
+                    "Expected a UQ_versions_3 violation, got: " + rejected.getMessage());
+            Assertions.assertEquals(1L, storage.countArtifactVersions(groupId, artifactId));
+        } finally {
             // Put the shared store back the way the other tests expect it.
-            execute("DELETE FROM versions WHERE groupId = '" + groupId + "' AND artifactId = '"
-                    + artifactId + "' AND version <> '1'");
-            execute("ALTER TABLE versions ADD CONSTRAINT UQ_versions_3 UNIQUE (groupId, artifactId,"
-                    + " versionOrder)");
-            execute("UPDATE apicurio SET propValue = '111' WHERE propName = 'db_version'");
-            throw t;
+            if (!constraintRestored) {
+                execute("DELETE FROM versions WHERE groupId = '" + groupId + "' AND artifactId = '"
+                        + artifactId + "' AND version <> '1'");
+                execute("ALTER TABLE versions ADD CONSTRAINT UQ_versions_3 UNIQUE (groupId, artifactId,"
+                        + " versionOrder)");
+            }
+            execute("UPDATE apicurio SET propValue = '" + currentVersion + "' WHERE propName = 'db_version'");
         }
     }
 

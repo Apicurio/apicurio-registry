@@ -341,16 +341,9 @@ public class CommentCommandTest extends AbstractCLITest {
                 "-g", testGroup, "-a", testArtifact, "-v", "1");
 
         // Then
-        var output = out.toString();
-        assertThat(output)
-                .as(withCliOutput("Table output should contain column headers"))
-                .contains("Comment ID")
-                .contains("Owner")
-                .contains("Created On");
-        // Headers are emitted even for an empty result set, so assert on the row itself.
-        assertThat(output)
-                .as(withCliOutput("Table output should render the comment that was created"))
-                .contains(commentId)
-                .contains("This is a test comment");
+        // Headers are emitted even for an empty result set, so the row itself is asserted too.
+        assertThat(out.toString())
+                .as(withCliOutput("Table output should contain the column headers and the created comment"))
+                .contains("Comment ID", "Owner", "Created On", commentId, "This is a test comment");
     }
 }

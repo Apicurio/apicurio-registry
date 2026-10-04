@@ -72,8 +72,8 @@ public class ContentCacheDecorator extends RegistryStorageDecoratorBase {
     boolean enabled;
 
     @ConfigProperty(name = "apicurio.storage.content-cache.max-size", defaultValue = "67108864")
-    @Info(category = CATEGORY_STORAGE, description = "Maximum total weight (approximate size in bytes) of "
-            + "the content cache described by apicurio.storage.content-cache.enabled", availableSince = "3.3.3")
+    @Info(category = CATEGORY_STORAGE, description = "Maximum weight (approximate size in bytes) of each "
+            + "content cache. The limit applies to each cache separately.", availableSince = "3.3.3")
     long maxWeightBytes;
 
     @ConfigProperty(name = "apicurio.storage.content-cache.hot-path.ttl-seconds", defaultValue = "30")

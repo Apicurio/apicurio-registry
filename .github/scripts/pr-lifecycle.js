@@ -25,6 +25,11 @@ const LABELS = {
   WAITING_ON_AUTHOR: 'lifecycle/waiting-on-author',
   WAITING_ON_MAINTAINER: 'lifecycle/waiting-on-maintainer',
   STALE: 'lifecycle/stale',
+  // The maintainer-side counterpart to STALE: the PR is blocked on us and has
+  // been for too long. Never closes anything — it exists to make review
+  // latency visible, since that is the bottleneck STALE was misreporting as
+  // contributor inactivity.
+  REVIEW_OVERDUE: 'lifecycle/review-overdue',
   DISABLED: 'orchestrator/disabled',
 };
 
@@ -54,6 +59,7 @@ const LABEL_DEFS = {
   [LABELS.WAITING_ON_AUTHOR]:    { color: COLORS.ATTENTION_STRONG, description: 'Blocked on contributor action' },
   [LABELS.WAITING_ON_MAINTAINER]:{ color: COLORS.ATTENTION, description: 'Blocked on maintainer action' },
   [LABELS.STALE]:                { color: COLORS.INACTIVE, description: 'No activity for 4+ days (waiting on author) or 7+ days' },
+  [LABELS.REVIEW_OVERDUE]:       { color: COLORS.ATTENTION, description: 'Blocked on maintainer review for too long; never auto-closed' },
   [LABELS.DISABLED]:             { color: COLORS.INACTIVE, description: 'PR excluded from lifecycle orchestrator' },
 };
 
@@ -101,6 +107,25 @@ function getLifecycleState(pr) {
   for (const state of PRIMARY_STATES) {
     if (labels.includes(state)) return state;
   }
+  return null;
+}
+
+// Which side the PR is actually blocked on: 'author', 'maintainer' or null.
+//
+// The two waiting-on-* labels are meant to be mutually exclusive, and every
+// site that adds one clears the other — except reconcile's label-recovery
+// path, which adds waiting-on-maintainer as a default for a PR that lost its
+// lifecycle label without knowing whether the author still owes something.
+// So define the tie rather than leave it to label ordering: the author wins.
+//
+// That direction is the safe one. Getting it wrong towards 'author' means a
+// maintainer-blocked PR keeps the author's shorter timer, which is exactly
+// today's behaviour; getting it wrong towards 'maintainer' would exempt an
+// author-blocked PR from ever going stale. Callers that grant an exemption
+// must branch on this, not on hasLabel(WAITING_ON_MAINTAINER).
+function getBlockedOn(pr) {
+  if (hasLabel(pr, LABELS.WAITING_ON_AUTHOR)) return 'author';
+  if (hasLabel(pr, LABELS.WAITING_ON_MAINTAINER)) return 'maintainer';
   return null;
 }
 
@@ -231,6 +256,11 @@ function createApi(github, owner, repo) {
       return data.workflow_runs[0] || null;
     },
 
+    getRun: async (runId) => {
+      const { data } = await github.rest.actions.getWorkflowRun({ owner, repo, run_id: runId });
+      return data;
+    },
+
     reRunWorkflow: async (runId) => {
       try {
         await github.rest.actions.reRunWorkflow({ owner, repo, run_id: runId });
@@ -242,6 +272,48 @@ function createApi(github, owner, repo) {
     approveWorkflowRun: async (runId) => {
       await github.request('POST /repos/{owner}/{repo}/actions/runs/{run_id}/approve', {
         owner, repo, run_id: runId,
+      });
+    },
+
+    // Looked up by workflow file, never by workflow name: a PR can add a
+    // workflow of its own called "Verify", and its runs must not count.
+    listVerifyRuns: async (headSha) => {
+      const { data } = await github.rest.actions.listWorkflowRuns({
+        owner, repo, workflow_id: VERIFY_WORKFLOW_FILE,
+        head_sha: headSha, per_page: 30,
+      });
+      return data.workflow_runs;
+    },
+
+    listRunJobs: async (runId) => {
+      const { data } = await github.rest.actions.listJobsForWorkflowRun({
+        owner, repo, run_id: runId, per_page: 100,
+      });
+      return data.jobs;
+    },
+
+    // GitHub's own review verdict, the value Decide reads (gh pr view
+    // --json reviewDecision). isApproved() is only an approximation of it.
+    getReviewDecision: async (prNumber) => {
+      const data = await github.graphql(
+        `query($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) { pullRequest(number: $number) { reviewDecision } }
+        }`,
+        { owner, repo, number: prNumber }
+      );
+      return data.repository.pullRequest.reviewDecision;
+    },
+
+    getGateStatus: async (sha) => {
+      const { data } = await github.rest.repos.getCombinedStatusForRef({
+        owner, repo, ref: sha, per_page: 100,
+      });
+      return data.statuses.find(s => s.context === GATE_STATUS_CONTEXT) || null;
+    },
+
+    setGateStatus: async (sha, { state, description, target_url }) => {
+      await github.rest.repos.createCommitStatus({
+        owner, repo, sha, state, description, target_url, context: GATE_STATUS_CONTEXT,
       });
     },
 
@@ -262,9 +334,10 @@ function createApi(github, owner, repo) {
 // Two-tier CI routing: the fast gate (quick-check.yaml, workflow name "Quick
 // Check") covers PR iteration; the full suite (verify.yaml — build, unit
 // tests, CLI, SDKs, console plugin, integration tests, extra tests, operator
-// tests, and on push, publishing) is the pre-merge gate. It runs on its own
-// native triggers (push for trusted authors, review submission for everyone
-// else) rather than a bot-applied label. verify.yaml has a single Decide
+// tests, and on push, publishing) is the pre-merge gate. It runs on push
+// for trusted authors and, for everyone else, when approval makes it
+// required (maybeRunFullSuite re-runs the push's run), rather than on a
+// bot-applied label. verify.yaml has a single Decide
 // job shared by every job in it, so there is exactly one workflow (and one
 // answer to "is the full suite required") to track for full-verified —
 // unlike the fast gate, which is intentionally a separate, independent
@@ -272,6 +345,31 @@ function createApi(github, owner, repo) {
 const FAST_GATE_WORKFLOW = 'Quick Check';
 const FULL_SUITE_WORKFLOWS = ['Verify'];
 const FULL_SUITE_WORKFLOW_FILES = ['verify.yaml'];
+const VERIFY_WORKFLOW_FILE = 'verify.yaml';
+
+// The required branch-protection check: a commit status, posted by
+// syncGateStatus from the Verify Result job of the newest Verify run.
+const GATE_STATUS_CONTEXT = 'Verification Gate';
+const VERIFY_RESULT_JOB = 'Verify Result';
+// Before the status existed, verify.yaml's gate job was itself the required
+// check under this name. Runs that still have it (the 3.3.x branch, and
+// runs from before the switch) keep reporting through that check-run.
+const LEGACY_GATE_JOB = 'Verification Gate';
+
+// GitHub only re-runs a workflow run within 30 days of its initial run
+// (created_at). An hour's margin, so a check made just inside the window
+// doesn't lose the race with the re-run request.
+const RERUN_WINDOW_MS = (30 * 24 - 1) * 60 * 60 * 1000;
+
+function rerunExpired(run) {
+  return Date.now() - new Date(run.created_at).getTime() >= RERUN_WINDOW_MS;
+}
+
+// A re-run restarts an old run, and is as recent as the moment it
+// restarted: run_started_at is the start of the latest attempt.
+function runRecency(run) {
+  return new Date(run.run_started_at || run.created_at).getTime();
+}
 
 // Aggregates the latest run of each full-suite workflow for a commit.
 // Returns:
@@ -286,7 +384,7 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
   for (const run of data.workflow_runs) {
     if (!FULL_SUITE_WORKFLOWS.includes(run.name)) continue;
     const prev = latest.get(run.name);
-    if (!prev || new Date(run.created_at) > new Date(prev.created_at)) {
+    if (!prev || runRecency(run) > runRecency(prev)) {
       latest.set(run.name, run);
     }
   }
@@ -298,22 +396,24 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
     }
   }
   for (const run of latest.values()) {
+    const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
+      owner, repo, run_id: run.id, per_page: 100,
+    });
+    // Verify Result is skipped, and the run succeeds, when Decide did not
+    // require the full suite (author not yet trusted, PR not yet approved):
+    // nothing ran, so the suite is still pending, not verified.
+    const result = jobs.find(j => j.name === VERIFY_RESULT_JOB);
+    if (result && result.conclusion === 'skipped') {
+      core.info(`Full suite for ${headSha}: ${run.name} did not require the full suite yet, treating as pending`);
+      return { status: 'pending' };
+    }
     if (run.conclusion !== 'success') {
-      // verify.yaml's Gate job intentionally fails (not skips) while Decide
-      // has not required the full suite yet (author isn't trusted and the
-      // PR isn't approved), as the only way to make the required
-      // branch-protection check honestly reflect "not satisfied yet"
-      // instead of the false-pass a skipped required job would produce
-      // (see verify.yaml's Gate for the full reasoning). That failure is
-      // expected and must NOT be treated as a genuine full-suite failure
-      // here — every job in the run other than Gate itself is either
-      // success or skipped in that case, since Decide gated all of them on
-      // the same not-yet-ready state. Only trust 'failure' when some other
+      // Runs from before the Verification Gate status (see LEGACY_GATE_JOB)
+      // signalled "not required yet" differently: their gate job failed on
+      // purpose while every other job was skipped. That failure is not a
+      // genuine full-suite failure, so only trust 'failure' when some other
       // job actually failed.
-      const { data: { jobs } } = await github.rest.actions.listJobsForWorkflowRun({
-        owner, repo, run_id: run.id, per_page: 100,
-      });
-      const realFailure = jobs.some(j => j.name !== 'Verification Gate' && j.conclusion === 'failure');
+      const realFailure = jobs.some(j => j.name !== LEGACY_GATE_JOB && j.conclusion === 'failure');
       if (!realFailure) {
         core.info(`Full suite for ${headSha}: ${run.name}'s only failure is its own not-ready-to-merge-yet check, treating as pending`);
         return { status: 'pending' };
@@ -324,10 +424,223 @@ async function getFullSuiteResult(github, owner, repo, headSha, core) {
   return { status: 'success' };
 }
 
-// Used by /retry. Both verify.yaml and quick-check.yaml now trigger natively
-// off PR events (push, review submission) — nothing needs to force a
-// re-run purely because the bot changed a label — so this only ever
-// re-runs a workflow that is actually stuck or failed.
+// ---------------------------------------------------------------------------
+// Verification Gate commit status
+// ---------------------------------------------------------------------------
+
+// Maps a Verify run to the Verification Gate status it should produce, or
+// null for a legacy run whose own gate job is still the check.
+function gateStatusFor(run, jobs) {
+  if (run.status !== 'completed') {
+    return { state: 'pending', description: 'Full suite is running' };
+  }
+  if (run.conclusion === 'action_required') {
+    return { state: 'pending', description: 'Waiting for a maintainer to approve the workflow run' };
+  }
+  const result = jobs.find(j => j.name === VERIFY_RESULT_JOB);
+  if (!result) {
+    if (jobs.some(j => j.name === LEGACY_GATE_JOB)) return null;
+    return { state: 'failure', description: `Verify run ended (${run.conclusion}) before reporting a result` };
+  }
+  switch (result.conclusion) {
+    case 'success':
+      return { state: 'success', description: 'Full suite passed' };
+    case 'skipped':
+      // Approval re-runs this run (maybeRunFullSuite), which GitHub no longer
+      // allows. Only a new commit gets a Verify run that can still run it.
+      if (rerunExpired(run)) {
+        return { state: 'pending', description: "Full suite not run; this Verify run is over 30 days old and can't be re-run: update the branch" };
+      }
+      return { state: 'pending', description: 'Full suite not run yet: needs an approving review (or PR is a draft)' };
+    case 'cancelled':
+      return { state: 'failure', description: 'Full suite was cancelled' };
+    default:
+      return { state: 'failure', description: 'Full suite failed' };
+  }
+}
+
+// Posts the Verification Gate status for a commit from its newest Verify run.
+// Recomputed from scratch every time, from runs looked up by workflow file,
+// so it never trusts the event that triggered it and cannot be left behind
+// by an older run finishing after a newer one. Idempotent: an unchanged
+// status is not re-posted. Returns the status it wants, or null when it
+// leaves the commit alone.
+// The Verify run that counts for a commit: the most recently started attempt,
+// with its jobs (empty while it is still running). Null when there is none.
+async function newestReportingRun(api, sha) {
+  const runs = (await api.listVerifyRuns(sha)).sort((a, b) => runRecency(b) - runRecency(a));
+  for (const run of runs) {
+    const jobs = run.status === 'completed' ? await api.listRunJobs(run.id) : [];
+    // A run superseded while still queued is cancelled without ever
+    // starting a job. It never reported anything; the run that superseded
+    // it is the one that counts.
+    if (run.conclusion === 'cancelled' && jobs.length === 0) continue;
+    return { run, jobs };
+  }
+  return null;
+}
+
+async function syncGateStatus(api, sha, core) {
+  const newest = await newestReportingRun(api, sha);
+  if (!newest) {
+    core.info(`${sha.substring(0, 7)}: no Verify run yet, leaving Verification Gate alone`);
+    return null;
+  }
+  const { run, jobs } = newest;
+  const status = gateStatusFor(run, jobs);
+  if (!status) {
+    core.info(`${sha.substring(0, 7)}: newest Verify run ${run.id} predates the Verification Gate status, leaving it alone`);
+    return null;
+  }
+  const desired = { ...status, target_url: run.html_url };
+  const current = await api.getGateStatus(sha);
+  if (current && current.state === desired.state
+      && current.description === desired.description
+      && current.target_url === desired.target_url) {
+    core.info(`${sha.substring(0, 7)}: Verification Gate already ${desired.state}`);
+    return desired;
+  }
+  await api.setGateStatus(sha, desired);
+  core.info(`${sha.substring(0, 7)}: Verification Gate -> ${desired.state} (${desired.description}), from run ${run.id}`);
+  return desired;
+}
+
+// ---------------------------------------------------------------------------
+// Starting the full suite once it becomes required
+// ---------------------------------------------------------------------------
+
+// Mirrors Decide (verify-decide.yaml) for a pull_request run: whether a run
+// starting now would require the full suite. Must stay in step with it.
+// maybeRunFullSuite re-runs a skipped run only when this says the suite is
+// required, so a disagreement would re-run a run Decide keeps skipping.
+function fullSuiteRequired(config, pr, reviewDecision) {
+  if (pr.draft) return false;
+  if (hasLabel(pr, LABELS.DISABLED)) return !hasLabel(pr, 'DO NOT MERGE');
+  if (isAutoAccepted(config, pr.user.login)) return true;
+  return reviewDecision === 'APPROVED';
+}
+
+// Backstop for the case fullSuiteRequired exists to prevent: a skipped run
+// that keeps being re-run because Decide disagrees. A handful of attempts
+// covers GitHub's review state catching up with an approval that has just
+// landed; past it, a person has to look.
+const MAX_FULL_SUITE_RERUN_ATTEMPT = 5;
+
+// The full suite runs once per commit, in the pull_request Verify run. For an
+// author who isn't trusted, that run skips it (Decide sees no approval), and
+// approving the PR later does not start a new run: verify.yaml has no review
+// trigger, so there is exactly one Verify run, and one set of checks, per
+// commit. Instead, once the suite is required, the orchestrator re-runs that
+// run; Decide re-evaluates live and runs the suite this time.
+//
+// Re-runs only when the newest run has finished and its Verify Result was
+// skipped. A run still in progress is picked up when it completes
+// (handleTestResult), and a run that ran the suite is never re-run from here.
+//
+// Returns 'rerun' when it started a re-run, 'expired' when the suite is
+// required but the run is past GitHub's re-run window, otherwise null. An
+// expired run is reported, not worked around: the only way to a new Verify
+// run is a new commit, and updating the author's branch is not the
+// orchestrator's call (it pushes a merge commit onto their branch, and may
+// dismiss the approval that made the suite required). The Verification Gate
+// status says what to do (gateStatusFor), and /retry replies.
+async function maybeRunFullSuite(api, config, pr, core) {
+  const newest = await newestReportingRun(api, pr.head.sha);
+  if (!newest) return null;
+  const { run, jobs } = newest;
+  // No jobs are listed for a run still in progress, so it stops here too.
+  const result = jobs.find(j => j.name === VERIFY_RESULT_JOB);
+  if (!result || result.conclusion !== 'skipped') return null;
+
+  if (!fullSuiteRequired(config, pr, await api.getReviewDecision(pr.number))) return null;
+
+  if (rerunExpired(run)) {
+    core.warning(`PR #${pr.number} full suite is required but Verify run ${run.id} is over 30 days old and can't be re-run; the branch needs updating`);
+    return 'expired';
+  }
+  if (run.run_attempt >= MAX_FULL_SUITE_RERUN_ATTEMPT) {
+    core.warning(`PR #${pr.number} Verify run ${run.id} skipped the full suite on attempt ${run.run_attempt} although it looks required; not re-running it again`);
+    return null;
+  }
+  try {
+    await api.reRunWorkflow(run.id);
+  } catch (e) {
+    // Another handler (a Verify completion, a second review) re-ran it first.
+    if ((await api.getRun(run.id)).status !== 'completed') {
+      core.info(`PR #${pr.number} Verify run ${run.id} was already re-run`);
+      return null;
+    }
+    throw e;
+  }
+  core.info(`PR #${pr.number} full suite now required, re-running Verify run ${run.id} (attempt ${run.run_attempt + 1})`);
+  return 'rerun';
+}
+
+// Resolves the open PRs a workflow run belongs to. Re-run attempts may lose
+// the pull_requests array from the workflow_run payload, and fork PRs always
+// have an empty array. Falls back to searching for PRs by the head SHA, using
+// the head repository owner (which differs from the base owner for fork PRs).
+async function resolveRunPrs(github, owner, repo, workflowRun, core) {
+  let prRefs = workflowRun.pull_requests || [];
+  if (prRefs.length) return prRefs;
+  const headOwner = workflowRun.head_repository?.owner?.login || owner;
+  const { data: prs } = await github.rest.pulls.list({
+    owner, repo, state: 'open', head: `${headOwner}:${workflowRun.head_branch}`, per_page: 10,
+  });
+  prRefs = prs.filter(p => p.head.sha === workflowRun.head_sha);
+  if (!prRefs.length) {
+    // Last resort: scan all open PRs by head SHA (covers edge cases where
+    // the head-branch filter above misses, e.g. a stale/renamed branch).
+    const { data: openPrs } = await github.rest.pulls.list({
+      owner, repo, state: 'open', per_page: 50,
+    });
+    prRefs = openPrs.filter(p => p.head.sha === workflowRun.head_sha);
+  }
+  if (prRefs.length) {
+    core.info(`Resolved ${prRefs.length} PR(s) from head branch lookup (re-run fallback)`);
+  } else {
+    core.info(`No open PR found for branch ${workflowRun.head_branch} / SHA ${workflowRun.head_sha}, skipping`);
+  }
+  return prRefs;
+}
+
+// workflow_run completed for Review Relay (review-relay.yaml), which a review
+// being submitted or dismissed triggers. The relay exists only to get here:
+// the pull_request_review event gives fork PRs a read-only token, which cannot
+// re-run a workflow, while workflow_run always runs privileged. Nothing from
+// the relay is trusted beyond which commit it was for; the PR, its review
+// decision and its Verify runs are all read back through the API.
+async function handleReviewRelay({ github, context, core }) {
+  const workflowRun = context.payload.workflow_run;
+  const { owner, repo } = context.repo;
+  const api = createApi(github, owner, repo);
+  const config = loadConfig();
+  for (const prRef of await resolveRunPrs(github, owner, repo, workflowRun, core)) {
+    const pr = await api.getPr(prRef.number);
+    // The review is for a commit that is no longer the head: the push that
+    // replaced it has its own Verify run, and that run decides.
+    if (pr.head.sha !== workflowRun.head_sha) continue;
+    await maybeRunFullSuite(api, config, pr, core);
+  }
+}
+
+// workflow_run (requested/in_progress/completed) for Verify. Deliberately not filtered
+// on orchestrator/disabled: branch protection requires the status on every
+// PR, lifecycle-managed or not.
+async function handleGateStatus({ github, context, core }) {
+  const run = context.payload.workflow_run;
+  if (!FULL_SUITE_WORKFLOWS.includes(run.name)) {
+    core.info(`Unhandled workflow ${run.name}, skipping`);
+    return;
+  }
+  const { owner, repo } = context.repo;
+  await syncGateStatus(createApi(github, owner, repo), run.head_sha, core);
+}
+
+// Used by /retry. Both verify.yaml and quick-check.yaml trigger natively
+// off pushes (and an approval re-runs verify.yaml via maybeRunFullSuite) —
+// nothing needs to force a re-run purely because the bot changed a label —
+// so this only ever re-runs a workflow that is actually stuck or failed.
 async function retriggerVerify(api, pr, core, isTrustedAuthor) {
   // The full suite is the relevant workflow once approved+tested (about to
   // merge) or for a trusted author (it runs from the start for them);
@@ -505,8 +818,8 @@ async function setAutoMerge(api, config, pr, core) {
 
 // Promotes ready-for-review to ready-to-merge once approved and fast-gated.
 // Purely a status transition now — it does not gate or trigger anything:
-// the full suite already runs on its own native triggers (PR push for
-// trusted authors, review submission for everyone else), and merging (if
+// the full suite already runs on its own (PR push for trusted authors,
+// approval via maybeRunFullSuite for everyone else), and merging (if
 // auto-merge was enabled via /merge) is entirely GitHub's own job from here.
 async function checkAndTransitionToReady(api, pr, core, reviews) {
   if (!reviews) reviews = await api.getReviews(pr.number);
@@ -726,8 +1039,9 @@ async function countOpenPrsByAuthor(github, owner, repo, author, excludePr) {
 // Drafts never reach here — they're ignored until marked ready for review.
 async function initNewPr(github, owner, repo, api, config, pr, core) {
   const trusted = isAutoAccepted(config, pr.user.login);
+  const limitExempt = (config.pr_limit_exempt || []).includes(pr.user.login);
 
-  if (!trusted) {
+  if (!trusted && !limitExempt) {
     const existingPrs = await countOpenPrsByAuthor(github, owner, repo, pr.user.login, pr.number);
     const maxPrs = config.max_contributor_prs ?? 1;
     if (existingPrs.length >= maxPrs) {
@@ -869,18 +1183,11 @@ async function handlePrReadyForReview({ github, context, core }) {
   await initNewPr(github, owner, repo, api, config, pr, core);
 }
 
-// Fires when a review is submitted. verify.yaml (the full suite) already
-// reacts to this natively (pull_request_review: submitted) for non-trusted
-// authors; this reconciles labels (waiting-on-*, ready-to-merge) right away
-// instead of waiting for the next label-change event or the periodic sweep.
-// Fires when a review is submitted. verify.yaml has its own native
-// pull_request_review trigger (safe — GitHub gives it the same restricted,
-// secret-less fork-PR token as pull_request, and GITHUB_REF/GITHUB_SHA
-// already resolve to the PR's merge branch, same as pull_request), so it
-// re-evaluates Decide and starts the full suite on its own the moment a
-// review lands. This just keeps the display labels (waiting-on-*,
-// ready-to-merge) in sync right away instead of waiting for the next
-// label-change event or the periodic sweep.
+// Fires when a review is submitted (same-repo PRs only, see pr-lifecycle.yml).
+// Starting the full suite is not done here but by handleReviewRelay, for
+// fork and same-repo PRs alike. This just keeps the display labels
+// (waiting-on-*, ready-to-merge) in sync right away instead of waiting for
+// the next label-change event or the periodic sweep.
 async function handlePrReviewSubmitted({ github, context, core }) {
   const pr = context.payload.pull_request;
   const { owner, repo } = context.repo;
@@ -999,6 +1306,36 @@ async function cmdRetry(github, api, config, core, pr, actor, isAuthor, maintain
   const freshPr = await api.getPr(pr.number);
   await reconcile(github, api, freshPr, core);
 
+  // PR Validation is a workflow of its own, not part of the orchestrator, but
+  // /retry is where people go when a check looks stuck, e.g. after setting a
+  // milestone. A re-run of its latest run reads the current state; a green or
+  // running one is left alone.
+  await retriggerWorkflowRun(api, freshPr, core, 'pr-validation.yml');
+
+  // The full suite is required now but the Verify run skipped it (e.g. the
+  // review relay never ran). That run is green, so the failed-run handling
+  // below would leave it alone.
+  const fullSuite = await maybeRunFullSuite(api, config, freshPr, core);
+  if (fullSuite === 'rerun') {
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state and started the full suite, which the ` +
+      `last Verify run skipped because it was not required yet.`
+    );
+    core.info(`PR #${pr.number} retry: reconciled + started the full suite by ${actor}`);
+    return;
+  }
+  if (fullSuite === 'expired') {
+    await api.postComment(pr.number,
+      `Retrying: reconciled PR state, but the full suite can't be started for this ` +
+      `commit. Its Verify run skipped the suite and is over 30 days old, which is past ` +
+      `the window in which GitHub allows re-running it. Update the branch (or push) to ` +
+      `get a new Verify run. If that dismisses the current approval, the suite runs ` +
+      `once the PR is approved again.`
+    );
+    core.info(`PR #${pr.number} retry: reconciled, full suite blocked by an expired Verify run, by ${actor}`);
+    return;
+  }
+
   // The workflow that matters depends on lifecycle state: the fast gate
   // (quick-check.yaml) during iteration, the full suite (verify.yaml) at
   // ready-to-merge or for trusted authors (it runs from the start for them).
@@ -1068,12 +1405,19 @@ async function handleLabelChange({ github, context, core }) {
     LABELS.WAITING_ON_AUTHOR,
     LABELS.WAITING_ON_MAINTAINER,
     LABELS.STALE,
+    LABELS.REVIEW_OVERDUE,
     LABELS.DISABLED,
   ];
 
   const config = loadConfig();
   if (isMaintainer(config, actor) && MAINTAINER_EDITABLE.includes(label.name)) {
     core.info(`PR #${pr.number} label ${action}: ${label.name} by maintainer ${actor} (allowed)`);
+    // Decide reads orchestrator/disabled, but verify.yaml no longer triggers
+    // on label events (a label run cancelled the in-flight suite and left a
+    // failed gate behind), so re-run it here to let Decide see the change.
+    if (label.name === LABELS.DISABLED) {
+      await retriggerWorkflowRun(api, pr, core, 'verify.yaml');
+    }
     return;
   }
 
@@ -1126,32 +1470,9 @@ async function handleTestResult({ github, context, core }) {
 
   const { owner, repo } = context.repo;
   const api = createApi(github, owner, repo);
+  const config = loadConfig();
 
-  // Re-run attempts may lose the pull_requests array from the workflow_run
-  // payload, and fork PRs always have an empty array. Fall back to
-  // searching for PRs by the head SHA, using the head repository owner
-  // (which differs from the base owner for fork PRs).
-  let prRefs = workflowRun.pull_requests || [];
-  if (!prRefs.length) {
-    const headOwner = workflowRun.head_repository?.owner?.login || owner;
-    const { data: prs } = await github.rest.pulls.list({
-      owner, repo, state: 'open', head: `${headOwner}:${workflowRun.head_branch}`, per_page: 10,
-    });
-    prRefs = prs.filter(p => p.head.sha === workflowRun.head_sha);
-    if (!prRefs.length) {
-      // Last resort: scan all open PRs by head SHA (covers edge cases where
-      // the head-branch filter above misses, e.g. a stale/renamed branch).
-      const { data: openPrs } = await github.rest.pulls.list({
-        owner, repo, state: 'open', per_page: 50,
-      });
-      prRefs = openPrs.filter(p => p.head.sha === workflowRun.head_sha);
-    }
-    if (!prRefs.length) {
-      core.info(`No open PR found for branch ${workflowRun.head_branch} / SHA ${workflowRun.head_sha}, skipping`);
-      return;
-    }
-    core.info(`Resolved ${prRefs.length} PR(s) from head branch lookup (re-run fallback)`);
-  }
+  const prRefs = await resolveRunPrs(github, owner, repo, workflowRun, core);
 
   for (const prRef of prRefs) {
     const pr = await api.getPr(prRef.number);
@@ -1179,8 +1500,8 @@ async function handleTestResult({ github, context, core }) {
       }
     }
     // Unlike before, the full-suite branch below is NOT gated on
-    // lifecycle/ready-to-merge: verify.yaml now triggers on its own native
-    // events (push for trusted authors, review submission for everyone
+    // lifecycle/ready-to-merge: the full suite runs as soon as Decide
+    // requires it (on push for trusted authors, on approval for everyone
     // else), so it can legitimately complete before the fast gate/review has
     // finished promoting the PR.
 
@@ -1188,6 +1509,11 @@ async function handleTestResult({ github, context, core }) {
       core.info(`PR #${pr.number} head SHA mismatch (PR: ${pr.head.sha}, run: ${workflowRun.head_sha}), skipping`);
       continue;
     }
+
+    // An approval that landed while this run was still deciding to skip the
+    // suite: the review relay found the run in progress and left it. Its
+    // completion is the other half. A run re-started here has no result yet.
+    if (!isFastGate && await maybeRunFullSuite(api, config, pr, core) === 'rerun') continue;
 
     if (asFastGate) {
       if (workflowRun.conclusion === 'success') {
@@ -1575,6 +1901,114 @@ async function minimizePreviousFlakyComments(github, owner, repo, prNumber, core
 // Stale Detection
 // ---------------------------------------------------------------------------
 
+const DAY_MS = 1000 * 60 * 60 * 24;
+
+// Marks the review-overdue ping so a later sweep can tell it already fired.
+const REVIEW_OVERDUE_MARKER = '<!-- pr-lifecycle:review-overdue -->';
+
+// The maintainer-side track of the sweep, for PRs blocked on us.
+//
+// Three jobs. First, undo the misclassification: a PR that went stale under
+// the author-facing timer while it was waiting on review is carrying a label
+// and a close countdown that were never meant for it, so clear them. Second,
+// label the wait. Third, ping the people who can clear it. Nothing here ever
+// closes a PR: the author has no action to take, so a close deadline would
+// only punish them for our latency.
+//
+// The label and the ping have separate thresholds on purpose. The label is
+// free and queryable (`is:open label:lifecycle/review-overdue`); the comment
+// is a notification to every assignee and reviewer. With 84 maintainer-blocked
+// PRs open, a single threshold either buries the label in PRs that are merely
+// open, or delays the visibility to keep the mail volume sane. Two thresholds
+// buy both: label early, notify late.
+async function handleReviewOverdue(github, api, config, core, owner, repo, pr, now) {
+  if (hasLabel(pr, LABELS.STALE)) {
+    await api.removeLabel(pr.number, LABELS.STALE);
+    core.info(`PR #${pr.number} stale removed (blocked on a maintainer, not on the author)`);
+  }
+
+  const daysUntilOverdue = config.stale?.days_until_review_overdue || 14;
+  const daysUntilPing = config.stale?.days_until_review_ping || 30;
+  const daysOpen = (now - new Date(pr.created_at)) / DAY_MS;
+
+  // Two cheap pre-filters, both before spending a paginated timeline read. A
+  // PR cannot have been waiting on review for longer than it has been open;
+  // and once it is labelled there is nothing further to do until it is old
+  // enough to ping.
+  //
+  // These do not catch a PR that is labelled, pinged and past the ping
+  // threshold: it still costs a timeline read per sweep to re-derive that the
+  // ping already happened. Short-circuiting that would mean persisting the
+  // ping in a second label, and the cost does not justify one — it is bounded
+  // by the PRs blocked on us for longer than days_until_review_ping (25 when
+  // this was written, so ~100 reads/day against a 15,000/hour budget), and
+  // the stale path above already pays the same per-PR cost.
+  if (daysOpen < daysUntilOverdue) return;
+  if (hasLabel(pr, LABELS.REVIEW_OVERDUE) && daysOpen < daysUntilPing) return;
+
+  // Measure from when the PR became maintainer-blocked, not from
+  // pr.updated_at. An author pushing to a PR that is waiting on review
+  // refreshes updated_at without discharging the review, so using it would
+  // restart our clock every time they rebase — which is the wrong direction
+  // for a timer whose entire purpose is to catch our own latency. Measured
+  // against the real queue, updated_at is close to useless here: only 2 of 84
+  // maintainer-blocked PRs had been idle 7+ days, because bots and CI keep
+  // touching them while nobody reviews.
+  const events = await github.paginate(github.rest.issues.listEventsForTimeline, {
+    owner, repo, issue_number: pr.number, per_page: 100,
+  });
+  const blockedEvent = events
+    .filter(e => e.event === 'labeled' && e.label?.name === LABELS.WAITING_ON_MAINTAINER)
+    .pop();
+
+  // No labeled event means the label predates the orchestrator (or the
+  // timeline no longer carries it). The PR's own age is then the longest it
+  // could possibly have been waiting, and it already passed the check above.
+  const blockedSince = blockedEvent ? new Date(blockedEvent.created_at) : new Date(pr.created_at);
+  const daysBlocked = (now - blockedSince) / DAY_MS;
+  if (daysBlocked < daysUntilOverdue) return;
+
+  if (!hasLabel(pr, LABELS.REVIEW_OVERDUE)) {
+    await api.addLabel(pr.number, LABELS.REVIEW_OVERDUE);
+    core.info(`PR #${pr.number} marked review-overdue (${Math.floor(daysBlocked)} days blocked on a maintainer)`);
+  }
+
+  if (daysBlocked < daysUntilPing) return;
+
+  // One ping per period of being blocked on us, not one per sweep. Scoped to
+  // comments newer than blockedSince so that a PR which was unblocked and
+  // later blocked again starts a fresh period rather than staying silent
+  // forever on the strength of an old ping.
+  const alreadyPinged = events.some(e =>
+    e.event === 'commented'
+    && e.created_at && new Date(e.created_at) > blockedSince
+    && (e.actor?.login === BOT_LOGIN || e.user?.login === BOT_LOGIN)
+    && (e.body || '').includes(REVIEW_OVERDUE_MARKER));
+  if (alreadyPinged) return;
+
+  // Assignees and requested reviewers are the people who can actually clear
+  // this. The author is addressed by the message itself and is filtered out.
+  const responsible = [...new Set([
+    ...(pr.assignees || []).map(a => a.login),
+    ...(pr.requested_reviewers || []).map(r => r.login),
+  ])].filter(login => login !== pr.user.login);
+  const mentions = responsible.length
+    ? `\n\ncc ${responsible.map(login => `@${login}`).join(' ')}`
+    : '';
+
+  // The fallback carries {reviewers} deliberately: the cc is the whole point
+  // of the ping, and a fallback without the placeholder would silently drop
+  // it if the config key were ever removed or misspelled.
+  const message = (config.stale?.review_overdue_message
+      || 'This PR is waiting on a maintainer review.{reviewers}')
+    .replace(/\{author\}/g, pr.user.login)
+    .replace(/\{days\}/g, String(Math.floor(daysBlocked)))
+    .replace(/\{reviewers\}/g, mentions);
+
+  await api.postComment(pr.number, `${REVIEW_OVERDUE_MARKER}\n${message}`);
+  core.info(`PR #${pr.number} review-overdue ping posted (${Math.floor(daysBlocked)} days)`);
+}
+
 async function handleStale({ github, context, core }) {
   const { owner, repo } = context.repo;
   const api = createApi(github, owner, repo);
@@ -1591,15 +2025,36 @@ async function handleStale({ github, context, core }) {
     owner, repo, state: 'open', per_page: 100,
   });
 
-  for (const pr of prs) {
-    if (hasLabel(pr, LABELS.DISABLED)) continue;
+  for (const listed of prs) {
+    // Fallback for a missed workflow_run event (a review relay or a Verify
+    // completion). Before the DISABLED skip: those PRs need the required
+    // status too, and their full suite can be skipped as well (draft, or
+    // DO NOT MERGE).
+    try {
+      await maybeRunFullSuite(api, config, listed, core);
+      await syncGateStatus(api, listed.head.sha, core);
+    } catch (err) {
+      core.warning(`PR #${listed.number} full suite / Verification Gate sync failed: ${err.message}`);
+    }
 
-    // Reconcile all PRs targeting main
-    if (pr.base?.ref === 'main') {
+    if (hasLabel(listed, LABELS.DISABLED)) continue;
+
+    // Reconcile all PRs targeting main, then re-read. Everything below keys
+    // off waiting-on-* labels, and reconcile is precisely the thing that
+    // corrects them — deciding from the pulls.list snapshot would act on the
+    // state reconcile just fixed, one sweep behind. The dangerous direction is
+    // reconcile moving a PR to waiting-on-maintainer (case 2: author pushed,
+    // tests passed, changes addressed) while the snapshot still says
+    // waiting-on-author: the author timer is the short 4/7 pair, so a PR that
+    // is in fact blocked on us could be warned and closed. Same
+    // getPr-around-reconcile pattern as handlePrSynchronize and cmdRetry.
+    let pr = listed;
+    if (listed.base?.ref === 'main') {
       try {
-        await reconcile(github, api, pr, core);
+        await reconcile(github, api, listed, core);
+        pr = await api.getPr(listed.number);
       } catch (err) {
-        core.warning(`PR #${pr.number} reconcile failed: ${err.message}`);
+        core.warning(`PR #${listed.number} reconcile failed: ${err.message}`);
       }
     }
 
@@ -1607,10 +2062,33 @@ async function handleStale({ github, context, core }) {
     if (!state) continue;
     if (state === LABELS.READY_TO_MERGE) continue;
 
-    const updatedAt = new Date(pr.updated_at);
-    const daysSinceUpdate = (now - updatedAt) / (1000 * 60 * 60 * 24);
+    const blockedOn = getBlockedOn(pr);
 
-    const isWaitingOnAuthor = hasLabel(pr, LABELS.WAITING_ON_AUTHOR);
+    // Blocked on us. The stale timers measure contributor inactivity and the
+    // warning is addressed to the author, so neither applies to a PR where
+    // the author has nothing left to do — running them here is how #9965 and
+    // #9947 ended up counting down to auto-close while waiting on review.
+    // Hand off to the maintainer-facing track, which never closes anything.
+    if (blockedOn === 'maintainer') {
+      try {
+        await handleReviewOverdue(github, api, config, core, owner, repo, pr, now);
+      } catch (err) {
+        core.warning(`PR #${pr.number} review-overdue check failed: ${err.message}`);
+      }
+      continue;
+    }
+
+    // Not blocked on us (any more) — drop the reminder if it lingered, so the
+    // label always reflects a review we currently owe.
+    if (hasLabel(pr, LABELS.REVIEW_OVERDUE)) {
+      await api.removeLabel(pr.number, LABELS.REVIEW_OVERDUE);
+      core.info(`PR #${pr.number} review-overdue removed (no longer blocked on a maintainer)`);
+    }
+
+    const updatedAt = new Date(pr.updated_at);
+    const daysSinceUpdate = (now - updatedAt) / DAY_MS;
+
+    const isWaitingOnAuthor = blockedOn === 'author';
     const effectiveDaysUntilStale = isWaitingOnAuthor ? daysUntilStaleWaitingOnAuthor : daysUntilStale;
     const effectiveDaysUntilClose = isWaitingOnAuthor ? daysUntilCloseWaitingOnAuthor : daysUntilClose;
 
@@ -1630,7 +2108,7 @@ async function handleStale({ github, context, core }) {
       if (!staleEvent) continue;
 
       const staleSince = new Date(staleEvent.created_at);
-      const daysSinceStale = (now - staleSince) / (1000 * 60 * 60 * 24);
+      const daysSinceStale = (now - staleSince) / DAY_MS;
 
       // Only events that carry created_at are considered. 'committed' events
       // are deliberately not in the list: they have no created_at at all (the
@@ -1688,6 +2166,7 @@ async function handleReconcile({ github, context, core, prNumber }) {
   const api = createApi(github, owner, repo);
   const pr = await api.getPr(prNumber);
   core.info(`Reconciling PR #${prNumber} via workflow_dispatch`);
+  await syncGateStatus(api, pr.head.sha, core);
   await reconcile(github, api, pr, core);
 }
 
@@ -1700,6 +2179,8 @@ module.exports = {
   handleComment,
   handleLabelChange,
   handleTestResult,
+  handleGateStatus,
+  handleReviewRelay,
   handleStale,
   handleReconcile,
   reconcile,

@@ -5,6 +5,7 @@ import { ContentTypes } from "@models/ContentTypes.ts";
 import { RenderPromptResponse } from "@models/RenderPromptResponse.ts";
 import axios from "axios";
 import { Paging } from "@models/Paging.ts";
+import { HeadersInspectionOptions } from "@microsoft/kiota-http-fetchlibrary";
 import {
     AddVersionToBranch,
     ArtifactMetaData,
@@ -20,7 +21,9 @@ import {
     EditableArtifactMetaData, EditableBranchMetaData,
     EditableGroupMetaData,
     EditableVersionMetaData,
-    GroupMetaData, NewComment, ReferenceType, ReferenceTypeObject, ReplaceBranchVersions,
+    GroupMetaData,
+    HandleReferencesTypeObject,
+    NewComment, ReferenceType, ReferenceTypeObject, ReplaceBranchVersions,
     ReferenceGraph,
     ReferenceGraphDirection,
     Rule,
@@ -249,48 +252,54 @@ const versionExpressionFor = (version: string): string => {
     return version === "latest" ? "branch=latest" : version;
 };
 
-const buildVersionContentEndpoint = (config: ConfigService, groupId: string|null, artifactId: string, version: string, queryParams?: any): string => {
-    return createEndpoint(config.artifactsUrl(), "/groups/:groupId/artifacts/:artifactId/versions/:version/content", {
-        groupId: normalizeGroupId(groupId),
-        artifactId,
-        version: versionExpressionFor(version)
-    }, queryParams);
-};
-
 const getResponseContentType = (headers: any): string => {
-    const header = typeof headers?.get === "function" ? headers.get("content-type") : headers?.["content-type"];
+    if (!headers) {
+        return ContentTypes.APPLICATION_JSON;
+    }
+    if (typeof headers.tryGetValue === "function") {
+        const values = headers.tryGetValue("content-type");
+        if (values && values.length > 0 && typeof values[0] === "string") {
+            return values[0];
+        }
+    }
+    const header = typeof headers.get === "function" ? headers.get("content-type") : headers["content-type"];
+    if (header instanceof Set) {
+        const val = header.values().next().value;
+        if (typeof val === "string") {
+            return val;
+        }
+    }
     return typeof header === "string" ? header : ContentTypes.APPLICATION_JSON;
 };
 
 const getArtifactVersionContentWithType = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<ArtifactVersionContent> => {
-    const endpoint = buildVersionContentEndpoint(config, groupId, artifactId, version);
-    const options = await createAuthOptions(auth);
-    return axios.get(endpoint, {
-        ...options,
-        headers: {
-            ...options.headers,
-            "Accept": "*"
-        },
-        responseType: "text",
-        transformResponse: [(data: any) => data]
-    }).then(response => ({
-        content: response.data as string,
-        contentType: getResponseContentType(response.headers)
-    }));
+    const headersOptions: HeadersInspectionOptions = new HeadersInspectionOptions({
+        inspectResponseHeaders: true
+    });
+    return getRegistryClient(config, auth).groups.byGroupId(normalizeGroupId(groupId)).artifacts.byArtifactId(artifactId).versions
+        .byVersionExpression(versionExpressionFor(version)).content.get({
+            headers: {
+                "Accept": "*"
+            },
+            options: [headersOptions]
+        }).then(value => ({
+            content: arrayDecoder.decode(value!),
+            contentType: getResponseContentType(headersOptions.getResponseHeaders())
+        }));
 };
 
 const getArtifactVersionContentDereferenced = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<string> => {
-    const endpoint = buildVersionContentEndpoint(config, groupId, artifactId, version, { references: "DEREFERENCE" });
-    const options = await createAuthOptions(auth);
-    return axios.get(endpoint, {
-        ...options,
-        headers: {
-            ...options.headers,
-            "Accept": "*"
-        },
-        responseType: "text",
-        transformResponse: [(data: any) => data]
-    }).then(response => response.data as string);
+    return getRegistryClient(config, auth).groups.byGroupId(normalizeGroupId(groupId)).artifacts.byArtifactId(artifactId).versions
+        .byVersionExpression(versionExpressionFor(version)).content.get({
+            headers: {
+                "Accept": "*"
+            },
+            queryParameters: {
+                references: HandleReferencesTypeObject.DEREFERENCE
+            }
+        }).then(value => {
+            return arrayDecoder.decode(value!);
+        });
 };
 
 const getArtifactVersions = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults> => {

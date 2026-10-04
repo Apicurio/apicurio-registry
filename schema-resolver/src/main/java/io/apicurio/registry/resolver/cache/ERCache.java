@@ -393,6 +393,10 @@ public class ERCache<V> {
             } catch (TimeoutException e) {
                 log.warn("Background refresh timed out for key: {} after {}ms", key, effectiveTimeout.toMillis());
                 refreshFuture.cancel(true);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.debug("Background refresh monitoring interrupted for key: {}", key, e);
+                refreshFuture.cancel(true);
             } catch (Exception e) {
                 log.debug("Background refresh monitoring interrupted for key: {}", key, e);
                 refreshFuture.cancel(true);

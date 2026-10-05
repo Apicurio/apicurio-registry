@@ -12,11 +12,19 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import io.restassured.path.json.JsonPath;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
@@ -265,29 +273,43 @@ public class WellKnownArdTest extends AbstractResourceTestBase {
         createAgentCard(groupId, agentId2, AGENT_CARD_CONTENT);
         createAgentCard(groupId, agentId3, AGENT_CARD_CONTENT);
 
-        String pageToken = givenAtRoot()
-                .when()
-                .contentType(ContentType.JSON)
-                .queryParam("pageSize", 2)
-                .get("/.well-known/ard/agents")
-                .then()
-                .statusCode(200)
-                .body("items", hasSize(2))
-                .body("total", greaterThanOrEqualTo(3))
-                .body("pageToken", notNullValue())
-                .extract()
-                .path("pageToken");
+        // The listing is registry-wide, so other tests' agents are on the same pages. Walk every page
+        // and check the pagination contract instead of assuming which page holds which entry.
+        List<String> urls = new ArrayList<>();
+        String pageToken = null;
+        int total = -1;
+        for (int page = 0; page < 1000; page++) {
+            RequestSpecification request = givenAtRoot().contentType(ContentType.JSON).queryParam("pageSize", 2);
+            if (pageToken != null) {
+                request = request.queryParam("pageToken", pageToken);
+            }
+            JsonPath json = request.when().get("/.well-known/ard/agents")
+                    .then().statusCode(200).extract().jsonPath();
+            List<String> pageUrls = json.getList("items.url", String.class);
+            total = json.getInt("total");
+            pageToken = json.getString("pageToken");
+            if (pageToken != null) {
+                assertEquals(2, pageUrls.size(), "every page but the last must be full");
+            }
+            urls.addAll(pageUrls);
+            if (pageToken == null) {
+                break;
+            }
+        }
 
-        givenAtRoot()
-                .when()
-                .contentType(ContentType.JSON)
-                .queryParam("pageSize", 2)
-                .queryParam("pageToken", pageToken)
-                .get("/.well-known/ard/agents")
-                .then()
-                .statusCode(200)
-                .body("items", hasSize(1))
-                .body("items.url", hasItem(endsWith(groupId + "/" + agentId1)));
+        assertNull(pageToken, "pagination must terminate");
+        assertEquals(total, urls.size(), "pages must cover every entry exactly once");
+        assertEquals(urls.size(), new HashSet<>(urls).size(), "no entry may appear on two pages");
+
+        // Our three agents each appear once, newest first (createdOn desc).
+        List<String> ours = urls.stream()
+                .filter(u -> u.endsWith(groupId + "/" + agentId1) || u.endsWith(groupId + "/" + agentId2)
+                        || u.endsWith(groupId + "/" + agentId3))
+                .toList();
+        assertEquals(3, ours.size());
+        assertTrue(ours.get(0).endsWith(agentId3));
+        assertTrue(ours.get(1).endsWith(agentId2));
+        assertTrue(ours.get(2).endsWith(agentId1));
     }
 
     @Test

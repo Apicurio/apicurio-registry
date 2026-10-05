@@ -4,6 +4,7 @@ import io.apicurio.registry.agents.a2a.A2AConfig;
 import io.apicurio.registry.agents.a2a.A2AConstants;
 import io.apicurio.registry.auth.AdminOverride;
 import io.apicurio.registry.auth.AuthConfig;
+import io.apicurio.registry.auth.ProxyHeaderCredential;
 import io.apicurio.registry.auth.RoleBasedAccessController;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -39,8 +40,27 @@ public class AgentVisibilityFilter {
     @Inject
     RoleBasedAccessController rbac;
 
+    /**
+     * Same notion of "authentication enabled" as the authorization interceptor: any mechanism (OIDC,
+     * basic, proxy header, Kubernetes, form). Checking only OIDC and basic auth skipped visibility
+     * filtering, private cards included, under the other mechanisms.
+     */
     private boolean isAuthEnabled() {
-        return authConfig.isOidcAuthEnabled() || authConfig.isBasicAuthEnabled();
+        return authConfig.isAuthenticationEnabled();
+    }
+
+    /**
+     * Whether the authenticated caller may read artifacts, mirroring the grants the authorization
+     * interceptor applies to {@code @Authorized(level = Read)} operations: trusted proxy authorization,
+     * admin override, authenticated read access, and otherwise a registry role when RBAC is enabled.
+     */
+    private boolean callerCanRead(boolean isAdmin) {
+        if (authConfig.isProxyHeaderAuthEnabled() && authConfig.isProxyHeaderTrustProxyAuthorization()
+                && securityIdentity.getCredential(ProxyHeaderCredential.class) != null) {
+            return true;
+        }
+        return isAdmin || authConfig.isAuthenticatedReadsEnabled() || !authConfig.isRbacEnabled()
+                || rbac.isReadOnly() || rbac.isDeveloper() || rbac.isAdmin();
     }
 
     /**
@@ -60,8 +80,7 @@ public class AgentVisibilityFilter {
         // "entitled" means entitled to read the card. The discovery endpoint itself is open to
         // anonymous callers (for public cards), so the read check other endpoints get from
         // @Authorized(level = Read) has to be applied here.
-        boolean canRead = isAuthenticated && (isAdmin || !authConfig.isRbacEnabled()
-                || rbac.isReadOnly() || rbac.isDeveloper() || rbac.isAdmin());
+        boolean canRead = isAuthenticated && callerCanRead(isAdmin);
         String currentUser = isAuthenticated
                 ? securityIdentity.getPrincipal().getName() : null;
 

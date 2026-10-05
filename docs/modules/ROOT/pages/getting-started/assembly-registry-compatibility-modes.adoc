@@ -209,7 +209,7 @@ Because JSON Schema uses a constraint-based validation model, the following tabl
 |Yes
 |Adding alternatives accepts more data.
 
-|Add a subschema to `oneOf` that can't match the same values as an existing one
+|Add a subschema to `oneOf` that cannot match the same values as an existing one
 |Yes
 |Adding an alternative accepts more data, and no value can match two subschemas, which `oneOf` rejects.
 
@@ -290,14 +290,20 @@ Because JSON Schema uses a constraint-based validation model, the following tabl
 |Old data with the previous constant value fails validation.
 |===
 
-=== What the JSON Schema compatibility check reports
 
+// ref-registry-compatibility-json-schema-reports
+[id="registry-compatibility-json-schema-reports_{context}"]
+== What the JSON Schema compatibility check reports
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 The compatibility check compares two versions by what they accept, rather than by how they are written, and reports each change that breaks compatibility at the place where it was made.
 
 Every draft::
 All drafts from 4 to 2020-12 are compared, including keywords introduced in 2019-09 and 2020-12, such as `prefixItems`, `unevaluatedProperties`, `dependentRequired`, `$defs`, and `$anchor`.
 A schema without `$schema` is read as draft 7.
-A schema whose `$schema` names no draft, such as a custom meta-schema, can't be compared yet, and the check fails with HTTP status 422.
+A schema whose `$schema` names no draft, such as a custom meta-schema, cannot be compared yet, and the check fails with HTTP status 422.
 
 Versions in different drafts::
 A version can declare a different `$schema` from the previous one, and the two are compared by meaning.
@@ -316,7 +322,7 @@ For example, decreasing `maxLength` from `10` to `5` on the property `b` of the 
 }
 ----
 +
-A `FORWARD` check compares the two versions the other way round, so the `context` points into the previous version, and the `description` reads as if the previous version were the new one.
+A `FORWARD` check compares the two versions in the opposite direction, so the `context` points into the previous version, and the `description` reads as if the previous version were the new one.
 
 `oneOf` and boolean schemas::
 `oneOf` accepts a value that matches exactly one of its subschemas, so a new subschema that can match the same values as an existing one is reported, even though it adds alternatives.
@@ -325,23 +331,29 @@ Boolean schemas, `true` and `false`, are compared like any other schema.
 References::
 References to other artifacts are resolved from the artifact references that are stored with the version, including references inside the referenced artifacts, and references between artifacts that refer to each other.
 No document is fetched over the network.
-If a reference can't be resolved, part of the schema can't be compared, so the check fails with HTTP status 422 instead of returning a result.
+If a reference cannot be resolved, part of the schema cannot be compared, so the check fails with HTTP status 422 instead of returning a result.
 
 Known over-strict verdicts::
-Where the check can't prove that a change is compatible, it reports it as incompatible, so it never accepts a breaking change. In the following cases, it reports a compatible change as incompatible. Future versions of Apitomy Data Models will handle them:
+Where the check cannot prove that a change is compatible, it reports it as incompatible, so it never accepts a breaking change. In the following cases, it reports a compatible change as incompatible. Future versions of Apitomy Data Models will handle them:
 +
 * Adding a property whose schema accepts every value, for example one with only a `description`, when `additionalProperties` is absent or `true`.
 * Adding a `type` inside `then` or `else`, when an enclosing schema already requires that type.
 
 For a description and examples of every kind of change the check reports, see the link:https://www.apitomy.io/projects/data-models/docs/4.x/user-guide/schema-compatibility.html[Apitomy Data Models schema compatibility guide^].
 
-=== Changes to JSON Schema compatibility checking in {registry} 3.4
 
+// ref-registry-compatibility-json-schema-changes
+[id="registry-compatibility-json-schema-changes_{context}"]
+== Changes to JSON Schema compatibility checking in {registry} 3.4
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 Earlier versions of {registry} checked JSON Schema compatibility with a different checker, based on the everit library.
 If you used JSON Schema compatibility rules before version 3.4, note the following differences:
 
 * Artifacts in drafts 2019-09 and 2020-12 are now checked.
-The earlier checker couldn't load them, and the check failed with an error instead.
+The earlier checker could not load them, and the check failed with an error instead.
 
 * Rule violations are worded differently, and their `context` points at the keyword that changed.
 Update anything that matches the previous text or contexts, for example:
@@ -369,7 +381,7 @@ Update anything that matches the previous text or contexts, for example:
 The earlier checker compared `oneOf` like `anyOf`, and accepted such a change.
 
 * Adding a `type` inside `then` or `else` that an enclosing schema already requires is reported as incompatible, where the earlier checker accepted it.
-See the known over-strict verdicts above.
+See *Known over-strict verdicts* in "What the JSON Schema compatibility check reports".
 
 * The `apicurio.compat.json-schema.use-apitomy` configuration property, which selected the new checker in version 3.3, no longer has any effect, and is deprecated.
 If it is set, {registry} logs a warning at startup.

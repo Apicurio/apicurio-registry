@@ -1,5 +1,6 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.mcpregistry.McpServerName;
 import io.apicurio.registry.rest.headers.Headers;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
@@ -33,7 +34,10 @@ public abstract class AbstractAccessController implements IAccessController {
         Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
         AuthorizedStyle style = annotation.style();
 
-        if (style == AuthorizedStyle.GroupAndArtifact) {
+        if (style == AuthorizedStyle.McpServerName) {
+            var name = McpServerName.parse(getStringParam(context, 0));
+            return verifyArtifactOwner(name.namespace(), name.serverId());
+        } else if (style == AuthorizedStyle.GroupAndArtifact) {
             String groupId = getStringParam(context, 0);
             String artifactId = getStringParam(context, 1);
             return verifyArtifactOwner(groupId, artifactId);

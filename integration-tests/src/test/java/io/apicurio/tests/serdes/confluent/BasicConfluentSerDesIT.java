@@ -36,9 +36,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.apicurio.deployment.Constants.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import org.junit.jupiter.api.parallel.Isolated;
 
 @Tag(SERDES)
 @QuarkusIntegrationTest
+@Isolated
 public class BasicConfluentSerDesIT extends ConfluentBaseIT {
 
     private KafkaFacade kafkaCluster = KafkaFacade.getInstance();

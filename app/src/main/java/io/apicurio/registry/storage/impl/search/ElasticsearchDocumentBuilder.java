@@ -50,6 +50,7 @@ public class ElasticsearchDocumentBuilder {
                 : "default";
         doc.put("groupId", groupId);
         doc.put("artifactId", versionMetadata.getArtifactId());
+        doc.put("ga_key", groupId + ":" + versionMetadata.getArtifactId());
         doc.put("version", versionMetadata.getVersion());
 
         if (versionMetadata.getArtifactType() != null) {

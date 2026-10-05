@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.3.2-SNAPSHOT</version>
+    <version>3.4.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
 
@@ -23,6 +23,7 @@
     <argLine/>
     <!-- Max heap for the forked surefire JVM that runs the tests. -->
     <surefire.maxHeap>4g</surefire.maxHeap>
+    <surefire.forkCount>1</surefire.forkCount>
   </properties>
 
   <dependencies>
@@ -35,6 +36,10 @@
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-schema-util-provider</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-schema-util-agents</artifactId>
     </dependency>
 
     <dependency>
@@ -106,6 +111,10 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-micrometer-registry-prometheus</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
@@ -264,6 +273,11 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-junit-internal</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -563,14 +577,64 @@
               <goal>build</goal>
             </goals>
           </execution>
+          <!-- Second build producing a Quarkus "mutable-jar" (re-augmentable) distribution in
+               target/mutable/quarkus-app. It is the basis of the "-mutable" container image, which
+               lets deployers add Java providers for custom artifact types (jars dropped into
+               quarkus-app/providers) without rebuilding the registry. Enabled by -Dfull.
+               NOTE: do not set quarkus.package.output-directory here - plugin properties are recorded
+               in quarkus/build-system.properties and replayed at re-augmentation time. -->
+          <execution>
+            <id>build-mutable</id>
+            <goals>
+              <goal>build</goal>
+            </goals>
+            <configuration>
+              <skip>${apicurio.mutable-jar.skip}</skip>
+              <bootstrapId>mutable</bootstrapId>
+              <buildDir>${project.build.directory}/mutable</buildDir>
+              <properties>
+                <quarkus.package.jar.type>mutable-jar</quarkus.package.jar.type>
+                <quarkus.package.jar.user-providers-directory>providers</quarkus.package.jar.user-providers-directory>
+              </properties>
+            </configuration>
+          </execution>
         </executions>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>default-test</id>
+            <configuration>
+              <excludedGroups>experimental-startup</excludedGroups>
+            </configuration>
+          </execution>
+          <execution>
+            <id>default-cli</id>
+            <configuration>
+              <!-- Direct surefire:test must also exclude the separate QuarkusUnitTest JVM. -->
+              <excludedGroups>experimental-startup</excludedGroups>
+            </configuration>
+          </execution>
+          <execution>
+            <id>experimental-startup-test</id>
+            <goals><goal>test</goal></goals>
+            <configuration>
+              <!-- QuarkusUnitTest and QuarkusTest must not share a JVM. -->
+              <groups>experimental-startup</groups>
+              <test>McpRegistryExperimentalStartupTest</test>
+              <forkCount>1</forkCount>
+              <reuseForks>false</reuseForks>
+              <reportsDirectory>${project.build.directory}/surefire-reports-startup</reportsDirectory>
+            </configuration>
+          </execution>
+        </executions>
         <configuration>
           <groups>${groups}</groups>
-          <forkCount>1</forkCount>
+          <!-- Keep Quarkus tests in one fork: random HTTP ports do not isolate the
+               test-class Jandex index that concurrent forks write in target/. -->
+          <forkCount>${surefire.forkCount}</forkCount>
           <!-- This, not MAVEN_OPTS, is the heap the tests actually run in: surefire forks a JVM and
                MAVEN_OPTS only sizes the Maven process that spawns it. Override per CI shard with
                -Dsurefire.maxHeap=<size>. See issue #9265. -->
@@ -582,6 +646,8 @@
             <project.build.directory>${project.build.directory}</project.build.directory>
             <!-- Prevent OTel SPI conflict between Quarkus ContextStorageProvider and SDK testing -->
             <io.opentelemetry.context.contextStorageProvider>default</io.opentelemetry.context.contextStorageProvider>
+            <!-- Avro 1.12.2 rejects classes not on the trusted list during reflection-based serde -->
+            <org.apache.avro.SERIALIZABLE_PACKAGES>ch.mobi.lead.leadfall,com.kubetrade.schema.trade,io.apicurio.registry.support</org.apache.avro.SERIALIZABLE_PACKAGES>
           </systemPropertyVariables>
         </configuration>
       </plugin>
@@ -590,6 +656,7 @@
         <artifactId>maven-jar-plugin</artifactId>
         <executions>
           <execution>
+            <phase>process-test-classes</phase>
             <goals>
               <goal>test-jar</goal>
             </goals>
@@ -612,6 +679,26 @@
               <attach>true</attach>
               <descriptors>
                 <descriptor>src/main/assembly/assembly.xml</descriptor>
+              </descriptors>
+              <archiverConfig>
+                <defaultDirectoryMode>0755</defaultDirectoryMode>
+              </archiverConfig>
+              <tarLongFileMode>${tar.long.file.mode}</tarLongFileMode>
+            </configuration>
+          </execution>
+          <!-- Tarball of the mutable-jar distribution (see build-mutable above); not attached/deployed -->
+          <execution>
+            <id>assembly-mutable</id>
+            <goals>
+              <goal>single</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <skipAssembly>${apicurio.mutable-jar.skip}</skipAssembly>
+              <finalName>${project.artifactId}-${project.version}</finalName>
+              <attach>false</attach>
+              <descriptors>
+                <descriptor>src/main/assembly/assembly-mutable.xml</descriptor>
               </descriptors>
               <archiverConfig>
                 <defaultDirectoryMode>0755</defaultDirectoryMode>
@@ -668,6 +755,21 @@
                 <capitalizeEnumValues>false</capitalizeEnumValues>
               </projectSettings>
               <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/iceberg/v1/openapi.json</inputSpec>
+            </configuration>
+          </execution>
+          <execution>
+            <id>generate-api-mcp-registry-v0</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <projectSettings>
+                <javaPackage>io.apicurio.registry.mcpregistry.rest.v0</javaPackage>
+                <generatesOpenApi>false</generatesOpenApi>
+                <capitalizeEnumValues>false</capitalizeEnumValues>
+              </projectSettings>
+              <inputSpec>${project.basedir}/src/main/resources-unfiltered/META-INF/resources/api-specifications/mcp-registry/v0/openapi.json</inputSpec>
             </configuration>
           </execution>
         </executions>

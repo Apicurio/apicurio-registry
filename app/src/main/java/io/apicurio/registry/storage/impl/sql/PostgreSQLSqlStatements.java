@@ -6,6 +6,11 @@ package io.apicurio.registry.storage.impl.sql;
  */
 public class PostgreSQLSqlStatements extends CommonSqlStatements {
 
+    @Override
+    public String insertContentIfAbsent() {
+        return insertContent() + " ON CONFLICT (contentHash) DO NOTHING";
+    }
+
     /**
      * Constructor.
      */
@@ -59,6 +64,12 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (groupId, artifactId, branchId) DO NOTHING
                 """;
+    }
+
+    @Override
+    public String upsertConfigProperty() {
+        return "INSERT INTO config (propName, propValue, modifiedOn) VALUES (?, ?, ?) "
+                + "ON CONFLICT (propName) DO UPDATE SET propValue = EXCLUDED.propValue, modifiedOn = EXCLUDED.modifiedOn";
     }
 
     @Override

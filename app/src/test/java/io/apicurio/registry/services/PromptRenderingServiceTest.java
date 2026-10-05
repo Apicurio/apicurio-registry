@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -126,6 +127,35 @@ public class PromptRenderingServiceTest {
                 "default", "static", "1.0");
 
         Assertions.assertEquals("This is a static prompt with no variables.", response.getRendered());
+    }
+
+    @Test
+    public void testNumericFormatting() {
+        String yamlContent = """
+            templateId: numeric
+            template: "Values: {{integer}}, {{decimal}}, {{zero}}"
+            variables:
+              integer:
+                type: integer
+              decimal:
+                type: number
+              zero:
+                type: integer
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        Map<String, Object> variables = Map.of(
+                "integer", 42,
+                "decimal", 10.5,
+                "zero", 0
+        );
+
+        RenderPromptResponse response = renderingService.render(
+                content, variables, "default", "numeric", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Values: 42, 10.5, 0", response.getRendered());
     }
 
     // ===== Variable Validation Tests =====
@@ -277,6 +307,32 @@ public class PromptRenderingServiceTest {
         Assertions.assertTrue(response.getValidationErrors().isEmpty());
         // Arrays should be serialized as JSON
         Assertions.assertTrue(response.getRendered().contains("["));
+    }
+
+    @Test
+    public void testValidObjectType() {
+        String yamlContent = """
+            templateId: object-test
+            template: "User: {{user}}"
+            variables:
+              user:
+                type: object
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        // Use LinkedHashMap to keep JSON field order deterministic.
+        Map<String, Object> user = new LinkedHashMap<>();
+        user.put("name", "Alice");
+        user.put("age", 21);
+
+        Map<String, Object> variables = Map.of("user", user);
+
+        RenderPromptResponse response = renderingService.render(
+                content, variables, "default", "object-test", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("User: {\"name\":\"Alice\",\"age\":21}", response.getRendered());
     }
 
     // ===== Default Value Tests =====
@@ -456,6 +512,34 @@ public class PromptRenderingServiceTest {
     }
 
     @Test
+    public void testExplicitNullInput() {
+        String yamlContent = """
+            templateId: explicit-null
+            template: "Hello {{name}}!"
+            variables:
+              name:
+                type: string
+                default: World
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("name", null);
+
+        RenderPromptResponse response = renderingService.render(
+                content, variables, "default", "explicit-null", "1.0");
+
+        // Explicit null is different from an omitted variable:
+        // the default is not applied and validation reports a type mismatch.
+        Assertions.assertEquals("Hello {{name}}!", response.getRendered());
+        Assertions.assertEquals(1, response.getValidationErrors().size());
+        Assertions.assertEquals("name", response.getValidationErrors().get(0).getVariableName());
+        Assertions.assertEquals("string", response.getValidationErrors().get(0).getExpectedType());
+        Assertions.assertEquals("null", response.getValidationErrors().get(0).getActualType());
+    }
+
+    @Test
     public void testDefaultViolatingEnumIsReported() {
         String yamlContent = """
             templateId: tone
@@ -623,6 +707,56 @@ public class PromptRenderingServiceTest {
         Assertions.assertTrue(errors.get(0).getMessage().contains("greater than maximum"));
     }
 
+    @Test
+    public void testRangeExactlyMinimum() {
+        String yamlContent = """
+            templateId: range-minimum
+            template: "Value: {{value}}"
+            variables:
+              value:
+                type: integer
+                minimum: 10
+                maximum: 1000
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        Map<String, Object> variables = Map.of(
+                "value", 10
+        );
+
+        RenderPromptResponse response = renderingService.render(
+                content, variables, "default", "range-minimum", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Value: 10", response.getRendered());
+    }
+
+    @Test
+    public void testRangeExactlyMaximum() {
+        String yamlContent = """
+            templateId: range-maximum
+            template: "Value: {{value}}"
+            variables:
+              value:
+                type: integer
+                minimum: 10
+                maximum: 1000
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        Map<String, Object> variables = Map.of(
+                "value", 1000
+        );
+
+        RenderPromptResponse response = renderingService.render(
+                content, variables, "default", "range-maximum", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Value: 1000", response.getRendered());
+    }
+
     // ===== Edge Cases =====
 
     @Test
@@ -749,6 +883,73 @@ public class PromptRenderingServiceTest {
     }
 
     @Test
+    public void testTripleBraceSyntax() {
+        String yamlContent = """
+            templateId: triple-brace
+            template: "Hello {{{name}}}!"
+            variables:
+              name:
+                type: string
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        Map<String, Object> variables = Map.of(
+                "name", "Alice"
+        );
+
+        RenderPromptResponse response = renderingService.render(
+                content, variables, "default", "triple-brace", "1.0");
+
+        // Inner {{name}} is substituted; outer braces remain literal.
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Hello {Alice}!", response.getRendered());
+    }
+
+    @Test
+    public void testWithBlockSyntax() {
+        String yamlContent = """
+            templateId: with-test
+            template: "{{#with user}}{{name}}{{/with}}"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        Map<String, Object> variables = Map.of(
+                "user", Map.of("name", "Alice")
+        );
+
+        RenderPromptResponse response = renderingService.render(
+                content, variables, "default", "with-test", "1.0");
+
+        // {{#with}} blocks are unsupported Handlebars extensions
+        Assertions.assertEquals("{{#with user}}{{name}}{{/with}}", response.getRendered());
+    }
+
+    @Test
+    public void testEachBlockSyntax() {
+        String yamlContent = """
+            templateId: each-test
+            template: "{{#each items}}{{this}}{{/each}}"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        Map<String, Object> variables = Map.of(
+                "items", List.of("A", "B")
+        );
+
+        RenderPromptResponse response = renderingService.render(
+                content, variables, "default", "each-test", "1.0");
+
+        // Characterize the current backend behavior for each syntax.
+        Assertions.assertEquals(
+                "{{#each items}}{{this}}{{/each}}",
+                response.getRendered()
+        );
+    }
+
+    @Test
     public void testConditionalBlockMarkersAreNotSubstituted() {
         String yamlContent = """
             templateId: conditional
@@ -761,9 +962,10 @@ public class PromptRenderingServiceTest {
         RenderPromptResponse response = renderingService.render(content, variables,
                 "default", "conditional", "1.0");
 
-        // The render endpoint does not process {{#if}} blocks (see #8728); it must at least leave
-        // the markers alone rather than mangling them while substituting the variable inside.
-        Assertions.assertEquals("{{#if premium}}Hello Alice{{/if}}", response.getRendered());
+        // PR #9391 (#8728): the render endpoint now processes {{#if}} blocks.
+        // With premium=true the block is truthy, so the inner content is rendered
+        // and the markers themselves are removed.
+        Assertions.assertEquals("Hello Alice", response.getRendered());
     }
 
     @Test
@@ -1003,4 +1205,249 @@ public class PromptRenderingServiceTest {
             renderingService.render(content, variables, "default", "comment", "1.0");
         });
     }
+    // ===== Conditional Block Tests =====
+    // Verifies parity with MCP PromptTemplateConverter.processConditionalBlocks() semantics.
+
+    @Test
+    public void testIfBlockRenderedWhenVariableTruthy() {
+        // A non-null, non-false, non-empty-string value is truthy — the block must be included.
+        String yamlContent = """
+            templateId: if-truthy
+            template: "Start.{{#if showExtra}} Extra content.{{/if}} End."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("showExtra", true);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "if-truthy", "1.0");
+
+        Assertions.assertEquals("Start. Extra content. End.", response.getRendered());
+    }
+
+    @Test
+    public void testIfBlockOmittedWhenVariableFalsy() {
+        // Boolean false → falsy → block removed entirely.
+        String yamlContent = """
+            templateId: if-falsy
+            template: "Start.{{#if showExtra}} Extra content.{{/if}} End."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("showExtra", false);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "if-falsy", "1.0");
+
+        Assertions.assertEquals("Start. End.", response.getRendered());
+    }
+
+    @Test
+    public void testIfBlockOmittedWhenVariableMissing() {
+        // Missing variable → null → falsy → block removed.
+        String yamlContent = """
+            templateId: if-missing
+            template: "Before.{{#if optionalSection}} Optional.{{/if}} After."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = new HashMap<>(); // no optionalSection
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "if-missing", "1.0");
+
+        Assertions.assertEquals("Before. After.", response.getRendered());
+    }
+
+    @Test
+    public void testIfBlockOmittedWhenVariableEmptyString() {
+        // Empty string → falsy → block removed.
+        String yamlContent = """
+            templateId: if-empty-string
+            template: "A.{{#if tag}} Tagged.{{/if}} B."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("tag", "");
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "if-empty-string", "1.0");
+
+        Assertions.assertEquals("A. B.", response.getRendered());
+    }
+
+    @Test
+    public void testIfBlockWithZero() {
+        // Numeric zero is truthy (non-null, non-false, non-empty-string) in backend semantics.
+        String yamlContent = """
+            templateId: if-zero
+            template: "A{{#if value}}YES{{/if}}B"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("value", 0);
+
+        RenderPromptResponse response = renderingService.render(
+                content, variables, "default", "if-zero", "1.0");
+
+        Assertions.assertEquals("AYESB", response.getRendered());
+    }
+
+    @Test
+    public void testIfBlockWithPositiveNumber() {
+        // Numbers like 1 are truthy.
+        String yamlContent = """
+            templateId: if-number
+            template: "A{{#if value}}YES{{/if}}B"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("value", 1);
+
+        RenderPromptResponse response = renderingService.render(
+                content, variables, "default", "if-number", "1.0");
+
+        Assertions.assertEquals("AYESB", response.getRendered());
+    }
+
+    @Test
+    public void testIfBlockWithNonEmptyString() {
+        // Non-empty string is truthy.
+        String yamlContent = """
+            templateId: if-string
+            template: "A{{#if value}}YES{{/if}}B"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("value", "hello");
+
+        RenderPromptResponse response = renderingService.render(
+                content, variables, "default", "if-string", "1.0");
+
+        Assertions.assertEquals("AYESB", response.getRendered());
+    }
+
+    @Test
+    public void testIfBlockWithExplicitNull() {
+        // Explicit null is falsy → block removed.
+        String yamlContent = """
+            templateId: if-null
+            template: "A{{#if value}}YES{{/if}}B"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("value", null);
+
+        RenderPromptResponse response = renderingService.render(
+                content, variables, "default", "if-null", "1.0");
+
+        Assertions.assertEquals("AB", response.getRendered());
+    }
+
+    @Test
+    public void testUnlessBlockRenderedWhenVariableFalsy() {
+        // Unless = logical complement: block shown when variable is falsy.
+        String yamlContent = """
+            templateId: unless-falsy
+            template: "{{#unless premium}}Free plan — upgrade to unlock.{{/unless}}"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("premium", false);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "unless-falsy", "1.0");
+
+        Assertions.assertEquals("Free plan \u2014 upgrade to unlock.", response.getRendered());
+    }
+
+    @Test
+    public void testUnlessBlockOmittedWhenVariableTruthy() {
+        // Unless with truthy var → block removed.
+        String yamlContent = """
+            templateId: unless-truthy
+            template: "{{#unless premium}}Upgrade now.{{/unless}}"
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("premium", true);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "unless-truthy", "1.0");
+
+        Assertions.assertEquals("", response.getRendered());
+    }
+
+    @Test
+    public void testIfElseBlockTruthyBranch() {
+        // Truthy var → truthy (first) branch rendered.
+        String yamlContent = """
+            templateId: if-else-truthy
+            template: "Mode: {{#if verbose}}detailed{{else}}brief{{/if}}."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("verbose", true);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "if-else-truthy", "1.0");
+
+        Assertions.assertEquals("Mode: detailed.", response.getRendered());
+    }
+
+    @Test
+    public void testIfElseBlockFalsyBranch() {
+        // Falsy var → else (second) branch rendered.
+        String yamlContent = """
+            templateId: if-else-falsy
+            template: "Mode: {{#if verbose}}detailed{{else}}brief{{/if}}."
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = Map.of("verbose", false);
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "if-else-falsy", "1.0");
+
+        Assertions.assertEquals("Mode: brief.", response.getRendered());
+    }
+
+    @Test
+    public void testConditionalBlockCombinedWithVariableSubstitution() {
+        // Conditional blocks and plain {{variable}} substitution must both work in one template.
+        String yamlContent = """
+            templateId: combined
+            template: "You are a {{role}} assistant.{{#if includeContext}} Context: {{context}}.{{/if}} Question: {{question}}"
+            variables:
+              role:
+                type: string
+              includeContext:
+                type: boolean
+              context:
+                type: string
+              question:
+                type: string
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+        Map<String, Object> variables = new HashMap<>();
+        variables.put("role", "helpful");
+        variables.put("includeContext", true);
+        variables.put("context", "Java programming");
+        variables.put("question", "What is a lambda?");
+
+        RenderPromptResponse response = renderingService.render(content, variables,
+                "default", "combined", "1.0");
+
+        String rendered = response.getRendered();
+        Assertions.assertTrue(rendered.contains("You are a helpful assistant."),
+                "Should contain role substitution");
+        Assertions.assertTrue(rendered.contains("Context: Java programming."),
+                "Should render if-block content when truthy, with inner variable substituted");
+        Assertions.assertTrue(rendered.contains("Question: What is a lambda?"),
+                "Should contain question substitution");
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+    }
 }
+

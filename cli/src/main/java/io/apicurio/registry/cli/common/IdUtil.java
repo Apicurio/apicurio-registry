@@ -1,7 +1,9 @@
 package io.apicurio.registry.cli.common;
 
 import io.apicurio.registry.cli.config.Config;
+import io.apicurio.registry.cli.utils.OutputBuffer;
 import io.apicurio.registry.rest.client.RegistryClient;
+import java.util.Objects;
 
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.SearchedGroup;
@@ -54,6 +56,53 @@ public final class IdUtil {
         }
         throw new CliException("Artifact ID is required. Provide it via --artifact or set it in the context.",
                 VALIDATION_ERROR_RETURN_CODE);
+    }
+
+    /**
+     * Saves the given group ID to the current context, if the {@code context.auto-update} property is enabled.
+     * Clears the context's artifact ID when the group actually changes, since an artifact from a
+     * different group no longer applies.
+     */
+    public static void updateGroupContext(final String groupId, final Config config, final OutputBuffer output) {
+        Objects.requireNonNull(groupId);
+        Objects.requireNonNull(config);
+        Objects.requireNonNull(output);
+        if (!config.isAutoUpdateEnabled()) {
+            return;
+        }
+        try {
+            config.updateCurrentContext(context -> {
+                if (!groupId.equals(context.getGroupId())) {
+                    context.setArtifactId(null);
+                }
+                context.setGroupId(groupId);
+            });
+        } catch (Exception ex) {
+            output.writeStdErrChunk(out -> out.append("Warning: Could not update context: ").append(ex.getMessage()).append("\n"));
+        }
+    }
+
+    /**
+     * Saves the given group and artifact IDs to the current context, if the {@code context.auto-update}
+     * property is enabled.
+     */
+    public static void updateArtifactContext(final String groupId, final String artifactId, final Config config,
+                                              final OutputBuffer output) {
+        Objects.requireNonNull(groupId);
+        Objects.requireNonNull(artifactId);
+        Objects.requireNonNull(config);
+        Objects.requireNonNull(output);
+        if (!config.isAutoUpdateEnabled()) {
+            return;
+        }
+        try {
+            config.updateCurrentContext(context -> {
+                context.setGroupId(groupId);
+                context.setArtifactId(artifactId);
+            });
+        } catch (Exception ex) {
+            output.writeStdErrChunk(out -> out.append("Warning: Could not update context: ").append(ex.getMessage()).append("\n"));
+        }
     }
 
     // Validates the group exists. Skips validation for the "default" group as it is implicit.

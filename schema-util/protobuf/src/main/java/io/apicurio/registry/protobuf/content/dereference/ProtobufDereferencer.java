@@ -5,6 +5,7 @@ import com.squareup.wire.schema.internal.parser.ProtoFileElement;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufFile;
@@ -48,7 +49,6 @@ public class ProtobufDereferencer implements ContentDereferencer {
      */
     @Override
     public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {
-        // TODO not yet implemented (perhaps cannot be implemented?)
-        return content;
+        throw new DereferencingNotSupportedException("Artifact type PROTOBUF does not support references=REWRITE.");
     }
 }

@@ -208,6 +208,36 @@ public class SchemaResolverConfig extends AbstractConfig {
     public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
 
     /**
+     * Enable or disable retry for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_ENABLED = "apicurio.registry.client.retry.enabled";
+    public static final boolean CLIENT_RETRY_ENABLED_DEFAULT = true;
+
+    /**
+     * Maximum number of retry attempts for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_MAX_ATTEMPTS = "apicurio.registry.client.retry.max-attempts";
+    public static final long CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT = 3;
+
+    /**
+     * Initial retry delay in milliseconds for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_DELAY_MS = "apicurio.registry.client.retry.delay-ms";
+    public static final long CLIENT_RETRY_DELAY_MS_DEFAULT = 250;
+
+    /**
+     * Exponential backoff multiplier for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_BACKOFF_MULTIPLIER = "apicurio.registry.client.retry.backoff-multiplier";
+    public static final double CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT = 2.0;
+
+    /**
+     * Maximum retry delay in milliseconds for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_MAX_DELAY_MS = "apicurio.registry.client.retry.max-delay-ms";
+    public static final long CLIENT_RETRY_MAX_DELAY_MS_DEFAULT = 10000;
+
+    /**
      * Used to indicate the serdes to dereference the schema. This is used in two different situation, once
      * the schema is registered, instructs the serdes to ask the server for the schema dereferenced. It is
      * also used to instruct the serializer to dereference the schema before registering it Registry, but this
@@ -255,6 +285,47 @@ public class SchemaResolverConfig extends AbstractConfig {
      * </p>
      */
     public static final String TLS_CERTIFICATES = "apicurio.registry.tls.certificates";
+
+    /**
+     * The location of the key store file for TLS/SSL connections (mTLS). Can be a file path or a resource
+     * on the classpath. Required when connecting to a registry over HTTPS with client certificate authentication.
+     */
+    public static final String TLS_KEYSTORE_LOCATION = "apicurio.registry.tls.keystore.location";
+
+    /**
+     * The password for the key store file specified by {@link #TLS_KEYSTORE_LOCATION}.
+     * Required when using JKS or PKCS12 key stores.
+     * <p>
+     * <b>WARNING:</b> Keystore passwords configured here are stored in memory as part of the
+     * configuration object and registry client options. Ensure proper security controls are in place
+     * to protect configuration data from unauthorized access/memory dumps.
+     */
+    public static final String TLS_KEYSTORE_PASSWORD = "apicurio.registry.tls.keystore.password";
+
+    /**
+     * The type of key store. Valid values are "JKS", "PKCS12" (or "P12"), and "PEM". Defaults to "JKS".
+     */
+    public static final String TLS_KEYSTORE_TYPE = "apicurio.registry.tls.keystore.type";
+    public static final String TLS_KEYSTORE_TYPE_DEFAULT = "JKS";
+
+    /**
+     * PEM client certificate configuration for mutual TLS (mTLS). This property accepts either:
+     * <ul>
+     *   <li>PEM certificate file path (e.g., "/path/to/client-cert.pem")</li>
+     *   <li>PEM certificate content as a string (assuming standard "-----BEGIN CERTIFICATE-----" header)</li>
+     * </ul>
+     * Note: This configuration is ignored if {@link #TLS_KEYSTORE_LOCATION} is also set.
+     */
+    public static final String TLS_CLIENT_CERTIFICATE = "apicurio.registry.tls.client-certificate";
+
+    /**
+     * PEM client private key configuration for mutual TLS (mTLS). This property accepts either:
+     * <ul>
+     *   <li>PEM private key file path (e.g., "/path/to/client-key.pem")</li>
+     *   <li>PEM private key content as a string (with "-----BEGIN PRIVATE KEY-----" markers)</li>
+     * </ul>
+     */
+    public static final String TLS_CLIENT_KEY = "apicurio.registry.tls.client-key";
 
     /**
      * If true, disables all SSL/TLS certificate verification. This is insecure and should only be used
@@ -434,6 +505,56 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getDurationNonNegativeMillis(RETRY_BACKOFF_MS);
     }
 
+    public boolean getClientRetryEnabled() {
+        return getBoolean(CLIENT_RETRY_ENABLED);
+    }
+
+    public long getClientRetryMaxAttempts() {
+        long value = getLongNonNegative(CLIENT_RETRY_MAX_ATTEMPTS);
+        if (value > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Invalid configuration property value for '"
+                    + CLIENT_RETRY_MAX_ATTEMPTS + "'. Expected a value less than or equal to "
+                    + Integer.MAX_VALUE + ", but got '" + value + "'.");
+        }
+        return value;
+    }
+
+    public long getClientRetryDelayMs() {
+        return getDurationNonNegativeMillis(CLIENT_RETRY_DELAY_MS).toMillis();
+    }
+
+    public double getClientRetryBackoffMultiplier() {
+        Object value = getObject(CLIENT_RETRY_BACKOFF_MULTIPLIER);
+        double multiplier;
+        if (value == null) {
+            multiplier = CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT;
+        } else if (value instanceof Number) {
+            multiplier = ((Number) value).doubleValue();
+        } else if (value instanceof String) {
+            try {
+                multiplier = Double.parseDouble((String) value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid configuration property value for '"
+                        + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
+                        + value + "'.", e);
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid configuration property value for '"
+                    + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
+                    + value + "'.");
+        }
+        if (!Double.isFinite(multiplier) || multiplier <= 1.0) {
+            throw new IllegalArgumentException("Invalid configuration property value for '"
+                    + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a finite value greater than 1.0, but got '"
+                    + multiplier + "'.");
+        }
+        return multiplier;
+    }
+
+    public long getClientRetryMaxDelayMs() {
+        return getDurationNonNegativeMillis(CLIENT_RETRY_MAX_DELAY_MS).toMillis();
+    }
+
     public String getExplicitArtifactGroupId() {
         return getString(EXPLICIT_ARTIFACT_GROUP_ID);
     }
@@ -472,6 +593,26 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     public String getTlsCertificates() {
         return getString(TLS_CERTIFICATES);
+    }
+
+    public String getTlsKeystoreLocation() {
+        return getString(TLS_KEYSTORE_LOCATION);
+    }
+
+    public String getTlsKeystorePassword() {
+        return getString(TLS_KEYSTORE_PASSWORD);
+    }
+
+    public String getTlsKeystoreType() {
+        return getString(TLS_KEYSTORE_TYPE);
+    }
+
+    public String getTlsClientCertificate() {
+        return getString(TLS_CLIENT_CERTIFICATE);
+    }
+
+    public String getTlsClientKey() {
+        return getString(TLS_CLIENT_KEY);
     }
 
     public boolean getTlsTrustAll() {
@@ -569,8 +710,14 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),
             entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
+            entry(CLIENT_RETRY_ENABLED, CLIENT_RETRY_ENABLED_DEFAULT),
+            entry(CLIENT_RETRY_MAX_ATTEMPTS, CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT),
+            entry(CLIENT_RETRY_DELAY_MS, CLIENT_RETRY_DELAY_MS_DEFAULT),
+            entry(CLIENT_RETRY_BACKOFF_MULTIPLIER, CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT),
+            entry(CLIENT_RETRY_MAX_DELAY_MS, CLIENT_RETRY_MAX_DELAY_MS_DEFAULT),
             entry(DEREFERENCE_SCHEMA, DEREFERENCE_DEFAULT),
             entry(TLS_TRUSTSTORE_TYPE, TLS_TRUSTSTORE_TYPE_DEFAULT),
+            entry(TLS_KEYSTORE_TYPE, TLS_KEYSTORE_TYPE_DEFAULT),
             entry(TLS_TRUST_ALL, TLS_TRUST_ALL_DEFAULT),
             entry(TLS_VERIFY_HOST, TLS_VERIFY_HOST_DEFAULT),
             entry(HTTP_ADAPTER, HTTP_ADAPTER_DEFAULT),

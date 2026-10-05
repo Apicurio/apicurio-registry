@@ -18,7 +18,6 @@ import io.apicurio.registry.rest.v3.beans.NewComment;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.WrappedVersionState;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
@@ -28,6 +27,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.tests.DeletionEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apitomy.datamodels.jsonschema.compat.DiffType;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
@@ -60,6 +60,7 @@ import static java.net.HttpURLConnection.HTTP_OK;
 import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.anything;
 import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.equalToObject;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -933,9 +934,9 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then().statusCode(400).body("status", equalTo(400))
                 .body("title", startsWith("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num"
                         + " of incompatible diffs: {1}, list of diff types: ["
-                        + DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription() + " at /properties/age]"))
-                .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
-                .body("causes[0].context", equalTo("/properties/age"));
+                        + DiffType.SUBSCHEMA_TYPE_CHANGED.getShortDescription() + " at /properties/age/type]"))
+                .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getShortDescription()))
+                .body("causes[0].context", equalTo("/properties/age/type"));
 
     }
 
@@ -1968,6 +1969,76 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("components.schemas.Widget.type", equalTo("object"))
                 .body("components.schemas.Widget.properties.name.type", equalTo("string"))
                 .body("components.schemas.Widget.properties.description.type", equalTo("string"));
+    }
+
+    @Test
+    public void testGetArtifactVersionWithReferencesRewriteNotSupportedForAvro() throws Exception {
+        String referencedAvroContent = resourceToString("../avro-referenced-type.json");
+        String avroWithRefContent = resourceToString("../avro-with-reference.json");
+
+        createArtifact(GROUP, "testRewriteNotSupported/ReferencedType", ArtifactType.AVRO,
+                referencedAvroContent, ContentTypes.APPLICATION_JSON);
+
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("com.example.common.Address")
+                .groupId(GROUP)
+                .artifactId("testRewriteNotSupported/ReferencedType")
+                .version("1")
+                .build());
+        createArtifactWithReferences(GROUP, "testRewriteNotSupported/WithReference", ArtifactType.AVRO,
+                avroWithRefContent, ContentTypes.APPLICATION_JSON, refs);
+
+        given().when().pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testRewriteNotSupported/WithReference")
+                .queryParam("references", "REWRITE")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(400)
+                .body("name", equalTo("DereferencingNotSupportedException"))
+                .body("title", containsString("REWRITE"));
+    }
+
+    @Test
+    public void testGetArtifactVersionWithReferencesRewriteNotSupportedForProtobuf() throws Exception {
+        String protobufTypeContent = """
+                syntax = \"proto3\";
+
+                package com.example.common;
+
+                message Address {
+                  string street = 1;
+                }
+                """;
+        String protobufWithRefContent = """
+                syntax = \"proto3\";
+
+                import \"common.proto\";
+
+                package com.example.order;
+
+                message Order {
+                  com.example.common.Address shipping = 1;
+                }
+                """;
+
+        createArtifact(GROUP, "testRewriteNotSupported/ProtobufType", ArtifactType.PROTOBUF,
+                protobufTypeContent, ContentTypes.APPLICATION_PROTOBUF);
+
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("common.proto")
+                .groupId(GROUP)
+                .artifactId("testRewriteNotSupported/ProtobufType")
+                .version("1")
+                .build());
+        createArtifactWithReferences(GROUP, "testRewriteNotSupported/ProtobufWithReference",
+                ArtifactType.PROTOBUF, protobufWithRefContent, ContentTypes.APPLICATION_PROTOBUF, refs);
+
+        given().when().pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testRewriteNotSupported/ProtobufWithReference")
+                .queryParam("references", "REWRITE")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(400)
+                .body("name", equalTo("DereferencingNotSupportedException"))
+                .body("title", containsString("REWRITE"));
     }
 
     /**

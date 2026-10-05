@@ -21,6 +21,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * Integration tests for KubernetesOps storage.
@@ -31,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 @Tag(KUBERNETES_OPS)
 @QuarkusIntegrationTest
+@Isolated
 public class KubernetesOpsIT extends ReadOnlyRegistryBaseIT {
 
     private static final String GROUP_ID = "foo";

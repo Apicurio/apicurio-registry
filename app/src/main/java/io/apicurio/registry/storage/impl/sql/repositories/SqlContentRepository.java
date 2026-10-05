@@ -80,6 +80,21 @@ public class SqlContentRepository {
     }
 
     /**
+     * Get content by contentId, together with the artifact type of one artifact version that references it,
+     * in a single query. Throws {@link ContentNotFoundException} if the content does not exist or is
+     * orphaned (i.e. not referenced by any artifact version), since the join used to fetch the artifact type
+     * would return no rows in either case.
+     */
+    public ContentWrapperDto getContentAndArtifactTypeById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException {
+        return handles.<ContentWrapperDto, RuntimeException>withHandleNoException(handle -> {
+            Optional<ContentWrapperDto> res = handle.createQuery(sqlStatements.selectContentAndArtifactTypeById())
+                    .bind(0, contentId).map(ContentMapper.instanceWithArtifactType).findFirst();
+            return res.orElseThrow(() -> new ContentNotFoundException(contentId));
+        });
+    }
+
+    /**
      * Get content by content hash.
      */
     public ContentWrapperDto getContentByHash(String contentHash)
@@ -108,7 +123,7 @@ public class SqlContentRepository {
                     return null;
                 }
 
-                ArtifactVersionMetaDataDto meta = metaRes.get();
+                ArtifactVersionMetaDataDto meta = metaRes.orElseThrow();
                 ContentWrapperDto content = getContentByIdRaw(handle, meta.getContentId());
                 content.setArtifactType(meta.getArtifactType());
                 return content;
@@ -617,10 +632,19 @@ public class SqlContentRepository {
         final List<ArtifactReferenceDto> finalReferences = references;
 
         handles.withHandleNoException(handle -> {
+            // Look the hash up BEFORE allocating: nextContentIdRaw locks the shared contentId
+            // sequence row until commit, and every concurrent content write queues on that lock,
+            // so no extra round trip may run while it is held. A row inserted concurrently after
+            // this check is still handled below by insertContentIfAbsent / the PK-violation path.
+            boolean exists = contentIdFromHashRaw(handle, finalContentHash).isPresent();
+            // Always allocate so contentId allocation is unchanged from the insert-and-catch-duplicate
+            // behavior; the check only avoids a failing INSERT.
             long contentId = sequenceRepository.nextContentIdRaw(handle);
-
+            if (exists) {
+                return null;
+            }
             try {
-                handle.createUpdate(sqlStatements.insertContent())
+                int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())
                         .bind(0, contentId)
                         .bind(1, finalCanonicalContentHash)
                         .bind(2, finalContentHash)
@@ -628,6 +652,9 @@ public class SqlContentRepository {
                         .bind(4, content.getContent().bytes())
                         .bind(5, finalSerializedReferences)
                         .execute();
+                if (inserted == 0) {
+                    return null;
+                }
             } catch (Exception e) {
                 if (sqlStatements.isPrimaryKeyViolation(e)) {
                     log.debug("Content with content hash {} already exists: {}", finalContentHash, content);

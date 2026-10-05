@@ -10,7 +10,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -30,7 +32,7 @@ import io.apicurio.registry.xsd.rules.compatibility.XsdCompatibilityChecker;
 /**
  * Unit test for {@link StandardArtifactTypeProviderRegistry} and {@link ConfigurableArtifactTypeUtilProvider}.
  * <p>
- * Verifies that the registry produces the expected 19 built-in provider instances in deterministic order,
+ * Verifies that the registry produces the expected 15 core provider instances in deterministic order,
  * resolves custom component suppliers correctly, and integrates cleanly with {@link DefaultArtifactTypeUtilProviderImpl}.
  */
 class StandardArtifactTypeProviderRegistryTest {
@@ -46,13 +48,9 @@ class StandardArtifactTypeProviderRegistryTest {
             ArtifactType.WSDL,
             ArtifactType.XSD,
             ArtifactType.XML,
-            ArtifactType.AGENT_CARD,
-            ArtifactType.MCP_TOOL,
             ArtifactType.ICEBERG_TABLE,
             ArtifactType.ICEBERG_VIEW,
             ArtifactType.OPENRPC,
-            ArtifactType.MODEL_SCHEMA,
-            ArtifactType.PROMPT_TEMPLATE,
             ArtifactType.ODCS_CONTRACT,
             ArtifactType.THRIFT
     );
@@ -60,7 +58,7 @@ class StandardArtifactTypeProviderRegistryTest {
     @Test
     void testCreateStandardProviders_count() {
         List<ArtifactTypeUtilProvider> providers = StandardArtifactTypeProviderRegistry.createStandardProviders();
-        assertEquals(19, providers.size());
+        assertEquals(15, providers.size());
     }
 
     @Test
@@ -159,6 +157,47 @@ class StandardArtifactTypeProviderRegistryTest {
         assertInstanceOf(IcebergContentValidator.class, tableValidator);
         assertInstanceOf(IcebergContentValidator.class, viewValidator);
         assertNotSame(tableValidator, viewValidator);
+    }
+
+    @Test
+    void testMergeContributions_rejectsTypeAlreadyInCore() {
+        Map<String, ProviderConfig> core = Map.of(ArtifactType.AVRO, emptyConfig());
+        ArtifactTypeProviderContributor contributor = () -> Map.of(ArtifactType.AVRO, emptyConfig());
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> StandardArtifactTypeProviderRegistry.mergeContributions(core, List.of(contributor)));
+        assertEquals("Artifact type provider registered more than once: AVRO", ex.getMessage());
+    }
+
+    @Test
+    void testMergeContributions_rejectsTypeContributedTwice() {
+        ArtifactTypeProviderContributor first = () -> Map.of("CUSTOM", emptyConfig());
+        ArtifactTypeProviderContributor second = () -> Map.of("CUSTOM", emptyConfig());
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> StandardArtifactTypeProviderRegistry.mergeContributions(Map.of(), List.of(first, second)));
+        assertEquals("Artifact type provider registered more than once: CUSTOM", ex.getMessage());
+    }
+
+    @Test
+    void testMergeContributions_keepsContributedConfigs() {
+        ProviderConfig config = emptyConfig();
+        ArtifactTypeProviderContributor contributor = () -> Map.of("CUSTOM", config);
+        Map<String, ProviderConfig> merged = StandardArtifactTypeProviderRegistry.mergeContributions(
+                Map.of(ArtifactType.AVRO, emptyConfig()), List.of(contributor));
+        assertEquals(Set.of("CUSTOM"), merged.keySet());
+        assertSame(config, merged.get("CUSTOM"));
+    }
+
+    @Test
+    void testOrderTypes_contributedTypesTakeTheirDetectionSlot() {
+        Set<String> types = new LinkedHashSet<>(List.of(ArtifactType.THRIFT, "CUSTOM", ArtifactType.MCP_TOOL,
+                ArtifactType.XML, ArtifactType.ICEBERG_TABLE, ArtifactType.AGENT_CARD));
+        assertEquals(List.of(ArtifactType.XML, ArtifactType.AGENT_CARD, ArtifactType.MCP_TOOL,
+                ArtifactType.ICEBERG_TABLE, ArtifactType.THRIFT, "CUSTOM"),
+                StandardArtifactTypeProviderRegistry.orderTypes(types));
+    }
+
+    private static ProviderConfig emptyConfig() {
+        return new ProviderConfig.Builder().contentTypes(Set.of(ContentTypes.APPLICATION_JSON)).build();
     }
 
     private static ArtifactTypeUtilProvider findProvider(List<ArtifactTypeUtilProvider> providers, String type) {

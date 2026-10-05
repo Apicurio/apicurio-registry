@@ -6,7 +6,10 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffContext;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.Difference;
 import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.SchemaDiffVisitor;
+import io.apicurio.registry.json.rules.validity.JsonSchemaVersion;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import org.everit.json.schema.Schema;
+import org.everit.json.schema.SchemaException;
 import org.everit.json.schema.loader.SchemaLoader;
 import org.everit.json.schema.loader.SpecificationVersion;
 import org.everit.json.schema.loader.internal.ReferenceResolver;
@@ -31,6 +34,8 @@ public class JsonSchemaDiffLibrary {
      * @param resolvedReferences
      * @return an object to access the found differences: Original -&gt; Updated
      * @throws IllegalArgumentException if the input is not a valid representation of a JsonSchema
+     * @throws UnprocessableSchemaException if a schema cannot be loaded, for example because it declares a
+     *         draft the loader does not support (2019-09, 2020-12)
      */
     public static DiffContext findDifferences(String original, String updated,
                                               Map<String, TypedContent> resolvedReferences) {
@@ -42,13 +47,11 @@ public class JsonSchemaDiffLibrary {
             JSONObject updatedJson = MAPPER.readValue(updated, JSONObject.class);
 
             SchemaLoader.SchemaLoaderBuilder originalSchemaBuilder = SchemaLoader.builder();
-
             loadReferences(originalNode, resolvedReferences, originalSchemaBuilder);
 
             Schema originalSchema = originalSchemaBuilder.schemaJson(originalJson).build().load().build();
 
             SchemaLoader.SchemaLoaderBuilder updatedSchemaBuilder = SchemaLoader.builder();
-
             loadReferences(updatedNode, resolvedReferences, updatedSchemaBuilder);
 
             Schema updatedSchema = updatedSchemaBuilder.schemaJson(updatedJson).build().load().build();
@@ -57,6 +60,9 @@ public class JsonSchemaDiffLibrary {
 
         } catch (JsonProcessingException e) {
             throw new IllegalStateException(e);
+        } catch (SchemaException e) {
+            throw new UnprocessableSchemaException(
+                    "Schema could not be processed for compatibility check: " + e.getMessage(), e);
         }
     }
 
@@ -79,11 +85,33 @@ public class JsonSchemaDiffLibrary {
             }
         }
 
-        for (Map.Entry<String, TypedContent> stringStringEntry : resolvedReferences.entrySet()) {
-            URI child = ReferenceResolver.resolve(idUri, stringStringEntry.getKey());
-            schemaLoaderBuilder.registerSchemaByURI(child,
-                    new JSONObject(stringStringEntry.getValue().getContent().content()));
+        schemaLoaderBuilder.httpClient(JsonUtil.DENY_ALL_SCHEMA_CLIENT);
+
+        Set<URI> extractedReferences = JsonUtil.extractReferencesRecursive(JsonSchemaVersion.valueOf(spec.name()), idUri, jsonNode);
+        for (URI extractedReference : extractedReferences) {
+            if (JsonUtil.isInternalFragment(extractedReference, idUri)) {
+                continue;
+            }
+            registerOrReject(schemaLoaderBuilder, resolvedReferences, idUri, extractedReference);
         }
+    }
+
+    private static void registerOrReject(SchemaLoader.SchemaLoaderBuilder schemaLoaderBuilder,
+            Map<String, TypedContent> resolvedReferences, URI idUri, URI extractedReference) {
+        for (Map.Entry<String, TypedContent> entry : resolvedReferences.entrySet()) {
+            URI resolvedReferenceUri = ReferenceResolver.resolve(idUri, entry.getKey());
+            if (extractedReference.equals(resolvedReferenceUri)) {
+                schemaLoaderBuilder.registerSchemaByURI(extractedReference,
+                        new JSONObject(entry.getValue().getContent().content()));
+                return;
+            }
+        }
+        /*
+         * We do not have the referenced content, so compatibility checks must fail closed rather
+         * than silently treating the reference as an accept-all schema. That keeps the result
+         * explicit and prevents unresolved references from being interpreted as compatible.
+         */
+        throw new IllegalStateException("Unresolved JSON Schema reference: " + extractedReference);
     }
 
     public static DiffContext findDifferences(Schema originalSchema, Schema updatedSchema) {

@@ -164,6 +164,36 @@ The `DefaultSchemaResolver` provides the following properties to configure acces
 |Used by serializers and deserializers. Password to access the registry. Required when accessing a secure registry by using HTTP basic authentication.
 |`String`
 |None
+
+|`TLS_KEYSTORE_LOCATION`
+|`apicurio.registry.tls.keystore.location`
+|Used by serializers and deserializers. The location of the key store file for mutual TLS (mTLS). Can be a file path or classpath resource.
+|`String`
+|None
+
+|`TLS_KEYSTORE_PASSWORD`
+|`apicurio.registry.tls.keystore.password`
+|Used by serializers and deserializers. The password for the key store file. Required when using JKS or PKCS12 key stores.
+|`String`
+|None
+
+|`TLS_KEYSTORE_TYPE`
+|`apicurio.registry.tls.keystore.type`
+|Used by serializers and deserializers. The type of key store. Valid values are JKS, PKCS12, or PEM.
+|`String`
+|`JKS`
+
+|`TLS_CLIENT_CERTIFICATE`
+|`apicurio.registry.tls.client-certificate`
+|Used by serializers and deserializers. The PEM client certificate content or file path for mutual TLS (mTLS).
+|`String`
+|None
+
+|`TLS_CLIENT_KEY`
+|`apicurio.registry.tls.client-key`
+|Used by serializers and deserializers. The PEM client private key content or file path for mutual TLS (mTLS).
+|`String`
+|None
 |===
 
 **TLS security for the registry connection**
@@ -293,9 +323,9 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`false`
 |`AUTO_REGISTER_ARTIFACT_IF_EXISTS`
 |`apicurio.registry.auto-register.if-exists`
-|Used by serializers only. Configures the behavior of the client when a conflict occurs while creating an artifact because the artifact already exists. Available values are `FAIL`, `UPDATE`, `RETURN`, or `RETURN_OR_UPDATE`.
+|Used by serializers only. Configures the behavior of the client when a conflict occurs while creating an artifact because the artifact already exists. Available values are `FAIL`, `CREATE_VERSION`, or `FIND_OR_CREATE_VERSION`.
 |`String`
-|`RETURN_OR_UPDATE`
+|`FIND_OR_CREATE_VERSION`
 |`CHECK_PERIOD_MS`
 |`apicurio.registry.check-period-ms`
 |Used by serializers and deserializers. Specifies how long to cache artifacts before auto-eviction (milliseconds). If set to zero, artifacts are fetched every time.
@@ -575,6 +605,12 @@ You can set the following configuration options:
 When you use Avro to serialize data, you can use the Avro binary encoding format to ensure that the data is encoded in as efficient a format as possible. Avro also supports encoding the data as JSON, which you can use to inspect the payload of each message, for example, for logging or debugging.
 
 You can set the Avro encoding by configuring the `apicurio.registry.avro.encoding` property with a value of `JSON` or `BINARY`. The default is `BINARY`.
+
+**Avro writer schema validation**
+
+Before writing a record, the Avro serializer verifies that the schema resolved from {registry} structurally matches the schema of the record being serialized. The schemas are compared by Avro parsing canonical form, so differences in properties that do not affect the binary encoding, such as `connect.*` metadata added by Kafka Connect, are tolerated. A structural mismatch, for example a stale latest artifact version when `apicurio.registry.find-latest` is enabled without `apicurio.registry.auto-register`, would otherwise silently write field values under the wrong fields. When a mismatch is detected, serialization fails with a descriptive error. Validation applies when the serialized object carries its own schema, as Avro generic and specific containers do, or when the resolved schema is a record and the configured datum provider can derive the object's schema, as with the reflect provider. Plain Java collections without an attached schema are not validated.
+
+You can disable this validation by setting the `apicurio.registry.avro.validate-writer-schema` property to `false`. The default is `true`.
 
 **Avro deserializer configuration**
 

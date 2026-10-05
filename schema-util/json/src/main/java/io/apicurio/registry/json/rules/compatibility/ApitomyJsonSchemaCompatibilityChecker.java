@@ -2,9 +2,13 @@ package io.apicurio.registry.json.rules.compatibility;
 
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.CompatibilityDifference;
+import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
+import io.apitomy.datamodels.UnsupportedModelTypeException;
+import io.apitomy.datamodels.jsonschema.compat.CompatibilityCheckResult;
 import io.apitomy.datamodels.jsonschema.compat.JsonSchemaCompatibilityChecker;
 import io.apitomy.datamodels.jsonschema.ref.AnchorFragmentResolver;
+import io.apitomy.datamodels.jsonschema.ref.JsonSchemaRefDereferencer;
 import io.apitomy.datamodels.jsonschema.ref.JsonSchemaRefResolverChain;
 import io.apitomy.datamodels.jsonschema.ref.PointerFragmentResolver;
 
@@ -16,10 +20,10 @@ import java.util.stream.Collectors;
  * JSON Schema compatibility checker using the Apitomy Data Models library
  * instead of the everit-json-schema library.
  */
-public class ApitomyJsonSchemaCompatibilityChecker extends AbstractCompatibilityChecker<ApitomyCompatibilityDifference> {
+public class ApitomyJsonSchemaCompatibilityChecker extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
     @Override
-    protected Set<ApitomyCompatibilityDifference> isBackwardsCompatibleWith(String existing, String proposed,
+    protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing, String proposed,
             Map<String, TypedContent> resolvedReferences) {
         var chain = JsonSchemaRefResolverChain.builder()
                 .addFragmentResolver(new PointerFragmentResolver())
@@ -27,15 +31,48 @@ public class ApitomyJsonSchemaCompatibilityChecker extends AbstractCompatibility
                 .addResourceResolver(new RegistryResourceResolver(resolvedReferences))
                 .build();
 
-        return JsonSchemaCompatibilityChecker
-                .checkBackwardCompatibility(existing, proposed, chain)
-                .getIncompatibleDifferences().stream()
-                .map(ApitomyCompatibilityDifference::new)
-                .collect(Collectors.toSet());
-    }
+        // 4.0 takes a dereferencer rather than a resolver directly: references are inlined
+        // before the comparison runs, and the resolver is what the dereferencer consults.
+        var dereferencer = JsonSchemaRefDereferencer.builder()
+                .refResolver(chain)
+                .build();
 
-    @Override
-    protected CompatibilityDifference transform(ApitomyCompatibilityDifference original) {
-        return original;
+        // Cross-version checking is off by default in 4.0, which would make an artifact whose
+        // $schema changed between versions fail with IllegalArgumentException instead of
+        // producing a compatibility result. The 3.1.x entry point compared across drafts
+        // without complaint, so this preserves the behaviour Registry had.
+        var checker = JsonSchemaCompatibilityChecker.builder()
+                .dereferencer(dereferencer)
+                .allowCrossVersionChecking(true)
+                .build();
+
+        CompatibilityCheckResult result;
+        try {
+            result = checker.checkBackward(existing, proposed);
+        } catch (UnsupportedModelTypeException e) {
+            // A $schema that names no draft the library knows, such as a custom meta-schema.
+            throw new UnprocessableSchemaException("Compatibility could not be determined: " + e.getMessage(), e);
+        }
+
+        // AbstractCompatibilityChecker separates "not compatible" — report differences — from
+        // "compatibility could not be determined" — throw. An unresolved reference is the second:
+        // the sub-schemas behind it were never compared, so any verdict understates what was
+        // checked. Without this the caller is told whatever incidental difference the unresolved
+        // $ref happened to produce, which for a mistyped reference is a property-narrowing report
+        // that says nothing about the real problem. UnprocessableSchemaException is what the REST
+        // layer reports as 422, as for any schema a checker can't process.
+        if (result.hasUnsupportedFeatures()) {
+            throw new UnprocessableSchemaException("Compatibility could not be determined: "
+                    + String.join("; ", result.getUnsupportedFeatures()));
+        }
+
+        // The description is what a user whose upload was rejected reads, so it is the sentence
+        // Data Models curates for each difference type, as the legacy checker's is a sentence too.
+        // The difference type's constant name is not a code anything reads, and RuleViolation has
+        // no field for one.
+        return result.getIncompatibleDifferences().stream()
+                .map(difference -> new SimpleCompatibilityDifference(difference.getShortDescription(),
+                        difference.getPathUpdated().toString()))
+                .collect(Collectors.toSet());
     }
 }

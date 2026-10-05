@@ -975,6 +975,28 @@ test('/retry explains when the skipped Verify run is past the 30-day re-run wind
   assert.ok(w.calls.comments[0].includes('Update the branch'));
 });
 
+test('/retry re-runs a failed PR Validation run, and leaves a green one alone', async () => {
+  // PR Validation isn't the orchestrator's, but /retry is where people go
+  // when a check looks stuck (e.g. after a maintainer set a milestone).
+  for (const [conclusion, expected] of [['failure', [55]], ['success', []]]) {
+    const w = rerunWorld();
+    w.github.rest.actions.listWorkflowRuns = async ({ workflow_id }) => ({ data: { workflow_runs:
+      workflow_id === 'pr-validation.yml' ? [{ id: 55, status: 'completed', conclusion }] : [] } });
+    await lifecycle.handleComment({
+      github: w.github,
+      context: {
+        repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+        payload: {
+          comment: { id: 1, body: '/retry', user: { login: 'contributor' } },
+          issue: { number: 42, pull_request: {} },
+        },
+      },
+      core: w.core,
+    });
+    assert.deepEqual(w.calls.reRuns, expected, conclusion);
+  }
+});
+
 test('/retry starts the full suite when it is required but the last Verify run skipped it', async () => {
   const w = rerunWorld({ runs: [skippedRun()], jobs: skippedJobs });
   await lifecycle.handleComment({

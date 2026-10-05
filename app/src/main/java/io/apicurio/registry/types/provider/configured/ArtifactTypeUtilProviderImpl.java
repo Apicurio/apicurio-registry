@@ -1,6 +1,5 @@
 package io.apicurio.registry.types.provider.configured;
 
-import io.apicurio.registry.types.provider.AbstractArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,8 +7,6 @@ import io.apicurio.common.apps.config.ConfigPropertyCategory;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.config.artifactTypes.ArtifactTypesConfiguration;
 import io.apicurio.registry.http.HttpClientService;
-import io.apicurio.registry.json.rules.compatibility.ApitomyJsonSchemaCompatibilityChecker;
-import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.IoUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -39,10 +36,6 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
     @Getter
     String configFile;
 
-    @ConfigProperty(name = "apicurio.compat.json-schema.use-apitomy", defaultValue = "true")
-    @Info(category = ConfigPropertyCategory.CATEGORY_TYPES, description = "Use the Apitomy Data Models JSON Schema compatibility checker, which supports drafts 4, 6, 7, 2019-09 and 2020-12. Set to false to use the legacy everit-based checker instead, which supports drafts 4 to 7 only, is deprecated, and will be removed.", availableSince = "3.3.1")
-    boolean useApitomyJsonSchemaChecker;
-
     @PostConstruct
     public void init() {
         // Try to load from external config file for user-defined custom types
@@ -52,23 +45,6 @@ public class ArtifactTypeUtilProviderImpl extends DefaultArtifactTypeUtilProvide
         } else {
             // No external config — use standard providers (includes all built-in types)
             loadStandardProviders();
-        }
-
-        selectJsonSchemaCompatibilityChecker();
-    }
-
-    private void selectJsonSchemaCompatibilityChecker() {
-        if (useApitomyJsonSchemaChecker) {
-            providers.stream()
-                    .filter(p -> ArtifactType.JSON.equals(p.getArtifactType()))
-                    .filter(AbstractArtifactTypeUtilProvider.class::isInstance)
-                    .map(AbstractArtifactTypeUtilProvider.class::cast)
-                    .findFirst()
-                    .ifPresent(p -> p.setCompatibilityChecker(new ApitomyJsonSchemaCompatibilityChecker()));
-        } else {
-            log.warn("Using the legacy everit-based JSON Schema compatibility checker, because "
-                    + "'apicurio.compat.json-schema.use-apitomy' is false. It supports drafts 4 to 7 only, "
-                    + "is deprecated, and will be removed.");
         }
     }
 

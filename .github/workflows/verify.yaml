@@ -72,6 +72,7 @@ jobs:
   lint-and-validate:
     name: Lint and Validate
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min
     needs: decide
     if: needs.decide.outputs.lifecycle-ready == 'true'
     steps:
@@ -130,6 +131,7 @@ jobs:
   build-java:
     name: Build Java Application (no tests)
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # longest green run, week to 2026-10-01: 5 min
     needs: [decide]
     if: needs.decide.outputs.run-build == 'true'
     steps:
@@ -381,6 +383,7 @@ jobs:
   go-sdk-freshness:
     name: Go SDK Freshness
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # longest green run, week to 2026-10-01: 0 min
     needs: [decide]
     if: needs.decide.outputs.run-go-sdk-freshness == 'true'
     steps:
@@ -477,6 +480,7 @@ jobs:
             cli-verify, go-sdk-freshness, sdk, console-plugin,
             integration-tests, extras, operator]
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min
     steps:
       - name: Evaluate jobs
         env:

@@ -15,11 +15,11 @@ export type AsyncApiEditorProps = {
 export const AsyncApiEditor: DraftEditor = (props: AsyncApiEditorProps) => {
     return (
         <IframeEditor
+            {...props}
             editorType="ASYNCAPI"
             editorName="AsyncApiEditor"
             frameId="asyncapi-editor-frame"
             className={props.className ? props.className : "editor-asyncapi-flex-container"}
-            {...props}
         />
     );
 };

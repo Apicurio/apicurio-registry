@@ -23,6 +23,7 @@ export const OpenApiEditor: DraftEditor = (props: OpenApiEditorProps) => {
     return (
         <IfNotLoading isLoading={isLoading}>
             <IframeEditor
+                {...props}
                 editorType="OPENAPI"
                 editorName="OpenApiEditor"
                 frameId="openapi-editor-frame"
@@ -32,7 +33,6 @@ export const OpenApiEditor: DraftEditor = (props: OpenApiEditorProps) => {
                         vendorExtensions: []
                     }
                 }}
-                {...props}
             />
         </IfNotLoading>
     );

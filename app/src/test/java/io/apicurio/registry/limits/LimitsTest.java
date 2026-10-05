@@ -8,11 +8,12 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.metrics.StorageMetricsStore;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.metrics.StorageMetricsStore;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.cdi.Current;
@@ -73,6 +74,27 @@ public class LimitsTest extends AbstractResourceTestBase {
         Assertions.assertThrows(LimitExceededException.class, () -> storage.createArtifactVersion(
                 GroupId.DEFAULT.getRawGroupIdWithDefaultString(), artifactId, "2", ArtifactType.JSON,
                 content, metaData, Collections.emptyList(), false, false, null));
+    }
+
+    @Test
+    public void testCreateVersionViaRestRejectsNameOverConfiguredLimit() throws Exception {
+        InputStream jsonSchema = getClass().getResourceAsStream("/io/apicurio/registry/util/json-schema.json");
+        Assertions.assertNotNull(jsonSchema);
+        String schema = IoUtil.toString(jsonSchema);
+        String artifactId = TestUtils.generateArtifactId();
+        createArtifact(artifactId, ArtifactType.JSON, schema, ContentTypes.APPLICATION_JSON);
+
+        CreateVersion createVersion = new CreateVersion();
+        createVersion.setName(StringUtils.repeat('a', 513));
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(schema);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(versionContent);
+
+        ProblemDetails exception = Assertions.assertThrows(ProblemDetails.class,
+                () -> clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                        .byArtifactId(artifactId).versions().post(createVersion));
+        Assertions.assertEquals(409, exception.getStatus());
     }
 
     @Test

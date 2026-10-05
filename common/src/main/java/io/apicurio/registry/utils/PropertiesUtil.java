@@ -78,7 +78,7 @@ public class PropertiesUtil {
                             // Property can exist with a key but no value...
                             Optional<String> value = config.getOptionalValue(key, String.class);
                             if (value.isPresent()) {
-                                properties.put(suffix, value.get());
+                                properties.put(suffix, value.orElseThrow());
                             } else {
                                 String defaultValue = defaults.get(suffix);
                                 if (defaultValue != null) {

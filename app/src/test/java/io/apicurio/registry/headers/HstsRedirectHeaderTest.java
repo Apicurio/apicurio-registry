@@ -11,7 +11,7 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
-// RedirectFilter returns early after sendRedirect(), bypassing HSTSFilter - the 302 must still get HSTS.
+// RedirectFilter returns early after sendRedirect() - Quarkus Vert.x headers ensure the 302 still gets HSTS.
 @QuarkusTest
 @TestProfile(HstsRedirectHeaderTest.RedirectProfile.class)
 public class HstsRedirectHeaderTest {

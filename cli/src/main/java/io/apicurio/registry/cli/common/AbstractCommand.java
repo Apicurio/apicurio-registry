@@ -46,8 +46,14 @@ public abstract class AbstractCommand implements Callable<Integer> {
     public Integer call() {
         var output = new OutputBuffer(config.getStdOut(), config.getStdErr());
         try {
-            configureLogging();
+            var verbose = isVerbose();
+            configureLogging(verbose);
+            client.setHttpLoggingEnabled(verbose);
             updateNotifier.checkAndNotify(getTopLevelCommandName());
+            if (isInteractiveRequested() && supportsInteractive()) {
+                runInteractive(output);
+                return OK_RETURN_CODE;
+            }
             run(output);
             return OK_RETURN_CODE;
         } catch (CliException ex) {
@@ -69,6 +75,26 @@ public abstract class AbstractCommand implements Callable<Integer> {
     }
 
     public abstract void run(OutputBuffer output) throws Exception;
+
+    /**
+     * Commands that support --interactive should override this.
+     * Default: interactive mode isn't available for this command.
+     */
+    public boolean supportsInteractive() {
+        return false;
+    }
+
+    /**
+     * Runs the TUI loop. Only called if supportsInteractive() is true
+     * and the --interactive flag was passed.
+     */
+    public void runInteractive(OutputBuffer output) {
+        throw new UnsupportedOperationException("Interactive mode not implemented for this command.");
+    }
+
+    private boolean isInteractiveRequested() {
+        return InteractiveMixin.isRequested(spec.commandLine().getParseResult());
+    }
 
     private static void handleCliException(final OutputBuffer output, final CliException ex) {
         if (!ex.isQuiet()) {
@@ -103,6 +129,10 @@ public abstract class AbstractCommand implements Callable<Integer> {
     private static final String LOG_CATEGORY_PREFIX = "quarkus.log.category.\"";
     private static final String LOG_CATEGORY_SUFFIX = "\".level";
 
+    private boolean isVerbose() {
+        return spec.root().userObject() instanceof Acr acr && acr.isVerbose();
+    }
+
     /**
      * Configures logging for the current command.
      * <p>
@@ -115,9 +145,8 @@ public abstract class AbstractCommand implements Callable<Integer> {
      * and Quarkus resolves {@code quarkus.log.*} at build time, so per-package levels in the CLI
      * config are never picked up by Quarkus's own logging setup.
      */
-    private void configureLogging() {
-        var root = spec.root().userObject();
-        if (!(root instanceof Acr acr) || !acr.isVerbose()) {
+    private void configureLogging(boolean verbose) {
+        if (!verbose) {
             return;
         }
 

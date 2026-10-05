@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: schema-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: schema-registry }
+  template:
+    metadata:
+      labels: { app: schema-registry }
+    spec:
+      enableServiceLinks: false
+      containers:
+        - name: registry
+          image: ${APICURIO_IMAGE}
+          env:
+            - { name: APICURIO_STORAGE_KIND, value: kafkasql }
+            - { name: APICURIO_KAFKASQL_BOOTSTRAP_SERVERS, value: "kafka:9092" }
+            - { name: APICURIO_DATASOURCE_JDBC_MAX_SIZE, value: "400" }
+          resources:
+            requests: { cpu: "1", memory: 1Gi }
+            limits: { cpu: "2", memory: 2Gi }
+          ports:
+            - { name: http, containerPort: 8080 }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: 9000 }
+            initialDelaySeconds: 20
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: schema-registry
+spec:
+  selector: { app: schema-registry }
+  ports:
+    - { name: http, port: 8081, targetPort: http }

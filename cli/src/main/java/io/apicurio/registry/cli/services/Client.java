@@ -12,6 +12,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import lombok.Setter;
 
 import java.net.URI;
 import java.util.concurrent.TimeUnit;
@@ -40,6 +41,13 @@ public class Client {
 
     private HttpClient httpClient;
 
+    /**
+     * Set from {@code --verbose}, before the command runs. Makes the Registry client log the raw
+     * request and response of every call it makes.
+     */
+    @Setter
+    private boolean httpLoggingEnabled;
+
     public RegistryClient getRegistryClient() {
         var currentContext = config.read();
         if (isBlank(currentContext.getCurrentContext())) {
@@ -54,6 +62,9 @@ public class Client {
                         uri = uri.resolve("/apis/registry/v3");
                     }
                     final var options = RegistryClientOptions.create(uri.toString(), vertx);
+                    if (httpLoggingEnabled) {
+                        options.enableHttpLogging();
+                    }
                     final var context = currentContext.getContext().get(currentContext.getCurrentContext());
                     configureAuth(options, context, currentContext.getCurrentContext());
                     registryClient = RegistryClientFactory.create(options);
@@ -116,5 +127,6 @@ public class Client {
     public void reset() {
         registryClient = null;
         httpClient = null;
+        httpLoggingEnabled = false;
     }
 }

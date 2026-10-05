@@ -16,7 +16,7 @@
 
 package io.apicurio.registry.examples.simple.json;
 
-import org.json.JSONObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -29,6 +29,7 @@ import java.net.http.HttpResponse;
 public class MessagePublisher {
     private static final HttpClient httpClient;
     private static final String BROKER_URL = "http://localhost:12345";
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     static {
         httpClient = HttpClient.newHttpClient();
@@ -41,8 +42,7 @@ public class MessagePublisher {
      */
     public void publishMessage(MessageBean message) {
         try {
-            JSONObject messageObj = new JSONObject(message);
-            String data = messageObj.toString();
+            String data = MAPPER.writeValueAsString(message);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(BROKER_URL))
@@ -57,6 +57,9 @@ public class MessagePublisher {
             } else {
                 System.err.println("Failed to publish message. Status: " + response.statusCode());
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            System.err.println("Interrupted while publishing message: " + e.getMessage());
         } catch (Exception e) {
             System.err.println("Error publishing message: " + e.getMessage());
         }

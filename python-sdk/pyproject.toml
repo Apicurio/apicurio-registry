@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "apicurioregistrysdk"
-version = "3.3.2"
+version = "3.4.0"
 description = ""
 authors = ["Andrea Peruffo <andrea.peruffo1982@gmail.com>"]
 readme = "README.md"
@@ -19,12 +19,12 @@ keywords = ["apicurio", "registry"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-microsoft-kiota-abstractions = "^1.10.3"
-microsoft-kiota-http = "^1.10.3"
-microsoft-kiota-serialization-json = "^1.10.3"
-microsoft-kiota-serialization-text = "^1.10.3"
-microsoft-kiota-serialization-form = "^1.10.3"
-microsoft-kiota-serialization-multipart = "^1.10.3"
+microsoft-kiota-abstractions = "^1.14.1"
+microsoft-kiota-http = "^1.14.1"
+microsoft-kiota-serialization-json = "^1.14.1"
+microsoft-kiota-serialization-text = "^1.14.1"
+microsoft-kiota-serialization-form = "^1.14.1"
+microsoft-kiota-serialization-multipart = "^1.14.1"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^7.3.1"

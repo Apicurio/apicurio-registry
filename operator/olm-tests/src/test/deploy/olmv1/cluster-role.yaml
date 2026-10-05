@@ -87,8 +87,9 @@ rules:
   # The operator's generated CSV requests cluster-wide `namespaces` get/list/watch because the
   # reconciler watches all namespaces. Under OLM v1 the installer SA can only grant permissions it
   # holds (escalation prevention), so the installer role must carry this rule or the ClusterExtension
-  # never reaches Installed: True. Note: this rule is not in rbac/namespaced (it is SDK-generated at
-  # build time), so RbacInstallerSyncTest does not guard it.
+  # never reaches Installed: True. This rule is not declared in rbac/namespaced (OLM v1 injects it via
+  # AllNamespaces promotion), but RbacInstallerSyncTest asserts it explicitly as a promotion-injected
+  # tuple, so it is guarded.
   - apiGroups:
       - ''
     resources:
@@ -98,28 +99,25 @@ rules:
       - list
       - watch
 
-  # Kept in sync with the operator's runtime permissions in
-  # controller/src/main/deploy/rbac/namespaced: cluster-role.yaml grants get/list/watch on the parent
-  # CR (informer discovery), role.yaml grants patch/update on the CR and its /status. There is no
-  # list/watch endpoint for /status, so it only carries patch/update here. The operator never creates
-  # or deletes the CR.
+  # The CR and its /status need the full verb set, not just the runtime subset in rbac/namespaced.
+  # Upgrade and channel-switch tests first install older bundles from the catalog, and bundles released
+  # before the namespace/cluster RBAC split (#9035) request the rbac/cluster tier, including create/delete
+  # on the CR and create/delete/get/list/watch on /status. Under escalation prevention the installer SA
+  # can only grant what it holds, so without these verbs the older bundle's ClusterRole is rejected
+  # (#10276). RbacInstallerSyncTest asserts this role is a superset of the rbac/cluster tier.
   - apiGroups:
       - registry.apicur.io
     resources:
       - apicurioregistries3
+      - apicurioregistries3/status
     verbs:
+      - create
+      - delete
       - get
       - list
       - patch
       - update
       - watch
-  - apiGroups:
-      - registry.apicur.io
-    resources:
-      - apicurioregistries3/status
-    verbs:
-      - patch
-      - update
 
   - apiGroups:
       - apps

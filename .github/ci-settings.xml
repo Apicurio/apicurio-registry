@@ -10,7 +10,7 @@
                     <id>central</id>
                     <name>Google Maven Central</name>
                     <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
-                    <releases><enabled>true</enabled></releases>
+                    <releases><enabled>true</enabled><updatePolicy>always</updatePolicy></releases>
                     <snapshots><enabled>false</enabled></snapshots>
                 </repository>
                 <!-- Fallback: True Maven Central -->
@@ -18,7 +18,7 @@
                     <id>central-fallback</id>
                     <name>True Maven Central</name>
                     <url>https://repo.maven.apache.org/maven2/</url>
-                    <releases><enabled>true</enabled></releases>
+                    <releases><enabled>true</enabled><updatePolicy>always</updatePolicy></releases>
                     <snapshots><enabled>false</enabled></snapshots>
                 </repository>
             </repositories>
@@ -27,14 +27,14 @@
                     <id>central</id>
                     <name>Google Maven Central</name>
                     <url>https://maven-central.storage-download.googleapis.com/maven2/</url>
-                    <releases><enabled>true</enabled></releases>
+                    <releases><enabled>true</enabled><updatePolicy>always</updatePolicy></releases>
                     <snapshots><enabled>false</enabled></snapshots>
                 </pluginRepository>
                 <pluginRepository>
                     <id>central-fallback</id>
                     <name>True Maven Central</name>
                     <url>https://repo.maven.apache.org/maven2/</url>
-                    <releases><enabled>true</enabled></releases>
+                    <releases><enabled>true</enabled><updatePolicy>always</updatePolicy></releases>
                     <snapshots><enabled>false</enabled></snapshots>
                 </pluginRepository>
             </pluginRepositories>

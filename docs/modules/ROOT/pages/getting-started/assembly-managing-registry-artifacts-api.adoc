@@ -226,6 +226,10 @@ In some situations, having an artifact's content with the referenced content inl
 
 This support is currently implemented for Avro, JSON Schema, Protobuf, OpenAPI, and AsyncAPI when the parameter is present in a particular API operation. The parameter is not supported in other schema types.
 
+NOTE: `references=REWRITE` is currently supported for JSON Schema, OpenAPI, and AsyncAPI.
+For Avro and Protobuf artifacts, requesting `references=REWRITE` returns HTTP `400`
+(`DereferencingNotSupportedException`).
+
 .Prerequisites
 
 * {registry} is installed and running in your environment.
@@ -451,5 +455,4 @@ hostname on which the target {registry} is deployed. For example: `\http://my-ta
 .Additional resources
 * {registry-rest-api}
 //* For details on export tools for migrating from {registry} version 1.x to 2.x, see link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/exportV1[Apicurio Registry export utility for 1.x versions].
-
 

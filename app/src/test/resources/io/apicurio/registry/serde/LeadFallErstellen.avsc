@@ -59,7 +59,7 @@
             "fields": [
               {
                 "name": "aufgabeTyp",
-                "type": "FdtCodeArt"
+                "type": "ch.mobi.lead.leadfall.FdtCodeArt"
               }
             ]
           }

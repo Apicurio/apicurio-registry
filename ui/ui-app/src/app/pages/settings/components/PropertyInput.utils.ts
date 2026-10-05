@@ -16,11 +16,14 @@ export const validatePropertyValue = (
         };
     }
 
-    if (type === "number" && !/^-?\d+$/.test(trimmedValue)) {
-        return {
-            isValid: false,
-            errorMessage: "Value must be a number"
-        };
+    if (type === "number") {
+        const num = Number(trimmedValue);
+        if (!/^\d+$/.test(trimmedValue) || !Number.isInteger(num) || num < 0) {
+            return {
+                isValid: false,
+                errorMessage: "Value must be a non-negative integer"
+            };
+        }
     }
 
     return { isValid: true };

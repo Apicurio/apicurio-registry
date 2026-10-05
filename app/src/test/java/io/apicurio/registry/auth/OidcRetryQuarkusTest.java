@@ -1,5 +1,6 @@
 package io.apicurio.registry.auth;
 
+import com.sun.net.httpserver.HttpServer;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
@@ -7,11 +8,14 @@ import jakarta.inject.Inject;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Exercises the REAL MicroProfile Fault Tolerance {@code @Retry} on
@@ -20,10 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * annotation on a non-CDI class or invoked via {@code this.} that silently
  * never applies).
  *
- * <p>Uses a deliberately unreachable URL so every attempt throws
- * {@link OidcAuthException}. With {@code maxRetries = 2} (overridden via
- * MP-FT config) and 50 ms delay, the method should be invoked 3 times total
- * (1 original + 2 retries) and take at least 100 ms.
+ * <p>Points the method at a local endpoint that answers 500, so every attempt throws
+ * {@link OidcAuthException}, and counts the requests the endpoint receives. With
+ * {@code maxRetries = 2} (overridden via MP-FT config) the endpoint should see 3 requests
+ * in total, 1 original and 2 retries.
  */
 @QuarkusTest
 @TestProfile(OidcRetryQuarkusTest.ShortRetryProfile.class)
@@ -52,26 +56,31 @@ class OidcRetryQuarkusTest {
     AppAuthenticationMechanism mechanism;
 
     @Test
-    void retryInterceptorFiresOnOidcAuthException() {
-        // Point at an unreachable URL to force OidcAuthException on every attempt.
-        // Port 1 is reserved (tcpmux) and will be refused or time out immediately.
-        String unreachableUrl = "http://127.0.0.1:1/token";
-        Pair<String, String> creds = Pair.of("retry-test-client", "secret");
+    void retryInterceptorFiresOnOidcAuthException() throws IOException {
+        AtomicInteger requests = new AtomicInteger();
+        HttpServer server = HttpServer.create(
+                new InetSocketAddress(InetAddress.getByName("127.0.0.1"), 0), 0);
+        server.createContext("/token", exchange -> {
+            requests.incrementAndGet();
+            exchange.getRequestBody().readAllBytes();
+            exchange.sendResponseHeaders(500, -1);
+            exchange.close();
+        });
+        server.start();
+        try {
+            String tokenUrl = "http://127.0.0.1:" + server.getAddress().getPort() + "/token";
+            Pair<String, String> creds = Pair.of("retry-test-client", "secret");
 
-        long startMs = System.currentTimeMillis();
-        OidcAuthException thrown = assertThrows(OidcAuthException.class,
-                () -> mechanism.getAccessToken(creds, unreachableUrl),
-                "getAccessToken must throw OidcAuthException after retries are exhausted");
-        long elapsedMs = System.currentTimeMillis() - startMs;
+            assertThrows(OidcAuthException.class,
+                    () -> mechanism.getAccessToken(creds, tokenUrl),
+                    "getAccessToken must throw OidcAuthException after retries are exhausted");
 
-        assertNotNull(thrown.getMessage());
-
-        // With 2 retries at 50 ms delay each, the minimum wall-clock time is
-        // 100 ms. Without @Retry (or if the interceptor is not wired), the
-        // method would fail on the first call with near-zero delay.
-        assertTrue(elapsedMs >= 80,
-                "Expected at least 80 ms of retry delay (2 retries * 50 ms), "
-                        + "but only " + elapsedMs + " ms elapsed. "
-                        + "This suggests @Retry is not firing through the CDI proxy.");
+            // 1 original call + 2 retries. Without @Retry, or if the interceptor is not
+            // wired through the CDI proxy, the endpoint would see a single request.
+            assertEquals(3, requests.get(),
+                    "Expected the original attempt plus 2 retries to reach the endpoint");
+        } finally {
+            server.stop(0);
+        }
     }
 }

@@ -14,8 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -30,7 +28,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -92,40 +89,41 @@ class OidcTokenStampedeTest {
                 oidcMech, authConfig, null, null,
                 LoggerFactory.getLogger(OidcTokenStampedeTest.class), mockParent);
 
-        // Reflectively access the private method that guards the cache
-        Method authMethod = OidcAuthenticationStrategy.class.getDeclaredMethod(
-                "authenticateWithClientCredentials",
-                Pair.class, RoutingContext.class, IdentityProviderManager.class);
-        authMethod.setAccessible(true);
-
         Pair<String, String> credentials = Pair.of("test-client", "test-secret");
         IdentityProviderManager idpManager = mock(IdentityProviderManager.class);
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-        CyclicBarrier barrier = new CyclicBarrier(threadCount);
-        List<Future<Object>> futures = new ArrayList<>();
+        try {
+            CyclicBarrier barrier = new CyclicBarrier(threadCount);
+            List<RoutingContext> contexts = new ArrayList<>();
+            List<Future<Object>> futures = new ArrayList<>();
 
-        for (int i = 0; i < threadCount; i++) {
-            futures.add(executor.submit(() -> {
+            for (int i = 0; i < threadCount; i++) {
                 RoutingContext ctx = createMockRoutingContext();
-                barrier.await(5, TimeUnit.SECONDS);
-                return authMethod.invoke(strategy, credentials, ctx, idpManager);
-            }));
-        }
-
-        for (Future<Object> future : futures) {
-            try {
-                future.get(10, TimeUnit.SECONDS);
-            } catch (ExecutionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof InvocationTargetException) {
-                    cause = cause.getCause();
-                }
-                throw new AssertionError("Concurrent token fetch failed", cause);
+                contexts.add(ctx);
+                futures.add(executor.submit(() -> {
+                    barrier.await(5, TimeUnit.SECONDS);
+                    return strategy.authenticateWithClientCredentials(credentials, ctx, idpManager);
+                }));
             }
-        }
 
-        executor.shutdown();
-        assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS));
+            // One budget for every caller, so a hung regression fails after 10 s, not 20 x 10 s.
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            for (Future<Object> future : futures) {
+                try {
+                    future.get(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+                } catch (ExecutionException e) {
+                    throw new AssertionError("Concurrent token fetch failed", e.getCause());
+                }
+            }
+
+            // Every caller, not only the one that fetched, must have got the token.
+            for (RoutingContext ctx : contexts) {
+                assertEquals("Bearer mock-access-token",
+                        ctx.request().headers().get("Authorization"));
+            }
+        } finally {
+            executor.shutdownNow();
+        }
 
         assertEquals(1, tokenFetchCount.get(),
                 "Expected exactly 1 token fetch for " + threadCount

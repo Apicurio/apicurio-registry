@@ -23,6 +23,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.quarkus.oidc.runtime.OidcAuthenticationMechanism;
+import io.quarkus.security.ForbiddenException;
+import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
 import io.quarkus.security.identity.request.AuthenticationRequest;
@@ -129,7 +131,7 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
                 try {
                     return authenticateWithClientCredentials(clientCredentials, context,
                             identityProviderManager);
-                } catch (OidcAuthException | io.quarkus.security.UnauthorizedException ex) {
+                } catch (OidcAuthException | UnauthorizedException ex) {
                     log.warn(String.format(
                             "Exception trying to get an access token with client credentials with client id: %s",
                             clientCredentials.getLeft()), ex);
@@ -240,7 +242,8 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         context.put(QuarkusHttpUser.AUTH_FAILURE_HANDLER, auditWrapper);
     }
 
-    private Uni<SecurityIdentity> authenticateWithClientCredentials(
+    // Package-private for test access
+    Uni<SecurityIdentity> authenticateWithClientCredentials(
             Pair<String, String> clientCredentials, RoutingContext context,
             IdentityProviderManager identityProviderManager) {
         String credentialsHash = getCredentialsHash(
@@ -255,13 +258,19 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         String jwtToken;
         try {
             jwtToken = fetchOrJoinToken(credentialsHash, clientCredentials);
-        } catch (io.quarkus.security.UnauthorizedException
-                | io.quarkus.security.ForbiddenException
-                | OidcAuthException ex) {
-            // Cache failures (auth rejections and server errors) with a short TTL
-            // to avoid hammering the OIDC server while allowing quick recovery.
-            cachedAuthFailures.put(credentialsHash,
-                    new WrappedValue<>(FAILURE_CACHE_TTL, Instant.now(), ex));
+        } catch (RuntimeException ex) {
+            // A creator whose fetch failed with an auth rejection or server error already
+            // recorded that exact exception before it let go of the future, and joiners
+            // rethrow the same instance. The only exception nobody else records is the one a
+            // joiner sees when the creator died on an Error, so write only when this
+            // exception is not the cached one. That also keeps a burst of joiners from
+            // sliding the TTL forward.
+            if (isCacheable(ex)) {
+                WrappedValue<RuntimeException> recorded = cachedAuthFailures.get(credentialsHash);
+                if (recorded == null || recorded.getValue() != ex) {
+                    cacheFailure(credentialsHash, ex);
+                }
+            }
             throw ex;
         }
 
@@ -291,6 +300,14 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
                         clientCredentials, oidcTokenUrl);
                 future.complete(result);
             } catch (RuntimeException ex) {
+                // Keep this order: record the failure, then remove the future, then complete
+                // it. reuseOrReplace lets a request through once the future is gone, so a
+                // failure recorded after the remove leaves a window in which a second fetch
+                // can succeed and then be hidden behind the late failure for the full TTL.
+                // failureIsCachedBeforeTheFailedFutureIsReleased pins this order.
+                if (isCacheable(ex)) {
+                    cacheFailure(credentialsHash, ex);
+                }
                 // 2-arg remove: only removes if the value is still OUR future.
                 // A concurrent compute() may have already replaced it.
                 cachedAccessTokens.remove(credentialsHash, future);
@@ -304,9 +321,10 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
                 //
                 // A finally cannot see the throwable, so the real cause is not attached
                 // here. It is not lost: the creator rethrows it and it propagates with a
-                // full stack trace. Joining threads instead see this OidcAuthException,
-                // which authenticateWithClientCredentials caches for FAILURE_CACHE_TTL,
-                // so those credentials fail fast for 60s rather than wedging.
+                // full stack trace. Joining threads instead see this OidcAuthException, and
+                // the one that reaches authenticateWithClientCredentials records it there.
+                // With no joiner nothing is cached, and the next request starts a fresh
+                // fetch.
                 //
                 // Note this covers a creator that DIES. A creator wedged inside
                 // getAccessToken never leaves the try block at all, so the join is still
@@ -329,6 +347,21 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
             }
             throw new OidcAuthException("Failed to obtain access token", cause);
         }
+    }
+
+    /**
+     * Failures worth holding for FAILURE_CACHE_TTL: auth rejections and server errors. They
+     * are cached to avoid hammering the OIDC server while still allowing quick recovery.
+     */
+    private static boolean isCacheable(RuntimeException ex) {
+        return ex instanceof UnauthorizedException
+                || ex instanceof ForbiddenException
+                || ex instanceof OidcAuthException;
+    }
+
+    private void cacheFailure(String credentialsHash, RuntimeException ex) {
+        cachedAuthFailures.put(credentialsHash,
+                new WrappedValue<>(FAILURE_CACHE_TTL, Instant.now(), ex));
     }
 
     private CompletableFuture<WrappedValue<String>> reuseOrReplace(

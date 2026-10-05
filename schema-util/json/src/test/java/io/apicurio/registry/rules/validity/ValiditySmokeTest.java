@@ -37,6 +37,7 @@ public class ValiditySmokeTest {
                 "draft-04", "http://json-schema.org/draft-04/schema",
                 "draft-06", "http://json-schema.org/draft-06/schema",
                 "draft-07", "http://json-schema.org/draft-07/schema",
+                "draft-2019", "https://json-schema.org/draft/2019-09/schema",
                 "draft-2020", "https://json-schema.org/draft/2020-12/schema"
         );
         for (Entry<String, String> vesionEntry : versions.entrySet()) {

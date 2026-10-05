@@ -4,6 +4,7 @@ import io.apicurio.registry.services.http.CCompatExceptionMapperService;
 import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
 import io.apicurio.registry.services.http.CoreV2RegistryExceptionMapperService;
 import io.apicurio.registry.services.http.IcebergExceptionMapperService;
+import io.apicurio.registry.services.http.McpRegistryExceptionMapperService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
@@ -31,6 +32,9 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
     @Inject
     IcebergExceptionMapperService icebergMapper;
 
+    @Inject
+    McpRegistryExceptionMapperService mcpRegistryMapper;
+
     @Context
     HttpServletRequest request;
 
@@ -46,6 +50,8 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
             res = coreV2Mapper.mapException(t);
         } else if (isIcebergEndpoint()) {
             res = icebergMapper.mapException(t);
+        } else if (isMcpRegistryEndpoint()) {
+            res = mcpRegistryMapper.mapException(t);
         } else {
             res = coreMapper.mapException(t);
         }
@@ -90,6 +96,13 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
             return this.request.getRequestURI().contains("/apis/iceberg");
         }
         return false;
+    }
+
+    /**
+     * Returns true if the endpoint that caused the error is an MCP Registry API endpoint.
+     */
+    private boolean isMcpRegistryEndpoint() {
+        return McpRegistryExceptionMapperService.handles(this.request);
     }
 
 }

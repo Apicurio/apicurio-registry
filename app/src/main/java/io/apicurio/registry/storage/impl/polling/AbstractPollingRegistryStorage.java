@@ -273,6 +273,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                 return false;
             }
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
     }
@@ -290,6 +291,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                         "Could not acquire read lock to get the active storage within 5 seconds");
             }
         } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
             throw new RegistryStorageException("Could not acquire read lock to get the active storage", ex);
         }
     }
@@ -307,6 +309,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                         "Could not acquire read lock to get the active storage within 5 seconds");
             }
         } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
             throw new RegistryStorageException("Could not acquire read lock to get the active storage", ex);
         }
     }

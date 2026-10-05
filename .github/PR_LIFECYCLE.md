@@ -88,7 +88,7 @@ still go stale.
 | Command | Description |
 |---------|-------------|
 | `/unstale` | Remove the stale label |
-| `/retry` | Re-run the lifecycle orchestrator and retry failed tests |
+| `/retry` | Re-run the lifecycle orchestrator, retry failed tests, and re-run a failed PR validation |
 | `/assign-me` | Self-assign an open issue to volunteer for implementation |
 | `/unassign-me` | Release an issue you are currently assigned to |
 
@@ -118,7 +118,7 @@ Contributors can self-assign open issues by commenting `/assign-me` (or `/claim`
 | `/reject [reason]` | Close a PR that should not be worked further |
 | `/merge` | Toggle native GitHub auto-merge — it merges automatically once required checks pass and the PR has an approving review |
 | `/unstale` | Remove the stale label |
-| `/retry` | Re-run the lifecycle orchestrator and retry failed tests |
+| `/retry` | Re-run the lifecycle orchestrator, retry failed tests, and re-run a failed PR validation |
 
 There is no `/accept` or `/skip-review` command any more: there is no triage stage to
 accept a PR into, and every author needs an actual approving review before a PR can
@@ -309,7 +309,8 @@ full technical description. In short:
   on every run:
   - author is a maintainer or in `auto_accept` (e.g. Renovate) → runs immediately
   - otherwise → runs once the PR has a current approving review (`reviewDecision ==
-    APPROVED`), re-evaluated automatically on every review submission
+    APPROVED`): the approval makes the orchestrator re-run the push's Verify run,
+    which skipped the suite, so the PR keeps a single set of Verify checks
   - `orchestrator/disabled` label → runs regardless (unless `DO NOT MERGE` is also
     present), the legacy escape hatch for PRs excluded from the lifecycle entirely
 
@@ -327,6 +328,9 @@ The orchestrator is configured in `.github/pr-lifecycle.yml`:
   full suite immediately (e.g. Renovate), without maintainer command access
 - **max_contributor_prs** — maximum concurrent open PRs for a non-trusted author
   before further ones are closed automatically (default: 1)
+- **pr_limit_exempt** — GitHub usernames `max_contributor_prs` does not apply to,
+  without trusting them otherwise (e.g. `apicurio-ci`, which opens a backport PR for
+  every merged `backport/*` PR)
 - **merge.strategy** — `rebase` (default) or `squash`
 - **stale.days_until_stale** — days of inactivity before marking as stale (default: 7)
 - **stale.days_until_close** — total days of inactivity before closing (default: 14)

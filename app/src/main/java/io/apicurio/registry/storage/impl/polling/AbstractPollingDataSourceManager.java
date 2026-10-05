@@ -24,6 +24,8 @@ import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
@@ -33,6 +35,7 @@ import org.slf4j.Logger;
 
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -242,6 +245,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                 return;
             }
 
+            List<String> publishedVersions = new ArrayList<>();
             for (int i = 0; i < versions.size(); i++) {
                 Version version = versions.get(i);
                 try {
@@ -298,12 +302,23 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
 
                     log.trace("Importing {}",e);
                     state.getStorage().importArtifactVersion(e);
+                    if (e.state != VersionState.DRAFT) {
+                        publishedVersions.add(e.version);
+                    }
                     state.incrementVersionCount();
                 } catch (Exception ex) {
                     state.recordError(artifactFile, "Could not import artifact version '%s': %s",
                             artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion(),
                             ex.getMessage());
                 }
+            }
+            if (!publishedVersions.isEmpty()) {
+                long time = TimestampParser.parse(artifact.getModifiedOn(), state.getCommitTime());
+                state.getStorage().importBranch(BranchEntity.builder()
+                        .groupId(artifact.getGroupId()).artifactId(artifact.getArtifactId())
+                        .branchId(BranchId.LATEST.getRawBranchId()).systemDefined(true)
+                        .owner(artifact.getOwner()).createdOn(time).modifiedOn(time)
+                        .versions(publishedVersions).build());
             }
             processArtifactRules(state, artifact);
             artifactFile.setProcessed(true);

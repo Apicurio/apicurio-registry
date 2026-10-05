@@ -41,6 +41,7 @@ jobs:
   decide:
     name: Decide
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min
     if: github.repository_owner == 'Apicurio'
     outputs:
       lifecycle-ready: ${{ steps.decide.outputs.lifecycle-ready }}

@@ -33,6 +33,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -463,6 +464,49 @@ public class SimpleAuthTest extends AbstractResourceTestBase {
                 config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION;
             });
         });
+    }
+
+    @Test
+    public void testOwnerOnlyAuthorizationIfExistsDoesNotRunWriteHooksForNonOwner() throws Exception {
+        var clientDev = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.DEVELOPER_CLIENT_ID, "test1"));
+        var clientAdmin = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
+        String artifactId = TestUtils.generateArtifactId();
+        String schemaArtifactId = artifactId + "-output-schema";
+        String promptV1 = """
+                {"templateId": "t", "template": "Hello {{user}}",
+                 "outputSchema": {"type": "object", "properties": {"greeting": {"type": "string"}}}}
+                """;
+        String promptV2 = promptV1.replace("\"greeting\"", "\"farewell\"");
+
+        // Admin owns the prompt template; its embedded outputSchema becomes schema artifact version 1.
+        clientAdmin.groups().byGroupId(groupId).artifacts().post(TestUtils.clientCreateArtifact(artifactId,
+                ArtifactType.PROMPT_TEMPLATE, promptV1, ContentTypes.APPLICATION_JSON));
+        assertEquals(1, clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(schemaArtifactId)
+                .versions().get().getCount());
+
+        // Dev is not the owner: both ifExists modes are rejected before the schema-extraction hook runs.
+        for (IfArtifactExists ifExists : List.of(IfArtifactExists.CREATE_VERSION,
+                IfArtifactExists.FIND_OR_CREATE_VERSION)) {
+            var exception = Assertions.assertThrows(Exception.class, () -> clientDev.groups().byGroupId(groupId)
+                    .artifacts().post(TestUtils.clientCreateArtifact(artifactId, ArtifactType.PROMPT_TEMPLATE,
+                            promptV2, ContentTypes.APPLICATION_JSON),
+                            config -> config.queryParameters.ifExists = ifExists));
+            assertForbidden(exception);
+        }
+        assertEquals(1, clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(schemaArtifactId)
+                .versions().get().getCount());
+        assertEquals(1, clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().get().getCount());
+
+        // The owner can, and the changed schema is extracted into a new schema version.
+        var created = clientAdmin.groups().byGroupId(groupId).artifacts().post(TestUtils.clientCreateArtifact(
+                artifactId, ArtifactType.PROMPT_TEMPLATE, promptV2, ContentTypes.APPLICATION_JSON),
+                config -> config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION);
+        assertEquals("2", created.getVersion().getVersion());
+        assertEquals(2, clientAdmin.groups().byGroupId(groupId).artifacts().byArtifactId(schemaArtifactId)
+                .versions().get().getCount());
     }
 
     @Test

@@ -225,6 +225,8 @@ public class ReadOnlyRegistryStorageTest extends AbstractResourceTestBase {
                 entry("updateRoleMapping2", new State(true, s -> s.updateRoleMapping(null, null))),
                 entry("updateArtifactVersionState5",
                         new State(true, s -> s.updateArtifactVersionState(null, null, null, null, false))),
+                entry("updateArtifactVersionStates6",
+                        new State(true, s -> s.updateArtifactVersionStates(null, null, null, null, null, null))),
 
                 entry("getGroupRules1", new State(false, s -> s.getGroupRules(null))),
                 entry("getGroupRule2", new State(false, s -> s.getGroupRule(null, null))),

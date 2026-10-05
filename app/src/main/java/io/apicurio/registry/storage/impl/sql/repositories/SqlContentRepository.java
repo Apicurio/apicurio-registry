@@ -632,10 +632,15 @@ public class SqlContentRepository {
         final List<ArtifactReferenceDto> finalReferences = references;
 
         handles.withHandleNoException(handle -> {
-            // Allocate before the existence check so contentId allocation is unchanged from the
-            // insert-and-catch-duplicate behavior; the check only avoids a failing INSERT.
+            // Look the hash up BEFORE allocating: nextContentIdRaw locks the shared contentId
+            // sequence row until commit, and every concurrent content write queues on that lock,
+            // so no extra round trip may run while it is held. A row inserted concurrently after
+            // this check is still handled below by insertContentIfAbsent / the PK-violation path.
+            boolean exists = contentIdFromHashRaw(handle, finalContentHash).isPresent();
+            // Always allocate so contentId allocation is unchanged from the insert-and-catch-duplicate
+            // behavior; the check only avoids a failing INSERT.
             long contentId = sequenceRepository.nextContentIdRaw(handle);
-            if (contentIdFromHashRaw(handle, finalContentHash).isPresent()) {
+            if (exists) {
                 return null;
             }
             try {

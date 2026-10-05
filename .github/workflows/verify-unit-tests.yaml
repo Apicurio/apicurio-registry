@@ -22,6 +22,7 @@ jobs:
   unit-tests:
     name: Unit Tests (${{ matrix.shard.name }})
     runs-on: ubuntu-latest
+    timeout-minutes: 60  # longest green run, week to 2026-10-01: 37 min
     strategy:
       fail-fast: false
       matrix:

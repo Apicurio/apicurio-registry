@@ -13,6 +13,13 @@ auto_accept:
 
 max_contributor_prs: 1
 
+# Accounts max_contributor_prs does not apply to, without making them trusted
+# (unlike auto_accept, their PRs still wait for a review before the full suite
+# runs). apicurio-ci opens a backport PR for every merged backport/* PR, so it
+# routinely has several open at once.
+pr_limit_exempt:
+  - apicurio-ci
+
 merge:
   strategy: rebase
 
@@ -167,7 +174,7 @@ welcome_message: |
   | Command | Description |
   |---------|-------------|
   | `/unstale` | Remove the stale label |
-  | `/retry` | Re-run the lifecycle orchestrator and retry failed tests |
+  | `/retry` | Re-run the lifecycle orchestrator, retry failed tests, and re-run a failed PR validation |
 
   **Maintainer commands:**
   | Command | Description |

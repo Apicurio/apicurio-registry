@@ -165,7 +165,7 @@ public class CrossToolCompatibilityService {
         }
 
         DifferenceAttributor attributor = new DifferenceAttributor(producer.projection(), consumer,
-                this::accepts);
+                producer.closed() != null, this::accepts);
         Set<CompatibilityReason> reasons = new LinkedHashSet<>();
         attributor.unrestrictedOutputType().ifPresent(reasons::add);
         boolean unattributed = false;

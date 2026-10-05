@@ -53,6 +53,54 @@ class CrossToolCompatibilityServiceTest {
                 "The producer may emit 'x', which the consumer does not accept"));
     }
 
+    /**
+     * The engine reports properties declared by only one side as a single difference, which
+     * survives closing the producer. A reason must hold for the closed producer, which emits nothing
+     * it doesn't declare: 'a' stands, and the consumer-only 'b' is only a concern while the
+     * producer is open, so it is the open-producer limitation, not a reason.
+     */
+    @Test
+    void testPropertiesOnlyOnEachSideGiveOnlyTheReasonsThatHoldForTheClosedProducer() {
+        PairCompatibility result = compare("{'type':'object','properties':{'a':{'type':'string'}}}",
+                "{'type':'object','properties':{'b':{'type':'integer'}},'additionalProperties':false}");
+
+        assertEquals(CompatibilityVerdict.INCOMPATIBLE, result.verdict());
+        assertEquals(List.of(new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                "/outputSchema/properties/a", "/inputSchema/additionalProperties",
+                "The producer may emit 'a', which the consumer does not accept")), result.reasons());
+        assertEquals(List.of(LimitationCode.PRODUCER_OBJECT_OPEN), limitationCodes(result));
+    }
+
+    /**
+     * The closed producer declares only 'a', which it never emits, so it can only emit an empty
+     * object, which the consumer accepts. That the producer might emit 'b' holds only while it is
+     * open, so it must not become a reason.
+     */
+    @Test
+    void testConsumerOnlyPropertyIsNoReasonWhenTheClosedProducerCannotEmitIt() {
+        PairCompatibility result = compare("{'type':'object','properties':{'a':false}}",
+                "{'type':'object','properties':{'b':{'type':'integer'}},'additionalProperties':false}");
+
+        assertEquals(CompatibilityVerdict.INDETERMINATE, result.verdict());
+        assertTrue(result.reasons().isEmpty(), () -> "Unexpected reasons: " + result.reasons());
+        assertTrue(limitationCodes(result).contains(LimitationCode.PRODUCER_OBJECT_OPEN));
+    }
+
+    /**
+     * A producer whose additionalProperties is a schema may emit any undeclared property with a
+     * value matching it, here a string under 'a', which the consumer forbids.
+     */
+    @Test
+    void testProducerAdditionalPropertiesRejectedByConsumerPropertyIsIncompatible() {
+        PairCompatibility result = compare(
+                "{'type':'object','required':['b'],'additionalProperties':{'type':'string'}}",
+                "{'type':'object','properties':{'a':false}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/additionalProperties", "/inputSchema/properties/a",
+                "The producer may emit 'a' with a value the consumer does not accept"));
+    }
+
     @Test
     void testRequiredInputDeclaredButNotRequiredByProducerIsIncompatible() {
         PairCompatibility result = compare(
@@ -585,6 +633,24 @@ class CrossToolCompatibilityServiceTest {
 
         assertFalse(producer.canMatch());
         assertEquals(List.of(LimitationCode.COMPARISON_FAILED), codes(producer.limitations()));
+    }
+
+    /**
+     * The meta-schema requires the entries of 'required' to be unique, so a schema that repeats one
+     * is invalid and can't be compared, on either side.
+     */
+    @Test
+    void testRepeatedRequiredEntryCannotBeRead() {
+        PreparedProducer producer = service.prepareProducer(tool("outputSchema",
+                "{'type':'object','properties':{'a':{'type':'string'}},'required':['a','a']}"));
+        assertFalse(producer.canMatch());
+        assertEquals(List.of(LimitationCode.COMPARISON_FAILED), codes(producer.limitations()));
+
+        PairCompatibility result = compare(CLOSED_PRODUCER_A,
+                "{'type':'object','properties':{'a':{'type':'string'}},'required':['a','a']}");
+        assertEquals(CompatibilityVerdict.INDETERMINATE, result.verdict());
+        assertEquals(List.of(LimitationCode.COMPARISON_FAILED), limitationCodes(result));
+        assertEquals(SchemaSide.CONSUMER, result.limitations().get(0).side());
     }
 
     @Test

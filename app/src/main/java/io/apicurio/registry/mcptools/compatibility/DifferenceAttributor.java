@@ -25,16 +25,21 @@ final class DifferenceAttributor {
 
     private final SchemaProjection producer;
     private final SchemaProjection consumer;
+    private final boolean producerClosed;
     private final BiFunction<JsonNode, JsonNode, Optional<Boolean>> accepts;
 
     /**
+     * @param producerClosed whether the producer was also compared with its root object closed.
+     *        Only differences that survive that run are attributed, so a reason must hold for the
+     *        closed producer, which emits no property it doesn't declare.
      * @param accepts decides whether every value the first subschema permits is accepted by the
      *        second, or returns empty when the two cannot be compared
      */
-    DifferenceAttributor(SchemaProjection producer, SchemaProjection consumer,
+    DifferenceAttributor(SchemaProjection producer, SchemaProjection consumer, boolean producerClosed,
             BiFunction<JsonNode, JsonNode, Optional<Boolean>> accepts) {
         this.producer = producer;
         this.consumer = consumer;
+        this.producerClosed = producerClosed;
         this.accepts = accepts;
     }
 
@@ -147,8 +152,7 @@ final class DifferenceAttributor {
      * empty if they can't be decided.
      */
     private Optional<List<CompatibilityReason>> propertiesOnlyInConsumer() {
-        JsonNode producerAdditional = producer.additionalProperties();
-        JsonNode emitted = producerAdditional == null ? BooleanNode.TRUE : producerAdditional;
+        JsonNode emitted = producerAdditionalProperties();
         if (BooleanNode.FALSE.equals(emitted)) {
             return Optional.of(List.of());
         }
@@ -177,6 +181,18 @@ final class DifferenceAttributor {
         return Optional.of(List.of(new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
                 producer.propertyTypePointer(name), consumer.propertyTypePointer(name),
                 "The producer's value for '" + name + "' is not accepted by the consumer")));
+    }
+
+    /**
+     * What the producer may emit under a name it doesn't declare. Without {@code additionalProperties},
+     * that is anything when the producer is compared as written, and nothing when it was closed.
+     */
+    private JsonNode producerAdditionalProperties() {
+        JsonNode declared = producer.additionalProperties();
+        if (declared != null) {
+            return declared;
+        }
+        return producerClosed ? BooleanNode.FALSE : BooleanNode.TRUE;
     }
 
     /** The string at {@code index} in a {@code required} array, or {@code null}. */

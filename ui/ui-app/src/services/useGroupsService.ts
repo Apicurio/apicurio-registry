@@ -1,9 +1,11 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { createAuthOptions, createEndpoint, getRegistryClient } from "@utils/rest.utils.ts";
 import { AuthService, useAuth } from "@apitomy/common-ui-components";
+import { ContentTypes } from "@models/ContentTypes.ts";
 import { RenderPromptResponse } from "@models/RenderPromptResponse.ts";
 import axios from "axios";
 import { Paging } from "@models/Paging.ts";
+import { HeadersInspectionOptions } from "@microsoft/kiota-http-fetchlibrary";
 import {
     AddVersionToBranch,
     ArtifactMetaData,
@@ -19,7 +21,9 @@ import {
     EditableArtifactMetaData, EditableBranchMetaData,
     EditableGroupMetaData,
     EditableVersionMetaData,
-    GroupMetaData, NewComment, ReferenceType, ReferenceTypeObject, ReplaceBranchVersions,
+    GroupMetaData,
+    HandleReferencesTypeObject,
+    NewComment, ReferenceType, ReferenceTypeObject, ReplaceBranchVersions,
     ReferenceGraph,
     ReferenceGraphDirection,
     Rule,
@@ -42,6 +46,11 @@ export interface ClientGeneration {
     excludePatterns: string,
     language: string;
     content: string;
+}
+
+export interface ArtifactVersionContent {
+    content: string;
+    contentType: string;
 }
 
 const createGroup = async (config: ConfigService, auth: AuthService, data: CreateGroup): Promise<GroupMetaData> => {
@@ -229,10 +238,8 @@ const updateArtifactOwner = async (config: ConfigService, auth: AuthService, gro
 };
 
 const getArtifactVersionContent = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<string> => {
-    groupId = normalizeGroupId(groupId);
-    const versionExpression: string = (version == "latest") ? "branch=latest" : version;
-    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).versions
-        .byVersionExpression(versionExpression).content.get({
+    return getRegistryClient(config, auth).groups.byGroupId(normalizeGroupId(groupId)).artifacts.byArtifactId(artifactId).versions
+        .byVersionExpression(versionExpressionFor(version)).content.get({
             headers: {
                 "Accept": "*"
             }
@@ -241,22 +248,58 @@ const getArtifactVersionContent = async (config: ConfigService, auth: AuthServic
         });
 };
 
+const versionExpressionFor = (version: string): string => {
+    return version === "latest" ? "branch=latest" : version;
+};
+
+const getResponseContentType = (headers: any): string => {
+    if (!headers) {
+        return ContentTypes.APPLICATION_JSON;
+    }
+    if (typeof headers.tryGetValue === "function") {
+        const values = headers.tryGetValue("content-type");
+        if (values && values.length > 0 && typeof values[0] === "string") {
+            return values[0];
+        }
+    }
+    const header = typeof headers.get === "function" ? headers.get("content-type") : headers["content-type"];
+    if (header instanceof Set) {
+        const val = header.values().next().value;
+        if (typeof val === "string") {
+            return val;
+        }
+    }
+    return typeof header === "string" ? header : ContentTypes.APPLICATION_JSON;
+};
+
+const getArtifactVersionContentWithType = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<ArtifactVersionContent> => {
+    const headersOptions: HeadersInspectionOptions = new HeadersInspectionOptions({
+        inspectResponseHeaders: true
+    });
+    return getRegistryClient(config, auth).groups.byGroupId(normalizeGroupId(groupId)).artifacts.byArtifactId(artifactId).versions
+        .byVersionExpression(versionExpressionFor(version)).content.get({
+            headers: {
+                "Accept": "*"
+            },
+            options: [headersOptions]
+        }).then(value => ({
+            content: arrayDecoder.decode(value!),
+            contentType: getResponseContentType(headersOptions.getResponseHeaders())
+        }));
+};
+
 const getArtifactVersionContentDereferenced = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, version: string): Promise<string> => {
-    groupId = normalizeGroupId(groupId);
-    const baseHref = config.artifactsUrl();
-    const endpoint = createEndpoint(baseHref, "/groups/:groupId/artifacts/:artifactId/versions/:version/content", {
-        groupId, artifactId, version
-    }, { references: "DEREFERENCE" });
-    const options = await createAuthOptions(auth);
-    return axios.get(endpoint, {
-        ...options,
-        headers: {
-            ...options.headers,
-            "Accept": "*"
-        },
-        responseType: "text",
-        transformResponse: [(data: any) => data]
-    }).then(response => response.data as string);
+    return getRegistryClient(config, auth).groups.byGroupId(normalizeGroupId(groupId)).artifacts.byArtifactId(artifactId).versions
+        .byVersionExpression(versionExpressionFor(version)).content.get({
+            headers: {
+                "Accept": "*"
+            },
+            queryParameters: {
+                references: HandleReferencesTypeObject.DEREFERENCE
+            }
+        }).then(value => {
+            return arrayDecoder.decode(value!);
+        });
 };
 
 const getArtifactVersions = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults> => {
@@ -507,6 +550,7 @@ export interface GroupsService {
     testArtifactVersion(groupId: string|null, artifactId: string, data: CreateVersion): Promise<void>;
     getArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string): Promise<VersionMetaData>;
     getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string>;
+    getArtifactVersionContentWithType(groupId: string|null, artifactId: string, version: string): Promise<ArtifactVersionContent>;
     getArtifactVersionContentDereferenced(groupId: string|null, artifactId: string, version: string): Promise<string>;
     updateArtifactVersionMetaData(groupId: string|null, artifactId: string, version: string, metaData: EditableVersionMetaData): Promise<void>;
     updateArtifactVersionState(groupId: string|null, artifactId: string, version: string, state: VersionState): Promise<void>;
@@ -627,6 +671,9 @@ export const useGroupsService: () => GroupsService = (): GroupsService => {
         },
         getArtifactVersionContent(groupId: string|null, artifactId: string, version: string): Promise<string> {
             return getArtifactVersionContent(config, auth, groupId, artifactId, version);
+        },
+        getArtifactVersionContentWithType(groupId: string|null, artifactId: string, version: string): Promise<ArtifactVersionContent> {
+            return getArtifactVersionContentWithType(config, auth, groupId, artifactId, version);
         },
         getArtifactVersionContentDereferenced(groupId: string|null, artifactId: string, version: string): Promise<string> {
             return getArtifactVersionContentDereferenced(config, auth, groupId, artifactId, version);

@@ -4,6 +4,7 @@ import io.apicurio.registry.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.AiCatalog;
+import io.apicurio.registry.rest.v3.beans.ArdAgentsResponse;
 import io.apicurio.registry.rest.v3.beans.ArdExploreRequest;
 import io.apicurio.registry.rest.v3.beans.ArdExploreResponse;
 import io.apicurio.registry.rest.v3.beans.ArdSearchRequest;
@@ -135,14 +136,15 @@ public interface WellKnownResource {
             @QueryParam("limit") @DefaultValue("20") String limit);
 
     /**
-     * Returns all registered MCP tools whose {@code inputSchema} can accept the output
-     * produced by the given source tool's {@code outputSchema}.
+     * Returns all registered MCP tools whose {@code inputSchema} accepts every output the given
+     * source tool's {@code outputSchema} permits, with the output passed on as a whole object.
      *
-     * <p>Two tools are considered compatible when every property declared in the source
-     * tool's {@code outputSchema.properties} is also present in the candidate tool's
-     * {@code inputSchema.properties} with the same JSON Schema type. This models the
-     * pipeline chaining contract: the candidate tool can consume what the source tool
-     * produces.</p>
+     * <p>A candidate is returned only when the comparison proves it compatible: every input it
+     * requires is required by the source, the types the source emits are accepted, and any
+     * property the source can emit that the candidate does not declare is allowed by its
+     * {@code additionalProperties}. Candidates whose schemas use constructs the comparison does
+     * not evaluate yet, or whose verdict depends on the source emitting only the properties it
+     * declares, are not returned.</p>
      *
      * <p>If the source tool has no {@code outputSchema}, an empty result is returned.
      * The source tool itself is never included in the results.</p>
@@ -234,7 +236,7 @@ public interface WellKnownResource {
     @GET
     @Path("/ard/agents")
     @Produces(MediaType.APPLICATION_JSON)
-    AiCatalog ardListAgents(
+    ArdAgentsResponse ardListAgents(
             @QueryParam("filter") String filter,
             @QueryParam("orderBy") String orderBy,
             @QueryParam("pageSize") @DefaultValue("20") Integer pageSize,

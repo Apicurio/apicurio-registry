@@ -264,7 +264,7 @@ public class ServerSideDereferenceTest extends AbstractResourceTestBase {
 
         // Get schema by ID WITHOUT specifying format parameter
         // Server default (DEREFERENCE -> RESOLVED format for Avro) should apply
-        String schema = given().when().pathParam("id", metadata.getVersion().getGlobalId())
+        String schema = given().when().pathParam("id", metadata.getVersion().getContentId())
                 .get("/ccompat/v7/schemas/ids/{id}").then().statusCode(200).extract()
                 .path("schema");
 
@@ -298,7 +298,7 @@ public class ServerSideDereferenceTest extends AbstractResourceTestBase {
 
         // Get schema by ID WITH explicit format parameter (empty string = no formatting)
         // This should override the server default and return the schema as-is with references
-        String schema = given().when().pathParam("id", metadata.getVersion().getGlobalId())
+        String schema = given().when().pathParam("id", metadata.getVersion().getContentId())
                 .queryParam("format", "").get("/ccompat/v7/schemas/ids/{id}").then().statusCode(200)
                 .extract().path("schema");
 

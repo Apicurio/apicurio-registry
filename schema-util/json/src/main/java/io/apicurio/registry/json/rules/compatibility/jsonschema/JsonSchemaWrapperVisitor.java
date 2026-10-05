@@ -22,6 +22,7 @@ import org.everit.json.schema.CombinedSchema.ValidationCriterion;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -68,6 +69,7 @@ public abstract class JsonSchemaWrapperVisitor {
     }
 
     public void visit(SchemaWrapper schema) {
+        Objects.requireNonNull(schema, "Schema to visit must not be null");
         schema.accept(this);
     }
 
@@ -171,7 +173,9 @@ public abstract class JsonSchemaWrapperVisitor {
 
     public void visitNotSchema(NotSchemaWrapper notSchema) {
         visitSchema(notSchema);
-        visitSchemaMustNotMatch(notSchema.getMustNotMatch());
+        // org.everit NotSchema always has a non-null mustNotMatch schema
+        visitSchemaMustNotMatch(Objects.requireNonNull(notSchema.getMustNotMatch(),
+                "'not' schema must have a mustNotMatch schema"));
     }
 
     /**

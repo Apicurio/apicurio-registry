@@ -7,10 +7,13 @@ const fs = require('node:fs');
 
 const {
   validate,
+  revalidateForIssue,
+  stripCode,
   extractLinkedIssues,
   hasSignOff,
   checkIssueLink,
   checkDcoSignOff,
+  checkMilestone,
 } = require('./pr-validation.js');
 
 const OWNER = 'Apicurio';
@@ -120,13 +123,17 @@ test('hasSignOff: trailer email match is case-insensitive', () => {
   assert.equal(hasSignOff(commit), true);
 });
 
-test('checkIssueLink: returns null when at least one issue is linked', () => {
-  assert.equal(checkIssueLink(new Set([123])), null);
+test('checkIssueLink: passes and names the linked issues in order', () => {
+  const item = checkIssueLink(new Set([123, 45]));
+  assert.equal(item.status, 'passed');
+  assert.equal(item.summary, 'closes #45, #123');
 });
 
-test('checkIssueLink: returns a violation named "Issue link" when nothing is linked', () => {
-  const violation = checkIssueLink(new Set());
-  assert.equal(violation.name, 'Issue link');
+test('checkIssueLink: needs author action when nothing is linked', () => {
+  const item = checkIssueLink(new Set());
+  assert.equal(item.name, 'Issue link');
+  assert.equal(item.status, 'action-needed');
+  assert.equal(item.audience, 'author');
 });
 
 test('checkDcoSignOff: returns null when every commit is signed off by its own author', () => {
@@ -134,7 +141,7 @@ test('checkDcoSignOff: returns null when every commit is signed off by its own a
     { sha: 'aaaaaaaa1111', ...commitWith('fix: a\n\nSigned-off-by: A <a@example.com>', 'a@example.com') },
     { sha: 'bbbbbbbb2222', ...commitWith('fix: b\n\nSigned-off-by: B <b@example.com>', 'b@example.com') },
   ];
-  assert.equal(checkDcoSignOff(commits), null);
+  assert.equal(checkDcoSignOff(commits).status, 'passed');
 });
 
 test('checkDcoSignOff: flags the exact unsigned commits and reports their count', () => {
@@ -144,7 +151,8 @@ test('checkDcoSignOff: flags the exact unsigned commits and reports their count'
   ];
   const violation = checkDcoSignOff(commits);
   assert.equal(violation.name, 'DCO sign-off');
-  assert.match(violation.detail, /1 commit\(s\)/);
+  assert.equal(violation.status, 'action-needed');
+  assert.equal(violation.summary, '1 commit(s) missing a `Signed-off-by:` trailer');
   assert.match(violation.detail, /`bbbbbbbb`/);
   assert.doesNotMatch(violation.detail, /`aaaaaaaa`/);
 });
@@ -154,8 +162,30 @@ test('checkDcoSignOff: a trailer copied from a different commit does not satisfy
     { sha: 'aaaaaaaa1111', ...commitWith('fix: a\n\nSigned-off-by: A <a@example.com>', 'b@example.com') },
   ];
   const violation = checkDcoSignOff(commits);
-  assert.notEqual(violation, null);
+  assert.equal(violation.status, 'action-needed');
   assert.match(violation.detail, /`aaaaaaaa`/);
+});
+
+test('checkDcoSignOff: an unsigned merge commit is exempt', () => {
+  const commits = [
+    { sha: 'aaaaaaaa1111', ...commitWith('fix: a\n\nSigned-off-by: A <a@example.com>', 'a@example.com') },
+    {
+      sha: 'bbbbbbbb2222',
+      parents: [{ sha: 'aaaaaaaa1111' }, { sha: 'cccccccc3333' }],
+      ...commitWith("Merge branch 'main' into fix/thing", 'a@example.com'),
+    },
+  ];
+  assert.equal(checkDcoSignOff(commits).status, 'passed');
+});
+
+test('checkDcoSignOff: the merge exemption does not cover single-parent commits', () => {
+  const commits = [
+    { sha: 'bbbbbbbb2222', parents: [{ sha: 'aaaaaaaa1111' }], ...commitWith('fix: b', 'b@example.com') },
+  ];
+  const violation = checkDcoSignOff(commits);
+  assert.equal(violation.status, 'action-needed');
+  assert.equal(violation.summary, '1 commit(s) missing a `Signed-off-by:` trailer');
+  assert.match(violation.detail, /`bbbbbbbb`/);
 });
 
 // ---------------------------------------------------------------------------
@@ -175,15 +205,30 @@ const SIGNED_COMMIT = (sha, subject) => (
 );
 const UNSIGNED_COMMIT = (sha, subject) => ({ sha, ...commitWith(subject, 'dev@example.com') });
 
+// Most tests are not about milestones, so PRs and linked issues carry an open
+// one by default and the milestone check stays quiet. Tests that do care pass
+// `milestone: null` on the PR fixture or seed `issuesByNumber`.
+const OPEN_MILESTONE = { title: '3.4.0', state: 'open' };
+
+// validate() reads the PR back with pulls.get rather than trusting the event
+// payload. makeContext() registers the PR it builds here, and the fake's
+// pulls.get serves it.
+const CURRENT_PRS = new Map();
+const CLOSED_MILESTONE = { title: '3.3.3', state: 'closed' };
+
 /**
  * Fake octokit client covering only the calls pr-validation.js makes.
  * `commitsByPr` and `filesByPr` are keyed by PR number; `openPrs` seeds
- * github.rest.pulls.list. Every write call is recorded onto `calls` so
- * tests can assert on exact arguments.
+ * github.rest.pulls.list; `issuesByNumber` seeds github.rest.issues.get for
+ * the milestone check. Every write call is recorded onto `calls` so tests can
+ * assert on exact arguments.
  */
-function createFakeGithub({ commitsByPr = {}, openPrs = [], filesByPr = {} } = {}) {
+function createFakeGithub({ commitsByPr = {}, openPrs = [], filesByPr = {},
+                            issuesByNumber = {}, validationRunsBySha = {},
+                            reRunError = null, runPolls = {} } = {}) {
   const calls = {
     createdComments: [], updatedComments: [], addedLabels: [], removedLabels: [], listParams: [],
+    runLookups: [], reRuns: [],
   };
   const comments = [];
   const knownLabels = new Set();
@@ -193,16 +238,38 @@ function createFakeGithub({ commitsByPr = {}, openPrs = [], filesByPr = {} } = {
     paginate: async (fn, params) => (await fn(params)).data,
     rest: {
       pulls: {
+        get: async ({ pull_number }) => ({ data: CURRENT_PRS.get(pull_number) }),
         listCommits: async ({ pull_number }) => ({ data: commitsByPr[pull_number] || [] }),
         list: async ({ base }) => {
           calls.listParams.push({ base });
-          return { data: withDefaultBase(openPrs).filter(p => p.base.ref === base) };
+          return { data: withDefaultBase(openPrs).filter(p => base === undefined || p.base.ref === base) };
         },
         listFiles: async ({ pull_number }) => (
           { data: (filesByPr[pull_number] || []).map(filename => ({ filename })) }
         ),
       },
+      actions: {
+        listWorkflowRuns: async ({ workflow_id, head_sha }) => {
+          calls.runLookups.push({ workflow_id, head_sha });
+          return { data: { workflow_runs: validationRunsBySha[head_sha] || [] } };
+        },
+        reRunWorkflow: async ({ run_id }) => {
+          if (reRunError) throw reRunError;
+          calls.reRuns.push(run_id);
+        },
+        // runPolls[id]: the states successive getWorkflowRun calls return.
+        getWorkflowRun: async ({ run_id }) => {
+          calls.runPolls = (calls.runPolls || 0) + 1;
+          const states = runPolls[run_id] || [];
+          return { data: { id: run_id, ...(states.length > 1 ? states.shift() : states[0]) } };
+        },
+      },
       issues: {
+        get: async ({ issue_number }) => {
+          const issue = issuesByNumber[issue_number];
+          if (issue instanceof Error) throw issue;
+          return { data: issue ?? { number: issue_number, milestone: OPEN_MILESTONE } };
+        },
         listComments: async ({ issue_number }) => (
           { data: comments.filter(c => c.issue_number === issue_number) }
         ),
@@ -268,7 +335,14 @@ function withDefaultBase(prs) {
 
 function makeContext(pr) {
   const [withBase] = withDefaultBase([pr]);
-  return { repo: { owner: OWNER, repo: REPO }, payload: { pull_request: withBase } };
+  // Same idea as base.ref above: default to a milestoned PR so tests that are
+  // not about milestones do not all have to say so.
+  const current = { milestone: OPEN_MILESTONE, ...withBase };
+  CURRENT_PRS.set(current.number, current);
+  return {
+    repo: { owner: OWNER, repo: REPO },
+    payload: { pull_request: current },
+  };
 }
 
 test('validate(): unsigned commit fails the check, labels the PR, and posts one comment', async (t) => {
@@ -469,3 +543,410 @@ test('validate(): a duplicate-detection failure still reports a real violation',
   assert.match(getFailed(), /DCO sign-off/);
   assert.match(calls.createdComments[0].body, /Issue link/);
 });
+
+// ---------------------------------------------------------------------------
+// Milestone check
+//
+// Both the PR and every issue it closes need an open milestone: the release
+// notes are generated from a milestone's issues, and the PR's own milestone
+// keeps the work findable by search. Unlike the other blocking checks this
+// one is not the author's to fix, which is why the message says who must act.
+// ---------------------------------------------------------------------------
+
+// [label, status, summary] for each milestone item, for compact assertions.
+const milestoneRows = items => items.map(i => [i.label, i.status, i.summary]);
+
+test('checkMilestone(): passes when the PR and its issues are milestoned', () => {
+  const items = checkMilestone(
+    { milestone: OPEN_MILESTONE },
+    [{ number: 42, milestone: OPEN_MILESTONE }]
+  );
+  assert.deepEqual(milestoneRows(items), [
+    ['Milestone on this PR', 'passed', `\`${OPEN_MILESTONE.title}\``],
+    ['Milestone on #42', 'passed', `\`${OPEN_MILESTONE.title}\``],
+  ]);
+});
+
+test('checkMilestone(): a PR with no milestone waits on a maintainer', () => {
+  const [item] = checkMilestone({ milestone: null }, []);
+  assert.equal(item.audience, 'maintainer');
+  assert.deepEqual([item.status, item.summary], ['waiting', 'not set']);
+});
+
+test('checkMilestone(): a closed milestone counts as missing', () => {
+  const [item] = checkMilestone({ milestone: CLOSED_MILESTONE }, []);
+  assert.deepEqual([item.status, item.summary], ['waiting', '`3.3.3` is closed']);
+});
+
+test('checkMilestone(): reports each linked issue separately', () => {
+  const items = checkMilestone({ milestone: OPEN_MILESTONE }, [
+    { number: 42, milestone: null },
+    { number: 43, milestone: CLOSED_MILESTONE },
+    { number: 44, milestone: OPEN_MILESTONE },
+  ]);
+  assert.deepEqual(milestoneRows(items).slice(1), [
+    ['Milestone on #42', 'waiting', 'not set'],
+    ['Milestone on #43', 'waiting', '`3.3.3` is closed'],
+    ['Milestone on #44', 'passed', `\`${OPEN_MILESTONE.title}\``],
+  ]);
+});
+
+test('validate(): an unmilestoned PR fails the check and is labelled', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = {
+    number: 1, user: { login: 'contributor' }, body: 'Closes #42',
+    labels: [], draft: false, milestone: null,
+  };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.match(getFailed(), /Milestone/);
+  assert.deepEqual(calls.addedLabels, [{ issue_number: 1, labels: ['lifecycle/validation-failed'] }]);
+  assert.match(calls.createdComments[0].body, /- ⏳ \*\*Milestone on this PR:\*\* not set/);
+  assert.match(calls.createdComments[0].body, /a maintainer has to do this/);
+});
+
+test('validate(): a milestoned PR closing an unmilestoned issue still fails', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = { number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    issuesByNumber: { 42: { number: 42, milestone: null } },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.match(getFailed(), /Milestone/);
+  assert.match(calls.createdComments[0].body, /- ⏳ \*\*Milestone on #42:\*\* not set/);
+});
+
+test('validate(): an issue that cannot be fetched is warned about, not failed', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = { number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false };
+  const { github } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    issuesByNumber: { 42: new Error('Not Found') },
+  });
+  const { core, warnings, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), null);
+  assert.ok(warnings.some(w => /Could not load issue #42/.test(w)));
+});
+
+test('validate(): exempt bot authors skip the milestone check entirely', async (t) => {
+  stubConfig(t, { auto_accept: ['renovate[bot]'] });
+  const pr = {
+    number: 1, user: { login: 'renovate[bot]' }, body: '',
+    labels: [], draft: false, milestone: null,
+  };
+  const { github, calls } = createFakeGithub({});
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), null);
+  assert.deepEqual(calls.addedLabels, []);
+  assert.deepEqual(calls.createdComments, []);
+});
+
+// ---------------------------------------------------------------------------
+// Closing keywords quoted in code don't link (#10101): explaining why a PR no
+// longer says `Fixes #7317` must not link #7317 again.
+// ---------------------------------------------------------------------------
+
+test('extractLinkedIssues: a closing keyword in inline code is not a link', () => {
+  const issues = extractLinkedIssues('Closes #10100\n\nWas linked as `Fixes #7317`, see above.', OWNER, REPO);
+  assert.deepEqual([...issues], [10100]);
+});
+
+test('extractLinkedIssues: a closing keyword in a fenced block (``` or ~~~) is not a link', () => {
+  const body = 'Closes #1\n\n```\nFixes #2\n```\n\n~~~text\nResolves #3\n~~~\n\nResolves #4';
+  assert.deepEqual([...extractLinkedIssues(body, OWNER, REPO)].sort(), [1, 4]);
+});
+
+test('extractLinkedIssues: a double-backtick span is code too', () => {
+  assert.deepEqual([...extractLinkedIssues('Closes #5, not ``Fixes #6``', OWNER, REPO)], [5]);
+});
+
+test('extractLinkedIssues: fences indented up to three spaces, and unclosed fences, are code', () => {
+  assert.deepEqual([...extractLinkedIssues('Closes #1\n   ~~~\n   Fixes #42\n   ~~~\n', OWNER, REPO)], [1]);
+  assert.deepEqual([...extractLinkedIssues('Closes #1\n~~~\nFixes #42\n', OWNER, REPO)], [1]);
+  // Four spaces is not a fence (that line is an indented code block of its
+  // own), so the unindented line after it is prose, as in CommonMark.
+  assert.deepEqual([...extractLinkedIssues('Closes #1\n    ```\nFixes #42\n', OWNER, REPO)].sort(), [1, 42]);
+});
+
+test('extractLinkedIssues: a longer fence is only closed by a fence at least as long, of the same character', () => {
+  const body = 'Closes #1\n````\n```\nFixes #42\n~~~~\nFixes #43\n````\nResolves #2';
+  assert.deepEqual([...extractLinkedIssues(body, OWNER, REPO)].sort(), [1, 2]);
+});
+
+test('extractLinkedIssues: a code span ends at a run of exactly its length, across lines', () => {
+  assert.deepEqual([...extractLinkedIssues('Closes #1 `` a ` Fixes #42 ` b `` Resolves #2', OWNER, REPO)].sort(), [1, 2]);
+  assert.deepEqual([...extractLinkedIssues('Closes #1 `code\nFixes #42` Resolves #2', OWNER, REPO)].sort(), [1, 2]);
+});
+
+test('extractLinkedIssues: a code span never crosses a blank line, and an unmatched run is literal', () => {
+  // Across the blank line the two backticks would pair up and hide Fixes #3.
+  assert.deepEqual([...extractLinkedIssues('Closes #1 ` a\n\nFixes #3 ` b', OWNER, REPO)].sort(), [1, 3]);
+  assert.deepEqual([...extractLinkedIssues('a `` b Fixes #5', OWNER, REPO)], [5]);
+});
+
+test('extractLinkedIssues: CRLF bodies (edited on github.com) close fences and split paragraphs', () => {
+  // With a trailing \r the closing fence went unrecognised and hid Resolves #2.
+  assert.deepEqual([...extractLinkedIssues('Closes #1\r\n~~~\r\nFixes #42\r\n~~~\r\nResolves #2', OWNER, REPO)].sort(), [1, 2]);
+  // Across the CRLF blank line the backticks would pair up and hide Fixes #3.
+  assert.deepEqual([...extractLinkedIssues('Closes #1 ` a\r\n\r\nFixes #3 ` b', OWNER, REPO)].sort(), [1, 3]);
+});
+
+test('extractLinkedIssues: removed code never joins the text around it into a reference', () => {
+  assert.deepEqual([...extractLinkedIssues('Closes\n~~~\nexample\n~~~\n#42', OWNER, REPO)], []);
+  assert.deepEqual([...extractLinkedIssues('Clo`x`ses #42', OWNER, REPO)], []);
+  assert.deepEqual([...extractLinkedIssues('Closes `not a reference` #43', OWNER, REPO)], []);
+});
+
+test('validate(): a closed linked issue is listed as not checked, and does not fail the check', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = { number: 1, user: { login: 'contributor' }, body: 'Closes #7317', labels: [], draft: false, milestone: OPEN_MILESTONE };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    issuesByNumber: { 7317: { number: 7317, state: 'closed', milestone: null } },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), null);
+  const body = calls.createdComments[0].body;
+  assert.match(body, /All validation checks passed\./);
+  assert.match(body, /- ➖ \*\*Milestone on #7317:\*\* the issue is closed, so its milestone is not checked/);
+  assert.doesNotMatch(body, /a maintainer has to do this/);
+});
+
+test('stripCode: leaves prose alone', () => {
+  assert.equal(stripCode('Closes #1 and Fixes #2'), 'Closes #1 and Fixes #2');
+});
+
+// ---------------------------------------------------------------------------
+// A closed linked issue's milestone is history (#10101)
+// ---------------------------------------------------------------------------
+
+test('checkMilestone(): a closed linked issue is listed as not checked, whatever its milestone', () => {
+  const items = checkMilestone({ milestone: OPEN_MILESTONE }, [
+    { number: 7317, state: 'closed', milestone: CLOSED_MILESTONE },
+    { number: 7318, state: 'closed', milestone: null },
+  ]);
+  assert.deepEqual(milestoneRows(items).slice(1), [
+    ['Milestone on #7317', 'not-checked', 'the issue is closed, so its milestone is not checked'],
+    ['Milestone on #7318', 'not-checked', 'the issue is closed, so its milestone is not checked'],
+  ]);
+});
+
+test('checkMilestone(): an open linked issue on a closed milestone is still waiting', () => {
+  const items = checkMilestone({ milestone: OPEN_MILESTONE }, [
+    { number: 42, state: 'open', milestone: CLOSED_MILESTONE },
+  ]);
+  assert.deepEqual(milestoneRows(items)[1], ['Milestone on #42', 'waiting', '`3.3.3` is closed']);
+});
+
+test('checkMilestone(): the PR itself still needs an open milestone when its issues are closed', () => {
+  const items = checkMilestone({ milestone: CLOSED_MILESTONE }, [
+    { number: 7317, state: 'closed', milestone: CLOSED_MILESTONE },
+  ]);
+  assert.deepEqual(milestoneRows(items), [
+    ['Milestone on this PR', 'waiting', '`3.3.3` is closed'],
+    ['Milestone on #7317', 'not-checked', 'the issue is closed, so its milestone is not checked'],
+  ]);
+});
+
+// ---------------------------------------------------------------------------
+// The comment says who has to act (#10179)
+// ---------------------------------------------------------------------------
+
+test('validate(): violations are grouped by who can fix them, author first', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = { number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false, milestone: null };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [UNSIGNED_COMMIT('bbbbbbbb2222', 'fix: b')] },
+  });
+  const { core } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  const body = calls.createdComments[0].body;
+  const author = body.indexOf('### For the author');
+  const dco = body.indexOf('- ❌ **DCO sign-off:** 1 commit(s) missing');
+  const maintainer = body.indexOf('### For a maintainer');
+  const milestone = body.indexOf('- ⏳ **Milestone on this PR:** not set');
+  assert.ok(author >= 0 && dco > author && maintainer > dco && milestone > maintainer,
+    'author section (with DCO) comes first, then the maintainer section (with Milestone)');
+  // The failing item's detail is indented under it, so it renders inside the list item.
+  assert.match(body, /\n  - `bbbbbbbb` fix: b\n/);
+  assert.match(body, /comment `\/retry`/);
+});
+
+test('validate(): a PR blocked only on a maintainer shows the author items as passed', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = { number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false, milestone: null };
+  const { github, calls } = createFakeGithub({ commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] } });
+  const { core } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  const body = calls.createdComments[0].body;
+  assert.match(body, /### For the author\n\n- ✅ \*\*Issue link:\*\* closes #42\n- ✅ \*\*DCO sign-off:\*\* every commit is signed off/);
+  assert.match(body, /### For a maintainer\n\n- ⏳ \*\*Milestone on this PR:\*\* not set/);
+  assert.match(body, /- ✅ \*\*Milestone on #42:\*\* `3\.4\.0`/);
+  assert.match(body, /This PR has 1 validation issue\(s\)\./);
+});
+
+test('validate(): reads the PR back instead of trusting a stale event payload', async (t) => {
+  // A re-run replays the original event: here it still says "no milestone",
+  // but a maintainer has set one since.
+  stubConfig(t, { auto_accept: [] });
+  const current = { number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false };
+  makeContext(current);
+  const stale = { repo: { owner: OWNER, repo: REPO }, payload: { pull_request: { ...current, milestone: null } } };
+  const { github } = createFakeGithub({ commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] } });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: stale, core });
+
+  assert.equal(getFailed(), null);
+});
+
+// ---------------------------------------------------------------------------
+// A linked issue's milestone changing re-runs the validation of the PRs that
+// close it (#10101)
+// ---------------------------------------------------------------------------
+
+function issueEvent(number, { pullRequest = false } = {}) {
+  const issue = { number };
+  if (pullRequest) issue.pull_request = {};
+  return { repo: { owner: OWNER, repo: REPO }, payload: { issue } };
+}
+
+const linkingPr = (number, body, sha) => ({
+  number, body, head: { sha }, user: { login: 'contributor' }, labels: [], draft: false,
+});
+
+test('revalidateForIssue(): re-runs the latest validation run of each open PR closing the issue', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const { github, calls } = createFakeGithub({
+    openPrs: [
+      linkingPr(1, 'Closes #42', 'sha1'),
+      linkingPr(2, 'Fixes #99', 'sha2'),
+      linkingPr(3, 'Mentions `Closes #42` in code only', 'sha3'),
+      linkingPr(4, 'Resolves #42', 'sha4'),
+    ],
+    validationRunsBySha: {
+      sha1: [{ id: 101, status: 'completed', conclusion: 'failure' }],
+      sha4: [{ id: 104, status: 'completed', conclusion: 'success' }],
+    },
+  });
+  const { core } = createFakeCore();
+
+  await revalidateForIssue({ github, context: issueEvent(42), core });
+
+  assert.deepEqual(calls.runLookups, [
+    { workflow_id: 'pr-validation.yml', head_sha: 'sha1' },
+    { workflow_id: 'pr-validation.yml', head_sha: 'sha4' },
+  ]);
+  assert.deepEqual(calls.reRuns, [101, 104]);
+  assert.deepEqual(calls.createdComments, [], 're-runs post their own comments');
+});
+
+test('revalidateForIssue(): a run still in progress is re-run once it finishes', async (t) => {
+  // It may already have read the issue before the milestone changed.
+  stubConfig(t, { auto_accept: [] });
+  const { github, calls } = createFakeGithub({
+    openPrs: [linkingPr(1, 'Closes #42', 'sha1')],
+    validationRunsBySha: { sha1: [{ id: 101, status: 'in_progress', conclusion: null }] },
+    runPolls: { 101: [{ status: 'in_progress' }, { status: 'completed', conclusion: 'failure' }] },
+  });
+  const { core } = createFakeCore();
+
+  await revalidateForIssue({ github, context: issueEvent(42), core, pollMs: 0, deadlineMs: 1 });
+
+  assert.equal(calls.runPolls, 2);
+  assert.deepEqual(calls.reRuns, [101]);
+});
+
+test('revalidateForIssue(): a run still going past the deadline is left, with a warning', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const { github, calls } = createFakeGithub({
+    openPrs: [linkingPr(1, 'Closes #42', 'sha1')],
+    validationRunsBySha: { sha1: [{ id: 101, status: 'in_progress', conclusion: null }] },
+    runPolls: { 101: [{ status: 'in_progress' }] },
+  });
+  const { core, warnings } = createFakeCore();
+
+  await revalidateForIssue({ github, context: issueEvent(42), core, pollMs: 1, deadlineMs: 3 });
+
+  assert.deepEqual(calls.reRuns, []);
+  assert.deepEqual(calls.createdComments, [], 'no direct validation over a run that is still going');
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /still running/);
+});
+
+test('revalidateForIssue(): PRs targeting a branch validation does not cover are skipped', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const { github, calls } = createFakeGithub({
+    openPrs: [
+      { ...linkingPr(1, 'Closes #42', 'sha1'), base: { ref: 'feature/x' } },
+      { ...linkingPr(2, 'Closes #42', 'sha2'), base: { ref: '3.3.x' } },
+    ],
+  });
+  const { core } = createFakeCore();
+  makeContext({ ...linkingPr(2, 'Closes #42', 'sha2'), base: { ref: '3.3.x' } });
+
+  await revalidateForIssue({ github, context: issueEvent(42), core });
+
+  assert.deepEqual(calls.runLookups, [{ workflow_id: 'pr-validation.yml', head_sha: 'sha2' }]);
+  assert.deepEqual(calls.createdComments.map(c => c.issue_number), [2]);
+});
+
+test('revalidateForIssue(): without a run to re-run, validates directly so the comment and label are right', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  for (const [label, options] of [
+    ['no run', {}],
+    ['re-run refused (older than 30 days)', {
+      validationRunsBySha: { sha1: [{ id: 101, status: 'completed', conclusion: 'failure' }] },
+      reRunError: Object.assign(new Error('Unable to re-run this workflow run'), { status: 403 }),
+    }],
+  ]) {
+    const pr = { ...linkingPr(1, 'Closes #42', 'sha1'), milestone: OPEN_MILESTONE };
+    makeContext(pr);
+    const { github, calls } = createFakeGithub({
+      openPrs: [pr], commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] }, ...options,
+    });
+    const { core } = createFakeCore();
+
+    await revalidateForIssue({ github, context: issueEvent(42), core });
+
+    assert.equal(calls.createdComments.length, 1, label);
+    assert.match(calls.createdComments[0].body, /All validation checks passed/, label);
+  }
+});
+
+test('revalidateForIssue(): a milestone change on a PR (also an issues event) is ignored', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const { github, calls } = createFakeGithub({
+    openPrs: [linkingPr(1, 'Closes #42', 'sha1')],
+    validationRunsBySha: { sha1: [{ id: 101, status: 'completed', conclusion: 'failure' }] },
+  });
+  const { core } = createFakeCore();
+
+  await revalidateForIssue({ github, context: issueEvent(42, { pullRequest: true }), core });
+
+  assert.deepEqual(calls.listParams, []);
+  assert.deepEqual(calls.reRuns, []);
+});
+

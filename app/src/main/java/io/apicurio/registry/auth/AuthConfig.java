@@ -246,10 +246,6 @@ public class AuthConfig {
         return this.proxyHeaderAuthEnabled;
     }
 
-    public boolean isProxyHeaderTrustProxyAuthorization() {
-        return this.proxyHeaderTrustProxyAuthorization;
-    }
-
     /**
      * True when any authentication backend is enabled. Canonical check used by
      * {@link AuthorizedInterceptor} and ownership-transfer authorization — keep those

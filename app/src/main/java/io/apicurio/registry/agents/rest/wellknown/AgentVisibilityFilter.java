@@ -4,8 +4,7 @@ import io.apicurio.registry.agents.a2a.A2AConfig;
 import io.apicurio.registry.agents.a2a.A2AConstants;
 import io.apicurio.registry.auth.AdminOverride;
 import io.apicurio.registry.auth.AuthConfig;
-import io.apicurio.registry.auth.ProxyHeaderCredential;
-import io.apicurio.registry.auth.RoleBasedAccessController;
+import io.apicurio.registry.auth.ReadAccessChecker;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -38,7 +37,7 @@ public class AgentVisibilityFilter {
     AuthConfig authConfig;
 
     @Inject
-    RoleBasedAccessController rbac;
+    ReadAccessChecker readAccess;
 
     /**
      * Same notion of "authentication enabled" as the authorization interceptor: any mechanism (OIDC,
@@ -50,25 +49,12 @@ public class AgentVisibilityFilter {
     }
 
     /**
-     * Whether the authenticated caller may read artifacts, mirroring the grants the authorization
-     * interceptor applies to {@code @Authorized(level = Read)} operations: trusted proxy authorization,
-     * admin override, authenticated read access, and otherwise a registry role when RBAC is enabled.
-     */
-    private boolean callerCanRead(boolean isAdmin) {
-        if (authConfig.isProxyHeaderAuthEnabled() && authConfig.isProxyHeaderTrustProxyAuthorization()
-                && securityIdentity.getCredential(ProxyHeaderCredential.class) != null) {
-            return true;
-        }
-        return isAdmin || authConfig.isAuthenticatedReadsEnabled() || !authConfig.isRbacEnabled()
-                || rbac.isReadOnly() || rbac.isDeveloper() || rbac.isAdmin();
-    }
-
-    /**
      * Filters artifact DTOs by visibility rules without performing expensive content conversion.
      * When no auth is enabled, all artifacts are returned. Otherwise, visibility is determined
      * by the {@code apicurio.agent.visibility} label (falling back to the configured default):
-     * {@code public} for everyone, {@code entitled} for callers with read access, {@code private}
-     * for the owner and administrators.
+     * {@code public} for everyone, {@code entitled} for callers with read access (as decided by
+     * {@link ReadAccessChecker}, which may include anonymous callers), {@code private} for the owner and
+     * administrators.
      */
     List<SearchedArtifactDto> filterDtosByVisibility(List<SearchedArtifactDto> artifacts) {
         if (!isAuthEnabled()) {
@@ -79,8 +65,9 @@ public class AgentVisibilityFilter {
         boolean isAdmin = isAuthenticated && adminOverride.isAdmin();
         // "entitled" means entitled to read the card. The discovery endpoint itself is open to
         // anonymous callers (for public cards), so the read check other endpoints get from
-        // @Authorized(level = Read) has to be applied here.
-        boolean canRead = isAuthenticated && callerCanRead(isAdmin);
+        // @Authorized(level = Read) is applied here, through the same shared rules. That includes
+        // anonymous callers when anonymous read access is enabled.
+        boolean canRead = readAccess.canRead();
         String currentUser = isAuthenticated
                 ? securityIdentity.getPrincipal().getName() : null;
 
@@ -89,13 +76,12 @@ public class AgentVisibilityFilter {
             String visibility = resolveVisibility(artifact.getLabels());
             if ("public".equals(visibility)) {
                 result.add(artifact);
-            } else if (!isAuthenticated) {
-                continue;
             } else if ("entitled".equals(visibility)) {
                 if (canRead) {
                     result.add(artifact);
                 }
             } else if ("private".equals(visibility)) {
+                // Anonymous callers have no identity to match the owner, so never see private cards.
                 String owner = artifact.getOwner();
                 if (isAdmin || (owner != null && owner.equals(currentUser))) {
                     result.add(artifact);

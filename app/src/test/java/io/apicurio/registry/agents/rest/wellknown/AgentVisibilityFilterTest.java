@@ -3,7 +3,7 @@ package io.apicurio.registry.agents.rest.wellknown;
 import io.apicurio.registry.agents.a2a.A2AConfig;
 import io.apicurio.registry.auth.AdminOverride;
 import io.apicurio.registry.auth.AuthConfig;
-import io.apicurio.registry.auth.RoleBasedAccessController;
+import io.apicurio.registry.auth.ReadAccessChecker;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.quarkus.security.identity.SecurityIdentity;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,7 +20,8 @@ import static org.mockito.Mockito.when;
 /**
  * Unit tests for {@link AgentVisibilityFilter}. The filter is mechanism-agnostic: once
  * {@link AuthConfig#isAuthenticationEnabled()} is true (for any mechanism, see
- * {@code AuthConfigAuthenticationEnabledTest}) the visibility rules apply.
+ * {@code AuthConfigAuthenticationEnabledTest}) the visibility rules apply. Who may read is decided by
+ * {@link ReadAccessChecker}, whose grants are checked against the interceptor separately.
  */
 class AgentVisibilityFilterTest {
 
@@ -32,24 +33,23 @@ class AgentVisibilityFilterTest {
     private AgentVisibilityFilter filter;
     private AuthConfig authConfig;
     private SecurityIdentity identity;
-    private RoleBasedAccessController rbac;
+    private ReadAccessChecker readAccess;
 
     @BeforeEach
     void setUp() {
         authConfig = mock(AuthConfig.class);
         identity = mock(SecurityIdentity.class);
-        rbac = mock(RoleBasedAccessController.class);
+        readAccess = mock(ReadAccessChecker.class);
         A2AConfig a2aConfig = mock(A2AConfig.class);
         when(a2aConfig.getDefaultVisibility()).thenReturn("entitled");
         when(authConfig.isAuthenticationEnabled()).thenReturn(true);
-        when(authConfig.isRbacEnabled()).thenReturn(true);
 
         filter = new AgentVisibilityFilter();
         filter.a2aConfig = a2aConfig;
         filter.authConfig = authConfig;
         filter.securityIdentity = identity;
         filter.adminOverride = mock(AdminOverride.class);
-        filter.rbac = rbac;
+        filter.readAccess = readAccess;
     }
 
     @Test
@@ -66,6 +66,14 @@ class AgentVisibilityFilterTest {
     }
 
     @Test
+    void testAnonymousWithReadAccessSeesPublicAndEntitledButNotPrivate() {
+        // e.g. apicurio.auth.anonymous-read-access.enabled
+        anonymous();
+        when(readAccess.canRead()).thenReturn(true);
+        assertEquals(List.of("public-card", "entitled-card"), ids(filter.filterDtosByVisibility(ALL)));
+    }
+
+    @Test
     void testUserWithoutReadAccessSeesOnlyPublic() {
         user("stranger");
         assertEquals(List.of("public-card"), ids(filter.filterDtosByVisibility(ALL)));
@@ -74,21 +82,14 @@ class AgentVisibilityFilterTest {
     @Test
     void testReaderSeesPublicAndEntitled() {
         user("reader");
-        when(rbac.isReadOnly()).thenReturn(true);
-        assertEquals(List.of("public-card", "entitled-card"), ids(filter.filterDtosByVisibility(ALL)));
-    }
-
-    @Test
-    void testAuthenticatedReadAccessGrantsEntitled() {
-        user("stranger");
-        when(authConfig.isAuthenticatedReadsEnabled()).thenReturn(true);
+        when(readAccess.canRead()).thenReturn(true);
         assertEquals(List.of("public-card", "entitled-card"), ids(filter.filterDtosByVisibility(ALL)));
     }
 
     @Test
     void testOwnerSeesTheirPrivateCard() {
         user("owner");
-        when(rbac.isDeveloper()).thenReturn(true);
+        when(readAccess.canRead()).thenReturn(true);
         assertEquals(List.of("public-card", "entitled-card", "private-card"),
                 ids(filter.filterDtosByVisibility(ALL)));
     }

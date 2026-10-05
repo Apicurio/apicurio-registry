@@ -1,0 +1,172 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="registry-operations_{context}"]
+= Planning and operating a registry service
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+Plan, deploy, secure, recover, and update a {registry} service by connecting your operating requirements to configuration choices and checks from the applications that use it.
+
+Choose the workflow that matches the change you are planning or the problem you need to resolve. Keep the service configuration and representative client checks available so that application owners and operators can evaluate the same results.
+
+[id="evaluating-registry-adoption_{context}"]
+== Decide whether a shared registry fits the application architecture
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can evaluate {registry} with a representative application workflow to decide how shared definitions and registry operations fit your architecture.
+
+Identify the schemas, client operations, identity integration, and operating constraints that matter to your teams. Include storage, availability, and version support requirements. Check compatibility API limitations when existing applications depend on another registry interface.
+
+Choose a small workflow that publishes a definition and uses it in the intended development tool or application. The demonstration examples provide starting points; check their suitability for the version you are evaluating. A development deployment can support this trial. Production planning also requires durable storage and an appropriate deployment configuration.
+
+Record the observed result against the requirements you selected, including unresolved integration needs and dependencies on experimental features. The adoption decision should identify the workflow that meets your needs and the operating approach your teams can sustain. Use these results when planning the service deployment.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-intro-to-the-registry.adoc#rest-api-compatibility_{context}[Compatibility with other schema registry REST APIs]
+* xref:getting-started/assembly-intro-to-the-registry.adoc#registry-demo_{context}[{registry} demonstration examples]
+* xref:getting-started/assembly-installing-registry-docker.adoc#installing-registry-h2-storage_{context}[Installing {registry} with default configuration]
+* xref:getting-started/assembly-versioning-support-policy.adoc[Versioning and support policy]
+endif::[]
+
+[id="establishing-a-usable-registry-service_{context}"]
+== Establish a usable registry service for application teams
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can establish a {registry} service that authorized application teams can reach and use within your storage, network, and availability requirements.
+
+Start with the deployment model, storage backend, expected workload, and recovery objectives. Identify the API endpoint, network routes, TLS configuration, and identity-provider integration needed by clients. Review the status and limitations of any experimental capability you select.
+
+Deploy the selected storage and registry components. For an Operator-managed deployment, keep the intended custom resource settings and required Secrets as the managed configuration for the service. Coordinate roles and ownership with the team access policy.
+
+From an application environment, verify authenticated publication and retrieval for writable SQL or KafkaSQL storage. Restart a {registry} pod or container, then make a fresh read of the same artifact and version. For read-only GitOps or KubernetesOps storage, verify that a managed repository or ConfigMap change appears in a fresh read and that API writes are rejected. Check the chosen availability design against agreed interruption limits, and retain the configuration and results.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-installing-registry-docker.adoc[Installing {registry} using Docker]
+* xref:getting-started/assembly-deploying-registry-operator.adoc[Deploying {registry} using the Operator]
+* xref:getting-started/assembly-registry-high-availability.adoc#ha-architecture-overview_{context}[High availability architecture overview]
+* xref:getting-started/assembly-managing-registry-artifacts-api.adoc#managing-artifacts-using-rest-api_{context}[Managing schema and API artifacts using REST API commands]
+endif::[]
+
+[id="applying-team-access-policies_{context}"]
+== Apply team access policies to shared definitions
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can combine identity integration, roles, and ownership controls in {registry} to give teams and applications the access their work requires.
+
+Define the required read and write boundaries before configuring authentication. Identify human users, service identities, artifact owners, and administrators. Include ownership changes and the treatment of anonymous requests in the policy.
+
+Choose an identity-provider integration and review its authorization controls. Group organization and owner-only authorization address particular collaboration needs; evaluate the multitenancy guidance when teams require stronger isolation. Apply the selected configuration through the deployment's managed configuration source and assign the required roles or ownership.
+
+Check both permitted and prohibited requests. Verify the intended human and service access, changes by owners and other users, and access after an ownership transfer. Keep the policy and test identities available for checking later deployment changes. Use the same service identities and external API endpoints when checking application connectivity.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-configuring-registry-security.adoc#registry-security-keycloak_{context}[Configuring authentication and authorization with {keycloak}]
+* xref:getting-started/assembly-configuring-registry-security.adoc#registry-security-rbac-enabled_{context}[Role-based authorization]
+* xref:getting-started/assembly-configuring-registry-security.adoc#registry-security-obac-enabled_{context}[Owner-only authorization]
+* xref:getting-started/assembly-implementing-multitenancy.adoc#multitenancy-lightweight-group-isolation_{context}[Lightweight isolation with groups]
+endif::[]
+
+[id="resolving-registry-application-problems_{context}"]
+== Resolve registry problems that interrupt applications
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can use the failed client operation, registry signals, and deployment information to identify a registry problem and verify that applications can resume work.
+
+Begin with the affected operation and its expected result. Record the time, response or exception, affected clients, deployment version, and recent changes. Determine whether the failure concerns client configuration, identity, routing, the registry service, or its storage connection.
+
+Use the relevant troubleshooting reference to narrow the cause. Where OpenTelemetry and JSON logging are configured, correlate registry request and storage spans with logs. Runtime log-level changes can provide additional evidence; record temporary diagnostic settings so that you can restore them after the investigation.
+
+A remedy is complete when the original client operation succeeds and the relevant error, latency, storage, or health signals recover. Repeat the representative request or data exchange from the affected environment. Preserve the evidence needed to recognize recurrence or escalate an unresolved problem. Data restoration and planned deployment updates require their own preparation and checks.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-configuring-registry-security.adoc#registry-cors-diagnosing_{context}[Diagnosing CORS errors with browser developer tools]
+* xref:getting-started/assembly-deploying-registry-secured-kafka.adoc#secured-kafka-troubleshooting_{context}[Secured Kafka connection errors and fixes]
+* xref:getting-started/assembly-configuring-the-registry.adoc#otel-features_{context}[OpenTelemetry features in {registry}]
+* xref:getting-started/assembly-configuring-the-registry.adoc#configuring-dynamic-log-level_{context}[Changing the {registry} log level at runtime]
+endif::[]
+
+[id="recovering-registry-data-and-service_{context}"]
+== Recover registry data and resume service after a failure
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can plan recovery of {registry} around a usable backup point and the application behavior that must be restored, including schema lookup for retained data.
+
+Agree the acceptable downtime and data loss with the storage administrator and application owners. Identify the backup method, last recoverable write, required configuration and Secrets, and the target environment. Account for writes made after the recovery point and control client writes while recovery is in progress.
+
+Use the recovery approach for the deployed backend. SQL backups, KafkaSQL topic backups, and registry exports preserve different parts of the service. Follow the documented target conditions when importing registry data to preserve identifiers, and test recovery in a separate environment before relying on it.
+
+Verify the restored versions, references, and schemas needed by retained messages. For writable SQL or KafkaSQL storage, check authenticated publication and retrieval. For read-only GitOps or KubernetesOps storage, check that a managed repository or ConfigMap change appears in a fresh read and that API writes are rejected. Record recovery time and the data loss that application owners accept before resuming normal service.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-registry-high-availability.adoc#ha-backup-restore-sql_{context}[Backing up and restoring SQL database storage]
+* xref:getting-started/assembly-registry-high-availability.adoc#ha-backup-restore-kafkasql_{context}[Backing up KafkaSQL storage]
+* xref:getting-started/assembly-registry-high-availability.adoc#ha-backup-restore-testing_{context}[Testing backup and restore]
+* xref:getting-started/assembly-managing-registry-artifacts-api.adoc#exporting-importing-using-rest-api_{context}[Exporting and importing registry data using REST API commands]
+endif::[]
+
+[id="migrating-to-a-new-major-version_{context}"]
+== Move to a new major registry version while keeping applications working
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can prepare a major-version migration of {registry} by preserving registry data and verifying the client behavior that applications need after the switch.
+
+For a migration from {registry} 2.x to 3.x, inventory the source deployment, stored definitions, authentication, custom clients, and application pipelines. Record the artifact identifiers, version aliases, references, and historical messages that representative clients use. Choose the migration approach and define the conditions for accepting the target and returning to the source.
+
+Prepare the target, control source writes, and transfer data using the migration guidance. Check imported data and service readiness, then apply the client-specific migration guidance. Kafka serializers and deserializers, REST clients, and SDK applications can require different configuration changes.
+
+Run the same representative client checks before and after cutover, including lookup, authentication, and data exchange with the intended versions. Account for writes accepted by the target when evaluating rollback: switching traffic does not transfer those changes back to the source. Preserve the recovery decision and verified configuration with the migration record.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-migrating-registry-v2-v3.adoc#migration-planning_{context}[Migration planning]
+* xref:getting-started/assembly-migrating-registry-v2-v3.adoc#migrating-registry-data_{context}[Migrating {registry} data]
+* xref:getting-started/assembly-migrating-registry-v2-v3.adoc#migrating-kafka-serdes_{context}[Migrating Kafka SerDes applications]
+* xref:getting-started/assembly-migrating-registry-v2-v3.adoc#migrating-rest-api-clients_{context}[Migrating REST API and SDK client applications]
+endif::[]
+
+[id="updating-registry-deployments_{context}"]
+== Update registry deployments while preserving service and configuration
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can prepare a {registry} update by preserving the storage, access, and configuration that applications depend on through rollout and reconciliation.
+
+Review the version-specific upgrade guidance and update path. Record the running configuration and its source-controlled counterpart, including custom resources, storage fields, Secrets, and runtime settings. Confirm a usable backup and the recovery limits of any database schema change before starting.
+
+Use the documented update controls for the deployment. Apply Operator-managed deployment settings through the custom resource, and observe component readiness and storage connectivity as the update proceeds. Keep application owners informed of the expected service impact.
+
+Check existing artifact reads, prohibited access, and a representative client operation. Verify a permitted write for writable SQL or KafkaSQL storage. For read-only GitOps or KubernetesOps storage, check that a managed repository or ConfigMap change appears in a fresh read and that API writes are rejected. Compare effective settings and storage configuration with the intended baseline after rollout and reconciliation. A change to a new major registry version also requires migration and client-transition planning.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-versioning-support-policy.adoc#upgrading-registry_{context}[Upgrade overview]
+* xref:getting-started/assembly-versioning-support-policy.adoc#downgrades-and-rollbacks_{context}[Downgrades and rollbacks]
+* xref:getting-started/assembly-registry-high-availability.adoc#ha-rolling-updates_{context}[Performing rolling updates]
+* xref:getting-started/assembly-deploying-registry-operator.adoc#configuring-env-vars_{context}[Environment variable configuration]
+endif::[]

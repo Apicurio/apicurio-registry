@@ -4,6 +4,15 @@
 ** xref:getting-started/assembly-intro-to-registry-rules.adoc[]
 ** xref:getting-started/assembly-registry-compatibility-modes.adoc[]
 ** xref:getting-started/assembly-data-contracts.adoc[]
+* Registry operations
+** xref:getting-started/assembly-registry-operations.adoc[]
+*** xref:getting-started/assembly-registry-operations.adoc#evaluating-registry-adoption_registry[Decide whether a shared registry fits the application architecture]
+*** xref:getting-started/assembly-registry-operations.adoc#establishing-a-usable-registry-service_registry[Establish a usable registry service for application teams]
+*** xref:getting-started/assembly-registry-operations.adoc#applying-team-access-policies_registry[Apply team access policies to shared definitions]
+*** xref:getting-started/assembly-registry-operations.adoc#resolving-registry-application-problems_registry[Resolve registry problems that interrupt applications]
+*** xref:getting-started/assembly-registry-operations.adoc#recovering-registry-data-and-service_registry[Recover registry data and resume service after a failure]
+*** xref:getting-started/assembly-registry-operations.adoc#migrating-to-a-new-major-version_registry[Move to a new major registry version while keeping applications working]
+*** xref:getting-started/assembly-registry-operations.adoc#updating-registry-deployments_registry[Update registry deployments while preserving service and configuration]
 * Installation
 ** xref:getting-started/assembly-installing-registry-docker.adoc[]
 ** xref:getting-started/assembly-installing-registry-openshift.adoc[]

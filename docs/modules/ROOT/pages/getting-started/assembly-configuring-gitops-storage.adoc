@@ -577,9 +577,9 @@ The status response contains the following fields:
 
 If a load fails because of a data error, for example malformed metadata, a missing content file, or a rule violation, the registry does not retry the same commit. Push a new commit that fixes the problem to trigger a fresh load. Transient errors are retried on the next poll.
 
+ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
 * {registry-rules}
-ifndef::service-registry-downstream[]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/distro/gitops[GitOps sync container README]
 endif::[]

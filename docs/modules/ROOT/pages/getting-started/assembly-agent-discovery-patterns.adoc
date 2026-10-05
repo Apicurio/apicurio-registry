@@ -63,7 +63,12 @@ The following table lists the available well-known endpoints.
 
 |`/.well-known/ai-catalog.json`
 |GET
+ifndef::service-registry-downstream[]
 |Returns an AI Catalog document (see xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery]) projecting registered `AGENT_CARD` and `MCP_TOOL` artifacts.
+endif::[]
+ifdef::service-registry-downstream[]
+|Returns an AI Catalog document projecting registered `AGENT_CARD` and `MCP_TOOL` artifacts.
+endif::[]
 
 |`/.well-known/ard.json`
 |GET
@@ -90,7 +95,10 @@ IMPORTANT: The `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible` endp
 
 The `/.well-known/schemas/\{type}/\{version}` endpoint serves built-in JSON schemas that you can use for IDE autocompletion and validation of `PROMPT_TEMPLATE`, `MODEL_SCHEMA`, and `MCP_TOOL` artifacts. This endpoint requires no authentication.
 
-The `/.well-known/ai-catalog.json` and `/.well-known/ard.json` endpoints require read-level authorization when authentication is enabled. Anonymous clients can read them only if anonymous read access is enabled. {registry} filters agent card entries by the same visibility labels as `/.well-known/agents`. See xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] for the full ARD search API.
+The `/.well-known/ai-catalog.json` and `/.well-known/ard.json` endpoints require read-level authorization when authentication is enabled. Anonymous clients can read them only if anonymous read access is enabled. {registry} filters agent card entries by the same visibility labels as `/.well-known/agents`.
+ifndef::service-registry-downstream[]
+See xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] for the full ARD search API.
+endif::[]
 
 [role="_additional-resources"]
 .Additional resources

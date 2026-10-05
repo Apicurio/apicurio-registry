@@ -1487,6 +1487,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
             final String owner = securityIdentity.getPrincipal().getName();
 
+            // An existing artifact is handled by ifExists, which checks artifact-level access before running
+            // the write hooks. Running the CREATE_ARTIFACT hooks first would let them write (e.g. register
+            // extracted schemas) on behalf of a caller who may not own the artifact. The catch below still
+            // covers an artifact created concurrently after this check.
+            if (storage.isArtifactExists(new GroupId(groupId).getRawGroupIdWithNull(), artifactId)) {
+                return handleIfExists(groupId, artifactId, ifExists, data.getFirstVersion(), fcanonical, dryRun);
+            }
+
             // Let write hooks (e.g. embedded schema extraction) rewrite the content
             final VersionWriteContext writeContext = new VersionWriteContext(
                     VersionWriteContext.Operation.CREATE_ARTIFACT, storage, new GA(groupId, artifactId),
@@ -1932,9 +1940,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * Runs the write hooks' content rewrite for a version added through createArtifact's ifExists
      * handling, the same way createArtifactVersion does.
      *
+     * <p>
+     * Hooks may write to storage (e.g. registering extracted schemas), so this checks artifact-level write
+     * access first, like {@link #updateArtifactInternal} does: createArtifact itself only checks the group.
+     * Not private, so the authorization interceptor applies to this self-invocation.
+     * </p>
+     *
      * @return the content, content type and references (submitted plus hook-added) to store
      */
-    private ContentWrapperDto prepareUpdateContent(String groupId, String artifactId, CreateVersion theVersion) {
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    protected ContentWrapperDto prepareUpdateContent(String groupId, String artifactId, CreateVersion theVersion) {
         ContentHandle content = ContentHandle.create(resolveContent(theVersion.getContent()));
         String contentType = theVersion.getContent().getContentType();
         // Transform the given references into dtos and set the contentId, this will also detect if any of the

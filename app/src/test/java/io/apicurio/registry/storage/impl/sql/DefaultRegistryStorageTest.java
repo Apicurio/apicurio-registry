@@ -54,8 +54,9 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
         ArtifactVersionMetaDataDto first = createFirstVersion(groupId, artifactId);
         Assertions.assertEquals(1, first.getVersionOrder());
 
+        ArtifactVersionEntity duplicate = duplicateOf(first, "2");
         RuntimeSqlException e = Assertions.assertThrows(RuntimeSqlException.class,
-                () -> storage.importArtifactVersion(duplicateOf(first, "2")));
+                () -> storage.importArtifactVersion(duplicate));
         // PostgreSQL folds the unquoted constraint name to lower case; the other dialects keep it.
         Assertions.assertTrue(e.getMessage().toLowerCase(Locale.ROOT).contains("uq_versions_3"),
                 "Expected a UQ_versions_3 violation, got: " + e.getMessage());
@@ -95,8 +96,9 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
             constraintRestored = true;
             Assertions.assertEquals("111", databaseVersion());
             // The constraint is back, so the same duplicate is rejected again.
+            ArtifactVersionEntity next = duplicateOf(first, "3");
             RuntimeSqlException rejected = Assertions.assertThrows(RuntimeSqlException.class,
-                    () -> storage.importArtifactVersion(duplicateOf(first, "3")));
+                    () -> storage.importArtifactVersion(next));
             Assertions.assertTrue(rejected.getMessage().toLowerCase(Locale.ROOT).contains("uq_versions_3"),
                     "Expected a UQ_versions_3 violation, got: " + rejected.getMessage());
             Assertions.assertEquals(1L, storage.countArtifactVersions(groupId, artifactId));

@@ -291,7 +291,7 @@ Agent Cards support three visibility levels, controlled by the `apicurio.agent.v
 |Visible to everyone, including unauthenticated clients
 
 |`entitled`
-|Visible to any authenticated user (this is the default)
+|Visible to authenticated users who have read access to the registry, for example the `sr-readonly`, `sr-developer` or `sr-admin` role when role-based authorization is enabled (this is the default)
 
 |`private`
 |Visible only to the artifact owner and registry administrators

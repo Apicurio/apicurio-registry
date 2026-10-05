@@ -50,7 +50,7 @@ class KafkaSqlSinkTest {
                 new SQLException("Unique index or primary key violation: UQ_versions_3"));
         when(message.dispatchTo(any())).thenThrow(rejected);
 
-        sink.processMessage(record("ImportArtifactVersion1Message"));
+        sink.processMessage(consumerRecord("ImportArtifactVersion1Message"));
 
         verify(log).warn("Kafka message {} at partition {} offset {} was not applied: {}",
                 "ImportArtifactVersion1Message", 0, 42L, rejected.getMessage());
@@ -63,14 +63,14 @@ class KafkaSqlSinkTest {
         VersionAlreadyExistsException conflict = new VersionAlreadyExistsException("g", "a", "1");
         when(message.dispatchTo(any())).thenThrow(conflict);
 
-        sink.processMessage(record("CreateArtifactVersion8Message"));
+        sink.processMessage(consumerRecord("CreateArtifactVersion8Message"));
 
         verify(log, never()).warn(anyString(), any(Object[].class));
-        verify(log).debug(eq("Runtime exception detected: {}"), eq(conflict.getMessage()));
+        verify(log).debug("Runtime exception detected: {}", conflict.getMessage());
         verify(coordinator).notifyResponse(any(), same(conflict));
     }
 
-    private ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record(String messageType) {
+    private ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> consumerRecord(String messageType) {
         return new ConsumerRecord<>("journal", 0, 42L,
                 KafkaSqlMessageKey.builder().messageType(messageType).build(), message);
     }

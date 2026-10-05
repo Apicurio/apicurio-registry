@@ -67,6 +67,14 @@ public class PromptRenderingService {
     private static final String TYPE_OBJECT = "object";
 
     /**
+     * Exclusive upper bound of the {@code long} range, expressed as a {@code double}. Both this
+     * value and {@code Long.MIN_VALUE} are exactly representable as a {@code double}, so they can
+     * be used to test whether a whole-number {@code double} converts to {@code long} without
+     * {@link Double#longValue()}'s silent saturation.
+     */
+    private static final double LONG_RANGE_UPPER_BOUND_EXCLUSIVE = 9223372036854775808.0;
+
+    /**
      * Renders a prompt template by substituting variables.
      *
      * @param content       The prompt template content (YAML or JSON)
@@ -199,11 +207,16 @@ public class PromptRenderingService {
      * {@code integer}. YAML and JSON numeric literals with a decimal point always deserialize as
      * a floating-point type, even when they represent a whole number, so without this coercion an
      * {@code integer}-typed default written as {@code 5.0} would fail its own type validation.
+     * <p>
+     * A whole-number value outside the {@code long} range (e.g. {@code 1e20}) is left as a
+     * {@code Double} so it still fails type validation, rather than being silently saturated to
+     * {@code Long.MIN_VALUE}/{@code Long.MAX_VALUE} by {@link Double#longValue()}.
      */
     private Object convertDefaultValue(JsonNode defaultNode, String declaredType) {
         Object value = MAPPER.convertValue(defaultNode, Object.class);
         if (TYPE_INTEGER.equals(declaredType) && value instanceof Double doubleValue
-                && doubleValue == Math.rint(doubleValue) && !doubleValue.isInfinite()) {
+                && doubleValue == Math.rint(doubleValue) && !doubleValue.isInfinite()
+                && doubleValue >= Long.MIN_VALUE && doubleValue < LONG_RANGE_UPPER_BOUND_EXCLUSIVE) {
             return doubleValue.longValue();
         }
         return value;

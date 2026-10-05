@@ -607,6 +607,30 @@ public class PromptRenderingServiceTest {
     }
 
     @Test
+    public void testOutOfRangeWholeNumberDecimalDefaultIsRejectedForIntegerType() {
+        // A whole-number decimal default outside the `long` range (1e20 is well beyond
+        // Long.MAX_VALUE, ~9.2e18) must still fail type validation rather than being
+        // silently saturated to Long.MAX_VALUE by Double.longValue().
+        String yamlContent = """
+            templateId: limits
+            template: "Limit: {{max_results}}"
+            variables:
+              max_results:
+                type: integer
+                default: 1e20
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of(),
+                "default", "limits", "1.0");
+
+        Assertions.assertEquals(1, response.getValidationErrors().size());
+        Assertions.assertEquals("max_results", response.getValidationErrors().get(0).getVariableName());
+        Assertions.assertEquals("integer", response.getValidationErrors().get(0).getExpectedType());
+    }
+
+    @Test
     public void testFractionalDefaultIsStillRejectedForIntegerType() {
         // A genuinely fractional default (not a whole number) must still fail validation
         // against an "integer" type; only whole-number decimal literals are coerced.

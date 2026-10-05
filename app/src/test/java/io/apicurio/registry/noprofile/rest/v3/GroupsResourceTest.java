@@ -18,7 +18,6 @@ import io.apicurio.registry.rest.v3.beans.NewComment;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.WrappedVersionState;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
@@ -28,6 +27,7 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.tests.DeletionEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apitomy.datamodels.jsonschema.compat.DiffType;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
@@ -934,9 +934,9 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then().statusCode(400).body("status", equalTo(400))
                 .body("title", startsWith("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num"
                         + " of incompatible diffs: {1}, list of diff types: ["
-                        + DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription() + " at /properties/age]"))
-                .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
-                .body("causes[0].context", equalTo("/properties/age"));
+                        + DiffType.SUBSCHEMA_TYPE_CHANGED.getShortDescription() + " at /properties/age/type]"))
+                .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getShortDescription()))
+                .body("causes[0].context", equalTo("/properties/age/type"));
 
     }
 

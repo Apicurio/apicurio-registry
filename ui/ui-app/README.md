@@ -30,3 +30,15 @@ Note that you will need a registry back-end running for the UI to actually work.
 docker, but you could also run the registry from maven or any other way you choose.  Here is how you do it with Docker:
 
 `docker run -it -p 8080:8080 apicurio/apicurio-registry:latest-snapshot`
+
+## Code Editor (Monaco)
+
+Every code/diff editor in the UI (content viewing, diff comparisons, protobuf/draft editing, and
+PatternFly's diagnostic `CodeEditor`) goes through the wrappers in
+`src/app/components/codeEditor/RegistryEditors.tsx` (`RegistryCodeEditor`, `RegistryDiffEditor`,
+`RegistryPatternFlyCodeEditor`). These lazily load a single, bundled Monaco runtime
+(`src/app/components/codeEditor/monacoRuntime.ts`) on first use, so the app works on networks
+without internet access (Monaco is never fetched from a CDN) and Monaco is not part of the initial
+application bundle. Do not import `monaco-editor`, `@monaco-editor/react`, `@monaco-editor/loader`,
+or `@patternfly/react-code-editor` directly outside of `monacoRuntime.ts` /
+`PatternFlyEditorAdapter.tsx` — an ESLint rule enforces this (`import type` is still fine anywhere).

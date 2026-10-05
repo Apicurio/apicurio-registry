@@ -27,7 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * An interrupt while registering one artifact must stop the whole mojo, restore the thread's
- * interrupt flag, and not go on to register the remaining artifacts.
+ * interrupt flag, and not go on to register the remaining artifacts - both in the form the real
+ * client produces (Kiota's Vert.x adapter wraps it in a RuntimeException and the flag is already
+ * cleared) and as a bare InterruptedException from helpers that declare it.
  */
 public class RegisterRegistryMojoInterruptTest {
 
@@ -41,14 +43,17 @@ public class RegisterRegistryMojoInterruptTest {
     }
 
     @Test
-    void interruptStopsRegistrationAndRestoresInterruptFlag() throws Exception {
-        InterruptingAdapter adapter = new InterruptingAdapter();
-        RegisterRegistryMojo mojo = new RegisterRegistryMojo() {
-            @Override
-            protected Vertx createVertx() {
-                return null;
-            }
+    void wrappedInterruptFromClientStopsRegistrationAndRestoresInterruptFlag() throws Exception {
+        assertStopsOnInterrupt(new InterruptingAdapter(true));
+    }
 
+    @Test
+    void bareInterruptStopsRegistrationAndRestoresInterruptFlag() throws Exception {
+        assertStopsOnInterrupt(new InterruptingAdapter(false));
+    }
+
+    private void assertStopsOnInterrupt(InterruptingAdapter adapter) throws Exception {
+        RegisterRegistryMojo mojo = new RegisterRegistryMojo() {
             @Override
             protected RegistryClient createClient(Vertx vertx) {
                 return new RegistryClient(adapter);
@@ -60,7 +65,7 @@ public class RegisterRegistryMojoInterruptTest {
 
         assertEquals("Interrupted while registering artifact [test-group] / [first]", ex.getMessage());
         assertEquals(InterruptedException.class, ex.getCause().getClass());
-        assertTrue(Thread.currentThread().isInterrupted(), "interrupt flag must be restored");
+        assertTrue(Thread.interrupted(), "interrupt flag must be restored");
         assertEquals(1, adapter.requests.get(), "the second artifact must not be attempted");
     }
 
@@ -76,12 +81,18 @@ public class RegisterRegistryMojoInterruptTest {
     }
 
     /**
-     * Request adapter that fails every request with an InterruptedException, as a blocking client call
-     * does when the build thread is interrupted. Kiota's send methods don't declare it, so it is thrown
-     * unchecked-style, exactly as it would propagate from the real adapter.
+     * Request adapter that fails every request because the build thread was interrupted. With
+     * {@code wrapped}, it behaves like io.kiota.http.vertx.VertXRequestAdapter: the blocking
+     * CompletableFuture.get() clears the flag and the InterruptedException is rethrown inside a
+     * RuntimeException. Otherwise it propagates a bare InterruptedException.
      */
     private static final class InterruptingAdapter implements RequestAdapter {
         final AtomicInteger requests = new AtomicInteger();
+        private final boolean wrapped;
+
+        InterruptingAdapter(boolean wrapped) {
+            this.wrapped = wrapped;
+        }
 
         @SuppressWarnings("unchecked")
         private static <T extends Throwable> RuntimeException sneakyThrow(Throwable t) throws T {
@@ -90,7 +101,11 @@ public class RegisterRegistryMojoInterruptTest {
 
         private RuntimeException interrupted() {
             requests.incrementAndGet();
-            return sneakyThrow(new InterruptedException("simulated interrupt"));
+            InterruptedException interrupt = new InterruptedException("simulated interrupt");
+            if (wrapped) {
+                return new RuntimeException(interrupt);
+            }
+            return sneakyThrow(interrupt);
         }
 
         @Override

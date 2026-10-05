@@ -3,6 +3,7 @@ package io.apicurio.registry.storage.impl.sql;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
@@ -10,6 +11,7 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.error.CommitFailedException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.impexp.v3.BranchEntity;
@@ -91,20 +93,50 @@ public class StructuredContentSearchTest {
     public void conditionalPublishIndexesNewTipAndRejectedOrDraftWritesLeaveIndexUnchanged() {
         String group=group();
         create(group,"agent","first");
-        storage.createArtifactVersionIfLatest(group,"agent","2","AGENT_CARD",content("second"),
-                EditableVersionMetaDataDto.builder().build(),List.of(),false,"test",1,null);
+        ArtifactVersionMetaDataDto second=storage.createArtifactVersionIfLatest(group,"agent","2","AGENT_CARD",
+                content("second"),EditableVersionMetaDataDto.builder().build(),List.of(),false,"test",1,null);
+        assertEquals(2,second.getVersionOrder());
+        assertEquals(VersionState.ENABLED,second.getState());
         assertEquals(Set.of("agent"),matches(group,SearchFilter.ofStructure("skill:second")));
         assertEquals(Set.of(),matches(group,SearchFilter.ofStructure("skill:first")));
-        // Stale base: the index rows written before the version insert must roll back with it.
+        // Stale base: the publish is rejected and the index keeps the current tip.
         assertThrows(CommitFailedException.class,()->storage.createArtifactVersionIfLatest(group,"agent","3",
                 "AGENT_CARD",content("stale"),EditableVersionMetaDataDto.builder().build(),List.of(),false,"test",
                 1,null));
         assertEquals(Set.of(),matches(group,SearchFilter.ofStructure("skill:stale")));
         assertEquals(Set.of("agent"),matches(group,SearchFilter.ofStructure("skill:second")));
-        storage.createArtifactVersionIfLatest(group,"agent","3","AGENT_CARD",content("draft-next"),
-                EditableVersionMetaDataDto.builder().build(),List.of(),true,"test",2,null);
+        ArtifactVersionMetaDataDto draft=storage.createArtifactVersionIfLatest(group,"agent","3","AGENT_CARD",
+                content("draft-next"),EditableVersionMetaDataDto.builder().build(),List.of(),true,"test",2,null);
+        assertEquals(VersionState.DRAFT,draft.getState());
         assertEquals(Set.of(),matches(group,SearchFilter.ofStructure("skill:draft-next")));
         assertEquals(Set.of("agent"),matches(group,SearchFilter.ofStructure("skill:second")));
+    }
+
+    @Test
+    public void versionCreateIndexesWithStoredArtifactTypeNotCallerType() {
+        String group=group();
+        create(group,"agent","first");
+        storage.createArtifactVersion(group,"agent","2","JSON",content("second"),
+                EditableVersionMetaDataDto.builder().build(),List.of(),false,false,"test");
+        assertEquals(Set.of("agent"),matches(group,SearchFilter.ofStructure("agent_card:skill:second")));
+        assertEquals(Set.of(),matches(group,SearchFilter.ofStructure("skill:first")));
+    }
+
+    @Test
+    public void failedVersionInsertRollsBackIndexRowsWrittenBeforeIt() {
+        // The index is written before the version row; a version insert that then fails (duplicate
+        // version) must discard those rows with the rest of the transaction, on both create paths.
+        String group=group();
+        create(group,"agent","kept");
+        assertThrows(VersionAlreadyExistsException.class,()->storage.createArtifactVersion(group,"agent","1",
+                "AGENT_CARD",content("dup-plain"),EditableVersionMetaDataDto.builder().build(),List.of(),false,
+                false,"test"));
+        assertThrows(VersionAlreadyExistsException.class,()->storage.createArtifactVersionIfLatest(group,"agent",
+                "1","AGENT_CARD",content("dup-latest"),EditableVersionMetaDataDto.builder().build(),List.of(),
+                false,"test",1,null));
+        assertEquals(Set.of(),matches(group,SearchFilter.ofStructure("skill:dup-plain")));
+        assertEquals(Set.of(),matches(group,SearchFilter.ofStructure("skill:dup-latest")));
+        assertEquals(Set.of("agent"),matches(group,SearchFilter.ofStructure("skill:kept")));
     }
 
     @Test

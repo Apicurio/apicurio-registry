@@ -32,7 +32,7 @@ CREATE TABLE acls (
 
 CREATE TABLE peers (
     peerId              VARCHAR(256)  NOT NULL,
-    url                 VARCHAR(1024) NOT NULL,
+    url                 VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
     name                VARCHAR(512)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     description         VARCHAR(1024) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     enabled             BOOLEAN       NOT NULL DEFAULT TRUE,

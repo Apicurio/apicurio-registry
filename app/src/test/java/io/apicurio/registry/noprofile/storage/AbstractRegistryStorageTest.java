@@ -1038,6 +1038,22 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         storage().deletePeer("peer-test-case");
         Assertions.assertFalse(storage().isPeerExists("peer-test-case"));
+
+        // A peer url may carry non-ASCII path characters, which the validator accepts. MySQL's
+        // peers table defaults to the ascii character set, so its url column is declared utf8mb4.
+        // Covered here so it is exercised against a real MySQL database too, via MysqlStorageTest.
+        String unicodeUrl = "https://unicode.example.com/café";
+        storage().createPeer(PeerDto.builder().peerId("peer-test-unicode").url(unicodeUrl).enabled(true)
+                .build());
+        Assertions.assertEquals(unicodeUrl, storage().getPeer("peer-test-unicode").getUrl());
+
+        String updatedUnicodeUrl = "https://unicode.example.com/注册表";
+        storage().updatePeer(PeerDto.builder().peerId("peer-test-unicode").url(updatedUnicodeUrl)
+                .enabled(true).build());
+        Assertions.assertEquals(updatedUnicodeUrl, storage().getPeer("peer-test-unicode").getUrl());
+
+        storage().deletePeer("peer-test-unicode");
+        Assertions.assertFalse(storage().isPeerExists("peer-test-unicode"));
     }
 
     @Test

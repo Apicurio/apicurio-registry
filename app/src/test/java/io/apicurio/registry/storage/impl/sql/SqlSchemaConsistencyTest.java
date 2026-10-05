@@ -21,6 +21,12 @@ class SqlSchemaConsistencyTest {
 
     private static final Pattern CREATE_PEERS_TABLE = Pattern.compile("CREATE TABLE (IF NOT EXISTS )?peers \\(");
 
+    // The column definitions of the peers table, from peerId through credentialSecretRef. What
+    // follows the last column (keys, indexes, table options) is laid out differently per script.
+    private static final Pattern PEERS_COLUMNS = Pattern.compile(
+            "CREATE TABLE (?:IF NOT EXISTS )?peers \\((.*?\\bcredentialSecretRef\\s+\\w+\\(\\d+\\))",
+            Pattern.DOTALL);
+
     @Test
     void testUpgradeScriptsExistForCurrentDbVersion() {
         int dbVersion = readDbVersion();
@@ -67,6 +73,24 @@ class SqlSchemaConsistencyTest {
                     "Upgrade DDL for dialect '" + dialect + "' at version " + PEERS_DB_VERSION
                             + " must bump db_version only after creating the peers table.");
         }
+    }
+
+    @Test
+    void testPeersColumnsMatchBetweenBaseAndUpgradeDdl() {
+        for (String dialect : DIALECTS) {
+            String baseColumns = peersColumns(readResource(dialect + ".ddl"));
+            String upgradeColumns = peersColumns(
+                    readResource("upgrades/" + PEERS_DB_VERSION + "/" + dialect + ".upgrade.ddl"));
+            Assertions.assertEquals(baseColumns, upgradeColumns,
+                    "Upgrade DDL for dialect '" + dialect + "' at version " + PEERS_DB_VERSION
+                            + " must create the peers table with the same columns as the base DDL.");
+        }
+    }
+
+    private static String peersColumns(String ddl) {
+        Matcher columns = PEERS_COLUMNS.matcher(ddl);
+        Assertions.assertTrue(columns.find(), "Could not find the peers table columns.");
+        return columns.group(1).replaceAll("\\s+", " ").trim();
     }
 
     private int readDbVersion() {

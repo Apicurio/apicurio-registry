@@ -24,6 +24,15 @@
 ** xref:getting-started/assembly-configuring-the-registry.adoc[]
 ** xref:getting-started/assembly-custom-artifact-types.adoc[]
 ** xref:getting-started/assembly-registry-events.adoc[]
+* Developer workflows
+** xref:getting-started/assembly-developer-workflows.adoc[]
+*** xref:getting-started/assembly-developer-workflows.adoc#reusing-definitions-in-development-tools_registry[Find and reuse definitions in development tools]
+*** xref:getting-started/assembly-developer-workflows.adoc#changing-schemas-without-disruptions_registry[Change schemas without disrupting existing applications]
+*** xref:getting-started/assembly-developer-workflows.adoc#releasing-consistent-definitions_registry[Release a consistent set of definitions for application teams]
+*** xref:getting-started/assembly-developer-workflows.adoc#exchanging-data-with-shared-schemas_registry[Exchange Kafka application data using shared schemas]
+*** xref:getting-started/assembly-developer-workflows.adoc#checking-business-data-expectations_registry[Ensure exchanged data meets agreed business expectations]
+*** xref:getting-started/assembly-developer-workflows.adoc#finding-and-connecting-to-an-agent_registry[Find an existing agent and connect it to an application]
+*** xref:getting-started/assembly-developer-workflows.adoc#retiring-obsolete-definitions_registry[Retire obsolete definitions without breaking remaining consumers]
 * Client applications
 ** xref:getting-started/assembly-managing-registry-artifacts-ui.adoc[]
 ** xref:getting-started/assembly-managing-registry-artifacts-api.adoc[]

@@ -1,0 +1,166 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="developer-workflows_{context}"]
+= Developing applications with shared definitions
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+Use {registry} to find and publish schemas and APIs, coordinate compatible changes, and verify that applications can use the selected definitions. Data contracts and agent discovery provide additional workflows for applications that use those capabilities.
+
+A registry rule or successful API request checks part of an integration. Application checks confirm that the selected definitions work with your development tools, producers, consumers, and external services.
+
+[id="reusing-definitions-in-development-tools_{context}"]
+== Find and reuse definitions in development tools
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can retrieve shared schemas and APIs from {registry} for use in an editor, parser, or code generator. The selected versions and their dependencies form the definition set for your application.
+
+Before choosing a definition, identify its owner, intended use, schema format, and required version. Check its state and metadata, and confirm that your development tool supports the format and reference structure.
+
+Search for the artifact, record its group, artifact ID, and version, and retrieve the content with its dependencies. The Maven plug-in provides downloads, and the REST API provides reference retrieval and dereferenced content for supported formats. Apply the documented reference limits when choosing how to supply content to the tool.
+
+Parse the selected definitions or generate code with the intended tool. Check the result and retain the selected coordinates with the build configuration. Subsequent runtime integration also requires a producer-to-consumer check with the intended schemas.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-managing-registry-artifacts-api.adoc#searching-artifacts-using-rest-api_registry[Searching for schema and API artifacts using {registry} REST API commands]
+* xref:getting-started/assembly-managing-registry-artifacts-maven.adoc#downloading-artifacts-using-maven-plugin_registry[Downloading schema and API artifacts using the Maven plug-in]
+* xref:getting-started/assembly-managing-registry-artifacts-api.adoc#managing-artifact-references-using-rest-api_registry[Managing schema and API artifact references using {registry} REST API commands]
+endif::[]
+
+[id="changing-schemas-without-disruptions_{context}"]
+== Change schemas without disrupting existing applications
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can use {registry} compatibility rules and application checks to plan schema changes that preserve the data exchanges your producers and consumers require.
+
+Start with the schema format, the versions that applications use, and the historical data that consumers must still read. Identify which combinations of old and new producers and consumers must work during the rollout. These requirements determine the compatibility policy and the application deployment order.
+
+Review the format-specific compatibility tables and rule maturity before choosing a policy. Use the Maven plug-in to test a candidate against the configured rules, then publish the approved definition and coordinate the application change. Keep the selected artifact versions and dependencies consistent across environments.
+
+Test the required combinations of old and new applications with representative retained data. Compare the exchanges with the expected results and record the recovery action if a combination fails. A compatibility-rule result supports this decision alongside the application checks.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-registry-compatibility-modes.adoc#registry-compatibility-mode-descriptions_registry[Compatibility mode descriptions]
+* xref:getting-started/assembly-rule-reference.adoc#registry-rule-maturity-matrix_registry[{registry} content rule maturity]
+* xref:getting-started/assembly-managing-registry-artifacts-maven.adoc#testing-artifacts-using-maven-plugin_registry[Testing schema and API artifacts using the Maven plug-in]
+endif::[]
+
+[id="releasing-consistent-definitions_{context}"]
+== Release a consistent set of definitions for application teams
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can publish related schemas and APIs in {registry} with explicit versions and references so that application teams receive a consistent set of definitions.
+
+Identify the approved artifact versions, their dependencies, and the target environment before publication. Record the effective content rules and the credentials used to publish. Resolve compatibility decisions with the application owners before treating the set as ready for release.
+
+Choose the publication or transfer method for the target's existing content and identifier requirements. The REST API and Maven plug-in support artifact publication with references. Registry export and import have specific target conditions that matter when preserving identifiers. Review these conditions before selecting a transfer path.
+
+Read back the intended versions and reference coordinates from the target. Verify that the complete approved set resolves there and the intended clients can retrieve it. Preserve the results with the release record, then confirm development-tool use and runtime exchange in the consuming applications.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-managing-registry-artifacts-api.adoc#managing-artifact-references-using-rest-api_registry[Managing schema and API artifact references using {registry} REST API commands]
+* xref:getting-started/assembly-managing-registry-artifacts-maven.adoc#adding-artifact-references-manually-using-maven-plugin_registry[Adding artifact references manually using the {registry} Maven plug-in]
+* xref:getting-started/assembly-managing-registry-artifacts-api.adoc#exporting-importing-using-rest-api_registry[Exporting and importing registry data using {registry} REST API commands]
+endif::[]
+
+[id="exchanging-data-with-shared-schemas_{context}"]
+== Exchange Kafka application data using shared schemas
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can connect Kafka producer and consumer applications to schemas in {registry} so that the receiving application can read the data the sender writes.
+
+A representative exchange requires a running registry, a Kafka environment, an available schema, and client access to both services. Choose a schema format and the corresponding serializer and deserializer. Identify the topic and the artifact coordinates that the producer must resolve.
+
+Use the client configuration guidance to connect both applications. The schema lookup strategy determines which artifact the producer uses; matching identifier and message-header settings let the consumer retrieve the corresponding schema. Include the authentication and TLS settings required by your environment.
+
+Define a known input and its expected consumed result before testing the integration. Send the input, confirm that the producer resolves the intended schema, and compare the consumed result with the expected value. Retain the working configuration as the baseline for later schema changes, and use the original failed operation when diagnosing a lookup or deserialization problem.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-using-kafka-client-serdes.adoc#service-registry-concepts-artifactid_registry[Strategies to return a reference to an artifact]
+* xref:getting-started/assembly-using-kafka-client-serdes.adoc#registry-serdes-config-consumer_registry[Using a schema from a Kafka consumer client]
+* xref:getting-started/assembly-using-kafka-client-serdes.adoc#registry-serdes-config-producer_registry[Using a schema from a Kafka producer client]
+* xref:getting-started/assembly-configuring-kafka-client-serdes.adoc#registry-serdes-config-props_registry[{registry} serializer/deserializer configuration properties]
+endif::[]
+
+[id="checking-business-data-expectations_{context}"]
+== Ensure exchanged data meets agreed business expectations
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can describe shared data expectations with data contracts in {registry} and identify the rules and application checks needed to assess exchanged records.
+
+Start with the producer and consumer agreement, the schema versions it covers, and the responsible owners. Open Data Contract Standard (ODCS) projection distinguishes executable accuracy rules from metadata, field tags, and service-level information. External monitoring is required for expectations that the registry stores without enforcing.
+
+Use explicit schema locations when submitting a contract, and review the projected rules and metadata for each governed artifact. Choose the rule scope and the application behavior required when a record fails a condition. Serializer/deserializer (SerDes) rule enforcement requires configuration, and application failure handling must account for the intended outcome.
+
+Test representative records that should meet the agreed expectations and records that should violate them. Verify the expected acceptance or rejection, and record which component performs each check and handles each violation, including any external monitoring or routing responsibility.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-data-contracts.adoc#data-contracts-odcs-projection_registry[ODCS projection mapping]
+* xref:getting-started/assembly-data-contracts.adoc#data-contracts-serdes_registry[Kafka SerDes integration]
+* xref:getting-started/assembly-data-contracts.adoc#data-contracts-api-examples_registry[REST API examples]
+endif::[]
+
+[id="finding-and-connecting-to-an-agent_{context}"]
+== Find an existing agent and connect it to an application
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can use Agent Cards in {registry} to find an existing agent, select a suitable interface and version, and prepare your application to communicate with it.
+
+Identify the capability, input and output modes, and protocol that your application requires. Discovery requires enabled agent features and suitable registered cards. A card must meet the configured validation level; authentication and visibility settings determine the discovery results available to the caller.
+
+Search with the required filters, retrieve the selected card, and review its interface URL and version. Your application or orchestrator connects to the external agent. Access to a card does not itself establish access to that agent or prove that its endpoint is reachable.
+
+Send an application request to the chosen agent version and compare its response with the expected result. Use the existing error-handling guidance for empty results, unreachable agents, and fallback selection.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-agent-registry-quickstart.adoc#registering-an-agent-card_registry[Registering an agent card]
+* xref:getting-started/assembly-agent-discovery-patterns.adoc#agent-discovery-patterns-overview_registry[Discovery patterns]
+* xref:getting-started/assembly-agent-discovery-patterns.adoc#agent-error-handling-and-resilience_registry[Error handling and resilience]
+endif::[]
+
+[id="retiring-obsolete-definitions_{context}"]
+== Retire obsolete definitions without breaking remaining consumers
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can retire an obsolete schema or API version in {registry} by accounting for dependent definitions, application consumers, and retained-data requirements before removing access.
+
+Identify the replacement version and the teams that use the obsolete definition. The web console shows references between artifacts; application ownership and infrequent use also require confirmation with the responsible teams. Include any need to read historical data in the retention decision.
+
+Use the lifecycle guidance to deprecate the version and communicate the replacement. Confirm consumer migration before disabling access. Schema caches can allow clients to continue using a definition without fetching it again, so quiet access logs alone do not establish that migration is complete.
+
+Verify that applications use the replacement version after a fresh lookup and can still read required retained data. If disabling exposes a remaining dependency, use the documented reversible state transition while resolving it. Consider permanent deletion only after consumers and retention obligations are accounted for; deletion is irreversible.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-managing-registry-artifacts-ui.adoc#browsing-artifacts-using-console_registry[Viewing artifacts using the {registry} web console]
+* xref:getting-started/assembly-schema-lifecycle-best-practices.adoc#managing-schema-lifecycle-states_registry[Managing schema lifecycle states]
+* xref:getting-started/assembly-managing-registry-artifacts-ui.adoc#deleting-artifact-version-using-console_registry[Deleting an artifact version]
+endif::[]

@@ -19,18 +19,22 @@ import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.EntityType;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.tests.TestUtils;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBase {
@@ -1519,6 +1523,120 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
                 // Artifact may not exist if createArtifact threw; safe to ignore.
             }
         }
+    }
+
+    @Test
+    public void testSearchArtifactsPaginationWithTiedTimestamps() throws Exception {
+        String groupId = "testSearchArtifactsTiedTimestamps-" + UUID.randomUUID();
+        int total = 12;
+        long timestamp = System.currentTimeMillis();
+        for (int idx = 0; idx < total; idx++) {
+            storage().importArtifact(ArtifactEntity.builder()
+                    .groupId(groupId).artifactId("artifact-" + idx).artifactType(ArtifactType.OPENAPI)
+                    .owner("test").createdOn(timestamp).modifiedBy("test").modifiedOn(timestamp).build());
+        }
+
+        try {
+            Set<SearchFilter> filters = Set.of(SearchFilter.ofGroupId(groupId));
+            for (OrderBy orderBy : List.of(OrderBy.createdOn, OrderBy.modifiedOn)) {
+                assertDeterministicPagination(total, (offset, direction) -> {
+                    ArtifactSearchResultsDto results = storage().searchArtifacts(filters, orderBy, direction,
+                            offset, 1, false);
+                    Assertions.assertEquals(total, results.getCount());
+                    return results.getArtifacts().get(0).getArtifactId();
+                });
+            }
+        } finally {
+            storage().deleteGroup(groupId);
+        }
+    }
+
+    @Test
+    public void testSearchGroupsPaginationWithTiedTimestamps() throws Exception {
+        String labelKey = "tied-timestamps-" + UUID.randomUUID();
+        int total = 12;
+        long timestamp = System.currentTimeMillis();
+        for (int idx = 0; idx < total; idx++) {
+            storage().importGroup(GroupEntity.builder()
+                    .groupId(labelKey + "-group-" + idx).owner("test").createdOn(timestamp)
+                    .modifiedBy("test").modifiedOn(timestamp).labels(Map.of(labelKey, "true")).build());
+        }
+
+        try {
+            Set<SearchFilter> filters = Set.of(SearchFilter.ofLabel(labelKey, "true"));
+            for (OrderBy orderBy : List.of(OrderBy.createdOn, OrderBy.modifiedOn)) {
+                assertDeterministicPagination(total, (offset, direction) -> {
+                    GroupSearchResultsDto results = storage().searchGroups(filters, orderBy, direction,
+                            offset, 1);
+                    Assertions.assertEquals(total, results.getCount());
+                    return results.getGroups().get(0).getId();
+                });
+            }
+        } finally {
+            for (int idx = 0; idx < total; idx++) {
+                storage().deleteGroup(labelKey + "-group-" + idx);
+            }
+        }
+    }
+
+    @Test
+    public void testSearchVersionsPaginationWithTiedNames() throws Exception {
+        String artifactId = "testSearchVersionsTiedNames-" + UUID.randomUUID();
+        int total = 12;
+        EditableVersionMetaDataDto metaData = new EditableVersionMetaDataDto("tied-name", null, null);
+        storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null,
+                ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                        .content(ContentHandle.create(OPENAPI_CONTENT)).build(),
+                metaData, Collections.emptyList(), false, false, null);
+        for (int idx = 1; idx < total; idx++) {
+            ContentHandle content = ContentHandle
+                    .create(OPENAPI_CONTENT_TEMPLATE.replace("VERSION", "1.0." + idx));
+            storage().createArtifactVersion(GROUP_ID, artifactId, null, ArtifactType.OPENAPI,
+                    ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON).content(content)
+                            .build(),
+                    metaData, Collections.emptyList(), false, false, null);
+        }
+
+        try {
+            Set<SearchFilter> filters = Set.of(SearchFilter.ofGroupId(GROUP_ID),
+                    SearchFilter.ofArtifactId(artifactId));
+            assertDeterministicPagination(total, (offset, direction) -> {
+                VersionSearchResultsDto results = storage().searchVersions(filters, OrderBy.name, direction,
+                        offset, 1, false);
+                Assertions.assertEquals(total, results.getCount());
+                return String.valueOf(results.getVersions().get(0).getGlobalId());
+            });
+        } finally {
+            storage().deleteArtifact(GROUP_ID, artifactId);
+        }
+    }
+
+    /**
+     * Pages through a result set of tied sort keys one item at a time in both directions, and asserts that
+     * every item is returned exactly once and that descending order is the reverse of ascending order.
+     */
+    private static void assertDeterministicPagination(int total, PageFetcher fetcher) throws Exception {
+        List<String> ascending = fetchAllPages(total, OrderDirection.asc, fetcher);
+        List<String> descending = fetchAllPages(total, OrderDirection.desc, fetcher);
+
+        Assertions.assertEquals(total, Set.copyOf(ascending).size(),
+                "Offset pagination repeated or skipped items: " + ascending);
+        Collections.reverse(descending);
+        Assertions.assertEquals(ascending, descending);
+    }
+
+    private static List<String> fetchAllPages(int total, OrderDirection direction, PageFetcher fetcher)
+            throws Exception {
+        List<String> ids = new ArrayList<>();
+        for (int offset = 0; offset < total; offset++) {
+            ids.add(fetcher.fetch(offset, direction));
+        }
+        return ids;
+    }
+
+    @FunctionalInterface
+    private interface PageFetcher {
+        String fetch(int offset, OrderDirection direction) throws Exception;
     }
 
 }

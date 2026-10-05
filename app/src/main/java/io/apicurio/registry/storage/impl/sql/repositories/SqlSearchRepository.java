@@ -280,13 +280,11 @@ public class SqlSearchRepository {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
-            // Primary key tiebreaker to ensure deterministic offset pagination when sort keys tie (#10410)
-            if (orderBy == OrderBy.groupId) {
-                orderByQuery.append(", a.artifactId ").append(orderDirection.name());
-            } else if (orderBy == OrderBy.artifactId) {
+            // Primary key tiebreaker so offset pagination is deterministic when sort keys tie (#10410)
+            if (orderBy != OrderBy.groupId) {
                 orderByQuery.append(", a.groupId ").append(orderDirection.name());
-            } else {
-                orderByQuery.append(", a.groupId ").append(orderDirection.name());
+            }
+            if (orderBy != OrderBy.artifactId) {
                 orderByQuery.append(", a.artifactId ").append(orderDirection.name());
             }
 
@@ -481,7 +479,8 @@ public class SqlSearchRepository {
                 limitOffset.append(" LIMIT ? OFFSET ?");
             }
 
-            if (orderBy == OrderBy.createdOn || orderBy == OrderBy.modifiedOn) {
+            // Primary key tiebreaker so offset pagination is deterministic when sort keys tie (#10410)
+            if (orderBy != OrderBy.globalId) {
                 orderByQuery.append(", v.globalId ").append(orderDirection.name());
             }
 

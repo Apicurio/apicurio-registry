@@ -10,8 +10,11 @@ export const promptTemplateMonarchTokensProvider = {
             { include: "@template" },
             { include: "@whitespace" },
 
+            // YAML block scalars (| and >)
+            [/[|>](?:[+-]?[1-9]?|[1-9]?[+-]?)(?:\s*#.*)?$/, "operator", "@blockScalarStart"],
+
             // YAML-style keys
-            [/^\s*[\w.-]+(?=\s*:)/, "type.identifier"],
+            [/[\w.-]+(?=\s*:)/, "type.identifier"],
 
             // Quoted strings
             [/"/, { token: "string.quote", next: "@doubleString" }],
@@ -36,13 +39,13 @@ export const promptTemplateMonarchTokensProvider = {
             // Triple-brace expressions are unsupported.
             [/\{\{\{.*?\}\}\}/, "invalid"],
 
-            // Supported conditionals and keywords matching backend contract.
-            [/\{\{\s*#if\s+[^{}]+\s*\}\}/, "keyword"],
-            [/\{\{\s*#unless\s+[^{}]+\s*\}\}/, "keyword"],
-            [/\{\{\s*else\s*\}\}/, "keyword"],
-            [/\{\{\s*this\s*\}\}/, "keyword"],
-            [/\{\{\s*\/if\s*\}\}/, "keyword"],
-            [/\{\{\s*\/unless\s*\}\}/, "keyword"],
+            // Supported conditionals and keywords matching backend PromptRenderingService contract.
+            [/\{\{#if\s+\w+\}\}/, "keyword"],
+            [/\{\{#unless\s+\w+\}\}/, "keyword"],
+            [/\{\{else\}\}/, "keyword"],
+            [/\{\{this\}\}/, "keyword"],
+            [/\{\{\/if\}\}/, "keyword"],
+            [/\{\{\/unless\}\}/, "keyword"],
 
             // Support simple variable names only (dotted paths remain literal).
             [/\{\{\s*\w+\s*\}\}/, "variable"],
@@ -54,6 +57,28 @@ export const promptTemplateMonarchTokensProvider = {
         whitespace: [
             [/[ \t\r\n]+/, "white"],
             [/#.*$/, "comment"]
+        ],
+
+        blockScalarStart: [
+            [/^[ \t]*$/, "white"],
+            [/^( +)/, { token: "white", switchTo: "@blockScalarBody.$1" }],
+            [/^/, { token: "@rematch", next: "@pop" }]
+        ],
+
+        blockScalarBody: [
+            [/^[ \t]*$/, "white"],
+            [
+                /^( *)(?=\S)/,
+                {
+                    cases: {
+                        "$1~$S2.*": { token: "white" },
+                        "@default": { token: "@rematch", next: "@pop" }
+                    }
+                }
+            ],
+            { include: "@template" },
+            [/[^{}]+/, "string"],
+            [/[{}]/, "string"]
         ],
 
         doubleString: [

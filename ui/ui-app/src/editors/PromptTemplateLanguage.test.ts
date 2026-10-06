@@ -1,9 +1,29 @@
+// @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
 import {
     PROMPT_TEMPLATE_LANGUAGE_ID,
-    promptTemplateMonarchTokensProvider,
     registerPromptTemplate
 } from "./PromptTemplateLanguage";
+
+// JSDOM does not provide document.queryCommandSupported or window.matchMedia,
+// which Monaco Editor 0.55.1 requires during standalone initialization.
+if (typeof document !== "undefined" && !(document as any).queryCommandSupported) {
+    (document as any).queryCommandSupported = () => false;
+}
+if (typeof window !== "undefined" && !window.matchMedia) {
+    window.matchMedia = (query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false
+    } as any);
+}
+
+const monaco = await import("monaco-editor");
 
 interface TokenResult {
     token: string;
@@ -11,76 +31,30 @@ interface TokenResult {
 }
 
 /**
- * Lightweight Monarch line-tokenizer simulator for testing Monarch rules in Node.
+ * Tokenizes the input string using the real production Monaco Monarch tokenizer.
+ * This runs the compiled Monarch engine in Monaco 0.55.1 without simulators or mock regexes.
  */
-function tokenizeMonarch(input: string): TokenResult[] {
-    const tokenizer = promptTemplateMonarchTokensProvider.tokenizer as Record<string, any[]>;
-    const stateStack: string[] = ["root"];
+function tokenizeWithMonaco(input: string): TokenResult[] {
+    registerPromptTemplate(monaco);
+    const tokenLines = monaco.editor.tokenize(input, PROMPT_TEMPLATE_LANGUAGE_ID);
+    const lines = input.split("\n");
     const results: TokenResult[] = [];
 
-    function getRulesForState(stateName: string): any[] {
-        const rawRules = tokenizer[stateName] || [];
-        const expandedRules: any[] = [];
-        for (const rule of rawRules) {
-            if (rule.include && typeof rule.include === "string" && rule.include.startsWith("@")) {
-                expandedRules.push(...getRulesForState(rule.include.slice(1)));
-            } else {
-                expandedRules.push(rule);
-            }
-        }
-        return expandedRules;
-    }
+    for (let lineIdx = 0; lineIdx < tokenLines.length; lineIdx++) {
+        const lineText = lines[lineIdx];
+        const lineTokens = tokenLines[lineIdx];
 
-    const lines = input.split("\n");
-
-    for (let l = 0; l < lines.length; l++) {
-        const line = lines[l];
-        let pos = 0;
-
-        while (pos < line.length) {
-            const currentState = stateStack[stateStack.length - 1];
-            const rules = getRulesForState(currentState);
-            const remaining = line.slice(pos);
-            let matched = false;
-
-            for (const rule of rules) {
-                const pattern: RegExp = rule[0];
-                const action: any = rule[1];
-
-                const regex = new RegExp(pattern.source, pattern.flags.replace("g", ""));
-                const match = regex.exec(remaining);
-
-                if (match && match.index === 0 && match[0].length > 0) {
-                    const matchText = match[0];
-                    let tokenType = "";
-
-                    if (typeof action === "string") {
-                        tokenType = action;
-                    } else if (typeof action === "object" && action !== null) {
-                        tokenType = action.token || "";
-                        if (action.next === "@pop") {
-                            if (stateStack.length > 1) {
-                                stateStack.pop();
-                            }
-                        } else if (action.next && typeof action.next === "string" && action.next.startsWith("@")) {
-                            stateStack.push(action.next.slice(1));
-                        }
-                    }
-
-                    results.push({ token: tokenType, text: matchText });
-                    pos += matchText.length;
-                    matched = true;
-                    break;
-                }
-            }
-
-            if (!matched) {
-                results.push({ token: "default", text: line[pos] });
-                pos += 1;
-            }
+        for (let idx = 0; idx < lineTokens.length; idx++) {
+            const start = lineTokens[idx].offset;
+            const end = idx < lineTokens.length - 1 ? lineTokens[idx + 1].offset : lineText.length;
+            const rawType = lineTokens[idx].type;
+            // Strip the language ID postfix appended by Monaco (e.g. "variable.prompt-template" -> "variable")
+            const token = rawType ? rawType.replace(/\.prompt-template$/, "") : "";
+            const text = lineText.slice(start, end);
+            results.push({ token, text });
         }
 
-        if (l < lines.length - 1) {
+        if (lineIdx < tokenLines.length - 1) {
             results.push({ token: "white", text: "\n" });
         }
     }
@@ -88,13 +62,209 @@ function tokenizeMonarch(input: string): TokenResult[] {
     return results;
 }
 
-describe("PromptTemplateLanguage — Monarch Quoted String Tokenizer Regression Tests", () => {
-    it("tokenizes placeholders inside double-quoted strings separately from plain text", () => {
-        const input = "template: \"Hello {{name}} at {{place}}\"";
-        const tokens = tokenizeMonarch(input);
+describe("PromptTemplateLanguage — Real Monaco Tokenizer: Conditionals & Backend Grammar", () => {
+    it("tokenizes valid conditionals matching PromptRenderingService contract as keywords", () => {
+        const input = "{{#if active}} {{#unless isDraft}} {{else}} {{this}} {{/if}} {{/unless}}";
+        const tokens = tokenizeWithMonaco(input).filter(t => t.token !== "white");
+
+        expect(tokens).toEqual([
+            { token: "keyword", text: "{{#if active}}" },
+            { token: "keyword", text: "{{#unless isDraft}}" },
+            { token: "keyword", text: "{{else}}" },
+            { token: "keyword", text: "{{this}}" },
+            { token: "keyword", text: "{{/if}}" },
+            { token: "keyword", text: "{{/unless}}" }
+        ]);
+    });
+
+    it("classifies unsupported helper expressions like {{#if (gt x 5)}} as invalid, NOT keyword", () => {
+        const input = "{{#if (gt x 5)}}";
+        const tokens = tokenizeWithMonaco(input).filter(t => t.token !== "white");
+
+        expect(tokens).toEqual([
+            { token: "invalid", text: "{{#if (gt x 5)}}" }
+        ]);
+    });
+
+    it("classifies dotted conditional subjects like {{#unless user.name}} as invalid, NOT keyword", () => {
+        const input = "{{#unless user.name}}";
+        const tokens = tokenizeWithMonaco(input).filter(t => t.token !== "white");
+
+        expect(tokens).toEqual([
+            { token: "invalid", text: "{{#unless user.name}}" }
+        ]);
+    });
+
+    it("classifies unsupported whitespace forms like {{ #if flag }} as invalid, NOT keyword", () => {
+        const input = "{{ #if flag }}";
+        const tokens = tokenizeWithMonaco(input).filter(t => t.token !== "white");
+
+        expect(tokens).toEqual([
+            { token: "invalid", text: "{{ #if flag }}" }
+        ]);
+    });
+
+    it("tokenizes valid simple variables and rejects dotted paths as invalid", () => {
+        const input = "{{name}} {{ name }} {{max_words}} {{user.name}}";
+        const tokens = tokenizeWithMonaco(input).filter(t => t.token !== "white");
+
+        expect(tokens).toEqual([
+            { token: "variable", text: "{{name}}" },
+            { token: "variable", text: "{{ name }}" },
+            { token: "variable", text: "{{max_words}}" },
+            { token: "invalid", text: "{{user.name}}" }
+        ]);
+    });
+
+    it("tokenizes triple-brace expressions as invalid", () => {
+        const input = "{{{rawContent}}}";
+        const tokens = tokenizeWithMonaco(input).filter(t => t.token !== "white");
+
+        expect(tokens).toEqual([
+            { token: "invalid", text: "{{{rawContent}}}" }
+        ]);
+    });
+});
+
+describe("PromptTemplateLanguage — Real Monaco Tokenizer: YAML Block Scalar Contexts", () => {
+    it("handles literal block scalar '|' with prompt #, apostrophes, template expressions and following variables", () => {
+        const input = `templateId: demo
+template: |
+  # Hello {{name}}
+  Don't forget {{name}}
+variables:
+  name:
+    type: string`;
+
+        const tokens = tokenizeWithMonaco(input);
         const significant = tokens.filter(t => t.token !== "white");
 
-        expect(significant).toEqual([
+        // templateId: demo
+        expect(significant[0]).toEqual({ token: "type.identifier", text: "templateId" });
+        expect(significant[1]).toEqual({ token: "delimiter", text: ":" });
+        expect(significant[2]).toEqual({ token: "string", text: "demo" });
+
+        // template: |
+        expect(significant[3]).toEqual({ token: "type.identifier", text: "template" });
+        expect(significant[4]).toEqual({ token: "delimiter", text: ":" });
+        expect(significant[5]).toEqual({ token: "operator", text: "|" });
+
+        // Line with '# Hello {{name}}' inside block scalar:
+        // Must NOT be treated as a comment; # is prompt text, {{name}} is variable.
+        const hashLineToken = significant.find(t => t.text.includes("# Hello"));
+        expect(hashLineToken).toBeDefined();
+        expect(hashLineToken?.token).toBe("string");
+
+        const firstVarToken = significant.find(t => t.text === "{{name}}");
+        expect(firstVarToken).toBeDefined();
+        expect(firstVarToken?.token).toBe("variable");
+
+        // Line with "Don't forget {{name}}" inside block scalar:
+        // Apostrophe in Don't must NOT open a string state that swallows following lines.
+        const dontToken = significant.find(t => t.text.includes("Don't forget"));
+        expect(dontToken).toBeDefined();
+        expect(dontToken?.token).toBe("string");
+
+        // variables: must be properly tokenized at document root level
+        const variablesKey = significant.find(t => t.text === "variables");
+        expect(variablesKey).toBeDefined();
+        expect(variablesKey?.token).toBe("type.identifier");
+
+        // name: and type: must also be recognized as YAML structure
+        const nameKey = significant.find(t => t.text === "name");
+        expect(nameKey).toBeDefined();
+        expect(nameKey?.token).toBe("type.identifier");
+
+        const typeKey = significant.find(t => t.text === "type");
+        expect(typeKey).toBeDefined();
+        expect(typeKey?.token).toBe("type.identifier");
+    });
+
+    it("handles folded block scalar '>' with chomping, comments on header line, and embedded quotes", () => {
+        const input = `template: >- # folded scalar chomped
+  Line with "double quotes" and 'single quotes'.
+  Conditional {{#if showExtra}}with extra content{{/if}}.
+variables:
+  showExtra:
+    type: boolean`;
+
+        const tokens = tokenizeWithMonaco(input);
+        const significant = tokens.filter(t => t.token !== "white");
+
+        // template: >- # folded scalar chomped
+        expect(significant[0]).toEqual({ token: "type.identifier", text: "template" });
+        expect(significant[1]).toEqual({ token: "delimiter", text: ":" });
+        expect(significant[2]).toEqual({ token: "operator", text: ">- # folded scalar chomped" });
+
+        // Quotes inside block scalar are prompt text, not string delimiters
+        const quotesLine = significant.find(t => t.text.includes("double quotes"));
+        expect(quotesLine).toBeDefined();
+        expect(quotesLine?.token).toBe("string");
+
+        // Conditionals inside block scalar receive keyword highlighting
+        const ifToken = significant.find(t => t.text === "{{#if showExtra}}");
+        expect(ifToken).toBeDefined();
+        expect(ifToken?.token).toBe("keyword");
+
+        const closeIfToken = significant.find(t => t.text === "{{/if}}");
+        expect(closeIfToken).toBeDefined();
+        expect(closeIfToken?.token).toBe("keyword");
+
+        // following variables: is restored to document level
+        const variablesKey = significant.find(t => t.text === "variables");
+        expect(variablesKey).toBeDefined();
+        expect(variablesKey?.token).toBe("type.identifier");
+    });
+
+    it("handles nested block scalars indented inside maps and blank lines", () => {
+        const input = `prompt:
+  template: |+
+    # First line with {{title}}
+
+    Second line after blank: "quotes" and Don't.
+  variables:
+    title:
+      type: string`;
+
+        const tokens = tokenizeWithMonaco(input);
+        const significant = tokens.filter(t => t.token !== "white");
+
+        // prompt:
+        expect(significant[0]).toEqual({ token: "type.identifier", text: "prompt" });
+        expect(significant[1]).toEqual({ token: "delimiter", text: ":" });
+
+        // template: |+
+        expect(significant[2]).toEqual({ token: "type.identifier", text: "template" });
+        expect(significant[3]).toEqual({ token: "delimiter", text: ":" });
+        expect(significant[4]).toEqual({ token: "operator", text: "|+" });
+
+        // # First line with {{title}}
+        const hashLine = significant.find(t => t.text.includes("# First line with"));
+        expect(hashLine).toBeDefined();
+        expect(hashLine?.token).toBe("string");
+
+        const titleVar = significant.find(t => t.text === "{{title}}");
+        expect(titleVar).toBeDefined();
+        expect(titleVar?.token).toBe("variable");
+
+        // Post-blank line with quotes and apostrophe
+        const secondLine = significant.find(t => t.text.includes("Second line after blank:"));
+        expect(secondLine).toBeDefined();
+        expect(secondLine?.token).toBe("string");
+
+        // variables: at parent indent (2 spaces) ends the block scalar
+        const variablesKey = significant.find(t => t.text === "variables");
+        expect(variablesKey).toBeDefined();
+        expect(variablesKey?.token).toBe("type.identifier");
+    });
+});
+
+describe("PromptTemplateLanguage — Real Monaco Tokenizer: Quoted Strings", () => {
+    it("tokenizes placeholders inside double-quoted strings separately from plain text", () => {
+        const input = "template: \"Hello {{name}} at {{place}}\"";
+        const tokens = tokenizeWithMonaco(input).filter(t => t.token !== "white");
+
+        expect(tokens).toEqual([
             { token: "type.identifier", text: "template" },
             { token: "delimiter", text: ":" },
             { token: "string.quote", text: "\"" },
@@ -108,10 +278,9 @@ describe("PromptTemplateLanguage — Monarch Quoted String Tokenizer Regression 
 
     it("tokenizes placeholders inside single-quoted strings separately from plain text", () => {
         const input = "template: 'Welcome {{user}}!'";
-        const tokens = tokenizeMonarch(input);
-        const significant = tokens.filter(t => t.token !== "white");
+        const tokens = tokenizeWithMonaco(input).filter(t => t.token !== "white");
 
-        expect(significant).toEqual([
+        expect(tokens).toEqual([
             { token: "type.identifier", text: "template" },
             { token: "delimiter", text: ":" },
             { token: "string.quote", text: "'" },
@@ -124,10 +293,9 @@ describe("PromptTemplateLanguage — Monarch Quoted String Tokenizer Regression 
 
     it("tokenizes conditionals (#if, else, /if) inside double-quoted strings", () => {
         const input = "template: \"Start.{{#if showExtra}} Extra.{{else}} None.{{/if}} End.\"";
-        const tokens = tokenizeMonarch(input);
-        const significant = tokens.filter(t => t.token !== "white");
+        const tokens = tokenizeWithMonaco(input).filter(t => t.token !== "white");
 
-        expect(significant).toEqual([
+        expect(tokens).toEqual([
             { token: "type.identifier", text: "template" },
             { token: "delimiter", text: ":" },
             { token: "string.quote", text: "\"" },
@@ -142,28 +310,11 @@ describe("PromptTemplateLanguage — Monarch Quoted String Tokenizer Regression 
         ]);
     });
 
-    it("tokenizes #unless inside quoted strings", () => {
-        const input = "template: \"{{#unless premium}}Upgrade now.{{/unless}}\"";
-        const tokens = tokenizeMonarch(input);
-        const significant = tokens.filter(t => t.token !== "white");
-
-        expect(significant).toEqual([
-            { token: "type.identifier", text: "template" },
-            { token: "delimiter", text: ":" },
-            { token: "string.quote", text: "\"" },
-            { token: "keyword", text: "{{#unless premium}}" },
-            { token: "string", text: "Upgrade now." },
-            { token: "keyword", text: "{{/unless}}" },
-            { token: "string.quote", text: "\"" }
-        ]);
-    });
-
-    it("tokenizes escaped quotes and normal strings without placeholders correctly", () => {
+    it("tokenizes escaped quotes correctly in quoted strings", () => {
         const input = "template: \"Say \\\"hello\\\"\"";
-        const tokens = tokenizeMonarch(input);
-        const significant = tokens.filter(t => t.token !== "white");
+        const tokens = tokenizeWithMonaco(input).filter(t => t.token !== "white");
 
-        expect(significant).toEqual([
+        expect(tokens).toEqual([
             { token: "type.identifier", text: "template" },
             { token: "delimiter", text: ":" },
             { token: "string.quote", text: "\"" },
@@ -175,78 +326,45 @@ describe("PromptTemplateLanguage — Monarch Quoted String Tokenizer Regression 
         ]);
     });
 
-    it("tokenizes triple braces inside quotes as invalid", () => {
-        const input = "template: \"Raw: {{{rawContent}}}\"";
-        const tokens = tokenizeMonarch(input);
-        const significant = tokens.filter(t => t.token !== "white");
-
-        expect(significant).toEqual([
-            { token: "type.identifier", text: "template" },
-            { token: "delimiter", text: ":" },
-            { token: "string.quote", text: "\"" },
-            { token: "string", text: "Raw: " },
-            { token: "invalid", text: "{{{rawContent}}}" },
-            { token: "string.quote", text: "\"" }
-        ]);
-    });
-
-    it("preserves comments with placeholders as comments (comment priority)", () => {
+    it("preserves standalone YAML comments with placeholders as comments", () => {
         const input = "# Example: {{name}} is required\ntemplate: \"Hello\"";
-        const tokens = tokenizeMonarch(input);
-        const significant = tokens.filter(t => t.token !== "white");
+        const tokens = tokenizeWithMonaco(input).filter(t => t.token !== "white");
 
-        expect(significant[0]).toEqual({
+        expect(tokens[0]).toEqual({
             token: "comment",
             text: "# Example: {{name}} is required"
         });
     });
-
-    it("does not tokenize dotted paths inside quotes as variables", () => {
-        const input = "template: \"Hello {{user.name}}!\"";
-        const tokens = tokenizeMonarch(input);
-        const significant = tokens.filter(t => t.token !== "white");
-
-        // Dotted paths fall through to the invalid catch-all rule.
-        const placeholderToken = significant.find(t => t.text.includes("user.name"));
-        expect(placeholderToken).toBeDefined();
-        expect(placeholderToken?.token).toBe("invalid");
-    });
 });
 
-describe("PromptTemplateLanguage — Grammar Pattern Verification", () => {
-    const VARIABLE_REGEX = /^\{\{\s*\w+\s*\}\}/;
-    const IF_REGEX = /^\{\{\s*#if\s+[^{}]+\s*\}\}/;
-    const UNLESS_REGEX = /^\{\{\s*#unless\s+[^{}]+\s*\}\}/;
-    const ELSE_REGEX = /^\{\{\s*else\s*\}\}/;
-    const THIS_REGEX = /^\{\{\s*this\s*\}\}/;
-    const END_IF_REGEX = /^\{\{\s*\/if\s*\}\}/;
-    const END_UNLESS_REGEX = /^\{\{\s*\/unless\s*\}\}/;
-    const TRIPLE_BRACE_REGEX = /^\{\{\{.*?\}\}\}/;
+describe("PromptTemplateLanguage — Real Monaco Tokenizer: Incomplete Input Recovery", () => {
+    it("recovers highlighting from incomplete template expression to valid variable", () => {
+        // Incomplete expression mid-typing
+        const incompleteInput = "template: \"Hello {{name";
+        const incompleteTokens = tokenizeWithMonaco(incompleteInput).filter(t => t.token !== "white");
+        // {{ is not closed so it is not tokenized as a variable
+        expect(incompleteTokens.some(t => t.token === "variable")).toBe(false);
 
-    it("matches simple variable {{name}} and whitespace variations", () => {
-        expect(VARIABLE_REGEX.test("{{name}}")).toBe(true);
-        expect(VARIABLE_REGEX.test("{{ name }}")).toBe(true);
-        expect(VARIABLE_REGEX.test("{{   name   }}")).toBe(true);
-        expect(VARIABLE_REGEX.test("{{max_words}}")).toBe(true);
+        // Completed expression
+        const completeInput = "template: \"Hello {{name}}\"";
+        const completeTokens = tokenizeWithMonaco(completeInput).filter(t => t.token !== "white");
+        const varToken = completeTokens.find(t => t.text === "{{name}}");
+        expect(varToken).toBeDefined();
+        expect(varToken?.token).toBe("variable");
     });
 
-    it("does NOT match dotted paths or hyphens as variables", () => {
-        expect(VARIABLE_REGEX.test("{{user.name}}")).toBe(false);
-        expect(VARIABLE_REGEX.test("{{my-var}}")).toBe(false);
-    });
+    it("recovers highlighting from incomplete conditional to valid keyword", () => {
+        // Incomplete conditional
+        const incompleteInput = "template: \"{{#if active";
+        const incompleteTokens = tokenizeWithMonaco(incompleteInput).filter(t => t.token !== "white");
+        expect(incompleteTokens.some(t => t.token === "keyword")).toBe(false);
 
-    it("matches #if, #unless, else, this, /if, /unless", () => {
-        expect(IF_REGEX.test("{{#if premium}}")).toBe(true);
-        expect(UNLESS_REGEX.test("{{#unless premium}}")).toBe(true);
-        expect(ELSE_REGEX.test("{{else}}")).toBe(true);
-        expect(THIS_REGEX.test("{{this}}")).toBe(true);
-        expect(END_IF_REGEX.test("{{/if}}")).toBe(true);
-        expect(END_UNLESS_REGEX.test("{{/unless}}")).toBe(true);
-    });
-
-    it("matches triple braces as invalid construct", () => {
-        expect(TRIPLE_BRACE_REGEX.test("{{{raw}}}")).toBe(true);
-        expect(TRIPLE_BRACE_REGEX.test("{{{ name }}}")).toBe(true);
+        // Completed conditional
+        const completeInput = "template: \"{{#if active}}\"";
+        const completeTokens = tokenizeWithMonaco(completeInput).filter(t => t.token !== "white");
+        const kwToken = completeTokens.find(t => t.text === "{{#if active}}");
+        expect(kwToken).toBeDefined();
+        expect(kwToken?.token).toBe("keyword");
     });
 });
 

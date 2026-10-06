@@ -1,6 +1,8 @@
+// @vitest-environment jsdom
+import "@testing-library/jest-dom/vitest";
 import React from "react";
-import ReactDOMServer from "react-dom/server";
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { render, cleanup, act } from "@testing-library/react";
 
 // Mock the artifact types service module: content.utils imports it only for the
 // ArtifactTypes constants, but loading the real module pulls PatternFly CSS into the test runner.
@@ -11,7 +13,7 @@ vi.mock("@services/useArtifactTypesService.ts", () => ({
     }
 }));
 
-// Mock RegistryCodeEditor to test props forwarding without loading Monaco runtime.
+// Mock RegistryCodeEditor to capture props and allow exercising onMount / onChange callbacks.
 let capturedEditorProps: any = null;
 vi.mock("@app/components/codeEditor/RegistryEditors.tsx", () => ({
     RegistryCodeEditor: (props: any) => {
@@ -20,8 +22,31 @@ vi.mock("@app/components/codeEditor/RegistryEditors.tsx", () => ({
     }
 }));
 
+// Setup JSDOM polyfills required by Monaco initialization
+if (typeof document !== "undefined" && !(document as any).queryCommandSupported) {
+    (document as any).queryCommandSupported = () => false;
+}
+if (typeof window !== "undefined" && !window.matchMedia) {
+    window.matchMedia = (query: string) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false
+    } as any);
+}
+
+const monaco = await import("monaco-editor");
+
 import { PromptTemplateEditor } from "./PromptTemplateEditor.tsx";
 import { contentToString } from "@utils/content.utils.ts";
+import {
+    PROMPT_TEMPLATE_LANGUAGE_ID,
+    registerPromptTemplate
+} from "./PromptTemplateLanguage.ts";
 
 const YAML_TEMPLATE = `templateId: greeting
 name: Greeting Template
@@ -93,95 +118,171 @@ mcp:
   name: greeting-prompt
   description: A greeting prompt for MCP`;
 
-describe("PromptTemplateEditor — Component Integration Tests", () => {
+describe("PromptTemplateEditor — Mounted Component Lifecycle & Synchronization", () => {
     beforeEach(() => {
         capturedEditorProps = null;
+        registerPromptTemplate(monaco);
     });
 
-    it("configures RegistryCodeEditor with defaultLanguage='prompt-template'", () => {
+    afterEach(() => {
+        cleanup();
+    });
+
+    it("executes full mount lifecycle: initial content, props forwarding, onMount, and no spurious setValue", () => {
         const mockOnChange = vi.fn();
-        ReactDOMServer.renderToStaticMarkup(
+        const mockEditor = {
+            getValue: vi.fn().mockReturnValue(YAML_TEMPLATE),
+            setValue: vi.fn()
+        };
+
+        render(
             React.createElement(PromptTemplateEditor, {
                 content: { content: YAML_TEMPLATE, contentType: "application/x-yaml" } as any,
                 onChange: mockOnChange
             })
         );
 
+        // 1. Initial mounted state
         expect(capturedEditorProps).not.toBeNull();
         expect(capturedEditorProps.defaultLanguage).toBe("prompt-template");
-    });
-
-    it("passes initial raw artifact string to editor defaultValue unchanged", () => {
-        const mockOnChange = vi.fn();
-        ReactDOMServer.renderToStaticMarkup(
-            React.createElement(PromptTemplateEditor, {
-                content: { content: YAML_TEMPLATE, contentType: "application/x-yaml" } as any,
-                onChange: mockOnChange
-            })
-        );
-
         expect(capturedEditorProps.defaultValue).toBe(YAML_TEMPLATE);
+
+        // Mount the Monaco editor instance
+        act(() => {
+            capturedEditorProps.onMount(mockEditor);
+        });
+
+        // 5. setValue was NOT called on initial mount
+        expect(mockEditor.setValue).not.toHaveBeenCalled();
     });
 
-    it("passes initial JSON artifact string to editor defaultValue unchanged", () => {
+    it("does not call setValue or reset editor when rerendered with unchanged content", () => {
         const mockOnChange = vi.fn();
-        ReactDOMServer.renderToStaticMarkup(
-            React.createElement(PromptTemplateEditor, {
-                content: { content: JSON_TEMPLATE, contentType: "application/json" } as any,
-                onChange: mockOnChange
-            })
-        );
+        const mockEditor = {
+            getValue: vi.fn().mockReturnValue(YAML_TEMPLATE),
+            setValue: vi.fn()
+        };
 
-        expect(capturedEditorProps.defaultValue).toBe(JSON_TEMPLATE);
-    });
-
-    it("forwards editor onChange directly to props.onChange with raw content", () => {
-        const mockOnChange = vi.fn();
-        ReactDOMServer.renderToStaticMarkup(
+        const { rerender } = render(
             React.createElement(PromptTemplateEditor, {
                 content: { content: YAML_TEMPLATE, contentType: "application/x-yaml" } as any,
                 onChange: mockOnChange
             })
         );
 
-        expect(capturedEditorProps.onChange).toBe(mockOnChange);
+        act(() => {
+            capturedEditorProps.onMount(mockEditor);
+        });
 
-        const updatedContent = "templateId: updated\ntemplate: 'Hello {{user}}'";
-        capturedEditorProps.onChange(updatedContent);
-        expect(mockOnChange).toHaveBeenCalledTimes(1);
-        expect(mockOnChange).toHaveBeenCalledWith(updatedContent);
+        // 2. Rerender with unchanged content (new object reference, identical content)
+        act(() => {
+            rerender(
+                React.createElement(PromptTemplateEditor, {
+                    content: { content: YAML_TEMPLATE, contentType: "application/x-yaml" } as any,
+                    onChange: mockOnChange
+                })
+            );
+        });
+
+        // 6. Verify unchanged content does not unnecessarily reset the editor
+        expect(mockEditor.setValue).not.toHaveBeenCalled();
     });
 
-    it("forwards invalid intermediate YAML through onChange without parsing/throwing", () => {
+    it("synchronizes external content update via setValue and updates editor content", () => {
         const mockOnChange = vi.fn();
-        ReactDOMServer.renderToStaticMarkup(
+        let editorContent = YAML_TEMPLATE;
+        const mockEditor = {
+            getValue: vi.fn().mockImplementation(() => editorContent),
+            setValue: vi.fn().mockImplementation((val: string) => {
+                editorContent = val;
+            })
+        };
+
+        const { rerender } = render(
+            React.createElement(PromptTemplateEditor, {
+                content: { content: YAML_TEMPLATE, contentType: "application/x-yaml" } as any,
+                onChange: mockOnChange
+            })
+        );
+
+        act(() => {
+            capturedEditorProps.onMount(mockEditor);
+        });
+
+        // 3. Replace content through an external update / navigation / recovery update
+        const externalUpdated = `templateId: external-update
+name: External Update
+template: "Hello {{audience}}!"`;
+
+        act(() => {
+            rerender(
+                React.createElement(PromptTemplateEditor, {
+                    content: { content: externalUpdated, contentType: "application/x-yaml" } as any,
+                    onChange: mockOnChange
+                })
+            );
+        });
+
+        // 5. Verify setValue was called when expected
+        expect(mockEditor.setValue).toHaveBeenCalledTimes(1);
+        expect(mockEditor.setValue).toHaveBeenCalledWith(externalUpdated);
+
+        // 4. Verify the resulting editor model/content
+        expect(mockEditor.getValue()).toBe(externalUpdated);
+    });
+
+    it("passes malformed intermediate input directly to props.onChange unchanged without throwing", () => {
+        const mockOnChange = vi.fn();
+        render(
             React.createElement(PromptTemplateEditor, {
                 content: { content: INVALID_YAML, contentType: "application/x-yaml" } as any,
                 onChange: mockOnChange
             })
         );
 
-        expect(capturedEditorProps.defaultValue).toBe(INVALID_YAML);
+        // 7. Verify malformed intermediate input is passed to the parent unchanged
+        const midEditBroken = INVALID_YAML + "\n  incomplete_placeholder: {{broken";
+        act(() => {
+            expect(() => capturedEditorProps.onChange(midEditBroken)).not.toThrow();
+        });
 
-        const midEditContent = INVALID_YAML + "\n  extra broken line: {{";
-        expect(() => capturedEditorProps.onChange(midEditContent)).not.toThrow();
-        expect(mockOnChange).toHaveBeenCalledWith(midEditContent);
+        expect(mockOnChange).toHaveBeenCalledTimes(1);
+        expect(mockOnChange).toHaveBeenCalledWith(midEditBroken);
     });
 
-    it("stores editor reference onMount", () => {
-        ReactDOMServer.renderToStaticMarkup(
+    it("recovers highlighting after incomplete intermediate input becomes valid using the real tokenizer", () => {
+        // 8. Verify highlighting recovers after incomplete input becomes valid using the real tokenizer/editor path
+        // Step A: Incomplete input mid-typing
+        const incompleteSource = "template: \"Hello {{incomplete";
+        const incompleteTokens = monaco.editor.tokenize(incompleteSource, PROMPT_TEMPLATE_LANGUAGE_ID);
+        const hasVariableBefore = incompleteTokens.some(line => line.some(t => t.type.includes("variable")));
+        expect(hasVariableBefore).toBe(false);
+
+        // Step B: Input completed and valid
+        const completedSource = "template: \"Hello {{incomplete}}\"";
+        const completedTokens = monaco.editor.tokenize(completedSource, PROMPT_TEMPLATE_LANGUAGE_ID);
+        const hasVariableAfter = completedTokens.some(line => line.some(t => t.type.includes("variable")));
+        expect(hasVariableAfter).toBe(true);
+
+        // Step C: Conditional incomplete -> valid recovery
+        const incompleteIf = "template: \"{{#if flag";
+        const ifTokensBefore = monaco.editor.tokenize(incompleteIf, PROMPT_TEMPLATE_LANGUAGE_ID);
+        expect(ifTokensBefore.some(line => line.some(t => t.type.includes("keyword")))).toBe(false);
+
+        const completeIf = "template: \"{{#if flag}}\"";
+        const ifTokensAfter = monaco.editor.tokenize(completeIf, PROMPT_TEMPLATE_LANGUAGE_ID);
+        expect(ifTokensAfter.some(line => line.some(t => t.type.includes("keyword")))).toBe(true);
+    });
+
+    it("passes initial JSON artifact string to editor defaultValue unchanged", () => {
+        render(
             React.createElement(PromptTemplateEditor, {
-                content: { content: YAML_TEMPLATE, contentType: "application/x-yaml" } as any,
+                content: { content: JSON_TEMPLATE, contentType: "application/json" } as any,
                 onChange: vi.fn()
             })
         );
 
-        const mockStandaloneEditor = {
-            getValue: vi.fn().mockReturnValue(YAML_TEMPLATE),
-            setValue: vi.fn()
-        };
-
-        expect(() => capturedEditorProps.onMount(mockStandaloneEditor)).not.toThrow();
+        expect(capturedEditorProps.defaultValue).toBe(JSON_TEMPLATE);
     });
 });
 

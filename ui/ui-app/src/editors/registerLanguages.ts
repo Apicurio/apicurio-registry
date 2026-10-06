@@ -1,4 +1,4 @@
-import { Monaco } from "@monaco-editor/react";
+import type { Monaco } from "@monaco-editor/react";
 import { registerProto } from "./ProtobufLanguage.ts";
 import { registerGraphQL } from "./GraphQLLanguage.ts";
 

@@ -5,7 +5,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.extract.AgentCardStructuredContentExtractor;
+import io.apicurio.registry.agents.content.extract.AgentCardStructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

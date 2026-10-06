@@ -204,6 +204,26 @@ test('non-trusted author already at max open PRs is closed automatically', async
   });
 });
 
+test('an account in pr_limit_exempt is not closed at the open-PR cap, and is still not trusted', async () => {
+  // apicurio-ci opens one backport PR per merged backport/* PR, so several
+  // are routinely open at once (#10332 was closed with #10265 open).
+  await withConfig({ maintainers: [], max_contributor_prs: 1, pr_limit_exempt: ['apicurio-ci'], merge: { strategy: 'rebase' }, welcome_message: 'hi {author}' }, async () => {
+    const w = makeWorld([]);
+    w.github.paginate = async (fn) => fn === w.github.rest.pulls.list
+      ? [{ number: 7, user: { login: 'apicurio-ci' } }]
+      : [];
+    let closed = false;
+    w.github.rest.pulls.update = async ({ state }) => { closed = state === 'closed'; };
+    await lifecycle.handlePrOpened({ github: w.github, context: openedContext(openedPr('apicurio-ci')), core: w.core });
+
+    assert.ok(!closed, 'an exempt account must not be closed at the open-PR cap');
+    assert.ok(w.calls.added.includes(LABELS.READY_FOR_REVIEW));
+    assert.equal(w.calls.comments.length, 1);
+    assert.ok(w.calls.comments[0].startsWith('hi apicurio-ci'), 'gets the contributor welcome');
+    assert.ok(!w.calls.comments[0].includes('trusted author'), 'not the trusted-author message');
+  });
+});
+
 // ---------------------------------------------------------------------------
 // checkAndTransitionToReady (via Quick Check fast-gate result) — promotes to
 // ready-to-merge once approved AND fast-gated. No more review-skipped bypass:
@@ -302,6 +322,19 @@ test('Quick Check success DOES promote a reviewed PR even though an earlier not-
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
   assert.ok(w.calls.added.includes(LABELS.TESTED));
   assert.ok(w.calls.added.includes(LABELS.READY_TO_MERGE));
+});
+
+test('Verify run that did not require the full suite (Verify Result skipped) does not mark the PR full-verified', async () => {
+  // Current shape of a "not required yet" run: the run succeeds, because
+  // Verify Result is skipped rather than failed. Nothing ran, so the suite
+  // is pending, not verified.
+  const w = makeWorld([LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER], {
+    suiteRuns: greenSuite(),
+    suiteJobs: { Verify: [{ name: 'Decide / Decide', conclusion: 'success' }, { name: 'Verify Result', conclusion: 'skipped' }] },
+  });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
+  assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
+  assert.equal(w.calls.comments.length, 0);
 });
 
 test('Verify failure at ready-to-merge reverts to ready-for-review', async () => {
@@ -437,6 +470,549 @@ test('/reject is rejected for a non-maintainer', async () => {
     });
     assert.ok(!closed);
   });
+});
+
+// ---------------------------------------------------------------------------
+// Label guard — orchestrator/disabled re-runs Verify, because verify.yaml no
+// longer triggers on label events itself
+// ---------------------------------------------------------------------------
+
+// latestVerifyRun is what listWorkflowRuns returns for verify.yaml (or null).
+function labelGuardWorld(prLabels, latestVerifyRun) {
+  const w = makeWorld(prLabels);
+  w.calls.runLookups = [];
+  w.calls.reRuns = [];
+  w.github.rest.actions.listWorkflowRuns = async ({ workflow_id, head_sha }) => {
+    w.calls.runLookups.push({ workflow_id, head_sha });
+    return { data: { workflow_runs: latestVerifyRun ? [latestVerifyRun] : [] } };
+  };
+  w.github.rest.actions.reRunWorkflow = async ({ run_id }) => { w.calls.reRuns.push(run_id); };
+  return w;
+}
+
+function labelContext(action, labelName, sender) {
+  return {
+    repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+    payload: {
+      action,
+      label: { name: labelName },
+      sender: { login: sender },
+      pull_request: { number: 42, head: { sha: SHA } },
+    },
+  };
+}
+
+test('label guard: maintainer adding orchestrator/disabled re-runs the failed Verify run for the head SHA', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = labelGuardWorld([LABELS.READY_FOR_REVIEW, LABELS.DISABLED],
+      { id: 777, status: 'completed', conclusion: 'failure' });
+    await lifecycle.handleLabelChange({
+      github: w.github, context: labelContext('labeled', LABELS.DISABLED, 'maintainer-jane'), core: w.core,
+    });
+    assert.deepEqual(w.calls.runLookups, [{ workflow_id: 'verify.yaml', head_sha: SHA }]);
+    assert.deepEqual(w.calls.reRuns, [777]);
+    assert.deepEqual(w.calls.removed, []);
+    assert.deepEqual(w.calls.comments, []);
+  });
+});
+
+test('label guard: maintainer removing orchestrator/disabled re-runs the failed Verify run too', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = labelGuardWorld([LABELS.READY_FOR_REVIEW],
+      { id: 778, status: 'completed', conclusion: 'cancelled' });
+    await lifecycle.handleLabelChange({
+      github: w.github, context: labelContext('unlabeled', LABELS.DISABLED, 'maintainer-jane'), core: w.core,
+    });
+    assert.deepEqual(w.calls.reRuns, [778]);
+    assert.deepEqual(w.calls.added, []);
+  });
+});
+
+test('label guard: orchestrator/disabled leaves a green or running Verify run alone', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    for (const run of [
+      { id: 779, status: 'completed', conclusion: 'success' },
+      { id: 780, status: 'in_progress', conclusion: null },
+    ]) {
+      const w = labelGuardWorld([LABELS.READY_FOR_REVIEW, LABELS.DISABLED], run);
+      await lifecycle.handleLabelChange({
+        github: w.github, context: labelContext('labeled', LABELS.DISABLED, 'maintainer-jane'), core: w.core,
+      });
+      assert.deepEqual(w.calls.reRuns, [], `run ${run.id} (${run.status}/${run.conclusion}) must not be re-run`);
+    }
+  });
+});
+
+test('label guard: other maintainer-editable labels do not touch Verify', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = labelGuardWorld([LABELS.WAITING_ON_AUTHOR],
+      { id: 781, status: 'completed', conclusion: 'failure' });
+    await lifecycle.handleLabelChange({
+      github: w.github, context: labelContext('labeled', LABELS.WAITING_ON_AUTHOR, 'maintainer-jane'), core: w.core,
+    });
+    assert.deepEqual(w.calls.runLookups, []);
+    assert.deepEqual(w.calls.reRuns, []);
+  });
+});
+
+test('label guard: non-maintainer adding orchestrator/disabled is reverted and does not re-run Verify', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = labelGuardWorld([LABELS.READY_FOR_REVIEW, LABELS.DISABLED],
+      { id: 782, status: 'completed', conclusion: 'failure' });
+    await lifecycle.handleLabelChange({
+      github: w.github, context: labelContext('labeled', LABELS.DISABLED, 'random-user'), core: w.core,
+    });
+    assert.deepEqual(w.calls.removed, [LABELS.DISABLED]);
+    assert.equal(w.calls.comments.length, 1);
+    assert.ok(w.calls.comments[0].includes('@random-user'));
+    assert.deepEqual(w.calls.reRuns, []);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Verification Gate commit status — the required check, posted from the
+// newest Verify run for the commit (handleGateStatus / syncGateStatus)
+// ---------------------------------------------------------------------------
+
+// runs: what listWorkflowRuns returns for verify.yaml. jobs: run id -> jobs.
+// current: the Verification Gate status already on the commit, if any.
+function gateWorld({ runs = [], jobs = {}, current = null } = {}) {
+  const w = makeWorld([LABELS.READY_FOR_REVIEW]);
+  w.calls.runLookups = [];
+  w.calls.statuses = [];
+  w.github.rest.actions.listWorkflowRuns = async ({ workflow_id, head_sha }) => {
+    w.calls.runLookups.push({ workflow_id, head_sha });
+    return { data: { workflow_runs: runs } };
+  };
+  w.github.rest.actions.listJobsForWorkflowRun = async ({ run_id }) => ({ data: { jobs: jobs[run_id] ?? [] } });
+  w.github.rest.repos = {
+    getCombinedStatusForRef: async () => ({ data: { statuses: current ? [current] : [] } }),
+    createCommitStatus: async ({ sha, state, context, description, target_url }) => {
+      w.calls.statuses.push({ sha, state, context, description, target_url });
+    },
+  };
+  return w;
+}
+
+// Timestamps relative to now: GitHub only re-runs a run within 30 days of
+// its first run, and the code checks that against the clock.
+const hoursAgo = h => new Date(Date.now() - h * 60 * 60 * 1000).toISOString();
+const DAYS_31_AGO = hoursAgo(31 * 24);
+
+function verifyRun(id, { status = 'completed', conclusion = 'success', startedAt = hoursAgo(1) } = {}) {
+  return {
+    id, name: 'Verify', status, conclusion,
+    created_at: startedAt, run_started_at: startedAt,
+    html_url: `https://example.com/run/${id}`,
+  };
+}
+
+const resultJob = conclusion => [{ name: 'Decide / Decide', conclusion: 'success' }, { name: 'Verify Result', conclusion }];
+
+function gateEvent(name = 'Verify', conclusion = 'success') {
+  return runPayload(name, conclusion);
+}
+
+async function postedGate(w, name = 'Verify', conclusion = 'success') {
+  await lifecycle.handleGateStatus({ github: w.github, context: gateEvent(name, conclusion), core: w.core });
+  return w.calls.statuses;
+}
+
+test('gate status: Verify Result success posts success, linked to that run', async () => {
+  const w = gateWorld({ runs: [verifyRun(1)], jobs: { 1: resultJob('success') } });
+  assert.deepEqual(await postedGate(w), [{
+    sha: SHA, state: 'success', context: 'Verification Gate',
+    description: 'Full suite passed', target_url: 'https://example.com/run/1',
+  }]);
+  assert.deepEqual(w.calls.runLookups, [{ workflow_id: 'verify.yaml', head_sha: SHA }]);
+});
+
+test('gate status: Verify Result skipped (full suite not required yet) posts pending, not success', async () => {
+  const w = gateWorld({ runs: [verifyRun(1)], jobs: { 1: resultJob('skipped') } });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.description, 'Full suite not run yet: needs an approving review (or PR is a draft)');
+});
+
+test('gate status: a skipped run past the 30-day re-run window says to update the branch', async () => {
+  const w = gateWorld({ runs: [verifyRun(1, { startedAt: DAYS_31_AGO })], jobs: { 1: resultJob('skipped') } });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.description, "Full suite not run; this Verify run is over 30 days old and can't be re-run: update the branch");
+  assert.ok(status.description.length <= 140, 'GitHub caps status descriptions at 140 characters');
+});
+
+test('gate status: Verify Result failure or cancellation posts failure', async () => {
+  for (const [conclusion, description] of [['failure', 'Full suite failed'], ['cancelled', 'Full suite was cancelled']]) {
+    const w = gateWorld({ runs: [verifyRun(1, { conclusion: 'failure' })], jobs: { 1: resultJob(conclusion) } });
+    const [status] = await postedGate(w);
+    assert.equal(status.state, 'failure', conclusion);
+    assert.equal(status.description, description);
+  }
+});
+
+test('gate status: a run still in progress posts pending', async () => {
+  const w = gateWorld({ runs: [verifyRun(1, { status: 'in_progress', conclusion: null })] });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.description, 'Full suite is running');
+});
+
+test('gate status: a fork run awaiting workflow approval posts pending', async () => {
+  const w = gateWorld({ runs: [verifyRun(1, { conclusion: 'action_required' })] });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.description, 'Waiting for a maintainer to approve the workflow run');
+});
+
+test('gate status: an older run finishing green does not override a newer run still in progress', async () => {
+  const w = gateWorld({
+    runs: [
+      verifyRun(1, { startedAt: '2026-01-01T10:00:00Z' }),
+      verifyRun(2, { status: 'in_progress', conclusion: null, startedAt: '2026-01-01T11:00:00Z' }),
+    ],
+    jobs: { 1: resultJob('success') },
+  });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.target_url, 'https://example.com/run/2');
+});
+
+test('gate status: a re-run of an older run counts as newest (run_started_at, not created_at)', async () => {
+  const rerun = verifyRun(1, { startedAt: '2026-01-01T12:00:00Z' });
+  rerun.created_at = '2026-01-01T10:00:00Z';
+  const w = gateWorld({
+    runs: [verifyRun(2, { conclusion: 'failure', startedAt: '2026-01-01T11:00:00Z' }), rerun],
+    jobs: { 1: resultJob('success'), 2: resultJob('failure') },
+  });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'success');
+  assert.equal(status.target_url, 'https://example.com/run/1');
+});
+
+test('gate status: a re-run attempt that has started turns a green gate from the previous attempt pending', async () => {
+  // Same run id and URL as the green status; only the attempt changed. The
+  // unchanged-status check must not swallow this.
+  const w = gateWorld({
+    runs: [verifyRun(1, { status: 'in_progress', conclusion: null, startedAt: '2026-01-01T12:00:00Z' })],
+    current: {
+      context: 'Verification Gate', state: 'success',
+      description: 'Full suite passed', target_url: 'https://example.com/run/1',
+    },
+  });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'pending');
+  assert.equal(status.description, 'Full suite is running');
+  assert.equal(status.target_url, 'https://example.com/run/1');
+});
+
+test('gate status: a run cancelled while still queued (no jobs) is passed over for the one before it', async () => {
+  const w = gateWorld({
+    runs: [
+      verifyRun(1, { startedAt: '2026-01-01T10:00:00Z' }),
+      verifyRun(2, { conclusion: 'cancelled', startedAt: '2026-01-01T11:00:00Z' }),
+    ],
+    jobs: { 1: resultJob('success'), 2: [] },
+  });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'success');
+  assert.equal(status.target_url, 'https://example.com/run/1');
+});
+
+test('gate status: a run that ended before Verify Result reported posts failure', async () => {
+  const w = gateWorld({
+    runs: [verifyRun(1, { conclusion: 'cancelled' })],
+    jobs: { 1: [{ name: 'Decide / Decide', conclusion: 'success' }, { name: 'Build Java Application (no tests)', conclusion: 'cancelled' }] },
+  });
+  const [status] = await postedGate(w);
+  assert.equal(status.state, 'failure');
+  assert.equal(status.description, 'Verify run ended (cancelled) before reporting a result');
+});
+
+test('gate status: a legacy run (its own Verification Gate job) is left to that check-run', async () => {
+  const w = gateWorld({
+    runs: [verifyRun(1, { conclusion: 'failure' })],
+    jobs: { 1: [{ name: 'Decide / Decide', conclusion: 'success' }, { name: 'Verification Gate', conclusion: 'failure' }] },
+  });
+  assert.deepEqual(await postedGate(w), []);
+});
+
+test('gate status: no Verify run for the commit posts nothing', async () => {
+  const w = gateWorld({ runs: [] });
+  assert.deepEqual(await postedGate(w), []);
+});
+
+test('gate status: an unchanged status is not re-posted', async () => {
+  const w = gateWorld({
+    runs: [verifyRun(1)], jobs: { 1: resultJob('success') },
+    current: {
+      context: 'Verification Gate', state: 'success',
+      description: 'Full suite passed', target_url: 'https://example.com/run/1',
+    },
+  });
+  assert.deepEqual(await postedGate(w), []);
+});
+
+test('gate status: the triggering payload is not trusted, only verify.yaml runs looked up by file', async () => {
+  // A PR can add its own workflow named "Verify" that reports success. The
+  // event claims success; the real verify.yaml run for the commit failed.
+  const w = gateWorld({ runs: [verifyRun(1, { conclusion: 'failure' })], jobs: { 1: resultJob('failure') } });
+  const [status] = await postedGate(w, 'Verify', 'success');
+  assert.equal(status.state, 'failure');
+  assert.deepEqual(w.calls.runLookups, [{ workflow_id: 'verify.yaml', head_sha: SHA }]);
+});
+
+test('gate status: Quick Check events are ignored', async () => {
+  const w = gateWorld({ runs: [verifyRun(1)], jobs: { 1: resultJob('success') } });
+  assert.deepEqual(await postedGate(w, 'Quick Check'), []);
+  assert.deepEqual(w.calls.runLookups, []);
+});
+
+test('gate status: reconcile re-syncs the status for the PR head commit', async () => {
+  const w = gateWorld({ runs: [verifyRun(1)], jobs: { 1: resultJob('success') } });
+  await lifecycle.handleReconcile({ github: w.github, context: reconcileContext(), core: w.core, prNumber: 42 });
+  assert.equal(w.calls.statuses.length, 1);
+  assert.equal(w.calls.statuses[0].state, 'success');
+  assert.equal(w.calls.statuses[0].sha, SHA);
+});
+
+// ---------------------------------------------------------------------------
+// Starting the full suite once it becomes required — an approval re-runs the
+// commit's Verify run instead of verify.yaml starting a second one
+// (handleReviewRelay / maybeRunFullSuite)
+// ---------------------------------------------------------------------------
+
+// A PR (author, draft, labels), GitHub's review decision for it, and the
+// Verify runs for its head commit (runs + jobs, as for gateWorld).
+function rerunWorld({ labels = [LABELS.READY_FOR_REVIEW], author = 'contributor', draft = false,
+                      decision = 'APPROVED', runs = [], jobs = {}, headSha = SHA } = {}) {
+  const w = makeWorld(labels);
+  w.calls.reRuns = [];
+  w.calls.decisionQueries = 0;
+  const pr = () => ({
+    number: 42, title: 'test', draft, node_id: 'PR_kwtest', auto_merge: null,
+    labels: [...w.labels].map(name => ({ name })),
+    user: { login: author },
+    head: { sha: headSha, ref: 'feature-x' },
+    base: { ref: 'main' },
+    requested_reviewers: [],
+  });
+  w.github.rest.pulls.get = async () => ({ data: pr() });
+  w.github.rest.pulls.list = async () => ({ data: [pr()] });
+  w.github.rest.actions.listWorkflowRuns = async () => ({ data: { workflow_runs: runs } });
+  w.github.rest.actions.listJobsForWorkflowRun = async ({ run_id }) => ({ data: { jobs: jobs[run_id] ?? [] } });
+  w.github.rest.actions.reRunWorkflow = async ({ run_id }) => { w.calls.reRuns.push(run_id); };
+  w.github.rest.actions.getWorkflowRun = async ({ run_id }) => ({ data: runs.find(r => r.id === run_id) });
+  w.github.rest.repos = {
+    getCombinedStatusForRef: async () => ({ data: { statuses: [] } }),
+    createCommitStatus: async () => ({}),
+  };
+  w.github.graphql = async (query) => {
+    if (query.includes('reviewDecision')) {
+      w.calls.decisionQueries++;
+      return { repository: { pullRequest: { reviewDecision: decision } } };
+    }
+    return {};
+  };
+  const warnings = [];
+  w.core = { ...w.core, warning: m => warnings.push(m) };
+  w.warnings = warnings;
+  return w;
+}
+
+// The Verify run a push produced for an author who isn't trusted, before
+// approval: finished, full suite skipped.
+const skippedRun = (attempt = 1) => ({ ...verifyRun(7), run_attempt: attempt });
+const skippedJobs = { 7: resultJob('skipped') };
+
+function relayPayload({ pullRequests = [{ number: 42 }], headSha = SHA } = {}) {
+  return {
+    repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+    payload: {
+      workflow_run: {
+        name: 'Review Relay', event: 'pull_request_review', conclusion: 'success',
+        head_sha: headSha, head_branch: 'feature-x',
+        head_repository: { owner: { login: 'Apicurio' } },
+        pull_requests: pullRequests,
+      },
+    },
+  };
+}
+
+async function relay(w, opts) {
+  await lifecycle.handleReviewRelay({ github: w.github, context: relayPayload(opts), core: w.core });
+  return w.calls.reRuns;
+}
+
+test('review relay: an approval re-runs the skipped Verify run of the head commit', async () => {
+  const w = rerunWorld({ runs: [skippedRun()], jobs: skippedJobs });
+  assert.deepEqual(await relay(w), [7]);
+});
+
+test('review relay: without an approval the skipped run is left alone', async () => {
+  for (const decision of ['REVIEW_REQUIRED', 'CHANGES_REQUESTED']) {
+    const w = rerunWorld({ decision, runs: [skippedRun()], jobs: skippedJobs });
+    assert.deepEqual(await relay(w), [], decision);
+  }
+});
+
+test('review relay: a run that already ran the full suite is never re-run', async () => {
+  for (const conclusion of ['success', 'failure']) {
+    const w = rerunWorld({ runs: [verifyRun(7, { conclusion })], jobs: { 7: resultJob(conclusion) } });
+    assert.deepEqual(await relay(w), [], conclusion);
+    assert.equal(w.calls.decisionQueries, 0, 'no need to ask about the review');
+  }
+});
+
+test('review relay: a run still in progress is left for its completion to pick up', async () => {
+  const w = rerunWorld({ runs: [verifyRun(7, { status: 'in_progress', conclusion: null })] });
+  assert.deepEqual(await relay(w), []);
+});
+
+test('review relay: a draft is not re-run, even approved', async () => {
+  const w = rerunWorld({ draft: true, runs: [skippedRun()], jobs: skippedJobs });
+  assert.deepEqual(await relay(w), []);
+});
+
+test('review relay: orchestrator/disabled follows Decide, DO NOT MERGE keeps it skipped', async () => {
+  // Decide runs the suite for orchestrator/disabled regardless of review,
+  // unless DO NOT MERGE is also set. Re-running a DO NOT MERGE run would
+  // just skip again, and the completion would re-run it again.
+  const disabled = rerunWorld({ labels: [LABELS.DISABLED], decision: 'REVIEW_REQUIRED', runs: [skippedRun()], jobs: skippedJobs });
+  assert.deepEqual(await relay(disabled), [7]);
+  const doNotMerge = rerunWorld({ labels: [LABELS.DISABLED, 'DO NOT MERGE'], runs: [skippedRun()], jobs: skippedJobs });
+  assert.deepEqual(await relay(doNotMerge), []);
+});
+
+test('review relay: a trusted author\'s skipped run (e.g. pushed as a draft) is re-run without an approval', async () => {
+  await withConfig({ maintainers: ['maintainer-jane'], merge: { strategy: 'rebase' } }, async () => {
+    const w = rerunWorld({ author: 'maintainer-jane', decision: 'REVIEW_REQUIRED', runs: [skippedRun()], jobs: skippedJobs });
+    assert.deepEqual(await relay(w), [7]);
+  });
+});
+
+test('review relay: stops re-running a run that keeps skipping, and says so', async () => {
+  const w = rerunWorld({ runs: [skippedRun(5)], jobs: skippedJobs });
+  assert.deepEqual(await relay(w), []);
+  assert.equal(w.warnings.length, 1);
+  assert.ok(w.warnings[0].includes('attempt 5'));
+});
+
+test('review relay: a run past the 30-day re-run window is not re-run, and nothing throws', async () => {
+  const run = { ...verifyRun(7, { startedAt: DAYS_31_AGO }), run_attempt: 1 };
+  const w = rerunWorld({ runs: [run], jobs: skippedJobs });
+  w.github.rest.actions.reRunWorkflow = async () => { throw new Error('must not be called'); };
+  assert.deepEqual(await relay(w), []);
+  assert.equal(w.warnings.length, 1);
+  assert.ok(w.warnings[0].includes('over 30 days old'));
+});
+
+test('review relay: the 30-day window counts from the first run, not the latest attempt', async () => {
+  // A recent re-run attempt doesn't reset GitHub's window.
+  const run = { ...verifyRun(7, { startedAt: hoursAgo(1) }), created_at: DAYS_31_AGO, run_attempt: 2 };
+  const w = rerunWorld({ runs: [run], jobs: skippedJobs });
+  w.github.rest.actions.reRunWorkflow = async () => { throw new Error('must not be called'); };
+  assert.deepEqual(await relay(w), []);
+});
+
+test('review relay: a re-run of a run first started 29 days ago is still attempted', async () => {
+  // run_started_at moves with each attempt; the window counts from created_at.
+  const run = { ...verifyRun(7, { startedAt: hoursAgo(1) }), created_at: hoursAgo(29 * 24), run_attempt: 2 };
+  const w = rerunWorld({ runs: [run], jobs: skippedJobs });
+  assert.deepEqual(await relay(w), [7]);
+});
+
+test('review relay: a fork PR (no pull_requests in the event) is found by its head commit', async () => {
+  const w = rerunWorld({ runs: [skippedRun()], jobs: skippedJobs });
+  assert.deepEqual(await relay(w, { pullRequests: [] }), [7]);
+});
+
+test('review relay: a review of a commit that is no longer the head does nothing', async () => {
+  const w = rerunWorld({ headSha: 'newer0000000000', runs: [skippedRun()], jobs: skippedJobs });
+  assert.deepEqual(await relay(w), []);
+});
+
+test('review relay: a run re-run by another handler first is not an error', async () => {
+  const run = skippedRun();
+  const w = rerunWorld({ runs: [run], jobs: skippedJobs });
+  w.github.rest.actions.reRunWorkflow = async () => {
+    run.status = 'queued';
+    const e = new Error('This workflow is already running'); e.status = 403; throw e;
+  };
+  assert.deepEqual(await relay(w), []);
+});
+
+test('review relay: a re-run that fails for another reason is reported', async () => {
+  const w = rerunWorld({ runs: [skippedRun()], jobs: skippedJobs });
+  w.github.rest.actions.reRunWorkflow = async () => { const e = new Error('boom'); e.status = 500; throw e; };
+  await assert.rejects(relay(w), /boom/);
+});
+
+test('Verify completion: an approval that landed while the run was skipping re-runs it', async () => {
+  const w = rerunWorld({ runs: [skippedRun()], jobs: skippedJobs });
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Verify', 'success'), core: w.core });
+  assert.deepEqual(w.calls.reRuns, [7]);
+  assert.ok(!w.calls.added.includes(LABELS.FULL_VERIFIED));
+});
+
+test('/retry explains when the skipped Verify run is past the 30-day re-run window', async () => {
+  const run = { ...verifyRun(7, { startedAt: DAYS_31_AGO }), run_attempt: 1 };
+  const w = rerunWorld({ runs: [run], jobs: skippedJobs });
+  await lifecycle.handleComment({
+    github: w.github,
+    context: {
+      repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+      payload: {
+        comment: { id: 1, body: '/retry', user: { login: 'contributor' } },
+        issue: { number: 42, pull_request: {} },
+      },
+    },
+    core: w.core,
+  });
+  assert.deepEqual(w.calls.reRuns, []);
+  assert.equal(w.calls.comments.length, 1);
+  assert.ok(w.calls.comments[0].includes('over 30 days old'));
+  assert.ok(w.calls.comments[0].includes('Update the branch'));
+});
+
+test('/retry re-runs a failed PR Validation run, and leaves a green one alone', async () => {
+  // PR Validation isn't the orchestrator's, but /retry is where people go
+  // when a check looks stuck (e.g. after a maintainer set a milestone).
+  for (const [conclusion, expected] of [['failure', [55]], ['success', []]]) {
+    const w = rerunWorld();
+    w.github.rest.actions.listWorkflowRuns = async ({ workflow_id }) => ({ data: { workflow_runs:
+      workflow_id === 'pr-validation.yml' ? [{ id: 55, status: 'completed', conclusion }] : [] } });
+    await lifecycle.handleComment({
+      github: w.github,
+      context: {
+        repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+        payload: {
+          comment: { id: 1, body: '/retry', user: { login: 'contributor' } },
+          issue: { number: 42, pull_request: {} },
+        },
+      },
+      core: w.core,
+    });
+    assert.deepEqual(w.calls.reRuns, expected, conclusion);
+  }
+});
+
+test('/retry starts the full suite when it is required but the last Verify run skipped it', async () => {
+  const w = rerunWorld({ runs: [skippedRun()], jobs: skippedJobs });
+  await lifecycle.handleComment({
+    github: w.github,
+    context: {
+      repo: { owner: 'Apicurio', repo: 'apicurio-registry' },
+      payload: {
+        comment: { id: 1, body: '/retry', user: { login: 'contributor' } },
+        issue: { number: 42, pull_request: {} },
+      },
+    },
+    core: w.core,
+  });
+  assert.deepEqual(w.calls.reRuns, [7]);
+  assert.equal(w.calls.comments.length, 1);
+  assert.ok(w.calls.comments[0].includes('started the full suite'));
 });
 
 // ---------------------------------------------------------------------------
@@ -636,6 +1212,52 @@ test('stale: closes once the grace period has elapsed', async () => {
     });
     await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
     assert.deepEqual(w.calls.closed, [{ pull_number: 42, state: 'closed' }]);
+  });
+});
+
+test('stale: the sweep re-syncs the Verification Gate even on an orchestrator/disabled PR', async () => {
+  // Branch protection requires the status on every PR, so the fallback for a
+  // missed workflow_run event must not be skipped with the lifecycle work.
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({ labels: [LABELS.DISABLED] });
+    const statuses = [];
+    w.github.rest.actions = {
+      listWorkflowRuns: async () => ({ data: { workflow_runs: [{
+        id: 1, name: 'Verify', status: 'completed', conclusion: 'success',
+        created_at: '2026-01-01T00:00:00Z', html_url: 'https://example.com/run/1',
+      }] } }),
+      listJobsForWorkflowRun: async () => ({ data: { jobs: [{ name: 'Verify Result', conclusion: 'success' }] } }),
+    };
+    w.github.rest.repos = {
+      getCombinedStatusForRef: async () => ({ data: { statuses: [] } }),
+      createCommitStatus: async ({ sha, state }) => statuses.push({ sha, state }),
+    };
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.deepEqual(statuses, [{ sha: SHA, state: 'success' }]);
+    assert.deepEqual(w.calls.closed, []);
+  });
+});
+
+test('stale: the sweep starts the full suite for an approved PR whose Verify run skipped it', async () => {
+  // Fallback for a review relay that never arrived.
+  await withConfig(STALE_CONFIG, async () => {
+    const w = makeStaleWorld({ labels: [LABELS.READY_FOR_REVIEW] });
+    const reRuns = [];
+    w.github.rest.actions = {
+      listWorkflowRuns: async () => ({ data: { workflow_runs: [{
+        id: 7, name: 'Verify', status: 'completed', conclusion: 'success', run_attempt: 1,
+        created_at: new Date(Date.now() - 60 * 60 * 1000).toISOString(), html_url: 'https://example.com/run/7',
+      }] } }),
+      listJobsForWorkflowRun: async () => ({ data: { jobs: [{ name: 'Verify Result', conclusion: 'skipped' }] } }),
+      reRunWorkflow: async ({ run_id }) => reRuns.push(run_id),
+    };
+    w.github.rest.repos = {
+      getCombinedStatusForRef: async () => ({ data: { statuses: [] } }),
+      createCommitStatus: async () => ({}),
+    };
+    w.github.graphql = async () => ({ repository: { pullRequest: { reviewDecision: 'APPROVED' } } });
+    await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
+    assert.deepEqual(reRuns, [7]);
   });
 });
 

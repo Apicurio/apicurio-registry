@@ -22,6 +22,10 @@ on:
       # scalpel-summary.test.sh asserts the pinned Scalpel version still writes
       # the report schema the summary reads, so a bump has to run these tests.
       - '.mvn/extensions.xml'
+      # The same suite cross-checks the buildAllIfNoChanges pin behind the
+      # summary's empty-reactor full-build projections, so that setting has to
+      # run them too.
+      - '.mvn/maven.config'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -41,7 +45,7 @@ jobs:
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: 24.20.0
+          node-version: 24.21.0
 
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
@@ -57,11 +61,15 @@ jobs:
 
       # Listed individually rather than as a directory: `node --test <dir>`
       # resolves the argument as a module on Node 24 and fails.
+      # pr-reviewer-assignment.test.js also checks the shipped pr-lifecycle.yml
+      # and label-descriptions.yml, reading them through yq (preinstalled on
+      # ubuntu-latest, and what the other workflows use to read that config).
       - name: Run Node unit tests
         run: |
           node --test .github/scripts/pr-validation.test.js \
                       .github/scripts/pr-lifecycle.test.js \
-                      .github/scripts/issue-assignment.test.js
+                      .github/scripts/issue-assignment.test.js \
+                      .github/scripts/pr-reviewer-assignment.test.js
 
       # jq is preinstalled on ubuntu-latest, which is the same assumption the
       # scalpel-report job in verify.yaml makes.

@@ -1,0 +1,8 @@
+{
+  "name": "boolean_output_tool",
+  "description": "outputSchema is the boolean schema 'true', which JSON Schema allows but MCP does not",
+  "inputSchema": {
+    "type": "object"
+  },
+  "outputSchema": true
+}

@@ -248,6 +248,12 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
         delegate.updateArtifactVersionState(groupId, artifactId, version, newState, dryRun);
     }
 
+    public void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
+        checkReadOnly();
+        delegate.updateArtifactVersionStates(groupId, artifactId, versions, newState, labelPrefix, labels);
+    }
+
     public void createGlobalRule(RuleType rule, RuleConfigurationDto config)
             throws RuleAlreadyExistsException, RegistryStorageException {
         checkReadOnly();
@@ -501,10 +507,5 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
     public String createEvent(OutboxEvent event) {
         checkReadOnly();
         return delegate.createEvent(event);
-    }
-
-    public ContentWrapperDto getContentByReference(ArtifactReferenceDto reference) {
-        checkReadOnly();
-        return delegate.getContentByReference(reference);
     }
 }

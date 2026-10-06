@@ -10,6 +10,14 @@ on:
         type: string
         required: true
         description: 'Build artifact identifier (commit SHA)'
+      scalpel-enabled:
+        type: string
+        default: 'false'
+        description: 'Decide output: false on push to main or when the ci/disable-scalpel label is set'
+      scalpel-base-branch:
+        type: string
+        default: ''
+        description: 'Decide output: origin/<PR base ref>, empty when Scalpel is off or the ref is missing'
 
 permissions:
   contents: read
@@ -18,15 +26,17 @@ jobs:
   unit-tests:
     name: Unit Tests (${{ matrix.shard.name }})
     runs-on: ubuntu-latest
+    timeout-minutes: 60  # longest green run, week to 2026-10-01: 37 min
     strategy:
       fail-fast: false
       matrix:
         shard:
           # app-rest used to be a single shard and was the PR critical path at ~35 min
           # (61 classes, 3x the next shard). It is now split three ways: v3 (the bulk),
-          # ccompat, and a misc shard for the remaining rest subpackages (v2, mcptools,
-          # a2a, root-level classes). app-rest-misc must exclude everything app-rest-v3
-          # includes; .github/scripts/verify-test-shards.py enforces the partition.
+          # ccompat, and a misc shard for the remaining rest subpackages (v2, root-level classes)
+          # plus the agent registry tests (io.apicurio.registry.agents.**: A2A, MCP tools and
+          # Registry, AI Catalog, ARD), kept out of the profile-dense app-other shard.
+          # app-rest-misc must exclude everything app-rest-v3 includes; .github/scripts/verify-test-shards.py enforces the partition.
           - name: app-rest-v3
             modules: "-pl app -am -Dfull -DcliSkipNative"
             test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.v3.**"
@@ -41,7 +51,7 @@ jobs:
             surefire-opts: ""
           - name: app-rest-misc
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.rest.v3.**"
+            test-filter: "-Dtest=io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.rest.v3.**,io.apicurio.registry.agents.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
             surefire-opts: ""
           - name: app-sql
@@ -83,20 +93,50 @@ jobs:
           # shard at all. Every exclusion below must correspond to another shard's inclusion.
           - name: app-other
             modules: "-pl app -am -Dfull -DcliSkipNative"
-            test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.impl.sql.**,!io.apicurio.registry.storage.impl.search.**,!io.apicurio.registry.storage.impl.polling.**,!io.apicurio.registry.storage.impl.readonly.**,!io.apicurio.registry.storage.decorator.**,!io.apicurio.registry.storage.dto.**,!io.apicurio.registry.storage.impl.kafkasql.**,!io.apicurio.registry.storage.impl.gitops.**,!io.apicurio.registry.storage.impl.kubernetesops.**,!io.apicurio.registry.event.sql.**,!io.apicurio.registry.event.kafkasql.**,!io.apicurio.registry.auth.**,!io.apicurio.registry.rbac.**,!io.apicurio.registry.limits.**,!io.apicurio.registry.tls.**,!io.apicurio.registry.headers.**,!io.apicurio.registry.cors.**,!io.apicurio.registry.metrics.**,!io.apicurio.registry.search.**"
+            test-filter: "-Dtest=!io.apicurio.registry.noprofile.rest.**,!io.apicurio.registry.agents.**,!io.apicurio.registry.noprofile.ccompat.**,!io.apicurio.registry.storage.impl.sql.**,!io.apicurio.registry.storage.impl.search.**,!io.apicurio.registry.storage.impl.polling.**,!io.apicurio.registry.storage.impl.readonly.**,!io.apicurio.registry.storage.decorator.**,!io.apicurio.registry.storage.dto.**,!io.apicurio.registry.storage.impl.kafkasql.**,!io.apicurio.registry.storage.impl.gitops.**,!io.apicurio.registry.storage.impl.kubernetesops.**,!io.apicurio.registry.event.sql.**,!io.apicurio.registry.event.kafkasql.**,!io.apicurio.registry.auth.**,!io.apicurio.registry.rbac.**,!io.apicurio.registry.limits.**,!io.apicurio.registry.tls.**,!io.apicurio.registry.headers.**,!io.apicurio.registry.cors.**,!io.apicurio.registry.metrics.**,!io.apicurio.registry.search.**"
             maven-opts: "-Xmx4g -Dassembly.skipAssembly=true"
           - name: non-app
             modules: "-Dfull -DcliSkipNative -pl !app,!distro/docker,!docs,!docs/config-generator,!docs/rest-api"
             test-filter: ""
             maven-opts: "-Xmx4g"
+            # Scalpel shadow carrier: the session covers every non-app module,
+            # so any non-app change produces a real shadow document here (what
+            # would have been skipped, per module, with the decisionId). An app
+            # change yields a skip-status document, because app is not in the
+            # session; the app-side assertion is the open half of REG-246.
+            scalpel-shadow: true
     steps:
+      # Resolved once in plain shell because the GitHub expression form of the
+      # same choice, `cond && 0 || 1`, is always 1: the number 0 is falsy in
+      # expression syntax, so the carrier would silently stay shallow. Every
+      # scalpel-touching step below reads these outputs instead of re-deriving
+      # the condition.
+      - name: Resolve Scalpel carrier settings
+        id: scalpel
+        env:
+          SCALPEL_BASE_BRANCH: ${{ inputs.scalpel-base-branch }}
+        run: |
+          if [ "${{ matrix.shard.scalpel-shadow }}" = "true" ] && [ "${{ inputs.scalpel-enabled }}" = "true" ]; then
+            [ -n "$SCALPEL_BASE_BRANCH" ] || echo "::warning::No scalpel-base-branch from Decide, so Scalpel runs without scalpel.baseBranch"
+            echo "depth=0" >> "$GITHUB_OUTPUT"
+            echo "flags=-Dscalpel.enabled=true -Dscalpel.mode=shadow -Dscalpel.verifyFullBuild=true${SCALPEL_BASE_BRANCH:+ -Dscalpel.baseBranch=$SCALPEL_BASE_BRANCH}" >> "$GITHUB_OUTPUT"
+            echo "on=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "depth=1" >> "$GITHUB_OUTPUT"
+            echo "flags=" >> "$GITHUB_OUTPUT"
+            echo "on=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          fetch-depth: 1
+          # The shadow carrier diffs against the base branch, which a shallow
+          # clone cannot see. The same exception the scalpel-report job makes;
+          # every other shard stays shallow.
+          fetch-depth: ${{ steps.scalpel.outputs.depth }}
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -123,16 +163,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_OPTS: ${{ matrix.shard.maven-opts }}
+          # Resolved by the prep step; empty whenever the carrier is off.
+          # Unquoted on purpose, so the empty value expands to zero words.
+          SCALPEL_FLAGS: ${{ steps.scalpel.outputs.flags }}
         run: |
           # Each shard compiles the same modules but runs a different subset of tests via -Dtest= filters.
           # Pre-built artifacts from the Build job are downloaded but Maven still needs to resolve/compile.
           # -Dsurefire.failIfNoSpecifiedTests=false: don't fail if a shard's test filter matches zero tests
           # -Dsurefire.rerunFailingTestsCount=1: automatically retry flaky tests once
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # Scalpel writes under target/ from session start; the same guard
+          # the scalpel-report job keeps.
+          mkdir -p target
           ./mvnw verify \
             --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Pprod ${{ matrix.shard.modules }} \
             ${{ matrix.shard.test-filter }} \
+            $SCALPEL_FLAGS \
             ${{ matrix.shard.surefire-opts }} \
             -Dsurefire.failIfNoSpecifiedTests=false \
             -DskipCommitIdPlugin=true \
@@ -169,3 +216,19 @@ jobs:
           name: flaky-tests-${{ matrix.shard.name }}
           path: flaky-tests-${{ matrix.shard.name }}.json
           retention-days: 1
+
+      - name: Upload Scalpel shadow document
+        if: always() && steps.scalpel.outputs.on == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: scalpel-shadow-${{ matrix.shard.name }}-${{ inputs.image-tag }}
+          path: |
+            target/scalpel-shadow.json
+            target/scalpel-shadow-history.jsonl
+          # No artifact means the shard was cancelled, timed out or killed
+          # before a full analysis wrote its document at session end, Maven
+          # did not reach Scalpel, or Scalpel rejected its configuration and
+          # built everything ("Error parsing configuration" in the job log).
+          # A skipped analysis writes its document early.
+          if-no-files-found: ignore
+          retention-days: 7

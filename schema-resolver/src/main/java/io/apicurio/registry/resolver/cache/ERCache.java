@@ -438,12 +438,7 @@ public class ERCache<V> {
                             "Could not retrieve schema for the cache. " + "Loading function returned null."));
                 }
             } catch (RuntimeException e) {
-                // TODO: verify if this is really needed, retries are already baked into the adapter ...
-                // if (i == retries || !(e.getCause() != null && e.getCause() instanceof ExecutionException
-                // && e.getCause().getCause() != null && e.getCause().getCause() instanceof ApiException
-                // && (((ApiException) e.getCause().getCause()).getResponseStatusCode() == 429)))
-                if (i == retries || !(e.getCause() != null && e.getCause() instanceof ApiException
-                        && (((ApiException) e.getCause()).getResponseStatusCode() == 429))) {
+                if (i == retries || !isRetriable429(e)) {
                     log.error("Cache load failed after {} retries", i, e);
                     return Result.error(new RuntimeException(e));
                 }
@@ -456,6 +451,28 @@ public class ERCache<V> {
             }
         }
         return Result.error(new IllegalStateException("Unreachable."));
+    }
+
+    /** Max cause-chain depth when checking for a retriable 429 (guards against cyclic causes). */
+    private static final int MAX_CAUSE_DEPTH = 32;
+
+    /**
+     * Whether a schema-cache load failure is a retriable HTTP 429 (rate limit).
+     * <p>
+     * Walks the cause chain starting at {@code e} itself, because the real call path
+     * ({@code RegistryClientFacadeImpl}) throws {@link ApiException} directly with no wrapping, so
+     * {@code e} commonly <strong>is</strong> the {@link ApiException} rather than its cause. Also
+     * handles cases where it's wrapped further (e.g. by {@code ExecutionException}).
+     */
+    static boolean isRetriable429(Throwable e) {
+        Throwable current = e;
+        for (int depth = 0; current != null && depth < MAX_CAUSE_DEPTH; depth++) {
+            if (current instanceof ApiException api) {
+                return api.getResponseStatusCode() == 429;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     private static class WrappedValue<V> {

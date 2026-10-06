@@ -630,6 +630,68 @@ public class ERCacheTest {
                 "After registering precision=15, GAV cache should return it");
     }
 
+    /**
+     * Regression test for the 429 retry-detection bug: {@code ERCache}'s retry loop checked
+     * {@code e.getCause() instanceof ApiException}, but the real call path
+     * ({@code RegistryClientFacadeImpl}) throws {@link ApiException} directly with no wrapping, so
+     * {@code e} itself is the {@link ApiException} and {@code e.getCause()} is {@code null}. As a
+     * result, a 429 from the registry was never actually retried end-to-end through
+     * {@code getByGlobalId()}. This test exercises the real call shape (unwrapped {@link ApiException})
+     * and fails on the old code (loader is called once, exception propagates) but passes with the fix
+     * (loader is retried until it succeeds).
+     */
+    @Test
+    void testRetriesDirectApiExceptionOn429() {
+        ERCache<String> cache = new ERCache<>();
+        cache.configureLifetime(Duration.ofMinutes(10));
+        cache.configureRetryBackoff(Duration.ofMillis(10));
+        cache.configureRetryCount(3);
+        cache.configureGlobalIdKeyExtractor(s -> 1L);
+        cache.configureContentIdKeyExtractor(s -> 2L);
+        cache.configureContentHashKeyExtractor(s -> "hash");
+        cache.configureArtifactCoordinatesKeyExtractor(s -> ArtifactCoordinates.builder().artifactId("a").build());
+        cache.configureContentKeyExtractor(s -> ContentWithReferences.builder().content(s).build());
+
+        AtomicInteger attempts = new AtomicInteger();
+        String result = cache.getByGlobalId(1L, globalId -> {
+            if (attempts.incrementAndGet() <= 2) {
+                throw new TestApiException(429);
+            }
+            return "schema-content";
+        });
+
+        assertEquals("schema-content", result);
+        assertEquals(3, attempts.get(), "Should have retried the 429 until it succeeded");
+    }
+
+    @Test
+    void testDoesNotRetryNonRetriableApiException() {
+        ERCache<String> cache = new ERCache<>();
+        cache.configureLifetime(Duration.ofMinutes(10));
+        cache.configureRetryBackoff(Duration.ofMillis(10));
+        cache.configureRetryCount(3);
+        cache.configureGlobalIdKeyExtractor(s -> 1L);
+        cache.configureContentIdKeyExtractor(s -> 2L);
+        cache.configureContentHashKeyExtractor(s -> "hash");
+        cache.configureArtifactCoordinatesKeyExtractor(s -> ArtifactCoordinates.builder().artifactId("a").build());
+        cache.configureContentKeyExtractor(s -> ContentWithReferences.builder().content(s).build());
+
+        AtomicInteger attempts = new AtomicInteger();
+        assertThrows(RuntimeException.class, () -> cache.getByGlobalId(1L, globalId -> {
+            attempts.incrementAndGet();
+            throw new TestApiException(404);
+        }));
+
+        assertEquals(1, attempts.get(), "A non-429 ApiException must not be retried");
+    }
+
+    private static final class TestApiException extends com.microsoft.kiota.ApiException {
+        TestApiException(int status) {
+            super("HTTP " + status);
+            setResponseStatusCode(status);
+        }
+    }
+
     private static class TestSchemaResult {
         final long globalId;
         final long contentId;

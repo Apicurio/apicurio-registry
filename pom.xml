@@ -235,7 +235,6 @@
     <graphql.version>26.1</graphql.version>
 
     <!-- JSON Schema Validator -->
-    <org.everit.json.schema.version>1.14.6</org.everit.json.schema.version>
     <json-sKema.version>0.32.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250517</org.json.version>
@@ -262,6 +261,7 @@
     <woodstox-core.version>7.3.0</woodstox-core.version>
     <jgit.version>7.8.0.202609011348-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
+    <archunit.version>1.5.1</archunit.version>
     <assertj.core.version>3.27.7</assertj.core.version>
     <semver4j.version>6.0.0</semver4j.version>
     <slf4j.version>2.0.17</slf4j.version>
@@ -833,11 +833,6 @@
 
       <dependency>
         <groupId>com.github.erosb</groupId>
-        <artifactId>everit-json-schema</artifactId>
-        <version>${org.everit.json.schema.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.github.erosb</groupId>
         <artifactId>json-sKema</artifactId>
         <version>${json-sKema.version}</version>
       </dependency>
@@ -1053,6 +1048,11 @@
         <artifactId>truth-proto-extension</artifactId>
         <version>${google.truth.extension.version}</version>
         <scope>test</scope>
+      </dependency>
+      <dependency>
+        <groupId>com.tngtech.archunit</groupId>
+        <artifactId>archunit-junit5</artifactId>
+        <version>${archunit.version}</version>
       </dependency>
       <dependency>
         <groupId>org.awaitility</groupId>

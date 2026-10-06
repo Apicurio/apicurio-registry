@@ -136,8 +136,7 @@ public class RegistryStorageLimitsEnforcerTest {
         content.setContent(contentHandle);
         EditableVersionMetaDataDto metaData = new EditableVersionMetaDataDto();
 
-        // Note: 3rd parameter is null because previousVersion check is optional for version creation limit checks
-        Mockito.when(limitsService.canCreateArtifactVersion("g1", "a1", null, contentHandle))
+        Mockito.when(limitsService.canCreateArtifactVersion("g1", "a1", metaData, contentHandle))
                 .thenReturn(LimitsCheckResult.ok());
         Mockito.when(delegate.createArtifactVersion("g1", "a1", "1", "JSON", content, metaData,
                 Collections.emptyList(), false, true, "owner"))
@@ -147,7 +146,7 @@ public class RegistryStorageLimitsEnforcerTest {
                 Collections.emptyList(), false, true, "owner");
 
         InOrder inOrder = Mockito.inOrder(limitsService, delegate);
-        inOrder.verify(limitsService).canCreateArtifactVersion("g1", "a1", null, contentHandle);
+        inOrder.verify(limitsService).canCreateArtifactVersion("g1", "a1", metaData, contentHandle);
         inOrder.verify(delegate).createArtifactVersion("g1", "a1", "1", "JSON", content, metaData,
                 Collections.emptyList(), false, true, "owner");
         Mockito.verify(limitsService, Mockito.never()).artifactVersionCreated("g1", "a1");
@@ -160,7 +159,7 @@ public class RegistryStorageLimitsEnforcerTest {
         content.setContent(contentHandle);
         EditableVersionMetaDataDto metaData = new EditableVersionMetaDataDto();
 
-        Mockito.when(limitsService.canCreateArtifactVersion("g1", "a1", null, contentHandle))
+        Mockito.when(limitsService.canCreateArtifactVersion("g1", "a1", metaData, contentHandle))
                 .thenReturn(LimitsCheckResult.ok());
         Mockito.when(delegate.createArtifactVersion("g1", "a1", "1", "JSON", content, metaData,
                 Collections.emptyList(), false, false, "owner"))
@@ -170,7 +169,7 @@ public class RegistryStorageLimitsEnforcerTest {
                 Collections.emptyList(), false, false, "owner");
 
         InOrder inOrder = Mockito.inOrder(limitsService, delegate);
-        inOrder.verify(limitsService).canCreateArtifactVersion("g1", "a1", null, contentHandle);
+        inOrder.verify(limitsService).canCreateArtifactVersion("g1", "a1", metaData, contentHandle);
         inOrder.verify(delegate).createArtifactVersion("g1", "a1", "1", "JSON", content, metaData,
                 Collections.emptyList(), false, false, "owner");
         inOrder.verify(limitsService).artifactVersionCreated("g1", "a1");
@@ -183,7 +182,7 @@ public class RegistryStorageLimitsEnforcerTest {
         content.setContent(contentHandle);
         EditableVersionMetaDataDto metaData = new EditableVersionMetaDataDto();
 
-        Mockito.when(limitsService.canCreateArtifactVersion("g1", "a1", null, contentHandle))
+        Mockito.when(limitsService.canCreateArtifactVersion("g1", "a1", metaData, contentHandle))
                 .thenReturn(LimitsCheckResult.disallowed("Artifact version limit reached"));
 
         LimitExceededException ex = assertThrows(
@@ -193,7 +192,7 @@ public class RegistryStorageLimitsEnforcerTest {
         );
 
         assertEquals("Artifact version limit reached", ex.getMessage());
-        Mockito.verify(limitsService).canCreateArtifactVersion("g1", "a1", null, contentHandle);
+        Mockito.verify(limitsService).canCreateArtifactVersion("g1", "a1", metaData, contentHandle);
         Mockito.verify(delegate, Mockito.never()).createArtifactVersion(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
                 Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.anyList(), Mockito.anyBoolean(),
                 Mockito.anyBoolean(), Mockito.anyString());
@@ -207,7 +206,7 @@ public class RegistryStorageLimitsEnforcerTest {
         content.setContent(contentHandle);
         EditableVersionMetaDataDto metaData = new EditableVersionMetaDataDto();
 
-        Mockito.when(limitsService.canCreateArtifactVersion("g1", "a1", null, contentHandle))
+        Mockito.when(limitsService.canCreateArtifactVersion("g1", "a1", metaData, contentHandle))
                 .thenReturn(LimitsCheckResult.disallowed("Artifact version limit reached"));
 
         LimitExceededException ex = assertThrows(
@@ -217,10 +216,63 @@ public class RegistryStorageLimitsEnforcerTest {
         );
 
         assertEquals("Artifact version limit reached", ex.getMessage());
-        Mockito.verify(limitsService).canCreateArtifactVersion("g1", "a1", null, contentHandle);
+        Mockito.verify(limitsService).canCreateArtifactVersion("g1", "a1", metaData, contentHandle);
         Mockito.verify(delegate, Mockito.never()).createArtifactVersion(Mockito.anyString(), Mockito.anyString(), Mockito.anyString(),
                 Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.anyList(), Mockito.anyBoolean(),
                 Mockito.anyBoolean(), Mockito.anyString());
+        Mockito.verify(limitsService, Mockito.never()).artifactVersionCreated("g1", "a1");
+    }
+
+    @Test
+    public void testCreateArtifactVersionIfLatestPassesMetaDataToLimitsCheck() {
+        ContentHandle contentHandle = ContentHandle.create("content");
+        ContentWrapperDto content = new ContentWrapperDto();
+        content.setContent(contentHandle);
+        EditableVersionMetaDataDto metaData = new EditableVersionMetaDataDto();
+        metaData.setName("version-name");
+        EditableArtifactMetaDataDto artifactMetaData = new EditableArtifactMetaDataDto();
+        ArtifactVersionMetaDataDto expected = new ArtifactVersionMetaDataDto();
+
+        Mockito.when(limitsService.canCreateArtifactVersion("g1", "a1", metaData, contentHandle))
+                .thenReturn(LimitsCheckResult.ok());
+        Mockito.when(delegate.createArtifactVersionIfLatest("g1", "a1", "2", "JSON", content, metaData,
+                Collections.emptyList(), false, "owner", 1, artifactMetaData))
+                .thenReturn(expected);
+
+        ArtifactVersionMetaDataDto result = enforcer.createArtifactVersionIfLatest("g1", "a1", "2", "JSON",
+                content, metaData, Collections.emptyList(), false, "owner", 1, artifactMetaData);
+
+        assertEquals(expected, result);
+        InOrder inOrder = Mockito.inOrder(limitsService, delegate);
+        inOrder.verify(limitsService).canCreateArtifactVersion("g1", "a1", metaData, contentHandle);
+        inOrder.verify(delegate).createArtifactVersionIfLatest("g1", "a1", "2", "JSON", content, metaData,
+                Collections.emptyList(), false, "owner", 1, artifactMetaData);
+        inOrder.verify(limitsService).artifactVersionCreated("g1", "a1");
+    }
+
+    @Test
+    public void testCreateArtifactVersionIfLatestMetaDataLimitExceededThrowsAndDoesNotInvokeDelegate() {
+        ContentHandle contentHandle = ContentHandle.create("content");
+        ContentWrapperDto content = new ContentWrapperDto();
+        content.setContent(contentHandle);
+        EditableVersionMetaDataDto metaData = new EditableVersionMetaDataDto();
+        metaData.setName("version-name");
+        EditableArtifactMetaDataDto artifactMetaData = new EditableArtifactMetaDataDto();
+
+        Mockito.when(limitsService.canCreateArtifactVersion("g1", "a1", metaData, contentHandle))
+                .thenReturn(LimitsCheckResult.disallowed("Name too long"));
+
+        LimitExceededException ex = assertThrows(
+                LimitExceededException.class,
+                () -> enforcer.createArtifactVersionIfLatest("g1", "a1", "2", "JSON", content, metaData,
+                        Collections.emptyList(), false, "owner", 1, artifactMetaData)
+        );
+
+        assertEquals("Name too long", ex.getMessage());
+        Mockito.verify(limitsService).canCreateArtifactVersion("g1", "a1", metaData, contentHandle);
+        Mockito.verify(delegate, Mockito.never()).createArtifactVersionIfLatest(Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.any(), Mockito.any(),
+                Mockito.anyList(), Mockito.anyBoolean(), Mockito.anyString(), Mockito.anyInt(), Mockito.any());
         Mockito.verify(limitsService, Mockito.never()).artifactVersionCreated("g1", "a1");
     }
 }

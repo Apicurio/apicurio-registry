@@ -1,0 +1,9 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: kubernetes-auth
+spec:
+  app:
+    auth:
+      kubernetesAuth:
+        enabled: true

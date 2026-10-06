@@ -19,6 +19,8 @@ public class KubernetesAuth {
 
         env.put(EnvironmentVariables.APICURIO_AUTHN_KUBERNETES_ENABLED,
                 createEnvVar(EnvironmentVariables.APICURIO_AUTHN_KUBERNETES_ENABLED, "true"));
+        env.put(EnvironmentVariables.APICURIO_FEATURES_EXPERIMENTAL_ENABLED,
+                createEnvVar(EnvironmentVariables.APICURIO_FEATURES_EXPERIMENTAL_ENABLED, "true"));
 
         if (!env.containsKey(EnvironmentVariables.APICURIO_AUTHN_MECHANISM_PRIORITY)) {
             env.put(EnvironmentVariables.APICURIO_AUTHN_MECHANISM_PRIORITY,

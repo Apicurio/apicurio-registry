@@ -1,16 +1,13 @@
 package io.apicurio.registry.mcptools.compatibility;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.JsonSchemaDiffLibrary;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.Difference;
+import com.networknt.schema.SpecVersion.VersionFlag;
+import io.apicurio.registry.json.rules.validity.JsonSchemaDocumentValidator;
+import io.apitomy.datamodels.DataModelsException;
+import io.apitomy.datamodels.jsonschema.compat.DiffType;
+import io.apitomy.datamodels.jsonschema.compat.Difference;
+import io.apitomy.datamodels.jsonschema.compat.JsonSchemaCompatibilityChecker;
 import jakarta.enterprise.context.ApplicationScoped;
-import org.everit.json.schema.Schema;
-import org.everit.json.schema.SchemaException;
-import org.everit.json.schema.loader.SchemaClient;
-import org.everit.json.schema.loader.SchemaLoader;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,9 +41,19 @@ public class CrossToolCompatibilityService {
     private static final String OUTPUT_SCHEMA_POINTER = "/outputSchema";
     private static final String INPUT_SCHEMA_POINTER = "/inputSchema";
 
-    private static final SchemaClient DENY_ALL_SCHEMA_CLIENT = url -> {
-        throw new IllegalStateException("External JSON Schema resolution is disabled");
-    };
+    /**
+     * Compares the projections, which contain no references, so there is nothing to resolve. It
+     * holds no state between checks, so one instance serves every comparison.
+     */
+    private static final JsonSchemaCompatibilityChecker CHECKER = JsonSchemaCompatibilityChecker.builder().build();
+
+    /**
+     * Decides whether a projection can be read as a JSON Schema at all. Projections declare no
+     * {@code $schema}, and the keywords they keep mean the same in every dialect, so draft 7 is used.
+     */
+    private static final JsonSchemaDocumentValidator READABILITY = JsonSchemaDocumentValidator.builder()
+            .draftDetector(schema -> Optional.of(VersionFlag.V7))
+            .build();
 
     private static final Comparator<CompatibilityReason> REASON_ORDER = Comparator
             .comparing(CompatibilityReason::consumerPointer)
@@ -79,17 +86,14 @@ public class CrossToolCompatibilityService {
         if (!projection.dialectSupported()) {
             return PreparedProducer.unavailable(projection.limitations());
         }
-        try {
-            Schema asWritten = load(projection.projected());
-            Schema closed = projection.closable() ? load(projection.closed()) : null;
-            return PreparedProducer.loaded(projection, asWritten, closed);
-        } catch (SchemaException | JSONException e) {
-            log.debug("MCP tool outputSchema cannot be loaded for comparison", e);
+        if (!isReadable(projection.projected())) {
             List<CompatibilityLimitation> limitations = new ArrayList<>(projection.limitations());
             limitations.add(comparisonFailed(SchemaSide.PRODUCER, OUTPUT_SCHEMA_POINTER,
                     "The outputSchema cannot be read as a JSON Schema"));
             return PreparedProducer.unavailable(limitations);
         }
+        return PreparedProducer.prepared(projection, projection.projected(),
+                projection.closable() ? projection.closed() : null);
     }
 
     /**
@@ -130,19 +134,19 @@ public class CrossToolCompatibilityService {
             return indeterminate(limitations);
         }
 
-        Map<DifferenceKey, Difference> asWritten;
-        Map<DifferenceKey, Difference> closed;
-        try {
-            Schema consumerSchema = load(consumer.projected());
-            asWritten = incompatibleDifferences(producer.asWritten(), consumerSchema);
-            closed = producer.closed() == null ? asWritten
-                    : incompatibleDifferences(producer.closed(), consumerSchema);
-        } catch (SchemaException | JSONException e) {
-            log.debug("MCP tool inputSchema cannot be loaded for comparison", e);
+        if (!isReadable(consumer.projected())) {
             limitations.add(comparisonFailed(SchemaSide.CONSUMER, INPUT_SCHEMA_POINTER,
                     "The inputSchema cannot be read as a JSON Schema"));
             return indeterminate(limitations);
-        } catch (IllegalStateException e) {
+        }
+
+        Map<DifferenceKey, Difference> asWritten;
+        Map<DifferenceKey, Difference> closed;
+        try {
+            asWritten = incompatibleDifferences(producer.asWritten(), consumer.projected());
+            closed = producer.closed() == null ? asWritten
+                    : incompatibleDifferences(producer.closed(), consumer.projected());
+        } catch (IllegalStateException | DataModelsException e) {
             log.debug("MCP tool schemas could not be compared", e);
             limitations.add(comparisonFailed(SchemaSide.CONSUMER, INPUT_SCHEMA_POINTER,
                     "The schemas could not be compared"));
@@ -161,7 +165,7 @@ public class CrossToolCompatibilityService {
         }
 
         DifferenceAttributor attributor = new DifferenceAttributor(producer.projection(), consumer,
-                this::accepts);
+                producer.closed() != null, this::accepts);
         Set<CompatibilityReason> reasons = new LinkedHashSet<>();
         attributor.unrestrictedOutputType().ifPresent(reasons::add);
         boolean unattributed = false;
@@ -204,8 +208,8 @@ public class CrossToolCompatibilityService {
 
     private Optional<Boolean> accepts(JsonNode emitted, JsonNode accepted) {
         try {
-            return Optional.of(incompatibleDifferences(load(emitted), load(accepted)).isEmpty());
-        } catch (SchemaException | JSONException | IllegalStateException e) {
+            return Optional.of(incompatibleDifferences(emitted, accepted).isEmpty());
+        } catch (IllegalStateException | DataModelsException e) {
             return Optional.empty();
         }
     }
@@ -227,27 +231,26 @@ public class CrossToolCompatibilityService {
     /**
      * Keys differences by what they report in the consumer's terms, which do not change when the
      * producer is closed, so that the two runs can be compared.
+     *
+     * @throws IllegalStateException if part of the schemas could not be compared
      */
-    private static Map<DifferenceKey, Difference> incompatibleDifferences(Schema producer,
-            Schema consumer) {
+    private static Map<DifferenceKey, Difference> incompatibleDifferences(JsonNode producer,
+            JsonNode consumer) {
+        var result = CHECKER.checkBackward(producer.toString(), consumer.toString());
+        if (result.hasUnsupportedFeatures()) {
+            throw new IllegalStateException("The schemas could not be fully compared: "
+                    + String.join("; ", result.getUnsupportedFeatures()));
+        }
         Map<DifferenceKey, Difference> differences = new LinkedHashMap<>();
-        for (Difference difference : JsonSchemaDiffLibrary.findDifferences(producer, consumer)
-                .getIncompatibleDifferences()) {
-            differences.put(new DifferenceKey(difference.getDiffType(), difference.getPathUpdated(),
-                    difference.getSubSchemaUpdated()), difference);
+        for (Difference difference : result.getIncompatibleDifferences()) {
+            differences.put(new DifferenceKey(difference.getDiffType(), difference.getPathUpdated().toString()),
+                    difference);
         }
         return differences;
     }
 
-    private static Schema load(JsonNode schema) {
-        Object json = schema.isBoolean() ? schema.booleanValue() : new JSONObject(schema.toString());
-        return SchemaLoader.builder()
-                .draftV7Support()
-                .schemaClient(DENY_ALL_SCHEMA_CLIENT)
-                .schemaJson(json)
-                .build()
-                .load()
-                .build();
+    private static boolean isReadable(JsonNode projection) {
+        return READABILITY.validate(projection).isEmpty();
     }
 
     private static PairCompatibility indeterminate(List<CompatibilityLimitation> limitations) {
@@ -260,6 +263,6 @@ public class CrossToolCompatibilityService {
                 message);
     }
 
-    private record DifferenceKey(DiffType type, String path, String updated) {
+    private record DifferenceKey(DiffType type, String path) {
     }
 }

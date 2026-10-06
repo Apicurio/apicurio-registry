@@ -8,34 +8,43 @@ import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
-import org.everit.json.schema.Schema;
-import org.everit.json.schema.ValidationException;
-import org.everit.json.schema.loader.SchemaLoader;
-import org.json.JSONObject;
-import org.json.JSONTokener;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.networknt.schema.JsonSchema;
+import com.networknt.schema.JsonSchemaFactory;
+import com.networknt.schema.PathType;
+import com.networknt.schema.SchemaLocation;
+import com.networknt.schema.SchemaValidatorsConfig;
+import com.networknt.schema.SpecVersion.VersionFlag;
+import com.networknt.schema.ValidationMessage;
+import com.networknt.schema.resource.DisallowSchemaLoader;
 
 import java.io.InputStream;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.HashSet;
 
 /** Validates the pinned MCP server.json schema locally, without resolving publisher-supplied URLs. */
 public class McpServerContentValidator implements ContentValidator {
 
     public static final Pattern SERVER_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$");
-    private static final Schema SCHEMA = loadSchema();
+    private static final JsonSchema SCHEMA = loadSchema();
 
-    private static Schema loadSchema() {
+    private static JsonSchema loadSchema() {
         try (InputStream stream = McpServerContentValidator.class.getResourceAsStream("mcp-server-2025-12-11.json")) {
             if (stream == null) {
                 throw new IllegalStateException("Missing bundled MCP server schema");
             }
-            return SchemaLoader.builder().schemaJson(new JSONObject(new JSONTokener(stream)))
-                    .draftV7Support().schemaClient(url -> {
-                        throw new IllegalArgumentException("External schema resolution is disabled");
-                    }).build().load().build();
+            var schema = new ObjectMapper().readTree(stream);
+            // The bundled schema refers only to its own definitions. Every loader is replaced by one
+            // that refuses, so no document is ever fetched, from the network or the classpath.
+            var factory = JsonSchemaFactory.getInstance(VersionFlag.V7, builder -> builder
+                    .schemaLoaders(loaders -> loaders.values(List::clear).add(DisallowSchemaLoader.getInstance())));
+            var config = SchemaValidatorsConfig.builder().pathType(PathType.JSON_POINTER).build();
+            var loaded = factory.getSchema(SchemaLocation.of(schema.path("$id").asText()), schema, config);
+            loaded.initializeValidators();
+            return loaded;
         } catch (Exception e) {
             throw new IllegalStateException("Cannot load bundled MCP server schema", e);
         }
@@ -46,34 +55,32 @@ public class McpServerContentValidator implements ContentValidator {
         if (level == ValidityLevel.NONE) {
             return;
         }
+        Set<ValidationMessage> messages;
         try {
             var tree = ContentTypeUtil.parseJson(content.getContent());
             if (!tree.isObject()) {
                 throw new IllegalArgumentException("Expected an object");
             }
-            JSONObject document = new JSONObject(tree.toString());
-            if (level == ValidityLevel.FULL) {
-                SCHEMA.validate(document);
-            }
-        } catch (ValidationException e) {
-            Set<RuleViolation> violations = new HashSet<>();
-            collectViolations(e, violations);
-            throw new RuleViolationException("Invalid MCP server definition", RuleType.VALIDITY,
-                    level.name(), violations);
+            messages = level == ValidityLevel.FULL ? SCHEMA.validate(tree) : Set.of();
         } catch (Exception e) {
             throw new RuleViolationException("MCP server definition must be a JSON object", RuleType.VALIDITY,
                     level.name(), Set.of(new RuleViolation("Invalid JSON object", "")));
         }
+        if (!messages.isEmpty()) {
+            Set<RuleViolation> violations = new HashSet<>();
+            for (ValidationMessage message : messages) {
+                var location = message.getInstanceLocation().toString();
+                violations.add(new RuleViolation(withoutLocation(message.getMessage(), location), location));
+            }
+            throw new RuleViolationException("Invalid MCP server definition", RuleType.VALIDITY,
+                    level.name(), violations);
+        }
     }
 
-    private void collectViolations(ValidationException error, Set<RuleViolation> violations) {
-        if (error.getCausingExceptions().isEmpty()) {
-            String pointer = error.getPointerToViolation();
-            violations.add(new RuleViolation(error.getErrorMessage(),
-                    pointer.startsWith("#") ? pointer.substring(1) : pointer));
-        } else {
-            error.getCausingExceptions().forEach(cause -> collectViolations(cause, violations));
-        }
+    /** The library starts each message with the instance location, which the violation carries as its context. */
+    private static String withoutLocation(String message, String location) {
+        var prefix = location + ": ";
+        return message.startsWith(prefix) ? message.substring(prefix.length()) : message;
     }
 
     @Override

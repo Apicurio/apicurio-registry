@@ -1,7 +1,7 @@
-package io.apicurio.registry.federation;
+package io.apicurio.registry.agents.rest.wellknown;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.noprofile.rest.a2a.ExperimentalFeaturesEnabledProfile;
+import io.apicurio.registry.agents.noprofile.rest.a2a.ExperimentalFeaturesEnabledProfile;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;

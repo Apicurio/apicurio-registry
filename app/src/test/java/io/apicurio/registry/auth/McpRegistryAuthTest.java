@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
-import static io.apicurio.registry.noprofile.mcpregistry.rest.v0.McpRegistryRequests.given;
+import static io.apicurio.registry.agents.noprofile.mcpregistry.rest.v0.McpRegistryRequests.given;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -21,8 +21,8 @@ import static org.hamcrest.CoreMatchers.nullValue;
  * Owner-only authorization tests for the MCP Registry API.
  *
  * Publishing takes the server name from the request body rather than the path, so it cannot rely on
- * {@code AuthorizedStyle.McpServerName} and has to enforce ownership itself. Delete and the status updates
- * do rely on it: {@code isOwner()} parses parameter 0 with {@code McpServerName.parse} and checks the owner
+ * {@code AuthorizedStyle.QualifiedArtifactName} and has to enforce ownership itself. Delete and the status updates
+ * do rely on it: {@code isOwner()} splits parameter 0 at its first slash into group and artifact id and checks the owner
  * of the resulting group/artifact, so the tests for those endpoints are what catch a signature change.
  */
 @QuarkusTest

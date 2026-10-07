@@ -108,6 +108,7 @@ class PeerSearchClientTest {
             assertNull(seen.header("Authorization"));
             assertNull(seen.header("Cookie"));
             assertEquals("application/json", seen.header("Accept"));
+            assertEquals("1", seen.header("X-Federation-Hop"));
         }
     }
 

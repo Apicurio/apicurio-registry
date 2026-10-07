@@ -1,0 +1,211 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://apicurio.io/schemas/agent-card.json",
+  "title": "A2A Agent Card",
+  "description": "Schema for Agent Card definitions stored as registry artifacts, based on the A2A protocol specification.",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the agent."
+    },
+    "description": {
+      "type": "string",
+      "description": "A human-readable description of what the agent does."
+    },
+    "version": {
+      "type": "string",
+      "description": "The version of the agent card schema."
+    },
+    "protocolVersion": {
+      "type": "string",
+      "description": "The version of the A2A protocol this agent conforms to."
+    },
+    "provider": {
+      "type": "object",
+      "description": "Provider of the A2A agent.",
+      "properties": {
+        "organization": {
+          "type": "string",
+          "description": "The organization providing the agent."
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "The URL of the provider's website."
+        }
+      },
+      "additionalProperties": false
+    },
+    "capabilities": {
+      "type": "object",
+      "description": "Capabilities of the A2A agent.",
+      "properties": {
+        "streaming": {
+          "type": "boolean",
+          "description": "Whether the agent supports streaming responses.",
+          "default": false
+        },
+        "pushNotifications": {
+          "type": "boolean",
+          "description": "Whether the agent supports push notifications.",
+          "default": false
+        },
+        "extendedAgentCard": {
+          "type": "boolean",
+          "description": "Whether the agent provides an extended agent card.",
+          "default": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "skills": {
+      "type": "array",
+      "description": "The skills supported by the agent.",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the skill."
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name of the skill."
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of what the skill does."
+          },
+          "tags": {
+            "type": "array",
+            "description": "Tags associated with the skill for search and discovery.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "examples": {
+            "type": "array",
+            "description": "Example prompts or inputs for the skill.",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "defaultInputModes": {
+      "type": "array",
+      "description": "Default supported input MIME types.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "defaultOutputModes": {
+      "type": "array",
+      "description": "Default supported output MIME types.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "supportedInterfaces": {
+      "type": "array",
+      "description": "The communication interfaces supported by the agent.",
+      "items": {
+        "type": "object",
+        "required": ["url", "protocolBinding"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The endpoint URL for this interface."
+          },
+          "protocolBinding": {
+            "type": "string",
+            "description": "The protocol binding (e.g. 'http+json', 'grpc')."
+          },
+          "protocolVersion": {
+            "type": "string",
+            "description": "The protocol version for this interface."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "type": "object",
+      "description": "Security schemes supported by the agent.",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "The security scheme type (e.g. 'httpAuth', 'apiKey')."
+          },
+          "scheme": {
+            "type": "string",
+            "description": "The HTTP authentication scheme (e.g. 'Bearer', 'Basic')."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the header or query parameter for API key auth."
+          },
+          "location": {
+            "type": "string",
+            "description": "The location of the API key (e.g. 'header', 'query')."
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "securityRequirements": {
+      "type": "array",
+      "description": "Security requirements for using the agent.",
+      "items": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "iconUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to the agent's icon."
+    },
+    "documentationUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to the agent's documentation."
+    },
+    "signatures": {
+      "type": "array",
+      "description": "Cryptographic signatures for the agent card.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "string",
+            "description": "The signing algorithm used."
+          },
+          "keyId": {
+            "type": "string",
+            "description": "Identifier for the signing key."
+          },
+          "value": {
+            "type": "string",
+            "description": "The signature value."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": true
+}

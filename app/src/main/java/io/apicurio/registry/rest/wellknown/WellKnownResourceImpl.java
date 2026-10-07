@@ -85,6 +85,13 @@ public class WellKnownResourceImpl implements WellKnownResource {
     private static final int MAX_VISIBILITY_FILTER_RESULTS = 10000;
     private static final String PROPERTIES_FIELD = "properties";
 
+    private static final Set<String> ALLOWED_SCHEMAS = Set.of(
+            "prompt-template-v1",
+            "model-schema-v1",
+            "mcp-tool-v1",
+            "agent-card-v1"
+    );
+
     /**
      * Maximum number of MCP-tool candidates evaluated per compatible-tools request.
      * Kept well below {@link #MAX_VISIBILITY_FILTER_RESULTS} because each candidate
@@ -919,15 +926,9 @@ public class WellKnownResourceImpl implements WellKnownResource {
     }
 
     private String getSchemaResourcePath(String type, String version) {
-        // Only allow known schema types and versions
-        if ("prompt-template".equals(type) && "v1".equals(version)) {
-            return "schemas/prompt-template-v1.json";
-        } else if ("model-schema".equals(type) && "v1".equals(version)) {
-            return "schemas/model-schema-v1.json";
-        } else if ("mcp-tool".equals(type) && "v1".equals(version)) {
-            return "schemas/mcp-tool-v1.json";
-        } else if ("agent-card".equals(type) && "v1".equals(version)) {
-            return "schemas/agent-card-v1.json";
+        String schemaId = type + "-" + version;
+        if (ALLOWED_SCHEMAS.contains(schemaId)) {
+            return "schemas/" + schemaId + ".json";
         }
         return null;
     }

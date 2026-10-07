@@ -468,10 +468,11 @@ rather than the whole reactor. [#187](https://github.com/maveniverse/scalpel/iss
 asked for the three-way split to be readable from the report, which is what the
 native count fields above deliver.
 
-Three caveats. The replay ran on 0.4.1 rather than the 0.4.2 now pinned in
-`.mvn/extensions.xml`; the two ship a byte-identical report schema and differ
-only in how an empty trim is applied to the session, which `mode=report` never
-reaches. The replay also predates the current `scalpel.excludePaths` list, so
+Three caveats. The replay ran on 0.4.1 rather than the 0.4.3 now pinned in
+`.mvn/extensions.xml`; the three ship a byte-identical report schema, and 0.4.2
+and 0.4.3 differ from 0.4.1 only in how an empty trim is applied to the session
+and in the extension's POM analysis and module attribution, so 0.4.3 can select
+different modules than the replay did. The replay also predates the current `scalpel.excludePaths` list, so
 the 16 exhausted runs come from re-applying the current list to each commit's
 changed files using Scalpel's own glob rules, and the 11 trimmed percentages are
 as measured, which makes them a lower bound: excluding more files can only

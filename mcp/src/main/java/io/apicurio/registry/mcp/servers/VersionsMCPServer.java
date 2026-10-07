@@ -174,14 +174,15 @@ public class VersionsMCPServer {
             return null;
         }
         return Arrays.stream(VersionState.values())
-                .filter(v -> v.name().equalsIgnoreCase(versionState))
+                .filter(v -> v.name().equalsIgnoreCase(versionState.trim()))
                 .findFirst()
-                .orElseThrow(() -> new ToolCallException("Invalid versionState: " + versionState
-                        + ". Accepted values (case-insensitive): ENABLED, DISABLED, DEPRECATED, DRAFT."));
+                .orElseThrow(() -> new ToolCallException(
+                        "Invalid versionState: '" + versionState + "'. Accepted values (case-insensitive): "
+                                + Arrays.toString(VersionState.values())));
     }
 
     @Tool(description = """
-            Search for artifact version in the Apicurio Registry server. 
+            Search for artifact version in the Apicurio Registry server. \
             Returns metadata of the versions that fit the search criteria.""")
     List<SearchedVersion> search_versions(
             @ToolArg(description = GROUP_ID) String groupId,

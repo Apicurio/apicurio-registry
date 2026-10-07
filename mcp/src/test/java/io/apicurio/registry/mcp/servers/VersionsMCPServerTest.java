@@ -7,6 +7,7 @@ import io.quarkiverse.mcp.server.ToolCallException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -91,11 +92,20 @@ public class VersionsMCPServerTest {
     }
 
     @Test
+    public void testVersionStateWithSurroundingWhitespaceIsAccepted() {
+        search("  ENABLED  ");
+        assertEquals(VersionState.ENABLED, service.capturedState);
+
+        search(" draft ");
+        assertEquals(VersionState.DRAFT, service.capturedState);
+    }
+
+    @Test
     public void testInvalidVersionStateThrowsToolCallException() {
         ToolCallException exception = assertThrows(ToolCallException.class, () -> search("ENABLE"));
 
-        assertEquals("Invalid versionState: ENABLE."
-                + " Accepted values (case-insensitive): ENABLED, DISABLED, DEPRECATED, DRAFT.",
+        assertEquals("Invalid versionState: 'ENABLE'. Accepted values (case-insensitive): "
+                + Arrays.toString(VersionState.values()),
                 exception.getMessage());
         assertFalse(service.called);
     }
@@ -104,7 +114,7 @@ public class VersionsMCPServerTest {
     public void testArbitraryInvalidVersionStateThrowsToolCallException() {
         ToolCallException exception = assertThrows(ToolCallException.class, () -> search("INVALID_STATE"));
 
-        assertTrue(exception.getMessage().contains("Invalid versionState: INVALID_STATE"));
+        assertTrue(exception.getMessage().contains("Invalid versionState: 'INVALID_STATE'"));
         assertFalse(service.called);
     }
 }

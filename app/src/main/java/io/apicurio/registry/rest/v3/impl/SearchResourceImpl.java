@@ -8,6 +8,9 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.contracts.ContractLabels;
+import io.apicurio.registry.federation.FederatedSearchService;
+import io.apicurio.registry.federation.FederationConfig;
+import io.apicurio.registry.federation.PeerQuery;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -15,10 +18,12 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
+import io.apicurio.registry.rest.wellknown.WellKnownResourceImpl;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.ArtifactSortBy;
 import io.apicurio.registry.rest.v3.beans.ContractRule;
 import io.apicurio.registry.rest.v3.beans.ContractRuleSearchResult;
+import io.apicurio.registry.rest.v3.beans.FederatedAgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupSortBy;
 import io.apicurio.registry.rest.v3.beans.Params;
@@ -61,6 +66,7 @@ public class SearchResourceImpl implements SearchResource {
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     private static final String CANONICAL_QUERY_PARAM_ERROR_MESSAGE = "When setting 'canonical' to 'true', the 'artifactType' query parameter is also required.";
     private static final String CONTRACT_LABEL_PREFIX = "contract.*";
+    private static final int DEFAULT_PER_SOURCE_LIMIT = 20;
 
     @Inject
     @Current
@@ -74,6 +80,15 @@ public class SearchResourceImpl implements SearchResource {
 
     @Inject
     RegistryStorageContentUtils contentUtils;
+
+    @Inject
+    FederationConfig federationConfig;
+
+    @Inject
+    FederatedSearchService federatedSearch;
+
+    @Inject
+    WellKnownResourceImpl wellKnown;
 
     private static SearchFilter parseLabelFilter(String prop) {
         int delimiterIndex = prop.lastIndexOf(":");
@@ -94,6 +109,23 @@ public class SearchResourceImpl implements SearchResource {
             labelValue = prop.substring(delimiterIndex + 1);
         }
         return SearchFilter.ofLabel(labelKey, labelValue);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.SearchResource#searchFederatedAgents(String, List, List, List, List, BigInteger)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public FederatedAgentSearchResults searchFederatedAgents(String name, List<String> skill,
+            List<String> capability, List<String> inputMode, List<String> outputMode,
+            BigInteger perSourceLimit) {
+        federationConfig.requireEnabled();
+        int maxLimit = federationConfig.getSearchPerSourceLimitMax();
+        int limit = perSourceLimit == null ? Math.min(DEFAULT_PER_SOURCE_LIMIT, maxLimit)
+            : perSourceLimit.min(BigInteger.valueOf(maxLimit)).max(BigInteger.ONE).intValue();
+        PeerQuery query = new PeerQuery(name, skill, capability, inputMode, outputMode, limit);
+        return federatedSearch.search(query, localLimit -> wellKnown.searchAgents(name, skill, capability,
+                inputMode, outputMode, 0, localLimit, false, request));
     }
 
     @Override

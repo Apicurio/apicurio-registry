@@ -338,9 +338,19 @@ The `DefaultSchemaResolver` uses the following properties to configure how to lo
 |`300`
 |`RETRY_COUNT`
 |`apicurio.registry.retry-count`
-|Used by serializers and deserializers. If the SerDes cannot retrieve a schema from the registry, they can retry a number of times. This configuration option controls the number of retry attempts.
+|Used by serializers and deserializers. **To retry registry outages, set `apicurio.registry.retry.transient-errors=true` and preferably `apicurio.registry.retry.total-timeout-ms`.** This key then controls how many times the schema cache retries a failed load. By default the cache only retries HTTP 429; raising `retry-count` alone does not cover network or registry-down failures.
 |`non-negative Number, or integer String`
 |`3`
+|`RETRY_TRANSIENT_ERRORS`
+|`apicurio.registry.retry.transient-errors`
+|Used by serializers and deserializers. **Activation step for outage retries.** When `false` (default), schema-cache retries stay limited to HTTP 429 (historical behavior). When `true`, also retries 502/503/504 and retriable network failures (including `NoRouteToHostException`). Enabling this increases worst-case blocking because each cache attempt may run a full HTTP client retry ladder (see `apicurio.registry.client.retry.max-attempts`). Set `apicurio.registry.retry.total-timeout-ms` when enabling.
+|`boolean`
+|`false`
+|`RETRY_TOTAL_TIMEOUT_MS`
+|`apicurio.registry.retry.total-timeout-ms`
+|Used by serializers and deserializers. Optional wall-clock budget (milliseconds) for one schema-cache load retry loop. Checked before each re-attempt; it does not interrupt an in-flight cache attempt (that attempt may still run a full HTTP client retry ladder and request timeouts). `0` means unlimited. Recommended when `apicurio.registry.retry.transient-errors=true` to bound blocking on Kafka `Producer.send()` / Connect polls.
+|`java.time.Duration, non-negative Number, or integer String`
+|`0`
 |`FAULT_TOLERANT_REFRESH`
 |`apicurio.registry.fault-tolerant-refresh`
 |Used by serializers and deserializers. If `true`, the SerDes log exceptions instead of throwing them when an error occurs while refreshing a schema in the cache. This is useful for production situations where a stale schema is better than completely failing schema resolution. This does not affect retry attempts, because the SerDes attempt retries before considering this flag.

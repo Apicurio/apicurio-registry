@@ -525,6 +525,51 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.4.0`
 |Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests
+|`apicurio.federation.search.breaker.delay-ms`
+|`long`
+|`30000`
+|`3.4.0`
+|Time in milliseconds an open circuit breaker waits before letting a call through to a peer registry again
+|`apicurio.federation.search.breaker.failure-ratio`
+|`double`
+|`0.5`
+|`3.4.0`
+|Share of recent calls to a peer registry that must have failed for its circuit breaker to open
+|`apicurio.federation.search.breaker.request-volume-threshold`
+|`int`
+|`4`
+|`3.4.0`
+|Number of recent calls to a peer registry that must have been made before its circuit breaker can open
+|`apicurio.federation.search.deadline-ms`
+|`long`
+|`5000`
+|`3.4.0`
+|Time in milliseconds a federated search may take in total. Peers that have not answered by then are reported as deadline_exceeded
+|`apicurio.federation.search.max-concurrent-calls`
+|`int`
+|`64`
+|`3.4.0`
+|Maximum number of peer registry calls being set up at once, across all federated searches. Calls beyond it are reported as capacity_exceeded
+|`apicurio.federation.search.max-peers`
+|`int`
+|`16`
+|`3.4.0`
+|Maximum number of peer registries that can be enabled, and so queried by one federated search
+|`apicurio.federation.search.max-response-bytes`
+|`int`
+|`1048576`
+|`3.4.0`
+|Maximum size in bytes of the response accepted from one peer registry. Larger responses are discarded
+|`apicurio.federation.search.peer-timeout-ms`
+|`long`
+|`3000`
+|`3.4.0`
+|Time in milliseconds a single peer registry has to answer a federated search
+|`apicurio.federation.search.per-source-limit.max`
+|`int`
+|`100`
+|`3.4.0`
+|Upper bound for the perSourceLimit a federated search may ask for
 |===
 
 == gitops

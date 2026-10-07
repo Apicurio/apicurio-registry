@@ -194,17 +194,20 @@
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
     <wire-schema.version>6.4.0</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <okio.version>3.18.1</okio.version>
-    <kotlin-stdlib.version>2.4.10</kotlin-stdlib.version>
+    <okio.version>3.18.2</okio.version>
+    <kotlin-stdlib.version>2.4.20</kotlin-stdlib.version>
     <icu4j.version>78.3</icu4j.version>
-    <protobuf.version>4.36.1</protobuf.version>
+    <protobuf.version>4.36.2</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.75.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.78.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
     <!-- Picocli -->
     <picocli.version>4.7.7</picocli.version>
+
+    <!-- JLine (terminal I/O for CLI interactive mode) -->
+    <jline.version>3.30.17</jline.version>
 
     <!-- Logging -->
     <log4j.version>2.26.1</log4j.version>
@@ -232,8 +235,7 @@
     <graphql.version>26.1</graphql.version>
 
     <!-- JSON Schema Validator -->
-    <org.everit.json.schema.version>1.14.6</org.everit.json.schema.version>
-    <json-sKema.version>0.31.0</json-sKema.version>
+    <json-sKema.version>0.32.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250517</org.json.version>
     <jackson-datatype-json-org.version>2.21.5</jackson-datatype-json-org.version>
@@ -250,15 +252,16 @@
     <netty.version>4.1.136.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.18.0</kafka-oauth-client.version>
-    <debezium.version>3.6.2.Final</debezium.version>
-    <pulsar-clients.version>4.2.4</pulsar-clients.version>
+    <debezium.version>3.7.0.Final</debezium.version>
+    <pulsar-clients.version>4.2.5</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
 
-    <nats.version>2.26.2</nats.version>
+    <nats.version>2.26.4</nats.version>
     <snakeyaml.version>2.7</snakeyaml.version>
-    <woodstox-core.version>7.2.2</woodstox-core.version>
-    <jgit.version>7.7.1.202607240634-r</jgit.version>
+    <woodstox-core.version>7.3.0</woodstox-core.version>
+    <jgit.version>7.8.0.202609011348-r</jgit.version>
     <awaitility.version>4.3.0</awaitility.version>
+    <archunit.version>1.5.1</archunit.version>
     <assertj.core.version>3.27.7</assertj.core.version>
     <semver4j.version>6.0.0</semver4j.version>
     <slf4j.version>2.0.17</slf4j.version>
@@ -270,11 +273,11 @@
     <annotation-api.version>3.0.0</annotation-api.version>
 
     <!-- Scala -->
-    <version.scala-maven.plugin>4.9.10</version.scala-maven.plugin>
+    <version.scala-maven.plugin>4.10.0</version.scala-maven.plugin>
     <scala.version>2.13.18</scala.version>
 
     <!-- Plugin Versions -->
-    <version.build.helper.maven.plugin>3.6.1</version.build.helper.maven.plugin>
+    <version.build.helper.maven.plugin>3.6.2</version.build.helper.maven.plugin>
     <version.compiler.plugin>3.13.0</version.compiler.plugin>
     <version.deploy.plugin>3.1.3</version.deploy.plugin>
     <version.failsafe.plugin>3.5.2</version.failsafe.plugin>
@@ -284,14 +287,14 @@
     <version.jar.plugin>3.4.2</version.jar.plugin>
     <version.checkstyle.plugin>3.6.0</version.checkstyle.plugin>
     <version.enforcer.plugin>3.6.3</version.enforcer.plugin>
-    <version.properties.plugin>1.3.0</version.properties.plugin>
+    <version.properties.plugin>1.3.1</version.properties.plugin>
     <version.dependency.plugin>3.8.1</version.dependency.plugin>
     <version.assembly.plugin>3.7.1</version.assembly.plugin>
     <version.resources.plugin>3.3.1</version.resources.plugin>
     <version.clean.plugin>3.4.0</version.clean.plugin>
 
     <version.license-maven-plugin>2.7.1</version.license-maven-plugin>
-    <version.exec-maven-plugin>3.6.3</version.exec-maven-plugin>
+    <version.exec-maven-plugin>3.6.4</version.exec-maven-plugin>
     <version.apicurio-codegen-plugin>1.2.11.Final</version.apicurio-codegen-plugin>
     <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
 
@@ -301,7 +304,7 @@
     <!-- Plugin Deps -->
     <version.puppycrawl>13.11.0</version.puppycrawl>
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.1.8</proto-plugin.version>
+    <proto-plugin.version>5.1.11</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->
@@ -309,28 +312,59 @@
 
     <!-- Kiota -->
     <kiota.libs.version>1.9.3</kiota.libs.version>
-    <kiota.community.version>0.0.38</kiota.community.version>
-    <!-- 0.0.39 retries transient ETXTBSY during process startup (JDK-8068370). -->
+    <kiota.community.version>0.0.39</kiota.community.version>
+    <!-- 0.0.39 retries transient ETXTBSY during process startup
+         (https://bugs.openjdk.org/browse/JDK-8068370) and publishes
+         the binary by renaming a temporary file within the destination folder
+         (KiotaMojo.downloadAndExtract), so a concurrent module sees either no binary or a
+         complete one. That is what makes a shared kiota.binary.folder safe across builds.
+         It does not pass ATOMIC_MOVE: the guarantee is rename(2) on the default filesystem
+         provider, not the API, so it holds on the POSIX systems this builds on and not on
+         Windows, where a rename over a file another process has open fails instead. -->
     <kiota.maven.plugin.version>0.0.39</kiota.maven.plugin.version>
 
-    <kiota.version>1.28.0</kiota.version>
+    <kiota.version>1.35.0</kiota.version>
     <kiota.timeout>60</kiota.timeout><!-- Execution timeout, not download timeout. -->
     <kiota.base.url>https://github.com/microsoft/kiota/releases/download</kiota.base.url>
-    <kiota.binary.folder>${session.executionRootDirectory}/target/kiota-binary</kiota.binary.folder>
+    <!-- Deliberately in the local repository, not under target/. KiotaMojo skips the download
+         when <folder>/<kiota.version>/<binary> exists, so the binary survives `mvn clean` and
+         any workflow that caches ~/.m2/repository carries it between runs.
+         Under .cache/ rather than under io/kiota/, where the path would have the shape of a
+         resolved artifact of a groupId that really exists.
+         os.detected.classifier gives each platform its own directory, so a Linux container
+         that mounts a macOS host's ~/.m2 does not try to execute the host's binary. It
+         carries no libc component, but Kiota publishes no musl asset either, so an Alpine
+         container is no worse off here than it was before.
+         .github/scripts/validate-kiota-folder.py checks this property, the profiles and the
+         settings.localRepository anchor that can move it while leaving it reading as expected,
+         in the root pom and in the two consumers, the os-maven-plugin extension that
+         substitutes the classifier, <targetBinaryFolder> in the two java-sdk poms, and -D on
+         a workflow command line. Other routes are deliberately not checked, and they are not
+         all local. Checked into this repository, so a -D there moves the folder for every CI
+         job: .mvn/maven.config, which every Maven invocation reads; the mvnw wrapper; a
+         composite action under .github/actions; and a Makefile or Dockerfile that runs Maven.
+         The verify jobs also pass .github/ci-settings.xml with -s, so a <localRepository>
+         there is the pipeline's repository. Local only: -D on an interactive shell and a
+         developer's own settings.xml. These are accepted risks rather than blind spots:
+         asserting the resolved value at build time would cover every route at once and is
+         tracked separately, while the checks above are what catch the two routes a
+         resolved-value check cannot see, the extension missing and a consumer hardcoding
+         the folder. -->
+    <kiota.binary.folder>${settings.localRepository}/.cache/kiota-binary/${os.detected.classifier}</kiota.binary.folder>
 
     <!-- Groovy scripting -->
-    <groovy.version>5.1.1</groovy.version>
+    <groovy.version>5.1.3</groovy.version>
 
     <!-- Test containers version, should be aligned with version used in Quarkus -->
     <pulsar.testcontainers.version>2.0.5</pulsar.testcontainers.version>
-    <keycloak.testcontainers.version>4.3.1</keycloak.testcontainers.version>
+    <keycloak.testcontainers.version>4.4.0</keycloak.testcontainers.version>
     <embedded-postgres.version>2.2.2</embedded-postgres.version>
     <strimzi.version>0.105.0</strimzi.version>
     <wiremock.version>3.13.2</wiremock.version>
-    <strimzi-test-container.version>0.116.0</strimzi-test-container.version>
+    <strimzi-test-container.version>0.117.0</strimzi-test-container.version>
 
     <!-- Iceberg -->
-    <iceberg.version>1.11.0</iceberg.version>
+    <iceberg.version>1.12.0</iceberg.version>
 
     <!-- CEL (Common Expression Language) -->
     <cel-standalone.version>0.6.0</cel-standalone.version>
@@ -338,6 +372,23 @@
 
   <dependencyManagement>
     <dependencies>
+      <!-- JLine -->
+      <dependency>
+        <groupId>org.jline</groupId>
+        <artifactId>jline-terminal</artifactId>
+        <version>${jline.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jline</groupId>
+        <artifactId>jline-reader</artifactId>
+        <version>${jline.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jline</groupId>
+        <artifactId>jline-terminal-jansi</artifactId>
+        <version>${jline.version}</version>
+      </dependency>
+
       <!-- This project -->
       <dependency>
         <groupId>io.apicurio</groupId>
@@ -813,11 +864,6 @@
 
       <dependency>
         <groupId>com.github.erosb</groupId>
-        <artifactId>everit-json-schema</artifactId>
-        <version>${org.everit.json.schema.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.github.erosb</groupId>
         <artifactId>json-sKema</artifactId>
         <version>${json-sKema.version}</version>
       </dependency>
@@ -1035,6 +1081,11 @@
         <scope>test</scope>
       </dependency>
       <dependency>
+        <groupId>com.tngtech.archunit</groupId>
+        <artifactId>archunit-junit5</artifactId>
+        <version>${archunit.version}</version>
+      </dependency>
+      <dependency>
         <groupId>org.awaitility</groupId>
         <artifactId>awaitility</artifactId>
         <version>${awaitility.version}</version>
@@ -1058,6 +1109,19 @@
   </dependencyManagement>
 
   <build>
+    <extensions>
+      <!-- Sets os.detected.*, which kiota.binary.folder uses to give each platform its own
+           cache directory. Declared at the root so the substitution holds in every
+           invocation shape: a module-level declaration does resolve the root property in a
+           from-root reactor build, but an -N build of the root alone leaves the placeholder
+           literal. Extensions are inherited, so any module that registers this one locally is
+           doing so redundantly. -->
+      <extension>
+        <groupId>kr.motd.maven</groupId>
+        <artifactId>os-maven-plugin</artifactId>
+        <version>${os-maven-plugin.version}</version>
+      </extension>
+    </extensions>
     <pluginManagement>
       <plugins>
         <plugin>

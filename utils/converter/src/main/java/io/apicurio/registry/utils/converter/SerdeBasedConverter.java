@@ -51,11 +51,19 @@ public class SerdeBasedConverter<S, T> implements Converter, Closeable {
     public void configure(Map<String, ?> configs, boolean isKey) {
         if (serializer == null) {
             Object sp = configs.get(REGISTRY_CONVERTER_SERIALIZER_PARAM);
+            if (sp == null) {
+                throw new IllegalArgumentException(
+                        "Missing required configuration: " + REGISTRY_CONVERTER_SERIALIZER_PARAM);
+            }
             Utils.instantiate(serializerClass(), sp, this::setSerializer);
             createdSerializer = true;
         }
         if (deserializer == null) {
             Object dsp = configs.get(REGISTRY_CONVERTER_DESERIALIZER_PARAM);
+            if (dsp == null) {
+                throw new IllegalArgumentException(
+                        "Missing required configuration: " + REGISTRY_CONVERTER_DESERIALIZER_PARAM);
+            }
             Utils.instantiate(deserializerClass(), dsp, this::setDeserializer);
             createdDeserializer = true;
         }

@@ -27,6 +27,8 @@ public interface MetricsConstants {
     String STORAGE_PREFIX = "storage.";
     String STORAGE_METHOD_CALL = STORAGE_PREFIX + "method.call";
     String STORAGE_METHOD_CALL_DESCRIPTION = "Timing and results of storage methods calls";
+    String STORAGE_STRUCTURED_CONTENT_INDEX_FAILURES = STORAGE_PREFIX + "structured.content.index.failures";
+    String STORAGE_STRUCTURED_CONTENT_INDEX_FAILURES_DESCRIPTION = "Artifact writes whose structured content could not be indexed. The write itself succeeded, so the artifact is not matched by structure-based search filters until it is written again.";
 
     // Storage tags/labels
 

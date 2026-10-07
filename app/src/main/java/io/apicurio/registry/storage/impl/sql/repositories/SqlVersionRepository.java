@@ -490,21 +490,29 @@ public class SqlVersionRepository {
      */
     public void updateArtifactVersionContent(String groupId, String artifactId, String version,
             long contentId) {
+        handles.withHandle(handle -> {
+            updateArtifactVersionContentRaw(handle, groupId, artifactId, version, contentId);
+            return null;
+        });
+    }
+
+    /**
+     * Update artifact version content using an existing handle, so the update can share a transaction
+     * with related writes (e.g. the structured-content index).
+     */
+    public void updateArtifactVersionContentRaw(Handle handle, String groupId, String artifactId,
+            String version, long contentId) {
         log.debug("Updating content for artifact version: {} {} @ {}", groupId, artifactId, version);
 
         String modifiedBy = securityIdentity.getPrincipal().getName();
         Date modifiedOn = new Date();
 
-        handles.withHandle(handle -> {
-            int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionContent())
-                    .bind(0, contentId).bind(1, modifiedBy).bind(2, modifiedOn)
-                    .bind(3, normalizeGroupId(groupId)).bind(4, artifactId).bind(5, version).execute();
-            if (rowCount == 0) {
-                throw new VersionNotFoundException(groupId, artifactId, version);
-            }
-
-            return null;
-        });
+        int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionContent())
+                .bind(0, contentId).bind(1, modifiedBy).bind(2, modifiedOn)
+                .bind(3, normalizeGroupId(groupId)).bind(4, artifactId).bind(5, version).execute();
+        if (rowCount == 0) {
+            throw new VersionNotFoundException(groupId, artifactId, version);
+        }
     }
 
     /**
@@ -591,7 +599,10 @@ public class SqlVersionRepository {
             });
         }
 
-        // Update system generated branches
+        // Update system generated branches. AbstractSqlRegistryStorage indexes structured content
+        // BEFORE calling this method and relies on this rule: every non-draft version becomes the
+        // ENABLED head of 'latest', a draft only joins 'drafts'. If that changes, update
+        // createArtifact/indexNewVersionBeforeGlobalIdRaw too (StructuredContentSearchTest fails).
         if (isDraft) {
             branchRepository.createOrUpdateBranchRaw(handle, gav, BranchId.DRAFTS, true);
         } else {

@@ -132,7 +132,6 @@ import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
 public class AdminResourceImpl implements AdminResource {
 
     private static final String TELEMETRY_NOT_ENABLED = "Usage telemetry is not enabled on this registry instance.";
-    private static final String FEDERATION_NOT_ENABLED = "Federation is not enabled on this registry instance.";
     private static final String PARAM_GROUP_ID = "groupId";
     private static final String PARAM_ARTIFACT_ID = "artifactId";
 
@@ -511,7 +510,7 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public PeerSearchResults listPeers(BigInteger limit, BigInteger offset) {
-        requireFederationEnabled();
+        federationConfig.requireEnabled();
         return V3ApiUtil.dtoToPeerSearchResults(storage.searchPeers(
                 ParameterValidationUtils.normalizeOffset(offset), ParameterValidationUtils.normalizeLimit(limit)));
     }
@@ -524,7 +523,7 @@ public class AdminResourceImpl implements AdminResource {
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void createPeer(NewPeer data) {
-        requireFederationEnabled();
+        federationConfig.requireEnabled();
         PeerDto peer = PeerDto.builder().peerId(data.getPeerId()).url(data.getUrl()).name(data.getName())
                 .description(data.getDescription()).enabled(data.getEnabled() == null || data.getEnabled())
                 .credentialSecretRef(data.getCredentialSecretRef()).build();
@@ -538,7 +537,7 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public Peer getPeer(String peerId) {
-        requireFederationEnabled();
+        federationConfig.requireEnabled();
         PeerValidator.validatePeerId(peerId);
         return V3ApiUtil.dtoToPeer(storage.getPeer(peerId));
     }
@@ -552,7 +551,7 @@ public class AdminResourceImpl implements AdminResource {
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void updatePeer(String peerId, UpdatePeer data) {
-        requireFederationEnabled();
+        federationConfig.requireEnabled();
         ParameterValidationUtils.requireParameter("enabled", data.getEnabled());
         PeerDto peer = PeerDto.builder().peerId(peerId).url(data.getUrl()).name(data.getName())
                 .description(data.getDescription()).enabled(data.getEnabled())
@@ -569,15 +568,9 @@ public class AdminResourceImpl implements AdminResource {
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public void deletePeer(String peerId) {
-        requireFederationEnabled();
+        federationConfig.requireEnabled();
         PeerValidator.validatePeerId(peerId);
         storage.deletePeer(peerId);
-    }
-
-    private void requireFederationEnabled() {
-        if (!federationConfig.isEnabled()) {
-            throw new ConflictException(FEDERATION_NOT_ENABLED);
-        }
     }
 
     /**
@@ -587,6 +580,24 @@ public class AdminResourceImpl implements AdminResource {
     private void validatePeer(PeerDto peer) {
         PeerValidator.validate(peer);
         peerAddressPolicy.validateUrl(peer.getUrl());
+        requireRoomToEnable(peer);
+    }
+
+    /**
+     * A federated search queries every enabled peer, so the number of enabled peers is bounded and
+     * the bound is enforced here, where the configuration is written, and not by silently skipping
+     * peers when a search runs.
+     */
+    private void requireRoomToEnable(PeerDto peer) {
+        if (!peer.isEnabled()) {
+            return;
+        }
+        long otherEnabled = storage.getPeers().stream()
+                .filter(other -> other.isEnabled() && !other.getPeerId().equals(peer.getPeerId())).count();
+        if (otherEnabled >= federationConfig.getSearchMaxPeers()) {
+            throw new ConflictException("At most " + federationConfig.getSearchMaxPeers()
+                    + " peers can be enabled. Disable or delete a peer first.");
+        }
     }
 
     /**

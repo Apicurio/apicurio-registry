@@ -168,7 +168,7 @@ class FederatedSearchServiceTest {
     }
 
     private FederatedAgentSearchResults search(AgentSearchResults local) {
-        return service.search(QUERY, limit -> local);
+        return service.search(QUERY, (limit, checkpoint) -> local);
     }
 
     private static FederatedSearchSource source(FederatedAgentSearchResults results, String id) {
@@ -218,7 +218,7 @@ class FederatedSearchServiceTest {
         PeerQuery query = new PeerQuery("refund", List.of("s"), List.of("streaming"), List.of("text"),
                 List.of("image"), 7);
 
-        service.search(query, limit -> {
+        service.search(query, (limit, checkpoint) -> {
             assertEquals(7, limit);
             return local(0);
         });
@@ -346,7 +346,7 @@ class FederatedSearchServiceTest {
         registered(peer("hung", true));
         peers.neverAnswers("hung");
 
-        FederatedAgentSearchResults results = service.search(QUERY, limit -> {
+        FederatedAgentSearchResults results = service.search(QUERY, (limit, checkpoint) -> {
             try {
                 Thread.sleep(400);
             } catch (InterruptedException ex) {
@@ -364,11 +364,52 @@ class FederatedSearchServiceTest {
         registered(peer("hung", true));
         peers.neverAnswers("hung");
 
-        assertThrows(IllegalStateException.class, () -> service.search(QUERY, limit -> {
+        assertThrows(IllegalStateException.class, () -> service.search(QUERY, (limit, checkpoint) -> {
             throw new IllegalStateException("storage down");
         }));
 
         assertEquals(1, peers.cancellationsOf("hung"));
+    }
+
+    @Test
+    void aLocalSearchThatRunsPastTheDeadlineIsStoppedAtItsNextCheckpoint() {
+        config.searchDeadlineMs = 150;
+        registered(peer("hung", true));
+        peers.neverAnswers("hung");
+        AtomicInteger units = new AtomicInteger();
+
+        long start = System.nanoTime();
+        assertThrows(SearchDeadlineExceededException.class, () -> service.search(QUERY, (limit, checkpoint) -> {
+            for (int i = 0; i < 100; i++) {
+                units.incrementAndGet();
+                try {
+                    Thread.sleep(20);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+                checkpoint.run();
+            }
+            return local(0);
+        }));
+        long elapsedMs = (System.nanoTime() - start) / 1_000_000;
+
+        assertTrue(units.get() < 100, "The search should have been stopped, ran " + units.get() + " units.");
+        assertTrue(elapsedMs < 1500, "Stopping took " + elapsedMs + " ms.");
+        assertEquals(1, peers.cancellationsOf("hung"));
+    }
+
+    @Test
+    void theCheckpointOfALocalSearchThatIsInTimeDoesNotStopIt() {
+        registered(peer("alpha", true));
+        peers.answers("alpha", response(0));
+
+        FederatedAgentSearchResults results = service.search(QUERY, (limit, checkpoint) -> {
+            checkpoint.run();
+            checkpoint.run();
+            return local(1, agent("g", "mine"));
+        });
+
+        assertEquals(List.of("local:mine"), agentIds(results));
     }
 
     @Test

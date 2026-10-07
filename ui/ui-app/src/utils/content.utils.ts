@@ -132,6 +132,47 @@ export function detectContentType(artifactType: string | undefined | null, conte
 }
 
 
+/**
+ * Detects the version of an API specification from its content.  Supports JSON or YAML
+ * content that declares a top level "openapi", "asyncapi", or "swagger" property (so that
+ * arbitrary content with an unrelated "info" section is not matched).  Returns the value
+ * of the "info.version" property, or undefined if it is not present.
+ * @param content the content to inspect
+ */
+export function detectVersionInContent(content: string | undefined): string | undefined {
+    if (isStringEmptyOrUndefined(content)) {
+        return undefined;
+    }
+    // Parse the content only once (this runs on every content change): try JSON first,
+    // then fall back to YAML.
+    let parsed: any;
+    try {
+        parsed = JSON.parse(content as string);
+    } catch {
+        try {
+            parsed = YAML.parse(content as string);
+        } catch {
+            return undefined;
+        }
+    }
+    if (parsed === null || typeof parsed !== "object") {
+        return undefined;
+    }
+    const isApiSpec: boolean = parsed.openapi !== undefined || parsed.asyncapi !== undefined || parsed.swagger !== undefined;
+    if (!isApiSpec) {
+        return undefined;
+    }
+    // Both OpenAPI and AsyncAPI require "info.version" to be a string.  Anything else is
+    // ignored - e.g. an unquoted YAML number like "version: 1.0" parses (lossily) to the
+    // number 1, so prefilling from it would be misleading.
+    const version: any = parsed.info?.version;
+    if (typeof version === "string" && version.trim().length > 0) {
+        return version.trim();
+    }
+    return undefined;
+}
+
+
 export function contentTypeForDraft(draft: Draft, content: DraftContent): string {
     if (content.contentType) {
         return content.contentType;
@@ -159,6 +200,10 @@ export const draftContentToLanguage = (content: DraftContent): string => {
         return "xml";
     } else if (content.contentType === ContentTypes.APPLICATION_WSDL) {
         return "xml";
+    } else if (content.contentType === ContentTypes.APPLICATION_GRAPHQL) {
+        return "graphql";
+    } else if (content.contentType === ContentTypes.APPLICATION_PROTOBUF) {
+        return "protobuf";
     }
     return "json";
 };
@@ -168,20 +213,59 @@ export function fileExtensionForDraft(draft: Draft, content: DraftContent): stri
         return "proto";
     }
 
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_JSON) {
+    return fileExtensionForDraftContentType(content.contentType);
+}
+
+const normalizeContentType = (contentType: string | undefined): string | undefined => {
+    return contentType?.split(";")[0].trim().toLowerCase();
+};
+
+const fileExtensionForDraftContentType = (contentType: string | undefined): string => {
+    const normalized = normalizeContentType(contentType);
+    if (normalized === ContentTypes.APPLICATION_JSON) {
         return "json";
     }
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_YAML) {
+    if (normalized === ContentTypes.APPLICATION_YAML) {
         return "yaml";
     }
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_XML) {
+    if (normalized === ContentTypes.APPLICATION_XML || normalized === ContentTypes.TEXT_XML) {
         return "xml";
     }
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_WSDL) {
+    if (normalized === ContentTypes.APPLICATION_WSDL) {
         return "wsdl";
     }
-    if (content.contentType && content.contentType === ContentTypes.APPLICATION_GRAPHQL) {
+    if (normalized === ContentTypes.APPLICATION_GRAPHQL) {
         return "graphql";
+    }
+
+    return "txt";
+};
+
+export function fileExtensionForContentType(contentType: string | undefined): string {
+    const normalized = normalizeContentType(contentType);
+    if (normalized === ContentTypes.APPLICATION_JSON) {
+        return "json";
+    }
+    if (normalized === ContentTypes.APPLICATION_YAML) {
+        return "yaml";
+    }
+    if (normalized === ContentTypes.APPLICATION_XML || normalized === ContentTypes.TEXT_XML) {
+        return "xml";
+    }
+    if (normalized === ContentTypes.APPLICATION_WSDL) {
+        return "wsdl";
+    }
+    if (normalized === ContentTypes.APPLICATION_GRAPHQL) {
+        return "graphql";
+    }
+    if (normalized === ContentTypes.APPLICATION_PROTOBUF) {
+        return "proto";
+    }
+    if (normalized === ContentTypes.APPLICATION_THRIFT) {
+        return "thrift";
+    }
+    if (normalized === ContentTypes.TEXT_PROMPT_TEMPLATE) {
+        return "txt";
     }
 
     return "txt";

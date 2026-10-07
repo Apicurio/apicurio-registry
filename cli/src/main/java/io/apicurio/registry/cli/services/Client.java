@@ -9,10 +9,13 @@ import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import lombok.Setter;
 
 import java.net.URI;
+import java.util.concurrent.TimeUnit;
 
 import static io.apicurio.registry.cli.common.CliException.APPLICATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Utils.isBlank;
@@ -29,9 +32,21 @@ public class Client {
     @Inject
     CredentialStore credentialStore;
 
+    // HTTP client hardening for the auto-update download flow.
+    private static final int CONNECT_TIMEOUT_MILLIS = 30_000;
+    private static final int IDLE_TIMEOUT_SECONDS = 120;
+    private static final int MAX_REDIRECTS = 5;
+
     private RegistryClient registryClient;
 
     private HttpClient httpClient;
+
+    /**
+     * Set from {@code --verbose}, before the command runs. Makes the Registry client log the raw
+     * request and response of every call it makes.
+     */
+    @Setter
+    private boolean httpLoggingEnabled;
 
     public RegistryClient getRegistryClient() {
         var currentContext = config.read();
@@ -47,6 +62,9 @@ public class Client {
                         uri = uri.resolve("/apis/registry/v3");
                     }
                     final var options = RegistryClientOptions.create(uri.toString(), vertx);
+                    if (httpLoggingEnabled) {
+                        options.enableHttpLogging();
+                    }
                     final var context = currentContext.getContext().get(currentContext.getCurrentContext());
                     configureAuth(options, context, currentContext.getCurrentContext());
                     registryClient = RegistryClientFactory.create(options);
@@ -62,7 +80,12 @@ public class Client {
     public HttpClient getHttpClient() {
         if (httpClient == null) {
             try {
-                httpClient = vertx.createHttpClient();
+                final var options = new HttpClientOptions()
+                        .setConnectTimeout(CONNECT_TIMEOUT_MILLIS)
+                        .setIdleTimeout(IDLE_TIMEOUT_SECONDS)
+                        .setIdleTimeoutUnit(TimeUnit.SECONDS)
+                        .setMaxRedirects(MAX_REDIRECTS);
+                httpClient = vertx.createHttpClient(options);
             } catch (Exception ex) {
                 throw new CliException("Could not create HTTP client: " + ex.getMessage(),
                         APPLICATION_ERROR_RETURN_CODE);
@@ -104,5 +127,6 @@ public class Client {
     public void reset() {
         registryClient = null;
         httpClient = null;
+        httpLoggingEnabled = false;
     }
 }

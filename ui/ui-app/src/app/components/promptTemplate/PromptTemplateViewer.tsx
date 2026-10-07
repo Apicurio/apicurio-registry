@@ -1,5 +1,4 @@
-import React, { FunctionComponent } from "react";
-import { Link } from "react-router";
+import { FunctionComponent } from "react";
 import "./PromptTemplateViewer.css";
 import {
     Card,
@@ -18,16 +17,8 @@ import {
     Title
 } from "@patternfly/react-core";
 import { JsonSchemaProperties } from "@app/components/jsonSchema/JsonSchemaProperties";
-
-export interface PromptVariable {
-    name?: string;
-    type?: string;
-    description?: string;
-    required?: boolean;
-    default?: any;
-    enum?: string[];
-    constraints?: any;
-}
+import { VariableSchema } from "./promptTemplateVariables";
+import { formatDefault, formatRange, getVariablesList, highlightVariables } from "./PromptTemplateViewer.utils";
 
 export interface PromptTemplateMetadata {
     author?: string;
@@ -47,7 +38,7 @@ export interface PromptTemplate {
     description?: string;
     version?: string;
     template?: string;
-    variables?: Record<string, PromptVariable> | PromptVariable[];
+    variables?: Record<string, VariableSchema> | VariableSchema[];
     outputSchema?: any;
     metadata?: PromptTemplateMetadata;
     mcp?: {
@@ -61,40 +52,6 @@ export interface PromptTemplate {
 export type PromptTemplateViewerProps = {
     promptTemplate: PromptTemplate;
     className?: string;
-};
-
-const highlightVariables = (template: string): React.ReactNode[] => {
-    const parts: React.ReactNode[] = [];
-    // Match both {{variable}} and {{#if variable}} / {{/if}} handlebars syntax
-    const regex = /\{\{(#?\/?(?:if|unless|each|with)\s+)?(\w+)\}\}/g;
-    let lastIndex = 0;
-    let match;
-    let key = 0;
-
-    while ((match = regex.exec(template)) !== null) {
-        if (match.index > lastIndex) {
-            parts.push(template.substring(lastIndex, match.index));
-        }
-        const isBlock = !!match[1];
-        parts.push(
-            <span key={key++} className={isBlock ? "template-block" : "template-variable"}>
-                {match[0]}
-            </span>
-        );
-        lastIndex = match.index + match[0].length;
-    }
-    if (lastIndex < template.length) {
-        parts.push(template.substring(lastIndex));
-    }
-    return parts;
-};
-
-const getVariablesList = (variables: Record<string, PromptVariable> | PromptVariable[] | undefined): { name: string; variable: PromptVariable }[] => {
-    if (!variables) return [];
-    if (Array.isArray(variables)) {
-        return variables.map(v => ({ name: v.name || "", variable: v }));
-    }
-    return Object.entries(variables).map(([name, variable]) => ({ name, variable }));
 };
 
 export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> = (props: PromptTemplateViewerProps) => {
@@ -147,6 +104,14 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                             <DescriptionListDescription>{meta.createdAt}</DescriptionListDescription>
                         </DescriptionListGroup>
                     )}
+                    {meta?.estimatedTokens && (
+                        <DescriptionListGroup>
+                            <DescriptionListTerm>Estimated Tokens</DescriptionListTerm>
+                            <DescriptionListDescription>
+                                {meta.estimatedTokens.input ?? 0} (+{meta.estimatedTokens.variableOverhead ?? 0} overhead)
+                            </DescriptionListDescription>
+                        </DescriptionListGroup>
+                    )}
                 </DescriptionList>
 
                 {promptTemplate.template && (
@@ -164,13 +129,15 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                         <Divider className="section-divider" />
                         <Title headingLevel="h3" size="md">Variables</Title>
                         <div className="variables-table-wrapper">
-                            <table className="variables-table">
+                            <table className="variables-table" aria-label="Template variables">
                                 <thead>
                                     <tr>
                                         <th>Name</th>
                                         <th>Type</th>
                                         <th>Required</th>
                                         <th>Default</th>
+                                        <th>Allowed Values</th>
+                                        <th>Range</th>
                                         <th>Description</th>
                                     </tr>
                                 </thead>
@@ -189,8 +156,18 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                                                 )}
                                             </td>
                                             <td>{variable.default !== undefined ? (
-                                                <code>{String(variable.default)}</code>
+                                                <code>{formatDefault(variable.default)}</code>
                                             ) : "-"}</td>
+                                            <td>
+                                                {variable.enum && variable.enum.length > 0 ? (
+                                                    <LabelGroup>
+                                                        {variable.enum.map((val, i) => (
+                                                            <Label key={i} color="grey" isCompact>{String(val)}</Label>
+                                                        ))}
+                                                    </LabelGroup>
+                                                ) : "-"}
+                                            </td>
+                                            <td>{formatRange(variable.minimum, variable.maximum) ?? "-"}</td>
                                             <td>{variable.description || "-"}</td>
                                         </tr>
                                     ))}
@@ -217,11 +194,9 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                         <Divider className="section-divider" />
                         <Title headingLevel="h3" size="md">Recommended Models</Title>
                         <LabelGroup className="section-content">
-                            {meta.recommendedModels.map((model, index) => (
-                                <Label key={index} color="purple" isCompact>
-                                    <Link to={`/explore/default/${encodeURIComponent(model)}`} className="model-link">
-                                        {model}
-                                    </Link>
+                            {meta.recommendedModels.map((model) => (
+                                <Label key={model} color="purple" isCompact>
+                                    {model}
                                 </Label>
                             ))}
                         </LabelGroup>
@@ -247,7 +222,7 @@ export const PromptTemplateViewer: FunctionComponent<PromptTemplateViewerProps> 
                         <DescriptionList isCompact className="section-content">
                             {promptTemplate.mcp.name && (
                                 <DescriptionListGroup>
-                                    <DescriptionListTerm>Tool Name</DescriptionListTerm>
+                                    <DescriptionListTerm>MCP Prompt Name</DescriptionListTerm>
                                     <DescriptionListDescription>
                                         <code>{promptTemplate.mcp.name}</code>
                                     </DescriptionListDescription>

@@ -1,6 +1,6 @@
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { getRegistryClient } from "@utils/rest.utils.ts";
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { Paging } from "@models/Paging.ts";
 import {
     ArtifactSearchResults,
@@ -27,12 +27,26 @@ const VERSION_STATES: string[] = [
     "ENABLED", "DISABLED", "DEPRECATED", "DRAFT"
 ];
 
+/**
+ * Wraps a name filter value in wildcards for substring matching unless the user
+ * already supplied a wildcard, matching SearchFilter.ofPartialName backend semantics.
+ */
+export const toPartialNameFilter = (value?: string): string => {
+    const trimmed = value ? value.trim() : "";
+    if (!trimmed) {
+        return "";
+    }
+    if (!trimmed.includes("*")) {
+        return `*${trimmed}*`;
+    }
+    return trimmed;
+};
+
 const searchGroups = async (config: ConfigService, auth: AuthService, filters: SearchFilter[], sortBy: GroupSortBy, sortOrder: SortOrder, paging: Paging): Promise<GroupSearchResults> => {
     console.debug("[SearchService] Searching groups: ", filters, paging);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy
@@ -51,9 +65,8 @@ const searchGroups = async (config: ConfigService, auth: AuthService, filters: S
 const searchArtifacts = async (config: ConfigService, auth: AuthService, filters: SearchFilter[], sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults> => {
     console.debug("[SearchService] Searching artifacts: ", filters, sortBy, sortOrder, paging);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy
@@ -61,6 +74,8 @@ const searchArtifacts = async (config: ConfigService, auth: AuthService, filters
     filters?.forEach(filter => {
         if (filter.by === FilterBy.globalId || filter.by === FilterBy.contentId) {
             queryParams[filter.by] = Number(filter.value);
+        } else if (filter.by === FilterBy.name) {
+            queryParams[filter.by] = toPartialNameFilter(filter.value);
         } else {
             queryParams[filter.by] = filter.value;
         }
@@ -74,9 +89,8 @@ const searchArtifacts = async (config: ConfigService, auth: AuthService, filters
 const searchVersions = async (config: ConfigService, auth: AuthService, filters: SearchFilter[], sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults> => {
     console.debug("[SearchService] Searching versions: ", filters, sortBy, sortOrder, paging);
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: any = {
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy
@@ -89,6 +103,8 @@ const searchVersions = async (config: ConfigService, auth: AuthService, filters:
             queryParams[filter.by] = Number(filter.value);
         } else if (filter.by === FilterBy.state) {
             queryParams[filter.by] = filter.value.toUpperCase();
+        } else if (filter.by === FilterBy.name) {
+            queryParams[filter.by] = toPartialNameFilter(filter.value);
         } else {
             queryParams[filter.by] = filter.value;
         }

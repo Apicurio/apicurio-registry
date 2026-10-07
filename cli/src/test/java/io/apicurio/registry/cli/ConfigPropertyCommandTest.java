@@ -10,6 +10,7 @@ import picocli.CommandLine;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -28,11 +29,11 @@ public class ConfigPropertyCommandTest {
     private StringWriter err;
 
     @BeforeEach
-    public void setUp() {
+    public void setUp() throws URISyntaxException {
         var acrHome = Path.of(
                         getClass().getClassLoader()
                                 .getResource("acr-home")
-                                .getPath())
+                                .toURI())
                 .normalize();
         config.setAcrCurrentHomePath(acrHome);
         config.reset();

@@ -12,7 +12,7 @@ import { ArtifactGroup, ArtifactTypeIcon, ListedItemLabels, VersionStateBadge } 
 import { SearchVersionName } from "@app/pages";
 import { SearchedVersion } from "@sdk/lib/generated-client/models";
 import { shash } from "@utils/string.utils.ts";
-import { ObjectDropdown } from "@apicurio/common-ui-components";
+import { ObjectDropdown } from "@apitomy/common-ui-components";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { UserService, useUserService } from "@services/useUserService.ts";
 

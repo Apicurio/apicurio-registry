@@ -1,5 +1,6 @@
 package io.apicurio.registry.avro.content.canon;
 
+import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
@@ -15,17 +16,38 @@ import java.util.Map;
 
 /**
  * An Avro implementation of a content Canonicalizer that handles avro references. A custom version that can
- * be used to check subject compatibilities. It does not reorder fields.
+ * be used to check subject compatibilities.
+ * <p>
+ * Field order is deliberately preserved. Avro treats field ordering as part of a record's identity: it
+ * determines the binary encoding layout and interacts with the per-field {@code order} attribute. Two
+ * schemas that differ only in the order of their fields are therefore <em>not</em> canonically equal, and
+ * canonical-hash lookups (a {@code canonical=true} search, or ccompat's
+ * {@code apicurio.ccompat.use-canonical-hash}) will treat them as distinct content. This differs from the
+ * general {@link ContentCanonicalizer} contract, which sorts fields when ordering is not significant.
  */
 public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
 
     public static final String EMPTY_DOC = "";
 
     public static Schema normalizeSchema(String schemaString) {
-        Schema.Parser parser = new Schema.Parser();
-        Schema schema = parser.parse(schemaString);
+        return normalizeSchema(schemaString, Map.of());
+    }
 
-        return normalizeSchema(schema);
+    /**
+     * Normalize a schema, resolving any named types that the schema references but does not declare itself.
+     *
+     * @param schemaString a schema.
+     * @param resolvedReferences the content of the artifacts referenced by the schema, keyed by reference
+     *            name. May be empty.
+     * @return the same schema functionally, in normalized form.
+     */
+    public static Schema normalizeSchema(String schemaString,
+            Map<String, TypedContent> resolvedReferences) {
+        // The parser is seeded with the referenced schemas so that the named types they declare are already
+        // known once the main schema is parsed; see AvroParserAccessor#newParser(Map).
+        Schema.Parser parser = AvroParserAccessor.newParser(resolvedReferences);
+
+        return normalizeSchema(parser.parse(schemaString));
     }
 
     public static Schema normalizeSchema(Schema schema) {
@@ -136,7 +158,8 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
      */
     @Override
     public TypedContent canonicalize(TypedContent content, Map<String, TypedContent> resolvedReferences) {
-        String normalisedSchema = normalizeSchema(content.getContent().content()).toString();
+        String normalisedSchema = normalizeSchema(content.getContent().content(), resolvedReferences)
+                .toString();
         return TypedContent.create(ContentHandle.create(normalisedSchema), ContentTypes.APPLICATION_JSON);
     }
 }

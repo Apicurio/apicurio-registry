@@ -8,6 +8,8 @@ import java.util.List;
  */
 public interface SqlStatements {
 
+    String COMPRESSED_SNAPSHOT_EXTENSION = ".sql.gz";
+
     /**
      * Gets the database type associated with these statements.
      */
@@ -186,6 +188,10 @@ public interface SqlStatements {
      */
     public String insertContent();
 
+    default String insertContentIfAbsent() {
+        return insertContent();
+    }
+
     /**
      * A statement to update canonicalHash value in a row in the "content" table
      */
@@ -280,6 +286,8 @@ public interface SqlStatements {
 
     public String updateArtifactVersionStateByGAV();
 
+    public String updateVersionSortKey();
+
     /**
      * A statement to delete all rows in the group_labels table for a given group.
      */
@@ -296,6 +304,16 @@ public interface SqlStatements {
     public String selectArtifactLabels();
 
     public String deleteArtifactLabelsByPrefix();
+
+    /**
+     * A statement to delete all rows in the artifact_structured_content table for a given artifact.
+     */
+    public String deleteArtifactStructuredContent();
+
+    /**
+     * A statement to insert a row into the artifact_structured_content table.
+     */
+    public String insertArtifactStructuredContent();
 
     /**
      * A statement to delete version labels matching a key prefix.
@@ -431,6 +449,13 @@ public interface SqlStatements {
      * A statement to select the bytes of a content row by contentId.
      */
     public String selectContentById();
+
+    /**
+     * A statement to select the bytes of a content row by contentId, joined with one artifact version that
+     * references it, so that the artifact type can be returned in the same query. Returns no rows if the
+     * content does not exist or if it is orphaned (not referenced by any artifact version).
+     */
+    public String selectContentAndArtifactTypeById();
 
     /**
      * A statement template for batch loading artifact version metadata. The REFERENCES_CONDITION placeholder
@@ -664,6 +689,8 @@ public interface SqlStatements {
 
     public String insertConfigProperty();
 
+    public String upsertConfigProperty();
+
     public String deleteAllConfigProperties();
 
     public String selectConfigPropertyByName();
@@ -724,7 +751,23 @@ public interface SqlStatements {
 
     public String createDataSnapshot();
 
+    /**
+     * Returns the SQL statement to create a data snapshot at the given location, optionally
+     * applying compression based on the file extension.
+     */
+    default String createDataSnapshot(String location) {
+        return createDataSnapshot();
+    }
+
     public String restoreFromSnapshot();
+
+    /**
+     * Returns the SQL statement to restore from a snapshot at the given location, optionally
+     * applying decompression based on the file extension.
+     */
+    default String restoreFromSnapshot(String location) {
+        return restoreFromSnapshot();
+    }
 
     // ========== Events ==========
 

@@ -1,10 +1,10 @@
 import { FunctionComponent, useState } from "react";
 import "./DiffView.css";
 import { ToggleGroup, ToggleGroupItem } from "@patternfly/react-core";
-import { editor } from "monaco-editor";
-import { DiffEditor } from "@monaco-editor/react";
+import type { editor } from "monaco-editor";
+import { RegistryDiffEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
 import { ArrowsAltHIcon } from "@patternfly/react-icons";
-import IDiffEditorConstructionOptions = editor.IDiffEditorConstructionOptions;
+type IDiffEditorConstructionOptions = editor.IDiffEditorConstructionOptions;
 
 /**
  * Properties
@@ -84,7 +84,7 @@ export const DiffView: FunctionComponent<DiffViewProps> = ({
                 <span className="after">{modifiedLabel}</span>
             </div>
             <div className="diff-editor">
-                <DiffEditor
+                <RegistryDiffEditor
                     className="text-editor"
                     original={original}
                     modified={modified}

@@ -50,6 +50,24 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.name, value);
     }
 
+    /**
+     * Creates a name filter for a partial (substring) match. The value is wrapped in wildcards unless the
+     * caller already supplied one, so that a caller-provided prefix ("weather*") or suffix ("*weather")
+     * search is preserved as-is.
+     *
+     * @param value the name to match on
+     */
+    public static SearchFilter ofPartialName(String value) {
+        String name = value.trim();
+        if (name.isEmpty()) {
+            return ofName("");
+        }
+        if (!name.contains("*")) {
+            name = "*" + name + "*";
+        }
+        return ofName(name);
+    }
+
     public static SearchFilter ofDescription(String value) {
         return new SearchFilter(SearchFilterType.description, value);
     }
@@ -82,6 +100,16 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.content, value);
     }
 
+    /**
+     * Creates a structured content filter, e.g. "agent_card:skill:translation".
+     * <p>
+     * Precondition for negated use: a negated structure filter compiles to NOT EXISTS on SQL storage,
+     * which is also true for artifacts that have no structured content at all. Callers that negate this
+     * filter must pair it with an {@link #ofArtifactType(String)} filter to constrain the result set, as
+     * the agent discovery endpoints do.
+     *
+     * @param value the structure filter value, must not be blank
+     */
     public static SearchFilter ofStructure(String value) {
         return new SearchFilter(SearchFilterType.structure, value);
     }

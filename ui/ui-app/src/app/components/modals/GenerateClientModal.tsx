@@ -14,11 +14,11 @@ import {
 import {
     Modal
 } from "@patternfly/react-core/deprecated";
-import { If, ObjectSelect } from "@apicurio/common-ui-components";
+import { If, ObjectSelect } from "@apitomy/common-ui-components";
 import { ClientGeneration } from "@services/useGroupsService.ts";
 import { DownloadService, useDownloadService } from "@services/useDownloadService.ts";
 import { CheckCircleIcon } from "@patternfly/react-icons";
-import { CodeEditor } from "@patternfly/react-code-editor";
+import { RegistryPatternFlyCodeEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 
 
@@ -179,10 +179,10 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
         ];
     }
 
-    const onEditorDidMount = (editor: any, monaco: any) => {
+    const onEditorDidMount = (editor: any) => {
         editor.layout();
         editor.focus();
-        monaco.editor.getModels()[0].updateOptions({ tabSize: 4 });
+        editor.getModel()?.updateOptions({ tabSize: 4 });
     };
 
     const languages = [
@@ -212,7 +212,7 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
                         Invalid artifact content.  See the log below for details.  When the issue is resolved,
                         upload a new version of the artifact and then try again.
                     </p>
-                    <CodeEditor
+                    <RegistryPatternFlyCodeEditor
                         id="error-console"
                         className="error-console"
                         isDarkTheme={false}
@@ -247,7 +247,6 @@ export const GenerateClientModal: FunctionComponent<GenerateClientModalProps> = 
                                         onSelect={onLanguageSelect}
                                         itemToString={item => item.id}
                                         itemToTestId={item => item.testId}
-                                        appendTo="document"
                                         testId="select-language"
                                         toggleId="select-language-toggle"
                                     />

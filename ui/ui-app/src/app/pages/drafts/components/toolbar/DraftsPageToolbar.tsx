@@ -7,7 +7,7 @@ import {
     ChipFilterType,
     FilterChips,
     ObjectSelect
-} from "@apicurio/common-ui-components";
+} from "@apitomy/common-ui-components";
 import { DraftsFilterBy, DraftsSearchFilter, DraftsSearchResults, DraftsSortBy } from "@models/drafts";
 import { Paging } from "@models/Paging.ts";
 import { SortOrder } from "@models/SortOrder.ts";
@@ -65,9 +65,9 @@ export const DraftsPageToolbar: FunctionComponent<DraftsPageToolbarProps> = (pro
         props.onPageChange(newPaging);
     };
 
-    const onPerPageSelect = (_event: any, newPerPage: number): void => {
+    const onPerPageSelect = (_event: any, newPerPage: number, newPage: number): void => {
         const newPaging: Paging = {
-            page: props.paging.page,
+            page: newPage,
             pageSize: newPerPage
         };
         props.onPageChange(newPaging);

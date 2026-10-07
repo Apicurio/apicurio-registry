@@ -24,6 +24,11 @@ public class OdcsContract {
     private String kind;
     private String id;
     private OdcsInfo info;
+    /**
+     * Schema artifacts governed by this contract. Entries are independent: each projects only onto
+     * its own {@code location}. Nested types that live in other registry artifacts need their own
+     * entry (or a separate contract); projection does not follow cross-artifact schema references.
+     */
     private List<OdcsSchema> schemas;
     private OdcsQuality quality;
     private OdcsServiceLevel serviceLevel;

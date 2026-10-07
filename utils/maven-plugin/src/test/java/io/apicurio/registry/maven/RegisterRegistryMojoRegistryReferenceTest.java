@@ -22,9 +22,9 @@ public class RegisterRegistryMojoRegistryReferenceTest {
                         + "versions/branch%3Dlatest/content");
 
         assertTrue(location.isPresent());
-        assertEquals("master group", readField(location.get(), "groupId"));
-        assertEquals("kafka-bindings.yml", readField(location.get(), "artifactId"));
-        assertEquals("branch=latest", readField(location.get(), "versionExpression"));
+        assertEquals("master group", readField(location.orElseThrow(), "groupId"));
+        assertEquals("kafka-bindings.yml", readField(location.orElseThrow(), "artifactId"));
+        assertEquals("branch=latest", readField(location.orElseThrow(), "versionExpression"));
     }
 
     @Test

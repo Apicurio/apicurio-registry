@@ -14,6 +14,7 @@ import {
     LabelGroup,
     Title
 } from "@patternfly/react-core";
+import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 
 /**
  * Properties for the MCP tool viewer.
@@ -111,36 +112,50 @@ export const McpToolViewer: FunctionComponent<McpToolViewerProps> = (props: McpT
                             </CardTitle>
                         </CardHeader>
                         <CardBody>
-                            <table className="pf-v5-c-table pf-m-compact pf-m-grid-md">
-                                <thead>
-                                    <tr>
-                                        <th>Parameter</th>
-                                        <th>Type</th>
-                                        <th>Required</th>
-                                        <th>Description</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                            <Table aria-label="Input parameters" variant="compact">
+                                <Thead>
+                                    <Tr>
+                                        <Th>Parameter</Th>
+                                        <Th>Type</Th>
+                                        <Th>Required</Th>
+                                        <Th>Default</Th>
+                                        <Th>Allowed Values</Th>
+                                        <Th>Description</Th>
+                                    </Tr>
+                                </Thead>
+                                <Tbody>
                                     {paramNames.map((paramName) => {
                                         const param = properties[paramName] || {};
                                         const isRequired = required.includes(paramName);
                                         return (
-                                            <tr key={paramName}>
-                                                <td><strong>{paramName}</strong></td>
-                                                <td>{param.type || "any"}</td>
-                                                <td>
+                                            <Tr key={paramName}>
+                                                <Td dataLabel="Parameter"><strong>{paramName}</strong></Td>
+                                                <Td dataLabel="Type">{param.type || "any"}</Td>
+                                                <Td dataLabel="Required">
                                                     {isRequired ? (
                                                         <Label color="red" isCompact>required</Label>
                                                     ) : (
                                                         <Label color="grey" isCompact>optional</Label>
                                                     )}
-                                                </td>
-                                                <td>{param.description || "-"}</td>
-                                            </tr>
+                                                </Td>
+                                                <Td dataLabel="Default">{param.default !== undefined ? (
+                                                    <code>{String(param.default)}</code>
+                                                ) : "-"}</Td>
+                                                <Td dataLabel="Allowed Values">
+                                                    {param.enum && Array.isArray(param.enum) && param.enum.length > 0 ? (
+                                                        <LabelGroup>
+                                                            {param.enum.map((val: any, i: number) => (
+                                                                <Label key={i} color="grey" isCompact>{String(val)}</Label>
+                                                            ))}
+                                                        </LabelGroup>
+                                                    ) : "-"}
+                                                </Td>
+                                                <Td dataLabel="Description">{param.description || "-"}</Td>
+                                            </Tr>
                                         );
                                     })}
-                                </tbody>
-                            </table>
+                                </Tbody>
+                            </Table>
                         </CardBody>
                     </Card>
                 </>
@@ -157,36 +172,50 @@ export const McpToolViewer: FunctionComponent<McpToolViewerProps> = (props: McpT
                             </CardTitle>
                         </CardHeader>
                         <CardBody>
-                            <table className="pf-v5-c-table pf-m-compact pf-m-grid-md">
-                                <thead>
-                                    <tr>
-                                        <th>Field</th>
-                                        <th>Type</th>
-                                        <th>Required</th>
-                                        <th>Description</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
+                            <Table aria-label="Output schema" variant="compact">
+                                <Thead>
+                                    <Tr>
+                                        <Th>Field</Th>
+                                        <Th>Type</Th>
+                                        <Th>Required</Th>
+                                        <Th>Default</Th>
+                                        <Th>Allowed Values</Th>
+                                        <Th>Description</Th>
+                                    </Tr>
+                                </Thead>
+                                <Tbody>
                                     {Object.keys(outputSchema.properties).map((fieldName) => {
                                         const field = outputSchema.properties[fieldName] || {};
                                         const isRequired = (outputSchema.required || []).includes(fieldName);
                                         return (
-                                            <tr key={fieldName}>
-                                                <td><strong>{fieldName}</strong></td>
-                                                <td>{field.type || "any"}</td>
-                                                <td>
+                                            <Tr key={fieldName}>
+                                                <Td dataLabel="Field"><strong>{fieldName}</strong></Td>
+                                                <Td dataLabel="Type">{field.type || "any"}</Td>
+                                                <Td dataLabel="Required">
                                                     {isRequired ? (
                                                         <Label color="red" isCompact>required</Label>
                                                     ) : (
                                                         <Label color="grey" isCompact>optional</Label>
                                                     )}
-                                                </td>
-                                                <td>{field.description || "-"}</td>
-                                            </tr>
+                                                </Td>
+                                                <Td dataLabel="Default">{field.default !== undefined ? (
+                                                    <code>{String(field.default)}</code>
+                                                ) : "-"}</Td>
+                                                <Td dataLabel="Allowed Values">
+                                                    {field.enum && Array.isArray(field.enum) && field.enum.length > 0 ? (
+                                                        <LabelGroup>
+                                                            {field.enum.map((val: any, i: number) => (
+                                                                <Label key={i} color="grey" isCompact>{String(val)}</Label>
+                                                            ))}
+                                                        </LabelGroup>
+                                                    ) : "-"}
+                                                </Td>
+                                                <Td dataLabel="Description">{field.description || "-"}</Td>
+                                            </Tr>
                                         );
                                     })}
-                                </tbody>
-                            </table>
+                                </Tbody>
+                            </Table>
                         </CardBody>
                     </Card>
                 </>

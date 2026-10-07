@@ -3,3 +3,4 @@ dist/
 .yarn/
 *.tgz
 package-lock.json
+root-pom.xml

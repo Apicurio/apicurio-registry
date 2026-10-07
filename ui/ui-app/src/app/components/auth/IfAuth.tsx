@@ -1,5 +1,5 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { useUserService } from "@services/useUserService.ts";
 
 /**

@@ -542,6 +542,42 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                 "Registering the same schema under different subjects should return the same id");
     }
 
+    /**
+     * A schema the compatibility checker can't process is reported as an invalid schema, with the
+     * Confluent error code clients look for, not only the HTTP status: here, a JSON Schema whose
+     * reference can't be resolved, and one whose $schema names no known draft.
+     */
+    @Test
+    public void testRegisterSchemaTheCompatibilityCheckCannotProcess() throws Exception {
+        String subject = "testRegisterSchemaTheCompatibilityCheckCannotProcess";
+        confluentClient.updateCompatibility(CompatibilityLevel.BACKWARD.name, subject);
+        confluentClient.registerSchema(jsonSchemaRequest("""
+                { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object" }
+                """), subject, false);
+
+        for (String unprocessable : List.of("""
+                {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "type": "object",
+                  "properties": { "x": { "$ref": "missing.json" } }
+                }
+                """, """
+                { "$schema": "https://example.com/my-meta-schema", "type": "object" }
+                """)) {
+            RestClientException rce = Assertions.assertThrows(RestClientException.class,
+                    () -> confluentClient.registerSchema(jsonSchemaRequest(unprocessable), subject, false));
+            assertEquals(422, rce.getStatus(), unprocessable);
+            assertEquals(ErrorCode.INVALID_SCHEMA.value(), rce.getErrorCode(), unprocessable);
+        }
+    }
+
+    private static RegisterSchemaRequest jsonSchemaRequest(String schema) {
+        RegisterSchemaRequest request = new RegisterSchemaRequest();
+        request.setSchema(schema);
+        request.setSchemaType("JSON");
+        return request;
+    }
+
     @Test
     public void testRegisterInvalidSchemaBadType() throws Exception {
         String subject = "testRegisterInvalidSchemaBadType";
@@ -772,6 +808,35 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testGetSchemaByIdReturnsCorrectTypeAndOrphanIs404() throws Exception {
+        String subject = "testGetSchemaByIdOrphan";
+        List<String> schemas = ConfluentTestUtils.getRandomCanonicalAvroString(1);
+
+        int id = ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
+
+        // Sanity check: the id resolves to a Schema whose schemaType reflects the AVRO artifact type
+        // (single-query path in SchemasResourceImpl#getSchemaById / getContentAndArtifactTypeById).
+        SchemaString schema = confluentClient.getId(id);
+        Assertions.assertNotNull(schema);
+        Assertions.assertNotNull(schema.getSchemaString());
+
+        // Permanently delete the only version referencing this content, then run the orphaned-content
+        // cleanup so the contentId genuinely has no artifact version pointing at it any more.
+        confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1");
+        confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1", true);
+        storage.deleteAllOrphanedContent();
+
+        try {
+            confluentClient.getId(id);
+            fail("Schema lookup by an orphaned contentId should fail with "
+                    + ErrorCode.SCHEMA_NOT_FOUND.value() + " (schema not found)");
+        } catch (RestClientException rce) {
+            assertEquals(ErrorCode.SCHEMA_NOT_FOUND.value(), rce.getErrorCode(),
+                    "Should get a 404 status for an orphaned contentId");
+        }
+    }
+
+    @Test
     public void testGetSchemaTypes() throws Exception {
         assertEquals(new HashSet<>(Arrays.asList("AVRO", "JSON", "PROTOBUF")),
                 new HashSet<>(confluentClient.getSchemaTypes()));
@@ -926,8 +991,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                     "type" : "long"
                   }, {
                     "name" : "currency",
-                    "type" : {
-                      "type" : "myavro.currencies.Currency"    }
+                    "type" : "myavro.currencies.Currency"
                   }, {
                     "name" : "amount",
                     "type" : "double"
@@ -944,8 +1008,7 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                     "type" : "long"
                   }, {
                     "name" : "currency",
-                    "type" : {
-                      "type" : "myavro.currencies.Currency"    }
+                    "type" : "myavro.currencies.Currency"
                   }, {
                     "name" : "updatedValue",
                     "type" : "double"

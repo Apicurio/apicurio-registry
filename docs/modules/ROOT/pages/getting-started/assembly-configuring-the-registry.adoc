@@ -1,26 +1,21 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:_mod-docs-content-type: ASSEMBLY
 [id="configuring-the-registry_{context}"]
 = Configuring your {registry} deployment
 
-[role="_abstract"]
-You can set important configuration options for your {registry} deployment, including the {registry} web console, logging, health checks, and observability:
+:_mod-docs-content-type: ASSEMBLY
 
-* xref:configuring-registry-ui_{context}[]
-* xref:configuring-registry-observability_{context}[]
-* xref:otel-features_{context}[]
-* xref:otel-performance_{context}[]
-* xref:configuring-liveness-readiness-probes_{context}[]
-* xref:registry-liveness-env-vars_{context}[]
+[role="_abstract"]
+You can set important configuration options for your {registry} deployment, including the {registry} web console, logging, health checks, and observability.
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
 
 
 // proc-configuring-registry-ui
-:_mod-docs-content-type: PROCEDURE
 [id="configuring-registry-ui_{context}"]
 == Configuring the {registry} web console
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can set optional environment variables to configure the {registry} web console specifically for your deployment environment or to customize its behavior.
@@ -44,9 +39,10 @@ In read-only mode, you cannot make changes to registered artifacts. For example,
 
 
 // ref-configuring-registry-observability
-:_mod-docs-content-type: REFERENCE
 [id="configuring-registry-observability_{context}"]
 == {registry} observability with OpenTelemetry
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can configure {registry} to export telemetry data using OpenTelemetry (OTel) for comprehensive observability. This includes distributed tracing, metrics export by using the OTLP protocol, and log correlation with trace context.
@@ -113,9 +109,10 @@ environment:
 
 
 // con-otel-features
-:_mod-docs-content-type: CONCEPT
 [id="otel-features_{context}"]
 == OpenTelemetry features in {registry}
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 When OpenTelemetry is enabled, {registry} provides several observability features that are fully compatible with your existing monitoring setup.
@@ -138,9 +135,10 @@ Existing monitoring endpoints continue to function:
 
 
 // ref-otel-performance
-:_mod-docs-content-type: REFERENCE
 [id="otel-performance_{context}"]
 == OpenTelemetry performance impact
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 OpenTelemetry instrumentation adds a small performance overhead. The following table shows the measured impact when all telemetry signals are enabled with 100% sampling:
@@ -211,9 +209,74 @@ endif::[]
 
 
 // proc-configuring-liveness-readiness-probes
+[id="configuring-dynamic-log-level_{context}"]
+== Changing the {registry} log level at runtime
+
 :_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can change the log level of a running {registry} instance without restarting it by setting the dynamic `apicurio.log.level` configuration property. The setting applies to the {registry} loggers in the `io.apicurio` category.
+
+.Prerequisites
+* You have administrator access to the {registry} instance.
+
+.Procedure
+. Set the log level with the admin configuration REST endpoint. Valid values are `TRACE`, `DEBUG`, `INFO`, `WARN`, `ERROR`, `OFF`, and `ALL`. The default value is `INFO`:
++
+[source,bash]
+----
+$ curl -X PUT -H "Content-Type: application/json" \
+  -d '{"value": "DEBUG"}' \
+  http://localhost:8080/apis/registry/v3/admin/config/properties/apicurio.log.level
+----
++
+Alternatively, use the CLI:
++
+[source,bash]
+----
+$ acr server-config set apicurio.log.level DEBUG
+----
++
+The registry applies the change within a few seconds. The value is stored in the registry storage, so it persists across restarts.
+. To revert to the original log level, remove the dynamic property. The registry restores the log level that was active at startup:
++
+[source,bash]
+----
+$ acr server-config reset apicurio.log.level
+----
+
+[id="registry-rest-metrics-distribution_{context}"]
+== REST request metrics distribution configuration
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The following properties control how {registry} publishes distribution statistics for its REST request timer metrics. Change the distribution type when your monitoring system computes percentiles poorly from histogram buckets, for example, Datadog.
+
+.REST metrics distribution properties
+[.table-expandable,width="100%",cols="4,3,4",options="header"]
+|===
+|Property
+|Default
+|Description
+
+|`apicurio.metrics.rest.distribution.type`
+|`histogram`
+|Distribution type for REST request timers. The `histogram` type publishes bucket histograms with service level objective boundaries, and the `summary` type publishes pre-computed percentiles only. An invalid value prevents the application from starting.
+
+|`apicurio.metrics.rest.distribution.percentiles`
+|`0.5,0.95,0.99,0.9995`
+|Percentiles to pre-compute. Each value must be between 0.0 and 1.0.
+
+|`apicurio.metrics.rest.distribution.slo`
+|`0.1,0.25,0.5,1.0,2.0,5.0,10.0`
+|Service level objective boundaries in seconds for the histogram buckets. Only used when the distribution type is `histogram`.
+|===
+
 [id="configuring-liveness-readiness-probes_{context}"]
 == Configuring {registry} health checks on OpenShift
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 Health check endpoints are served on the management interface (port 9000 by default), separate from the main application port (8080). Configure liveness and readiness probes to target port 9000.
@@ -258,17 +321,17 @@ Alternatively, you can complete these steps by using the OpenShift `oc` command.
 
 
 // ref-registry-liveness-env-vars
-:_mod-docs-content-type: REFERENCE
 [id="registry-liveness-env-vars_{context}"]
 == Environment variables for {registry} health checks
 
+:_mod-docs-content-type: REFERENCE
+
 [role="_abstract"]
-You can use the following environment variables to configure {registry} health checks on OpenShift. These variables control liveness and readiness probes that monitor the health of the {registry} server. For an example procedure, see xref:configuring-liveness-readiness-probes_{context}[].
+You can use the following environment variables to configure {registry} health checks on OpenShift. These variables control liveness and readiness probes that monitor the health of the {registry} server.
 
 IMPORTANT: The following environment variables are provided for reference only. The default values are designed for most cases. Change these values only if required by your environment. Any changes to the defaults depend on your hardware, network, and amount of data stored. Keep these values as low as possible to avoid unnecessary processing overhead.
 
 .Environment variables for {registry} liveness probes
-//[%header,cols="5,5,2,5"]
 [.table-expandable,width="100%",cols="5,5,2,5",options="header"]
 |===
 |Name
@@ -296,7 +359,6 @@ IMPORTANT: The following environment variables are provided for reference only. 
 NOTE: Because OpenShift automatically restarts a Pod that fails a liveness check, the liveness settings, unlike readiness settings, do not directly affect behavior of {registry} on OpenShift.
 
 .Environment variables for {registry} readiness probes
-//[%header,cols="4,5,2,2"]
 [.table-expandable,width="100%",cols="4,5,2,2",options="header"]
 |===
 |Name

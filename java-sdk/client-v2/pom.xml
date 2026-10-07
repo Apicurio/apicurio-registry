@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.apicurio</groupId>
     <artifactId>apicurio-registry</artifactId>
-    <version>3.3.1-SNAPSHOT</version>
+    <version>3.4.0-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -16,6 +16,19 @@
     <projectRoot>${project.basedir}/../..</projectRoot>
   </properties>
   <dependencies>
+    <!-- Build-ordering only: client builds first so the kiota binary is fetched once rather
+         than by both modules at the same time. Not a correctness requirement at plugin
+         0.0.39, which publishes the binary by renaming it into place within one folder; see
+         the kiota.maven.plugin.version comment in the root pom. Removing it is safe and
+         costs one extra 35 MB archive download on a cold cache, since `-T 1C` is on by
+         default in .mvn/maven.config and would then run both modules' generators at once.
+         Marked optional so consumers of client-v2 do not pull client transitively. -->
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-java-sdk</artifactId>
+      <version>${project.version}</version>
+      <optional>true</optional>
+    </dependency>
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-registry-java-sdk-common</artifactId>
@@ -190,7 +203,7 @@
       <plugin>
         <groupId>io.kiota</groupId>
         <artifactId>kiota-maven-plugin</artifactId>
-        <version>${kiota.community.version}</version>
+        <version>${kiota.maven.plugin.version}</version>
         <executions>
           <execution>
             <id>v2</id>
@@ -201,6 +214,7 @@
               <kiotaVersion>${kiota.version}</kiotaVersion>
               <kiotaTimeout>${kiota.timeout}</kiotaTimeout>
               <baseURL>${kiota.base.url}</baseURL>
+              <targetBinaryFolder>${kiota.binary.folder}</targetBinaryFolder>
               <file>${project.build.directory}/openapi-v2-filtered.json</file>
               <namespace>io.apicurio.registry.rest.client.v2</namespace>
               <clientClass>RegistryClient</clientClass>

@@ -6,26 +6,44 @@
 
 The CLI is distributed as a native executable. A separate ZIP is provided for each platform:
 
-| Platform | Architecture            | ZIP Classifier | Shell |
-|----------|-------------------------|----------------|-------|
-| Linux    | x86_64                  | `linux-x86_64` | bash  |
-| macOS    | aarch64 (Apple Silicon) | `osx-aarch64`  | zsh   |
+| Platform | Architecture            | ZIP Classifier   | Shell            |
+|----------|-------------------------|------------------|------------------|
+| Linux    | x86_64                  | `linux-x86_64`   | bash             |
+| macOS    | aarch64 (Apple Silicon) | `osx-aarch64`    | zsh              |
+| Windows  | x86_64                  | `windows-x86_64` | cmd / PowerShell |
 
-Windows is not supported.
+On Windows the binaries are not code-signed, so SmartScreen may warn the first time you run
+the CLI. Windows on ARM and PowerShell tab-completions are not supported yet, a stored
+secret cannot exceed 2560 bytes — see [Authentication](#authentication) for what that covers —
+and installing rewrites any variable references in your user `Path`, described under
+[Installation](#installation).
 
 ## Installation
 
 Prerequisites:
 
- - Linux (x86_64) with bash, or macOS (Apple Silicon) with zsh
+ - Linux (x86_64) with bash, macOS (Apple Silicon) with zsh, or Windows (x86_64) with cmd or PowerShell
 
 To install the Apicurio Registry CLI:
 
 1. Download the ZIP for your platform from [GitHub Releases](https://github.com/Apicurio/apicurio-registry/releases) or [Maven Central](https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-cli).
 2. Unzip the downloaded file to a location of your choice.
-3. You can run the CLI directly using `./acr`, or install it for the local user first (recommended):
+3. You can run the CLI directly using `./acr` (`acr.cmd` on Windows), or install it for the local user first (recommended):
 
-   1. Run `./acr install` to install the CLI. This will install the CLI files to default locations (`$HOME/bin` and `$HOME/.apicurio/apicurio-registry-cli`), update the `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS), and configure shell completions. Global installation is not supported yet.
+   1. Run `./acr install` to install the CLI files to the default locations (`$HOME/bin` and `$HOME/.apicurio/apicurio-registry-cli`), update the `~/.bashrc` file (Linux) or `~/.zshrc` file (macOS), and configure shell completions.
+
+   On Windows, run `acr.cmd install` instead. It installs to `%USERPROFILE%\bin` and
+   `%USERPROFILE%\.apicurio\apicurio-registry-cli`. Since Windows has no shell configuration file
+   to source, the installer instead persists the `ACR_HOME` user environment variable and prepends
+   the `bin` directory to your user `Path`. **Open a new terminal** for those changes to take
+   effect; afterwards `acr` resolves to `acr.cmd` through `PATHEXT`. Shell completions are
+   installed for bash and zsh only.
+
+   Note that adding the entry rewrites your user `Path` in expanded form. Windows can store it
+   with references such as `%USERPROFILE%\...` in it, and the API the installer updates it through
+   returns those already resolved and writes the result back as plain text. The directories on your
+   `Path` are unchanged, but a reference in it is replaced by the directory it pointed at during the
+   install, and stops following later changes to that variable.
 4. If you do not have an instance of Apicurio Registry running, you use Docker:
 
    ```bash
@@ -36,6 +54,22 @@ To install the Apicurio Registry CLI:
    docker run --rm -it -p 8888:8080 quay.io/apicurio/apicurio-registry-ui:latest-snapshot
    ```
 
+
+### System-wide installation
+
+On Linux or macOS, run the following command from the extracted distribution directory to install the CLI for all users:
+
+```bash
+sudo ./acr install --global
+```
+
+The installer copies the CLI to `/usr/local/lib/apicurio-registry-cli` and creates the `acr` and `acr_env` symbolic links in `/usr/local/bin`.
+It does not modify individual shell profiles. Add `source /usr/local/bin/acr_env` to your shell profile to load completions.
+
+A global installation shares one `config.json` file. Separate configuration for each user is not supported.
+Users without write access to the shared file cannot change contexts or configuration.
+Use a per-user installation when you need independent contexts and authentication settings.
+An update preserves the global installation scope and requires write access to the installation directories.
 
 ### Update
 
@@ -94,6 +128,17 @@ sudo dnf install gcc zlib-static
 # Debian/Ubuntu
 sudo apt install gcc zlib1g-dev
 ```
+
+On **Windows**, install GraalVM CE (or Mandrel) for JDK 17 or later and the Visual Studio 2022
+Build Tools with the "Desktop development with C++" workload, then build from a shell where
+`native-image` can find the MSVC toolchain (GraalVM auto-detects a full Visual Studio install):
+
+```cmd
+mvnw.cmd clean package -pl cli -am -DskipTests
+```
+
+The container-based build is not available on Windows (it produces a Linux binary), so the local
+GraalVM and C++ toolchain are required there.
 
 To use a Mandrel container image instead (no local GraalVM or native toolchain needed, requires Docker/Podman):
 
@@ -178,10 +223,78 @@ acr config delete <property-name>
 
 #### Configuration Properties
 
-| Property                 | Default | Description                         |
-|--------------------------|---------|-------------------------------------|
-| `update.check-enabled`   | `true`  | Enable automatic update checks      |
-| `update.timeout-seconds` | `60`    | Timeout for update network requests |
+| Property                             | Default | Description                                                                                                             |
+|---------------------------------------|---------|---------------------------------------------------------------------------------------------------------------------------|
+| `update.check-enabled`               | `true`  | Enable automatic update checks                                                                                          |
+| `update.timeout-seconds`             | `60`    | Timeout for update network requests                                                                                     |
+| `update.skip-checksum-verification`  | `false` | Skip SHA-256 verification of downloaded archives (for custom repos without `.sha256` files)                             |
+| `context.auto-update`                | `false` | Automatically save the group/artifact ID to the current context after `group create`/`get` and `artifact create`/`get` |
+
+#### Logging
+
+Use `--verbose` to enable debug logging:
+
+```bash
+acr --verbose artifact get my-artifact -g my-group
+```
+
+Verbose output includes the raw request and response of every Registry call, with requests
+prefixed by `>` and responses by `<`:
+
+```
+HTTP request:
+> GET http://localhost:8080/apis/registry/v3/groups/my-group
+> Authorization: <redacted>
+
+HTTP response:
+< 200 OK
+< Content-Type: application/json
+<
+< {"groupId":"my-group", ...}
+```
+
+Headers that carry credentials (`Authorization`, `Proxy-Authorization`, `Cookie`, `Set-Cookie`)
+are redacted, as are query parameters that carry them (`access_token`, `id_token`,
+`refresh_token`, `token`, `code`, `client_secret`, `assertion`, `api_key`, `apikey`). Everything
+else, including the rest of the URL and the request and response bodies, is logged as it is sent,
+so treat verbose output as sensitive. Bodies longer than 8192 characters are truncated.
+
+One command can produce more than one request record. A redirect is logged as a second request,
+tagged with its hop number, and the response that follows it says how many hops it took:
+
+```
+HTTP request:
+> GET http://localhost:8080/apis/registry/v3/groups/my-group
+
+HTTP request (redirect 1):
+> GET https://registry.example.com/apis/registry/v3/groups/my-group
+
+HTTP response (after 1 redirect):
+< 200 OK
+```
+
+A call that is retried, for example after an expired token is refreshed, is logged as another
+untagged request.
+
+HTTP traffic is logged under the `io.apicurio.registry.client.http` category, so it can be quieted
+on its own:
+
+```bash
+acr config set 'quarkus.log.category."io.apicurio.registry.client.http".level=WARNING'
+```
+
+Verbose output can be noisy. To quiet a specific package while keeping the rest, set a
+per-package level using the `quarkus.log.category."<package>".level` config key:
+
+```bash
+acr config set 'quarkus.log.category."io.netty".level=WARNING'
+```
+
+Per-package levels only take effect together with `--verbose`. Without it the CLI stays quiet,
+whatever the config contains.
+
+Accepted level names are `OFF`, `FATAL`, `ERROR`, `SEVERE`, `WARN`, `WARNING`, `INFO`, `CONFIG`,
+`DEBUG`, `FINE`, `FINER`, `TRACE`, `FINEST` and `ALL`.
 
 ### Context Management
 
@@ -221,9 +334,18 @@ acr context delete --all
 
 Use `--no-switch-current` when creating a context to add it without switching to it.
 
+**Auto context update:**
+```bash
+acr config set context.auto-update=true
+```
+When enabled, `group create`/`get` and `artifact create`/`get` automatically save the resolved group and/or
+artifact ID to the current context, so subsequent commands don't need repeated `-g`/`-a` flags. Switching to a
+different group clears the artifact ID from the context, since the previous artifact no longer applies; re-getting
+the same group leaves it untouched. Disabled by default.
+
 ### Authentication
 
-The CLI supports authenticating with secured registry instances. Credentials are stored securely in the OS keychain (macOS Keychain or Linux Secret Service) — never in config files.
+The CLI supports authenticating with secured registry instances. Credentials are stored securely in the OS keychain (macOS Keychain, Linux Secret Service, or Windows Credential Manager) — never in config files.
 
 **Basic authentication:**
 ```bash
@@ -236,11 +358,20 @@ acr login --username <username> --password <password>
 
 **OAuth2 client credentials:**
 ```bash
-acr login --token-endpoint <token-endpoint-url> --client-id <client-id> --client-secret <client-secret>
+# Using OIDC discovery (recommended) — discovers the token endpoint automatically
+acr login --client-id <client-id> --auth-server-url <auth-server-url>
+
+# With explicit token endpoint
+acr login --client-id <client-id> --token-endpoint <token-endpoint-url>
 
 # With scope
-acr login --token-endpoint <token-endpoint-url> --client-id <client-id> --client-secret <client-secret> --scope <scope>
+acr login --client-id <client-id> --auth-server-url <auth-server-url> --scope <scope>
+
+# Non-interactive (CI/CD)
+acr login --client-id <client-id> --client-secret <client-secret> --auth-server-url <auth-server-url>
 ```
+
+> **Note:** `--auth-server-url` is the base URL of your OIDC provider (e.g. `https://keycloak.example.com/realms/my-realm`). The CLI appends `/.well-known/openid-configuration` to discover the token endpoint automatically.
 
 **Log out (clears credentials from keychain and config):**
 ```bash
@@ -258,11 +389,21 @@ Credentials are stored in a local file instead of the OS keychain. A warning is 
 **Prerequisites for credential storage:**
 - macOS: No prerequisites (uses Keychain)
 - Linux: `secret-tool` required (`sudo apt install libsecret-tools` or `sudo dnf install libsecret`)
+- Windows: No prerequisites (uses Windows Credential Manager)
 - Headless/CI: Use `--allow-unsafe-credential-storage` if no keychain is available
+
+On Windows, a single secret cannot exceed 2560 bytes (`CRED_MAX_CREDENTIAL_BLOB_SIZE`), which is a
+limit of the Credential Manager itself; the macOS and Linux stores have no comparable limit. The CLI
+stores only a password or an OAuth2 client secret — access and refresh tokens are requested per
+invocation and never stored — so this is not reached in practice.
 
 ### Working with Groups
 
 Groups organize artifacts in the registry.
+
+The first page of group listings includes the built-in group as `default (implicit)` in table output.
+Use `default` as the identifier in commands; JSON output omits the display marker.
+You cannot create, update, or delete this implicit group.
 
 **List all groups:**
 ```bash
@@ -447,11 +588,58 @@ acr search version --name <name> --group <group-id> --artifact <artifact-id>
 
 All filters are optional and can be combined. Additional filters include `--description`, `--type`, `--state`, `--label`, `--global-id`, `--content-id`. Pagination (`--page`, `--size`) and ordering (`--order`, `--order-by`) are supported.
 
+### GitOps storage
+
+The GitOps commands require a registry instance with GitOps storage enabled.
+When authorization is enabled, viewing status requires read access, and synchronization and validation require administrator access.
+
+**Check synchronization status:**
+```bash
+acr gitops status
+acr gitops status --output-type json
+```
+
+Status includes the state, attempt and success timestamps, resource counts, source commit identifiers, and reported errors.
+
+**Request synchronization and wait for the server to report a completed attempt:**
+```bash
+acr gitops sync --wait --timeout 300 --output-type json
+```
+
+Without `--wait`, `sync` returns a request confirmation immediately, even with JSON output selected.
+With `--wait`, it polls every two seconds until the attempt timestamp advances and the state is `IDLE` or `ERROR`.
+Check that the reported `sources` match the expected commits. A successful exit alone does not verify which commit the registry loaded.
+
+**Validate a Git revision without changing live registry content:**
+```bash
+acr gitops validate --repo primary --ref refs/heads/proposed-schemas --output-type json
+```
+
+Validation requires `apicurio.gitops.validate.enabled=true` on the server.
+Replace `primary` with a configured repository ID, not a repository URL.
+The `--ref` option accepts a branch, tag, or pull request ref that the server can fetch.
+The command waits for the result by default. Both `sync --wait` and `validate` have a default timeout of 300 seconds; change it with `--timeout`.
+
+JSON validation output includes the task ID, state, result, timestamps, resource counts, and error details.
+A successful validation reports `"result": "success"`. A failed task, failed validation result, or timeout returns exit code `1`.
+For `sync --wait`, a reported `ERROR` state or timeout also returns exit code `1`.
+
+By default, `validate` attempts to delete the task after waiting, including after an error or timeout.
+Use `--no-cleanup` to retain the task until it expires or you delete it through the REST API.
+Use `--no-wait` to return the initial task details without waiting or deleting the task.
+A successful exit with `--no-wait` confirms task creation, not successful validation; retrieve the result through the REST API using the returned task ID.
+
+### Table output
+
+Tables adapt to the terminal width by wrapping long cell values.
+If automatic width detection fails, the CLI uses the `COLUMNS` environment variable, then a default of 120 characters.
+Piped or redirected output has no width limit. JSON output is unaffected by terminal width.
+
 ### Global Options
 
 These options work with most commands:
 
-- `--verbose, -v` - Enable verbose output for debugging
+- `--verbose` - Enable verbose output for debugging, including raw HTTP requests and responses. This option has no short form.
 - `--help, -h` - Show help information
 - `--output-type, -o` - Set output format (table or json)
 

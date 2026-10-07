@@ -68,6 +68,10 @@ public class ConfigModel {
         private String tokenEndpoint;
 
         @ToString.Exclude
+        @JsonProperty("authServerUrl")
+        private String authServerUrl;
+
+        @ToString.Exclude
         @JsonProperty("clientId")
         private String clientId;
 
@@ -82,6 +86,7 @@ public class ConfigModel {
             authType = null;
             username = null;
             tokenEndpoint = null;
+            authServerUrl = null;
             clientId = null;
             scope = null;
             unsafeCredentialStorage = false;

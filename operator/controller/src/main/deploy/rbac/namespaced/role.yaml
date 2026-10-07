@@ -1,0 +1,130 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: apicurio-registry-operator-role
+
+# Workload permissions that become the CSV `permissions`. How OLM materializes these depends on
+# the OperatorGroup, not on this file: for SingleNamespace/OwnNamespace/MultiNamespace it creates a
+# Role + RoleBinding copied into each target namespace (least-privilege, in-namespace only); for
+# AllNamespaces (target `*`) it promotes each rule to a ClusterRole + ClusterRoleBinding, so these
+# verbs (including patch/update on the CR below) become cluster-wide. So `permissions` is not always
+# namespace-scoped.
+# IMPORTANT: When updating permissions, also update operator/olm-tests/src/test/deploy/olmv1/cluster-role.yaml
+
+rules:
+
+  # Mutating access to the ApicurioRegistry3 CR the operator reconciles: patch for spec
+  # migration (SqlCRUpdater) and status, plus update for the JOSDK finalizer. Cluster-wide
+  # get/list/watch for discovery is in cluster-role.yaml. The operator never creates or
+  # deletes the CR, so those verbs are intentionally omitted.
+  - apiGroups:
+      - registry.apicur.io
+    resources:
+      - apicurioregistries3
+      - apicurioregistries3/status
+    verbs:
+      - patch
+      - update
+
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+
+  - apiGroups:
+      - ''
+    resources:
+      - configmaps
+      - events
+      - pods
+      - services
+      - serviceaccounts
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+
+  - apiGroups:
+      - rbac.authorization.k8s.io
+    resources:
+      - roles
+      - rolebindings
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+
+  - apiGroups:
+      - networking.k8s.io
+    resources:
+      - ingresses
+      - networkpolicies
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+
+  - apiGroups:
+      - autoscaling
+    resources:
+      - horizontalpodautoscalers
+    verbs:
+      - create
+      - delete
+      - get
+      - list
+      - patch
+      - update
+      - watch
+
+  - apiGroups:
+      - ''
+    resources:
+      - secrets
+    verbs:
+      - create
+      - get
+
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - get
+      - create
+      - update
+      - patch
+      - delete

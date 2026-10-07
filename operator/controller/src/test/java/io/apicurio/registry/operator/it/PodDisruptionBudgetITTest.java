@@ -14,10 +14,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
+import static io.apicurio.registry.operator.Tags.FEATURE_A;
 import static org.awaitility.Awaitility.await;
 
 @QuarkusTest
 @Tag(FEATURE)
+@Tag(FEATURE_A)
 public class PodDisruptionBudgetITTest extends ITBase {
 
     private static final Logger log = LoggerFactory.getLogger(PodDisruptionBudgetITTest.class);

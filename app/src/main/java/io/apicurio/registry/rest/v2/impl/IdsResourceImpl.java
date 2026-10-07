@@ -77,9 +77,9 @@ public class IdsResourceImpl implements IdsResource {
         if (dereference == null) {
             // Check if admin has configured a default reference handling behavior
             java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()) {
+            if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()) {
                 // Convert v3 enum value to v2 boolean (DEREFERENCE -> true, others -> false)
-                dereference = "DEREFERENCE".equals(configuredDefault.get());
+                dereference = "DEREFERENCE".equals(configuredDefault.orElseThrow());
             } else {
                 // No configuration - use existing default (no behavior change)
                 dereference = Boolean.FALSE;
@@ -129,6 +129,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#referencesByContentHash(java.lang.String)
      */
     @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<ArtifactReference> referencesByContentHash(String contentHash) {
         return common.getReferencesByContentHash(contentHash, V2ApiUtil::referenceDtoToReference);
     }
@@ -137,6 +138,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#referencesByContentId(long)
      */
     @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<ArtifactReference> referencesByContentId(long contentId) {
         ContentWrapperDto artifact = storage.getContentById(contentId);
         return artifact.getReferences().stream().map(V2ApiUtil::referenceDtoToReference)
@@ -148,6 +150,7 @@ public class IdsResourceImpl implements IdsResource {
      * io.apicurio.registry.types.ReferenceType)
      */
     @Override
+    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
     public List<ArtifactReference> referencesByGlobalId(long globalId, ReferenceType refType) {
         if (refType == ReferenceType.OUTBOUND || refType == null) {
             StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(globalId);

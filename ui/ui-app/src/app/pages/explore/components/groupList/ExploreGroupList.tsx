@@ -12,7 +12,7 @@ import {
 import { OutlinedFolderIcon } from "@patternfly/react-icons";
 import { SearchedGroup } from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
 import { ArtifactGroup } from "@app/components";
-import { If, ObjectDropdown } from "@apicurio/common-ui-components";
+import { If, ObjectDropdown } from "@apitomy/common-ui-components";
 import { UserService, useUserService } from "@services/useUserService.ts";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 

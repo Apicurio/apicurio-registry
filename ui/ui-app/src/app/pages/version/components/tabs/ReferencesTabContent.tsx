@@ -9,7 +9,7 @@ import {
     ViewMode
 } from "@app/pages/version/components/tabs/ReferencesToolbar.tsx";
 import { ReferenceGraphView } from "./ReferenceGraphView.tsx";
-import { ListWithToolbar } from "@apicurio/common-ui-components";
+import { ListWithToolbar } from "@apitomy/common-ui-components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
 import { LocalStorageService, useLocalStorageService } from "@services/useLocalStorageService.ts";
@@ -135,9 +135,9 @@ export const ReferencesTabContent: FunctionComponent<ReferencesTabContentProps> 
         setPaging(newPaging);
     };
 
-    const onPerPageSelect = (_event: any, newPerPage: number): void => {
+    const onPerPageSelect = (_event: any, newPerPage: number, newPage: number): void => {
         const newPaging: Paging = {
-            page: paging.page,
+            page: newPage,
             pageSize: newPerPage
         };
         setPaging(newPaging);

@@ -4,17 +4,38 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [id="exporting_registry_kafka_topic_data_{context}"]
 = Exporting {registry} Kafka topic data
 
+:_mod-docs-content-type: ASSEMBLY
+
 [role="_abstract"]
 One of the supported {registry} storage options is Apache Kafka, which uses a Kafka topic named `kafkasql-journal` to store data.
 If you encounter a problem when using this storage option and want to report it to {registry} developers, you might need to provide an export of the data present in the `kafkasql-journal` topic for analysis.
-This document contains information on how to create such a topic export using the `kcat` tool (formerly known as `kafkacat`).
+You can create such a topic export by using the `kcat` tool (formerly known as `kafkacat`).
 
-.Prerequisites
+== Prerequisites
+
 * Kafka has been installed and is running in your environment.
 * You have deployed {registry} with data stored in the `kafkasql-journal` topic.
 * The `kafkasql-journal` topic is still present.
 
+[id="setting-up-kcat-work-pod_{context}"]
 == Setting up kcat on {kubernetes-with-article} work pod
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can build the `kcat` executable from source on an ephemeral work pod so that the topic export includes JSON output with base64 encoded keys and values.
+
+[NOTE]
+====
+If you do not require JSON support, you can use the following commands to install `kcat` using `dnf`:
+[source,bash]
+----
+dnf install -y "dnf-command(copr)"
+dnf copr enable bvn13/kcat
+dnf update
+dnf install -y kafkacat
+----
+====
 
 .Prerequisites
 * Your environment is {kubernetes}.
@@ -49,8 +70,8 @@ If you keep the `--rm` flag, the work pod will be deleted when you disconnect fr
 . You can install `kcat` using the `dnf` package manager. However, that version does not have JSON support enabled.
 Because you want to export the topic data in a JSON format with additional metadata, you must build the `kcat` executable from source.
 +
-In addition, while the `kcat` project is widely used for this use case, https://github.com/edenhill/kcat/issues/424[this project seems to be hibernated], and you require an additional feature for the `kafkasql-journal` topic export to work properly.
-This feature is https://github.com/edenhill/kcat/pull/206[support for base64 encoded keys and values], and is important because the topic includes raw binary data, which might not be correctly encoded in the JSON output.Therefore, you must build `kcat` from source that includes base64 support, which has not been merged into the main project yet.
+In addition, while the `kcat` project is widely used for this use case, the project appears to be hibernated, and you require an additional feature for the `kafkasql-journal` topic export to work properly.
+This feature is support for base64 encoded keys and values, and is important because the topic includes raw binary data, which might not be correctly encoded in the JSON output. Therefore, you must build `kcat` from source that includes base64 support, which has not been merged into the main project yet. For the relevant project links, see the additional resources.
 +
 Install `git`, and check out the `kcat` repository:
 +
@@ -86,21 +107,18 @@ cp kcat /usr/bin
 export KAFKA_BOOTSTRAP_SERVER="my-kafka-cluster-kafka-bootstrap.default.svc:9092"
 ----
 
-[NOTE]
-====
-If you do not require JSON support, you can use the following commands to install `kcat` using `dnf`:
-[source,bash]
-----
-dnf install -y "dnf-command(copr)"
-dnf copr enable bvn13/kcat
-dnf update
-dnf install -y kafkacat
-----
-====
+[role="_additional-resources"]
+.Additional resources
+* https://github.com/edenhill/kcat/issues/424[kcat project hibernation discussion]
+* https://github.com/edenhill/kcat/pull/206[kcat support for base64 encoded keys and values]
 
+[id="kcat-usage-examples_{context}"]
 == Examples of using kcat
 
-The following are several examples of how to use `kcat`, including creation of a topic export:
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The following examples show how to use `kcat` to list topics and create topic exports.
 
 * List Kafka topics:
 +
@@ -128,20 +146,34 @@ for t in $(kcat -b $KAFKA_BOOTSTRAP_SERVER -L | grep "topic " | sed 's#\([^"]*"\
 done
 ----
 
-== Copy topic export files from the work pod
+[id="copying-topic-export-files_{context}"]
+== Copying topic export files from the work pod
 
-After the topic export files have been created, you can run the following command on your local machine to copy the files from the work pod:
+:_mod-docs-content-type: PROCEDURE
 
+[role="_abstract"]
+After the topic export files have been created, you can copy the files from the work pod to your local machine.
+
+.Procedure
+* Run the following command on your local machine:
++
 [subs="attributes"]
 [source,bash]
 ----
 {kubernetes-client} cp work-pod:/kcat/dump .
 ----
 
+[id="importing-kafkasql-journal-topic-data_{context}"]
 == Importing the kafkasql-journal topic data
 
-To import `kafkasql-journal` topic data that has been created with `kcat`, use an https://github.com/Apicurio/apicurio-registry/tree/main/examples/tools/kafkasql-topic-import[application from the Apicurio Registry examples repository] as follows:
+:_mod-docs-content-type: PROCEDURE
 
+[role="_abstract"]
+You can import `kafkasql-journal` topic data that has been created with `kcat` by using an application from the {registry} examples repository.
+
+.Procedure
+* Clone the examples repository, build the import tool, and run it against your topic dump file:
++
 [source,bash]
 ----
 git clone https://github.com/Apicurio/apicurio-registry.git
@@ -153,5 +185,6 @@ java -jar target/apicurio-registry-tools-kafkasql-topic-import-$VERSION-jar-with
 
 [role="_additional-resources"]
 .Additional resources
-* For more details about `kcat`, see the https://github.com/edenhill/kcat[kcat repository].
-* You can provide additional parameters to configure `kcat` for accessing Kafka, in the `-X property=value` format. For the list of parameters, see the https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md[librdkafka configuration reference]. 
+* https://github.com/Apicurio/apicurio-registry/tree/main/examples/tools/kafkasql-topic-import[kafkasql-topic-import tool in the Apicurio Registry examples repository]
+* https://github.com/edenhill/kcat[kcat repository]
+* https://github.com/confluentinc/librdkafka/blob/master/CONFIGURATION.md[librdkafka configuration reference]

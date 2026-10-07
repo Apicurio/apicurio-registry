@@ -1,7 +1,7 @@
 import React, { FunctionComponent } from "react";
 import { Link } from "react-router";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 
 export type DraftIdProps = {
     groupId: string|null;

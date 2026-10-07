@@ -92,9 +92,9 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
             tokenUrl = authConfig.oidcTokenPath;
         } else {
             tokenUrl = authConfig.authServerUrl + authConfig.oidcTokenPath;
-        }
-        while (tokenUrl.endsWith("/")) {
-            tokenUrl = tokenUrl.substring(0, tokenUrl.length() - 1);
+            while (tokenUrl.endsWith("/")) {
+                tokenUrl = tokenUrl.substring(0, tokenUrl.length() - 1);
+            }
         }
         this.oidcTokenUrl = tokenUrl;
     }
@@ -172,7 +172,7 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         MultiMap form = MultiMap.caseInsensitiveMultiMap()
                 .add("grant_type", "password")
                 .add("client_id", authConfig.clientId)
-                .add("client_secret", authConfig.clientSecret.get())
+                .add("client_secret", authConfig.clientSecret.orElseThrow())
                 .add("username", username)
                 .add("password", password);
 

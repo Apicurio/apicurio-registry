@@ -13,7 +13,7 @@ import {
     EmptyStateVariant
 } from "@patternfly/react-core";
 import { InfoCircleIcon } from "@patternfly/react-icons";
-import { FromNow } from "@apicurio/common-ui-components";
+import { FromNow } from "@apitomy/common-ui-components";
 import { SearchedArtifact } from "@sdk/lib/generated-client/models";
 import { ArtifactTypeIcon } from "@app/components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
@@ -39,7 +39,7 @@ export const RecentArtifacts: FunctionComponent<RecentArtifactsProps> = ({
     };
 
     return (
-        <Card className="recent-artifacts-card" variant="secondary" style={{ backgroundColor: "white" }}>
+        <Card className="recent-artifacts-card" variant="secondary" style={{ backgroundColor: "var(--registry-card-bg)" }}>
             <CardTitle>Recent Artifacts</CardTitle>
             <CardBody>
                 {isLoading ? (

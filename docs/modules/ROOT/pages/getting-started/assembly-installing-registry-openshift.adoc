@@ -2,14 +2,12 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 // assembly-installing-registry-ocp
 [id="installing-registry-ocp_{context}"]
-:_mod-docs-content-type: ASSEMBLY
 = Installing {registry} on OpenShift
 
+:_mod-docs-content-type: ASSEMBLY
+
 [role="_abstract"]
-Install {registry} on OpenShift Container Platform:
-
-* xref:installing-registry-operatorhub_{context}[]
-
+Install {registry} on OpenShift Container Platform.
 
 [role="_additional-resources"]
 .Additional resources
@@ -24,14 +22,14 @@ Install {registry} on OpenShift Container Platform:
 
 // proc-installing-registry-operatorhub
 [id="installing-registry-operatorhub_{context}"]
-:_mod-docs-content-type: PROCEDURE
 == Installing {registry} from the OpenShift OperatorHub
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 You can install the {operator} on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
 
 NOTE: You can install more than one replica of {registry} depending on your environment. The number of replicas depends on the number and type of artifacts stored in {registry} and on your chosen storage option.
-
 
 .Prerequisites
 
@@ -66,5 +64,3 @@ NOTE: You can install more than one replica of {registry} depending on your envi
 
 * link:{LinkOpenShiftAddOperator}[{NameOpenShiftAddOperator}]
 * link:https://github.com/Apicurio/apicurio-registry-operator[Apicurio Registry Operator community in GitHub]
-
-

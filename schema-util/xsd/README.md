@@ -376,23 +376,25 @@ The XSD compatibility checker is integrated into the registry via the artifact t
 
 ### Modified File
 
-`schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/XsdArtifactTypeUtilProvider.java`
+`schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/StandardArtifactTypeProviderRegistry.java`
 
 ### Change Made
 
-```java
-// BEFORE:
-protected CompatibilityChecker createCompatibilityChecker() {
-    return NoopCompatibilityChecker.INSTANCE;
-}
+The XSD provider entry in the registry wires `XsdCompatibilityChecker` as the compatibility checker:
 
-// AFTER:
-protected CompatibilityChecker createCompatibilityChecker() {
-    return new XsdCompatibilityChecker();
-}
+```java
+PROVIDERS.put(ArtifactType.XSD, new ProviderConfig.Builder()
+        .contentTypes(Set.of(ContentTypes.APPLICATION_XML))
+        .accepter(XsdContentAccepter::new)
+        .compatibilityChecker(XsdCompatibilityChecker::new)
+        .canonicalizer(XmlContentCanonicalizer::new)
+        .validator(XsdContentValidator::new)
+        .extractor(WsdlOrXsdContentExtractor::new)
+        .structuredContentExtractor(XsdStructuredContentExtractor::new)
+        .build());
 ```
 
-This single method change activates XSD compatibility checking for all XSD artifacts in the registry.
+This activates XSD compatibility checking for all XSD artifacts in the registry.
 
 ---
 
@@ -575,9 +577,8 @@ if (result.isCompatible()) {
 
 ### Modified Files
 
-1. **`schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/XsdArtifactTypeUtilProvider.java`**
-   - Changed: 1 method (`createCompatibilityChecker()`)
-   - Lines changed: 3
+1. **`schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/StandardArtifactTypeProviderRegistry.java`**
+   - Changed: XSD provider entry wires `XsdCompatibilityChecker` via `ProviderConfig`
 
 2. **`schema-util/xsd/pom.xml`**
    - Added: JUnit 5 test dependency

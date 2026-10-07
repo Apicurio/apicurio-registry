@@ -4,15 +4,22 @@ import io.apicurio.registry.cli.common.CliException;
 import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.utils.PlatformUtils;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.RequestOptions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.io.ByteArrayInputStream;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -47,6 +54,20 @@ public class Update {
         }
     }
 
+    /**
+     * Opt-in escape hatch for private/custom repositories that don't publish {@code .sha256}
+     * sidecar files alongside the archive. Defaults to {@code false} so verification is
+     * fail-closed unless explicitly disabled.
+     */
+    private boolean isSkipChecksumVerification() {
+        try {
+            var value = config.read().getConfig().get("update.skip-checksum-verification");
+            return "true".equalsIgnoreCase(value);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     public UpdateCheckResult checkForUpdates(CliVersion currentVersion) {
         var allVersions = fetchAvailableVersions();
         if (allVersions == null || allVersions.isEmpty()) {
@@ -66,8 +87,8 @@ public class Update {
                         v -> v.major() + "." + v.minor(),
                         Collectors.maxBy(CliVersion.COMPARATOR)))
                 .values().stream()
-                .filter(java.util.Optional::isPresent)
-                .map(java.util.Optional::get)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
                 .sorted(CliVersion.COMPARATOR)
                 .collect(Collectors.toCollection(ArrayList::new));
 
@@ -131,12 +152,69 @@ public class Update {
         if (content == null) {
             throw new CliException("Failed to download " + fileUri);
         }
+        verifyChecksum(fileUri, content);
         try {
             Files.write(targetFile, content);
             log.infof("Successfully downloaded file to: %s", targetFile);
             return targetFile;
         } catch (Exception e) {
             throw new CliException("Error writing downloaded file to: " + targetFile, e, APPLICATION_ERROR_RETURN_CODE);
+        }
+    }
+
+    /**
+     * Verifies the SHA-256 checksum of the downloaded content against the {@code .sha256} file
+     * published alongside it in the repository, failing the update if they do not match.
+     * Skipped entirely when {@code update.skip-checksum-verification} is enabled, for custom
+     * repositories that don't publish checksum sidecar files.
+     */
+    private void verifyChecksum(String fileUri, byte[] content) {
+        if (isSkipChecksumVerification()) {
+            log.warn("Download integrity check skipped (update.skip-checksum-verification=true). "
+                    + "The downloaded archive will not be verified against a checksum.");
+            return;
+        }
+        var checksumUri = fileUri + ".sha256";
+        log.debugf("Verifying download integrity using: %s", checksumUri);
+        // fetchBytes returns null (it does not throw) on any failure, so a missing or unreachable
+        // checksum is turned into a hard failure here to keep verification fail-closed.
+        var checksumBytes = fetchBytes(checksumUri, getTimeoutSeconds());
+        if (checksumBytes == null) {
+            throw new CliException("Could not download the checksum from " + checksumUri
+                    + " to verify the integrity of the update.");
+        }
+        var expected = parseChecksum(checksumBytes);
+        var actual = sha256Hex(content);
+        if (!expected.equals(actual)) {
+            throw new CliException("Checksum verification failed for " + fileUri
+                    + ". Expected SHA-256 " + expected + " but got " + actual
+                    + ". The download may be corrupted; please try again.");
+        }
+        log.debugf("Checksum verified: %s", actual);
+    }
+
+    /**
+     * Extracts the hex digest from a Maven checksum file, which contains the digest optionally
+     * followed by whitespace and the file name.
+     */
+    static String parseChecksum(byte[] checksumBytes) {
+        var text = new String(checksumBytes, StandardCharsets.UTF_8).trim();
+        var end = 0;
+        while (end < text.length() && !Character.isWhitespace(text.charAt(end))) {
+            end++;
+        }
+        return text.substring(0, end).toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * Computes the lowercase hex SHA-256 digest of the given content.
+     */
+    static String sha256Hex(byte[] content) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256").digest(content);
+            return HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException e) {
+            throw new CliException("SHA-256 algorithm is not available.", e, APPLICATION_ERROR_RETURN_CODE);
         }
     }
 
@@ -161,12 +239,13 @@ public class Update {
 
             boolean ssl = "https".equals(uri.getScheme());
             int port = uri.getPort() != -1 ? uri.getPort() : (ssl ? 443 : 80);
-            var requestOptions = new io.vertx.core.http.RequestOptions()
+            var requestOptions = new RequestOptions()
                     .setMethod(HttpMethod.GET)
                     .setPort(port)
                     .setHost(uri.getHost())
                     .setURI(uri.getPath() + (uri.getQuery() != null ? "?" + uri.getQuery() : ""))
-                    .setSsl(ssl);
+                    .setSsl(ssl)
+                    .setFollowRedirects(true);
 
             log.debugf("Fetching: %s", url);
 

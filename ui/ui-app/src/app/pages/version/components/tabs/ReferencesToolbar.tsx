@@ -16,7 +16,7 @@ import {
 } from "@patternfly/react-core";
 import { ListIcon, SearchIcon, TopologyIcon } from "@patternfly/react-icons";
 import { OnPerPageSelect, OnSetPage } from "@patternfly/react-core/dist/js/components/Pagination/Pagination";
-import { ObjectSelect } from "@apicurio/common-ui-components";
+import { ObjectSelect } from "@apitomy/common-ui-components";
 import { Paging } from "@models/Paging.ts";
 import { ArtifactReference, ReferenceType, ReferenceTypeObject } from "@sdk/lib/generated-client/models";
 

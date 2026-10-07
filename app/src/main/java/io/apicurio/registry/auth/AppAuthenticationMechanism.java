@@ -18,6 +18,7 @@ package io.apicurio.registry.auth;
 
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.quarkus.vertx.http.runtime.security.BasicAuthenticationMechanism;
+import io.quarkus.vertx.http.runtime.security.FormAuthenticationMechanism;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.quarkus.arc.Unremovable;
@@ -66,7 +67,10 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
     AuthConfig authConfig;
 
     @Inject
-    BasicAuthenticationMechanism basicAuthenticationMechanism;
+    Instance<BasicAuthenticationMechanism> basicAuthenticationMechanism;
+
+    @Inject
+    Instance<FormAuthenticationMechanism> formAuthenticationMechanism;
 
     @Inject
     OidcAuthenticationMechanism oidcAuthenticationMechanism;
@@ -76,6 +80,12 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     @Inject
     AuditLogService auditLog;
+
+    public static final String MECH_BASIC = "basic";
+    public static final String MECH_FORM = "form";
+    public static final String MECH_PROXY_HEADER = "proxy-header";
+    public static final String MECH_OIDC = "oidc";
+    public static final String MECH_KUBERNETES = "kubernetes";
 
     @Inject
     Logger log;
@@ -88,6 +98,9 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
 
     @Inject
     Instance<KubernetesClient> kubernetesClient;
+
+    @Inject
+    TokenReviewClient tokenReviewClient;
 
     private List<AuthenticationStrategy> authChain;
 
@@ -120,22 +133,34 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
         }
 
         Map<String, Supplier<AuthenticationStrategy>> strategyFactories = new LinkedHashMap<>();
-        strategyFactories.put("basic", () -> authConfig.basicAuthEnabled
-                ? new DelegatingAuthenticationStrategy("basic", basicAuthenticationMechanism)
+        strategyFactories.put(MECH_BASIC, () -> authConfig.isBasicAuthEnabled() && basicAuthenticationMechanism.isResolvable()
+                ? new DelegatingAuthenticationStrategy(MECH_BASIC, basicAuthenticationMechanism.get())
                 : null);
-        strategyFactories.put("proxy-header", () -> authConfig.proxyHeaderAuthEnabled
-                ? new DelegatingAuthenticationStrategy("proxy-header",
+        strategyFactories.put(MECH_FORM, () -> {
+            if (!authConfig.isFormAuthEnabled()) {
+                return null;
+            }
+            if (!formAuthenticationMechanism.isResolvable()) {
+                log.warn("Form auth is enabled but no FormAuthenticationMechanism is available. "
+                        + "A Quarkus identity provider (e.g. quarkus.security.users.embedded.* "
+                        + "or a JDBC/LDAP realm) must be configured.");
+                return null;
+            }
+            return new DelegatingAuthenticationStrategy(MECH_FORM, formAuthenticationMechanism.get());
+        });
+        strategyFactories.put(MECH_PROXY_HEADER, () -> authConfig.isProxyHeaderAuthEnabled()
+                ? new DelegatingAuthenticationStrategy(MECH_PROXY_HEADER,
                         proxyHeaderAuthenticationMechanism)
                 : null);
-        strategyFactories.put("oidc", () -> {
-            if (!authConfig.oidcAuthEnabled) {
+        strategyFactories.put(MECH_OIDC, () -> {
+            if (!authConfig.isOidcAuthEnabled()) {
                 return null;
             }
             return new OidcAuthenticationStrategy(oidcAuthenticationMechanism, authConfig,
                     auditLog, webClient, log, this);
         });
-        strategyFactories.put("kubernetes", () -> {
-            if (!authConfig.kubernetesAuthEnabled) {
+        strategyFactories.put(MECH_KUBERNETES, () -> {
+            if (!authConfig.isKubernetesAuthEnabled()) {
                 return null;
             }
             if (!kubernetesClient.isResolvable()) {
@@ -144,15 +169,35 @@ public class AppAuthenticationMechanism implements HttpAuthenticationMechanism {
                         + "and the application must be running in a Kubernetes cluster.");
                 return null;
             }
-            return new KubernetesAuthenticationStrategy(kubernetesClient.get(), authConfig, log);
+            return new KubernetesAuthenticationStrategy(tokenReviewClient, authConfig, log);
         });
 
         List<AuthenticationStrategy> chain = new ArrayList<>();
-        for (String name : authConfig.getMechanismPriorityList()) {
+        List<String> priorityList = authConfig.getMechanismPriorityList();
+        Set<String> prioritySet = new HashSet<>(priorityList);
+
+        if (authConfig.isBasicAuthEnabled() && !prioritySet.contains(MECH_BASIC)) {
+            log.warn("Basic auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_BASIC);
+        }
+        if (authConfig.isFormAuthEnabled() && !prioritySet.contains(MECH_FORM)) {
+            log.warn("Form auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority. This will result in a silent lockout.", MECH_FORM);
+        }
+        if (authConfig.isProxyHeaderAuthEnabled() && !prioritySet.contains(MECH_PROXY_HEADER)) {
+            log.warn("Proxy header auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_PROXY_HEADER);
+        }
+        if (authConfig.isOidcAuthEnabled() && !prioritySet.contains(MECH_OIDC)) {
+            log.warn("OIDC auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_OIDC);
+        }
+        if (authConfig.isKubernetesAuthEnabled() && !prioritySet.contains(MECH_KUBERNETES)) {
+            log.warn("Kubernetes auth is enabled but '{}' is missing from apicurio.authn.mechanism.priority.", MECH_KUBERNETES);
+        }
+
+        log.debug("Mechanism priority list: {}", priorityList);
+        for (String name : priorityList) {
             Supplier<AuthenticationStrategy> factory = strategyFactories.get(name);
             if (factory == null) {
                 log.warn("Unknown authentication mechanism name in priority list: '{}'. "
-                        + "Valid values are: basic, proxy-header, oidc, kubernetes", name);
+                        + "Valid values are: basic, form, proxy-header, oidc, kubernetes", name);
                 continue;
             }
             AuthenticationStrategy strategy = factory.get();

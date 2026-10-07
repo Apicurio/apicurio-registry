@@ -7,8 +7,11 @@ import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
+import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
+import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.UserInfo;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
@@ -535,6 +538,81 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
             client_dev1.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
         });
         assertNotFound(exception2);
+    }
+
+    @Test
+    public void testUpdateGroupOwnerByOwner() throws Exception {
+        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+
+        final String groupId = "testUpdateGroupOwnerByOwner-" + UUID.randomUUID();
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        createGroup.setDescription("owned by bob1");
+        GroupMetaData created = client.groups().post(createGroup);
+        assertEquals(DEVELOPER_USERNAME, created.getOwner());
+
+        EditableGroupMetaData update = new EditableGroupMetaData();
+        update.setOwner(DEVELOPER_2_USERNAME);
+        client.groups().byGroupId(groupId).put(update);
+
+        GroupMetaData updated = client.groups().byGroupId(groupId).get();
+        assertEquals(DEVELOPER_2_USERNAME, updated.getOwner());
+    }
+
+    @Test
+    public void testUpdateGroupOwnerDeniedForNonOwner() throws Exception {
+        var client_dev1 = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var client_dev2 = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_2_USERNAME, DEVELOPER_2_PASSWORD));
+
+        final String groupId = "testUpdateGroupOwnerDenied-" + UUID.randomUUID();
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        createGroup.setDescription("owned by bob1");
+        GroupMetaData created = client_dev1.groups().post(createGroup);
+        assertEquals(DEVELOPER_USERNAME, created.getOwner());
+
+        // Non-owner may still update non-owner metadata (OBAC group limit is off by default).
+        EditableGroupMetaData descriptionUpdate = new EditableGroupMetaData();
+        descriptionUpdate.setDescription("updated by bob2");
+        client_dev2.groups().byGroupId(groupId).put(descriptionUpdate);
+        assertEquals("updated by bob2", client_dev1.groups().byGroupId(groupId).get().getDescription());
+        assertEquals(DEVELOPER_USERNAME, client_dev1.groups().byGroupId(groupId).get().getOwner());
+
+        // Non-owner must not transfer ownership.
+        var exception = assertThrows(Exception.class, () -> {
+            EditableGroupMetaData ownerUpdate = new EditableGroupMetaData();
+            ownerUpdate.setOwner(DEVELOPER_2_USERNAME);
+            client_dev2.groups().byGroupId(groupId).put(ownerUpdate);
+        });
+        assertForbidden(exception);
+        assertEquals(DEVELOPER_USERNAME, client_dev1.groups().byGroupId(groupId).get().getOwner());
+    }
+
+    @Test
+    public void testUpdateGroupOwnerByAdmin() throws Exception {
+        var client_dev1 = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
+        var client_admin = RegistryClientFactory.create(
+                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .basicAuth(ADMIN_USERNAME, ADMIN_PASSWORD));
+
+        final String groupId = "testUpdateGroupOwnerByAdmin-" + UUID.randomUUID();
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        GroupMetaData created = client_dev1.groups().post(createGroup);
+        assertEquals(DEVELOPER_USERNAME, created.getOwner());
+
+        EditableGroupMetaData ownerUpdate = new EditableGroupMetaData();
+        ownerUpdate.setOwner(DEVELOPER_2_USERNAME);
+        client_admin.groups().byGroupId(groupId).put(ownerUpdate);
+
+        assertEquals(DEVELOPER_2_USERNAME, client_dev1.groups().byGroupId(groupId).get().getOwner());
     }
 
 }

@@ -1,6 +1,7 @@
 package io.apicurio.registry.avro.rules.validity;
 
 import io.apicurio.registry.avro.content.refs.AvroReferenceFinder;
+import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
@@ -34,10 +35,7 @@ public class AvroContentValidator extends AbstractContentValidator {
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
         if (level == ValidityLevel.SYNTAX_ONLY || level == ValidityLevel.FULL) {
             try {
-                Schema.Parser parser = new Schema.Parser();
-                for (TypedContent schemaTC : resolvedReferences.values()) {
-                    parser.parse(schemaTC.getContent().content());
-                }
+                Schema.Parser parser = AvroParserAccessor.newParser(resolvedReferences);
                 parser.parse(content.getContent().content());
             } catch (Exception e) {
                 throw new RuleViolationException("Syntax violation for Avro artifact.", RuleType.VALIDITY,

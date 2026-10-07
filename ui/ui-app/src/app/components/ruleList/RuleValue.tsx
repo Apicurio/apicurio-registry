@@ -1,5 +1,5 @@
 import React, { FunctionComponent } from "react";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 import { useUserService } from "@services/useUserService.ts";
 import { useConfigService } from "@services/useConfigService.ts";
 import { RuleListType } from "@app/components";

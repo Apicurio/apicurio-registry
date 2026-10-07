@@ -115,11 +115,13 @@ public class SearchIT extends ApicurioRegistryBaseIT {
                     results.getVersions().get(0).getArtifactId());
         });
 
-        // Search by name
+        // Search by name. Name matching is exact unless the value carries explicit '*'
+        // wildcards (see SqlSearchRepository.buildNameClause(), #8002), so a partial
+        // value needs a trailing wildcard to match "Search Smoke Test API".
         retry(() -> {
             VersionSearchResults results = registryClient.search().versions().get(config -> {
                 config.queryParameters.groupId = GROUP;
-                config.queryParameters.name = "Search Smoke Test";
+                config.queryParameters.name = "Search Smoke Test*";
             });
             Assertions.assertTrue(results.getCount() >= 1,
                     "Expected at least 1 result when searching by name");

@@ -1,5 +1,7 @@
 package io.apicurio.registry.types.provider;
 
+import static io.apicurio.registry.types.provider.StandardArtifactTypeProviderRegistry.createStandardProviders;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -10,20 +12,9 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
 
     protected Map<String, ArtifactTypeUtilProvider> providerMap = new ConcurrentHashMap<>();
 
-    protected List<ArtifactTypeUtilProvider> standardProviders = new ArrayList<ArtifactTypeUtilProvider>(
-            List.of(new ProtobufArtifactTypeUtilProvider(), new OpenApiArtifactTypeUtilProvider(),
-                    new AsyncApiArtifactTypeUtilProvider(), new JsonArtifactTypeUtilProvider(),
-                    new AvroArtifactTypeUtilProvider(), new GraphQLArtifactTypeUtilProvider(),
-                    new KConnectArtifactTypeUtilProvider(), new WsdlArtifactTypeUtilProvider(),
-                    new XsdArtifactTypeUtilProvider(), new XmlArtifactTypeUtilProvider(),
-                    new AgentCardArtifactTypeUtilProvider(), new McpToolArtifactTypeUtilProvider(),
-                    new IcebergTableArtifactTypeUtilProvider(),
-                    new IcebergViewArtifactTypeUtilProvider(),
-                    new OpenRpcArtifactTypeUtilProvider(),
-                    new ModelSchemaArtifactTypeUtilProvider(),
-                    new PromptTemplateArtifactTypeUtilProvider(),
-                    new OdcsContractArtifactTypeUtilProvider(),
-                    new ThriftArtifactTypeUtilProvider()));
+    // Intentionally per-factory, not a shared static list: AbstractArtifactTypeUtilProvider caches
+    // lazily-created components in mutable fields, so sharing one provider across factories would alias that cache.
+    protected List<ArtifactTypeUtilProvider> standardProviders = new ArrayList<ArtifactTypeUtilProvider>(createStandardProviders());
 
     protected List<ArtifactTypeUtilProvider> providers = new ArrayList<>();
 

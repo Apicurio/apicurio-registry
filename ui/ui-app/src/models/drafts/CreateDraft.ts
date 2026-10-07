@@ -1,3 +1,4 @@
+import { ArtifactReference } from "@sdk/lib/generated-client/models";
 
 export interface CreateDraft {
 
@@ -10,5 +11,6 @@ export interface CreateDraft {
     labels: any;
     content: string | undefined;
     contentType: string;
+    references?: ArtifactReference[];
 
 }

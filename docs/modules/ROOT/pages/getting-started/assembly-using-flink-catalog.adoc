@@ -3,23 +3,20 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [id="using-flink-catalog_{context}"]
 = Using {registry} with Apache Flink
 
+:_mod-docs-content-type: ASSEMBLY
+
 [role="_abstract"]
-This chapter explains how to use {registry} as a catalog in Apache Flink to manage schemas for your streaming applications:
+Use {registry} as a catalog in Apache Flink to manage and discover schemas for your streaming applications.
 
-* xref:registry-flink-catalog-overview_{context}[]
-* xref:registry-flink-catalog-config_{context}[]
-* xref:registry-flink-catalog-sql_{context}[]
-* xref:registry-flink-catalog-table-api_{context}[]
-* xref:registry-flink-catalog-schema-types_{context}[]
+== Prerequisites
 
-
-.Prerequisites
 * A running {registry} instance
 * Apache Flink 1.17 or later
 
-
-[id='registry-flink-catalog-overview_{context}']
+[id="registry-flink-catalog-overview_{context}"]
 == Overview of the {registry} Flink Catalog
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The {registry} Flink Catalog provides seamless integration between {registry} and Apache Flink, enabling you to manage and discover schemas directly from your Flink SQL and Table API applications.
@@ -43,12 +40,13 @@ The catalog maps {registry} concepts to Flink concepts as follows:
 |The schema content (Avro, JSON Schema) is automatically converted to Flink's type system.
 |===
 
+[id="registry-flink-catalog-config_{context}"]
+== Configuration options for the {registry} Flink Catalog
 
-[id='registry-flink-catalog-config_{context}']
-== Configuring the {registry} Flink Catalog
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-This section describes the configuration options available for the {registry} Flink Catalog.
+The {registry} Flink Catalog provides configuration options for connecting to and authenticating with your {registry} instance.
 
 .Required configuration properties
 [.table-expandable,width="100%",cols="4,4,3,5",options="header"]
@@ -104,9 +102,10 @@ This section describes the configuration options available for the {registry} Fl
 |Cache time-to-live in milliseconds for schema caching.
 |===
 
+[id="registry-flink-catalog-sql_{context}"]
+== The {registry} Flink Catalog in Flink SQL
 
-[id='registry-flink-catalog-sql_{context}']
-== Using the catalog with Flink SQL
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can register and use the {registry} Flink Catalog directly in Flink SQL.
@@ -154,9 +153,10 @@ CREATE CATALOG apicurio_secure WITH (
 );
 ----
 
+[id="registry-flink-catalog-table-api_{context}"]
+== The {registry} Flink Catalog in the Flink Table API
 
-[id='registry-flink-catalog-table-api_{context}']
-== Using the catalog with the Flink Table API
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 You can also use the {registry} Flink Catalog programmatically with the Flink Table API in Java.
@@ -213,9 +213,10 @@ CatalogConfig config = CatalogConfig.builder()
     .build();
 ----
 
-
-[id='registry-flink-catalog-schema-types_{context}']
+[id="registry-flink-catalog-schema-types_{context}"]
 == Supported schema types
+
+:_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
 The {registry} Flink Catalog supports automatic conversion of the following schema types to Flink's type system.
@@ -284,9 +285,7 @@ The {registry} Flink Catalog supports automatic conversion of the following sche
 |`ROW<...>`
 |===
 
-
 [role="_additional-resources"]
 .Additional resources
-* For more details, see the link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/flink[Flink Catalog source code]
-* For information on {registry} groups and artifacts, see {registry-overview}
-
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/flink[Flink Catalog source code]
+* {registry-overview}

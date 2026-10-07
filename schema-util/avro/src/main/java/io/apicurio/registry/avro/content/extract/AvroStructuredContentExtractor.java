@@ -1,5 +1,6 @@
 package io.apicurio.registry.avro.content.extract;
 
+import io.apicurio.registry.avro.util.AvroParserAccessor;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.extract.StructuredContentExtractor;
 import io.apicurio.registry.content.extract.StructuredElement;
@@ -24,7 +25,7 @@ public class AvroStructuredContentExtractor implements StructuredContentExtracto
     @Override
     public List<StructuredElement> extract(ContentHandle content) {
         try {
-            Schema.Parser parser = new Schema.Parser();
+            Schema.Parser parser = AvroParserAccessor.newParser();
             Schema schema = parser.parse(content.content());
             List<StructuredElement> elements = new ArrayList<>();
             Set<String> visited = new HashSet<>();

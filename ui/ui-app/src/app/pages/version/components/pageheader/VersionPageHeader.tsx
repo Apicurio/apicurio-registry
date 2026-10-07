@@ -9,7 +9,7 @@ import {
     Content,
     ContentVariants
 } from "@patternfly/react-core";
-import { If, ObjectDropdown } from "@apicurio/common-ui-components";
+import { If, ObjectDropdown } from "@apitomy/common-ui-components";
 import { ArtifactMetaData, VersionMetaData } from "@sdk/lib/generated-client/models";
 import { useUserService } from "@services/useUserService.ts";
 import { useConfigService } from "@services/useConfigService.ts";
@@ -28,6 +28,7 @@ export type VersionPageHeaderProps = {
     onEditAgentCard: () => void;
     onDelete: () => void;
     onDownload: () => void;
+    onTest: () => void;
     onFinalizeDraft: () => void;
     onCreateDraftFrom: () => void;
     onGenerateClient: () => void;
@@ -73,6 +74,16 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             }
         },
         {
+            label: "Test content",
+            testId: "action-test-version",
+            onSelect: () => props.onTest(),
+            isVisible: () => {
+                return !config.featureReadOnly() &&
+                    props.artifact !== undefined &&
+                    user.isUserDeveloper(props.artifact?.owner);
+            }
+        },
+        {
             label: "Finalize draft",
             testId: "action-finalize-draft",
             onSelect: () => props.onFinalizeDraft(),
@@ -98,6 +109,7 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
             }
         }
     ];
+    const visibleActions = actions.filter(action => action.isVisible());
 
     return (
         <Flex className="example-border">
@@ -128,21 +140,22 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                             </IfFeature>
                         </IfFeature>
                     </ActionListItem>
-                    <ActionListItem key="actions">
-                        <ObjectDropdown
-                            label=""
-                            items={actions}
-                            onSelect={item => item.onSelect()}
-                            itemToString={item => item.label}
-                            itemToTestId={item => item.testId}
-                            itemIsVisible={item => item.isVisible()}
-                            itemIsDivider={item => item.divider}
-                            popperProps={{
-                                position: "right"
-                            }}
-                            isKebab={true}
-                        />
-                    </ActionListItem>
+                    <If condition={visibleActions.length > 0}>
+                        <ActionListItem key="actions">
+                            <ObjectDropdown
+                                label=""
+                                items={visibleActions}
+                                onSelect={item => item.onSelect()}
+                                itemToString={item => item.label}
+                                itemToTestId={item => item.testId}
+                                itemIsDivider={item => item.divider}
+                                popperProps={{
+                                    position: "right"
+                                }}
+                                isKebab={true}
+                            />
+                        </ActionListItem>
+                    </If>
                 </ActionList>
             </FlexItem>
         </Flex>

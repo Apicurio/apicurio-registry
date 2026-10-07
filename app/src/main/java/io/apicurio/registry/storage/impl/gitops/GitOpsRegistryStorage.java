@@ -22,8 +22,8 @@ import static io.quarkus.scheduler.Scheduled.ConcurrentExecution.SKIP;
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "gitops")
 public class GitOpsRegistryStorage extends AbstractPollingRegistryStorage<GitOpsMarker> {
 
-    @ConfigProperty(name = "apicurio.storage.kind")
-    @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, or gitops", availableSince = "3.0.0")
+    @ConfigProperty(name = "apicurio.storage.kind", defaultValue = "sql")
+    @Info(category = CATEGORY_STORAGE, description = "Application storage variant, for example, sql, kafkasql, gitops, or kubernetesops", availableSince = "3.0.0")
     String registryStorageType;
 
     @Inject

@@ -16,7 +16,6 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
-import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.Vertx;
 import org.eclipse.microprofile.config.ConfigProvider;
@@ -44,6 +43,8 @@ public class A2AAuthTest extends AbstractResourceTestBase {
     private static final String DEVELOPER_PASSWORD = "bob1";
     private static final String READONLY_USERNAME = "duncan";
     private static final String READONLY_PASSWORD = "duncan";
+    private static final String NO_ROLE_USERNAME = "eve";
+    private static final String NO_ROLE_PASSWORD = "eve";
 
     private static final String AGENT_CARD_CONTENT = """
             {
@@ -106,35 +107,13 @@ public class A2AAuthTest extends AbstractResourceTestBase {
                 .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
     }
 
-    // --- Entitled endpoint requires authentication ---
-
-    @Test
-    public void testEntitledEndpointReturns401WhenUnauthenticated() {
-        givenAtRoot()
-                .when()
-                .get("/.well-known/agents/entitled")
-                .then()
-                .statusCode(401);
-    }
-
-    @Test
-    public void testSearchEndpointReturns401WhenUnauthenticated() {
-        givenAtRoot()
-                .when()
-                .contentType(ContentType.JSON)
-                .body("{\"limit\": 10}")
-                .post("/.well-known/agents/search")
-                .then()
-                .statusCode(401);
-    }
-
     // --- Public endpoint works without authentication ---
 
     @Test
     public void testPublicEndpointNoAuthRequired() {
         givenAtRoot()
                 .when()
-                .get("/.well-known/agents/public")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("count", notNullValue())
@@ -152,18 +131,18 @@ public class A2AAuthTest extends AbstractResourceTestBase {
         createAgentCard(developerClient(), groupId, artifactId, AGENT_CARD_CONTENT);
         setVisibility(adminClient(), groupId, artifactId, "private");
 
-        // Developer (owner) can see it via entitled endpoint
+        // Developer (owner) can see it via the agents endpoint
         givenAsDeveloper()
                 .when()
-                .get("/.well-known/agents/entitled")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", hasItem(artifactId));
 
-        // Admin can see it via entitled endpoint
+        // Admin can see it via the agents endpoint
         givenAsAdmin()
                 .when()
-                .get("/.well-known/agents/entitled")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", hasItem(artifactId));
@@ -171,7 +150,7 @@ public class A2AAuthTest extends AbstractResourceTestBase {
         // Readonly user (not owner, not admin) cannot see it
         givenAsReadonly()
                 .when()
-                .get("/.well-known/agents/entitled")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", not(hasItem(artifactId)));
@@ -187,18 +166,18 @@ public class A2AAuthTest extends AbstractResourceTestBase {
         createAgentCard(adminClient(), groupId, artifactId, AGENT_CARD_CONTENT);
         setVisibility(adminClient(), groupId, artifactId, "public");
 
-        // Unauthenticated can see it via public endpoint
+        // Unauthenticated can see it via the agents endpoint
         givenAtRoot()
                 .when()
-                .get("/.well-known/agents/public")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", hasItem(artifactId));
 
-        // Authenticated users can also see it via entitled endpoint
+        // Authenticated users can also see it via the agents endpoint
         givenAsReadonly()
                 .when()
-                .get("/.well-known/agents/entitled")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", hasItem(artifactId));
@@ -217,18 +196,49 @@ public class A2AAuthTest extends AbstractResourceTestBase {
         // Authenticated readonly user can see it
         givenAsReadonly()
                 .when()
-                .get("/.well-known/agents/entitled")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", hasItem(artifactId));
 
-        // Not visible on the public endpoint (no public label)
+        // Not visible to an unauthenticated caller (no public label)
         givenAtRoot()
                 .when()
-                .get("/.well-known/agents/public")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", not(hasItem(artifactId)));
+    }
+
+    @Test
+    public void testEntitledAgentHiddenFromUserWithoutReadAccess() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "entitled-agent-no-role-test";
+        createAgentCard(adminClient(), groupId, artifactId, AGENT_CARD_CONTENT);
+
+        // The user without a registry role cannot read the card through the regular API...
+        givenAtRoot().auth().preemptive().basic(NO_ROLE_USERNAME, NO_ROLE_PASSWORD)
+                .when()
+                .get("/apis/registry/v3/groups/" + groupId + "/artifacts/" + artifactId)
+                .then()
+                .statusCode(403);
+
+        // ...so discovery must not reveal it either: "entitled" means entitled to read it.
+        givenAtRoot().auth().preemptive().basic(NO_ROLE_USERNAME, NO_ROLE_PASSWORD)
+                .when()
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", not(hasItem(artifactId)));
+
+        // A public card stays discoverable by everyone, including this user.
+        setVisibility(adminClient(), groupId, artifactId, "public");
+        givenAtRoot().auth().preemptive().basic(NO_ROLE_USERNAME, NO_ROLE_PASSWORD)
+                .when()
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", hasItem(artifactId));
     }
 
     // --- Admin can see private agents owned by other users ---
@@ -245,7 +255,7 @@ public class A2AAuthTest extends AbstractResourceTestBase {
         // Admin (not the owner) can still see it
         givenAsAdmin()
                 .when()
-                .get("/.well-known/agents/entitled")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", hasItem(artifactId));
@@ -253,7 +263,7 @@ public class A2AAuthTest extends AbstractResourceTestBase {
         // Readonly user (not owner, not admin) cannot see it
         givenAsReadonly()
                 .when()
-                .get("/.well-known/agents/entitled")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", not(hasItem(artifactId)));
@@ -272,43 +282,34 @@ public class A2AAuthTest extends AbstractResourceTestBase {
         // Should be visible to authenticated users (default = "entitled")
         givenAsReadonly()
                 .when()
-                .get("/.well-known/agents/entitled")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", hasItem(artifactId));
 
-        // Should NOT be visible on public endpoint
+        // Should NOT be visible to an unauthenticated caller
         givenAtRoot()
                 .when()
-                .get("/.well-known/agents/public")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", not(hasItem(artifactId)));
     }
 
-    // --- Advanced search respects visibility ---
+    // --- Search respects visibility ---
 
     @Test
-    public void testAdvancedSearchRespectsPrivateVisibility() throws Exception {
+    public void testSearchRespectsPrivateVisibility() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String artifactId = "private-search-test";
 
         createAgentCard(developerClient(), groupId, artifactId, AGENT_CARD_CONTENT);
         setVisibility(adminClient(), groupId, artifactId, "private");
 
-        String requestBody = """
-                {
-                    "limit": 50,
-                    "offset": 0
-                }
-                """;
-
         // Readonly user cannot see private agent via search
         givenAsReadonly()
                 .when()
-                .contentType(ContentType.JSON)
-                .body(requestBody)
-                .post("/.well-known/agents/search")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", not(hasItem(artifactId)));
@@ -316,9 +317,7 @@ public class A2AAuthTest extends AbstractResourceTestBase {
         // Developer (owner) can see it via search
         givenAsDeveloper()
                 .when()
-                .contentType(ContentType.JSON)
-                .body(requestBody)
-                .post("/.well-known/agents/search")
+                .get("/.well-known/agents")
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", hasItem(artifactId));

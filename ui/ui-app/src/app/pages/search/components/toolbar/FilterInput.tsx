@@ -1,7 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import { Button, ButtonVariant, Form, InputGroup, InputGroupItem, TextInput } from "@patternfly/react-core";
 import { SearchIcon } from "@patternfly/react-icons";
-import { ChipFilterCriteria, ChipFilterType, ObjectSelect } from "@apicurio/common-ui-components";
+import { ChipFilterCriteria, ChipFilterType, ObjectSelect } from "@apitomy/common-ui-components";
 
 /**
  * Extended filter type that can optionally render as a dropdown (select)
@@ -19,7 +19,7 @@ export type FilterInputProps = {
 };
 
 /**
- * A filter input component that extends @apicurio/common-ui-components ChipFilterInput.
+ * A filter input component that extends @apitomy/common-ui-components ChipFilterInput.
  *
  * When a filter type has `type: "select"` and an `options` list, the value input
  * is rendered as a dropdown. Otherwise, the standard free-text input is shown.

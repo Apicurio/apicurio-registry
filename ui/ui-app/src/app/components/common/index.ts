@@ -6,3 +6,4 @@ export * from "./IfFeature";
 export * from "./SortOrderToggle";
 export * from "./VersionStateBadge";
 export * from "./ListedItemLabels";
+export * from "./ResizableOverviewDrawer";

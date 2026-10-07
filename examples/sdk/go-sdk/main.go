@@ -33,27 +33,11 @@ func initClient(registryUrl *string) *registry3.ApiClient {
 		registryUrl = &s
 	}
 
-	// Compression is not currently supported by the Apicurio Registry server.
-	httpClient := kiotaHttp.GetDefaultClient(
-		kiotaHttp.NewRetryHandler(),
-		kiotaHttp.NewRedirectHandler(),
-		kiotaHttp.NewParametersNameDecodingHandler(),
-		kiotaHttp.NewCompressionHandlerWithOptions(kiotaHttp.NewCompressionOptions(false)),
-		kiotaHttp.NewUserAgentHandler(),
-		kiotaHttp.NewHeadersInspectionHandler(),
-	)
-
-	/*
-		middleware, err := kiotaHttp.GetDefaultMiddlewaresWithOptions(kiotaHttp.NewCompressionOptions(false))
-		if err != nil {
-			// panic: Unexpected error: unsupported option type
-			panic("Unexpected error: " + err.Error())
-		}
-		httpClient := kiotaHttp.GetDefaultClient(middleware...)
-	*/
-
-	adapter, err := kiotaHttp.NewNetHttpRequestAdapterWithParseNodeFactoryAndSerializationWriterFactoryAndHttpClient(
-		&kiotaAuth.AnonymousAuthenticationProvider{}, nil, nil, httpClient,
+	// Using the default adapter: kiota-http-go's default client-side middleware chain includes
+	// a CompressionHandler, which gzip-compresses outgoing request bodies (Content-Encoding: gzip).
+	// This has no effect on how the server compresses its responses.
+	adapter, err := kiotaHttp.NewNetHttpRequestAdapter(
+		&kiotaAuth.AnonymousAuthenticationProvider{},
 	)
 	if err != nil {
 		panic("Unexpected error: " + err.Error())

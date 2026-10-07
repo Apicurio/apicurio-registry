@@ -4,7 +4,7 @@ on:
     paths:
       - common/src/main/resources/META-INF/openapi.json
       - common/src/main/resources/META-INF/openapi-v2.json
-    branches: [main]
+    branches: [main, '3.3.x']
 
 permissions:
   contents: read
@@ -24,14 +24,14 @@ jobs:
           git config --global user.email "apicurio.ci@gmail.com"
           git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
           git fetch
-          git checkout main
-          git branch --set-upstream-to=origin/main
+          git checkout ${{ github.ref_name }}
+          git branch --set-upstream-to=origin/${{ github.ref_name }}
           git pull
 
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.26.5'
+          go-version: '1.27.1'
 
       - name: Generate Go SDK
         run: |

@@ -1,6 +1,7 @@
 ---
 description: Smart test runner that identifies affected modules and runs appropriate test suites
 argument-hint: [module-name-or-test-class]
+agent: repo-ops
 ---
 
 Smart test runner for the Apicurio Registry project.
@@ -29,7 +30,7 @@ $ARGUMENTS — Optional: module name, test class, or "all"
 
 4. **If storage layer was changed**, suggest integration tests:
    ```bash
-   ./mvnw verify -pl integration-tests -Plocal-tests
+   ./mvnw verify -Pintegration-tests -pl integration-tests -am
    ```
 
 5. **If UI was changed**:

@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.dto;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.rest.v3.beans.Params;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -82,5 +83,17 @@ public class ContractRuleDtoTest {
         Assertions.assertEquals(dto, deserialized);
         Assertions.assertEquals("editable-rule", deserialized.getName());
         Assertions.assertTrue(deserialized.isDisabled());
+    }
+
+    @Test
+    public void testParamsSerializationFlattensAdditionalProperties() throws Exception {
+        Params params = new Params();
+        params.setAdditionalProperty("targetField", "newField");
+
+        String json = mapper.writeValueAsString(params);
+        Params deserialized = mapper.readValue(json, Params.class);
+
+        Assertions.assertEquals("{\"targetField\":\"newField\"}", json);
+        Assertions.assertEquals("newField", deserialized.getAdditionalProperties().get("targetField"));
     }
 }

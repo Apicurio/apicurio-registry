@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi10/ubi-minimal@sha256:04140c8d78c6c6915b5c1fdad2f16d10eac3630c3339999ccdf659d8c903be50
+FROM registry.access.redhat.com/ubi10/ubi-minimal@sha256:843abc6aab53312a9e3fb5edccbdb15c84794fe41e7b01de7447329ac1e086ad
 
 RUN microdnf install -y git-core openssh-clients openssh-server shadow-utils jq && \
     microdnf clean all

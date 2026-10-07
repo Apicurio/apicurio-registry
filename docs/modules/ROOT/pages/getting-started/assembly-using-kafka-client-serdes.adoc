@@ -2,35 +2,24 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 [id="using-kafka-client-serdes_{context}"]
 = Validating Kafka messages using serializers/deserializers in Java clients
-//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
+
+:_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
 {registry} provides client serializers/deserializers (SerDes) for Kafka producer and consumer applications written in Java. Kafka producer applications use serializers to encode messages that conform to a specific event schema. Kafka consumer applications use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID. This ensures consistent schema use and helps to prevent data errors at runtime.
 
-This chapter explains how to use Kafka client SerDes in your producer and consumer client applications:
+This chapter explains how to use Kafka client SerDes in your producer and consumer client applications.
 
-* xref:registry-serdes-concepts-serde_{context}[]
-* xref:registry-serdes-concepts-strategy_{context}[]
-* xref:registry-serdes-register_{context}[]
-* xref:registry-serdes-config-consumer_{context}[]
-* xref:registry-serdes-config-producer_{context}[]
-* xref:registry-serdes-config-stream_{context}[]
+== Prerequisites
 
-.Prerequisites
 * You have read {registry-overview}.
 * You have installed {registry}.
 * You have created Kafka producer and consumer client applications.
-+
 
-//INCLUDES
-
-
-// Module included in the following assemblies:
-//  assembly-using-kafka-client-serdes
-
-[id='registry-serdes-concepts-serde_{context}']
-
+[id="registry-serdes-concepts-serde_{context}"]
 == Kafka client applications and {registry}
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 {registry} decouples schema management from client application configuration. You can enable a Java client application to use a schema from {registry} by specifying its URL in your client code.
@@ -39,49 +28,44 @@ You can store the schemas in {registry} to serialize and deserialize messages, w
 
 Schemas can evolve, so you can define rules in {registry}, for example, to ensure that schema changes are valid and do not break previous versions used by applications. {registry} checks for compatibility by comparing a modified schema with previous schema versions.
 
-[discrete]
-=== {registry} schema technologies
+*{registry} schema technologies*
+
 {registry} provides schema registry support for schema technologies such as:
 
 * Avro
 * Protobuf
 * JSON Schema
 
-These schema technologies can be used by client applications through the Kafka client serializer/deserializer (SerDes) services provided by {registry}.  The maturity and usage of the SerDes classes provided by {registry} might vary. The sections that follow provide more details about each schema type.
+These schema technologies can be used by client applications through the Kafka client serializer/deserializer (SerDes) services provided by {registry}. The maturity and usage of the SerDes classes provided by {registry} might vary. The sections that follow provide more details about each schema type.
 
-[discrete]
-=== Producer schema configuration
+*Producer schema configuration*
 
 A producer client application uses a serializer to put the messages that it sends to a specific broker topic into the correct data format.
 
-To enable a producer to use {registry} for serialization:
+To enable a producer to use {registry} for serialization, define and register your schema with {registry} (if it does not already exist), then configure your producer client code with the following:
 
-* xref:registry-serdes-register_{context}[Define and register your schema with {registry}] (if it does not already exist).
-* xref:registry-serdes-config-producer_{context}[Configure your producer client code] with the following:
-
-** URL of {registry}
-** {registry} serializer to use with messages
-** Strategy to map the Kafka message to a schema artifact in {registry}
-** Strategy to look up or register the schema used for serialization in {registry}
+* URL of {registry}
+* {registry} serializer to use with messages
+* Strategy to map the Kafka message to a schema artifact in {registry}
+* Strategy to look up or register the schema used for serialization in {registry}
 
 After registering your schema, when you start Kafka and {registry}, you can access the schema to format messages sent to the Kafka broker topic by the producer. Alternatively, depending on configuration, the producer can automatically register the schema on first use.
 
 If a schema already exists, you can create a new version using the registry REST API based on compatibility rules defined in {registry}. Versions are used for compatibility checking as a schema evolves. A group ID, artifact ID, and version represents a unique tuple that identifies a schema.
 
-[discrete]
-=== Consumer schema configuration
+*Consumer schema configuration*
+
 A consumer client application uses a deserializer to get the messages that it consumes from a specific broker topic into the correct data format.
 
-To enable a consumer to use {registry} for deserialization:
+To enable a consumer to use {registry} for deserialization, define and register your schema with {registry} (if it does not already exist), then configure the consumer client code with the following:
 
-* xref:registry-serdes-register_{context}[Define and register your schema with {registry}] (if it does not already exist)
-* xref:registry-serdes-config-consumer_{context}[Configure the consumer client code]  with the following:
-** URL of {registry}
-** {registry} deserializer to use with the messages
-** Input data stream for deserialization
+* URL of {registry}
+* {registry} deserializer to use with the messages
+* Input data stream for deserialization
 
-.Retrieve schemas using a content ID
-By default, the schema is retrieved from {registry} by the deserializer using a content ID (which is an ID unique to the *content* of an artifact version, but not unique to the version itself), which is specified in the message being consumed. The schema content ID can be located in the message headers or in the message payload, depending on the configuration of the producer application.  By default, the content ID will be located in the message body.
+*Retrieving schemas using a content ID*
+
+By default, the schema is retrieved from {registry} by the deserializer using a content ID (which is an ID unique to the *content* of an artifact version, but not unique to the version itself), which is specified in the message being consumed. The schema content ID can be located in the message headers or in the message payload, depending on the configuration of the producer application. By default, the content ID will be located in the message body.
 
 When locating the content ID in the message payload, the format of the data begins with a magic byte, used as a signal to consumers, followed by the content ID, and the message data as normal. For example:
 
@@ -95,8 +79,9 @@ When locating the content ID in the message payload, the format of the data begi
 
 Then when you start Kafka and {registry}, you can access the schema to format messages received from the Kafka broker topic.
 
-.Retrieve schemas using a global ID
-Alternatively, you can configure to retrieve schemas from {registry} based on the global ID, which is the unique ID of the artifact version.  The same options are available to you when using global ID instead of contentID.  You can either send the global ID in the message headers or the message body (default).
+*Retrieving schemas using a global ID*
+
+Alternatively, you can configure to retrieve schemas from {registry} based on the global ID, which is the unique ID of the artifact version. The same options are available to you when using global ID instead of contentID. You can either send the global ID in the message headers or the message body (default).
 
 When locating the global ID in the message payload, the format of the data begins with a magic byte, used as a signal to consumers, followed by the global ID, and the message data as normal. For example:
 
@@ -108,14 +93,16 @@ When locating the global ID in the message payload, the format of the data begin
 [MESSAGE DATA]
 ----
 
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-serdes-register_{context}[]
+* xref:registry-serdes-config-producer_{context}[]
+* xref:registry-serdes-config-consumer_{context}[]
 
-
-
-// Module included in the following assemblies:
-// assembly-using-kafka-client-serdes
-
-[id='registry-serdes-concepts-strategy_{context}']
+[id="registry-serdes-concepts-strategy_{context}"]
 == Strategies to look up a schema in {registry}
+
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 The Kafka client serializer uses _lookup strategies_ to determine the artifact ID and global ID under which the message schema is registered in {registry}. For a given topic and message, you can use different implementations of the `ArtifactReferenceResolverStrategy` Java interface to return a reference to an artifact in the registry.
@@ -140,18 +127,24 @@ public ArtifactReference artifactReference(String topic, boolean isKey, T schema
 
 Which lookup strategy you use depends on how and where you store your schema. For example, you might use a strategy that uses a _record ID_ if you have different Kafka topics with the same Avro message type.
 
-
-[discrete]
-=== Artifact resolver strategy
+*Artifact resolver strategy*
 
 The artifact resolver strategy provides a way to map the Kafka topic and message information to an artifact in {registry}. The common convention for the mapping is to combine the Kafka topic name with the `key` or `value`, depending on whether the serializer is used for the Kafka message key or value.
 
 However, you can use alternative conventions for the mapping by using a strategy provided by {registry}, or by creating a custom Java class that implements `io.apicurio.registry.serde.strategy.ArtifactReferenceResolverStrategy`.
 
-[discrete]
-[id='service-registry-concepts-artifactid-{context}']
-=== Strategies to return a reference to an artifact
+*DefaultSchemaResolver interface*
 
+The default schema resolver locates and identifies the specific version of the schema registered under the artifact reference provided by the artifact resolver strategy. Every version of every artifact has a single globally unique identifier that can be used to retrieve the content of that artifact. This global ID is included in every Kafka message so that a deserializer can properly fetch the schema from Apicurio Registry.
+
+The default schema resolver can look up an existing artifact version, or it can register one if not found, depending on which strategy is used. You can also provide your own strategy by creating a custom Java class that implements `io.apicurio.registry.resolver.SchemaResolver`. However, it is recommended to use the `DefaultSchemaResolver` and specify configuration properties instead.
+
+[id="service-registry-concepts-artifactid_{context}"]
+== Strategies to return a reference to an artifact
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
 {registry} provides the following strategies to return a reference to an artifact based on an implementation of `ArtifactReferenceResolverStrategy`:
 
 `RecordIdStrategy`:: Avro-specific strategy that uses the full name of the schema.
@@ -159,18 +152,12 @@ However, you can use alternative conventions for the mapping by using a strategy
 `TopicIdStrategy`:: Default strategy that uses the topic name and `key` or `value` suffix.
 `SimpleTopicIdStrategy`:: Simple strategy that only uses the topic name.
 
+[id="configuring-globalid-strategy_{context}"]
+== Configuration for registry lookup options
 
-[discrete]
-=== DefaultSchemaResolver interface
+:_mod-docs-content-type: REFERENCE
 
-The default schema resolver locates and identifies the specific version of the schema registered under the artifact reference provided by the artifact resolver strategy. Every version of every artifact has a single globally unique identifier that can be used to retrieve the content of that artifact. This global ID is included in every Kafka message so that a deserializer can properly fetch the schema from Apicurio Registry.
-
-The default schema resolver can look up an existing artifact version, or it can register one if not found, depending on which strategy is used. You can also provide your own strategy by creating a custom Java class that implements `io.apicurio.registry.resolver.SchemaResolver`. However, it is recommended to use the `DefaultSchemaResolver` and specify configuration properties instead.
-
-[discrete]
-[id='configuring-globalid-strategy-{context}']
-=== Configuration for registry lookup options
-
+[role="_abstract"]
 When using the `DefaultSchemaResolver`, you can configure its behavior using application properties. The following table shows some commonly used examples:
 
 .{registry} lookup configuration options
@@ -204,13 +191,10 @@ When using the `DefaultSchemaResolver`, you can configure its behavior using app
 
 |===
 
+[id="registry-serdes-register_{context}"]
+== Schema registration in {registry}
 
-
-// Module included in the following assemblies:
-//  assembly-using-kafka-client-serdes
-
-[id='registry-serdes-register_{context}']
-== Registering a schema in {registry}
+:_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
 After you have defined a schema in the appropriate format, such as Apache Avro, you can add the schema to {registry}.
@@ -224,8 +208,7 @@ You can add the schema using the following approaches:
 
 Client applications cannot use {registry} until you have registered your schemas.
 
-[discrete]
-=== {registry} web console
+*{registry} web console*
 
 When {registry} is installed, you can connect to the web console from the `ui` endpoint:
 
@@ -233,28 +216,23 @@ When {registry} is installed, you can connect to the web console from the `ui` e
 
 From the console, you can add, view and configure schemas. You can also create the rules that prevent invalid content being added to the registry.
 
-
-[discrete]
-=== Curl command example
-
+.Curl command example
 [source,shell,subs="+quotes,attributes"]
 ----
  curl -X POST -H "Content-type: application/json; artifactType=AVRO" \
-   -H "X-Registry-ArtifactId: share-price" \ <1>
+   -H "X-Registry-ArtifactId: share-price" \
    --data '{
      "type":"record",
      "name":"price",
      "namespace":"com.example",
      "fields":[{"name":"symbol","type":"string"},
      {"name":"price","type":"string"}]}'
-   https://my-cluster-my-registry-my-project.example.com/apis/registry/v3/groups/my-group/artifacts -s <2>
+   https://my-cluster-my-registry-my-project.example.com/apis/registry/v3/groups/my-group/artifacts -s
 ----
-<1> Simple Avro schema artifact.
-<2> OpenShift route name that exposes {registry}.
 
-[discrete]
-=== Maven plug-in example
+The `X-Registry-ArtifactId` header names the Avro schema artifact, and the request URL uses the OpenShift route name that exposes {registry}.
 
+.Maven plug-in example
 [source,xml,subs="+quotes,attributes"]
 ----
 <plugin>
@@ -265,20 +243,20 @@ From the console, you can add, view and configure schemas. You can also create t
       <execution>
         <phase>generate-sources</phase>
         <goals>
-            <goal>register</goal>  <1>
+            <goal>register</goal>
         </goals>
         <configuration>
-            <registryUrl>http://REGISTRY-URL/apis/registry/v3</registryUrl> <2>
+            <registryUrl>http://REGISTRY-URL/apis/registry/v3</registryUrl>
             <artifacts>
                 <artifact>
-                    <groupId>TestGroup</groupId> <3>
+                    <groupId>TestGroup</groupId>
                     <artifactId>FullNameRecord</artifactId>
                     <file>${project.basedir}/src/main/resources/schemas/record.avsc</file>
                     <ifExists>FAIL</ifExists>
                 </artifact>
                 <artifact>
                     <groupId>TestGroup</groupId>
-                    <artifactId>ExampleAPI</artifactId> <4>
+                    <artifactId>ExampleAPI</artifactId>
                     <artifactType>GRAPHQL</artifactType>
                     <file>${project.basedir}/src/main/resources/apis/example.graphql</file>
                     <ifExists>FIND_OR_CREATE_VERSION</ifExists>
@@ -290,19 +268,13 @@ From the console, you can add, view and configure schemas. You can also create t
   </executions>
  </plugin>
 ----
-<1> Specify `register` as the execution goal to upload the schema artifact to the registry.
-<2> Specify the {registry} URL with the `../apis/registry/v3` endpoint.
-<3> Specify the {registry} artifact group ID.
-<4> You can upload multiple artifacts using the specified group ID, artifact ID, and location.
 
+The `register` goal uploads the schema artifact to the registry, using the `registryUrl` element to specify the {registry} URL with the `../apis/registry/v3` endpoint. Each `artifact` entry's `groupId` sets the {registry} artifact group ID; you can upload multiple artifacts by specifying additional `artifact` entries with their own group ID, artifact ID, and file location.
 
-
-
-// Module included in the following assemblies:
-//  assembly-using-kafka-client-serdes
-
-[id='registry-serdes-config-consumer_{context}']
+[id="registry-serdes-config-consumer_{context}"]
 == Using a schema from a Kafka consumer client
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 This procedure describes how to configure a Kafka consumer client written in Java to use a schema from {registry}.
@@ -335,20 +307,17 @@ props.putIfAbsent(ConsumerConfig.AUTO_COMMIT_INTERVAL_MS_CONFIG, "1000");
 props.putIfAbsent(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
 // Configure deserializer settings
 props.putIfAbsent(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
-    AvroKafkaDeserializer.class.getName()); <1>
+    AvroKafkaDeserializer.class.getName());
 props.putIfAbsent(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
-    AvroKafkaDeserializer.class.getName()); <2>
+    AvroKafkaDeserializer.class.getName());
 ----
-<1> The deserializer provided by {registry}.
-<2> The deserialization is in Apache Avro JSON format.
++
+The `KEY_DESERIALIZER_CLASS_CONFIG` and `VALUE_DESERIALIZER_CLASS_CONFIG` properties both use the {registry} deserializer, here `AvroKafkaDeserializer`, which deserializes in Apache Avro JSON format.
 
-
-
-// Module included in the following assemblies:
-//  assembly-using-kafka-client-serdes
-
-[id='registry-serdes-config-producer_{context}']
+[id="registry-serdes-config-producer_{context}"]
 == Using a schema from a Kafka producer client
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 This procedure describes how to configure a Kafka producer client written in Java to use a schema from {registry}.
@@ -374,21 +343,17 @@ props.putIfAbsent(SerdeConfig.REGISTRY_URL, registryUrl);
 [source,java,subs="+quotes,attributes"]
 ----
 props.put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, "my-cluster-kafka-bootstrap:9092");
-props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <1>
-props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName()); <2>
-props.put(SerdeConfig.FIND_LATEST_ARTIFACT, Boolean.TRUE); <3>
+props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName());
+props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, AvroKafkaSerializer.class.getName());
+props.put(SerdeConfig.FIND_LATEST_ARTIFACT, Boolean.TRUE);
 ----
-<1> The serializer for the message key provided by {registry}.
-<2> The serializer for the message value provided by {registry}.
-<3> The lookup strategy to find the global ID for the schema.
++
+The `KEY_SERIALIZER_CLASS_CONFIG` and `VALUE_SERIALIZER_CLASS_CONFIG` properties set the {registry} serializer, here `AvroKafkaSerializer`, for the message key and value. The `FIND_LATEST_ARTIFACT` property sets the lookup strategy used to find the global ID for the schema.
 
-
-
-// Module included in the following assemblies:
-//  assembly-using-kafka-client-serdes
-
-[id='registry-serdes-config-stream_{context}']
+[id="registry-serdes-config-stream_{context}"]
 == Using a schema from a Kafka Streams application
+
+:_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
 This procedure describes how to configure a Kafka Streams client written in Java to use an Apache Avro schema from {registry}.
@@ -413,9 +378,9 @@ RegistryService client = RegistryClient.cached(registryUrl);
 +
 [source,java,subs="+quotes,attributes"]
 ----
-Serializer<LogInput> serializer = new AvroKafkaSerializer<LogInput>(); <1>
+Serializer<LogInput> serializer = new AvroKafkaSerializer<LogInput>();
 
-Deserializer<LogInput> deserializer = new AvroKafkaDeserializer <LogInput>(); <2>
+Deserializer<LogInput> deserializer = new AvroKafkaDeserializer <LogInput>();
 
 Serde<LogInput> logSerde = Serdes.serdeFrom(
     serializer,
@@ -425,13 +390,11 @@ Serde<LogInput> logSerde = Serdes.serdeFrom(
 Map<String, Object> config = new HashMap<>();
 config.put(SerdeConfig.REGISTRY_URL, registryUrl);
 config.put(AvroSerdeConfig.USE_SPECIFIC_AVRO_READER, true);
-logSerde.configure(config, false); <3>
+logSerde.configure(config, false);
 
 ----
 +
-<1> The Avro serializer provided by {registry}.
-<2> The Avro deserializer provided by {registry}.
-<3> Configures the {registry} URL and the Avro reader for deserialization in Avro format.
+The `AvroKafkaSerializer` and `AvroKafkaDeserializer` classes are the Avro serializer and deserializer provided by {registry}. Configuring the `Serde` with the {registry} URL and enabling the specific Avro reader sets up deserialization in Avro format.
 
 . Create the Kafka Streams client:
 +
@@ -442,5 +405,3 @@ KStream<String, LogInput> input = builder.stream(
     Consumed.with(Serdes.String(), logSerde)
 );
 ----
-
-

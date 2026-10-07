@@ -1,4 +1,4 @@
-import { AuthService, useAuth } from "@apicurio/common-ui-components";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
 import { ConfigService, useConfigService } from "@services/useConfigService.ts";
 import { getRegistryClient, labelsToAny } from "@utils/rest.utils.ts";
 import { ApicurioRegistryClient } from "@apicurio/apicurio-registry-sdk";
@@ -7,10 +7,12 @@ import {
     Draft,
     DraftContent,
     DraftInfo,
+    DraftsFilterBy,
     DraftsSearchFilter,
     DraftsSearchResults,
     DraftsSortBy
 } from "@models/drafts";
+import { toPartialNameFilter } from "@services/useSearchService.ts";
 import { SortOrder } from "@models/SortOrder.ts";
 import { Paging } from "@models/Paging.ts";
 import {
@@ -51,6 +53,7 @@ const toDraft = (vmd: VersionMetaData | SearchedVersion | undefined): Draft => {
         modifiedOn: vmd!.modifiedOn as Date | undefined,
         labels: labelsToAny(vmd?.labels),
         contentId: vmd?.contentId as number | undefined,
+        globalId: vmd?.globalId as number | undefined,
         isDraft: vmd!.state === "DRAFT"
     };
     return draft;
@@ -66,10 +69,9 @@ async function searchDrafts(config: ConfigService, auth: AuthService, filters: D
     const client: ApicurioRegistryClient = getRegistryClient(config, auth);
 
     const start: number = (paging.page - 1) * paging.pageSize;
-    const end: number = start + paging.pageSize;
     const queryParams: VersionsRequestBuilderGetQueryParameters = {
         state: "DRAFT",
-        limit: end,
+        limit: paging.pageSize,
         offset: start,
         order: sortOrder,
         orderby: sortBy as any
@@ -77,7 +79,11 @@ async function searchDrafts(config: ConfigService, auth: AuthService, filters: D
 
     // Apply filters
     filters.forEach(filter => {
-        (queryParams as any)[filter.by] = filter.value;
+        if (filter.by === DraftsFilterBy.name) {
+            (queryParams as any)[filter.by] = toPartialNameFilter(filter.value);
+        } else {
+            (queryParams as any)[filter.by] = filter.value;
+        }
     });
 
     return client.search.versions.get({
@@ -111,7 +117,8 @@ async function createDraft(config: ConfigService, auth: AuthService, data: Creat
             },
             content: {
                 content: data.content,
-                contentType: data.contentType
+                contentType: data.contentType,
+                references: data.references
             }
         }
     };
@@ -291,7 +298,8 @@ function updateDraftContent(config: ConfigService, auth: AuthService, groupId: s
 
     const versionContent: VersionContent = {
         content: data.content,
-        contentType: data.contentType
+        contentType: data.contentType,
+        references: data.references
     };
     return client.groups.byGroupId(groupId).artifacts.byArtifactId(draftId).versions.byVersionExpression(version).content.put(versionContent);
 }

@@ -1,9 +1,11 @@
 package io.apicurio.registry.storage.decorator;
 
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchService;
@@ -52,7 +54,7 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
             throws RegistryStorageException {
         if (searchService.requiresSearchIndex(filters)) {
             if (!startupIndexer.isReady()) {
-                throw new RegistryStorageException(
+                throw new ContentSearchNotSupportedException(
                         "Content search requires the Elasticsearch search index, which is not "
                         + "available. Enable the Elasticsearch search index to use content search.");
             }
@@ -65,5 +67,25 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
             }
         }
         return delegate.searchVersions(filters, orderBy, orderDirection, offset, limit, skipCount);
+    }
+
+    public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount)
+            throws RegistryStorageException {
+        if (searchService.requiresSearchIndex(filters)) {
+            if (!startupIndexer.isReady()) {
+                throw new ContentSearchNotSupportedException(
+                        "Content search requires the Elasticsearch search index, which is not "
+                        + "available. Enable the Elasticsearch search index to use content search.");
+            }
+            try {
+                return searchService.searchArtifacts(filters, orderBy, orderDirection,
+                        offset, limit, skipCount);
+            } catch (IOException e) {
+                throw new RegistryStorageException(
+                        "Elasticsearch search failed for index-only filters.", e);
+            }
+        }
+        return delegate.searchArtifacts(filters, orderBy, orderDirection, offset, limit, skipCount);
     }
 }

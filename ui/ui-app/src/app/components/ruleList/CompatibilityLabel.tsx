@@ -1,5 +1,5 @@
 import { FunctionComponent } from "react";
-import { If } from "@apicurio/common-ui-components";
+import { If } from "@apitomy/common-ui-components";
 import { Label } from "@patternfly/react-core";
 
 

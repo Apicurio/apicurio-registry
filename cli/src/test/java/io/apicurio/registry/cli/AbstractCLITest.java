@@ -15,6 +15,7 @@ import picocli.CommandLine.IFactory;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.stream.Stream;
@@ -78,11 +79,11 @@ public abstract class AbstractCLITest {
     }
 
     @BeforeEach
-    public void beforeEach() {
+    public void beforeEach() throws URISyntaxException {
         var acrHome = Path.of(
                         AbstractCLITest.class.getClassLoader()
                                 .getResource("acr-home")
-                                .getPath())
+                                .toURI())
                 .normalize();
         if (!Files.exists(acrHome)) {
             throw new RuntimeException("Test resource 'acr-home' does not exist");

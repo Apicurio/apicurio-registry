@@ -49,22 +49,22 @@ public class ContextCreateCommand extends AbstractCommand {
         var configModel = config.read();
         if (configModel.getContext().get(name) != null) {
             throw new CliException("Context '" + name + "' already exists.", CliException.VALIDATION_ERROR_RETURN_CODE);
-        } else {
-            configModel.getContext().put(name, ConfigModel.Context.builder()
-                    .registryUrl(registryUrl)
-                    .groupId(groupId)
-                    .artifactId(artifactId)
-                    .build());
-            output.writeStdOutChunk(out -> {
-                if (!noSwitchCurrent) {
-                    configModel.setCurrentContext(name);
-                    out.append("Current context '").append(name).append("' added.");
-                } else {
-                    out.append("Context '").append(name).append("' added.");
-                }
-                out.append('\n');
-                config.write(configModel);
-            });
         }
+        configModel.getContext().put(name, ConfigModel.Context.builder()
+                .registryUrl(registryUrl)
+                .groupId(groupId)
+                .artifactId(artifactId)
+                .build());
+        final boolean switchCurrent = !noSwitchCurrent;
+        if (switchCurrent) {
+            configModel.setCurrentContext(name);
+        }
+        // Persist before reporting success: if the write fails (for example a global install whose
+        // shared config file is not writable by this user), the command must not print a success
+        // line first. See Config#write and Config#ensureWritable.
+        config.write(configModel);
+        output.writeStdOutLine(switchCurrent
+                ? "Current context '" + name + "' added."
+                : "Context '" + name + "' added.");
     }
 }

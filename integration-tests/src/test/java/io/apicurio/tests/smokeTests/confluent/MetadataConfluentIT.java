@@ -19,9 +19,11 @@ import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import org.junit.jupiter.api.parallel.Isolated;
 
 @Tag(SMOKE)
 @QuarkusIntegrationTest
+@Isolated
 public class MetadataConfluentIT extends ConfluentBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MetadataConfluentIT.class);

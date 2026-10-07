@@ -179,10 +179,8 @@ CREATE TABLE webhook_delivery_logs (
   completedOn    BIGINT
 );
 ALTER TABLE webhook_delivery_logs ADD PRIMARY KEY (deliveryId);
-ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_whdlogs_1
-  FOREIGN KEY (subscriptionId) REFERENCES webhook_subscriptions(subscriptionId);
-ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_whdlogs_2
-  FOREIGN KEY (eventRowId) REFERENCES webhook_events(eventRowId);
+ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_whdlogs_1 FOREIGN KEY (subscriptionId) REFERENCES webhook_subscriptions(subscriptionId);
+ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_whdlogs_2 FOREIGN KEY (eventRowId) REFERENCES webhook_events(eventRowId);
 ALTER TABLE webhook_delivery_logs ADD CONSTRAINT UQ_whdlogs_1 UNIQUE (subscriptionId, eventRowId);
 ALTER TABLE webhook_delivery_logs ADD CONSTRAINT CK_whdlogs_1 CHECK (attemptCount >= 0);
 CREATE INDEX IDX_whdlogs_1 ON webhook_delivery_logs(status, nextAttemptAt);

@@ -177,7 +177,24 @@ public class VersionSearchTest extends AbstractResourceTestBase {
                         10,
                         false));
 
-        Assertions.assertTrue(exception.getMessage().contains("search index"));
+        Assertions.assertEquals("Structure search requires the search index, which is not enabled. "
+                + "Enable the search index to use structure search.", exception.getMessage());
+    }
+
+    @Test
+    void testFilterByContentWithoutSearchIndex() {
+        ContentSearchNotSupportedException exception = Assertions.assertThrows(
+                ContentSearchNotSupportedException.class,
+                () -> storage.searchVersions(
+                        Set.of(SearchFilter.ofContent("anything")),
+                        OrderBy.globalId,
+                        OrderDirection.asc,
+                        0,
+                        10,
+                        false));
+
+        Assertions.assertEquals("Content search requires the search index, which is not enabled. "
+                + "Enable the search index to use content search.", exception.getMessage());
     }
 
     /**

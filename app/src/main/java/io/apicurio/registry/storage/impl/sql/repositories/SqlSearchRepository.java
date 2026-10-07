@@ -35,8 +35,19 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
  */
 public class SqlSearchRepository {
 
+    /**
+     * Creates the exception thrown when a filter that can only be served by the search index (content or
+     * structure) is used while the search index is disabled.
+     *
+     * @param type the index-only filter type (must be {@code content} or {@code structure})
+     * @return the exception to throw (mapped to HTTP 400)
+     */
     private static ContentSearchNotSupportedException indexOnlyFilterException(SearchFilterType type) {
-        String filterName = type == SearchFilterType.structure ? "Structure" : "Content";
+        String filterName = switch (type) {
+            case content -> "Content";
+            case structure -> "Structure";
+            default -> throw new IllegalArgumentException("Not an index-only filter type: " + type);
+        };
         return new ContentSearchNotSupportedException(
                 filterName + " search requires the search index, which is not enabled. "
                         + "Enable the search index to use " + filterName.toLowerCase(Locale.ROOT) + " search.");

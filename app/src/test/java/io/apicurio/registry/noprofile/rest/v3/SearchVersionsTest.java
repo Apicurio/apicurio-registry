@@ -477,6 +477,19 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testSearchVersionsByStructureFilterWithoutIndexIsBadRequest() throws Exception {
+        // Structure search is index-only; without the search index it must be a 400, not a 500.
+        given().when()
+                .queryParam("structure", "openapi:operation:getUsers")
+                .get("/registry/v3/search/versions")
+                .then()
+                .statusCode(400)
+                .body("detail", allOf(
+                        containsString("Structure search requires the search index, which is not enabled."),
+                        not(containsStringIgnoringCase("select"))));
+    }
+
+    @Test
     public void testSearchVersionsByGroupIdWildcard() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String prefix = "WildcardGroupVersionTest_" + TestUtils.generateGroupId().substring(0, 8);

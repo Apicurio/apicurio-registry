@@ -1,24 +1,36 @@
 package io.apicurio.registry.noprofile;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
 import io.apicurio.registry.rest.client.models.ArtifactSortBy;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.SortOrder;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @QuarkusTest
 public class ArtifactSearchTest extends AbstractResourceTestBase {
+
+    @Inject
+    @Current
+    RegistryStorage storage;
 
     private static final String OPENAPI_CONTENT_TEMPLATE = "{\r\n" + "    \"openapi\": \"3.0.2\",\r\n"
             + "    \"info\": {\r\n" + "        \"title\": \"TITLE\",\r\n"
@@ -455,5 +467,21 @@ public class ArtifactSearchTest extends AbstractResourceTestBase {
         });
         Assertions.assertEquals(3, results.getCount(),
                 "Exact label key 'team' should match all 3 artifacts");
+    }
+
+    @Test
+    void testFilterByStructureWithoutSearchIndex() {
+        ContentSearchNotSupportedException exception = Assertions.assertThrows(
+                ContentSearchNotSupportedException.class,
+                () -> storage.searchArtifacts(
+                        Set.of(SearchFilter.ofStructure("schema-validation")),
+                        OrderBy.name,
+                        OrderDirection.asc,
+                        0,
+                        10,
+                        false));
+
+        Assertions.assertEquals("Structure search requires the search index, which is not enabled. "
+                + "Enable the search index to use structure search.", exception.getMessage());
     }
 }

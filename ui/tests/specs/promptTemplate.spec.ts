@@ -70,11 +70,11 @@ test("Prompt Template - viewer and test panel", async ({ page }) => {
 
         const renderedOutputBox = page.locator(".rendered-output");
 
-        // Required variables currently render as empty strings when blank.
-        // Validation is tracked separately from this coverage test.
+        // Missing required variables produce both fallback output and a validation warning.
         await renderButton.click();
         await expect(page.getByRole("heading", { name: "Rendered Output" })).toBeVisible({ timeout: 15000 });
         await expect(renderedOutputBox).toHaveText("Answer the following question:");
+        await expect(page.locator(".validation-errors")).toContainText("question: Required variable is missing");
 
         // Now fill in the variable and confirm the substitution actually happens.
         await questionInput.fill("What is Apicurio Registry?");

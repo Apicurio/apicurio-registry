@@ -5,8 +5,9 @@ import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import io.apicurio.registry.rest.v3.beans.ContractStatusTransition;
 import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
-import io.apicurio.registry.services.http.McpRegistryExceptionMapperService;
+import io.apicurio.registry.extensions.ApiExceptionMapper;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
@@ -28,7 +29,7 @@ public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMa
     CoreRegistryExceptionMapperService coreMapper;
 
     @Inject
-    McpRegistryExceptionMapperService mcpRegistryMapper;
+    Instance<ApiExceptionMapper> apiMappers;
 
     @Context
     HttpServletRequest request;
@@ -57,8 +58,10 @@ public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMa
      * {@link RegistryExceptionMapper} and has to repeat the part of it that applies here.
      */
     private Response map(Throwable t) {
-        if (McpRegistryExceptionMapperService.handles(request)) {
-            return mcpRegistryMapper.mapException(t);
+        for (ApiExceptionMapper mapper : apiMappers) {
+            if (mapper.handles(request)) {
+                return mapper.mapException(t);
+            }
         }
         return coreMapper.mapException(t);
     }

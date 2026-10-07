@@ -15,31 +15,50 @@ name: Verify
 #     bot-applied label, so there is no window where a stale run could
 #     mid-flight disagree with a promotion that happened after it started.
 #
-# The Verification Gate below is the single required check for branch
-# protection: it aggregates every job in this run and additionally fails
-# outright if Decide did not require the full suite for this run — a skipped
-# required job otherwise counts as "passing" for branch protection, and this
-# run skips everything below Decide until the PR is genuinely trusted/
-# reviewed. That failure is expected during normal review, not a bug: it is
-# what makes the required check honestly reflect "not verified yet" instead
-# of silently passing because nothing ran.
+# There is one Verify run per commit, from the push. When an approval makes
+# the full suite required after that run skipped it, the orchestrator re-runs
+# the same run (pr-lifecycle.js, maybeRunFullSuite, via review-relay.yaml)
+# rather than this workflow starting a second one: a re-run keeps its check
+# suite, so the PR shows one set of Verify checks per commit, and an
+# approval never repeats a suite that already ran.
+#
+# The single required check for branch protection is the "Verification Gate"
+# commit status, not a job in this file. The orchestrator (pr-lifecycle.yml,
+# gate-status job) posts it from the Verify Result job below, taken from the
+# newest Verify run for the PR head commit: pending while that run is going
+# or while Decide has not required the full suite yet (author not yet
+# trusted/reviewed), then success or failure. See the Verify Result job for
+# why this is a status rather than the job's own check-run.
 
 on:
   push:
-    branches: [main]
+    branches: [main, '3.3.x']
+  # No labeled/unlabeled: a label change never alters the SHA, and a run it
+  # started cancelled the in-flight suite (the push run for that SHA) and then
+  # skipped everything, leaving a failed Verification Gate as the most recent
+  # check-run — which re-running could not fix, since the re-run replays the
+  # same label event. The one label Decide reads, orchestrator/disabled, is
+  # handled by the orchestrator re-running this workflow when a maintainer
+  # changes it (see handleLabelChange in pr-lifecycle.js).
   pull_request:
-    types: [opened, reopened, synchronize, labeled, unlabeled]
-    branches: [main]
-  # No branches: filter here — pull_request_review does not support one.
-  # In practice every PR in this repo targets main, so this is a non-issue.
-  # `dismissed` is included because dismissing a stale CHANGES_REQUESTED can
-  # flip reviewDecision to APPROVED, which Decide must re-evaluate — otherwise
-  # the full suite would stay skipped until the next push or new review.
-  pull_request_review:
-    types: [submitted, dismissed]
+    types: [opened, reopened, synchronize]
+    branches: [main, '3.3.x']
+  # No pull_request_review: a review started a second run on a commit that
+  # already had one. For a trusted author that repeated a full suite that had
+  # already run, and every commit showed a (pull_request) and a
+  # (pull_request_review) set of checks. Reviews reach the orchestrator through
+  # review-relay.yaml instead, which re-runs this commit's run when the suite
+  # becomes required.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
+  # A push supersedes the suite it interrupts — those results describe a SHA
+  # nobody is merging, so cancelling them is right. Pushes are now the only
+  # thing that starts a PR run here, so this can be unconditional again. It
+  # used to exempt review-triggered runs: `pull_request_review: submitted`
+  # fires for every reply in a review thread, and with cancellation each reply
+  # restarted the whole suite for an unchanged SHA (six replies on #10167, six
+  # runs, five cancelled).
   cancel-in-progress: true
 
 permissions:
@@ -53,6 +72,7 @@ jobs:
   lint-and-validate:
     name: Lint and Validate
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min
     needs: decide
     if: needs.decide.outputs.lifecycle-ready == 'true'
     steps:
@@ -69,10 +89,43 @@ jobs:
       - name: Verify unit test shard partition
         run: python3 .github/scripts/verify-test-shards.py
 
+      # The scalpel summary suite runs in the Gate because scripts-tests.yaml
+      # alone would leave a red suite non-blocking. It pins the extension
+      # version's report schema and the buildAllIfNoChanges setting the
+      # summary's projections stand on, and checks that every Scalpel run
+      # gets the base branch from Decide.
+      # jq is preinstalled on ubuntu-latest, the same assumption
+      # scripts-tests.yaml makes.
+      - name: Test scalpel summary script
+        run: bash .github/scripts/scalpel-summary.test.sh
+
+      # Discovers the test_*.py files sitting directly in .github/scripts rather
+      # than naming one of them. A test that CI does not run stops nothing:
+      # test_parse_flaky_tests.py sat in the tree unreferenced under the old
+      # single-file pattern. label-classification/ has no __init__.py, so
+      # discover does not descend into it; scripts-tests.yaml runs those tests,
+      # which need dependencies this job does not install.
+      - name: Test CI helper scripts
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
+
+      - name: Test operator catalog automation
+        run: |
+          curl --fail --silent --show-error --location \
+            https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64 \
+            --output "$RUNNER_TEMP/catalog-yq"
+          chmod +x "$RUNNER_TEMP/catalog-yq"
+          YQ="$RUNNER_TEMP/catalog-yq" python3 -m unittest discover -s operator/scripts -p 'test_*.py' -v
+
       # Orchestrator scripts run with repo write permissions under
       # pull_request_target — their logic must be tested before merge.
       - name: Test PR lifecycle scripts
         run: node --test .github/scripts/pr-lifecycle.test.js
+
+      - name: Test performance comparison result parser
+        run: python3 -m unittest discover -s perf-comparison-tests/scripts -p 'test_*.py' -v
+
+      - name: Test performance test result parsers
+        run: python3 -m unittest discover -s perf-tests/scripts -p 'test_*.py' -v
 
       - name: Verify docs generation
         run: |
@@ -85,6 +138,7 @@ jobs:
   build-java:
     name: Build Java Application (no tests)
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # longest green run, week to 2026-10-01: 5 min
     needs: [decide]
     if: needs.decide.outputs.run-build == 'true'
     steps:
@@ -92,7 +146,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -110,7 +164,7 @@ jobs:
           # -DcliSkipNative: skip GraalVM native-image for CLI (separate verify-cli job handles this)
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
-          ./mvnw clean package -T 0.5C --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
+          ./mvnw clean install -T 0.5C --no-transfer-progress -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Pprod -Dfull -DskipTests -DskipCommitIdPlugin=false -DcliSkipNative \
             -Dmaven.source.skip=true -Dmaven.javadoc.skip=true \
             -Daether.syncContext.named.factory=noop \
@@ -131,6 +185,16 @@ jobs:
           docker build -f ./distro/docker/target/docker/Dockerfile.jvm \
             -t apicurio/apicurio-registry:${{ github.sha }} \
             ./distro/docker/target/docker
+
+      - name: Build Mutable Docker Image
+        run: |
+          docker build -f ./distro/docker/target/docker/Dockerfile.mutable.jvm \
+            -t apicurio/apicurio-registry:${{ github.sha }}-mutable \
+            ./distro/docker/target/docker
+
+      - name: Smoke Test Re-augmentation of the Mutable Docker Image
+        run: |
+          docker run --rm apicurio/apicurio-registry:${{ github.sha }}-mutable /deployments/build.sh --prune
 
       - name: Save Docker Image
         uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
@@ -175,7 +239,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
-          node-version: '24.19.0'
+          node-version: '24.21.0'
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
 
@@ -233,10 +297,14 @@ jobs:
     uses: ./.github/workflows/verify-unit-tests.yaml
     with:
       image-tag: ${{ github.sha }}
+      scalpel-enabled: ${{ needs.decide.outputs.scalpel-enabled }}
+      scalpel-base-branch: ${{ needs.decide.outputs.scalpel-base-branch }}
 
   # Scalpel Report (affected-module detection, data collection only).
   # Not in the Gate: a failure here never blocks a PR.
   # See Discussion #8364 for the evaluation results that led to this change.
+  # How to read the artifact, and the measured baseline it should be compared
+  # against, are in README.md under "Reading the Scalpel report".
   scalpel-report:
     name: Scalpel Report
     needs: [decide]
@@ -250,11 +318,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          # Full history: Scalpel diffs against the base branch (GITHUB_BASE_REF)
+          # Full history: Scalpel diffs against the base branch
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -263,7 +331,13 @@ jobs:
         uses: ./.github/actions/setup-maven-cache
 
       - name: Generate Scalpel report
+        env:
+          SCALPEL_BASE_BRANCH: ${{ needs.decide.outputs.scalpel-base-branch }}
         run: |
+          # Scalpel writes the report at session start, before validate has
+          # necessarily created target/ on the root aggregator. Keep this.
+          mkdir -p target
+          [ -n "$SCALPEL_BASE_BRANCH" ] || echo "::warning::No scalpel-base-branch from Decide, so Scalpel runs without scalpel.baseBranch"
           # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
           # reportFile restates the documented default so the upload path
           # below cannot drift if upstream changes it.
@@ -272,15 +346,41 @@ jobs:
             -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Dscalpel.enabled=true \
             -Dscalpel.mode=report \
+            ${SCALPEL_BASE_BRANCH:+"-Dscalpel.baseBranch=$SCALPEL_BASE_BRANCH"} \
             -Dscalpel.reportFile=target/scalpel-report.json \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
 
+      # The report is self-describing from Scalpel 0.4.1 onwards: it carries the
+      # build set, reactor and tested-module counts, and its skip shape names the
+      # status, reason and trigger file. The script turns that into the run
+      # summary and the artifact copy. It lives under .github/scripts so it can
+      # be unit tested; see scripts-tests.yaml.
+      - name: Summarize Scalpel report
+        if: ${{ !cancelled() }}
+        run: |
+          summary=target/scalpel-report-summary.md
+          # This step also runs when Generate failed, so target/ may not exist.
+          mkdir -p target
+          # Written aside and moved into place. A redirect straight onto the
+          # final path truncates it before the script starts, so a script that
+          # died partway would upload a header and nothing else. A missing file
+          # is the honest outcome, and the upload step only warns on one.
+          bash .github/scripts/scalpel-summary.sh \
+            target/scalpel-report.json > "$summary.tmp"
+          mv "$summary.tmp" "$summary"
+          cat "$summary" >> "$GITHUB_STEP_SUMMARY"
+
+      # A failed build is when the offline artifact is wanted most: Scalpel
+      # writes the report at session start, so it survives a later failure.
       - name: Upload Scalpel report
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: scalpel-report-pr${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
-          path: target/scalpel-report.json
+          path: |
+            target/scalpel-report.json
+            target/scalpel-report-summary.md
           retention-days: 30
           if-no-files-found: warn
 
@@ -295,6 +395,7 @@ jobs:
   go-sdk-freshness:
     name: Go SDK Freshness
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # longest green run, week to 2026-10-01: 0 min
     needs: [decide]
     if: needs.decide.outputs.run-go-sdk-freshness == 'true'
     steps:
@@ -304,7 +405,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.27.0'
+          go-version: '1.27.1'
 
       - name: Regenerate Go SDK
         run: |
@@ -359,20 +460,39 @@ jobs:
     secrets: inherit
 
   # ============================================================================
-  # VERIFICATION GATE: single required check for branch protection
+  # VERIFY RESULT: aggregates every job above
   #
-  # Aggregates every job above. Passes when all of them succeeded or were
-  # appropriately skipped by Decide (e.g. during PR review, when the full
-  # suite does not run) — see the live ready-to-merge check below for why
-  # that alone is not sufficient for a required check.
+  # Not a required check itself. The required check is the "Verification Gate"
+  # commit status, which the orchestrator (pr-lifecycle.yml, gate-status job)
+  # posts on the PR head commit from the NEWEST Verify run for that commit,
+  # reading this job's conclusion:
+  #   success -> Verification Gate success
+  #   skipped -> Verification Gate pending (full suite not required yet)
+  #   failure -> Verification Gate failure
+  # A commit status is replaced in place, so a PR shows exactly one, current
+  # Verification Gate however many Verify runs its commit has had. A job's
+  # check-run cannot do that: every run is its own check suite, and the PR
+  # page kept showing a red Gate from an older run next to the green one.
+  #
+  # Skipped (not failed) when Decide did not require the full suite, so the
+  # PR page shows a neutral "skipped" rather than a red check during review.
+  # Being skipped is safe only because this job is no longer the required
+  # check; the orchestrator turns "skipped" into a pending status. It still
+  # runs, and fails, when Decide itself did not succeed.
   # ============================================================================
   gate:
-    name: Verification Gate
-    if: always() && github.repository_owner == 'Apicurio'
+    name: Verify Result
+    if: >-
+      always()
+      && github.repository_owner == 'Apicurio'
+      && (github.event_name == 'push'
+          || needs.decide.result != 'success'
+          || needs.decide.outputs.lifecycle-ready == 'true')
     needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
             cli-verify, go-sdk-freshness, sdk, console-plugin,
             integration-tests, extras, operator]
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min
     steps:
       - name: Evaluate jobs
         env:
@@ -386,35 +506,34 @@ jobs:
           fi
           echo "All jobs passed or were appropriately skipped"
 
-      # A skipped required job counts as "passing" for branch protection, and
-      # every job above is skipped whenever Decide did not require the full
-      # suite for this run (author not yet trusted/reviewed). Checking
-      # Decide's own output — the same static value that already gated every
-      # job above via needs: — means this cannot disagree with the rest of
-      # the run: there is nothing to race against, unlike a live re-fetch of
-      # current PR state would be (Decide runs once, early; a live re-fetch
-      # here would run later, after everything above finished, and could see
-      # a promotion that happened in between — a stale pass for a suite that
-      # never actually ran). This step failing is expected throughout normal
-      # PR review — that is what makes the required check honestly reflect
-      # "not verified yet" instead of silently passing because Decide skipped
-      # everything.
-      - name: Verify this run's Decide required the full suite
-        if: github.event_name != 'push' && needs.decide.outputs.lifecycle-ready != 'true'
-        run: |
-          echo "::error::Decide did not require the full suite for this run (lifecycle-ready=${{ needs.decide.outputs.lifecycle-ready }}) — the author is not yet trusted/reviewed, so every job above was skipped. This is expected during PR review, not a failure: the full suite runs immediately for trusted authors, or once an approving review lands for everyone else, and this Gate passes once it subsequently completes."
-          exit 1
-
   # ============================================================================
   # PUBLISH: Push images (only on push to main)
+  #
+  # always() is required, not cosmetic. gate runs under always() so that it can
+  # report on a run in which Decide legitimately skipped some of its needs
+  # (cli-verify and go-sdk-freshness are skipped on most pushes, by design).
+  # A skipped ancestor propagates "skipped" down to every descendant that does
+  # not opt out with always(), so without it this job is skipped on every push
+  # to main even when build-java and gate both succeed — which is exactly what
+  # happened between 2026-08-22 and 2026-09-03, leaving latest-snapshot stale
+  # on quay.io for twelve days and latest-snapshot-mutable never published at
+  # all. The explicit result checks below restore the safety property that the
+  # implicit success() was providing: publish only a commit that built cleanly
+  # and passed Verify Result (the gate job).
   # ============================================================================
   publish:
     name: Publish Images
     needs: [build-java, gate]
-    if: github.event_name == 'push' && github.repository_owner == 'Apicurio'
+    if: >-
+      always()
+      && github.event_name == 'push'
+      && github.repository_owner == 'Apicurio'
+      && needs.build-java.result == 'success'
+      && needs.gate.result == 'success'
     uses: ./.github/workflows/verify-publish.yaml
     with:
       image-tag: ${{ github.sha }}
+      snapshot-tag: ${{ github.ref_name == 'main' && 'latest-snapshot' || format('{0}-snapshot', github.ref_name) }}
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}

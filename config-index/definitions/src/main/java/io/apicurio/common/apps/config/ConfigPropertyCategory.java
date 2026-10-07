@@ -3,7 +3,9 @@ package io.apicurio.common.apps.config;
 public enum ConfigPropertyCategory {
 
     CATEGORY_A2A("a2a"),
+    CATEGORY_AICATALOG("aicatalog"),
     CATEGORY_API("api"),
+    CATEGORY_ARD("ard"),
     CATEGORY_AUTH("auth"),
     CATEGORY_CACHE("cache"),
     CATEGORY_CCOMPAT("ccompat"),

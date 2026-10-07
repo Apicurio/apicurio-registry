@@ -12,7 +12,7 @@ echo "Subscribing to broker."
 echo "---"
 
 
-while [ "x$DONE" == "xfalse" ]
+while [[ "x$DONE" == "xfalse" ]]
 do
 
     # Receive a message
@@ -20,7 +20,7 @@ do
     
     MESSAGE_SIZE=$(wc -c "_message.json" | awk '{print $1}')
     
-    if [ "x$MESSAGE_SIZE" == "x0" ]
+    if [[ "x$MESSAGE_SIZE" == "x0" ]]
     then
         continue
     else

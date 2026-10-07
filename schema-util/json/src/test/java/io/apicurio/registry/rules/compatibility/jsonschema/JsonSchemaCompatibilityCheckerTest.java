@@ -3,27 +3,20 @@ package io.apicurio.registry.rules.compatibility.jsonschema;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.rules.compatibility.ApitomyJsonSchemaCompatibilityChecker;
-import io.apicurio.registry.json.rules.compatibility.JsonSchemaCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ContentTypes;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Collections;
-import java.util.stream.Stream;
+
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class JsonSchemaCompatibilityCheckerTest {
 
-    static Stream<CompatibilityChecker> checkers() {
-        return Stream.of(
-                new JsonSchemaCompatibilityChecker(),
-                new ApitomyJsonSchemaCompatibilityChecker()
-        );
-    }
+    private final CompatibilityChecker checker = new ApitomyJsonSchemaCompatibilityChecker();
 
     private TypedContent toTypedContent(String content) {
         return TypedContent.create(ContentHandle.create(content), ContentTypes.APPLICATION_JSON);
@@ -54,9 +47,8 @@ public class JsonSchemaCompatibilityCheckerTest {
             + "            \"type\": \"integer\",\r\n" + "            \"minimum\": 0\r\n" + "        }\r\n"
             + "    }\r\n" + "}";
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("checkers")
-    void testCompatible(CompatibilityChecker checker) {
+    @Test
+    void testCompatible() {
         var existing = toTypedContent(BEFORE);
         var proposed = toTypedContent(AFTER_VALID);
         var result = checker.testCompatibility(CompatibilityLevel.BACKWARD,
@@ -64,9 +56,8 @@ public class JsonSchemaCompatibilityCheckerTest {
         assertTrue(result.isCompatible(), "Adding a description should be backward compatible");
     }
 
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("checkers")
-    void testIncompatible(CompatibilityChecker checker) {
+    @Test
+    void testIncompatible() {
         var existing = toTypedContent(BEFORE);
         var proposed = toTypedContent(AFTER_INVALID);
         var result = checker.testCompatibility(CompatibilityLevel.BACKWARD,

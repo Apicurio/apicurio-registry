@@ -201,11 +201,19 @@ class FileCredentialProvider implements CredentialProvider {
     }
 
     private Path credentialsPath() {
-        return config.getAcrCurrentHomePath().resolve(CREDENTIALS_FILE);
+        return acrCurrentHomePath().resolve(CREDENTIALS_FILE);
     }
 
     private Path keyPath() {
-        return config.getAcrCurrentHomePath().resolve(KEY_FILE);
+        return acrCurrentHomePath().resolve(KEY_FILE);
+    }
+
+    private Path acrCurrentHomePath() {
+        final Path homePath = config.getAcrCurrentHomePath();
+        if (homePath == null) {
+            throw new CredentialStoreException("ACR_CURRENT_HOME is not configured.");
+        }
+        return homePath;
     }
 
     private synchronized CredentialEncryption encryption() {

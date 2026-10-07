@@ -224,7 +224,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                             .enabled(peer.getEnabled() == null || peer.getEnabled())
                             .credentialSecretRef(peer.getCredentialSecretRef())
                             .build();
-                    log.trace("Importing {}", dto);
+                    log.trace("Importing peer {}", dto);
                     state.getStorage().createPeer(dto);
                 } catch (Exception ex) {
                     state.recordError("Could not import peer %s: %s", peer.getPeerId(), ex.getMessage());

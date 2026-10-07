@@ -224,10 +224,10 @@ public class KafkaSqlPeerJournalTest extends AbstractResourceTestBase {
             List<ConsumerRecord<String, String>> records = new ArrayList<>();
             boolean found = false;
             while (System.currentTimeMillis() < deadline && !found) {
-                for (ConsumerRecord<String, String> record : consumer.poll(Duration.ofMillis(500))) {
-                    records.add(record);
-                    if (expectedType.equals(messageType(record))
-                            && expectedPeerId.equals(extractPeerId(record.value()))) {
+                for (ConsumerRecord<String, String> journalRecord : consumer.poll(Duration.ofMillis(500))) {
+                    records.add(journalRecord);
+                    if (expectedType.equals(messageType(journalRecord))
+                            && expectedPeerId.equals(extractPeerId(journalRecord.value()))) {
                         found = true;
                         break;
                     }
@@ -244,8 +244,8 @@ public class KafkaSqlPeerJournalTest extends AbstractResourceTestBase {
         }
     }
 
-    private String messageType(ConsumerRecord<String, String> record) {
-        Header header = record.headers().lastHeader(KafkaSqlSubmitter.MESSAGE_TYPE_HEADER);
+    private String messageType(ConsumerRecord<String, String> journalRecord) {
+        Header header = journalRecord.headers().lastHeader(KafkaSqlSubmitter.MESSAGE_TYPE_HEADER);
         return header == null ? null : new String(header.value(), StandardCharsets.UTF_8);
     }
 }

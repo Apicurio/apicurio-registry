@@ -183,7 +183,8 @@ public class PeerSearchClient {
                     .setSsl(ssl)
                     .setFollowRedirects(false)
                     .setURI(requestUri(uri, query))
-                    .putHeader("Accept", "application/json");
+                    .putHeader("Accept", "application/json")
+                    .putHeader(FederatedSearchService.HOP_HEADER, "1");
 
             httpClient.request(options).compose(request -> {
                 inFlight.set(new InFlight(request, Vertx.currentContext()));

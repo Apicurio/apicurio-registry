@@ -1,0 +1,9 @@
+# Docs owners are auto-requested for review on these paths. Requesting is automatic;
+# enforcement is the "Require review from Code Owners" checkbox in the main branch
+# protection (admin only). No catch-all line on purpose.
+/docs/                                  @EricWittmann @eameh @AleStranieri @paoloantinori
+/docs-playbook/                         @EricWittmann @eameh @AleStranieri @paoloantinori
+/.vale.ini                              @EricWittmann @eameh @AleStranieri @paoloantinori
+/.github/workflows/verify-docs.yaml     @EricWittmann @eameh @AleStranieri @paoloantinori
+/.github/workflows/validate-docs.yaml   @EricWittmann @eameh @AleStranieri @paoloantinori
+/.github/workflows/publish-docs.yaml    @EricWittmann @eameh @AleStranieri @paoloantinori

@@ -10,6 +10,7 @@ import io.apicurio.registry.content.TypedContent;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -119,7 +120,7 @@ public class AgentCardCompatibilityChecker
         for (JsonNode existingIface : existingInterfaces) {
             String url = getTextValue(existingIface, "url");
             String binding = getTextValue(existingIface, "protocolBinding");
-            String existingVersion = getComparableValue(existingIface, "protocolVersion");
+            JsonNode existingVersion = getComparableValue(existingIface, "protocolVersion");
 
             if (url == null || binding == null || existingVersion == null) {
                 continue;
@@ -130,7 +131,7 @@ public class AgentCardCompatibilityChecker
             // version means nothing was withdrawn, and duplicates must not multiply the difference.
             boolean matched = false;
             boolean versionRetained = false;
-            String changedVersion = null;
+            JsonNode changedVersion = null;
 
             for (JsonNode proposedIface : proposedInterfaces) {
                 if (!url.equals(getTextValue(proposedIface, "url"))
@@ -139,7 +140,7 @@ public class AgentCardCompatibilityChecker
                 }
 
                 matched = true;
-                String pVersion = getComparableValue(proposedIface, "protocolVersion");
+                JsonNode pVersion = getComparableValue(proposedIface, "protocolVersion");
                 if (existingVersion.equals(pVersion)) {
                     versionRetained = true;
                     break;
@@ -156,15 +157,16 @@ public class AgentCardCompatibilityChecker
 
             if (changedVersion != null) {
                 differences.add(new SimpleCompatibilityDifference(
-                        "Protocol version changed from '" + existingVersion + "' to '"
-                                + changedVersion + "' for interface " + url + " (" + binding + ")",
+                        "Protocol version changed " + describeValues(existingVersion,
+                                changedVersion) + " for interface " + url + " (" + binding + ")",
                         CONTEXT_INTERFACES));
             } else {
                 // A retained interface that drops its protocolVersion withdraws a guarantee the
                 // client had. The validity rule requires the field, but it is opt-in, so the card
                 // can reach this checker without it.
                 differences.add(new SimpleCompatibilityDifference(
-                        "Protocol version '" + existingVersion + "' was removed from interface "
+                        "Protocol version '" + renderValue(existingVersion)
+                                + "' was removed from interface "
                                 + url + " (" + binding + ")", CONTEXT_INTERFACES));
             }
         }
@@ -285,13 +287,13 @@ public class AgentCardCompatibilityChecker
             }
 
             for (String field : SECURITY_SCHEME_FIELDS) {
-                String existingValue = getComparableValue(existingScheme, field);
+                JsonNode existingValue = getComparableValue(existingScheme, field);
                 if (existingValue == null) {
                     // Nothing was promised, so whatever the proposed card says cannot break a
                     // client that was written against the existing one.
                     continue;
                 }
-                String proposedValue = getComparableValue(proposedScheme, field);
+                JsonNode proposedValue = getComparableValue(proposedScheme, field);
                 if (!existingValue.equals(proposedValue)) {
                     differences.add(new SimpleCompatibilityDifference(
                             describeSchemeFieldChange(schemeName, field, existingValue,
@@ -314,7 +316,9 @@ public class AgentCardCompatibilityChecker
      * declared must still be there, unchanged. Additions - a new grant type, a new scope - are
      * ignored, so they stay compatible. Reports the outermost point at which the two stop
      * matching rather than every leaf beneath it, which keeps the number of differences
-     * proportional to the edit.
+     * proportional to the edit. Unlike the scheme's own fields there is no fixed list to filter
+     * by, so every key the existing card declared under flows is held to, vendor extensions
+     * included: a key the checker does not recognise may still be one a client reads.
      */
     private void checkRetainedValues(String schemeName, String path, JsonNode existing,
             JsonNode proposed, Set<SimpleCompatibilityDifference> differences) {
@@ -347,8 +351,7 @@ public class AgentCardCompatibilityChecker
 
         if (!existing.equals(proposed)) {
             differences.add(new SimpleCompatibilityDifference(
-                    describeSchemeFieldChange(schemeName, path, renderValue(existing),
-                            renderValue(proposed)),
+                    describeSchemeFieldChange(schemeName, path, existing, proposed),
                     CONTEXT_SECURITY_SCHEMES));
         }
     }
@@ -404,12 +407,12 @@ public class AgentCardCompatibilityChecker
      */
     private void checkCardProtocolVersionChange(JsonNode existing, JsonNode proposed,
             Set<SimpleCompatibilityDifference> differences) {
-        String existingVersion = getComparableValue(existing, "protocolVersion");
+        JsonNode existingVersion = getComparableValue(existing, "protocolVersion");
         if (existingVersion == null) {
             return;
         }
 
-        String proposedVersion = getComparableValue(proposed, "protocolVersion");
+        JsonNode proposedVersion = getComparableValue(proposed, "protocolVersion");
         if (existingVersion.equals(proposedVersion)) {
             return;
         }
@@ -419,31 +422,54 @@ public class AgentCardCompatibilityChecker
                 CONTEXT_PROTOCOL_VERSION));
     }
 
-    private String describeSchemeFieldChange(String schemeName, String field, String existingValue,
-            String proposedValue) {
+    private String describeSchemeFieldChange(String schemeName, String field,
+            JsonNode existingValue, JsonNode proposedValue) {
         return "Security scheme '" + schemeName + "' field '" + field + "' "
                 + describeChange(existingValue, proposedValue);
     }
 
-    private String describeChange(String existingValue, String proposedValue) {
+    private String describeChange(JsonNode existingValue, JsonNode proposedValue) {
         return proposedValue == null
-                ? "was removed (was '" + existingValue + "')"
-                : "changed from '" + existingValue + "' to '" + proposedValue + "'";
+                ? "was removed (was '" + renderValue(existingValue) + "')"
+                : "changed " + describeValues(existingValue, proposedValue);
     }
 
     /**
-     * Compares whatever value is present rather than textual values alone. getTextValue yields null
+     * Values are compared as JSON, so two that differ can still render alike - the string "2" and
+     * the number 2, for example. Name the types in that case, or the message would read as if
+     * nothing had changed.
+     */
+    private String describeValues(JsonNode existingValue, JsonNode proposedValue) {
+        String from = renderValue(existingValue);
+        String to = renderValue(proposedValue);
+        if (from.equals(to)) {
+            return "from '" + from + "' (" + typeName(existingValue) + ") to '" + to + "' ("
+                    + typeName(proposedValue) + ")";
+        }
+        return "from '" + from + "' to '" + to + "'";
+    }
+
+    /**
+     * Returns whatever value is present rather than textual values alone. getTextValue yields null
      * for a non-textual node, which is indistinguishable from an absent one, so a field that turns
      * into a number would otherwise be reported as having been removed when it was changed. The
      * validity rule would reject those shapes, but it is opt-in.
+     *
+     * The node itself is returned, not its rendering, because callers compare with JsonNode.equals:
+     * rendered text would make the string "2" equal to the number 2, and would make an object's
+     * member order significant when it is not.
      */
-    private String getComparableValue(JsonNode node, String fieldName) {
+    private JsonNode getComparableValue(JsonNode node, String fieldName) {
         JsonNode field = node.get(fieldName);
-        return (field == null || field.isNull()) ? null : renderValue(field);
+        return (field == null || field.isNull()) ? null : field;
     }
 
     private String renderValue(JsonNode node) {
         return node.isTextual() ? node.asText() : node.toString();
+    }
+
+    private String typeName(JsonNode node) {
+        return node.getNodeType().name().toLowerCase(Locale.ROOT);
     }
 
     private void checkModeRemovals(JsonNode existing, JsonNode proposed, String fieldName,

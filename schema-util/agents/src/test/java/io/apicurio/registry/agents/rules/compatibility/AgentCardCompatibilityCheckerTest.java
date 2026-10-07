@@ -932,6 +932,9 @@ class AgentCardCompatibilityCheckerTest {
                 "When no matching interface keeps the version it really was withdrawn");
         assertEquals(1, result.getIncompatibleDifferences().size(),
                 "Duplicate entries must not multiply the difference");
+        assertTrue(reports(result, "Protocol version '1.0' was removed from interface "
+                + "https://example.com/agent (http+json)"),
+                "Neither duplicate declares a version, so it is a removal, not a change");
     }
 
     @Test
@@ -1055,5 +1058,164 @@ class AgentCardCompatibilityCheckerTest {
                 "The interface itself is retained, so only the lost version is reported");
         assertTrue(reports(result, "Protocol version '1.0' was removed from interface "
                 + "https://example.com/agent (http+json)"));
+    }
+
+    @Test
+    void testBackwardIncompatibleRemovingCardProtocolVersion() {
+        String existing = baseCard(SKILL1, ", \"protocolVersion\": \"1.0\"");
+        String proposed = baseCard(SKILL1, "");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Dropping a declared card-level protocolVersion withdraws a guarantee clients had");
+        assertEquals(1, result.getIncompatibleDifferences().size(),
+                "The interfaces are unchanged, so only the card-level version is reported");
+        assertTrue(reports(result, "The agent protocolVersion was removed (was '1.0')"));
+        assertEquals("/protocolVersion",
+                result.getIncompatibleDifferences().iterator().next().asRuleViolation()
+                        .getContext());
+    }
+
+    @Test
+    void testBackwardIncompatibleCardProtocolVersionChangingJsonType() {
+        String existing = baseCard(SKILL1, ", \"protocolVersion\": \"2\"");
+        String proposed = baseCard(SKILL1, ", \"protocolVersion\": 2");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "The string \"2\" and the number 2 render alike but are different values");
+        assertEquals(1, result.getIncompatibleDifferences().size());
+        assertTrue(reports(result,
+                "The agent protocolVersion changed from '2' (string) to '2' (number)"),
+                "When both values render alike the message has to say what changed");
+    }
+
+    @Test
+    void testBackwardIncompatibleInterfaceProtocolVersionChangingJsonType() {
+        String existing = cardWithInterfaces("{ \"url\": \"https://example.com/agent\","
+                + " \"protocolBinding\": \"http+json\", \"protocolVersion\": \"2\" }");
+        String proposed = cardWithInterfaces("{ \"url\": \"https://example.com/agent\","
+                + " \"protocolBinding\": \"http+json\", \"protocolVersion\": 2 }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "The string \"2\" and the number 2 render alike but are different values");
+        assertEquals(1, result.getIncompatibleDifferences().size());
+        assertTrue(reports(result, "Protocol version changed from '2' (string) to '2' (number)"
+                + " for interface https://example.com/agent (http+json)"));
+    }
+
+    @Test
+    void testBackwardIncompatibleSecuritySchemeFieldChangingJsonType() {
+        String existing = cardWithScheme("bearer",
+                "{ \"type\": \"httpAuth\", \"scheme\": \"Bearer\", \"bearerFormat\": \"true\" }");
+        String proposed = cardWithScheme("bearer",
+                "{ \"type\": \"httpAuth\", \"scheme\": \"Bearer\", \"bearerFormat\": true }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "The string \"true\" and the boolean true render alike but are different values");
+        assertEquals(1, result.getIncompatibleDifferences().size());
+        assertTrue(reports(result, "Security scheme 'bearer' field 'bearerFormat' changed from"
+                + " 'true' (string) to 'true' (boolean)"));
+    }
+
+    @Test
+    void testBackwardCompatibleReorderingObjectValuedSchemeField() {
+        String existing = cardWithScheme("apikey", "{ \"type\": \"apiKey\", \"name\": \"X-API-Key\","
+                + " \"location\": { \"in\": \"header\", \"required\": true } }");
+        String proposed = cardWithScheme("apikey", "{ \"type\": \"apiKey\", \"name\": \"X-API-Key\","
+                + " \"location\": { \"required\": true, \"in\": \"header\" } }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "JSON object members are unordered, so reordering them changes nothing");
+    }
+
+    @Test
+    void testBackwardIncompatibleSecuritySchemeNameChange() {
+        String existing = cardWithScheme("apikey", APIKEY_HEADER_SCHEME);
+        String proposed = cardWithScheme("apikey", APIKEY_HEADER_SCHEME.replace(
+                "X-API-Key", "X-Api-Token"));
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "For an apiKey scheme, name is the parameter a client must send");
+        assertEquals(1, result.getIncompatibleDifferences().size(),
+                "Only the name field changed");
+        assertTrue(reports(result,
+                "Security scheme 'apikey' field 'name' changed from 'X-API-Key' to 'X-Api-Token'"));
+    }
+
+    @Test
+    void testBackwardIncompatibleSecuritySchemeOAuth2MetadataUrlChange() {
+        String existing = cardWithScheme("oauth", "{ \"type\": \"oauth2\","
+                + " \"oauth2MetadataUrl\": \"https://example.com/.well-known/oauth\" }");
+        String proposed = cardWithScheme("oauth", "{ \"type\": \"oauth2\","
+                + " \"oauth2MetadataUrl\": \"https://auth.example.com/.well-known/oauth\" }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Moving the OAuth2 metadata document should be backward incompatible");
+        assertEquals(1, result.getIncompatibleDifferences().size());
+        assertTrue(reports(result, "Security scheme 'oauth' field 'oauth2MetadataUrl' changed from"
+                + " 'https://example.com/.well-known/oauth' to"
+                + " 'https://auth.example.com/.well-known/oauth'"));
+    }
+
+    @Test
+    void testBackwardIncompatibleSecuritySchemeOpenIdConnectUrlChange() {
+        String existing = cardWithScheme("oidc", "{ \"type\": \"openIdConnect\","
+                + " \"openIdConnectUrl\": \"https://example.com/.well-known/openid-configuration\" }");
+        String proposed = cardWithScheme("oidc", "{ \"type\": \"openIdConnect\","
+                + " \"openIdConnectUrl\": \"https://id.example.com/.well-known/openid-configuration\" }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Moving the OpenID Connect discovery document should be backward incompatible");
+        assertEquals(1, result.getIncompatibleDifferences().size());
+        assertTrue(reports(result, "Security scheme 'oidc' field 'openIdConnectUrl' changed from"
+                + " 'https://example.com/.well-known/openid-configuration' to"
+                + " 'https://id.example.com/.well-known/openid-configuration'"));
     }
 }

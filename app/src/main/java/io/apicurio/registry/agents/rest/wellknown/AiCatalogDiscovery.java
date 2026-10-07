@@ -63,6 +63,9 @@ public class AiCatalogDiscovery {
 
     static final ObjectMapper mapper = new ObjectMapper();
 
+    private static final Runnable NO_CHECKPOINT = () -> {
+    };
+
     static final int MAX_VISIBILITY_FILTER_RESULTS = 10000;
 
     private static final int MAX_REPRESENTATIVE_QUERIES = 5;
@@ -318,11 +321,12 @@ public class AiCatalogDiscovery {
 
     List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
             String textFilter, Set<SearchFilter> structureFilters) {
-        return collectAiCatalogCandidates(baseUrl, publisherDomain, textFilter, structureFilters, false);
+        return collectAiCatalogCandidates(baseUrl, publisherDomain, textFilter, structureFilters, false,
+                NO_CHECKPOINT);
     }
 
     List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
-            String textFilter, Set<SearchFilter> structureFilters, boolean publicOnly) {
+            String textFilter, Set<SearchFilter> structureFilters, boolean publicOnly, Runnable checkpoint) {
         List<AiCatalogCandidate> candidates = new ArrayList<>();
 
         Set<SearchFilter> agentFilters = new HashSet<>();
@@ -338,6 +342,7 @@ public class AiCatalogDiscovery {
                 ? agentVisibilityFilter.filterDtosToPublic(agentResults.getArtifacts())
                 : agentVisibilityFilter.filterDtosByVisibility(agentResults.getArtifacts());
         for (SearchedArtifactDto artifact : visibleAgents) {
+            checkpoint.run();
             candidates.add(buildAgentCandidate(artifact, baseUrl, publisherDomain));
         }
 
@@ -350,6 +355,7 @@ public class AiCatalogDiscovery {
                 toolFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
         warnIfTruncated(toolResults);
         for (SearchedArtifactDto artifact : toolResults.getArtifacts()) {
+            checkpoint.run();
             candidates.add(buildToolCandidate(artifact, baseUrl, publisherDomain));
         }
 

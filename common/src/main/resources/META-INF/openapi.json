@@ -3922,6 +3922,9 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "503": {
+            "description": "The search of this registry did not finish before the deadline."
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           },
@@ -3934,7 +3937,7 @@
         },
         "operationId": "searchFederatedAgents",
         "summary": "Search for agents across this registry and its peer registries",
-        "description": "Searches the agent cards of this registry and of every enabled peer registry, and returns them in one response with the `source` of each agent.\n\nThe caller's own visibility rules apply to this registry's results. Peers are queried anonymously and asked for `public` agent cards only, so a peer never returns an agent that is not public, whatever its own authentication settings. A peer that does not confirm the public-only mode is reported as `unsupported` and its agents are discarded. The caller's credentials are never sent to a peer.\n\nThe response is `200` whenever the search of this registry succeeds, even when some or all peers fail: the outcome of each source is in `sources`. Agents with the same group and artifact id from different sources are all returned.\n\nThis operation can fail for the following reasons:\n\n* Federation is not enabled on this registry (HTTP error `409`)\n* More peers are enabled than the configured maximum (HTTP error `409`)\n* A2A support is not enabled on this registry (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+        "description": "Searches the agent cards of this registry and of every enabled peer registry, and returns them in one response with the `source` of each agent.\n\nThe caller's own visibility rules apply to this registry's results. Peers are queried anonymously and asked for `public` agent cards only, so a peer never returns an agent that is not public, whatever its own authentication settings. A peer that does not confirm the public-only mode is reported as `unsupported` and its agents are discarded. The caller's credentials are never sent to a peer.\n\nThe response is `200` whenever the search of this registry succeeds, even when some or all peers fail: the outcome of each source is in `sources`. Agents with the same group and artifact id from different sources are all returned.\n\nThis operation can fail for the following reasons:\n\n* Federation is not enabled on this registry (HTTP error `409`)\n* More peers are enabled than the configured maximum (HTTP error `409`)\n* A2A support is not enabled on this registry (HTTP error `404`)\n* The search of this registry did not finish before the deadline (HTTP error `503`)\n* A server error occurred (HTTP error `500`)\n"
       }
     },
     "/search/groups": {

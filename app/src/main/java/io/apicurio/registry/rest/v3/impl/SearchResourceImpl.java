@@ -18,7 +18,6 @@ import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessChe
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParameterValidationUtils;
-import io.apicurio.registry.rest.wellknown.WellKnownResourceImpl;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.ArtifactSortBy;
 import io.apicurio.registry.rest.v3.beans.ContractRule;
@@ -41,13 +40,16 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.extensions.AgentSearchHandler;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Context;
 
 import java.io.InputStream;
@@ -88,7 +90,7 @@ public class SearchResourceImpl implements SearchResource {
     FederatedSearchService federatedSearch;
 
     @Inject
-    WellKnownResourceImpl wellKnown;
+    Instance<AgentSearchHandler> agentSearch;
 
     private static SearchFilter parseLabelFilter(String prop) {
         int delimiterIndex = prop.lastIndexOf(":");
@@ -120,12 +122,15 @@ public class SearchResourceImpl implements SearchResource {
             List<String> capability, List<String> inputMode, List<String> outputMode,
             BigInteger perSourceLimit) {
         federationConfig.requireEnabled();
+        if (!agentSearch.isResolvable()) {
+            throw new NotFoundException("Agent search is not available");
+        }
         int maxLimit = federationConfig.getSearchPerSourceLimitMax();
         int limit = perSourceLimit == null ? Math.min(DEFAULT_PER_SOURCE_LIMIT, maxLimit)
             : perSourceLimit.min(BigInteger.valueOf(maxLimit)).max(BigInteger.ONE).intValue();
         PeerQuery query = new PeerQuery(name, skill, capability, inputMode, outputMode, limit);
-        return federatedSearch.search(query, localLimit -> wellKnown.searchAgents(name, skill, capability,
-                inputMode, outputMode, 0, localLimit, false, request));
+        return federatedSearch.search(query, (localLimit, checkpoint) -> agentSearch.get().searchAgents(name,
+                skill, capability, inputMode, outputMode, 0, localLimit, false, checkpoint));
     }
 
     @Override

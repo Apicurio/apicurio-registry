@@ -111,11 +111,13 @@ public class AgentCardDiscovery {
     }
 
     public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
-            List<String> inputModes, List<String> outputModes, Integer offset, Integer limit) {
+            List<String> inputModes, List<String> outputModes, Integer offset, Integer limit,
+            Boolean publicOnly) {
         if (!a2aConfig.isEnabled()) {
             throw new NotFoundException("A2A support is disabled");
         }
 
+        boolean publicOnlyMode = Boolean.TRUE.equals(publicOnly);
         String baseUrl = wellKnownRequestSupport.getBaseUrl();
         String publisherDomain = wellKnownRequestSupport.resolvePublisherDomain();
 
@@ -141,7 +143,8 @@ public class AgentCardDiscovery {
         // AiCatalogEntry, so they are evaluated afterwards against each surviving candidate's
         // Agent Card content.
         List<SearchedArtifactDto> matched = new ArrayList<>();
-        for (AiCatalogDiscovery.AiCatalogCandidate candidate : aiCatalogDiscovery.collectAiCatalogCandidates(baseUrl, publisherDomain, name, structureFilters)) {
+        for (AiCatalogDiscovery.AiCatalogCandidate candidate : aiCatalogDiscovery.collectAiCatalogCandidates(baseUrl,
+                publisherDomain, name, structureFilters, publicOnlyMode)) {
             if (!AiCatalogConstants.MEDIA_TYPE_AGENT_CARD.equals(candidate.entry.getType())) {
                 continue;
             }
@@ -164,6 +167,7 @@ public class AgentCardDiscovery {
         return AgentSearchResults.builder()
                 .count(total)
                 .agents(agents)
+                .publicOnly(publicOnlyMode ? Boolean.TRUE : null)
                 .build();
     }
 

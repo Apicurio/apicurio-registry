@@ -225,32 +225,34 @@ public class GitOpsSmokeTest {
     void peerReloadUpdatesFieldsAndOmittedEnabledDefaultsToTrue() throws Exception {
         var testRepository = GitTestRepositoryManager.getTestRepository();
 
+        // Each wait asserts the whole peer from one read, so a snapshot left by an earlier load
+        // cannot satisfy it.
         testRepository.load("git/peers-update-1");
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
             var peers = storage.getPeers();
             assertEquals(1, peers.size());
-            assertEquals("https://before.example.com", peers.get(0).getUrl());
+            var before = peers.get(0);
+            assertEquals("update-test-peer", before.getPeerId());
+            assertEquals("https://before.example.com", before.getUrl());
+            assertEquals("Before Update", before.getName());
+            assertFalse(before.isEnabled());
+            assertEquals("before-cred", before.getCredentialSecretRef());
         });
-        var before = storage.getPeers().get(0);
-        assertEquals("update-test-peer", before.getPeerId());
-        assertEquals("Before Update", before.getName());
-        assertFalse(before.isEnabled());
-        assertEquals("before-cred", before.getCredentialSecretRef());
 
         // Reload the same peer id with different field values and enabled omitted entirely.
         testRepository.load("git/peers-update-2");
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
             var peers = storage.getPeers();
             assertEquals(1, peers.size());
-            assertEquals("https://after.example.com", peers.get(0).getUrl());
+            var after = peers.get(0);
+            assertEquals("update-test-peer", after.getPeerId());
+            assertEquals("https://after.example.com", after.getUrl());
+            assertEquals("After Update", after.getName());
+            // enabled is omitted in this load; it must default to true fresh, not carry over the
+            // previous load's explicit enabled: false.
+            assertTrue(after.isEnabled());
+            assertEquals("after-cred", after.getCredentialSecretRef());
         });
-        var after = storage.getPeers().get(0);
-        assertEquals("update-test-peer", after.getPeerId());
-        assertEquals("After Update", after.getName());
-        // enabled is omitted in this load; it must default to true fresh, not carry over the
-        // previous load's explicit enabled: false.
-        assertTrue(after.isEnabled());
-        assertEquals("after-cred", after.getCredentialSecretRef());
     }
 
     @Test

@@ -142,27 +142,34 @@ class KubernetesOpsSmokeTest {
     void peerReloadUpdatesFieldsAndOmittedEnabledDefaultsToTrue() throws Exception {
         var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
 
+        // Each wait asserts the whole peer from one read, so a snapshot left by an earlier load
+        // cannot satisfy it.
         configMapStore.load("git/peers-update-1");
-        await().atMost(Duration.ofSeconds(30)).until(() -> storage.getPeers().size(), equalTo(1));
-        var before = storage.getPeers().get(0);
-        assertEquals("update-test-peer", before.getPeerId());
-        assertEquals("https://before.example.com", before.getUrl());
-        assertEquals("Before Update", before.getName());
-        assertFalse(before.isEnabled());
-        assertEquals("before-cred", before.getCredentialSecretRef());
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var peers = storage.getPeers();
+            assertEquals(1, peers.size());
+            var before = peers.get(0);
+            assertEquals("update-test-peer", before.getPeerId());
+            assertEquals("https://before.example.com", before.getUrl());
+            assertEquals("Before Update", before.getName());
+            assertFalse(before.isEnabled());
+            assertEquals("before-cred", before.getCredentialSecretRef());
+        });
 
         // Reload the same peer id with different field values and enabled omitted entirely.
         configMapStore.load("git/peers-update-2");
-        await().atMost(Duration.ofSeconds(30))
-                .until(() -> storage.getPeers().size() == 1
-                        && "https://after.example.com".equals(storage.getPeers().get(0).getUrl()));
-        var after = storage.getPeers().get(0);
-        assertEquals("update-test-peer", after.getPeerId());
-        assertEquals("After Update", after.getName());
-        // enabled is omitted in this load; it must default to true fresh, not carry over the
-        // previous load's explicit enabled: false.
-        assertTrue(after.isEnabled());
-        assertEquals("after-cred", after.getCredentialSecretRef());
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var peers = storage.getPeers();
+            assertEquals(1, peers.size());
+            var after = peers.get(0);
+            assertEquals("update-test-peer", after.getPeerId());
+            assertEquals("https://after.example.com", after.getUrl());
+            assertEquals("After Update", after.getName());
+            // enabled is omitted in this load; it must default to true fresh, not carry over the
+            // previous load's explicit enabled: false.
+            assertTrue(after.isEnabled());
+            assertEquals("after-cred", after.getCredentialSecretRef());
+        });
     }
 
     @ActivateRequestContext

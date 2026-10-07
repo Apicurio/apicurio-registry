@@ -10,6 +10,7 @@ import io.apicurio.registry.ccompat.rest.error.SubjectNotSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
+import io.apicurio.registry.federation.SearchDeadlineExceededException;
 import io.apicurio.registry.limits.LimitExceededException;
 import io.apicurio.registry.rest.InvalidParameterValueException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
@@ -139,6 +140,7 @@ public class HttpStatusCodeMap {
         map.put(SubjectNotSoftDeletedException.class, HTTP_CONFLICT);
         map.put(SubjectSoftDeletedException.class, HTTP_NOT_FOUND);
         map.put(TimeoutException.class, HTTP_UNAVAILABLE);
+        map.put(SearchDeadlineExceededException.class, HTTP_UNAVAILABLE);
         map.put(UnprocessableEntityException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(UnprocessableSchemaException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(ValidationException.class, HTTP_BAD_REQUEST);

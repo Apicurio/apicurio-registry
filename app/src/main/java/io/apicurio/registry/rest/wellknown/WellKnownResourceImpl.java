@@ -102,6 +102,9 @@ public class WellKnownResourceImpl implements WellKnownResource {
     private static final Logger log = LoggerFactory.getLogger(WellKnownResourceImpl.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
+    private static final Runnable NO_CHECKPOINT = () -> {
+    };
+
     private static final int MAX_VISIBILITY_FILTER_RESULTS = 10000;
     private static final int MAX_REPRESENTATIVE_QUERIES = 5;
     private static final String PROPERTIES_FIELD = "properties";
@@ -230,17 +233,21 @@ public class WellKnownResourceImpl implements WellKnownResource {
             List<String> inputModes, List<String> outputModes, Integer offset, Integer limit,
             Boolean publicOnly) {
         return searchAgents(name, skills, capabilities, inputModes, outputModes, offset, limit, publicOnly,
-                request);
+                request, NO_CHECKPOINT);
     }
 
     /**
      * Searches agents for a caller whose HTTP request is given. Another resource that calls this one
      * passes its own request: the {@code @Context} request of this bean is only set once the bean
      * has served a request of its own.
+     * <p>
+     * {@code checkpoint} runs before each candidate is read and converted, which is where the time
+     * goes, so that a caller with a deadline can stop the search by throwing from it. A query that
+     * is already running in the storage is not interrupted.
      */
     public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
             List<String> inputModes, List<String> outputModes, Integer offset, Integer limit,
-            Boolean publicOnly, HttpServletRequest callerRequest) {
+            Boolean publicOnly, HttpServletRequest callerRequest, Runnable checkpoint) {
         if (!a2aConfig.isEnabled()) {
             throw new NotFoundException("A2A support is disabled");
         }
@@ -272,10 +279,11 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // Agent Card content.
         List<SearchedArtifactDto> matched = new ArrayList<>();
         for (AiCatalogCandidate candidate : collectAiCatalogCandidates(baseUrl, publisherDomain, name,
-                structureFilters, publicOnlyMode)) {
+                structureFilters, publicOnlyMode, checkpoint)) {
             if (!AiCatalogConstants.MEDIA_TYPE_AGENT_CARD.equals(candidate.entry.getType())) {
                 continue;
             }
+            checkpoint.run();
             if (matchesAgentStructuredFilters(candidate.artifact, skills, capabilities, inputModes, outputModes)) {
                 matched.add(candidate.artifact);
             }
@@ -289,6 +297,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
         List<AgentSearchResult> agents = new ArrayList<>();
         for (SearchedArtifactDto artifact : page) {
+            checkpoint.run();
             agents.add(convertToAgentSearchResult(artifact));
         }
 
@@ -1089,11 +1098,12 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     private List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
             String textFilter, Set<SearchFilter> structureFilters) {
-        return collectAiCatalogCandidates(baseUrl, publisherDomain, textFilter, structureFilters, false);
+        return collectAiCatalogCandidates(baseUrl, publisherDomain, textFilter, structureFilters, false,
+                NO_CHECKPOINT);
     }
 
     private List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
-            String textFilter, Set<SearchFilter> structureFilters, boolean publicOnly) {
+            String textFilter, Set<SearchFilter> structureFilters, boolean publicOnly, Runnable checkpoint) {
         List<AiCatalogCandidate> candidates = new ArrayList<>();
 
         Set<SearchFilter> agentFilters = new HashSet<>();
@@ -1109,6 +1119,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 ? filterDtosToPublic(agentResults.getArtifacts())
                 : filterDtosByVisibility(agentResults.getArtifacts());
         for (SearchedArtifactDto artifact : visibleAgents) {
+            checkpoint.run();
             candidates.add(buildAgentCandidate(artifact, baseUrl, publisherDomain));
         }
 
@@ -1121,6 +1132,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
                 toolFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
         warnIfTruncated(toolResults);
         for (SearchedArtifactDto artifact : toolResults.getArtifacts()) {
+            checkpoint.run();
             candidates.add(buildToolCandidate(artifact, baseUrl, publisherDomain));
         }
 

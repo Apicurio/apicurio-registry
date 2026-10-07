@@ -28,6 +28,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
+import static io.apicurio.registry.utils.StringUtil.asLowerCase;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementValue;
 
 /**
  * Repository handling search operations in the SQL storage layer.
@@ -35,23 +37,25 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
  */
 public class SqlSearchRepository {
 
+    private static final String CONTENT_SEARCH_UNSUPPORTED_MESSAGE =
+            "Content search requires the search index, which is not enabled. "
+            + "Enable the search index to use content search.";
+
+    private static final String VERSION_STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE =
+            "Structure search on versions requires the search index, which is not enabled. "
+            + "Enable the search index, or search artifacts by structure instead.";
+
     /**
-     * Creates the exception thrown when a filter that can only be served by the search index (content or
-     * structure) is used while the search index is disabled.
-     *
-     * @param type the index-only filter type (must be {@code content} or {@code structure})
-     * @return the exception to throw (mapped to HTTP 400)
+     * Escape character for LIKE patterns built from request-derived values. '!' is not a LIKE
+     * metacharacter, and every supported database (H2, PostgreSQL, MySQL, SQL Server) accepts it in an
+     * ESCAPE clause. It needs no special handling in the data either: {@link #escapeLikePattern(String)}
+     * escapes the escape character itself, so a value that genuinely contains '!' still matches
+     * literally - the character is only ever consumed as an escape when this code puts it there.
      */
-    private static ContentSearchNotSupportedException indexOnlyFilterException(SearchFilterType type) {
-        String filterName = switch (type) {
-            case content -> "Content";
-            case structure -> "Structure";
-            default -> throw new IllegalArgumentException("Not an index-only filter type: " + type);
-        };
-        return new ContentSearchNotSupportedException(
-                filterName + " search requires the search index, which is not enabled. "
-                        + "Enable the search index to use " + filterName.toLowerCase(Locale.ROOT) + " search.");
-    }
+    private static final char LIKE_ESCAPE_CHAR = '!';
+
+    private static final String STRUCTURE_FILTER_FORMAT_HELP = "Expected '<artifactType>:<kind>:<name>', "
+            + "'<kind>:<name>' or '<name>', for example 'agent_card:skill:translation'.";
 
     private final Logger log;
 
@@ -183,8 +187,78 @@ public class SqlSearchRepository {
                         });
                         where.append(")");
                         break;
-                    case content, structure:
-                        throw indexOnlyFilterException(filter.getType());
+                    case content:
+                        throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
+                    case structure:
+                        if (filter.isNot() && filters.stream().noneMatch(candidate ->
+                                candidate.getType() == SearchFilterType.artifactType
+                                        && !candidate.isNot())) {
+                            throw new IllegalArgumentException("Negated structure filters require an artifactType filter");
+                        }
+                        // Structured content filter, e.g. "agent_card:skill:translation". Elements are
+                        // stored lowercased in artifact_structured_content as elementType
+                        // ("<artifactType>:<kind>") + elementValue (SHA-256 of the full normalized name).
+                        // Negation (NOT EXISTS) is true for artifacts that have no structured rows at
+                        // all, so a negated filter is only meaningful when the result set is already
+                        // constrained. The only caller that negates this filter is the agent discovery
+                        // endpoint (WellKnownResourceImpl, "capability: false"), which always pairs it
+                        // with an artifactType filter; the general search endpoint
+                        // (SearchResourceImpl) passes the "structure" query parameter through
+                        // un-negated. SearchFilter.ofStructure() documents that precondition for any
+                        // future caller.
+                        // Validate the raw value before normalizing it, so a value that is only
+                        // whitespace is reported as blank rather than being lower-cased and trimmed into
+                        // an empty filter.
+                        String rawStructureValue = filter.getStringValue();
+                        if (rawStructureValue == null || rawStructureValue.isBlank()) {
+                            // Not reachable from the REST layer: the version search endpoint skips an
+                            // empty "structure" parameter, and the discovery endpoints always prefix the
+                            // value with "<artifactType>:<kind>:". Fail loudly rather than degrading to a
+                            // clause that silently matches every artifact.
+                            throw new IllegalArgumentException(
+                                    "Structure filter value must not be blank. "
+                                            + STRUCTURE_FILTER_FORMAT_HELP);
+                        }
+                        String[] structureParts = asLowerCase(rawStructureValue.trim()).split(":", 3);
+                        for (String part : structureParts) {
+                            if (part.isBlank()) {
+                                throw new IllegalArgumentException("Structure filter components must not be blank");
+                            }
+                        }
+                        op = filter.isNot() ? "NOT EXISTS" : "EXISTS";
+                        where.append(op);
+                        where.append(
+                                "(SELECT sc.* FROM artifact_structured_content sc WHERE sc.groupId = a.groupId AND sc.artifactId = a.artifactId AND ");
+                        if (structureParts.length == 3) {
+                            // Full format: "artifactType:kind:name" - exact match
+                            where.append("sc.elementType = ? AND sc.elementValue = ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, structureParts[0] + ":" + structureParts[1]);
+                            });
+                            binders.add((query, idx) -> {
+                                query.bind(idx, elementValue(structureParts[2]));
+                            });
+                        } else if (structureParts.length == 2) {
+                            // Partial format: "kind:name" - match the kind for any artifact type. The
+                            // kind is request-derived, so escape LIKE wildcards in it and keep only the
+                            // leading "%:" as an intentional wildcard.
+                            where.append("sc.elementType LIKE ? ESCAPE '" + LIKE_ESCAPE_CHAR
+                                    + "' AND sc.elementValue = ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, "%:" + escapeLikePattern(structureParts[0]));
+                            });
+                            binders.add((query, idx) -> {
+                                query.bind(idx, elementValue(structureParts[1]));
+                            });
+                        } else {
+                            // Plain name: match the element value for any kind
+                            where.append("sc.elementValue = ?");
+                            binders.add((query, idx) -> {
+                                query.bind(idx, elementValue(structureParts[0]));
+                            });
+                        }
+                        where.append(")");
+                        break;
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
@@ -364,8 +438,12 @@ public class SqlSearchRepository {
                         });
                         where.append(")");
                         break;
-                    case content, structure:
-                        throw indexOnlyFilterException(filter.getType());
+                    case content:
+                        throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
+                    case structure:
+                        // Structured content is indexed per artifact in SQL (see searchArtifacts), but
+                        // version-level structure search is only served by the search index.
+                        throw new ContentSearchNotSupportedException(VERSION_STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE);
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
@@ -399,6 +477,10 @@ public class SqlSearchRepository {
                 limitOffset.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
             } else {
                 limitOffset.append(" LIMIT ? OFFSET ?");
+            }
+
+            if (orderBy == OrderBy.createdOn || orderBy == OrderBy.modifiedOn) {
+                orderByQuery.append(", v.globalId ").append(orderDirection.name());
             }
 
             // Query for the versions
@@ -442,6 +524,22 @@ public class SqlSearchRepository {
             results.setCount(count);
             return results;
         });
+    }
+
+    /**
+     * Escape LIKE wildcards ({@code %} and {@code _}) and the escape character itself in a value that
+     * is used inside a LIKE pattern, so request-derived text is matched literally. The caller is
+     * responsible for adding any intentional wildcards and the matching {@code ESCAPE} clause.
+     */
+    private static String escapeLikePattern(String value) {
+        StringBuilder escaped = new StringBuilder(value.length());
+        for (char c : value.toCharArray()) {
+            if (c == LIKE_ESCAPE_CHAR || c == '%' || c == '_') {
+                escaped.append(LIKE_ESCAPE_CHAR);
+            }
+            escaped.append(c);
+        }
+        return escaped.toString();
     }
 
     private void buildWildcardClause(StringBuilder where, String column, String value, boolean not,

@@ -1,10 +1,9 @@
 import { MutableRefObject, useEffect, useRef, useState } from "react";
-import Editor from "@monaco-editor/react";
-import { editor } from "monaco-editor";
+import { RegistryCodeEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
+import type { editor } from "monaco-editor";
 import { Editor as DraftEditor, EditorProps } from "./editor-types";
 import { draftContentToLanguage, draftContentToString } from "@utils/content.utils.ts";
-import IStandaloneCodeEditor = editor.IStandaloneCodeEditor;
-import { registerCustomLanguages } from "./registerLanguages.ts";
+type IStandaloneCodeEditor = editor.IStandaloneCodeEditor;
 
 /**
  * Simple text editor.  This is a fallback editor for any text based content
@@ -32,8 +31,7 @@ export const TextEditor: DraftEditor = (props: EditorProps) => {
     }, [props.content]);
 
     return (
-        <Editor
-            beforeMount={registerCustomLanguages}
+        <RegistryCodeEditor
             className="text-editor"
             language={language}
             value={value}

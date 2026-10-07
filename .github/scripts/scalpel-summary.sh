@@ -22,8 +22,10 @@ report=${1:?usage: scalpel-summary.sh <report.json>}
 # absent from it, which is where teaching this script a newer schema belongs.
 # 0.4.2 ships scalpel-report-v2.schema.json byte-identical to 0.4.1; it changes only
 # how an empty trim is applied to the session, which mode=report never reaches.
+# 0.4.3 fixes a module-attribution bug for deleted modules (upstream #216) and
+# ships the same schema 2 report shape as 0.4.2.
 # shellcheck disable=SC2034  # consumed by scalpel-summary.test.sh, not here
-known_schema_2="0.4.1 0.4.2"
+known_schema_2="0.4.1 0.4.2 0.4.3"
 
 # The value this repository pins in .mvn/maven.config for the empty-reactor
 # reasons below. Read by scalpel-summary.test.sh, which cross-checks it against
@@ -159,16 +161,18 @@ else
           ;;
         *:"not a git repository" | \
         *:"no base branch configured")
-          # Environmental, not configured: Scalpel never got as far as comparing
-          # anything, so it returns without touching the reactor.
           echo "Scalpel could not start the comparison, so it trimmed nothing and the"
           echo "projection is a **full build**."
           echo
-          echo "The CI job sets no \`scalpel.baseBranch\`. It runs only on"
-          echo "\`pull_request\` events and checks out full history, so Scalpel derives"
-          echo "the base branch from \`GITHUB_BASE_REF\`. Seeing this in CI means that"
-          echo "derivation or the checkout depth broke. A local run reaches it"
-          echo "normally, because neither input exists outside CI."
+          if [ "$reason" = "not a git repository" ]; then
+            echo "Scalpel could not open a git repository from the build directory."
+          else
+            echo "The \`scalpel-report\` job passes \`scalpel.baseBranch\` from the PR's"
+            echo "base ref, and without it Scalpel falls back to \`GITHUB_BASE_REF\`."
+            echo "Seeing this reason in CI means both were missing. The job"
+            echo "logs a warning when Decide supplies no base branch. A local run"
+            echo "normally lands here, because neither input exists outside CI."
+          fi
           ;;
         *)
           # A reason this script has not been taught. Naming a projection here

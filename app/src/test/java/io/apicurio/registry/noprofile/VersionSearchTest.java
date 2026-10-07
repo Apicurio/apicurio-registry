@@ -177,8 +177,8 @@ public class VersionSearchTest extends AbstractResourceTestBase {
                         10,
                         false));
 
-        Assertions.assertEquals("Structure search requires the search index, which is not enabled. "
-                + "Enable the search index to use structure search.", exception.getMessage());
+        Assertions.assertEquals("Structure search on versions requires the search index, which is not enabled. "
+                + "Enable the search index, or search artifacts by structure instead.", exception.getMessage());
     }
 
     @Test

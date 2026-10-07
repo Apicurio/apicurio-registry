@@ -76,7 +76,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
             List<String> branches, boolean isDraft, boolean dryRun, String owner)
             throws RegistryStorageException {
         ArtifactVersionMetaDataDto dto = withLimitsCheck(
-                () -> limitsService.canCreateArtifactVersion(groupId, artifactId, null, content.getContent()))
+                () -> limitsService.canCreateArtifactVersion(groupId, artifactId, metaData, content.getContent()))
                 .execute(() -> delegate.createArtifactVersion(groupId, artifactId, version, artifactType,
                         content, metaData, branches, isDraft, dryRun, owner));
         if (!dryRun) {
@@ -90,7 +90,7 @@ public class RegistryStorageLimitsEnforcer extends RegistryStorageDecoratorBase
             List<String> branches, boolean isDraft, String owner, int expectedBaseVersionOrder,
             EditableArtifactMetaDataDto artifactMetaData) {
         ArtifactVersionMetaDataDto result = withLimitsCheck(
-                () -> limitsService.canCreateArtifactVersion(groupId, artifactId, null, content.getContent()))
+                () -> limitsService.canCreateArtifactVersion(groupId, artifactId, metaData, content.getContent()))
                 .execute(() -> delegate.createArtifactVersionIfLatest(groupId, artifactId, version, artifactType,
                         content, metaData, branches, isDraft, owner, expectedBaseVersionOrder, artifactMetaData));
         limitsService.artifactVersionCreated(groupId, artifactId);

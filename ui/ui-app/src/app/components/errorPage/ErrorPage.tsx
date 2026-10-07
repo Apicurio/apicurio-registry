@@ -12,7 +12,7 @@ import {
 import { ExclamationTriangleIcon } from "@patternfly/react-icons";
 import { PageError } from "@app/pages";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
-import { CodeEditor, Language } from "@patternfly/react-code-editor";
+import { RegistryPatternFlyCodeEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
 
 
 export type ErrorPageProps = {
@@ -84,17 +84,17 @@ export const ErrorPage: FunctionComponent<ErrorPageProps> = (props: ErrorPagePro
                     <div className="separator">&nbsp;</div>
                     {
                         isShowDetails ?
-                            <CodeEditor
+                            <RegistryPatternFlyCodeEditor
                                 code={errorDetail()}
                                 width="700px"
                                 isReadOnly={true}
                                 isLineNumbersVisible={false}
                                 isMinimapVisible={false}
                                 onChange={() => {}}
-                                language={Language.json}
-                                onEditorDidMount={(editor, monaco) => {
+                                language="json"
+                                onEditorDidMount={(editor) => {
                                     editor.layout();
-                                    monaco.editor.getModels()[0].updateOptions({ tabSize: 4 });
+                                    editor.getModel()?.updateOptions({ tabSize: 4 });
                                 }}
                                 height="300px"
                             />

@@ -1,0 +1,27 @@
+.editor-load-boundary__status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100px;
+    text-align: center;
+    padding: 8px;
+    color: var(--pf-t--global--text--color--subtle);
+}
+
+.editor-load-boundary__error {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 100px;
+    padding: 8px;
+    overflow: auto;
+}
+
+.editor-load-boundary__diagnostic {
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow: auto;
+    max-height: 200px;
+    padding: 8px;
+    border: 1px solid var(--pf-t--global--border--color--default);
+}

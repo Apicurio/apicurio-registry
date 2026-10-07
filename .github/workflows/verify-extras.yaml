@@ -23,6 +23,7 @@ jobs:
   examples-http-caching:
     name: Examples HTTP Caching Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # longest green run, week to 2026-10-01: 2 min
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -53,6 +54,7 @@ jobs:
   ui-e2e-tests:
     name: UI End-to-End Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 40  # longest green run, week to 2026-10-01: 19 min
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -109,6 +111,7 @@ jobs:
   legacy-v2-compatibility:
     name: Legacy V2 Compatibility Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20  # longest green run, week to 2026-10-01: 5 min
     steps:
       - name: Checkout Registry 2.6
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -116,7 +119,7 @@ jobs:
           ref: 2.6.x
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -151,6 +154,7 @@ jobs:
   typescript-sdk-tests:
     name: TypeScript SDK Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # longest green run, week to 2026-10-01: 2 min
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -175,12 +179,13 @@ jobs:
   build-examples:
     name: Build and Run Application Examples
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # longest green run, week to 2026-10-01: 13 min
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -189,7 +194,7 @@ jobs:
         uses: ./.github/actions/setup-maven-cache
 
       - name: Download Build Artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .

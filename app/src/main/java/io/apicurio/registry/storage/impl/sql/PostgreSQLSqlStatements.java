@@ -6,6 +6,11 @@ package io.apicurio.registry.storage.impl.sql;
  */
 public class PostgreSQLSqlStatements extends CommonSqlStatements {
 
+    @Override
+    public String insertContentIfAbsent() {
+        return insertContent() + " ON CONFLICT (contentHash) DO NOTHING";
+    }
+
     /**
      * Constructor.
      */

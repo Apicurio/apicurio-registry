@@ -5,6 +5,7 @@ import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.storage.impl.search.ElasticsearchIndexUpdater;
+import io.apicurio.registry.storage.impl.search.ElasticsearchStartupIndexer;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -37,12 +39,22 @@ public class WellKnownAgentSearchViaIndexTest extends AbstractResourceTestBase {
     @Inject
     ElasticsearchIndexUpdater indexUpdater;
 
+    @Inject
+    ElasticsearchStartupIndexer startupIndexer;
+
     private String serverRootUrl;
 
     @BeforeEach
-    public void setUpWellKnown() {
+    public void setUpWellKnown() throws TimeoutException {
         int port = ConfigProvider.getConfig().getValue("quarkus.http.test-port", Integer.class);
         serverRootUrl = "http://localhost:" + port;
+
+        // The Elasticsearch startup reindex runs asynchronously on the storage READY event.
+        // A test running shortly after application boot can otherwise race the decorator's
+        // startupIndexer.isReady() check and get a spurious 400, independent of
+        // indexUpdater.awaitIdle() below (which only drains the per-write index queue).
+        TestUtils.waitFor("Elasticsearch startup indexer to become ready", 50, 30_000,
+                startupIndexer::isReady);
     }
 
     private RequestSpecification givenAtRoot() {

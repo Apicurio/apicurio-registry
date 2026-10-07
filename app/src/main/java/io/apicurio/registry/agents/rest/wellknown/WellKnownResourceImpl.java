@@ -64,8 +64,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
-            List<String> inputModes, List<String> outputModes, Integer offset, Integer limit) {
-        return agentCardDiscovery.searchAgents(name, skills, capabilities, inputModes, outputModes, offset, limit);
+            List<String> inputModes, List<String> outputModes, Integer offset, Integer limit,
+            Boolean publicOnly) {
+        return agentCardDiscovery.searchAgents(name, skills, capabilities, inputModes, outputModes, offset, limit,
+                publicOnly);
     }
 
     @Override

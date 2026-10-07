@@ -22,6 +22,8 @@ type AgentsRequestBuilderGetQueryParameters struct {
 	Name       *string  "uriparametername:\"name\""
 	Offset     *int32   "uriparametername:\"offset\""
 	OutputMode []string "uriparametername:\"outputMode\""
+	// When `true`, only agent cards whose effective visibility is `public` are returned, whoever the caller is and whether or not authentication is enabled on this registry. The filter is applied before `offset` and `limit`, and the response then carries `publicOnly: true`. A registry that predates this parameter ignores it, so a caller that depends on the guarantee must check that field. Defaults to `false`, which keeps the existing visibility rules.
+	PublicOnly *bool    "uriparametername:\"publicOnly\""
 	Skill      []string "uriparametername:\"skill\""
 }
 
@@ -51,7 +53,7 @@ func (m *AgentsRequestBuilder) ByGroupId(groupId string) *AgentsWithGroupItemReq
 // NewAgentsRequestBuilderInternal instantiates a new AgentsRequestBuilder and sets the default values.
 func NewAgentsRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *AgentsRequestBuilder {
 	m := &AgentsRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/well-known/agents{?capability*,inputMode*,limit*,name*,offset*,outputMode*,skill*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/well-known/agents{?capability*,inputMode*,limit*,name*,offset*,outputMode*,publicOnly*,skill*}", pathParameters),
 	}
 	return m
 }

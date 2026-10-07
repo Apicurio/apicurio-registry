@@ -84,6 +84,142 @@ image::images/getting-started/registry-web-console-artifact-version.png[Artifact
 * xref:adding-artifacts-using-console_{context}[]
 * xref:configuring-rules-using-console_{context}[]
 * {registry-rule-reference}
+* xref:getting-started/assembly-data-contracts.adoc[]
+* xref:getting-started/assembly-usage-telemetry.adoc[]
+
+
+[id="comparing-artifact-versions-using-console_{context}"]
+== Comparing artifact versions using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can compare the content of two versions of the same artifact to review schema or API changes.
+
+.Prerequisites
+* You have access to the web console of a running {registry} instance.
+* You have an artifact with at least two versions whose content you can retrieve. The web console cannot load the content of a disabled version. If you select one, the *Compare Versions* dialog displays an error.
+
+.Procedure
+. On the *Explore* tab, open the group that contains the artifact.
+. Click the artifact to open its details.
+. On the *Overview* tab, select the check boxes for two versions in the *Versions in artifact* list.
++
+After you select two versions, the web console disables the remaining check boxes and enables the *Compare* button. The button label shows the selection count, for example, *Compare (2/2)*. You can select versions on different pages of the list. The selection persists until you clear a check box or click *Clear selection*.
+. Click *Compare* to open the *Compare Versions* dialog.
++
+The comparison displays the older version on the left and the newer version on the right, based on creation time. The comparison is read-only.
+. Optional: Click *Inline* to display the changes in a single view.
+. Optional: Click *Wrap text* to wrap long lines.
+
+.Verification
+* Verify that the *Older* and *Newer* labels identify the versions that you selected.
+
+
+[id="artifact-version-states-using-console_{context}"]
+== Artifact version states in the {registry} web console
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Each artifact version has a state that identifies its lifecycle stage. The web console displays only the state changes available for the selected version.
+
+.Version states and available changes in the web console
+[cols="1,3,2",options="header"]
+|===
+|State |Description |Available new states
+
+|*Draft* (`DRAFT`)
+|A version for preparing content before publication. By default, {registry} does not apply content rules to a draft until you publish it. You create draft versions on the *Drafts* tab, which the web console displays only when draft content mutability is enabled and you have the developer or administrator role, or by selecting *Create draft from...* on a version page.
+|*Enabled*
+
+|*Enabled* (`ENABLED`)
+|An active version whose content applications can retrieve. New versions start in this state unless you create them as drafts. The *Versions in artifact* list displays no badge for enabled versions.
+|*Deprecated*, *Disabled*
+
+|*Deprecated* (`DEPRECATED`)
+|A version that applications can still retrieve but that you intend to retire. {registry} adds an `X-Registry-Deprecated` header to REST API responses that return the content, to signal that applications must migrate to a newer version.
+|*Enabled*, *Disabled*
+
+|*Disabled* (`DISABLED`)
+|A version whose content requests return `404 Not Found`. Its metadata remains available, and you can change its state again. Requests for the `latest` version skip disabled versions.
+|*Enabled*, *Deprecated*
+
+|*Sunset* (`SUNSET`)
+|A version that has reached the end of its deprecation period. You can set this state only by using the REST API.
+|*Enabled*, *Deprecated*, *Disabled*
+|===
+
+You can create a version in the `DRAFT` state, but you cannot change an existing version back to `DRAFT` after publication.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:changing-version-state-using-console_{context}[]
+* xref:getting-started/assembly-schema-lifecycle-best-practices.adoc[]
+
+
+[id="changing-version-state-using-console_{context}"]
+== Changing an artifact version state using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can change an artifact version's state to publish a draft, deprecate a version, or disable access to its content.
+
+.Prerequisites
+* You have access to the web console of a running {registry} instance, and the web console is not in read-only mode.
+* If authentication is enabled, you have the developer or administrator role. If artifact owner-only authorization is enabled, you are the owner of the artifact or an administrator.
+* You have confirmed that applications no longer need to retrieve the version's content if you plan to disable it.
+
+.Procedure
+. On the *Explore* tab, open the group that contains the artifact.
+. Click the artifact to open its details.
+. On the *Overview* tab, click the version in the *Versions in artifact* list.
+. On the version's *Overview* tab, click *Change* next to *Status*.
+. In the *Change version state* dialog, select a value from the *New state* list.
++
+For a draft version, the only available value is *Enabled*. For other versions, select one of the available *Enabled*, *Disabled*, or *Deprecated* values.
++
+Alternatively, you can publish a draft by selecting *Finalize draft* from the Action menu (three vertical dots) in the version page header, or edit its content by clicking *Edit draft*.
+. Click *Change state*.
++
+When you publish a draft, {registry} applies the configured content rules. If the content violates a rule, the web console displays the *Invalid Content Error* dialog with the rule violations, and the version remains a draft.
+
+.Verification
+* Verify that *Status* on the version's *Overview* tab displays the selected state. In the *Versions in artifact* list, the version displays a *Deprecated* or *Disabled* badge, or no badge if you enabled the version.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:artifact-version-states-using-console_{context}[]
+* xref:configuring-rules-using-console_{context}[]
+* xref:getting-started/assembly-schema-lifecycle-best-practices.adoc[]
+
+
+[id="viewing-json-schema-using-console_{context}"]
+== Viewing a JSON Schema visualization using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can view the properties, constraints, and generated example for a JSON Schema in the web console to review its structure without reading the source content.
+
+.Prerequisites
+* You have access to the web console of a running {registry} instance.
+* You have stored a JSON Schema artifact with at least one version in {registry}. The *Documentation* tab is not available for disabled versions.
+
+.Procedure
+. On the *Explore* tab, open the group that contains the JSON Schema artifact.
+. Click the artifact to open its details.
+. On the *Overview* tab, click the version in the *Versions in artifact* list.
+. Click the *Documentation* tab.
++
+The left panel displays the schema title, root type, description, and the *Schema* row with the `$schema` value, followed by a *Properties* section. Each property displays its name, a type badge, and a *required* marker when the schema requires the property. The property also displays its description, constraints such as `minLength`, `maxLength`, `min`, `max`, `pattern`, and `format`, enumerated values, and the default value, when the schema defines them.
+. Optional: Click *Show properties* to expand a nested object or array item, or click *Hide properties* to collapse it.
++
+The web console expands top-level properties by default. The web console lists alternatives that the schema defines with `oneOf`, `anyOf`, or `allOf` under *One of*, *Any of*, or *All of*.
+. Review the *Generated Example* panel to see sample JSON content based on the schema.
++
+The web console generates the example from the default values, examples, constants, enumerated values, types, and formats that the schema defines. The generated example is read-only. Viewing it does not change the stored schema.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:browsing-artifacts-using-console_{context}[]
 
 
 

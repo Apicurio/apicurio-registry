@@ -45,6 +45,12 @@ func (m *SearchRequestBuilder) Contracts() *ContractsRequestBuilder {
 	return NewContractsRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
 
+// Federated search for agents across this registry and its peer registries.
+// returns a *FederatedRequestBuilder when successful
+func (m *SearchRequestBuilder) Federated() *FederatedRequestBuilder {
+	return NewFederatedRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Groups search for groups in the registry.
 // returns a *GroupsRequestBuilder when successful
 func (m *SearchRequestBuilder) Groups() *GroupsRequestBuilder {

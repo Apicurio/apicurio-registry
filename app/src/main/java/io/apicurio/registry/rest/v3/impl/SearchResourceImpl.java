@@ -120,6 +120,10 @@ public class SearchResourceImpl implements SearchResource {
             List<String> capability, List<String> inputMode, List<String> outputMode,
             BigInteger perSourceLimit) {
         federationConfig.requireEnabled();
+        if (request.getHeader(FederatedSearchService.HOP_HEADER) != null) {
+            throw new BadRequestException("A federated search cannot be forwarded: the request carries the "
+                    + FederatedSearchService.HOP_HEADER + " header.");
+        }
         int maxLimit = federationConfig.getSearchPerSourceLimitMax();
         int limit = perSourceLimit == null ? Math.min(DEFAULT_PER_SOURCE_LIMIT, maxLimit)
             : perSourceLimit.min(BigInteger.valueOf(maxLimit)).max(BigInteger.ONE).intValue();

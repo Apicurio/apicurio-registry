@@ -129,6 +129,19 @@ public class FederatedSearchResourceTest extends AbstractResourceTestBase {
         assertTrue(seen.query().contains("skill=" + skill), seen.query());
         assertNull(seen.header("Authorization"));
         assertNull(seen.header("Cookie"));
+        assertEquals("1", seen.header("X-Federation-Hop"));
+    }
+
+    @Test
+    void aSearchThatAnotherRegistryForwardedIsRefused() throws Exception {
+        StubPeer peer = stub((request, response) -> StubPeer.publicAgents(response, 0));
+        registerPeer("stub", peer.url());
+
+        given().header("X-Federation-Hop", "1").get(SEARCH_PATH).then().statusCode(400)
+                .body("name", equalTo("BadRequestException"));
+
+        assertTrue(peer.requests().isEmpty(), "A refused search must not be fanned out.");
+        given().get(SEARCH_PATH).then().statusCode(200);
     }
 
     @Test

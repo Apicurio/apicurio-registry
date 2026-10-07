@@ -227,13 +227,27 @@ public class WellKnownResourceImpl implements WellKnownResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
-            List<String> inputModes, List<String> outputModes, Integer offset, Integer limit) {
+            List<String> inputModes, List<String> outputModes, Integer offset, Integer limit,
+            Boolean publicOnly) {
+        return searchAgents(name, skills, capabilities, inputModes, outputModes, offset, limit, publicOnly,
+                request);
+    }
+
+    /**
+     * Searches agents for a caller whose HTTP request is given. Another resource that calls this one
+     * passes its own request: the {@code @Context} request of this bean is only set once the bean
+     * has served a request of its own.
+     */
+    public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
+            List<String> inputModes, List<String> outputModes, Integer offset, Integer limit,
+            Boolean publicOnly, HttpServletRequest callerRequest) {
         if (!a2aConfig.isEnabled()) {
             throw new NotFoundException("A2A support is disabled");
         }
 
-        String baseUrl = getBaseUrl();
-        String publisherDomain = resolvePublisherDomain();
+        boolean publicOnlyMode = Boolean.TRUE.equals(publicOnly);
+        String baseUrl = getBaseUrl(callerRequest);
+        String publisherDomain = resolvePublisherDomain(callerRequest);
 
         Set<SearchFilter> structureFilters = new HashSet<>();
         addStructureFilters(structureFilters, "skill", skills);
@@ -257,7 +271,8 @@ public class WellKnownResourceImpl implements WellKnownResource {
         // AiCatalogEntry, so they are evaluated afterwards against each surviving candidate's
         // Agent Card content.
         List<SearchedArtifactDto> matched = new ArrayList<>();
-        for (AiCatalogCandidate candidate : collectAiCatalogCandidates(baseUrl, publisherDomain, name, structureFilters)) {
+        for (AiCatalogCandidate candidate : collectAiCatalogCandidates(baseUrl, publisherDomain, name,
+                structureFilters, publicOnlyMode)) {
             if (!AiCatalogConstants.MEDIA_TYPE_AGENT_CARD.equals(candidate.entry.getType())) {
                 continue;
             }
@@ -280,6 +295,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
         return AgentSearchResults.builder()
                 .count(total)
                 .agents(agents)
+                .publicOnly(publicOnlyMode ? Boolean.TRUE : null)
                 .build();
     }
 
@@ -1073,6 +1089,11 @@ public class WellKnownResourceImpl implements WellKnownResource {
 
     private List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
             String textFilter, Set<SearchFilter> structureFilters) {
+        return collectAiCatalogCandidates(baseUrl, publisherDomain, textFilter, structureFilters, false);
+    }
+
+    private List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
+            String textFilter, Set<SearchFilter> structureFilters, boolean publicOnly) {
         List<AiCatalogCandidate> candidates = new ArrayList<>();
 
         Set<SearchFilter> agentFilters = new HashSet<>();
@@ -1084,7 +1105,10 @@ public class WellKnownResourceImpl implements WellKnownResource {
         ArtifactSearchResultsDto agentResults = storage.searchArtifacts(
                 agentFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
         warnIfTruncated(agentResults);
-        for (SearchedArtifactDto artifact : filterDtosByVisibility(agentResults.getArtifacts())) {
+        List<SearchedArtifactDto> visibleAgents = publicOnly
+                ? filterDtosToPublic(agentResults.getArtifacts())
+                : filterDtosByVisibility(agentResults.getArtifacts());
+        for (SearchedArtifactDto artifact : visibleAgents) {
             candidates.add(buildAgentCandidate(artifact, baseUrl, publisherDomain));
         }
 
@@ -1251,18 +1275,22 @@ public class WellKnownResourceImpl implements WellKnownResource {
      * convention of identifying a specific registry deployment rather than just a hostname).
      */
     private String resolvePublisherDomain() {
+        return resolvePublisherDomain(request);
+    }
+
+    private String resolvePublisherDomain(HttpServletRequest source) {
         Optional<String> configured = aiCatalogConfig.getPublisherDomain();
         if (configured.isPresent() && !StringUtil.isEmpty(configured.get())) {
             return configured.get();
         }
 
-        String forwardedHost = request.getHeader("X-Forwarded-Host");
+        String forwardedHost = source.getHeader("X-Forwarded-Host");
         if (!StringUtil.isEmpty(forwardedHost)) {
             return forwardedHost;
         }
 
-        String host = request.getServerName();
-        int port = request.getServerPort();
+        String host = source.getServerName();
+        int port = source.getServerPort();
         return port > 0 ? host + ":" + port : host;
     }
 
@@ -1579,6 +1607,21 @@ public class WellKnownResourceImpl implements WellKnownResource {
     }
 
     /**
+     * Keeps only the artifacts whose effective visibility is {@code public}. Unlike
+     * {@link #filterDtosByVisibility}, the result does not depend on the caller or on whether
+     * authentication is enabled: an unlabelled card is public only if the configured default is.
+     */
+    private List<SearchedArtifactDto> filterDtosToPublic(List<SearchedArtifactDto> artifacts) {
+        List<SearchedArtifactDto> result = new ArrayList<>();
+        for (SearchedArtifactDto artifact : artifacts) {
+            if ("public".equals(resolveVisibility(artifact.getLabels()))) {
+                result.add(artifact);
+            }
+        }
+        return result;
+    }
+
+    /**
      * Returns the effective visibility for an artifact. If the {@code apicurio.agent.visibility}
      * label is not set, falls back to the configured default visibility.
      * <p>
@@ -1601,13 +1644,17 @@ public class WellKnownResourceImpl implements WellKnownResource {
     }
 
     private String getBaseUrl() {
-        String scheme = request.getScheme();
-        String host = request.getServerName();
-        int port = request.getServerPort();
+        return getBaseUrl(request);
+    }
+
+    private String getBaseUrl(HttpServletRequest source) {
+        String scheme = source.getScheme();
+        String host = source.getServerName();
+        int port = source.getServerPort();
 
         // Check for X-Forwarded headers (common in load balancers/proxies)
-        String forwardedProto = request.getHeader("X-Forwarded-Proto");
-        String forwardedHost = request.getHeader("X-Forwarded-Host");
+        String forwardedProto = source.getHeader("X-Forwarded-Proto");
+        String forwardedHost = source.getHeader("X-Forwarded-Host");
 
         if (!StringUtil.isEmpty(forwardedProto)) {
             scheme = forwardedProto;

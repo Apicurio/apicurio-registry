@@ -3835,6 +3835,108 @@
         }
       ]
     },
+    "/search/federated": {
+      "summary": "Search for agents across this registry and its peer registries.",
+      "get": {
+        "tags": [
+          "Search"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "description": "Filter by agent name (partial match).",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "skill",
+            "description": "Filter by skill id. Repeat the parameter to require several skills.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "capability",
+            "description": "Filter by capability, for example `streaming` or `streaming:false`.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "inputMode",
+            "description": "Filter by default input mode.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "outputMode",
+            "description": "Filter by default output mode.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "perSourceLimit",
+            "description": "The maximum number of agents to return from each source, this registry and every peer registry alike. It does not cap the merged response, which can hold up to `perSourceLimit` agents per source. There is no merged offset or page token. Defaults to 20 and is capped by the server.",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FederatedAgentSearchResults"
+                }
+              }
+            },
+            "description": "Agents from this registry and from every peer that answered, with one outcome per source."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "searchFederatedAgents",
+        "summary": "Search for agents across this registry and its peer registries",
+        "description": "Searches the agent cards of this registry and of every enabled peer registry, and returns them in one response with the `source` of each agent.\n\nThe caller's own visibility rules apply to this registry's results. Peers are queried anonymously and asked for `public` agent cards only, so a peer never returns an agent that is not public, whatever its own authentication settings. A peer that does not confirm the public-only mode is reported as `unsupported` and its agents are discarded. The caller's credentials are never sent to a peer.\n\nThe response is `200` whenever the search of this registry succeeds, even when some or all peers fail: the outcome of each source is in `sources`. Agents with the same group and artifact id from different sources are all returned.\n\nThis operation can fail for the following reasons:\n\n* Federation is not enabled on this registry (HTTP error `409`)\n* More peers are enabled than the configured maximum (HTTP error `409`)\n* A2A support is not enabled on this registry (HTTP error `404`)\n* A server error occurred (HTTP error `500`)\n"
+      }
+    },
     "/search/groups": {
       "summary": "Search for groups in the registry.",
       "get": {
@@ -10359,6 +10461,185 @@
             "type": "boolean"
           }
         }
+      },
+      "FederatedAgentSearchResults": {
+        "description": "Agents found in this registry and in its peer registries, with the outcome of each source.",
+        "required": [
+          "agents",
+          "sources"
+        ],
+        "type": "object",
+        "properties": {
+          "agents": {
+            "description": "The agents found. This registry's agents come first, then each peer's in peer id order. There is no ranking across sources.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FederatedAgentSearchResult"
+            }
+          },
+          "sources": {
+            "description": "One entry for this registry, source `local`, and one for every enabled peer.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FederatedSearchSource"
+            }
+          }
+        },
+        "example": {
+          "agents": [
+            {
+              "source": "local",
+              "groupId": "payments",
+              "artifactId": "refund-agent",
+              "name": "Refund Agent",
+              "skills": [
+                "refund"
+              ]
+            },
+            {
+              "source": "eu-registry",
+              "groupId": "payments",
+              "artifactId": "refund-agent",
+              "name": "Refund Agent",
+              "skills": [
+                "refund"
+              ]
+            }
+          ],
+          "sources": [
+            {
+              "source": "local",
+              "outcome": "ok",
+              "count": 1,
+              "truncated": false
+            },
+            {
+              "source": "eu-registry",
+              "outcome": "ok",
+              "count": 1,
+              "truncated": false
+            },
+            {
+              "source": "us-registry",
+              "outcome": "failed",
+              "reason": "unreachable",
+              "count": 0,
+              "truncated": false
+            },
+            {
+              "source": "apac-registry",
+              "outcome": "deadline_exceeded",
+              "count": 0,
+              "truncated": false
+            },
+            {
+              "source": "lab-registry",
+              "outcome": "unsupported",
+              "count": 0,
+              "truncated": false
+            }
+          ]
+        }
+      },
+      "FederatedAgentSearchResult": {
+        "description": "An agent card search result and the source it came from.",
+        "required": [
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "description": "Where the agent was found: `local` for this registry, otherwise the id of the peer registry. Assigned by this registry, never taken from the peer.",
+            "type": "string"
+          },
+          "groupId": {
+            "type": "string"
+          },
+          "artifactId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "supportedInterfaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AgentInterface"
+            }
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AgentCapabilities"
+          },
+          "createdOn": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "owner": {
+            "type": "string"
+          }
+        }
+      },
+      "FederatedSearchSource": {
+        "description": "What happened when one source was searched.",
+        "required": [
+          "source",
+          "outcome",
+          "count",
+          "truncated"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "description": "`local` for this registry, otherwise the id of the peer registry.",
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/FederatedSearchOutcome"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/FederatedSearchFailureReason"
+          },
+          "count": {
+            "description": "The number of agents from this source that are in the response.",
+            "type": "integer"
+          },
+          "truncated": {
+            "description": "`true` when the source reported more matches than were returned, because of `perSourceLimit`.",
+            "type": "boolean"
+          }
+        }
+      },
+      "FederatedSearchOutcome": {
+        "description": "The result of searching one source.\n\n* `ok` - the source answered and its agents are in the response.\n* `deadline_exceeded` - the search ran out of time before the source answered. This says nothing about the peer's health.\n* `unsupported` - the peer did not confirm the public-only mode, so its answer was discarded.\n* `failed` - the source could not be searched; `reason` says why.\n",
+        "enum": [
+          "ok",
+          "deadline_exceeded",
+          "unsupported",
+          "failed"
+        ],
+        "type": "string"
+      },
+      "FederatedSearchFailureReason": {
+        "description": "Why a source could not be searched. Set only when the outcome is `failed`.\n\n* `unauthorized` - the peer answered 401 or 403.\n* `unreachable` - the peer could not be reached, or its address is not allowed.\n* `timeout` - the peer did not answer within the per-peer timeout.\n* `peer_error` - the peer answered with a server error, or with a redirect.\n* `invalid_response` - the peer's answer was malformed, too large or inconsistent.\n* `circuit_open` - the peer is failing repeatedly and was not called.\n* `capacity_exceeded` - this registry had no capacity left to call the peer.\n",
+        "enum": [
+          "unauthorized",
+          "unreachable",
+          "timeout",
+          "peer_error",
+          "invalid_response",
+          "circuit_open",
+          "capacity_exceeded"
+        ],
+        "type": "string"
       },
       "McpToolSearchResult": {
         "description": "MCP tool search result.",

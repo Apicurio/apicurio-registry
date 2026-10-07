@@ -67,6 +67,12 @@ public class FederatedSearchService {
 
     static final String LOCAL_SOURCE = "local";
 
+    /**
+     * Sent on every call to a peer. A registry that receives a federated search carrying it refuses
+     * it, so a search is forwarded at most once.
+     */
+    public static final String HOP_HEADER = "X-Federation-Hop";
+
     private static final Logger log = LoggerFactory.getLogger(FederatedSearchService.class);
 
     /**

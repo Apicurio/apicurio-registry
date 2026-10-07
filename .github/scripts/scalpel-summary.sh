@@ -22,9 +22,8 @@ report=${1:?usage: scalpel-summary.sh <report.json>}
 # absent from it, which is where teaching this script a newer schema belongs.
 # 0.4.2 ships scalpel-report-v2.schema.json byte-identical to 0.4.1; it changes only
 # how an empty trim is applied to the session, which mode=report never reaches.
-# 0.4.3 ships the same schema file as 0.4.2 (sha256 ac9efce1c237ec06...). It does not change
-# the schema; per the upstream compare 0.4.2...0.4.3 it changes which modules are selected
-# (extension3 POM analysis and module attribution).
+# 0.4.3 ships the same schema file as 0.4.2 and changes only which modules are selected
+# (POM analysis and module attribution in the extension).
 # shellcheck disable=SC2034  # consumed by scalpel-summary.test.sh, not here
 known_schema_2="0.4.1 0.4.2 0.4.3"
 

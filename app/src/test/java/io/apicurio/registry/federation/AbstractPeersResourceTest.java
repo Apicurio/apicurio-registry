@@ -114,6 +114,38 @@ public abstract class AbstractPeersResourceTest extends AbstractResourceTestBase
     }
 
     @Test
+    void atMostTheConfiguredNumberOfPeersCanBeEnabled() {
+        for (int i = 0; i < 16; i++) {
+            createPeer(newPeer("limit-" + i, "https://limit-" + i + ".example.com")).statusCode(204);
+        }
+        String title = "At most 16 peers can be enabled. Disable or delete a peer first.";
+        assertProblem(createPeer(newPeer("limit-16", "https://limit-16.example.com")), 409, "ConflictException",
+                title);
+
+        // A disabled peer is not queried, so it does not count, but it cannot be enabled past the limit.
+        Map<String, Object> disabled = newPeer("limit-disabled", "https://limit-disabled.example.com");
+        disabled.put("enabled", false);
+        createPeer(disabled).statusCode(204);
+        Map<String, Object> enable = new HashMap<>();
+        enable.put("url", "https://limit-disabled.example.com");
+        enable.put("enabled", true);
+        assertProblem(given().when().contentType(ContentType.JSON).body(enable)
+                .pathParam("peerId", "limit-disabled").put(PEER_PATH).then(), 409, "ConflictException", title);
+
+        // An enabled peer can still be edited, and disabling one makes room for another.
+        Map<String, Object> edit = new HashMap<>();
+        edit.put("url", "https://limit-0-moved.example.com");
+        edit.put("enabled", true);
+        given().when().contentType(ContentType.JSON).body(edit).pathParam("peerId", "limit-0").put(PEER_PATH)
+                .then().statusCode(204);
+        edit.put("enabled", false);
+        given().when().contentType(ContentType.JSON).body(edit).pathParam("peerId", "limit-0").put(PEER_PATH)
+                .then().statusCode(204);
+        given().when().contentType(ContentType.JSON).body(enable).pathParam("peerId", "limit-disabled")
+                .put(PEER_PATH).then().statusCode(204);
+    }
+
+    @Test
     void sdkRoundTrip() throws Exception {
         NewPeer newPeer = new NewPeer();
         newPeer.setPeerId("sdk-peer");

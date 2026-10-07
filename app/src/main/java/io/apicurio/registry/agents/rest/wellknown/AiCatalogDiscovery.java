@@ -318,6 +318,11 @@ public class AiCatalogDiscovery {
 
     List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
             String textFilter, Set<SearchFilter> structureFilters) {
+        return collectAiCatalogCandidates(baseUrl, publisherDomain, textFilter, structureFilters, false);
+    }
+
+    List<AiCatalogCandidate> collectAiCatalogCandidates(String baseUrl, String publisherDomain,
+            String textFilter, Set<SearchFilter> structureFilters, boolean publicOnly) {
         List<AiCatalogCandidate> candidates = new ArrayList<>();
 
         Set<SearchFilter> agentFilters = new HashSet<>();
@@ -329,7 +334,10 @@ public class AiCatalogDiscovery {
         ArtifactSearchResultsDto agentResults = storage.searchArtifacts(
                 agentFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
         warnIfTruncated(agentResults);
-        for (SearchedArtifactDto artifact : agentVisibilityFilter.filterDtosByVisibility(agentResults.getArtifacts())) {
+        List<SearchedArtifactDto> visibleAgents = publicOnly
+                ? agentVisibilityFilter.filterDtosToPublic(agentResults.getArtifacts())
+                : agentVisibilityFilter.filterDtosByVisibility(agentResults.getArtifacts());
+        for (SearchedArtifactDto artifact : visibleAgents) {
             candidates.add(buildAgentCandidate(artifact, baseUrl, publisherDomain));
         }
 

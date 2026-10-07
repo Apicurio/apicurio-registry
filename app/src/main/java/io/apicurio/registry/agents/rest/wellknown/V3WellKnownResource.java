@@ -41,10 +41,10 @@ public class V3WellKnownResource implements WellResource {
     @Override
     public AgentSearchResults searchAgents(BigInteger offset, BigInteger limit,
             String name, List<String> skill, List<String> capability,
-            List<String> inputMode, List<String> outputMode) {
+            List<String> inputMode, List<String> outputMode, Boolean publicOnly) {
         int off = offset != null ? offset.intValue() : 0;
         int lim = limit != null ? limit.intValue() : 20;
-        return delegate.searchAgents(name, skill, capability, inputMode, outputMode, off, lim);
+        return delegate.searchAgents(name, skill, capability, inputMode, outputMode, off, lim, publicOnly);
     }
 
     @Override

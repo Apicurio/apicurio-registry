@@ -6613,6 +6613,16 @@
               }
             },
             "in": "query"
+          },
+          {
+            "name": "publicOnly",
+            "description": "When `true`, only agent cards whose effective visibility is `public` are returned, whoever the caller is and whether or not authentication is enabled on this registry. The filter is applied before `offset` and `limit`, and the response then carries `publicOnly: true`. A registry that predates this parameter ignores it, so a caller that depends on the guarantee must check that field. Defaults to `false`, which keeps the existing visibility rules.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
           }
         ],
         "responses": {
@@ -10343,6 +10353,10 @@
             "items": {
               "$ref": "#/components/schemas/AgentSearchResult"
             }
+          },
+          "publicOnly": {
+            "description": "`true` when the request asked for `publicOnly` and this registry applied it. Absent otherwise, and absent from registries that predate the parameter.",
+            "type": "boolean"
           }
         }
       },

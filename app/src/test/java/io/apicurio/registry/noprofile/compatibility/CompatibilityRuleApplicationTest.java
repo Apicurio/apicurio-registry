@@ -257,6 +257,7 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
                 () -> createArtifactVersion(artifactId, schema.formatted(5), ContentTypes.APPLICATION_JSON));
         Assertions.assertEquals(400, exception.getResponseStatusCode());
         Assertions.assertEquals("/properties/name/maxLength", exception.getCauses().get(0).getContext());
+        Assertions.assertEquals(RuleType.COMPATIBILITY, exception.getRuleType());
     }
 
     /**

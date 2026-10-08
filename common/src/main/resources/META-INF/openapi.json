@@ -7020,12 +7020,62 @@
           },
           "context": {
             "type": "string"
+          },
+          "code": {
+            "description": "The checker's identifier for the kind of difference, for example a JSON Schema difference type or an Avro schema incompatibility type. Meaningful together with the artifact type. Informational: it identifies the explanation to look up, and may change between minor versions. Clients must not build logic on specific values.",
+            "type": "string"
+          },
+          "direction": {
+            "description": "Which compatibility this difference breaks. Under a `FULL` compatibility level, this tells the user what each problem breaks.",
+            "$ref": "#/components/schemas/CompatibilityDifferenceDirection"
+          },
+          "proposed": {
+            "description": "Where the difference is in the content being added, when the checker can locate it there.",
+            "$ref": "#/components/schemas/DifferenceLocation"
+          },
+          "existing": {
+            "description": "Where the difference is in the existing version it was compared with.",
+            "$ref": "#/components/schemas/DifferenceLocation"
           }
         },
         "example": {
           "description": "External documentation URL is not valid (it must be formatted as a URL).",
           "context": "/info/externalDocs[url]"
         }
+      },
+      "DifferenceLocation": {
+        "title": "Root Type for DifferenceLocation",
+        "description": "A location within one of the two documents compared by a rule. Locations are labelled by document - proposed or existing - rather than by the checker's original and updated schemas, so that the direction of the check does not change their meaning. Clients must tolerate a pointer that does not resolve in the content as written, falling back to the deepest part that does.",
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "description": "A JSON Pointer, in that document's own keywords. When the two documents use different drafts, each pointer uses its own document's spelling.",
+            "type": "string"
+          },
+          "reference": {
+            "description": "When set, the location is in a referenced artifact, named as in the version's artifact references, and `pointer` points into that artifact. Absent means the location is in the document itself.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The existing version the difference was found against, when known - always the latest version for the non-transitive compatibility levels. Not set on a proposed location.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "pointer": "/properties/name/maxLength",
+          "version": "3"
+        }
+      },
+      "CompatibilityDifferenceDirection": {
+        "description": "Which compatibility a difference breaks.",
+        "enum": [
+          "BACKWARD",
+          "FORWARD",
+          "BOTH"
+        ],
+        "type": "string",
+        "example": "BACKWARD",
+        "x-codegen-package": "io.apicurio.registry.types"
       },
       "IfArtifactExists": {
         "description": "",
@@ -7690,6 +7740,10 @@
                 "items": {
                   "$ref": "#/components/schemas/RuleViolationCause"
                 }
+              },
+              "ruleType": {
+                "description": "The type of rule that was violated. Clients should use this, rather than `name`, to recognise a rule violation.",
+                "$ref": "#/components/schemas/RuleType"
               }
             }
           },

@@ -474,13 +474,18 @@ report schema file. 0.4.2 differs from 0.4.1 only in how an empty trim is
 applied to the session, which `mode=report` never reaches. 0.4.3 also changes
 the extension's POM analysis and module attribution, so it can select different
 modules than the replay did. The statements in this section marked as verified
-on 0.4.2 were not repeated on 0.4.3. The one re-check is a one-file change in
-`common` under `mode=trim`, which still builds 57 of 58 modules. The replay also
-predates the current `scalpel.excludePaths` list, so the 16 exhausted runs come
-from re-applying the current list to each commit's changed files using
-Scalpel's own glob rules, and the 11 trimmed percentages are as measured,
-which makes them a lower bound: excluding more files can only shrink an
-affected set. And the replay harness is not in this repository, so the
+on 0.4.2 were re-checked on 0.4.3 only for the cases below, each run with
+`mode=trim`. A one-file change in `common` logged "Building 57 of 58 modules"
+and Maven built 57. An operator-only change logged "No modules affected by
+changes" and Maven built all 58, and so did a change confined to `docs/**`,
+which `scalpel.excludePaths` removes. The tables above count 57 reactor modules,
+so I did not re-derive their percentages on 0.4.3.
+
+The replay also predates the current `scalpel.excludePaths` list, so
+the 16 exhausted runs come from re-applying the current list to each commit's
+changed files using Scalpel's own glob rules, and the 11 trimmed percentages are
+as measured, which makes them a lower bound: excluding more files can only
+shrink an affected set. And the replay harness is not in this repository, so the
 table cannot be regenerated from a checkout. Treat it as a dated observation and
 re-measure rather than trusting it indefinitely.
 

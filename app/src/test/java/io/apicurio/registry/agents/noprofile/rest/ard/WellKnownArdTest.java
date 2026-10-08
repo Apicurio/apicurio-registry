@@ -4,6 +4,7 @@ import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.agents.noprofile.rest.aicatalog.AiCatalogEnabledProfile;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -12,19 +13,19 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
-import io.restassured.path.json.JsonPath;
+import io.restassured.response.ExtractableResponse;
+import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
@@ -269,47 +270,48 @@ public class WellKnownArdTest extends AbstractResourceTestBase {
         String agentId2 = "ard-page-b-" + unique;
         String agentId3 = "ard-page-c-" + unique;
 
-        createAgentCard(groupId, agentId1, AGENT_CARD_CONTENT);
-        createAgentCard(groupId, agentId2, AGENT_CARD_CONTENT);
-        createAgentCard(groupId, agentId3, AGENT_CARD_CONTENT);
+        // Other tests in this class leave agents in the shared store, so the listing is scoped
+        // to this test's three agents through a label only they carry.
+        String labelKey = "ard-page";
+        Map<String, Object> labels = Map.of(labelKey, unique);
+        createAgentCard(groupId, agentId1, AGENT_CARD_CONTENT, labels);
+        createAgentCard(groupId, agentId2, AGENT_CARD_CONTENT, labels);
+        createAgentCard(groupId, agentId3, AGENT_CARD_CONTENT, labels);
+        String filter = "tags=" + labelKey + "=" + unique;
 
-        // The listing is registry-wide, so other tests' agents are on the same pages. Walk every page
-        // and check the pagination contract instead of assuming which page holds which entry.
-        List<String> urls = new ArrayList<>();
-        String pageToken = null;
-        int total = -1;
-        for (int page = 0; page < 1000; page++) {
-            RequestSpecification request = givenAtRoot().contentType(ContentType.JSON).queryParam("pageSize", 2);
-            if (pageToken != null) {
-                request = request.queryParam("pageToken", pageToken);
-            }
-            JsonPath json = request.when().get("/.well-known/ard/agents")
-                    .then().statusCode(200).extract().jsonPath();
-            List<String> pageUrls = json.getList("items.url", String.class);
-            total = json.getInt("total");
-            pageToken = json.getString("pageToken");
-            if (pageToken != null) {
-                assertEquals(2, pageUrls.size(), "every page but the last must be full");
-            }
-            urls.addAll(pageUrls);
-            if (pageToken == null) {
-                break;
-            }
-        }
+        ExtractableResponse<Response> firstPage = givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .queryParam("filter", filter)
+                .queryParam("pageSize", 2)
+                .get("/.well-known/ard/agents")
+                .then()
+                .statusCode(200)
+                .body("items", hasSize(2))
+                .body("total", equalTo(3))
+                .body("pageToken", notNullValue())
+                .extract();
 
-        assertNull(pageToken, "pagination must terminate");
-        assertEquals(total, urls.size(), "pages must cover every entry exactly once");
-        assertEquals(urls.size(), new HashSet<>(urls).size(), "no entry may appear on two pages");
+        List<String> secondPageUrls = givenAtRoot()
+                .when()
+                .contentType(ContentType.JSON)
+                .queryParam("filter", filter)
+                .queryParam("pageSize", 2)
+                .queryParam("pageToken", firstPage.<String>path("pageToken"))
+                .get("/.well-known/ard/agents")
+                .then()
+                .statusCode(200)
+                .body("items", hasSize(1))
+                .body("pageToken", nullValue())
+                .extract()
+                .path("items.url");
 
-        // Our three agents each appear once, newest first (createdOn desc).
-        List<String> ours = urls.stream()
-                .filter(u -> u.endsWith(groupId + "/" + agentId1) || u.endsWith(groupId + "/" + agentId2)
-                        || u.endsWith(groupId + "/" + agentId3))
-                .toList();
-        assertEquals(3, ours.size());
-        assertTrue(ours.get(0).endsWith(agentId3));
-        assertTrue(ours.get(1).endsWith(agentId2));
-        assertTrue(ours.get(2).endsWith(agentId1));
+        // Agents created in the same millisecond have no defined order, so check that the two pages
+        // together hold each agent exactly once rather than which page each one lands on.
+        List<String> urls = new ArrayList<>(firstPage.<List<String>>path("items.url"));
+        urls.addAll(secondPageUrls);
+        assertThat(urls, containsInAnyOrder(endsWith(groupId + "/" + agentId1),
+                endsWith(groupId + "/" + agentId2), endsWith(groupId + "/" + agentId3)));
     }
 
     @Test
@@ -411,7 +413,15 @@ public class WellKnownArdTest extends AbstractResourceTestBase {
     }
 
     private void createAgentCard(String groupId, String artifactId, String content) {
+        createAgentCard(groupId, artifactId, content, Map.of());
+    }
+
+    private void createAgentCard(String groupId, String artifactId, String content,
+            Map<String, Object> labels) {
         CreateArtifact createArtifact = new CreateArtifact();
+        Labels artifactLabels = new Labels();
+        artifactLabels.setAdditionalData(labels);
+        createArtifact.setLabels(artifactLabels);
         createArtifact.setArtifactId(artifactId);
         createArtifact.setArtifactType(ArtifactType.AGENT_CARD);
 

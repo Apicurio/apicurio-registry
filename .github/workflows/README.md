@@ -487,9 +487,10 @@ in `common`, run with `scalpel.buildAllIfNoChanges=true`, logged
 "Building 57 of 58 modules" and Maven built 57. An operator-only change logged
 "No modules affected by changes" and Maven built all 58. A change confined to
 `docs/**` logged "All changed files excluded by path filters, building all
-modules" and Maven built all 58. The operator-only change was run again with
-`scalpel.buildAllIfNoChanges=false` and gave the same log line and 58 modules
-built. The `invalid-content-ref/README.md` fixture from the attribution probe
+modules" and Maven built all 58. With `scalpel.buildAllIfNoChanges=false`, the
+operator-only change gave the same log line and 58 modules built, while the
+`docs/**` change logged "trimming reactor to empty", built nothing and failed
+with `NoGoalSpecifiedException`. The `invalid-content-ref/README.md` fixture from the attribution probe
 above, changed alone, logged "1 modules directly affected:
 [apicurio-registry-app]" on 0.4.3, the same attribution as on 0.4.2. I did not
 repeat the 111-file count. The tables above count 57 reactor modules, so I did

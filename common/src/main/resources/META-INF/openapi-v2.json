@@ -983,7 +983,7 @@
             "description": "Returned when the update was successful."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "$ref": "#/components/responses/RuleViolationBadRequest"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -4357,6 +4357,28 @@
         },
         "x-codegen-extendsClass": "io.apicurio.registry.rest.v2.beans.Error"
       },
+      "ConflictOrRuleViolationError": {
+        "title": "Conflict or Rule Violation Error",
+        "description": "HTTP 409 body for v2 API. causes is present only for rule violation conflicts.",
+        "type": "object",
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "causes": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RuleViolationCause"
+                }
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/Error"
+          }
+        ],
+        "x-codegen-extendsClass": "io.apicurio.registry.rest.v2.beans.Error"
+      },
       "ArtifactReference": {
         "title": "Root Type for ArtifactReference",
         "description": "A reference to a different artifact. Typically used with artifact types that can have dependencies like Protobuf.",
@@ -4848,7 +4870,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/RuleViolationError"
+              "$ref": "#/components/schemas/ConflictOrRuleViolationError"
             },
             "examples": {
               "RuleViolationConflictExample": {
@@ -4871,6 +4893,34 @@
           }
         },
         "description": "Common response used when an input conflicts with existing data."
+      },
+      "RuleViolationBadRequest": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/RuleViolationError"
+            },
+            "examples": {
+              "RuleViolationBadRequestExample": {
+                "value": {
+                  "error_code": 400,
+                  "message": "The artifact content was invalid",
+                  "causes": [
+                    {
+                      "description": "API is missing a title",
+                      "context": "/info[title]"
+                    },
+                    {
+                      "description": "Operation IDs must be unique",
+                      "context": "/paths[/invoices]/put[operationId]"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "description": "Common response used when the content of the request violates one or more configured rules."
       },
       "ArtifactContent": {
         "content": {

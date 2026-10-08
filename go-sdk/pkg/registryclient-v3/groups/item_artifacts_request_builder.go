@@ -157,7 +157,7 @@ func (m *ItemArtifactsRequestBuilder) Get(ctx context.Context, requestConfigurat
 // returns a ProblemDetails error when the service returns a 401 status code
 // returns a ProblemDetails error when the service returns a 403 status code
 // returns a ProblemDetails error when the service returns a 404 status code
-// returns a ProblemDetails error when the service returns a 409 status code
+// returns a ConflictOrRuleViolationProblemDetails error when the service returns a 409 status code
 // returns a ProblemDetails error when the service returns a 422 status code
 // returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemArtifactsRequestBuilder) Post(ctx context.Context, body iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateArtifactable, requestConfiguration *ItemArtifactsRequestBuilderPostRequestConfiguration) (iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateArtifactResponseable, error) {
@@ -170,7 +170,7 @@ func (m *ItemArtifactsRequestBuilder) Post(ctx context.Context, body iefa8953a35
 		"401": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"403": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"404": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
-		"409": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
+		"409": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateConflictOrRuleViolationProblemDetailsFromDiscriminatorValue,
 		"422": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"500": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 	}

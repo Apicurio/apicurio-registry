@@ -5,6 +5,7 @@ import io.apicurio.registry.cli.config.Config;
 import io.apicurio.registry.cli.services.Client;
 import io.apicurio.registry.cli.services.UpdateNotifier;
 import io.apicurio.registry.cli.utils.OutputBuffer;
+import io.apicurio.registry.rest.client.models.ConflictOrRuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import jakarta.inject.Inject;
@@ -62,6 +63,13 @@ public abstract class AbstractCommand implements Callable<Integer> {
         } catch (RuleViolationProblemDetails ex) {
             handleRuleViolation(output, ex);
             return SERVER_ERROR_RETURN_CODE;
+        } catch (ConflictOrRuleViolationProblemDetails ex) {
+            if (ex.getCauses() != null && !ex.getCauses().isEmpty()) {
+                handleRuleViolation(output, ex);
+            } else {
+                handleProblemDetails(output, ex);
+            }
+            return SERVER_ERROR_RETURN_CODE;
         } catch (ProblemDetails ex) {
             handleProblemDetails(output, ex);
             return SERVER_ERROR_RETURN_CODE;
@@ -109,6 +117,22 @@ public abstract class AbstractCommand implements Callable<Integer> {
                     causes.forEach(cause ->
                             err.append("  -> ").append(Optional.ofNullable(cause.getContext()).orElse(""))
                                     .append(": ").append(Optional.ofNullable(cause.getDescription()).orElse("")).append('\n')));
+        });
+    }
+
+    private static void handleRuleViolation(final OutputBuffer output, final ConflictOrRuleViolationProblemDetails ex) {
+        output.writeStdErrChunk(err -> {
+            err.append(ERROR_PREFIX).append(Optional.ofNullable(ex.getDetail()).orElse(ex.getMessage())).append('\n');
+            Optional.ofNullable(ex.getCauses()).ifPresent(causes ->
+                    causes.forEach(cause ->
+                            err.append("  -> ").append(Optional.ofNullable(cause.getContext()).orElse(""))
+                                    .append(": ").append(Optional.ofNullable(cause.getDescription()).orElse("")).append('\n')));
+        });
+    }
+
+    private static void handleProblemDetails(final OutputBuffer output, final ConflictOrRuleViolationProblemDetails ex) {
+        output.writeStdErrChunk(err -> {
+            err.append(ERROR_PREFIX).append(Optional.ofNullable(ex.getDetail()).orElse(ex.getMessage())).append('\n');
         });
     }
 

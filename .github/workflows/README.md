@@ -330,8 +330,9 @@ proper with `NoGoalSpecifiedException`, because a session with no projects has
 no goals. Scalpel 0.4.0 and earlier built every module here too, so the empty
 build the reason's wording suggests has never been a reachable outcome on any
 pin of this extension. Both facts were verified on 0.4.2 in `mode=trim` with
-synthetic change sets (REG-304). The paragraph below that begins "The replay ran
-on 0.4.1" lists what was re-run on 0.4.3.
+synthetic change sets (REG-304). The 0.4.3 re-runs, all with the flag true, are
+in the paragraph below that begins "The statements in this section marked as
+verified on 0.4.2".
 
 Five reasons project a full build, because Scalpel returns without touching the
 reactor. Configuration stands it down in three of them, `disabled by
@@ -448,11 +449,11 @@ Both empty-build rows are projections under `buildAllIfNoChanges=false`, which
 build every module, and the zero-build-set runs build every module too, because
 a trimming build never applies that decision on Scalpel 0.4.2 with the flag
 either way (0.4.3 was re-checked with the flag true only). The rows above were
-counted under the pre-narrowing excludePaths list; under the list this branch
+counted under the pre-narrowing excludePaths list. Under the list this branch
 ships the split moves to 12 exhausted and 8 zero-build-set, and the total
 projecting a zero-module build stays 20 of 40. The behavior statements are 0.4.2
-facts, with the 0.4.3 re-runs described below; the replay rows themselves are 0.4.1
-reports, whose schema is byte-identical to 0.4.2 by the hash check recorded in
+facts, with the 0.4.3 re-runs described below. The replay rows themselves are
+0.4.1 reports, whose schema is byte-identical to 0.4.2 by the hash check recorded in
 REG-245. The mean under the shipped configuration is the trimmed row alone,
 about 4% of module-builds, plus the test-time saving that
 `scalpel.skipTestsForUpstream` would add on the trimmed runs, which this

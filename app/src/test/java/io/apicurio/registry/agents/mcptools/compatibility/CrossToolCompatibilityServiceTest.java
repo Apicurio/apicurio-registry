@@ -577,6 +577,96 @@ class CrossToolCompatibilityServiceTest {
     }
 
     @Test
+    void testUnionOfEveryTypeAcceptsAnyValue() {
+        String everyType = "{'type':'object','properties':{'a':{'type':"
+                + "['string','number','boolean','object','array','null']}}}";
+
+        assertCompatible(compare("{'type':'object','properties':{'a':{}},'additionalProperties':false}",
+                everyType));
+        assertCompatible(compare("{'type':'object','properties':{'a':true},'additionalProperties':false}",
+                everyType));
+        assertCompatible(compare("{'type':'object','additionalProperties':true}",
+                "{'type':'object','additionalProperties':{'type':"
+                        + "['null','integer','number','string','array','object','boolean']}}"));
+    }
+
+    @Test
+    void testUnionOfEveryTypeKeepsItsSiblingLimitations() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'a':{}},'additionalProperties':false}",
+                "{'type':'object','properties':{'a':{'type':"
+                        + "['string','number','boolean','object','array','null'],'enum':['x']}}}");
+
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.CONSUMER,
+                        "/inputSchema/properties/a", "/inputSchema/properties/a/enum",
+                        "'enum' is not evaluated yet"))), result);
+    }
+
+    @Test
+    void testUnionNamingIntegerInsteadOfNumberDoesNotAcceptAnyValue() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'a':{}},'additionalProperties':false}",
+                "{'type':'object','properties':{'a':{'type':"
+                        + "['string','integer','boolean','object','array','null']}}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/a", "/inputSchema/properties/a/type",
+                "The producer's value for 'a' is not accepted by the consumer"));
+    }
+
+    @Test
+    void testOutputUnionOfEveryTypeIsNotAcceptedByOneType() {
+        PairCompatibility result = compare(union("['string','number','boolean','object','array','null']"),
+                input("'string'"));
+
+        assertIncompatible(result, typeNotAccepted());
+    }
+
+    @Test
+    void testNumberIsNotAcceptedByUnionNamingIntegerWithoutNumber() {
+        assertIncompatible(compare(union("'number'"), input("['integer','null']")), typeNotAccepted());
+        assertIncompatible(compare(union("['number','null']"), input("['integer','null','string']")),
+                typeNotAccepted());
+        assertCompatible(compare(union("'integer'"), input("['integer','null']")));
+    }
+
+    @Test
+    void testNumberIsNotAcceptedByIntegerUnionThroughAdditionalProperties() {
+        PairCompatibility declaredOutput = compare(
+                "{'type':'object','properties':{'x':{'type':'number'}},'required':['x'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','additionalProperties':{'type':['integer','null']}}");
+        PairCompatibility undeclaredOutput = compare(
+                "{'type':'object','additionalProperties':{'type':'number'}}",
+                "{'type':'object','properties':{'b':{'type':['integer','null']}},"
+                        + "'additionalProperties':{'type':['integer','null']}}");
+
+        assertIncompatible(declaredOutput,
+                new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED, "/outputSchema/properties/x",
+                        "/inputSchema/additionalProperties",
+                        "The producer may emit 'x', which the consumer does not accept"));
+        assertIncompatible(undeclaredOutput,
+                new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                        "/outputSchema/additionalProperties", "/inputSchema/additionalProperties",
+                        "The producer may emit undeclared properties that the consumer does not accept"),
+                new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED, "/outputSchema/additionalProperties",
+                        "/inputSchema/properties/b/type",
+                        "The producer may emit 'b' with a value the consumer does not accept"));
+    }
+
+    @Test
+    void testUndeclaredNullOutputIsNotAcceptedByIntegerUnion() {
+        PairCompatibility result = compare(
+                "{'type':'object','additionalProperties':{'type':['string','integer','null']}}",
+                "{'type':'object','properties':{'b':{'type':['string','integer']}}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/additionalProperties", "/inputSchema/properties/b/type",
+                "The producer may emit 'b' with a value the consumer does not accept"));
+    }
+
+    @Test
     void testRootTypeGivenAsArrayIsLimitation() {
         PairCompatibility result = compare("{'type':['object','null'],'properties':{"
                 + "'a':{'type':'string'}},'required':['a'],'additionalProperties':false}",

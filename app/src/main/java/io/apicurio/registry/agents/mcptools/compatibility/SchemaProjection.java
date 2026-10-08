@@ -50,10 +50,6 @@ record SchemaProjection(SchemaSide side, String base, JsonNode original, ObjectN
     }
 
     ObjectNode closed() {
-        return closed(projected);
-    }
-
-    static ObjectNode closed(ObjectNode projected) {
         ObjectNode closed = projected.deepCopy();
         closed.set(ADDITIONAL_PROPERTIES, BooleanNode.FALSE);
         return closed;

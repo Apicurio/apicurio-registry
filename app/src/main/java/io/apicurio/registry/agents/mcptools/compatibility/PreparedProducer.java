@@ -55,7 +55,7 @@ public final class PreparedProducer {
     }
 
     /**
-     * The producer with its root object closed, or {@code null} when closing it would not change
+     * The producer with its objects closed, or {@code null} when closing them would not change
      * what it emits.
      */
     JsonNode closed() {

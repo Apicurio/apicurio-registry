@@ -1,0 +1,73 @@
+{
+  "name": "Translation Agent",
+  "description": "Professional translation agent for customer service communications that preserves tone and nuance.",
+  "version": "1.0.0",
+  "protocolVersion": "1.0",
+  "supportedInterfaces": [
+    {
+      "url": "https://agents.example.com/translator-agent",
+      "protocolBinding": "http+json",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "provider": {
+    "organization": "A2A Demo",
+    "url": "https://agents.example.com"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false
+  },
+  "skills": [
+    {
+      "id": "translation",
+      "name": "Translation",
+      "description": "Skill: translation",
+      "tags": [
+        "translation"
+      ],
+      "examples": [
+        "Translate this support reply into Spanish."
+      ]
+    },
+    {
+      "id": "localization",
+      "name": "Localization",
+      "description": "Skill: localization",
+      "tags": [
+        "localization"
+      ],
+      "examples": [
+        "Localize this message for customers in Germany."
+      ]
+    },
+    {
+      "id": "language-detection",
+      "name": "Language Detection",
+      "description": "Skill: language-detection",
+      "tags": [
+        "language-detection"
+      ],
+      "examples": [
+        "Which language is this customer message written in?"
+      ]
+    },
+    {
+      "id": "cultural-adaptation",
+      "name": "Cultural Adaptation",
+      "description": "Skill: cultural-adaptation",
+      "tags": [
+        "cultural-adaptation"
+      ],
+      "examples": [
+        "Adapt this apology for a Japanese customer."
+      ]
+    }
+  ],
+  "defaultInputModes": [
+    "text"
+  ],
+  "defaultOutputModes": [
+    "text"
+  ]
+}

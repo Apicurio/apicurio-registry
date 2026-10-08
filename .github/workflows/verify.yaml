@@ -392,6 +392,14 @@ jobs:
     with:
       image-tag: ${{ github.sha }}
 
+  ard-conformance:
+    name: ARD Conformance
+    needs: [decide, build-java]
+    if: needs.decide.outputs.run-ard-conformance == 'true'
+    uses: ./.github/workflows/verify-ard-conformance.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
   go-sdk-freshness:
     name: Go SDK Freshness
     runs-on: ubuntu-latest
@@ -489,7 +497,7 @@ jobs:
           || needs.decide.result != 'success'
           || needs.decide.outputs.lifecycle-ready == 'true')
     needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
-            cli-verify, go-sdk-freshness, sdk, console-plugin,
+            cli-verify, ard-conformance, go-sdk-freshness, sdk, console-plugin,
             integration-tests, extras, operator]
     runs-on: ubuntu-latest
     timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min

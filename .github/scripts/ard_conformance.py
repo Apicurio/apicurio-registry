@@ -21,6 +21,9 @@ from pathlib import Path
 
 # The CLI always colours its output; keep colour on the console but not in the Markdown report.
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;]*m")
+# Printed by the CLI when jsonschema is missing; it then still passes without the
+# authoritative ArdManifest/ArdEntry schema checks.
+SCHEMA_SKIPPED = "Skipping strict JSON Schema check"
 
 
 def request(method, url, body=None, timeout=30):
@@ -82,9 +85,13 @@ def run_cli(cli, mode, target, report):
     result = subprocess.run([sys.executable, str(cli), mode, target], text=True, capture_output=True)
     print(result.stdout + result.stderr)
     output = ANSI_ESCAPE.sub("", result.stdout + result.stderr)
-    report.append(f"### `{mode}` mode: {'PASS' if result.returncode == 0 else 'FAIL'}\n\n"
+    passed = result.returncode == 0
+    if SCHEMA_SKIPPED in output:
+        print(f"::error::conformance-test {mode} skipped JSON Schema validation; install jsonschema")
+        passed = False
+    report.append(f"### `{mode}` mode: {'PASS' if passed else 'FAIL'}\n\n"
                   f"```\n$ conformance-test {mode} {target}\n{output}```\n")
-    return result.returncode == 0
+    return passed
 
 
 def main(argv=None):

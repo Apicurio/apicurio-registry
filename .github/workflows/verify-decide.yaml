@@ -111,6 +111,8 @@ jobs:
               - 'java-sdk/**'
               - '.github/workflows/verify-cli.yaml'
             ard:
+              # Defines the /well-known/ard* operations and Ard* response schemas.
+              - 'common/src/main/resources/META-INF/openapi.json'
               - 'app/src/main/java/io/apicurio/registry/agents/aicatalog/**'
               - 'app/src/main/java/io/apicurio/registry/agents/ard/**'
               - 'app/src/main/java/io/apicurio/registry/agents/rest/wellknown/**'

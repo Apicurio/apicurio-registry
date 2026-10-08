@@ -30,6 +30,9 @@ env:
   # ards-project/ard-spec main @ 2026-09-12 (PR #85); spec/ard.md states "Version: v0.91".
   ARD_SPEC_REF: b76f235a8f461876ad4f1e77abd0eb0eb302b48d
   ARD_SPEC_VERSION: v0.91
+  # The CLI skips its ArdManifest/ArdEntry schema checks (with only a warning) when
+  # jsonschema is missing, so install it explicitly rather than relying on the runner image.
+  JSONSCHEMA_VERSION: 4.23.0
 
 jobs:
   ard-conformance:
@@ -69,9 +72,14 @@ jobs:
             -e APICURIO_ARD_ENABLED=true \
             "$IMAGE"
 
+      - name: Install pinned schema validator
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ard-venv"
+          "$RUNNER_TEMP/ard-venv/bin/pip" install --quiet "jsonschema==${JSONSCHEMA_VERSION}"
+
       - name: Seed and run conformance CLI
         run: |
-          python3 .github/scripts/ard_conformance.py \
+          "$RUNNER_TEMP/ard-venv/bin/python" .github/scripts/ard_conformance.py \
             --registry-url http://localhost:8080 \
             --ard-spec-dir ard-spec \
             --ard-spec-ref "${ARD_SPEC_REF} (${ARD_SPEC_VERSION})" \

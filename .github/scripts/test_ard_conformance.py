@@ -27,6 +27,8 @@ from pathlib import Path
 log = Path(os.environ['FAKE_CLI_LOG'])
 log.write_text(log.read_text() + json.dumps(sys.argv[1:]) + '\\n' if log.exists() else json.dumps(sys.argv[1:]) + '\\n')
 print('\\033[32mfake output for ' + sys.argv[1] + '\\033[0m')
+if os.environ.get('FAKE_SKIP_SCHEMA') == sys.argv[1]:
+    print("Python 'jsonschema' package not installed. Skipping strict JSON Schema check.")
 sys.exit(int(os.environ.get('FAKE_FAIL_' + sys.argv[1].upper(), '0')))
 """
 
@@ -90,7 +92,7 @@ class ArdConformanceRunnerTest(unittest.TestCase):
         self.report = self.work / "report.md"
         # Isolated environment, restored after each test; tests set FAKE_FAIL_<MODE> within it.
         env = {k: v for k, v in os.environ.items()
-               if k not in ("FAKE_FAIL_MANIFEST", "FAKE_FAIL_REGISTRY", "GITHUB_STEP_SUMMARY")}
+               if k not in ("FAKE_FAIL_MANIFEST", "FAKE_FAIL_REGISTRY", "FAKE_SKIP_SCHEMA", "GITHUB_STEP_SUMMARY")}
         env["FAKE_CLI_LOG"] = str(self.log)
         patcher = mock.patch.dict(os.environ, env, clear=True)
         patcher.start()
@@ -144,6 +146,17 @@ class ArdConformanceRunnerTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual([call[0] for call in self.cli_calls()], ["manifest", "registry"])
         self.assertIn("`manifest` mode: FAIL", self.report.read_text())
+
+    def test_skipped_schema_validation_fails_despite_cli_exit_zero(self):
+        os.environ["FAKE_SKIP_SCHEMA"] = "manifest"
+        code, output = self.run_main()
+        self.assertEqual(code, 1)
+        self.assertEqual([call[0] for call in self.cli_calls()], ["manifest", "registry"])
+        self.assertIn("conformance-test manifest skipped JSON Schema validation", output)
+        report = self.report.read_text()
+        self.assertIn("`manifest` mode: FAIL", report)
+        self.assertIn("`registry` mode: PASS", report)
+        self.assertIn("**Overall: FAIL**", report)
 
     def test_unpublished_seed_fails_before_conformance_can_pass_vacuously(self):
         FakeRegistry.published_names = ["Sentiment Analysis Agent"]
@@ -199,9 +212,11 @@ class ArdConformanceWiringTest(unittest.TestCase):
         self.assertIn("run-ard-conformance", draft_skip.split())
 
     def test_every_ard_path_filter_matches_tracked_files(self):
-        block = re.search(r"\n            ard:\n((?:              - '.*'\n)+)", self.decide).group(1)
+        block = re.search(r"\n            ard:\n((?:              (?:- '.*'|#.*)\n)+)", self.decide).group(1)
         patterns = re.findall(r"- '(.*)'", block)
-        self.assertGreaterEqual(len(patterns), 6)
+        self.assertGreaterEqual(len(patterns), 7)
+        # The REST contract for the ARD endpoints lives here, not under app/.
+        self.assertIn("common/src/main/resources/META-INF/openapi.json", patterns)
         for pattern in patterns:
             with self.subTest(pattern=pattern):
                 if pattern.endswith("/**"):
@@ -214,6 +229,12 @@ class ArdConformanceWiringTest(unittest.TestCase):
         ref = re.search(r"ARD_SPEC_REF: (\S+)", self.workflow).group(1)
         self.assertRegex(ref, r"^[0-9a-f]{40}$")
         self.assertIn("repository: ards-project/ard-spec\n          ref: ${{ env.ARD_SPEC_REF }}", self.workflow)
+
+    def test_schema_validator_is_pinned_and_used(self):
+        version = re.search(r"JSONSCHEMA_VERSION: (\S+)", self.workflow).group(1)
+        self.assertRegex(version, r"^\d+\.\d+\.\d+$")
+        self.assertIn('pip" install --quiet "jsonschema==${JSONSCHEMA_VERSION}"', self.workflow)
+        self.assertIn('"$RUNNER_TEMP/ard-venv/bin/python" .github/scripts/ard_conformance.py', self.workflow)
 
     def test_runs_on_schedule_against_main_snapshot(self):
         self.assertRegex(self.workflow, r"\n  schedule:\n    - cron: '[^']+'")

@@ -469,18 +469,18 @@ asked for the three-way split to be readable from the report, which is what the
 native count fields above deliver.
 
 Three caveats. The replay ran on 0.4.1 rather than the 0.4.3 now pinned in
-`.mvn/extensions.xml`; the three ship a byte-identical report schema. 0.4.2
-differs from 0.4.1 only in how an empty trim is applied to the session, which
-`mode=report` never reaches. 0.4.3 also changes the extension's POM analysis and
-module attribution, so it can select different modules than the replay did. The
-statements in this section marked as verified on 0.4.2 were not repeated on
-0.4.3, except that a one-file change in `common` under `mode=trim` still builds
-57 of 58 modules. The replay also predates the current `scalpel.excludePaths`
-list, so
-the 16 exhausted runs come from re-applying the current list to each commit's
-changed files using Scalpel's own glob rules, and the 11 trimmed percentages are
-as measured, which makes them a lower bound: excluding more files can only
-shrink an affected set. And the replay harness is not in this repository, so the
+`.mvn/extensions.xml`. Versions 0.4.1, 0.4.2 and 0.4.3 ship a byte-identical
+report schema file. 0.4.2 differs from 0.4.1 only in how an empty trim is
+applied to the session, which `mode=report` never reaches. 0.4.3 also changes
+the extension's POM analysis and module attribution, so it can select different
+modules than the replay did. The statements in this section marked as verified
+on 0.4.2 were not repeated on 0.4.3. The one re-check is a one-file change in
+`common` under `mode=trim`, which still builds 57 of 58 modules. The replay also
+predates the current `scalpel.excludePaths` list, so the 16 exhausted runs come
+from re-applying the current list to each commit's changed files using
+Scalpel's own glob rules, and the 11 trimmed percentages are as measured,
+which makes them a lower bound: excluding more files can only shrink an
+affected set. And the replay harness is not in this repository, so the
 table cannot be regenerated from a checkout. Treat it as a dated observation and
 re-measure rather than trusting it indefinitely.
 

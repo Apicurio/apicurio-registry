@@ -330,7 +330,8 @@ proper with `NoGoalSpecifiedException`, because a session with no projects has
 no goals. Scalpel 0.4.0 and earlier built every module here too, so the empty
 build the reason's wording suggests has never been a reachable outcome on any
 pin of this extension. Both facts were verified on 0.4.2 in `mode=trim` with
-synthetic change sets (REG-304).
+synthetic change sets (REG-304). The 0.4.3 re-runs are listed under "Checks
+repeated on Scalpel 0.4.3" later in this section.
 
 Five reasons project a full build, because Scalpel returns without touching the
 reactor. Configuration stands it down in three of them, `disabled by
@@ -355,9 +356,10 @@ pom names, affects no module this job's reactor builds. Its report carries a
 decision table with `buildSetSize` 0 and `skippedModules` naming all 57
 modules, but a trimming build does not perform that projection on Scalpel
 0.4.2, with `buildAllIfNoChanges` either way (verified with the operator-only
-change set of commit `0b35b825b`): the reactor stays whole and every module
-builds. The summary recognizes the zero build set and says so rather than
-drawing that table.
+change set of commit `0b35b825b`, repeated on 0.4.3; see
+"Checks repeated on Scalpel 0.4.3" later in this section): the reactor stays
+whole and every module builds. The summary recognizes the zero build set and
+says so rather than drawing that table.
 
 That root-level files sit in this family is why `scalpel.excludePaths` carries
 no slash-free pattern. Scalpel rewrites a pattern without a slash to match at
@@ -367,7 +369,8 @@ tree. Verified by probing the same in-tree change,
 `app/src/test/resources/git/invalid-content-ref/README.md`, against both pins:
 0.3.10 attributes it to `app` (a test fixture `GitOpsStatusTest` loads), 0.4.2
 with the widened pattern excluded it and every other in-tree markdown file,
-111 tracked files in all. The list this branch ships drops the slash-free
+111 tracked files in all (the fixture alone was re-checked on 0.4.3, see "Checks
+repeated on Scalpel 0.4.3"). The list this branch ships drops the slash-free
 entries, which restores attribution for all of them and leaves root markdown
 and LICENSE unlisted: a change confined to those projects the zero-build-set
 report above instead, which under the pin builds every module.
@@ -446,15 +449,16 @@ Both empty-build rows are projections under `buildAllIfNoChanges=false`, which
 `.mvn/maven.config` no longer uses: with the pin at `true` the exhaustion runs
 build every module, and the zero-build-set runs build every module too, because
 a trimming build never applies that decision on Scalpel 0.4.2 with the flag
-either way. The rows above were counted under the pre-narrowing excludePaths
-list; under the list this branch ships the split moves to 12 exhausted and 8
-zero-build-set, and the total projecting a zero-module build stays 20 of 40.
-The behavior statements are 0.4.2 facts; the replay rows themselves are 0.4.1
-reports, whose schema is byte-identical to 0.4.2 by the hash check recorded in
-REG-245. The mean under the shipped configuration is the trimmed row alone,
-about 4% of module-builds, plus the test-time saving that
-`scalpel.skipTestsForUpstream` would add on the trimmed runs, which this
-replay did not measure and whose adoption is undecided (REG-303).
+either way. The rows above were
+counted under the pre-narrowing excludePaths list. Under the list this branch
+ships the split moves to 12 exhausted and 8 zero-build-set, and the total
+projecting a zero-module build stays 20 of 40. The behavior statements are 0.4.2
+facts. The replay rows themselves are 0.4.1 reports, whose schema is
+byte-identical to 0.4.2 by the hash check recorded in REG-245. The mean under
+the shipped configuration is the trimmed row alone, about 4% of module-builds,
+plus the test-time saving that `scalpel.skipTestsForUpstream` would add on the
+trimmed runs, which this replay did not measure and whose adoption is undecided
+(REG-303).
 
 An earlier replay of the same 40 commits on 0.4.0 put the mean at 5.8%. Almost
 all of that difference is one upstream fix,
@@ -468,16 +472,39 @@ rather than the whole reactor. [#187](https://github.com/maveniverse/scalpel/iss
 asked for the three-way split to be readable from the report, which is what the
 native count fields above deliver.
 
-Three caveats. The replay ran on 0.4.1 rather than the 0.4.2 now pinned in
-`.mvn/extensions.xml`; the two ship a byte-identical report schema and differ
-only in how an empty trim is applied to the session, which `mode=report` never
-reaches. The replay also predates the current `scalpel.excludePaths` list, so
-the 16 exhausted runs come from re-applying the current list to each commit's
-changed files using Scalpel's own glob rules, and the 11 trimmed percentages are
-as measured, which makes them a lower bound: excluding more files can only
-shrink an affected set. And the replay harness is not in this repository, so the
-table cannot be regenerated from a checkout. Treat it as a dated observation and
-re-measure rather than trusting it indefinitely.
+The replay ran on 0.4.1 rather than the 0.4.3 now pinned in
+`.mvn/extensions.xml`. Versions 0.4.1, 0.4.2 and 0.4.3 ship a byte-identical
+report schema file. 0.4.2 differs from 0.4.1 only in how an empty trim is
+applied to the session, which `mode=report` never reaches. 0.4.3 also changes
+the extension's POM analysis and module attribution, according to the upstream
+compare, so it can select different modules than the replay did.
+
+#### Checks repeated on Scalpel 0.4.3
+
+The statements in this section marked as verified on 0.4.2 were re-checked on
+0.4.3 only for the cases below, each run with `mode=trim`. A one-file change
+in `common`, run with `scalpel.buildAllIfNoChanges=true`, logged
+"Building 57 of 58 modules" and Maven built 57. An operator-only change logged
+"No modules affected by changes" and Maven built all 58. A change confined to
+`docs/**` logged "All changed files excluded by path filters, building all
+modules" and Maven built all 58. With `scalpel.buildAllIfNoChanges=false`, the
+operator-only change gave the same log line and 58 modules built, while the
+`docs/**` change logged "trimming reactor to empty", built nothing and failed
+with `NoGoalSpecifiedException`. The `invalid-content-ref/README.md` fixture from the attribution probe
+above, changed alone, logged "1 modules directly affected:
+[apicurio-registry-app]" on 0.4.3, the same attribution as on 0.4.2. I did not
+repeat the 111-file count. The tables above count 57 reactor modules, so I did
+not re-derive their percentages on 0.4.3.
+
+#### Other caveats
+
+The replay predates the current `scalpel.excludePaths` list, so the 16 exhausted
+runs come from re-applying the current list to each commit's changed files
+using Scalpel's own glob rules, and the 11 trimmed percentages are as measured,
+which makes them a lower bound: excluding more files can only shrink an
+affected set. The replay harness is not in this
+repository, so the table cannot be regenerated from a checkout. Treat it as a
+dated observation and re-measure rather than trusting it indefinitely.
 
 ## Validation Workflows
 

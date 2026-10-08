@@ -369,7 +369,8 @@ tree. Verified by probing the same in-tree change,
 `app/src/test/resources/git/invalid-content-ref/README.md`, against both pins:
 0.3.10 attributes it to `app` (a test fixture `GitOpsStatusTest` loads), 0.4.2
 with the widened pattern excluded it and every other in-tree markdown file,
-111 tracked files in all. The list this branch ships drops the slash-free
+111 tracked files in all (the fixture alone was re-checked on 0.4.3, see "Checks
+repeated on Scalpel 0.4.3"). The list this branch ships drops the slash-free
 entries, which restores attribution for all of them and leaves root markdown
 and LICENSE unlisted: a change confined to those projects the zero-build-set
 report above instead, which under the pin builds every module.
@@ -488,8 +489,11 @@ in `common`, run with `scalpel.buildAllIfNoChanges=true`, logged
 `docs/**` logged "All changed files excluded by path filters, building all
 modules" and Maven built all 58. The operator-only change was run again with
 `scalpel.buildAllIfNoChanges=false` and gave the same log line and 58 modules
-built. The tables above count 57 reactor modules, so I did not re-derive their
-percentages on 0.4.3.
+built. The `invalid-content-ref/README.md` fixture from the attribution probe
+above, changed alone, logged "1 modules directly affected:
+[apicurio-registry-app]" on 0.4.3, the same attribution as on 0.4.2. I did not
+repeat the 111-file count. The tables above count 57 reactor modules, so I did
+not re-derive their percentages on 0.4.3.
 
 #### Other caveats
 

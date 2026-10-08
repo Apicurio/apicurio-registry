@@ -7046,6 +7046,9 @@
       "DifferenceLocation": {
         "title": "Root Type for DifferenceLocation",
         "description": "A location within one of the two documents compared by a rule. Locations are labelled by document - proposed or existing - rather than by the checker's original and updated schemas, so that the direction of the check does not change their meaning. Clients must tolerate a pointer that does not resolve in the content as written, falling back to the deepest part that does.",
+        "required": [
+          "pointer"
+        ],
         "type": "object",
         "properties": {
           "pointer": {

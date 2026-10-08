@@ -21,6 +21,8 @@ type RuleViolationProblemDetails struct {
 	instance *string
 	// The name of the error (typically a server exception class name).
 	name *string
+	// The ruleType property
+	ruleType *RuleType
 	// The HTTP status code.
 	status *int32
 	// A short, human-readable summary of the problem type.
@@ -118,6 +120,16 @@ func (m *RuleViolationProblemDetails) GetFieldDeserializers() map[string]func(i8
 		}
 		return nil
 	}
+	res["ruleType"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetEnumValue(ParseRuleType)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetRuleType(val.(*RuleType))
+		}
+		return nil
+	}
 	res["status"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetInt32Value()
 		if err != nil {
@@ -161,6 +173,12 @@ func (m *RuleViolationProblemDetails) GetInstance() *string {
 // returns a *string when successful
 func (m *RuleViolationProblemDetails) GetName() *string {
 	return m.name
+}
+
+// GetRuleType gets the ruleType property value. The ruleType property
+// returns a *RuleType when successful
+func (m *RuleViolationProblemDetails) GetRuleType() *RuleType {
+	return m.ruleType
 }
 
 // GetStatus gets the status property value. The HTTP status code.
@@ -209,6 +227,13 @@ func (m *RuleViolationProblemDetails) Serialize(writer i878a80d2330e89d26896388a
 	}
 	{
 		err := writer.WriteStringValue("name", m.GetName())
+		if err != nil {
+			return err
+		}
+	}
+	if m.GetRuleType() != nil {
+		cast := (*m.GetRuleType()).String()
+		err := writer.WriteStringValue("ruleType", &cast)
 		if err != nil {
 			return err
 		}
@@ -265,6 +290,11 @@ func (m *RuleViolationProblemDetails) SetName(value *string) {
 	m.name = value
 }
 
+// SetRuleType sets the ruleType property value. The ruleType property
+func (m *RuleViolationProblemDetails) SetRuleType(value *RuleType) {
+	m.ruleType = value
+}
+
 // SetStatus sets the status property value. The HTTP status code.
 func (m *RuleViolationProblemDetails) SetStatus(value *int32) {
 	m.status = value
@@ -287,6 +317,7 @@ type RuleViolationProblemDetailsable interface {
 	GetDetail() *string
 	GetInstance() *string
 	GetName() *string
+	GetRuleType() *RuleType
 	GetStatus() *int32
 	GetTitle() *string
 	GetTypeEscaped() *string
@@ -294,6 +325,7 @@ type RuleViolationProblemDetailsable interface {
 	SetDetail(value *string)
 	SetInstance(value *string)
 	SetName(value *string)
+	SetRuleType(value *RuleType)
 	SetStatus(value *int32)
 	SetTitle(value *string)
 	SetTypeEscaped(value *string)

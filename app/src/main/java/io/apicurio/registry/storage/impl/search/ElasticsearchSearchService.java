@@ -284,6 +284,9 @@ public class ElasticsearchSearchService {
         case name:
             return buildNameQuery(filter.getStringValue());
 
+        case nameCaseInsensitive:
+            return buildCaseInsensitiveNameQuery(filter.getStringValue());
+
         case description:
             return buildTextQuery(FIELD_DESCRIPTION, filter.getStringValue());
 
@@ -330,6 +333,15 @@ public class ElasticsearchSearchService {
                         .field("name").query(value).operator(Operator.And))))
                 .should(Query.of(sq -> sq.term(t -> t
                         .field("artifactId").value(value))))
+        ));
+    }
+
+    private Query buildCaseInsensitiveNameQuery(String value) {
+        return Query.of(q -> q.bool(b -> b
+                .should(Query.of(sq -> sq.wildcard(w -> w
+                        .field("name.keyword").value(value).caseInsensitive(true))))
+                .should(Query.of(sq -> sq.wildcard(w -> w
+                        .field("artifactId").value(value).caseInsensitive(true))))
         ));
     }
 

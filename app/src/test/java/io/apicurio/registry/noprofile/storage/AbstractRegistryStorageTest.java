@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBase {
@@ -1028,6 +1029,52 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
         long end = System.currentTimeMillis();
         System.out.println("Search time: " + (end - start) + "ms");
+    }
+
+    @Test
+    public void testCaseInsensitiveNameSearch() throws Exception {
+        String suffix = UUID.randomUUID().toString();
+        String artifactId = "CaseSensitiveArtifactId-" + suffix;
+        String artifactName = "MixedCaseArtifactName-" + suffix;
+        String versionName = "MixedCaseVersionName-" + suffix;
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
+                .name(artifactName).build();
+        EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder()
+                .name(versionName).build();
+
+        boolean created = false;
+        try {
+            storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, artifactMetaData,
+                    null, ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                            .content(content).build(),
+                    versionMetaData, Collections.emptyList(), false, false, null).getValue();
+            created = true;
+
+            ArtifactSearchResultsDto artifactResults = storage().searchArtifacts(
+                    Set.of(SearchFilter.ofNameCaseInsensitive("*" + artifactName.toLowerCase(Locale.ROOT)
+                            + "*")), OrderBy.name, OrderDirection.asc, 0, 10, false);
+            Assertions.assertEquals(1, artifactResults.getCount());
+            Assertions.assertEquals(artifactId, artifactResults.getArtifacts().get(0).getArtifactId());
+            Assertions.assertEquals(artifactName, artifactResults.getArtifacts().get(0).getName());
+
+            artifactResults = storage().searchArtifacts(
+                    Set.of(SearchFilter.ofNameCaseInsensitive("*" + artifactId.toLowerCase(Locale.ROOT)
+                            + "*")), OrderBy.name, OrderDirection.asc, 0, 10, false);
+            Assertions.assertEquals(1, artifactResults.getCount());
+            Assertions.assertEquals(artifactId, artifactResults.getArtifacts().get(0).getArtifactId());
+
+            VersionSearchResultsDto versionResults = storage().searchVersions(
+                    Set.of(SearchFilter.ofNameCaseInsensitive("*" + versionName.toLowerCase(Locale.ROOT)
+                            + "*")), OrderBy.name, OrderDirection.asc, 0, 10, false);
+            Assertions.assertEquals(1, versionResults.getCount());
+            Assertions.assertEquals(artifactId, versionResults.getVersions().get(0).getArtifactId());
+            Assertions.assertEquals(versionName, versionResults.getVersions().get(0).getName());
+        } finally {
+            if (created) {
+                storage().deleteArtifact(GROUP_ID, artifactId);
+            }
+        }
     }
 
     @Test

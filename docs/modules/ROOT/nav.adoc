@@ -21,6 +21,7 @@
 ** xref:getting-started/assembly-migrating-registry-v2-v3.adoc[]
 * Configuration
 ** xref:getting-started/assembly-configuring-registry-security.adoc[]
+** xref:getting-started/assembly-configuring-resource-authorization.adoc[]
 ** xref:getting-started/assembly-configuring-the-registry.adoc[]
 ** xref:getting-started/assembly-custom-artifact-types.adoc[]
 ** xref:getting-started/assembly-registry-events.adoc[]

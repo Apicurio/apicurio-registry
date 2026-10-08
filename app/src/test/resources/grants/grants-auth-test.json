@@ -1,0 +1,13 @@
+{
+  "config": {
+    "admin_roles": ["sr-admin"]
+  },
+  "grants": [
+    {"principal": "bob1", "operation": "write", "resource_type": "artifact",
+     "resource_pattern_type": "prefix", "resource_pattern": "grants-team-a/"},
+    {"principal": "bob1", "operation": "write", "resource_type": "group",
+     "resource_pattern_type": "exact", "resource_pattern": "grants-team-a"},
+    {"principal": "bob2", "operation": "read", "resource_type": "artifact",
+     "resource_pattern_type": "prefix", "resource_pattern": "grants-team-b/visible-"}
+  ]
+}

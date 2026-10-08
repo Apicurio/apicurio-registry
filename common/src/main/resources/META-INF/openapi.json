@@ -7483,6 +7483,13 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "permissions": {
+            "description": "List of operations the current user is allowed to perform on this resource. Only included when per-resource authorization is enabled.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "example": {
@@ -7494,7 +7501,11 @@
           "owner": "user1",
           "createdOn": "2019-03-22T12:51:19Z",
           "modifiedBy": "user2",
-          "modifiedOn": "2019-04-01T12:51:19Z"
+          "modifiedOn": "2019-04-01T12:51:19Z",
+          "permissions": [
+            "read",
+            "write"
+          ]
         }
       },
       "VersionMetaData": {
@@ -7657,6 +7668,13 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "permissions": {
+            "description": "List of operations the current user is allowed to perform on this resource. Only included when per-resource authorization is enabled.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "example": {
@@ -7670,7 +7688,11 @@
           "owner": "some text",
           "globalId": 37,
           "version": "1.0.7",
-          "contentId": 62
+          "contentId": 62,
+          "permissions": [
+            "read",
+            "write"
+          ]
         }
       },
       "RuleViolationProblemDetails": {
@@ -7838,6 +7860,13 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "permissions": {
+            "description": "List of operations the current user is allowed to perform on this resource. Only included when per-resource authorization is enabled.",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "example": {
@@ -7847,7 +7876,11 @@
           "owner": "user1",
           "createdOn": "2019-03-22T12:51:19Z",
           "modifiedBy": "user1",
-          "modifiedOn": "2019-03-22T12:51:19Z"
+          "modifiedOn": "2019-03-22T12:51:19Z",
+          "permissions": [
+            "read",
+            "write"
+          ]
         }
       },
       "GroupMetaData": {

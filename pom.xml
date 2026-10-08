@@ -92,6 +92,7 @@
     <module>utils/importexport</module>
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
+    <module>authz</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
     <module>schema-util/agents</module>
@@ -368,6 +369,10 @@
 
     <!-- CEL (Common Expression Language) -->
     <cel-standalone.version>0.6.0</cel-standalone.version>
+
+    <!-- Kroxylicious Authorizer API (shared authorization contract) -->
+    <!-- TODO: switch to 0.25.0 once released to Maven Central -->
+    <kroxylicious.version>0.25.0-SNAPSHOT</kroxylicious.version>
   </properties>
 
   <dependencyManagement>
@@ -387,6 +392,12 @@
         <groupId>org.jline</groupId>
         <artifactId>jline-terminal-jansi</artifactId>
         <version>${jline.version}</version>
+      </dependency>
+      <!-- Kroxylicious Authorizer API -->
+      <dependency>
+        <groupId>io.kroxylicious</groupId>
+        <artifactId>kroxylicious-authorizer-api</artifactId>
+        <version>${kroxylicious.version}</version>
       </dependency>
 
       <!-- This project -->
@@ -1651,6 +1662,17 @@
           <id>confluent</id>
           <name>Confluent</name>
           <url>https://packages.confluent.io/maven/</url>
+        </repository>
+        <!-- TODO: remove once kroxylicious 0.25.0 is released to Maven Central -->
+        <repository>
+          <id>central-snapshots</id>
+          <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+          <releases>
+            <enabled>false</enabled>
+          </releases>
+          <snapshots>
+            <enabled>true</enabled>
+          </snapshots>
         </repository>
       </repositories>
     </profile>

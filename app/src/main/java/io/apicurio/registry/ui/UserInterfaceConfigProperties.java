@@ -28,6 +28,9 @@ public class UserInterfaceConfigProperties {
 
     @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "_")
     public String authOidcUrl;
+    @ConfigProperty(name = "apicurio.ui.auth.oidc.url")
+    @Info(category = CATEGORY_UI, description = "The OIDC URL exposed to the browser (overrides quarkus.oidc.auth-server-url in uiConfig)", availableSince = "3.0.0")
+    public Optional<String> authOidcUrlOverride;
     @ConfigProperty(name = "apicurio.ui.auth.oidc.redirect-uri")
     @Info(category = CATEGORY_UI, description = "The OIDC redirectUri", availableSince = "3.0.0")
     public Optional<String> authOidcRedirectUri;

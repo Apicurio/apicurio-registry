@@ -1,5 +1,7 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.auth.grants.GrantsAccessController;
+import io.apicurio.registry.auth.grants.GrantsAccessControllerConfig;
 import io.apicurio.registry.util.Priorities;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
@@ -46,6 +48,12 @@ public class AuthorizedInterceptor {
 
     @Inject
     OwnerBasedAccessController obac;
+
+    @Inject
+    GrantsAccessController grantsAc;
+
+    @Inject
+    GrantsAccessControllerConfig grantsAcConfig;
 
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
@@ -149,6 +157,18 @@ public class AuthorizedInterceptor {
                 log.warn("OBAC enabled and operation not permitted due to wrong owner.");
                 log.debug("Denying access for user: {}", securityIdentity.getPrincipal().getName());
                 throw new ForbiddenException(FORBIDDEN_MESSAGE);
+            }
+        }
+
+        // If per-resource authorization is enabled, apply grants-based access checks.
+        // Artifact/group owners bypass the grants check — ownership implies access,
+        // regardless of whether OBAC itself is enabled.
+        if (grantsAcConfig.isEnabled()) {
+            boolean isOwner = obac.checkOwnership(context);
+            if (!isOwner && !grantsAc.isAuthorized(context)) {
+                log.warn("Per-resource authorization denied access.");
+                throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
+                        + " is not authorized to access the requested resource.");
             }
         }
 

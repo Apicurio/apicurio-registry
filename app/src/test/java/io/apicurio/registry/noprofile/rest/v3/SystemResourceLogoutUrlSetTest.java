@@ -19,6 +19,10 @@ public class SystemResourceLogoutUrlSetTest {
     @Test
     public void testLogoutUrlPresentWhenSet() {
         UserInterfaceConfig config = systemResource.getUIConfig();
-        assertEquals("https://example.com/logout", config.getAuth().getOptions().get("logoutUrl"));
+        var options = config.getAuth().getOptions();
+
+        // Proves the OIDC branch of uiAuthConfig() actually ran
+        assertEquals("test-client", options.get("clientId"));
+        assertEquals("https://example.com/logout", options.get("logoutUrl"));
     }
 }

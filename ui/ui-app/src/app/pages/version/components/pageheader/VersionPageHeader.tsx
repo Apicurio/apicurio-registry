@@ -144,6 +144,7 @@ export const VersionPageHeader: FunctionComponent<VersionPageHeaderProps> = (pro
                         <ActionListItem key="actions">
                             <ObjectDropdown
                                 label=""
+                                testId="version-actions-toggle"
                                 items={visibleActions}
                                 onSelect={item => item.onSelect()}
                                 itemToString={item => item.label}

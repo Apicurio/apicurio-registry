@@ -41,6 +41,10 @@ public class SqlSearchRepository {
             "Content search requires the search index, which is not enabled. "
             + "Enable the search index to use content search.";
 
+    private static final String VERSION_STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE =
+            "Structure search on versions requires the search index, which is not enabled. "
+            + "Enable the search index, or search artifacts by structure instead.";
+
     /**
      * Escape character for LIKE patterns built from request-derived values. '!' is not a LIKE
      * metacharacter, and every supported database (H2, PostgreSQL, MySQL, SQL Server) accepts it in an
@@ -436,6 +440,10 @@ public class SqlSearchRepository {
                         break;
                     case content:
                         throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
+                    case structure:
+                        // Structured content is indexed per artifact in SQL (see searchArtifacts), but
+                        // version-level structure search is only served by the search index.
+                        throw new ContentSearchNotSupportedException(VERSION_STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE);
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }

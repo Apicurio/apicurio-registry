@@ -56,8 +56,20 @@ describe("extractTemplateVariableNames", () => {
             .toEqual(["a", "b", "item"]);
     });
 
-    it("extracts the name from triple-brace raw-output syntax", () => {
-        expect(extractTemplateVariableNames("{{{name}}}")).toEqual(["name"]);
+    it("does not treat triple-brace syntax as a variable (matches backend)", () => {
+        // Backend PromptTemplateVariableUtil leaves {{{name}}} unrendered, so the
+        // test panel must not offer a `name` input whose value would be ignored.
+        expect(extractTemplateVariableNames("{{{name}}}")).toEqual([]);
+        expect(extractTemplateVariableNames("{{{name}}")).toEqual([]);
+        expect(extractTemplateVariableNames("{{{{name}}}}")).toEqual([]);
+    });
+
+    it("still extracts a placeholder next to a triple-brace run", () => {
+        expect(extractTemplateVariableNames("{{{foo}}} {{bar}}")).toEqual(["bar"]);
+    });
+
+    it("extracts a placeholder followed by a literal closing brace", () => {
+        expect(extractTemplateVariableNames("{{name}}}")).toEqual(["name"]);
     });
 
     it("ignores Handlebars comment syntax", () => {

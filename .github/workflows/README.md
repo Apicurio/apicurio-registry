@@ -492,11 +492,13 @@ operator-only change gave the same log line and 58 modules built, while the
 `docs/**` change logged "trimming reactor to empty", built nothing and failed
 with `NoGoalSpecifiedException`. The `invalid-content-ref/README.md` fixture
 from the attribution probe above, changed alone, logged "1 modules directly
-affected: [apicurio-registry-app]" on 0.4.3, the same attribution as on 0.4.2.
-I did not repeat the 111-file count. The reactor Maven prints on 0.4.3 lists 58 projects,
-the first being the root `Registry` pom, and the tables above count 57. I did
-not establish whether the difference is the root pom or a module added since the
-replay, so I did not re-derive their percentages on 0.4.3.
+affected: [apicurio-registry-app]" on 0.4.3 with the `excludePaths` list this
+branch ships. That is the attribution 0.3.10 gave, and not the exclusion that
+0.4.2 gave with the old slash-free entries. I did not repeat the 111-file
+count. The reactor Maven prints on 0.4.3 lists 58 projects, the first being the
+root `Registry` pom, and the tables above count 57. I did not establish whether
+the difference is the root pom or a module added since the replay, so I did not
+re-derive their percentages on 0.4.3.
 
 #### Other caveats
 

@@ -266,7 +266,7 @@ else
           echo
           echo "A trimming build does not apply this projection, whatever"
           echo "\`scalpel.buildAllIfNoChanges\` is set to (verified on Scalpel"
-          echo "0.4.2 with the flag both ways, and on 0.4.3 with it true)."
+          echo "0.4.2 with the flag both ways, and on 0.4.3 with it true only)."
           echo "Scalpel routes the no-affected-modules decision to its shadow"
           echo "output and leaves the reactor whole, so the build that runs is"
           echo "a **full build** and the reactor-wide saving this shape"

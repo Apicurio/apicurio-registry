@@ -331,8 +331,7 @@ no goals. Scalpel 0.4.0 and earlier built every module here too, so the empty
 build the reason's wording suggests has never been a reachable outcome on any
 pin of this extension. Both facts were verified on 0.4.2 in `mode=trim` with
 synthetic change sets (REG-304). The 0.4.3 re-runs, all with the flag true, are
-in the paragraph below that begins "The statements in this section marked as
-verified on 0.4.2".
+listed under "Checks repeated on Scalpel 0.4.3" later in this section.
 
 Five reasons project a full build, because Scalpel returns without touching the
 reactor. Configuration stands it down in three of them, `disabled by
@@ -357,8 +356,9 @@ pom names, affects no module this job's reactor builds. Its report carries a
 decision table with `buildSetSize` 0 and `skippedModules` naming all 57
 modules, but a trimming build does not perform that projection on Scalpel
 0.4.2, with `buildAllIfNoChanges` either way (verified with the operator-only
-change set of commit `0b35b825b`): the reactor stays whole and every module
-builds. The summary recognizes the zero build set and says so rather than
+change set of commit `0b35b825b`, repeated on 0.4.3 with the flag true; see
+"Checks repeated on Scalpel 0.4.3" later in this section): the reactor stays
+whole and every module builds. The summary recognizes the zero build set and says so rather than
 drawing that table.
 
 That root-level files sit in this family is why `scalpel.excludePaths` carries
@@ -452,9 +452,8 @@ either way (0.4.3 was re-checked with the flag true only). The rows above were
 counted under the pre-narrowing excludePaths list. Under the list this branch
 ships the split moves to 12 exhausted and 8 zero-build-set, and the total
 projecting a zero-module build stays 20 of 40. The behavior statements are 0.4.2
-facts, with the 0.4.3 re-runs described below. The replay rows themselves are
-0.4.1 reports, whose schema is byte-identical to 0.4.2 by the hash check recorded in
-REG-245. The mean under the shipped configuration is the trimmed row alone,
+facts. The replay rows themselves are 0.4.1 reports, whose schema is
+byte-identical to 0.4.2 by the hash check recorded in REG-245. The mean under the shipped configuration is the trimmed row alone,
 about 4% of module-builds, plus the test-time saving that
 `scalpel.skipTestsForUpstream` would add on the trimmed runs, which this
 replay did not measure and whose adoption is undecided (REG-303).
@@ -478,6 +477,8 @@ applied to the session, which `mode=report` never reaches. 0.4.3 also changes
 the extension's POM analysis and module attribution, according to the upstream
 compare, so it can select different modules than the replay did.
 
+#### Checks repeated on Scalpel 0.4.3
+
 The statements in this section marked as verified on 0.4.2 were re-checked on
 0.4.3 only for the cases below, each run with `mode=trim` and
 `scalpel.buildAllIfNoChanges=true`. A one-file change in `common` logged
@@ -487,11 +488,13 @@ The statements in this section marked as verified on 0.4.2 were re-checked on
 modules" and Maven built all 58. The tables above count 57 reactor modules, so I
 did not re-derive their percentages on 0.4.3.
 
-Two more caveats apply. The replay predates the current `scalpel.excludePaths`
+#### Other caveats
+
+The replay predates the current `scalpel.excludePaths`
 list, so the 16 exhausted runs come from re-applying the current list to each
 commit's changed files using Scalpel's own glob rules, and the 11 trimmed
 percentages are as measured, which makes them a lower bound: excluding more
-files can only shrink an affected set. And the replay harness is not in this
+files can only shrink an affected set. The replay harness is not in this
 repository, so the table cannot be regenerated from a checkout. Treat it as a
 dated observation and re-measure rather than trusting it indefinitely.
 

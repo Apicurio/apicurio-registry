@@ -318,6 +318,14 @@ class CrossToolCompatibilityServiceTest {
     }
 
     @Test
+    void testAdditionalPropertiesAcceptingAnyValueAcceptsAnOpenOutput() {
+        assertCompatible(compare(OPEN_PRODUCER_A,
+                "{'type':'object','properties':{'a':{'type':'string'}},'additionalProperties':true}"));
+        assertCompatible(compare(OPEN_PRODUCER_A,
+                "{'type':'object','properties':{'a':{'type':'string'}},'additionalProperties':{}}"));
+    }
+
+    @Test
     void testConsumerAdditionalPropertiesSchemaRejectsOnlyMismatchingProducerProperties() {
         PairCompatibility result = compare(
                 "{'type':'object','properties':{'x':{'type':'string'},'y':{'type':'integer'}},"

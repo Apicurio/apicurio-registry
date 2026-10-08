@@ -59,7 +59,7 @@ class SchemaProjectorTest {
                 + "'items':{'type':'string'}}},'additionalProperties':{'required':['x']}}");
 
         assertEquals(json("{'type':'object','properties':{'tags':{'type':'array'}},"
-                + "'additionalProperties':{}}"), projection.projected());
+                + "'additionalProperties':true}"), projection.projected());
         assertEquals(List.of(
                 new CompatibilityLimitation(LimitationCode.DEPTH_LIMIT_REACHED, SchemaSide.CONSUMER,
                         "/inputSchema/properties/tags", "/inputSchema/properties/tags/items",
@@ -156,12 +156,22 @@ class SchemaProjectorTest {
 
     @Test
     void testTrueSubschemaIsWrittenAsEmptySchema() {
-        SchemaProjection projection = project("{'type':'object','properties':{'a':true,'b':false},"
-                + "'additionalProperties':true}");
+        SchemaProjection projection = project("{'type':'object','properties':{'a':true,'b':false}}");
 
-        assertEquals(json("{'type':'object','properties':{'a':{},'b':false},'additionalProperties':{}}"),
-                projection.projected());
+        assertEquals(json("{'type':'object','properties':{'a':{},'b':false}}"), projection.projected());
         assertTrue(projection.limitations().isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "true", "{}", "{'description':'d'}" })
+    void testInputAdditionalPropertiesAcceptingAnyValueIsWrittenAsTrue(String any) {
+        String schema = "{'type':'object','additionalProperties':" + any + "}";
+        SchemaProjection consumer = project(schema);
+        SchemaProjection producer = SchemaProjector.project(json(schema), "/outputSchema", SchemaSide.PRODUCER);
+
+        assertEquals(json("{'type':'object','additionalProperties':true}"), consumer.projected());
+        assertEquals(json("{'type':'object','additionalProperties':{}}"), producer.projected());
+        assertTrue(consumer.limitations().isEmpty());
     }
 
     @Test

@@ -22,8 +22,8 @@ report=${1:?usage: scalpel-summary.sh <report.json>}
 # absent from it, which is where teaching this script a newer schema belongs.
 # 0.4.2 ships scalpel-report-v2.schema.json byte-identical to 0.4.1; it changes only
 # how an empty trim is applied to the session, which mode=report never reaches.
-# 0.4.3 ships the same schema file as 0.4.2 and changes only which modules are selected
-# (POM analysis and module attribution in the extension).
+# 0.4.3 ships the same schema file as 0.4.2 (compared by sha256). The upstream compare
+# 0.4.2...0.4.3 touches only the extension's POM analysis and module attribution.
 # shellcheck disable=SC2034  # consumed by scalpel-summary.test.sh, not here
 known_schema_2="0.4.1 0.4.2 0.4.3"
 
@@ -253,11 +253,11 @@ else
           # trimming build does not perform this projection, whatever
           # buildAllIfNoChanges is set to: the reactor stays whole, so the
           # build that runs is a full one. Verified on Scalpel 0.4.2 with the
-          # flag both ways, and on 0.4.3 with it true only. The string comparison
-          # rather than -eq is deliberate:
-          # the counts come from producer-controlled text, and an exponent
-          # rendering that [ -eq ] cannot parse would write to stderr and
-          # break the never-fail contract above.
+          # flag both ways, and on 0.4.3 with it true only. The string
+          # comparison rather than -eq is deliberate: the counts come from
+          # producer-controlled text, and an exponent rendering that [ -eq ]
+          # cannot parse would write to stderr and break the never-fail
+          # contract above.
           echo "The report projects an **empty build set**: \`buildSetSize\` is 0"
           echo "and \`skippedModules\` names the whole reactor, so no table was"
           echo "drawn for it."

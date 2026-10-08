@@ -356,7 +356,7 @@ pom names, affects no module this job's reactor builds. Its report carries a
 decision table with `buildSetSize` 0 and `skippedModules` naming all 57
 modules, but a trimming build does not perform that projection on Scalpel
 0.4.2, with `buildAllIfNoChanges` either way (verified with the operator-only
-change set of commit `0b35b825b`, repeated on 0.4.3 with the flag either way; see
+change set of commit `0b35b825b`, repeated on 0.4.3; see
 "Checks repeated on Scalpel 0.4.3" later in this section): the reactor stays
 whole and every module builds. The summary recognizes the zero build set and
 says so rather than drawing that table.
@@ -448,7 +448,7 @@ Both empty-build rows are projections under `buildAllIfNoChanges=false`, which
 `.mvn/maven.config` no longer uses: with the pin at `true` the exhaustion runs
 build every module, and the zero-build-set runs build every module too, because
 a trimming build never applies that decision on Scalpel 0.4.2 with the flag
-either way (0.4.3 was re-checked with it either way too). The rows above were
+either way. The rows above were
 counted under the pre-narrowing excludePaths list. Under the list this branch
 ships the split moves to 12 exhausted and 8 zero-build-set, and the total
 projecting a zero-module build stays 20 of 40. The behavior statements are 0.4.2

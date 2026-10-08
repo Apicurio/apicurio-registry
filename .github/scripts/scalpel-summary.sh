@@ -250,10 +250,11 @@ else
           # family: Scalpel logged the reason to its shadow output and wrote an
           # ordinary report whose projection is an empty reactor. Drawing the
           # table would publish skippedModules = reactor as a saving, but a
-          # trimming build does not perform this projection (verified on
-          # Scalpel 0.4.2 and 0.4.3), whatever buildAllIfNoChanges is set to
-          # (verified with the flag both ways on 0.4.2): the reactor stays whole, so the build that runs is a
-          # full one. The string comparison rather than -eq is deliberate:
+          # trimming build does not perform this projection, whatever
+          # buildAllIfNoChanges is set to: the reactor stays whole, so the
+          # build that runs is a full one. Verified on Scalpel 0.4.2 with the
+          # flag both ways, and on 0.4.3 with it true only. The string comparison
+          # rather than -eq is deliberate:
           # the counts come from producer-controlled text, and an exponent
           # rendering that [ -eq ] cannot parse would write to stderr and
           # break the never-fail contract above.
@@ -261,9 +262,9 @@ else
           echo "and \`skippedModules\` names the whole reactor, so no table was"
           echo "drawn for it."
           echo
-          echo "A trimming build does not apply this projection (verified on"
-          echo "Scalpel 0.4.2 and 0.4.3), whatever"
-          echo "\`scalpel.buildAllIfNoChanges\` is set to."
+          echo "A trimming build does not apply this projection, whatever"
+          echo "\`scalpel.buildAllIfNoChanges\` is set to (verified on Scalpel"
+          echo "0.4.2 with the flag both ways, and on 0.4.3 with it true)."
           echo "Scalpel routes the no-affected-modules decision to its shadow"
           echo "output and leaves the reactor whole, so the build that runs is"
           echo "a **full build** and the reactor-wide saving this shape"

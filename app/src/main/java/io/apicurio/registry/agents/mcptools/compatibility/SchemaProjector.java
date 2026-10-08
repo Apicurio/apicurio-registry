@@ -2,6 +2,7 @@ package io.apicurio.registry.agents.mcptools.compatibility;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.networknt.schema.SpecVersionDetector;
@@ -29,6 +30,9 @@ final class SchemaProjector {
     private static final String FORMAT = "format";
     private static final String NUMBER = "number";
     private static final String INTEGER = "integer";
+
+    private static final Set<String> EVERY_TYPE = Set.of("null", "boolean", "object", "array",
+            NUMBER, "string");
 
     private static final Set<String> NON_SEMANTIC = Set.of("title", "description", "default",
             "examples", "$comment");
@@ -101,10 +105,15 @@ final class SchemaProjector {
     }
 
     /**
-     * Boolean and malformed subschemas are kept as declared, for the engine to evaluate or reject.
+     * A {@code true} subschema is written as {@code {}}, which accepts the same values, because the
+     * engine reports {@code true} as changed against a schema object, even {@code {}}. Other boolean
+     * and malformed subschemas are kept as declared, for the engine to evaluate or reject.
      */
     private static JsonNode projectSubschema(JsonNode subschema, String node, SchemaSide side,
             List<CompatibilityLimitation> limitations) {
+        if (BooleanNode.TRUE.equals(subschema)) {
+            return JsonNodeFactory.instance.objectNode();
+        }
         if (!subschema.isObject()) {
             return subschema;
         }
@@ -137,9 +146,10 @@ final class SchemaProjector {
     /**
      * Reduces a property's union to the types it accepts: duplicates are dropped, and
      * {@code integer} is dropped beside {@code number} because every integer is a number. A union
-     * left with one type is written as that type, so that two properties accepting the same values
-     * are written the same way. A list that does not name types is not evaluated; a {@code type}
-     * that is neither a list nor a name is left for the engine to reject.
+     * left with one type is written as that type. A union of every JSON type accepts any value, so
+     * it is written as no {@code type} at all: the engine reports a producer without a
+     * {@code type} as narrowed by any declared one. A list that does not name types is not
+     * evaluated; a {@code type} that is neither a list nor a name is left for the engine to reject.
      */
     private static void projectPropertyType(JsonNode type, String node, String pointer, SchemaSide side,
             ObjectNode projected, List<CompatibilityLimitation> limitations) {
@@ -163,6 +173,9 @@ final class SchemaProjector {
         }
         if (names.contains(NUMBER)) {
             names.remove(INTEGER);
+        }
+        if (names.containsAll(EVERY_TYPE)) {
+            return;
         }
         if (names.size() == 1) {
             projected.put(TYPE, names.get(0));

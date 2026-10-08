@@ -4,8 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -22,7 +26,7 @@ class SchemaProjectorTest {
                 + "'properties':{'a':{'type':'string','default':'x','examples':['x']},'b':true},"
                 + "'required':['a'],'additionalProperties':{'type':'integer','$comment':'c'}}");
 
-        assertEquals(json("{'type':'object','properties':{'a':{'type':'string'},'b':true},"
+        assertEquals(json("{'type':'object','properties':{'a':{'type':'string'},'b':{}},"
                 + "'required':['a'],'additionalProperties':{'type':'integer'}}"), projection.projected());
         assertTrue(projection.limitations().isEmpty());
     }
@@ -120,6 +124,44 @@ class SchemaProjectorTest {
                 new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.CONSUMER,
                         "/inputSchema/properties/b", "/inputSchema/properties/b/type",
                         "'type' does not list type names")), projection.limitations());
+    }
+
+    @Test
+    void testPropertyUnionOfEveryTypeIsWrittenWithoutType() {
+        SchemaProjection projection = project("{'type':'object','properties':{"
+                + "'a':{'type':['string','number','boolean','object','array','null']},"
+                + "'b':{'type':['null','integer','number','string','array','object','boolean'],'enum':[1]},"
+                + "'c':{'type':['string','integer','boolean','object','array','null']}}}");
+
+        assertEquals(json("{'type':'object','properties':{'a':{},'b':{},"
+                + "'c':{'type':['string','integer','boolean','object','array','null']}}}"),
+                projection.projected());
+        assertEquals(List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD,
+                SchemaSide.CONSUMER, "/inputSchema/properties/b", "/inputSchema/properties/b/enum",
+                "'enum' is not evaluated yet")), projection.limitations());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "string", "number", "boolean", "object", "array", "null" })
+    void testPropertyUnionMissingOneTypeKeepsItsType(String missing) {
+        List<String> types = new ArrayList<>(List.of("string", "number", "boolean", "object", "array",
+                "null"));
+        types.remove(missing);
+        String declared = types.stream().map(type -> "'" + type + "'")
+                .collect(Collectors.joining(",", "[", "]"));
+        String schema = "{'type':'object','properties':{'a':{'type':" + declared + "}}}";
+
+        assertEquals(json(schema), project(schema).projected());
+    }
+
+    @Test
+    void testTrueSubschemaIsWrittenAsEmptySchema() {
+        SchemaProjection projection = project("{'type':'object','properties':{'a':true,'b':false},"
+                + "'additionalProperties':true}");
+
+        assertEquals(json("{'type':'object','properties':{'a':{},'b':false},'additionalProperties':{}}"),
+                projection.projected());
+        assertTrue(projection.limitations().isEmpty());
     }
 
     @Test

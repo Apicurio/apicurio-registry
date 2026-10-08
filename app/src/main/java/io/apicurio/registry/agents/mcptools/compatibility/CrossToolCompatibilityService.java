@@ -26,9 +26,9 @@ import java.util.Set;
  * {@code inputSchema} the updated one of a backward compatibility check.
  *
  * <p>The engine assumes that an object without {@code additionalProperties} can emit any
- * undeclared property, so the producer is also compared with its root object closed. Mismatches
- * that only the open producer causes become a {@link LimitationCode#PRODUCER_OBJECT_OPEN}
- * limitation, never a reason.
+ * undeclared property, so the producer is also compared with every such object closed, at any
+ * depth. Mismatches that only an open producer object causes become a
+ * {@link LimitationCode#PRODUCER_OBJECT_OPEN} limitation on that object, never a reason.
  */
 @ApplicationScoped
 public class CrossToolCompatibilityService {
@@ -140,12 +140,13 @@ public class CrossToolCompatibilityService {
             return indeterminate(limitations);
         }
 
+        JsonNode narrowed = TypeNarrowing.narrow(producer.asWritten(), consumer.projected());
         Map<DifferenceKey, Difference> asWritten;
         Map<DifferenceKey, Difference> closed;
         try {
-            asWritten = incompatibleDifferences(producer.asWritten(), consumer.projected());
+            asWritten = incompatibleDifferences(producer.asWritten(), narrowed);
             closed = producer.closed() == null ? asWritten
-                    : incompatibleDifferences(producer.closed(), consumer.projected());
+                    : incompatibleDifferences(producer.closed(), narrowed);
         } catch (IllegalStateException | DataModelsException e) {
             log.debug("MCP tool schemas could not be compared", e);
             limitations.add(comparisonFailed(SchemaSide.CONSUMER, INPUT_SCHEMA_POINTER,
@@ -153,22 +154,28 @@ public class CrossToolCompatibilityService {
             return indeterminate(limitations);
         }
 
+        DifferenceAttributor attributor = new DifferenceAttributor(producer.projection(), consumer,
+                producer.closed(), this::accepts);
         if (!closed.keySet().stream().allMatch(asWritten::containsKey)) {
             limitations.add(comparisonFailed(SchemaSide.PRODUCER, OUTPUT_SCHEMA_POINTER,
-                    "Closing the producer object introduced a mismatch"));
+                    "Closing the producer objects introduced a mismatch"));
         }
-        if (!asWritten.keySet().stream().allMatch(closed::containsKey)) {
+        Set<String> openObjects = openObjects(asWritten, closed, attributor);
+        Optional<List<CompatibilityReason>> undeclaredOutput = attributor.undeclaredOutputNotAccepted(openObjects);
+        for (String node : openObjects) {
+            String object = OUTPUT_SCHEMA_POINTER.equals(node) ? "The outputSchema" : "The object";
             limitations.add(new CompatibilityLimitation(LimitationCode.PRODUCER_OBJECT_OPEN,
-                    SchemaSide.PRODUCER, OUTPUT_SCHEMA_POINTER, OUTPUT_SCHEMA_POINTER,
-                    "The outputSchema does not set additionalProperties, so the verdict depends on the"
-                            + " producer emitting only the properties it declares"));
+                    SchemaSide.PRODUCER, node, node, object + " does not set additionalProperties, so the"
+                            + " verdict depends on the producer emitting only the properties it declares"));
         }
 
-        DifferenceAttributor attributor = new DifferenceAttributor(producer.projection(), consumer,
-                producer.closed() != null, this::accepts);
         Set<CompatibilityReason> reasons = new LinkedHashSet<>();
         attributor.unrestrictedOutputType().ifPresent(reasons::add);
-        reasons.addAll(attributor.numbersNotAccepted());
+        undeclaredOutput.ifPresent(reasons::addAll);
+        if (undeclaredOutput.isEmpty()) {
+            limitations.add(comparisonFailed(SchemaSide.CONSUMER, INPUT_SCHEMA_POINTER,
+                    "The schemas could not be compared"));
+        }
         boolean unattributed = false;
         for (Map.Entry<DifferenceKey, Difference> difference : asWritten.entrySet()) {
             if (closed.containsKey(difference.getKey())) {
@@ -198,6 +205,21 @@ public class CrossToolCompatibilityService {
     }
 
     /**
+     * The producer objects whose mismatches the closed run removes, which are the objects the
+     * verdict depends on being closed.
+     */
+    private static Set<String> openObjects(Map<DifferenceKey, Difference> asWritten,
+            Map<DifferenceKey, Difference> closed, DifferenceAttributor attributor) {
+        Set<String> nodes = new LinkedHashSet<>();
+        for (Map.Entry<DifferenceKey, Difference> difference : asWritten.entrySet()) {
+            if (!closed.containsKey(difference.getKey())) {
+                nodes.addAll(attributor.openObjects(difference.getValue()));
+            }
+        }
+        return nodes;
+    }
+
+    /**
      * Represents a consumer tool whose content could not be parsed as JSON.
      */
     public PairCompatibility unreadableConsumer(PreparedProducer producer) {
@@ -207,12 +229,24 @@ public class CrossToolCompatibilityService {
         return indeterminate(limitations);
     }
 
+    /**
+     * Whether every value the first subschema permits is accepted by the second, compared the
+     * same way as the whole schemas, or empty when the two cannot be compared.
+     */
     private Optional<Boolean> accepts(JsonNode emitted, JsonNode accepted) {
         try {
-            return Optional.of(incompatibleDifferences(emitted, accepted).isEmpty());
+            if (!incompatibleDifferences(emitted, TypeNarrowing.narrow(emitted, accepted)).isEmpty()) {
+                return Optional.of(false);
+            }
         } catch (IllegalStateException | DataModelsException e) {
             return Optional.empty();
         }
+        List<CompatibilityReason> reasons = new ArrayList<>();
+        if (!DifferenceAttributor.undeclaredOutputNotAccepted(new SchemaNode(emitted, emitted, DOCUMENT_POINTER),
+                new SchemaNode(accepted, accepted, DOCUMENT_POINTER), this::accepts, reasons)) {
+            return Optional.empty();
+        }
+        return Optional.of(reasons.isEmpty());
     }
 
     /**

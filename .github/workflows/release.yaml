@@ -252,7 +252,7 @@ jobs:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@0426e2e191540e8514dff98dc52a5f5146a2a276 # v1
+        uses: graalvm/setup-graalvm@27b360dbb857524eaf0b4c4cef364d38e5b4f173 # v1
         with:
           java-version: '23'
           distribution: 'graalvm-community'
@@ -293,13 +293,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Release Artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: release-artifacts
           path: artifacts/
 
       - name: Download CLI ZIPs
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: cli-*
           path: cli-zips/

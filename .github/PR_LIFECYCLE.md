@@ -44,7 +44,7 @@ CI capacity. Marking it ready for review again re-enters the lifecycle the same 
 | `lifecycle/waiting-on-maintainer` | PR needs maintainer attention (ready to review or merge). |
 | `lifecycle/stale` | No activity for 4+ days (waiting on author) or 7+ days (otherwise). PR will be closed after further inactivity (see [Stale PRs](#stale-prs)). Never applied to a PR blocked on a maintainer. |
 | `lifecycle/review-overdue` | Blocked on a maintainer for 14+ days. Purely a visibility signal for us — it never leads to the PR being closed (see [Stale PRs](#stale-prs)). |
-| `ci/disable-scalpel` | Skips the non-blocking `scalpel-report` data-collection job for this PR. |
+| `ci/disable-scalpel` | Skips the non-blocking Scalpel data collection for this PR: the `scalpel-report` job, and Scalpel in the `non-app` unit-test shard. |
 
 ## For Contributors
 

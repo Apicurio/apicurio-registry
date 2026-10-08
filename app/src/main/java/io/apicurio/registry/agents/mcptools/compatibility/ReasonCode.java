@@ -11,12 +11,18 @@ public enum ReasonCode {
     REQUIRED_NOT_GUARANTEED,
 
     /**
-     * The producer can emit a value that the consumer does not accept.
+     * The producer can emit a value of a type that the consumer does not accept.
      */
     TYPE_NOT_ACCEPTED,
 
     /**
      * The producer can emit a property that the consumer's {@code additionalProperties} rejects.
      */
-    ADDITIONAL_PROPERTY_NOT_ACCEPTED
+    ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+
+    /**
+     * The producer can emit a value that the consumer does not accept, for a reason that no other
+     * code describes. The message is the comparison engine's description of the difference.
+     */
+    VALUE_NOT_ACCEPTED
 }

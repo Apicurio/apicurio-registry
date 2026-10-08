@@ -80,7 +80,7 @@ final class SchemaProjector {
                         projectProperties(value, pointer, side, limitations));
                 case REQUIRED -> projected.set(REQUIRED, value);
                 case ADDITIONAL_PROPERTIES -> projected.set(ADDITIONAL_PROPERTIES,
-                        projectSubschema(value, pointer, side, limitations));
+                        projectAdditionalProperties(value, pointer, side, limitations));
                 default -> {
                     if (!droppedFromProducer(side, keyword)) {
                         limitations.add(unsupportedKeyword(side, base, pointer, keyword));
@@ -102,6 +102,20 @@ final class SchemaProjector {
                     JsonPointers.append(pointer, property.getKey()), side, limitations));
         }
         return projected;
+    }
+
+    /**
+     * A consumer {@code additionalProperties} that accepts any value is written as {@code true},
+     * because the engine reports {@code {}} there as narrower than a producer object that leaves
+     * {@code additionalProperties} unset or sets it to {@code true}. A producer one stays
+     * {@code {}}, because the engine reports {@code true} there as narrowed by any property only
+     * the consumer declares.
+     */
+    private static JsonNode projectAdditionalProperties(JsonNode subschema, String node, SchemaSide side,
+            List<CompatibilityLimitation> limitations) {
+        JsonNode projected = projectSubschema(subschema, node, side, limitations);
+        boolean acceptsAnyValue = projected.isObject() && projected.isEmpty();
+        return side == SchemaSide.CONSUMER && acceptsAnyValue ? BooleanNode.TRUE : projected;
     }
 
     /**

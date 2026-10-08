@@ -17,6 +17,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ElasticsearchSearchServiceTest {
 
@@ -103,5 +104,21 @@ public class ElasticsearchSearchServiceTest {
 
         assertNotNull(query.bool());
         assertEquals(2, query.bool().must().size());
+    }
+
+    @Test
+    void caseInsensitiveNameFilterUsesCaseInsensitiveWildcardQueries() {
+        ElasticsearchSearchService service = new ElasticsearchSearchService();
+
+        Query query = service.buildEsQuery(Set.of(SearchFilter.ofNameCaseInsensitive("*cart*")));
+
+        Query nameQuery = query.bool().must().get(0).bool().should().get(0);
+        Query artifactIdQuery = query.bool().must().get(0).bool().should().get(1);
+        assertEquals("name.keyword", nameQuery.wildcard().field());
+        assertEquals("*cart*", nameQuery.wildcard().value());
+        assertTrue(nameQuery.wildcard().caseInsensitive());
+        assertEquals("artifactId", artifactIdQuery.wildcard().field());
+        assertEquals("*cart*", artifactIdQuery.wildcard().value());
+        assertTrue(artifactIdQuery.wildcard().caseInsensitive());
     }
 }

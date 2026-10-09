@@ -58,6 +58,11 @@ public class H2SqlStatements extends CommonSqlStatements {
         throw new RuntimeException("Not applicable when using H2 as the database kind.");
     }
 
+    @Override
+    public String getNextSequenceValueBlock() {
+        throw new RuntimeException("Not applicable when using H2 as the database kind.");
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
      */

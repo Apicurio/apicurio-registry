@@ -1778,7 +1778,7 @@
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
-            "$ref": "#/components/responses/Conflict"
+            "$ref": "#/components/responses/RuleViolationConflict"
           },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntity"
@@ -2407,7 +2407,7 @@
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
-            "$ref": "#/components/responses/Conflict"
+            "$ref": "#/components/responses/RuleViolationConflict"
           },
           "422": {
             "$ref": "#/components/responses/UnprocessableEntity"
@@ -4720,13 +4720,13 @@
             "description": "The state was successfully updated."
           },
           "400": {
-            "$ref": "#/components/responses/BadRequest"
+            "$ref": "#/components/responses/RuleViolationBadRequest"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
           },
           "409": {
-            "$ref": "#/components/responses/Conflict"
+            "$ref": "#/components/responses/RuleViolationConflict"
           },
           "500": {
             "$ref": "#/components/responses/ServerError"
@@ -7713,6 +7713,29 @@
         },
         "x-codegen-extendsClass": "io.apicurio.registry.rest.v3.beans.ProblemDetails"
       },
+      "ConflictOrRuleViolationProblemDetails": {
+        "title": "Conflict or Rule Violation Problem Details",
+        "description": "HTTP 409 body. The causes field is populated only when the conflict is a rule violation.",
+        "type": "object",
+        "allOf": [
+          {
+            "type": "object",
+            "properties": {
+              "causes": {
+                "description": "List of rule violation causes. Present only for rule violation conflicts.",
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RuleViolationCause"
+                }
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/ProblemDetails"
+          }
+        ],
+        "x-codegen-extendsClass": "io.apicurio.registry.rest.v3.beans.ProblemDetails"
+      },
       "ArtifactReference": {
         "title": "Root Type for ArtifactReference",
         "description": "A reference to a different artifact. Typically used with artifact types that can have dependencies like Protobuf.",
@@ -10455,7 +10478,7 @@
         "content": {
           "application/json": {
             "schema": {
-              "$ref": "#/components/schemas/RuleViolationProblemDetails"
+              "$ref": "#/components/schemas/ConflictOrRuleViolationProblemDetails"
             },
             "examples": {
               "RuleViolationConflictExample": {

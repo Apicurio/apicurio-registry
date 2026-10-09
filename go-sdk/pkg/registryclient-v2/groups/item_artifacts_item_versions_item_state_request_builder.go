@@ -38,7 +38,7 @@ func NewItemArtifactsItemVersionsItemStateRequestBuilder(rawUrl string, requestA
 }
 
 // Put updates the state of a specific version of an artifact.  For example, you can use this operation to disable a specific version.This operation can fail for the following reasons:* No artifact with this `artifactId` exists (HTTP error `404`)* No version with this `version` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
-// returns a Error error when the service returns a 400 status code
+// returns a RuleViolationError error when the service returns a 400 status code
 // returns a AuthError error when the service returns a 401 status code
 // returns a AuthError error when the service returns a 403 status code
 // returns a Error error when the service returns a 404 status code
@@ -49,7 +49,7 @@ func (m *ItemArtifactsItemVersionsItemStateRequestBuilder) Put(ctx context.Conte
 		return err
 	}
 	errorMapping := i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.ErrorMappings{
-		"400": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
+		"400": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateRuleViolationErrorFromDiscriminatorValue,
 		"401": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"403": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"404": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,

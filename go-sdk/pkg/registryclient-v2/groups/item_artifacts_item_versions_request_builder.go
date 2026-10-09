@@ -100,7 +100,7 @@ func (m *ItemArtifactsItemVersionsRequestBuilder) Get(ctx context.Context, reque
 // returns a AuthError error when the service returns a 401 status code
 // returns a AuthError error when the service returns a 403 status code
 // returns a Error error when the service returns a 404 status code
-// returns a RuleViolationError error when the service returns a 409 status code
+// returns a ConflictOrRuleViolationError error when the service returns a 409 status code
 // returns a Error error when the service returns a 500 status code
 func (m *ItemArtifactsItemVersionsRequestBuilder) Post(ctx context.Context, body idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.ArtifactContentable, requestConfiguration *ItemArtifactsItemVersionsRequestBuilderPostRequestConfiguration) (idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.VersionMetaDataable, error) {
 	requestInfo, err := m.ToPostRequestInformation(ctx, body, requestConfiguration)
@@ -111,7 +111,7 @@ func (m *ItemArtifactsItemVersionsRequestBuilder) Post(ctx context.Context, body
 		"401": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"403": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateAuthErrorFromDiscriminatorValue,
 		"404": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
-		"409": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateRuleViolationErrorFromDiscriminatorValue,
+		"409": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateConflictOrRuleViolationErrorFromDiscriminatorValue,
 		"500": idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateErrorFromDiscriminatorValue,
 	}
 	res, err := m.BaseRequestBuilder.RequestAdapter.Send(ctx, requestInfo, idce6df71aec15bcaff7e717920c74a6e040e4229e56d54210ada4a689f7afc23.CreateVersionMetaDataFromDiscriminatorValue, errorMapping)

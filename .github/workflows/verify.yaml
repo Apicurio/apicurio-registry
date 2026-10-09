@@ -15,6 +15,13 @@ name: Verify
 #     bot-applied label, so there is no window where a stale run could
 #     mid-flight disagree with a promotion that happened after it started.
 #
+# There is one Verify run per commit, from the push. When an approval makes
+# the full suite required after that run skipped it, the orchestrator re-runs
+# the same run (pr-lifecycle.js, maybeRunFullSuite, via review-relay.yaml)
+# rather than this workflow starting a second one: a re-run keeps its check
+# suite, so the PR shows one set of Verify checks per commit, and an
+# approval never repeats a suite that already ran.
+#
 # The single required check for branch protection is the "Verification Gate"
 # commit status, not a job in this file. The orchestrator (pr-lifecycle.yml,
 # gate-status job) posts it from the Verify Result job below, taken from the
@@ -36,38 +43,23 @@ on:
   pull_request:
     types: [opened, reopened, synchronize]
     branches: [main, '3.3.x']
-  # No branches: filter here — pull_request_review does not support one.
-  # In practice every PR targets main or 3.3.x, so this is a non-issue.
-  # `dismissed` is included because dismissing a stale CHANGES_REQUESTED can
-  # flip reviewDecision to APPROVED, which Decide must re-evaluate — otherwise
-  # the full suite would stay skipped until the next push or new review.
-  pull_request_review:
-    types: [submitted, dismissed]
+  # No pull_request_review: a review started a second run on a commit that
+  # already had one. For a trusted author that repeated a full suite that had
+  # already run, and every commit showed a (pull_request) and a
+  # (pull_request_review) set of checks. Reviews reach the orchestrator through
+  # review-relay.yaml instead, which re-runs this commit's run when the suite
+  # becomes required.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   # A push supersedes the suite it interrupts — those results describe a SHA
-  # nobody is merging, so cancelling them is right. A review does not: the SHA
-  # is unchanged and the in-flight suite is still answering the correct
-  # question, so cancelling it destroys up to 40 minutes of work and re-runs
-  # it to the identical result.
-  #
-  # That distinction is not academic. `pull_request_review: submitted` fires
-  # for every reply in a review thread, not just for approvals, so ordinary
-  # review conversation was restarting the whole suite per message. Six
-  # replies on #10167 produced six runs, five of them cancelled.
-  #
-  # Worse, a cancelled run does not fail quietly. The Verification Gate runs
-  # under `if: always()`, so it still executes, sees cancelled jobs among its
-  # needs, and fails — and since branch protection takes the most recent
-  # check-run per name, that failure can outrank a green gate from a newer,
-  # successful run. #10166 sat red for exactly this reason.
-  #
-  # With this expression a review-triggered run queues instead. Runs that are
-  # superseded while still pending start no jobs and post no check-runs at
-  # all (verified on #10167: four such runs, zero jobs, zero checks), so the
-  # intermediate ones vanish silently and only the last one runs.
-  cancel-in-progress: ${{ github.event_name != 'pull_request_review' }}
+  # nobody is merging, so cancelling them is right. Pushes are now the only
+  # thing that starts a PR run here, so this can be unconditional again. It
+  # used to exempt review-triggered runs: `pull_request_review: submitted`
+  # fires for every reply in a review thread, and with cancellation each reply
+  # restarted the whole suite for an unchanged SHA (six replies on #10167, six
+  # runs, five cancelled).
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -80,6 +72,7 @@ jobs:
   lint-and-validate:
     name: Lint and Validate
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min
     needs: decide
     if: needs.decide.outputs.lifecycle-ready == 'true'
     steps:
@@ -96,17 +89,24 @@ jobs:
       - name: Verify unit test shard partition
         run: python3 .github/scripts/verify-test-shards.py
 
-      # The scalpel summary contract is merge-blocking, so its suite runs in
-      # the Gate too: it pins the extension version's report schema and the
-      # buildAllIfNoChanges setting the summary's projections stand on, and
-      # scripts-tests.yaml alone would leave a red suite non-blocking.
-      # jq is preinstalled on ubuntu-latest, the same assumption that
-      # workflow makes.
+      # The scalpel summary suite runs in the Gate because scripts-tests.yaml
+      # alone would leave a red suite non-blocking. It pins the extension
+      # version's report schema and the buildAllIfNoChanges setting the
+      # summary's projections stand on, and checks that every Scalpel run
+      # gets the base branch from Decide.
+      # jq is preinstalled on ubuntu-latest, the same assumption
+      # scripts-tests.yaml makes.
       - name: Test scalpel summary script
         run: bash .github/scripts/scalpel-summary.test.sh
 
-      - name: Test CI recovery paths
-        run: python3 -m unittest discover -s .github/scripts -p 'test_ci_reliability.py' -v
+      # Discovers the test_*.py files sitting directly in .github/scripts rather
+      # than naming one of them. A test that CI does not run stops nothing:
+      # test_parse_flaky_tests.py sat in the tree unreferenced under the old
+      # single-file pattern. label-classification/ has no __init__.py, so
+      # discover does not descend into it; scripts-tests.yaml runs those tests,
+      # which need dependencies this job does not install.
+      - name: Test CI helper scripts
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
 
       - name: Test operator catalog automation
         run: |
@@ -114,7 +114,7 @@ jobs:
             https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64 \
             --output "$RUNNER_TEMP/catalog-yq"
           chmod +x "$RUNNER_TEMP/catalog-yq"
-          YQ="$RUNNER_TEMP/catalog-yq" python3 -m unittest discover -s operator/scripts -p 'test_catalog_automation.py' -v
+          YQ="$RUNNER_TEMP/catalog-yq" python3 -m unittest discover -s operator/scripts -p 'test_*.py' -v
 
       # Orchestrator scripts run with repo write permissions under
       # pull_request_target — their logic must be tested before merge.
@@ -138,6 +138,7 @@ jobs:
   build-java:
     name: Build Java Application (no tests)
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # longest green run, week to 2026-10-01: 5 min
     needs: [decide]
     if: needs.decide.outputs.run-build == 'true'
     steps:
@@ -204,7 +205,7 @@ jobs:
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: build-artifacts-${{ github.sha }}
           path: |
@@ -236,7 +237,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '24.21.0'
           cache: 'npm'
@@ -297,6 +298,7 @@ jobs:
     with:
       image-tag: ${{ github.sha }}
       scalpel-enabled: ${{ needs.decide.outputs.scalpel-enabled }}
+      scalpel-base-branch: ${{ needs.decide.outputs.scalpel-base-branch }}
 
   # Scalpel Report (affected-module detection, data collection only).
   # Not in the Gate: a failure here never blocks a PR.
@@ -316,7 +318,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          # Full history: Scalpel diffs against the base branch (GITHUB_BASE_REF)
+          # Full history: Scalpel diffs against the base branch
           fetch-depth: 0
 
       - name: Set up JDK 21
@@ -329,10 +331,13 @@ jobs:
         uses: ./.github/actions/setup-maven-cache
 
       - name: Generate Scalpel report
+        env:
+          SCALPEL_BASE_BRANCH: ${{ needs.decide.outputs.scalpel-base-branch }}
         run: |
           # Scalpel writes the report at session start, before validate has
           # necessarily created target/ on the root aggregator. Keep this.
           mkdir -p target
+          [ -n "$SCALPEL_BASE_BRANCH" ] || echo "::warning::No scalpel-base-branch from Decide, so Scalpel runs without scalpel.baseBranch"
           # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
           # reportFile restates the documented default so the upload path
           # below cannot drift if upstream changes it.
@@ -341,6 +346,7 @@ jobs:
             -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Dscalpel.enabled=true \
             -Dscalpel.mode=report \
+            ${SCALPEL_BASE_BRANCH:+"-Dscalpel.baseBranch=$SCALPEL_BASE_BRANCH"} \
             -Dscalpel.reportFile=target/scalpel-report.json \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
@@ -369,7 +375,7 @@ jobs:
       # writes the report at session start, so it survives a later failure.
       - name: Upload Scalpel report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: scalpel-report-pr${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
           path: |
@@ -386,9 +392,18 @@ jobs:
     with:
       image-tag: ${{ github.sha }}
 
+  ard-conformance:
+    name: ARD Conformance
+    needs: [decide, build-java]
+    if: needs.decide.outputs.run-ard-conformance == 'true'
+    uses: ./.github/workflows/verify-ard-conformance.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
   go-sdk-freshness:
     name: Go SDK Freshness
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # longest green run, week to 2026-10-01: 0 min
     needs: [decide]
     if: needs.decide.outputs.run-go-sdk-freshness == 'true'
     steps:
@@ -482,9 +497,10 @@ jobs:
           || needs.decide.result != 'success'
           || needs.decide.outputs.lifecycle-ready == 'true')
     needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
-            cli-verify, go-sdk-freshness, sdk, console-plugin,
+            cli-verify, ard-conformance, go-sdk-freshness, sdk, console-plugin,
             integration-tests, extras, operator]
     runs-on: ubuntu-latest
+    timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min
     steps:
       - name: Evaluate jobs
         env:

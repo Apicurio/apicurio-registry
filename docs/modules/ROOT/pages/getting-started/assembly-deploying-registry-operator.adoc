@@ -650,7 +650,7 @@ spec:
       appClientId: registry-client-api
       authServerUrl: https://keycloak.example.com/realms/registry
       tls:
-        tlsVerificationType: all
+        tlsVerificationType: required
         truststoreSecretRef:
           name: keycloak-ca-cert
           key: ca.p12
@@ -659,7 +659,7 @@ spec:
           key: ca.password
 ----
 
-NOTE: Set `tlsVerificationType` to `none` to disable TLS verification (not recommended for production).
+NOTE: Set `tlsVerificationType` to `certificate-validation` to validate the certificate chain without verifying the hostname (requires a custom truststore), or to `none` to disable TLS verification (not recommended for production).
 
 // ref-configuring-ingress-hostname
 [id="configuring-ingress-hostname_{context}"]

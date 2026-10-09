@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 #
 # Tests for scalpel-summary.sh. Plain bash, no test framework: the repository
-# has no bats dependency and this needs none.
+# has no bats dependency and this needs none. The file also checks the pins the
+# summary relies on and that every Scalpel run in CI gets its base branch from
+# Decide.
 #
 # Usage: bash .github/scripts/scalpel-summary.test.sh
 #
@@ -191,8 +193,15 @@ done
 # that missed these, and a real local run then landed on "no base branch
 # configured" in the default arm.
 reason_fixture "no base branch configured" "$work/v2-nobase.json"
-check "v2 no base branch: names the input the base branch is derived from" \
-  "$work/v2-nobase.json" has '`GITHUB_BASE_REF`'
+check "v2 no base branch: names the base-branch flag CI passes" \
+  "$work/v2-nobase.json" has 'passes `scalpel.baseBranch`'
+check "v2 no base branch: does not claim the repository could not be opened" \
+  "$work/v2-nobase.json" lacks "could not open a git repository"
+reason_fixture "not a git repository" "$work/v2-notgit.json"
+check "v2 not a git repository: says the repository could not be opened" \
+  "$work/v2-notgit.json" has "could not open a git repository"
+check "v2 not a git repository: does not blame the base-branch flag" \
+  "$work/v2-notgit.json" lacks 'passes `scalpel.baseBranch`'
 
 # Reasons Scalpel routes to target/scalpel-shadow.json rather than to this file.
 # They cannot appear here on the pinned version, so the assertion is not that
@@ -517,6 +526,77 @@ else
   echo "      The excludePaths rationale in maven.config and the README section"
   echo "      \"Reading the Scalpel report\" stand on the same pin. Restore it, or"
   echo "      re-derive every claim that names it."
+  fail=$((fail + 1))
+fi
+
+# --- every Scalpel run passes the base branch ---------------------------------
+# The "no base branch configured" arm and the README say CI passes
+# scalpel.baseBranch. Guard that Decide derives it and that every workflow or
+# composite action enabling Scalpel passes it on. Whole-line comments are
+# dropped, so a flag left in one does not count. Only the workflow files and the
+# composite actions one level under .github/actions are scanned, and only the
+# literal -Dscalpel.enabled=true counts as enabling Scalpel.
+code_of() { grep -v '^[[:space:]]*#' "$repo_root/.github/$1"; }
+base_branch_check() {
+  local file=$1 wanted=$2
+  if grep -qF -e "$wanted" <<<"$(code_of "$file")"; then
+    echo "ok   $file carries $wanted"
+    pass=$((pass + 1))
+  else
+    echo "FAIL base branch flag: $file no longer carries $wanted, but the"
+    echo "      summary arm and the workflows README say the base branch is passed."
+    fail=$((fail + 1))
+  fi
+}
+base_branch_check workflows/verify-decide.yaml 'PR_BASE_REF: ${{ github.event.pull_request.base.ref }}'
+base_branch_check workflows/verify-decide.yaml 'scalpel-base-branch=${PR_BASE_REF:+origin/$PR_BASE_REF}'
+# Every hop to the consumers is checked, because a missing one turns the value
+# into '' (the workflow_call input default) and the flag is dropped silently.
+base_branch_check workflows/verify-decide.yaml \
+  'scalpel-base-branch: ${{ steps.decide.outputs.scalpel-base-branch }}'
+base_branch_check workflows/verify-decide.yaml \
+  'value: ${{ jobs.decide.outputs.scalpel-base-branch }}'
+base_branch_check workflows/verify.yaml \
+  'scalpel-base-branch: ${{ needs.decide.outputs.scalpel-base-branch }}'
+consumers=0
+for path in "$repo_root"/.github/workflows/*.y*ml "$repo_root"/.github/actions/*/action.y*ml; do
+  [ -f "$path" ] || continue
+  file=${path#"$repo_root"/.github/}
+  code=$(code_of "$file")
+  enabled=$(grep -cF -e "-Dscalpel.enabled=true" <<<"$code")
+  [ "$enabled" -gt 0 ] || continue
+  consumers=$((consumers + enabled))
+  # Each source resolves in one kind of file only. inputs.* is empty in a
+  # workflow Verify triggers directly, and needs.* does not exist in a called
+  # one, so accepting either everywhere would pass a line that drops the flag.
+  if [[ $file == actions/* ]] || grep -qE '^[[:space:]]*workflow_call:' <<<"$code"; then
+    source='inputs.scalpel-base-branch'
+  else
+    source='needs.decide.outputs.scalpel-base-branch'
+  fi
+  base_branch_check "$file" "SCALPEL_BASE_BRANCH: \${{ $source }}"
+  # Flag lines must match enabling lines one for one, so a second invocation
+  # cannot borrow the first one's flag. The env line above is checked once per
+  # file. The flag must sit inside a ${SCALPEL_BASE_BRANCH:+...} guard, because
+  # an unguarded one passes a bare empty value when Decide supplies none.
+  flagged=$(grep -cE -e '\$\{SCALPEL_BASE_BRANCH:\+[ "]*-Dscalpel\.baseBranch=\$SCALPEL_BASE_BRANCH' <<<"$code")
+  if [ "$flagged" -eq "$enabled" ]; then
+    echo "ok   $file passes the base branch on all $enabled Scalpel invocations"
+    pass=$((pass + 1))
+  else
+    echo "FAIL base branch flag: $file enables Scalpel $enabled times but passes a"
+    echo "      guarded -Dscalpel.baseBranch=\$SCALPEL_BASE_BRANCH $flagged times."
+    fail=$((fail + 1))
+  fi
+done
+# Without this, renaming the enable flag would leave the loop above with
+# nothing to check and the guard silently green.
+if [ "$consumers" -ge 2 ]; then
+  echo "ok   found $consumers Scalpel invocations"
+  pass=$((pass + 1))
+else
+  echo "FAIL base branch flag: expected the report job and the shadow carrier to"
+  echo "      enable Scalpel, found $consumers invocations."
   fail=$((fail + 1))
 fi
 

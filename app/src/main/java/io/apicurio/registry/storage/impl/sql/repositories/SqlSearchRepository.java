@@ -284,6 +284,14 @@ public class SqlSearchRepository {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
+            // Primary key tiebreaker so offset pagination is deterministic when sort keys tie (#10410)
+            if (orderBy != OrderBy.groupId) {
+                orderByQuery.append(", a.groupId ").append(orderDirection.name());
+            }
+            if (orderBy != OrderBy.artifactId) {
+                orderByQuery.append(", a.artifactId ").append(orderDirection.name());
+            }
+
             // Query for the artifacts
             String artifactsQuerySql = sqlStatements.selectTableTemplate("a.*", "artifacts", "a",
                     where.toString(), orderByQuery.toString());
@@ -479,7 +487,8 @@ public class SqlSearchRepository {
                 limitOffset.append(" LIMIT ? OFFSET ?");
             }
 
-            if (orderBy == OrderBy.createdOn || orderBy == OrderBy.modifiedOn) {
+            // Primary key tiebreaker so offset pagination is deterministic when sort keys tie (#10410)
+            if (orderBy != OrderBy.globalId) {
                 orderByQuery.append(", v.globalId ").append(orderDirection.name());
             }
 

@@ -333,6 +333,11 @@ public class SqlGroupRepository {
             }
             orderByQuery.append(" ").append(orderDirection.name());
 
+            // Primary key tiebreaker so offset pagination is deterministic when sort keys tie (#10410)
+            if (orderBy != OrderBy.groupId) {
+                orderByQuery.append(", g.groupId ").append(orderDirection.name());
+            }
+
             // Build queries
             String groupsQuerySql = sqlStatements.selectTableTemplate("*", "groups", "g", where.toString(),
                     orderByQuery.toString());

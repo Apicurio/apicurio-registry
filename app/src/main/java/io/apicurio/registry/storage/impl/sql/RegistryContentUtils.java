@@ -121,7 +121,7 @@ public class RegistryContentUtils {
                 () -> references,
                 ArtifactReferenceDto::getName,
                 loader,
-                cw -> TypedContent.create(cw.getContent(), cw.getArtifactType())
+                cw -> TypedContent.create(cw.getContent(), cw.getContentType())
         );
     }
 

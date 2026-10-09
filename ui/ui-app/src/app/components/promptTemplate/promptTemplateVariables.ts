@@ -26,14 +26,19 @@ export type ReconciledVariable = {
 };
 
 /**
- * Shared placeholder matcher used by extractTemplateVariableNames and
- * PromptTemplateViewer.highlightVariables.
+ * Placeholder matcher used by extractTemplateVariableNames.
+ * (PromptTemplateViewer highlights with its own tokenizer, not this regex.)
  *
  * Captures optional block prefix (group 1) and variable name (group 2).
  * Optional whitespace inside the braces matches the backend canonical plain-
  * variable pattern from PromptTemplateVariableUtil
- * (`\{\{\s*(\w+)\s*\}\}`), while still supporting handlebars-style blocks
+ * (`(?<!\{)\{\{\s*(\w+)\s*\}\}`), while still supporting handlebars-style blocks
  * (`{{#if x}}`, `{{ #if x }}`, etc.) in one expression for the UI.
+ *
+ * The leading `(?<!\{)` mirrors the backend: without it, `{{{name}}}` still
+ * contains `{{name}}` starting at the second character, so the UI would show
+ * a `name` input whose value the backend ignores. Like the backend, there is
+ * no trailing `(?!\})`: `{{name}}}` is a placeholder followed by a literal brace.
  *
  * Deliberate scope limitations (matching backend #8977 / PromptTemplateVariableUtil):
  * - Names are `\w+` only — dotted paths like `{{user.name}}` and hyphenated
@@ -43,7 +48,7 @@ export type ReconciledVariable = {
  *   `\w`), consistent with the backend not supporting them either. If the
  *   backend adds support later, this frontend logic will need a matching update.
  */
-export const TEMPLATE_VARIABLE_REGEX = /\{\{\s*(#?\/?(?:if|unless|each|with)\s+)?(\w+)\s*\}\}/g;
+export const TEMPLATE_VARIABLE_REGEX = /(?<!\{)\{\{\s*(#?\/?(?:if|unless|each|with)\s+)?(\w+)\s*\}\}/g;
 
 /**
  * Bare tag names that are Handlebars syntax/helpers, not user variables.

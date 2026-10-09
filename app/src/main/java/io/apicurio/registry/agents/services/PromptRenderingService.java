@@ -59,6 +59,21 @@ public class PromptRenderingService {
     private static final Pattern UNLESS_BLOCK_PATTERN =
             Pattern.compile("\\{\\{#unless\\s+(\\w+)\\}\\}((?:(?!\\{\\{/unless\\}\\})[\\s\\S])*?)\\{\\{/unless\\}\\}");
 
+    private static final String TYPE_STRING = "string";
+    private static final String TYPE_INTEGER = "integer";
+    private static final String TYPE_NUMBER = "number";
+    private static final String TYPE_BOOLEAN = "boolean";
+    private static final String TYPE_ARRAY = "array";
+    private static final String TYPE_OBJECT = "object";
+
+    /**
+     * Exclusive upper bound of the {@code long} range, expressed as a {@code double}. Both this
+     * value and {@code Long.MIN_VALUE} are exactly representable as a {@code double}, so they can
+     * be used to test whether a whole-number {@code double} converts to {@code long} without
+     * {@link Double#longValue()}'s silent saturation.
+     */
+    private static final double LONG_RANGE_UPPER_BOUND_EXCLUSIVE = 9223372036854775808.0;
+
     /**
      * Renders a prompt template by substituting variables.
      *
@@ -179,10 +194,32 @@ public class PromptRenderingService {
             if (effective == null) {
                 effective = new HashMap<>(variables);
             }
-            effective.put(varName, MAPPER.convertValue(defaultNode, Object.class));
+            String declaredType = field.getValue().path("type").asText(TYPE_STRING);
+            effective.put(varName, convertDefaultValue(defaultNode, declaredType));
         }
 
         return effective != null ? effective : variables;
+    }
+
+    /**
+     * Converts a declared default's JSON node to a Java value, coercing a whole-number decimal
+     * literal (e.g. {@code 5.0}) to {@code Long} when the variable's declared type is
+     * {@code integer}. YAML and JSON numeric literals with a decimal point always deserialize as
+     * a floating-point type, even when they represent a whole number, so without this coercion an
+     * {@code integer}-typed default written as {@code 5.0} would fail its own type validation.
+     * <p>
+     * A whole-number value outside the {@code long} range (e.g. {@code 1e20}) is left as a
+     * {@code Double} so it still fails type validation, rather than being silently saturated to
+     * {@code Long.MIN_VALUE}/{@code Long.MAX_VALUE} by {@link Double#longValue()}.
+     */
+    private Object convertDefaultValue(JsonNode defaultNode, String declaredType) {
+        Object value = MAPPER.convertValue(defaultNode, Object.class);
+        if (TYPE_INTEGER.equals(declaredType) && value instanceof Double doubleValue
+                && doubleValue == Math.rint(doubleValue) && !doubleValue.isInfinite()
+                && doubleValue >= Long.MIN_VALUE && doubleValue < LONG_RANGE_UPPER_BOUND_EXCLUSIVE) {
+            return doubleValue.longValue();
+        }
+        return value;
     }
 
     /**
@@ -231,7 +268,7 @@ public class PromptRenderingService {
      */
     private void validateValue(String varName, Object value, JsonNode varSchema,
             List<RenderValidationError> errors) {
-        String expectedType = varSchema.path("type").asText("string");
+        String expectedType = varSchema.path("type").asText(TYPE_STRING);
         RenderValidationError typeError = validateType(varName, value, expectedType);
         if (typeError != null) {
             errors.add(typeError);
@@ -247,7 +284,7 @@ public class PromptRenderingService {
         }
 
         // Validate range for numeric types
-        if ("integer".equals(expectedType) || "number".equals(expectedType)) {
+        if (TYPE_INTEGER.equals(expectedType) || TYPE_NUMBER.equals(expectedType)) {
             RenderValidationError rangeError = validateRange(varName, value, varSchema);
             if (rangeError != null) {
                 errors.add(rangeError);
@@ -291,12 +328,12 @@ public class PromptRenderingService {
         String actualType = getTypeName(value);
 
         boolean valid = switch (expectedType) {
-            case "string" -> value instanceof String;
-            case "integer" -> value instanceof Integer || value instanceof Long;
-            case "number" -> value instanceof Number;
-            case "boolean" -> value instanceof Boolean;
-            case "array" -> value instanceof List;
-            case "object" -> value instanceof Map;
+            case TYPE_STRING -> value instanceof String;
+            case TYPE_INTEGER -> value instanceof Integer || value instanceof Long;
+            case TYPE_NUMBER -> value instanceof Number;
+            case TYPE_BOOLEAN -> value instanceof Boolean;
+            case TYPE_ARRAY -> value instanceof List;
+            case TYPE_OBJECT -> value instanceof Map;
             default -> true; // Unknown types pass validation
         };
 
@@ -375,12 +412,12 @@ public class PromptRenderingService {
      */
     private String getTypeName(Object value) {
         if (value == null) return "null";
-        if (value instanceof String) return "string";
-        if (value instanceof Integer || value instanceof Long) return "integer";
-        if (value instanceof Number) return "number";
-        if (value instanceof Boolean) return "boolean";
-        if (value instanceof List) return "array";
-        if (value instanceof Map) return "object";
+        if (value instanceof String) return TYPE_STRING;
+        if (value instanceof Integer || value instanceof Long) return TYPE_INTEGER;
+        if (value instanceof Number) return TYPE_NUMBER;
+        if (value instanceof Boolean) return TYPE_BOOLEAN;
+        if (value instanceof List) return TYPE_ARRAY;
+        if (value instanceof Map) return TYPE_OBJECT;
         return value.getClass().getSimpleName();
     }
 

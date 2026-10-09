@@ -428,6 +428,16 @@
             "in": "query"
           },
           {
+            "name": "nameCaseInsensitive",
+            "description": "When true, matches the `name` filter without regard to letter case. Defaults to false.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
             "name": "skipCount",
             "description": "Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.",
             "schema": {
@@ -3859,6 +3869,16 @@
               "type": "string"
             },
             "in": "query"
+          },
+          {
+            "name": "nameCaseInsensitive",
+            "description": "When true, matches the `name` filter without regard to letter case. Defaults to false.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
           },
           {
             "name": "skipCount",

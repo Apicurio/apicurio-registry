@@ -80,7 +80,8 @@ async function searchDrafts(config: ConfigService, auth: AuthService, filters: D
     // Apply filters
     filters.forEach(filter => {
         if (filter.by === DraftsFilterBy.name) {
-            (queryParams as any)[filter.by] = toPartialNameFilter(filter.value);
+            queryParams.name = toPartialNameFilter(filter.value);
+            queryParams.nameCaseInsensitive = true;
         } else {
             (queryParams as any)[filter.by] = filter.value;
         }

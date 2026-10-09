@@ -34,6 +34,8 @@ type ArtifactsRequestBuilderGetQueryParameters struct {
 	Limit *int32 "uriparametername:\"limit\""
 	// Filter by artifact name.
 	Name *string "uriparametername:\"name\""
+	// When true, matches the `name` filter without regard to letter case. Defaults to false.
+	NameCaseInsensitive *bool "uriparametername:\"nameCaseInsensitive\""
 	// The number of artifacts to skip before starting to collect the result set.  Defaults to 0.
 	Offset *int32 "uriparametername:\"offset\""
 	// Sort order, ascending (`asc`) or descending (`desc`).
@@ -99,7 +101,7 @@ type ArtifactsRequestBuilderPostRequestConfiguration struct {
 // NewArtifactsRequestBuilderInternal instantiates a new ArtifactsRequestBuilder and sets the default values.
 func NewArtifactsRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *ArtifactsRequestBuilder {
 	m := &ArtifactsRequestBuilder{
-		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/artifacts{?artifactId*,artifactType*,canonical*,contentId*,description*,globalId*,groupId*,labels*,limit*,name*,offset*,order*,orderby*,skipCount*}", pathParameters),
+		BaseRequestBuilder: *i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.NewBaseRequestBuilder(requestAdapter, "{+baseurl}/search/artifacts{?artifactId*,artifactType*,canonical*,contentId*,description*,globalId*,groupId*,labels*,limit*,name*,nameCaseInsensitive*,offset*,order*,orderby*,skipCount*}", pathParameters),
 	}
 	return m
 }

@@ -1,6 +1,5 @@
 package io.apicurio.registry.auth;
 
-import java.util.List;
 import java.util.Set;
 
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
@@ -11,9 +10,12 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 
 /**
- * Entry point for search and list endpoints. When per-resource authorization is enabled, the
- * implementation adds authorization filters so storage only returns resources the caller may read
- * (keeping pagination and counts accurate). Otherwise it delegates straight to storage.
+ * Entry point for client-facing search and list endpoints. When per-resource authorization is
+ * enabled, the implementation restricts results to resources the caller may read, inside the
+ * storage query so pagination and counts stay accurate. Otherwise it delegates to storage.
+ *
+ * <p>Endpoints that return registry resources must use this instead of calling
+ * {@code RegistryStorage.search*} directly.</p>
  */
 public interface ISearchAuthorizer {
 
@@ -26,15 +28,13 @@ public interface ISearchAuthorizer {
     VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDir, int offset, int limit, boolean skipCount);
 
+    /**
+     * For results that cannot be filtered in the storage query (e.g. lists resolved from a content
+     * ID or a reference graph).
+     *
+     * @return true if the caller may read the artifact
+     */
     default boolean canReadArtifact(String groupId, String artifactId) {
         return true;
-    }
-
-    default List<String> getArtifactPermissions(String groupId, String artifactId) {
-        return List.of("read", "write", "admin");
-    }
-
-    default List<String> getGroupPermissions(String groupId) {
-        return List.of("read", "write", "admin");
     }
 }

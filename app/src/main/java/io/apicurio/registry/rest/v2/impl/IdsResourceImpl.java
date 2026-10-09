@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.v2.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
@@ -47,6 +48,9 @@ public class IdsResourceImpl implements IdsResource {
     RegistryStorage storage;
 
     @Inject
+    ISearchAuthorizer searchAuthorizer;
+
+    @Inject
     ArtifactTypeUtilProviderFactory factory;
 
     @Inject
@@ -56,7 +60,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#getContentById(long)
      */
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ContentId, level = AuthorizedLevel.Read)
     public Response getContentById(long contentId) {
         ContentHandle content = storage.getContentById(contentId).getContent();
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
@@ -118,7 +122,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#getContentByHash(java.lang.String)
      */
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ContentHash, level = AuthorizedLevel.Read)
     public Response getContentByHash(String contentHash) {
         ContentHandle content = storage.getContentByHash(contentHash).getContent();
         Response.ResponseBuilder builder = Response.ok(content, ArtifactMediaTypes.BINARY);
@@ -129,7 +133,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#referencesByContentHash(java.lang.String)
      */
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ContentHash, level = AuthorizedLevel.Read)
     public List<ArtifactReference> referencesByContentHash(String contentHash) {
         return common.getReferencesByContentHash(contentHash, V2ApiUtil::referenceDtoToReference);
     }
@@ -138,7 +142,7 @@ public class IdsResourceImpl implements IdsResource {
      * @see io.apicurio.registry.rest.v2.IdsResource#referencesByContentId(long)
      */
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ContentId, level = AuthorizedLevel.Read)
     public List<ArtifactReference> referencesByContentId(long contentId) {
         ContentWrapperDto artifact = storage.getContentById(contentId);
         return artifact.getReferences().stream().map(V2ApiUtil::referenceDtoToReference)
@@ -158,9 +162,11 @@ public class IdsResourceImpl implements IdsResource {
                     .collect(Collectors.toList());
         } else {
             ArtifactVersionMetaDataDto amd = storage.getArtifactVersionMetaData(globalId);
+            // Inbound references point from other artifacts: only list those the caller may read
             return storage
                     .getInboundArtifactReferences(amd.getGroupId(), amd.getArtifactId(), amd.getVersion())
-                    .stream().map(V2ApiUtil::referenceDtoToReference).collect(Collectors.toList());
+                    .stream().filter(ref -> searchAuthorizer.canReadArtifact(ref.getGroupId(), ref.getArtifactId()))
+                    .map(V2ApiUtil::referenceDtoToReference).collect(Collectors.toList());
         }
     }
 }

@@ -3,71 +3,61 @@ package io.apicurio.registry.auth.grants;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 
-import io.apicurio.authz.GrantsData;
 import io.apicurio.authz.GrantsAuthorizer;
+import io.apicurio.authz.GrantsData;
 import io.apicurio.authz.RolePrincipal;
 import io.apicurio.authz.User;
 import io.apicurio.registry.auth.AbstractAccessController;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
-import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.AuthorizedResource;
+import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.model.GroupId;
-import io.apicurio.registry.cdi.Current;
-import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
-import io.apicurio.registry.storage.error.NotFoundException;
 import io.kroxylicious.authorizer.service.Action;
 import io.kroxylicious.authorizer.service.AuthorizeResult;
 import io.kroxylicious.authorizer.service.Decision;
 import io.kroxylicious.authorizer.service.ResourceType;
 import io.kroxylicious.identity.Principal;
 import io.kroxylicious.identity.Subject;
-import io.opentelemetry.api.GlobalOpenTelemetry;
-import io.opentelemetry.api.common.AttributeKey;
-import io.opentelemetry.api.common.Attributes;
-import io.opentelemetry.api.metrics.LongCounter;
-import io.opentelemetry.api.metrics.Meter;
 import io.quarkus.security.identity.SecurityIdentity;
-import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.interceptor.InvocationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Per-resource authorization backed by a Kroxylicious {@link io.kroxylicious.authorizer.service.Authorizer}
+ * (the grants-file based {@link GrantsAuthorizer}). Resources are named {@code groupId/artifactId}
+ * (resource type {@code artifact}) or {@code groupId} (resource type {@code group}); the default
+ * group is named {@code default}.
+ */
 @Singleton
 public class GrantsAccessController extends AbstractAccessController {
 
     private static final Logger LOG = LoggerFactory.getLogger(GrantsAccessController.class);
     private static final Logger AUDIT = LoggerFactory.getLogger("io.apicurio.registry.audit.authz");
 
-    private static final AttributeKey<String> DECISION_KEY = AttributeKey.stringKey("decision");
-    private static final AttributeKey<String> RESOURCE_TYPE_KEY = AttributeKey.stringKey("resource_type");
-    private static final AttributeKey<String> OPERATION_KEY = AttributeKey.stringKey("operation");
+    private static final String DEFAULT_GROUP = "default";
+    private static final String TYPE_ARTIFACT = "artifact";
+    private static final String TYPE_GROUP = "group";
+    private static final String TYPE_CONTENT = "content";
 
     @Inject
-    SecurityIdentity securityIdentity;
-
-    @Inject
-    @Current
-    RegistryStorage registryStorage;
+    OTelMetricsProvider metrics;
 
     private volatile GrantsAuthorizer authorizer;
-    private LongCounter authzDecisionsCounter;
-
-    @PostConstruct
-    void initMetrics() {
-        Meter meter = GlobalOpenTelemetry.getMeter("io.apicurio.registry");
-        authzDecisionsCounter = meter.counterBuilder("apicurio.authz.decisions")
-                .setDescription("Authorization decisions for per-resource access control")
-                .setUnit("1")
-                .build();
-    }
 
     void setAuthorizer(GrantsAuthorizer authorizer) {
         this.authorizer = authorizer;
+    }
+
+    // Visible for testing
+    void setSecurityIdentity(SecurityIdentity securityIdentity) {
+        this.securityIdentity = securityIdentity;
     }
 
     public GrantsAuthorizer getAuthorizer() {
@@ -75,79 +65,95 @@ public class GrantsAccessController extends AbstractAccessController {
     }
 
     GrantsData getGrantsData() {
-        return authorizer != null ? authorizer.getGrantsData() : null;
+        GrantsAuthorizer current = authorizer;
+        return current != null ? current.getGrantsData() : null;
     }
 
     @Override
     public boolean isAuthorized(InvocationContext context) {
+        Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
+        if (annotation == null || annotation.level() == AuthorizedLevel.None) {
+            return true;
+        }
+        Optional<AuthorizedResource> resource = resolveResource(context);
+        if (resource.isEmpty()) {
+            // Not a single-resource operation (style None), or parameters the endpoint rejects
+            return true;
+        }
+        return isAllowed(annotation.level(), resource.get());
+    }
+
+    /**
+     * Evaluates grants for an explicitly identified resource. Used by endpoints whose target
+     * comes from the request body rather than from method parameters.
+     */
+    public boolean isAllowed(AuthorizedLevel level, AuthorizedResource resource) {
+        if (level == AuthorizedLevel.None) {
+            return true;
+        }
         if (authorizer == null) {
-            LOG.error("Grants access controller not initialized, denying access.");
+            LOG.error("Per-resource authorization is enabled but not initialized, denying access.");
             return false;
         }
-
-        Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
-        if (annotation == null) {
-            return true;
-        }
-
-        AuthorizedStyle style = annotation.style();
-        AuthorizedLevel level = annotation.level();
-
-        if (style == AuthorizedStyle.None || level == AuthorizedLevel.None) {
-            return true;
-        }
-
-        String resourceName = extractResourceName(context, style);
-        if (resourceName == null) {
-            return true;
-        }
-
-        ResourceType<?> operation;
-        String resourceType;
-        boolean isGroupOnly = style == AuthorizedStyle.GroupOnly
-                || (style == AuthorizedStyle.GroupAndArtifact
-                    && (context.getParameters().length < 2
-                        || !(context.getParameters()[1] instanceof String)));
-        if (isGroupOnly) {
-            operation = toGroupOp(level);
-            resourceType = "group";
-        } else {
-            operation = toArtifactOp(level);
-            resourceType = "artifact";
-        }
-
-        String operationName = level.name().toLowerCase(Locale.ROOT);
         Subject subject = currentSubject();
-
-        AuthorizeResult result = authorizer.authorize(subject, List.of(new Action(operation, resourceName)))
-                .toCompletableFuture().join();
-        boolean allowed = result.decision(operation, resourceName) == Decision.ALLOW;
-
-        String decisionStr = allowed ? "allow" : "deny";
-        authzDecisionsCounter.add(1, Attributes.of(
-                DECISION_KEY, decisionStr,
-                RESOURCE_TYPE_KEY, resourceType,
-                OPERATION_KEY, operationName));
-
-        if (!allowed) {
-            String user = getUsername();
-            AUDIT.info("authz.denied user=\"{}\" operation=\"{}\" resource_type=\"{}\" resource=\"{}\"",
-                    user, operationName, resourceType, resourceName);
-        }
-
-        return allowed;
+        return switch (resource.kind()) {
+            case ARTIFACT -> decide(subject, toArtifactOp(level), TYPE_ARTIFACT, level,
+                    buildResourceName(resource.groupId(), resource.artifactId()));
+            case GROUP -> decide(subject, toGroupOp(level), TYPE_GROUP, level,
+                    normalizeGroup(resource.groupId()));
+            case CONTENT -> decideContent(subject, level, resource.contentUsers());
+        };
     }
 
     public boolean canReadArtifact(String groupId, String artifactId) {
-        if (authorizer == null) {
-            return false;
+        return isAllowed(AuthorizedLevel.Read, AuthorizedResource.artifact(groupId, artifactId));
+    }
+
+    /**
+     * Content can be shared by many artifacts: access is allowed if the caller may access at least
+     * one artifact using it. Content no artifact uses (including unknown IDs) is denied, except
+     * for grants-file admins.
+     */
+    private boolean decideContent(Subject subject, AuthorizedLevel level, List<AuthorizedResource> users) {
+        ResourceType<?> operation = toArtifactOp(level);
+        List<Action> actions = users.stream()
+                .map(u -> new Action(operation, buildResourceName(u.groupId(), u.artifactId())))
+                .distinct()
+                .toList();
+        boolean allowed = actions.isEmpty()
+                ? isGrantsAdmin()
+                : !authorize(subject, actions).allowed().isEmpty();
+        record(allowed, TYPE_CONTENT, level, "content used by " + actions.size() + " artifact(s)");
+        return allowed;
+    }
+
+    /** Grants-file admins have access even when there is no artifact to evaluate. */
+    private boolean isGrantsAdmin() {
+        GrantsData data = getGrantsData();
+        return data != null && securityIdentity != null && !securityIdentity.isAnonymous()
+                && data.isAdmin(securityIdentity.getRoles());
+    }
+
+    private boolean decide(Subject subject, ResourceType<?> operation, String resourceType,
+            AuthorizedLevel level, String resourceName) {
+        boolean allowed = authorize(subject, List.of(new Action(operation, resourceName)))
+                .decision(operation, resourceName) == Decision.ALLOW;
+        record(allowed, resourceType, level, resourceName);
+        return allowed;
+    }
+
+    private AuthorizeResult authorize(Subject subject, List<Action> actions) {
+        // GrantsAuthorizer evaluates in-memory and always returns a completed stage
+        return authorizer.authorize(subject, actions).toCompletableFuture().join();
+    }
+
+    private void record(boolean allowed, String resourceType, AuthorizedLevel level, String resource) {
+        String operation = level.name().toLowerCase(Locale.ROOT);
+        metrics.recordAuthzDecision(allowed, resourceType, operation);
+        if (!allowed) {
+            AUDIT.info("authz.denied user=\"{}\" operation=\"{}\" resource_type=\"{}\" resource=\"{}\"",
+                    getUsername(), operation, resourceType, resource);
         }
-        String resourceName = buildResourceName(groupId, artifactId);
-        Subject subject = currentSubject();
-        AuthorizeResult result = authorizer.authorize(subject,
-                List.of(new Action(RegistryResourceType.Artifact.Read, resourceName)))
-                .toCompletableFuture().join();
-        return result.decision(RegistryResourceType.Artifact.Read, resourceName) == Decision.ALLOW;
     }
 
     private String getUsername() {
@@ -173,54 +179,35 @@ public class GrantsAccessController extends AbstractAccessController {
         return new Subject(principals);
     }
 
+    /**
+     * @return the grants resource name of an artifact, {@code groupId/artifactId}, where the
+     *         default group is named {@code default}
+     */
     public static String buildResourceName(String groupId, String artifactId) {
-        String normalizedGroup = groupId != null ? new GroupId(groupId).getRawGroupIdWithNull() : "default";
-        if (normalizedGroup == null) {
-            normalizedGroup = "default";
-        }
-        return normalizedGroup + "/" + artifactId;
+        return normalizeGroup(groupId) + "/" + artifactId;
     }
 
-    private String extractResourceName(InvocationContext context, AuthorizedStyle style) {
-        Object[] params = context.getParameters();
-        return switch (style) {
-            case GroupAndArtifact -> {
-                if (params.length < 2 || !(params[1] instanceof String)) {
-                    yield getStringParam(context, 0);
-                }
-                yield buildResourceName(getStringParam(context, 0), getStringParam(context, 1));
-            }
-            case GroupOnly -> getStringParam(context, 0);
-            case ArtifactOnly -> buildResourceName(null, getStringParam(context, 0));
-            case GlobalId -> {
-                try {
-                    long globalId = getLongParam(context, 0);
-                    ArtifactVersionMetaDataDto vmd = registryStorage.getArtifactVersionMetaData(globalId);
-                    yield buildResourceName(vmd.getGroupId(), vmd.getArtifactId());
-                } catch (NotFoundException e) {
-                    LOG.debug("GlobalId not found during grants check, denying access.");
-                    yield "__nonexistent__";
-                }
-            }
-            case None -> null;
-        };
+    /**
+     * @return the grants resource name of a group; the default group is named {@code default}
+     */
+    public static String normalizeGroup(String groupId) {
+        String raw = groupId != null ? new GroupId(groupId).getRawGroupIdWithNull() : null;
+        return raw != null ? raw : DEFAULT_GROUP;
     }
 
     private static RegistryResourceType.Artifact toArtifactOp(AuthorizedLevel level) {
         return switch (level) {
-            case Read -> RegistryResourceType.Artifact.Read;
+            case Read, None -> RegistryResourceType.Artifact.Read;
             case Write -> RegistryResourceType.Artifact.Write;
             case Admin, AdminOrOwner -> RegistryResourceType.Artifact.Admin;
-            case None -> RegistryResourceType.Artifact.Read;
         };
     }
 
     private static RegistryResourceType.Group toGroupOp(AuthorizedLevel level) {
         return switch (level) {
-            case Read -> RegistryResourceType.Group.Read;
+            case Read, None -> RegistryResourceType.Group.Read;
             case Write -> RegistryResourceType.Group.Write;
             case Admin, AdminOrOwner -> RegistryResourceType.Group.Admin;
-            case None -> RegistryResourceType.Group.Read;
         };
     }
 }

@@ -2,9 +2,11 @@ package io.apicurio.registry.rest.v3.impl;
 
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.auth.OwnershipTransferAuthorizer;
 import io.apicurio.registry.auth.ISearchAuthorizer;
+import io.apicurio.registry.auth.OwnershipTransferAuthorizer;
+import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.storage.dto.PromotionStage;
@@ -202,6 +204,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Inject
     ISearchAuthorizer searchAuthorizer;
 
+    @Inject
+    ResourceAccessGuard accessGuard;
+
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
      *      java.lang.String, java.lang.String, io.apicurio.registry.types.ReferenceType)
@@ -222,10 +227,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                             gav.getRawVersionId())
                     .getReferences().stream().map(V3ApiUtil::referenceDtoToReference).collect(toList());
         } else {
+            // Inbound references point from other artifacts: only list those the caller may read
             return storage
                     .getInboundArtifactReferences(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
                             gav.getRawVersionId())
-                    .stream().map(V3ApiUtil::referenceDtoToReference).collect(toList());
+                    .stream().filter(ref -> searchAuthorizer.canReadArtifact(ref.getGroupId(), ref.getArtifactId()))
+                    .map(V3ApiUtil::referenceDtoToReference).collect(toList());
         }
     }
 
@@ -495,6 +502,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 if (inboundRefs == null) {
                     inboundRefs = Collections.emptyList();
                 }
+                // Inbound references point from other artifacts: only include those the caller may read
+                inboundRefs = inboundRefs.stream()
+                        .filter(ref -> searchAuthorizer.canReadArtifact(ref.getGroupId(), ref.getArtifactId()))
+                        .toList();
                 inboundReferences.put(targetNodeId, inboundRefs);
             }
 
@@ -763,6 +774,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (new GroupId(data.getGroupId()).isDefaultGroup()) {
             throw new BadRequestException("The group name 'default' is reserved and cannot be used.");
         }
+        // The group comes from the body, so per-resource authorization is checked here
+        accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.group(data.getGroupId()));
 
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder().groupId(data.getGroupId())
                 .description(data.getDescription()).labels(data.getLabels());
@@ -2511,7 +2524,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 SearchFilter.ofGroupId(rawGroupId),
                 SearchFilter.ofArtifactType(ArtifactType.ODCS_CONTRACT));
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters,
+        ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters,
                 OrderBy.createdOn, OrderDirection.desc, effectiveOffset,
                 effectiveLimit, false);
 

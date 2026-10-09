@@ -48,7 +48,7 @@ public class SqlSearchRepository {
      * escapes the escape character itself, so a value that genuinely contains '!' still matches
      * literally - the character is only ever consumed as an escape when this code puts it there.
      */
-    private static final char LIKE_ESCAPE_CHAR = '!';
+    static final char LIKE_ESCAPE_CHAR = '!';
 
     private static final String STRUCTURE_FILTER_FORMAT_HELP = "Expected '<artifactType>:<kind>:<name>', "
             + "'<kind>:<name>' or '<name>', for example 'agent_card:skill:translation'.";
@@ -107,11 +107,9 @@ public class SqlSearchRepository {
                         buildWildcardClause(where, "a.groupId",
                                 normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
                         break;
-                    case groupIdIn:
-                    case groupIdInOrArtifactExact:
-                    case artifactExactDeny:
-                    case artifactPrefixDeny:
-                        appendGrantsFilterClause(filter, where, binders);
+                    case authorization:
+                        SqlAuthorizationFilter.appendArtifactCondition(where, binders,
+                                filter.getAuthorizationValue(), "a.groupId", "a.artifactId", "a.owner");
                         break;
                     case artifactId:
                         buildWildcardClause(where, "a.artifactId",
@@ -358,11 +356,9 @@ public class SqlSearchRepository {
                         buildWildcardClause(where, "a.groupId",
                                 normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
                         break;
-                    case groupIdIn:
-                    case groupIdInOrArtifactExact:
-                    case artifactExactDeny:
-                    case artifactPrefixDeny:
-                        appendGrantsFilterClause(filter, where, binders);
+                    case authorization:
+                        SqlAuthorizationFilter.appendArtifactCondition(where, binders,
+                                filter.getAuthorizationValue(), "a.groupId", "a.artifactId", "a.owner");
                         break;
                     case artifactType:
                         op = filter.isNot() ? "!=" : "=";
@@ -535,7 +531,7 @@ public class SqlSearchRepository {
      * is used inside a LIKE pattern, so request-derived text is matched literally. The caller is
      * responsible for adding any intentional wildcards and the matching {@code ESCAPE} clause.
      */
-    private static String escapeLikePattern(String value) {
+    static String escapeLikePattern(String value) {
         StringBuilder escaped = new StringBuilder(value.length());
         for (char c : value.toCharArray()) {
             if (c == LIKE_ESCAPE_CHAR || c == '%' || c == '_') {
@@ -660,168 +656,5 @@ public class SqlSearchRepository {
             Map<String, String> cappedLabels = limitReturnedLabels(labels);
             version.setLabels(cappedLabels);
         });
-    }
-
-    private static String escapeSqlLike(String value) {
-        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
-    }
-
-    /**
-     * Appends the WHERE-clause fragment for grants-based authorization filters
-     * (groupIdIn, groupIdInOrArtifactExact, artifactExactDeny, artifactPrefixDeny). This logic is
-     * security-relevant and must stay in sync between {@link #searchArtifacts} and
-     * {@link #searchVersions}, hence the single shared implementation.
-     *
-     * @return true if the filter type was handled by this method
-     */
-    private static boolean appendGrantsFilterClause(SearchFilter filter, StringBuilder where,
-            List<SqlStatementVariableBinder> binders) {
-        switch (filter.getType()) {
-            case groupIdIn: {
-                var groupIds = filter.getSetValue();
-                if (groupIds.isEmpty()) {
-                    where.append(filter.isNot() ? "1 = 1" : "1 = 0");
-                    return true;
-                }
-                var placeholders = String.join(", ", groupIds.stream().map(g -> "?").toList());
-                String op = filter.isNot() ? "NOT IN" : "IN";
-                where.append("a.groupId " + op + " (" + placeholders + ")");
-                for (String gid : groupIds) {
-                    binders.add((query, idx) -> {
-                        query.bind(idx, normalizeGroupId(gid));
-                    });
-                }
-                return true;
-            }
-            case groupIdInOrArtifactExact: {
-                var allowedGroups = filter.getGroupIdInValue();
-                var exactResources = filter.getExactResourcesValue();
-                var prefixResources = filter.getPrefixResourcesValue();
-                if (allowedGroups.isEmpty() && exactResources.isEmpty() && prefixResources.isEmpty()) {
-                    where.append("1 = 0");
-                    return true;
-                }
-                where.append("(");
-                boolean first = true;
-                if (!allowedGroups.isEmpty()) {
-                    var gPlaceholders = String.join(", ", allowedGroups.stream().map(g -> "?").toList());
-                    where.append("a.groupId IN (").append(gPlaceholders).append(")");
-                    for (String gid : allowedGroups) {
-                        binders.add((query, idx) -> {
-                            query.bind(idx, normalizeGroupId(gid));
-                        });
-                    }
-                    first = false;
-                }
-                for (String resource : exactResources) {
-                    int sepIdx = resource.indexOf("/");
-                    if (sepIdx > 0) {
-                        String eGroupId = resource.substring(0, sepIdx);
-                        String eArtifactId = resource.substring(sepIdx + 1);
-                        if (!first) {
-                            where.append(" OR ");
-                        }
-                        where.append("(a.groupId = ? AND a.artifactId = ?)");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, normalizeGroupId(eGroupId));
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, eArtifactId);
-                        });
-                        first = false;
-                    }
-                }
-                for (String prefix : prefixResources) {
-                    int sepIdx = prefix.indexOf("/");
-                    if (sepIdx > 0) {
-                        String pGroupId = prefix.substring(0, sepIdx);
-                        String pArtifactPrefix = prefix.substring(sepIdx + 1);
-                        if (!first) {
-                            where.append(" OR ");
-                        }
-                        where.append("(a.groupId = ? AND a.artifactId LIKE ?)");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, normalizeGroupId(pGroupId));
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, escapeSqlLike(pArtifactPrefix) + "%");
-                        });
-                        first = false;
-                    }
-                }
-                if (first) {
-                    // None of the allow entries produced a usable clause - fail closed.
-                    where.append("1 = 0");
-                }
-                where.append(")");
-                return true;
-            }
-            case artifactExactDeny: {
-                var deniedResources = filter.getSetValue();
-                if (deniedResources.isEmpty()) {
-                    where.append("1 = 1");
-                    return true;
-                }
-                where.append("NOT (");
-                boolean dFirst = true;
-                for (String resource : deniedResources) {
-                    int sepIdx = resource.indexOf("/");
-                    if (sepIdx > 0) {
-                        String dGroupId = resource.substring(0, sepIdx);
-                        String dArtifactId = resource.substring(sepIdx + 1);
-                        if (!dFirst) {
-                            where.append(" OR ");
-                        }
-                        where.append("(a.groupId = ? AND a.artifactId = ?)");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, normalizeGroupId(dGroupId));
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, dArtifactId);
-                        });
-                        dFirst = false;
-                    }
-                }
-                if (dFirst) {
-                    where.append("1 = 0");
-                }
-                where.append(")");
-                return true;
-            }
-            case artifactPrefixDeny: {
-                var deniedPrefixes = filter.getSetValue();
-                if (deniedPrefixes.isEmpty()) {
-                    where.append("1 = 1");
-                    return true;
-                }
-                where.append("NOT (");
-                boolean dpFirst = true;
-                for (String prefix : deniedPrefixes) {
-                    int sepIdx = prefix.indexOf("/");
-                    if (sepIdx > 0) {
-                        String pGroupId = prefix.substring(0, sepIdx);
-                        String pArtifactPrefix = prefix.substring(sepIdx + 1);
-                        if (!dpFirst) {
-                            where.append(" OR ");
-                        }
-                        where.append("(a.groupId = ? AND a.artifactId LIKE ?)");
-                        binders.add((query, idx) -> {
-                            query.bind(idx, normalizeGroupId(pGroupId));
-                        });
-                        binders.add((query, idx) -> {
-                            query.bind(idx, escapeSqlLike(pArtifactPrefix) + "%");
-                        });
-                        dpFirst = false;
-                    }
-                }
-                if (dpFirst) {
-                    where.append("1 = 0");
-                }
-                where.append(")");
-                return true;
-            }
-            default:
-                return false;
-        }
     }
 }

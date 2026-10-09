@@ -10,6 +10,7 @@ import io.apicurio.registry.agents.mcptools.compatibility.PairCompatibility;
 import io.apicurio.registry.agents.mcptools.compatibility.PreparedProducer;
 import io.apicurio.registry.agents.mcptools.rest.beans.McpCompatibleToolsResults;
 import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -73,6 +74,10 @@ public class McpToolDiscovery {
     @Current
     RegistryStorage storage;
 
+    /** Discovery lists registry artifacts, so it is restricted by per-resource authorization. */
+    @Inject
+    ISearchAuthorizer searchAuthorizer;
+
     public Response getRegisteredMcpTool(String groupId, String artifactId, String version) {
         if (!mcpToolsConfig.isEnabled()) {
             throw new NotFoundException("MCP tools support is disabled");
@@ -127,7 +132,7 @@ public class McpToolDiscovery {
 
         if (parameters != null && !parameters.isEmpty()) {
             // Parameter filtering is performed after artifact search by inspecting tool.getParameters()
-            ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
+            ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, OrderBy.createdOn,
                     OrderDirection.desc, 0, AiCatalogDiscovery.MAX_VISIBILITY_FILTER_RESULTS, false);
 
             List<McpToolSearchResult> matchingTools = new ArrayList<>();
@@ -146,7 +151,7 @@ public class McpToolDiscovery {
             return McpToolSearchResults.builder().count(total).tools(page).build();
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.createdOn,
+        ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, OrderBy.createdOn,
                 OrderDirection.desc, safeOffset, safeLimit, false);
 
         List<McpToolSearchResult> tools = new ArrayList<>();
@@ -240,7 +245,7 @@ public class McpToolDiscovery {
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_TOOL));
 
-        ArtifactSearchResultsDto candidateResults = storage.searchArtifacts(filters, OrderBy.createdOn,
+        ArtifactSearchResultsDto candidateResults = searchAuthorizer.searchArtifacts(filters, OrderBy.createdOn,
                 OrderDirection.desc, 0, MAX_COMPATIBLE_CANDIDATE_SCAN, false);
 
         if (candidateResults.getCount() >= MAX_COMPATIBLE_CANDIDATE_SCAN) {

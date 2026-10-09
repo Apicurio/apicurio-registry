@@ -6,9 +6,12 @@ import java.util.Set;
 
 import io.apicurio.authz.GrantsData;
 import io.apicurio.authz.SearchFilterData;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.AuthorizationFilter;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
@@ -20,6 +23,15 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Restricts searches to the resources the caller may read under per-resource authorization, by
+ * adding an {@link AuthorizationFilter} that storage translates into its query. Filtering in the
+ * query (rather than after it) keeps pagination and total counts accurate.
+ *
+ * <p>The filter selects exactly what point access allows: the grants patterns are passed through
+ * unchanged, admins and the same bypasses as point access see everything, and owners always see
+ * their own resources.</p>
+ */
 @ApplicationScoped
 public class GrantsSearchFilter {
 
@@ -36,106 +48,79 @@ public class GrantsSearchFilter {
     GrantsAccessController grantsAc;
 
     @Inject
-    GrantsAccessControllerConfig config;
+    ResourceAccessGuard guard;
 
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDir, int offset, int limit, boolean skipCount) {
-        Set<SearchFilter> augmented = addAuthorizationFilters(filters, "artifact");
-        if (augmented == null) {
+        Set<SearchFilter> restricted = restrict(filters, "artifact");
+        if (restricted == null) {
             return emptyArtifactResults();
         }
-        return storage.searchArtifacts(augmented, orderBy, orderDir, offset, limit, skipCount);
+        return storage.searchArtifacts(restricted, orderBy, orderDir, offset, limit, skipCount);
     }
 
     public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDir, int offset, int limit) {
-        Set<SearchFilter> augmented = addAuthorizationFilters(filters, "group");
-        if (augmented == null) {
+        Set<SearchFilter> restricted = restrict(filters, "group");
+        if (restricted == null) {
             return emptyGroupResults();
         }
-        return storage.searchGroups(augmented, orderBy, orderDir, offset, limit);
+        return storage.searchGroups(restricted, orderBy, orderDir, offset, limit);
     }
 
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDir, int offset, int limit, boolean skipCount) {
-        Set<SearchFilter> augmented = addAuthorizationFilters(filters, "artifact");
-        if (augmented == null) {
+        Set<SearchFilter> restricted = restrict(filters, "artifact");
+        if (restricted == null) {
             return emptyVersionResults();
         }
-        return storage.searchVersions(augmented, orderBy, orderDir, offset, limit, skipCount);
+        return storage.searchVersions(restricted, orderBy, orderDir, offset, limit, skipCount);
     }
 
-    private Set<SearchFilter> addAuthorizationFilters(Set<SearchFilter> filters, String resourceType) {
-        if (!config.isEnabled()) {
+    /**
+     * @return the filters, extended with the caller's authorization restriction; or null if the
+     *         caller can read nothing (so the search can be skipped)
+     */
+    Set<SearchFilter> restrict(Set<SearchFilter> filters, String resourceType) {
+        if (!guard.isEnforced(AuthorizedLevel.Read)) {
             return filters;
         }
-        if (grantsAc.getAuthorizer() == null) {
-            // Grants are enabled but not (yet) initialized. Point-access checks
-            // (GrantsAccessController.isAuthorized) deny everything in this state, so
-            // search must fail closed too, otherwise it would leak every resource while
-            // direct access is fully locked down.
-            LOG.error("Per-resource authorization is enabled but the authorizer is not initialized. "
-                    + "Denying search access.");
-            return null;
-        }
-
         GrantsData data = grantsAc.getGrantsData();
         if (data == null) {
-            LOG.error("Grants data not loaded, denying search access.");
+            // Enabled but not initialized: point access denies everything, and so must search
+            LOG.error("Per-resource authorization is enabled but not initialized, denying search access.");
             return null;
         }
-
         String user = getUsername();
         Set<String> roles = getRoles();
-
         if (data.isAdmin(roles)) {
             return filters;
         }
-
-        String separator = "artifact".equals(resourceType) ? "/" : null;
-        SearchFilterData filterData = data.getSearchFilterData(user, roles, resourceType, separator);
-
-        if (filterData.allowAll() && !filterData.hasDenyFilters()) {
+        SearchFilterData grants = data.getSearchFilterData(user, roles, resourceType);
+        if (grants.allowsEverything()) {
             return filters;
         }
-        if (!filterData.hasFilters() && !filterData.hasDenyFilters()) {
+        if (grants.allowsNothing() && user == null) {
             return null;
         }
-
-        Set<SearchFilter> augmented = new HashSet<>(filters);
-        if (!filterData.allowAll()) {
-            if (filterData.allowedExactResources().isEmpty() && filterData.allowedPrefixResources().isEmpty()) {
-                augmented.add(SearchFilter.ofGroupIdIn(filterData.allowedGroups()));
-            } else {
-                augmented.add(SearchFilter.ofGroupIdInOrArtifactExact(filterData.allowedGroups(),
-                        filterData.allowedExactResources(), filterData.allowedPrefixResources()));
-            }
-        }
-        if (!filterData.deniedExactResources().isEmpty()) {
-            augmented.add(SearchFilter.ofArtifactExactDeny(filterData.deniedExactResources()));
-        }
-        if (!filterData.deniedPrefixResources().isEmpty()) {
-            augmented.add(SearchFilter.ofArtifactPrefixDeny(filterData.deniedPrefixResources()));
-        }
-        LOG.debug(
-                "Authorization filter: user={}, groups={}, exact={}, prefix={}, deniedExact={}, deniedPrefix={}",
-                user, filterData.allowedGroups(), filterData.allowedExactResources(),
-                filterData.allowedPrefixResources(), filterData.deniedExactResources(),
-                filterData.deniedPrefixResources());
-        return augmented;
+        Set<SearchFilter> restricted = new HashSet<>(filters);
+        restricted.add(SearchFilter.ofAuthorization(new AuthorizationFilter(grants.allowAll(),
+                grants.allowedExact(), grants.allowedPrefix(), grants.deniedExact(),
+                grants.deniedPrefix(), user)));
+        LOG.debug("Search restricted by grants: user={}, type={}, filter={}", user, resourceType, grants);
+        return restricted;
     }
 
     private String getUsername() {
         if (securityIdentity != null && !securityIdentity.isAnonymous()) {
             return securityIdentity.getPrincipal().getName();
         }
-        // null (not a sentinel string) so that Grant.matchesPrincipal never matches a named
-        // "principal" grant against an anonymous/unauthenticated caller.
+        // null rather than a sentinel string, so no named grant or owner can ever match it
         return null;
     }
 
     private Set<String> getRoles() {
-        if (securityIdentity != null) {
+        if (securityIdentity != null && !securityIdentity.isAnonymous()) {
             return securityIdentity.getRoles();
         }
         return Set.of();

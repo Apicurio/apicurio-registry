@@ -29,6 +29,7 @@ import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
@@ -61,6 +62,9 @@ public abstract class AbstractResource {
     @Inject
     @Current
     RegistryStorage storage;
+
+    @Inject
+    ISearchAuthorizer searchAuthorizer;
 
     @Inject
     RulesService rulesService;

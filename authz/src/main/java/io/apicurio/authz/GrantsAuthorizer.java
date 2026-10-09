@@ -55,17 +55,24 @@ public class GrantsAuthorizer implements Authorizer, AutoCloseable {
         return create(grantsFilePath, Map.of());
     }
 
+    /**
+     * Creates an authorizer from a grants file.
+     *
+     * @param grantsFilePath the grants file; null creates an authorizer with no grants (denies all)
+     * @throws IOException if the file does not exist or cannot be read
+     * @throws IllegalArgumentException if the file is not valid grants data
+     */
     public static GrantsAuthorizer create(Path grantsFilePath,
             Map<Class<? extends ResourceType<?>>, String> resourceTypeNames) throws IOException {
-        String grantsJson = "{}";
-        FileTime lastMod = null;
-        if (grantsFilePath != null && Files.exists(grantsFilePath)) {
-            grantsJson = Files.readString(grantsFilePath);
-            lastMod = Files.getLastModifiedTime(grantsFilePath);
+        if (grantsFilePath == null) {
+            return new GrantsAuthorizer(GrantsData.empty(), null, null, new HashMap<>(resourceTypeNames));
         }
-
-        return new GrantsAuthorizer(GrantsData.parse(grantsJson), grantsFilePath, lastMod,
-                new HashMap<>(resourceTypeNames));
+        if (!Files.isRegularFile(grantsFilePath)) {
+            throw new IOException("Grants file not found: " + grantsFilePath);
+        }
+        FileTime lastMod = Files.getLastModifiedTime(grantsFilePath);
+        GrantsData data = GrantsData.parseStrict(Files.readString(grantsFilePath));
+        return new GrantsAuthorizer(data, grantsFilePath, lastMod, new HashMap<>(resourceTypeNames));
     }
 
     public GrantsData getGrantsData() {
@@ -104,27 +111,36 @@ public class GrantsAuthorizer implements Authorizer, AutoCloseable {
         return CompletableFuture.completedStage(new AuthorizeResult(subject, allowed, denied));
     }
 
+    /**
+     * Reloads the grants file if its modification time changed. If the new content is missing or
+     * invalid, the previously loaded grants stay in effect and an error is logged once per change,
+     * so a bad edit never locks everyone out.
+     *
+     * @return true if new grants were loaded
+     */
     public boolean checkForDataFileChanges() {
         if (dataFilePath == null) {
             return false;
         }
         try {
-            if (!Files.exists(dataFilePath)) {
+            if (!Files.isRegularFile(dataFilePath)) {
                 return false;
             }
             FileTime currentModified = Files.getLastModifiedTime(dataFilePath);
-            if (lastModified != null && currentModified.compareTo(lastModified) > 0) {
-                LOG.info("Grants data file changed, reloading: {}", dataFilePath);
-                String json = Files.readString(dataFilePath);
-                this.grantsData = GrantsData.parse(json);
-                this.lastModified = currentModified;
-                LOG.info("Grants data reloaded successfully.");
-                return true;
+            if (currentModified.equals(lastModified)) {
+                return false;
             }
-        } catch (IOException e) {
-            LOG.error("Failed to check or reload grants data file: {}", dataFilePath, e);
+            // Recorded before parsing so a bad file is reported once, not on every poll
+            this.lastModified = currentModified;
+            LOG.info("Grants data file changed, reloading: {}", dataFilePath);
+            this.grantsData = GrantsData.parseStrict(Files.readString(dataFilePath));
+            LOG.info("Grants data reloaded successfully.");
+            return true;
+        } catch (IOException | IllegalArgumentException e) {
+            LOG.error("Failed to reload grants data file {}; keeping the previously loaded grants: {}",
+                    dataFilePath, e.getMessage());
+            return false;
         }
-        return false;
     }
 
     /**
@@ -158,7 +174,7 @@ public class GrantsAuthorizer implements Authorizer, AutoCloseable {
             if (!grant.matchesResourceType(resourceType)) {
                 continue;
             }
-            if (!grant.impliesOperation(operation)) {
+            if (!grant.deniesOperation(operation)) {
                 continue;
             }
             if (grant.matchesResource(resourceName)) {

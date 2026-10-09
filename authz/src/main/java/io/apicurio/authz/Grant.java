@@ -22,14 +22,31 @@ public record Grant(
         return type.equals(resourceType);
     }
 
+    /**
+     * Allow semantics: true if this grant's operation covers {@code op}. {@code admin} implies
+     * {@code write}, which implies {@code read}.
+     */
     public boolean impliesOperation(String op) {
-        if (operation.equals(op)) {
+        return implies(operation, op);
+    }
+
+    /**
+     * Deny semantics: true if denying this grant's operation denies {@code op}, i.e. if
+     * {@code op} implies it. Denying {@code read} denies everything; denying {@code write} leaves
+     * read access, making a resource read-only.
+     */
+    public boolean deniesOperation(String op) {
+        return implies(op, operation);
+    }
+
+    private static boolean implies(String granted, String requested) {
+        if (granted.equals(requested)) {
             return true;
         }
-        if ("admin".equals(operation)) {
-            return true;
+        if ("admin".equals(granted)) {
+            return "write".equals(requested) || "read".equals(requested);
         }
-        return "write".equals(operation) && "read".equals(op);
+        return "write".equals(granted) && "read".equals(requested);
     }
 
     public boolean isWildcard() {
@@ -48,30 +65,4 @@ public record Grant(
         }
         return resourcePattern.equals(resourceName);
     }
-
-    public String extractGroupFromPattern(String separator) {
-        if ("prefix".equals(resourcePatternType) || "exact".equals(resourcePatternType)) {
-            int idx = resourcePattern.indexOf(separator);
-            if (idx > 0) {
-                return resourcePattern.substring(0, idx);
-            }
-        }
-        return null;
-    }
-
-    /**
-     * Returns true if this is a "prefix" grant that covers an entire group (e.g. {@code "team-a/"})
-     * rather than a sub-path within a group (e.g. {@code "team-a/secret/"}). Only full-group prefix
-     * grants can be safely collapsed to a group-level search filter; sub-path prefixes must be kept
-     * as a scoped artifact-prefix filter to avoid over-granting search visibility beyond what
-     * point-access allows.
-     */
-    public boolean isFullGroupPrefix(String separator) {
-        if (!"prefix".equals(resourcePatternType)) {
-            return false;
-        }
-        int idx = resourcePattern.indexOf(separator);
-        return idx > 0 && idx == resourcePattern.length() - separator.length();
-    }
-
 }

@@ -22,7 +22,4 @@ public class OwnerBasedAccessController extends AbstractAccessController {
         return isOwner(context);
     }
 
-    public boolean checkOwnership(InvocationContext context) {
-        return isOwner(context);
-    }
 }

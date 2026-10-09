@@ -1,8 +1,10 @@
 package io.apicurio.authz;
 
+import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GrantsAuthorizerTest {
@@ -278,57 +281,131 @@ class GrantsAuthorizerTest {
     // ==================== SearchFilterData ====================
 
     @Test
-    void searchFilterDataIncludesExactResources() {
-        GrantsData data = authorizer.getGrantsData();
-        SearchFilterData filterData = data.getSearchFilterData(
-                "developer-client", Set.of(), "artifact", "/");
-        assertNotNull(filterData);
-        assertFalse(filterData.allowAll());
-        assertTrue(filterData.allowedGroups().contains("team-a"));
-        assertTrue(filterData.allowedGroups().contains("shared"));
-        assertTrue(filterData.allowedExactResources().contains("team-b/public-schema"));
+    void searchFilterDataKeepsPatternsVerbatim() {
+        SearchFilterData data = authorizer.getGrantsData()
+                .getSearchFilterData("developer-client", Set.of(), "artifact");
+
+        assertFalse(data.allowAll());
+        assertEquals(Set.of("team-b/public-schema"), data.allowedExact());
+        assertEquals(Set.of("team-a/", "shared/"), data.allowedPrefix());
+        assertEquals(Set.of("team-a/secret-schema"), data.deniedExact());
+        assertEquals(Set.of("team-a/internal-"), data.deniedPrefix());
     }
 
     @Test
-    void searchFilterDataIncludesDeniedResources() {
-        GrantsData data = authorizer.getGrantsData();
-        SearchFilterData filterData = data.getSearchFilterData(
-                "developer-client", Set.of(), "artifact", "/");
-        assertNotNull(filterData);
-        assertTrue(filterData.hasDenyFilters());
-        assertTrue(filterData.deniedExactResources().contains("team-a/secret-schema"));
-        assertTrue(filterData.deniedPrefixResources().contains("team-a/internal-"));
+    void searchFilterDataForRoleWithoutDenies() {
+        SearchFilterData data = authorizer.getGrantsData()
+                .getSearchFilterData("unknown-user", Set.of("sr-readonly"), "artifact");
+
+        assertEquals(Set.of("shared/"), data.allowedPrefix());
+        assertTrue(data.deniedExact().isEmpty());
+        assertTrue(data.deniedPrefix().isEmpty());
     }
 
     @Test
-    void searchFilterDataNoDenyForDifferentUser() {
-        GrantsData data = authorizer.getGrantsData();
-        SearchFilterData filterData = data.getSearchFilterData(
-                "unknown-user", Set.of("sr-readonly"), "artifact", "/");
-        assertNotNull(filterData);
-        assertFalse(filterData.hasDenyFilters());
-        assertTrue(filterData.deniedExactResources().isEmpty());
+    void searchFilterDataUnknownUserAllowsNothing() {
+        SearchFilterData data = authorizer.getGrantsData()
+                .getSearchFilterData("nobody", Set.of(), "artifact");
+
+        assertTrue(data.allowsNothing());
     }
 
     @Test
-    void searchFilterDataDenyWithWildcardAllow() {
+    void searchFilterDataWildcardAllowWithDeny() {
+        GrantsData data = GrantsData.parse("""
+                {"grants": [
+                  {"principal": "u", "operation": "read", "resource_type": "artifact",
+                   "resource_pattern_type": "prefix", "resource_pattern": "*"},
+                  {"principal": "u", "operation": "read", "resource_type": "artifact",
+                   "resource_pattern_type": "exact", "resource_pattern": "team-a/secret", "deny": true}
+                ]}""");
+
+        SearchFilterData filter = data.getSearchFilterData("u", Set.of(), "artifact");
+
+        assertTrue(filter.allowAll());
+        assertFalse(filter.allowsEverything());
+        assertEquals(Set.of("team-a/secret"), filter.deniedExact());
+    }
+
+    @Test
+    void searchFilterDataWildcardDenyAllowsNothing() {
+        GrantsData data = GrantsData.parse("""
+                {"grants": [
+                  {"principal": "u", "operation": "read", "resource_type": "artifact",
+                   "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
+                  {"principal": "u", "operation": "read", "resource_type": "artifact",
+                   "resource_pattern": "*", "deny": true}
+                ]}""");
+
+        assertTrue(data.getSearchFilterData("u", Set.of(), "artifact").allowsNothing());
+    }
+
+    @Test
+    void searchFilterDataIgnoresGrantsThatDoNotImplyRead() {
+        GrantsData data = GrantsData.parse("""
+                {"grants": [
+                  {"principal": "u", "operation": "something-else", "resource_type": "artifact",
+                   "resource_pattern_type": "prefix", "resource_pattern": "team-a/"}
+                ]}""");
+
+        assertTrue(data.getSearchFilterData("u", Set.of(), "artifact").allowsNothing());
+    }
+
+    /**
+     * The core search invariant: for every subject, the search patterns select exactly the
+     * resources point access allows, including names whose group contains '/', the default group
+     * and near-miss prefixes.
+     */
+    @Test
+    void searchFilterDataMatchesPointAccessForEveryResource() throws Exception {
         String json = """
-                {
-                  "grants": [
-                    {"principal": "wildcard-user", "operation": "read", "resource_type": "artifact",
-                     "resource_pattern_type": "prefix", "resource_pattern": "*"},
-                    {"principal": "wildcard-user", "operation": "read", "resource_type": "artifact",
-                     "resource_pattern_type": "exact", "resource_pattern": "team-a/secret",
-                     "deny": true}
-                  ]
-                }""";
-        GrantsData data = GrantsData.parse(json);
-        SearchFilterData filterData = data.getSearchFilterData(
-                "wildcard-user", Set.of(), "artifact", "/");
-        assertNotNull(filterData);
-        assertTrue(filterData.allowAll());
-        assertTrue(filterData.hasDenyFilters());
-        assertTrue(filterData.deniedExactResources().contains("team-a/secret"));
+                {"config": {"admin_roles": ["sr-admin"]},
+                 "grants": [
+                  {"principal": "alice", "operation": "write", "resource_type": "artifact",
+                   "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
+                  {"principal": "alice", "operation": "read", "resource_type": "artifact",
+                   "resource_pattern_type": "prefix", "resource_pattern": "team-a/secret/", "deny": true},
+                  {"principal": "alice", "operation": "read", "resource_type": "artifact",
+                   "resource_pattern_type": "exact", "resource_pattern": "default/shared-schema"},
+                  {"principal": "bob", "operation": "read", "resource_type": "artifact",
+                   "resource_pattern_type": "prefix", "resource_pattern": "team-"},
+                  {"principal": "bob", "operation": "read", "resource_type": "artifact",
+                   "resource_pattern_type": "exact", "resource_pattern": "team-b/private", "deny": true},
+                  {"principal": "carol", "operation": "read", "resource_type": "artifact",
+                   "resource_pattern_type": "exact", "resource_pattern": "team-a"},
+                  {"principal": "dave", "operation": "read", "resource_type": "artifact",
+                   "resource_pattern": "*"},
+                  {"principal": "dave", "operation": "read", "resource_type": "artifact",
+                   "resource_pattern_type": "prefix", "resource_pattern": "def", "deny": true},
+                  {"principal_role": "readers", "operation": "read", "resource_type": "artifact",
+                   "resource_pattern_type": "prefix", "resource_pattern": "public/"}
+                ]}""";
+        List<String> names = List.of("team-a/x", "team-a/secret/y", "team-a/secret", "team-a/secretive",
+                "team-a", "team-ab/x", "team-b/private", "team-b/private2", "team-/x",
+                "default/shared-schema", "default/other", "defaults/x", "public/p", "public",
+                "team-a/secret/nested/z", "other/team-a/x");
+        Path file = Files.createTempFile("invariant-grants", ".json");
+        try {
+            Files.writeString(file, json);
+            try (GrantsAuthorizer authz = GrantsAuthorizer.create(file, Map.of(Artifact.class, "artifact"))) {
+                List<Subject> subjects = List.of(user("alice"), user("bob"), user("carol"), user("dave"),
+                        user("erin", "readers"), user("nobody"), Subject.anonymous());
+                for (Subject subject : subjects) {
+                    String name = subject.uniquePrincipalOfType(User.class).map(User::name).orElse(null);
+                    Set<String> roles = new HashSet<>();
+                    subject.allPrincipalsOfType(RolePrincipal.class).forEach(r -> roles.add(r.name()));
+                    SearchFilterData filter = authz.getGrantsData().getSearchFilterData(name, roles, "artifact");
+                    for (String resource : names) {
+                        Decision pointAccess = authz.authorize(subject, List.of(new Action(Artifact.Read, resource)))
+                                .toCompletableFuture().join().decision(Artifact.Read, resource);
+                        assertEquals(pointAccess == Decision.ALLOW, filter.matches(resource),
+                                "search/point-access mismatch for " + name + " on " + resource);
+                    }
+                }
+            }
+        } finally {
+            Files.deleteIfExists(file);
+        }
     }
 
     @Test
@@ -352,58 +429,6 @@ class GrantsAuthorizerTest {
         assertEquals(Decision.ALLOW, result.decision(Artifact.Read, resource));
         assertEquals(Decision.ALLOW, result.decision(Artifact.Write, resource));
         assertEquals(Decision.DENY, result.decision(Artifact.Admin, resource));
-    }
-
-    // ==================== Sub-group prefix search filters (no over-grant) ====================
-
-    @Test
-    void searchFilterDataDoesNotOverGrantForSubGroupPrefix() {
-        String json = """
-                {
-                  "grants": [
-                    {"principal": "scoped-user", "operation": "read", "resource_type": "artifact",
-                     "resource_pattern_type": "prefix", "resource_pattern": "team-a/secret/"}
-                  ]
-                }""";
-        GrantsData data = GrantsData.parse(json);
-        SearchFilterData filterData = data.getSearchFilterData("scoped-user", Set.of(), "artifact", "/");
-        assertNotNull(filterData);
-        assertFalse(filterData.allowAll());
-        // The sub-path prefix must NOT be collapsed into a full-group allow: that would
-        // over-grant search visibility to every artifact in "team-a", not just the
-        // "team-a/secret/" sub-path that point-access actually allows.
-        assertTrue(filterData.allowedGroups().isEmpty());
-        assertTrue(filterData.allowedPrefixResources().contains("team-a/secret/"));
-    }
-
-    @Test
-    void pointAccessMatchesSubGroupPrefixConsistentlyWithSearch() {
-        String json = """
-                {
-                  "grants": [
-                    {"principal": "scoped-user", "operation": "read", "resource_type": "artifact",
-                     "resource_pattern_type": "prefix", "resource_pattern": "team-a/secret/"}
-                  ]
-                }""";
-        GrantsData data = GrantsData.parse(json);
-        List<Grant> grants = data.getGrantsForUser("scoped-user", Set.of());
-        assertTrue(grants.get(0).matchesResource("team-a/secret/api-key"));
-        assertFalse(grants.get(0).matchesResource("team-a/other-artifact"));
-    }
-
-    @Test
-    void searchFilterDataStillCollapsesFullGroupPrefixToGroup() {
-        String json = """
-                {
-                  "grants": [
-                    {"principal": "group-user", "operation": "read", "resource_type": "artifact",
-                     "resource_pattern_type": "prefix", "resource_pattern": "team-a/"}
-                  ]
-                }""";
-        GrantsData data = GrantsData.parse(json);
-        SearchFilterData filterData = data.getSearchFilterData("group-user", Set.of(), "artifact", "/");
-        assertTrue(filterData.allowedGroups().contains("team-a"));
-        assertTrue(filterData.allowedPrefixResources().isEmpty());
     }
 
     // ==================== Anonymous principal isolation ====================
@@ -472,5 +497,110 @@ class GrantsAuthorizerTest {
     void foreignPrincipalTypeCannotGrantAdmin() {
         Subject subject = new Subject(Set.of(new User("someone"), new ClientIdPrincipal("sr-admin")));
         assertEquals(Decision.DENY, decide(subject, Artifact.Read, "team-a/schema-1"));
+    }
+
+    // ==================== Loading and hot reload ====================
+
+    private static final String ONE_GRANT = """
+            {"grants": [{"principal": "u", "operation": "read", "resource_type": "artifact",
+              "resource_pattern_type": "prefix", "resource_pattern": "team-a/"}]}""";
+
+    @Test
+    void createFailsWhenFileIsMissing() {
+        Path missing = Path.of("does-not-exist-" + System.nanoTime() + ".json");
+
+        assertThrows(IOException.class, () -> GrantsAuthorizer.create(missing, Map.of()));
+    }
+
+    @Test
+    void createFailsOnMalformedFile() throws Exception {
+        for (String bad : List.of("broken{{{", "[]", "{\"grant\": []}")) {
+            Path file = Files.createTempFile("bad-grants", ".json");
+            try {
+                Files.writeString(file, bad);
+                assertThrows(IllegalArgumentException.class, () -> GrantsAuthorizer.create(file, Map.of()), bad);
+            } finally {
+                Files.deleteIfExists(file);
+            }
+        }
+    }
+
+    @Test
+    void reloadPicksUpChanges() throws Exception {
+        Path file = Files.createTempFile("reload-grants", ".json");
+        try {
+            Files.writeString(file, ONE_GRANT);
+            try (GrantsAuthorizer authz = GrantsAuthorizer.create(file, Map.of(Artifact.class, "artifact"))) {
+                assertEquals(Decision.DENY, decideWith(authz, user("v"), "team-a/x"));
+
+                Files.writeString(file, ONE_GRANT.replace("\"u\"", "\"v\""));
+                Files.setLastModifiedTime(file, FileTime.fromMillis(System.currentTimeMillis() + 10_000));
+
+                assertTrue(authz.checkForDataFileChanges());
+                assertEquals(Decision.ALLOW, decideWith(authz, user("v"), "team-a/x"));
+                assertFalse(authz.checkForDataFileChanges());
+            }
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
+    @Test
+    void invalidReloadKeepsPreviousGrants() throws Exception {
+        Path file = Files.createTempFile("reload-grants", ".json");
+        try {
+            Files.writeString(file, ONE_GRANT);
+            try (GrantsAuthorizer authz = GrantsAuthorizer.create(file, Map.of(Artifact.class, "artifact"))) {
+                Files.writeString(file, "{ this is not json");
+                Files.setLastModifiedTime(file, FileTime.fromMillis(System.currentTimeMillis() + 10_000));
+
+                assertFalse(authz.checkForDataFileChanges());
+                assertEquals(Decision.ALLOW, decideWith(authz, user("u"), "team-a/x"));
+            }
+        } finally {
+            Files.deleteIfExists(file);
+        }
+    }
+
+    private static Decision decideWith(GrantsAuthorizer authz, Subject subject, String resource) {
+        return authz.authorize(subject, List.of(new Action(Artifact.Read, resource)))
+                .toCompletableFuture().join().decision(Artifact.Read, resource);
+    }
+
+    // ==================== Deny operation semantics ====================
+
+    private Decision decideOp(GrantsAuthorizer authz, Artifact op, String user, String resource) {
+        return authz.authorize(user(user), List.of(new Action(op, resource)))
+                .toCompletableFuture().join().decision(op, resource);
+    }
+
+    @Test
+    void denyWriteMakesResourceReadOnlyAndSearchStillShowsIt() throws Exception {
+        Path file = Files.createTempFile("deny-ops", ".json");
+        try {
+            Files.writeString(file, """
+                    {"grants": [
+                      {"principal": "u", "operation": "admin", "resource_type": "artifact",
+                       "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
+                      {"principal": "u", "operation": "write", "resource_type": "artifact",
+                       "resource_pattern_type": "exact", "resource_pattern": "team-a/frozen", "deny": true},
+                      {"principal": "u", "operation": "read", "resource_type": "artifact",
+                       "resource_pattern_type": "exact", "resource_pattern": "team-a/hidden", "deny": true}
+                    ]}""");
+            try (GrantsAuthorizer authz = GrantsAuthorizer.create(file, Map.of(Artifact.class, "artifact"))) {
+                assertEquals(Decision.ALLOW, decideOp(authz, Artifact.Read, "u", "team-a/frozen"));
+                assertEquals(Decision.DENY, decideOp(authz, Artifact.Write, "u", "team-a/frozen"));
+                assertEquals(Decision.DENY, decideOp(authz, Artifact.Admin, "u", "team-a/frozen"));
+
+                assertEquals(Decision.DENY, decideOp(authz, Artifact.Read, "u", "team-a/hidden"));
+                assertEquals(Decision.DENY, decideOp(authz, Artifact.Write, "u", "team-a/hidden"));
+
+                SearchFilterData search = authz.getGrantsData().getSearchFilterData("u", Set.of(), "artifact");
+                assertTrue(search.matches("team-a/frozen"));
+                assertFalse(search.matches("team-a/hidden"));
+            }
+        } finally {
+            Files.deleteIfExists(file);
+        }
     }
 }

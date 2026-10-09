@@ -11,6 +11,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.AuthorizationFilter;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
@@ -258,24 +259,8 @@ public class ElasticsearchSearchService {
                     : filter.getStringValue();
             return buildTermOrWildcardQuery("groupId", groupValue);
 
-        case groupIdIn:
-            Set<String> groupIds = filter.getSetValue();
-            List<co.elastic.clients.elasticsearch._types.FieldValue> fieldValues = groupIds.stream()
-                    .map(g -> g == null ? "default" : g)
-                    .map(co.elastic.clients.elasticsearch._types.FieldValue::of)
-                    .toList();
-            return Query.of(q -> q.terms(t -> t
-                    .field("groupId")
-                    .terms(tv -> tv.value(fieldValues))));
-
-        case groupIdInOrArtifactExact:
-            return buildGroupIdInOrArtifactExactQuery(filter);
-
-        case artifactExactDeny:
-            return buildArtifactExactDenyQuery(filter);
-
-        case artifactPrefixDeny:
-            return buildArtifactPrefixDenyQuery(filter);
+        case authorization:
+            return buildAuthorizationQuery(filter.getAuthorizationValue());
 
         case artifactId:
             return buildTermOrWildcardQuery("artifactId", filter.getStringValue());
@@ -337,133 +322,53 @@ public class ElasticsearchSearchService {
     }
 
     /**
-     * Builds the "allow" query for grants-based authorization: matches documents whose groupId
-     * is in the allowed-groups set, OR whose (groupId, artifactId) matches one of the allowed
-     * exact resources, OR whose (groupId, artifactId-prefix) matches one of the allowed prefix
-     * resources. Fails closed (matches nothing) if no allow entries are present, matching the
-     * SQL implementation in SqlSearchRepository.
-     *
-     * @param filter the groupIdInOrArtifactExact search filter
-     * @return an Elasticsearch Query
+     * Builds the per-resource authorization restriction. Documents are matched by their grants
+     * resource name {@code groupId/artifactId} (the default group is indexed as {@code default}),
+     * decomposed exactly as in the SQL implementation because group IDs may contain '/'. The
+     * owner clause is not applied: the index stores the version owner as analyzed text, so
+     * artifact ownership cannot be matched exactly. That only narrows results.
      */
-    private Query buildGroupIdInOrArtifactExactQuery(SearchFilter filter) {
-        Set<String> allowedGroups = filter.getGroupIdInValue();
-        Set<String> exactResources = filter.getExactResourcesValue();
-        Set<String> prefixResources = filter.getPrefixResourcesValue();
+    Query buildAuthorizationQuery(AuthorizationFilter filter) {
+        Query allowed = filter.allowAll() ? Query.of(q -> q.matchAll(m -> m))
+                : anyNameMatches(filter.allowExact(), filter.allowPrefix());
+        Query denied = anyNameMatches(filter.denyExact(), filter.denyPrefix());
+        return Query.of(q -> q.bool(b -> b.must(allowed).mustNot(denied)));
+    }
 
-        BoolQuery.Builder builder = new BoolQuery.Builder();
-        boolean hasAny = false;
-
-        if (!allowedGroups.isEmpty()) {
-            List<co.elastic.clients.elasticsearch._types.FieldValue> fieldValues = allowedGroups.stream()
-                    .map(g -> g == null ? "default" : g)
-                    .map(co.elastic.clients.elasticsearch._types.FieldValue::of)
-                    .toList();
-            builder.should(Query.of(q -> q.terms(t -> t
-                    .field("groupId")
-                    .terms(tv -> tv.value(fieldValues)))));
-            hasAny = true;
-        }
-
-        for (String resource : exactResources) {
-            int sepIdx = resource.indexOf("/");
-            if (sepIdx > 0) {
-                String groupId = resource.substring(0, sepIdx);
-                String artifactId = resource.substring(sepIdx + 1);
-                builder.should(Query.of(q -> q.bool(b -> b
-                        .must(Query.of(mq -> mq.term(t -> t.field("groupId").value(groupId))))
-                        .must(Query.of(mq -> mq.term(t -> t.field("artifactId").value(artifactId)))))));
-                hasAny = true;
+    /** Matches documents whose resource name equals one of {@code exact} or starts with a prefix. */
+    private static Query anyNameMatches(Set<String> exact, Set<String> prefixes) {
+        List<Query> clauses = new ArrayList<>();
+        for (String name : exact) {
+            for (int k = name.indexOf('/'); k >= 0; k = name.indexOf('/', k + 1)) {
+                clauses.add(groupAndArtifact(name.substring(0, k),
+                        termQuery("artifactId", name.substring(k + 1))));
             }
         }
-
-        for (String prefix : prefixResources) {
-            int sepIdx = prefix.indexOf("/");
-            if (sepIdx > 0) {
-                String groupId = prefix.substring(0, sepIdx);
-                String artifactIdPrefix = prefix.substring(sepIdx + 1);
-                builder.should(Query.of(q -> q.bool(b -> b
-                        .must(Query.of(mq -> mq.term(t -> t.field("groupId").value(groupId))))
-                        .must(Query.of(mq -> mq.prefix(p -> p
-                                .field("artifactId").value(artifactIdPrefix)))))));
-                hasAny = true;
+        for (String prefix : prefixes) {
+            // Either the group alone starts with the prefix...
+            clauses.add(prefixQuery("groupId", prefix));
+            // ...or the prefix spans the whole group plus the start of the artifact ID
+            for (int k = prefix.indexOf('/'); k >= 0; k = prefix.indexOf('/', k + 1)) {
+                clauses.add(groupAndArtifact(prefix.substring(0, k),
+                        prefixQuery("artifactId", prefix.substring(k + 1))));
             }
         }
-
-        if (!hasAny) {
+        if (clauses.isEmpty()) {
             return Query.of(q -> q.matchNone(m -> m));
         }
-        builder.minimumShouldMatch("1");
-        return Query.of(q -> q.bool(builder.build()));
+        return Query.of(q -> q.bool(b -> b.should(clauses).minimumShouldMatch("1")));
     }
 
-    /**
-     * Builds the "deny" query that excludes documents matching any denied exact (groupId,
-     * artifactId) resource. Matches everything if no deny entries are present.
-     *
-     * @param filter the artifactExactDeny search filter
-     * @return an Elasticsearch Query
-     */
-    private Query buildArtifactExactDenyQuery(SearchFilter filter) {
-        Set<String> deniedResources = filter.getSetValue();
-        if (deniedResources.isEmpty()) {
-            return Query.of(q -> q.matchAll(m -> m));
-        }
-
-        BoolQuery.Builder denyShould = new BoolQuery.Builder();
-        boolean hasAny = false;
-        for (String resource : deniedResources) {
-            int sepIdx = resource.indexOf("/");
-            if (sepIdx > 0) {
-                String groupId = resource.substring(0, sepIdx);
-                String artifactId = resource.substring(sepIdx + 1);
-                denyShould.should(Query.of(q -> q.bool(b -> b
-                        .must(Query.of(mq -> mq.term(t -> t.field("groupId").value(groupId))))
-                        .must(Query.of(mq -> mq.term(t -> t.field("artifactId").value(artifactId)))))));
-                hasAny = true;
-            }
-        }
-        if (!hasAny) {
-            return Query.of(q -> q.matchAll(m -> m));
-        }
-        denyShould.minimumShouldMatch("1");
-        Query matchesAnyDenied = Query.of(q -> q.bool(denyShould.build()));
-        return Query.of(q -> q.bool(b -> b.mustNot(matchesAnyDenied)));
+    private static Query groupAndArtifact(String groupId, Query artifactQuery) {
+        return Query.of(q -> q.bool(b -> b.must(termQuery("groupId", groupId)).must(artifactQuery)));
     }
 
-    /**
-     * Builds the "deny" query that excludes documents matching any denied (groupId,
-     * artifactId-prefix) resource. Matches everything if no deny entries are present.
-     *
-     * @param filter the artifactPrefixDeny search filter
-     * @return an Elasticsearch Query
-     */
-    private Query buildArtifactPrefixDenyQuery(SearchFilter filter) {
-        Set<String> deniedPrefixes = filter.getSetValue();
-        if (deniedPrefixes.isEmpty()) {
-            return Query.of(q -> q.matchAll(m -> m));
-        }
+    private static Query termQuery(String field, String value) {
+        return Query.of(q -> q.term(t -> t.field(field).value(value)));
+    }
 
-        BoolQuery.Builder denyShould = new BoolQuery.Builder();
-        boolean hasAny = false;
-        for (String prefix : deniedPrefixes) {
-            int sepIdx = prefix.indexOf("/");
-            if (sepIdx > 0) {
-                String groupId = prefix.substring(0, sepIdx);
-                String artifactIdPrefix = prefix.substring(sepIdx + 1);
-                denyShould.should(Query.of(q -> q.bool(b -> b
-                        .must(Query.of(mq -> mq.term(t -> t.field("groupId").value(groupId))))
-                        .must(Query.of(mq -> mq.prefix(p -> p
-                                .field("artifactId").value(artifactIdPrefix)))))));
-                hasAny = true;
-            }
-        }
-        if (!hasAny) {
-            return Query.of(q -> q.matchAll(m -> m));
-        }
-        denyShould.minimumShouldMatch("1");
-        Query matchesAnyDenied = Query.of(q -> q.bool(denyShould.build()));
-        return Query.of(q -> q.bool(b -> b.mustNot(matchesAnyDenied)));
+    private static Query prefixQuery(String field, String value) {
+        return Query.of(q -> q.prefix(p -> p.field(field).value(value)));
     }
 
     /**

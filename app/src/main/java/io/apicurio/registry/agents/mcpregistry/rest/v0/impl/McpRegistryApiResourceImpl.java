@@ -5,7 +5,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.ISearchAuthorizer;
+import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.auth.RoleBasedAccessController;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
@@ -153,6 +156,12 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     RoleBasedAccessController rbac;
 
     @Inject
+    ISearchAuthorizer searchAuthorizer;
+
+    @Inject
+    ResourceAccessGuard accessGuard;
+
+    @Inject
     ArtifactTypeUtilProviderFactory factory;
 
     @Inject
@@ -199,7 +208,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofArtifactType(ArtifactType.MCP_SERVER));
         if ((search == null || search.isBlank()) && updatedSince == null && !includeDeleted) {
-            ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.name,
+            ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, OrderBy.name,
                     OrderDirection.asc, offset, pageSize, false);
             List<Server> servers = new ArrayList<>();
             for (SearchedArtifactDto artifact : results.getArtifacts()) {
@@ -221,7 +230,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         String query = search == null ? "" : search.trim().toLowerCase(Locale.ROOT);
         int scanOffset = 0;
         while (true) {
-            ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.name,
+            ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, OrderBy.name,
                     OrderDirection.asc, scanOffset, pageSize, false);
             for (SearchedArtifactDto artifact : results.getArtifacts()) {
                 McpServerName name = new McpServerName(artifact.getGroupId(), artifact.getArtifactId());
@@ -260,7 +269,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         List<Server> matches = new ArrayList<>();
         int scanOffset = 0;
         while (true) {
-            VersionSearchResultsDto results = storage.searchVersions(filters, OrderBy.globalId,
+            VersionSearchResultsDto results = searchAuthorizer.searchVersions(filters, OrderBy.globalId,
                     OrderDirection.asc, scanOffset, pageSize, false);
             for (SearchedVersionDto found : results.getVersions()) {
                 McpServerName name = new McpServerName(found.getGroupId(), found.getArtifactId());
@@ -477,6 +486,9 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         }
         McpServerName name = McpServerName.parse(data.getName());
         verifyPublishOwnership(name);
+        // The server name comes from the body, so per-resource authorization is checked here
+        accessGuard.requireAccess(AuthorizedLevel.Write,
+                AuthorizedResource.artifact(name.namespace(), name.serverId()));
         boolean exists = artifactExists(name);
         if (exists) {
             requireServerArtifact(name);

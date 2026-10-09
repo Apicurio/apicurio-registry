@@ -160,16 +160,15 @@ public class AuthorizedInterceptor {
             }
         }
 
-        // If per-resource authorization is enabled, apply grants-based access checks.
-        // Artifact/group owners bypass the grants check — ownership implies access,
-        // regardless of whether OBAC itself is enabled.
-        if (grantsAcConfig.isEnabled()) {
-            boolean isOwner = obac.checkOwnership(context);
-            if (!isOwner && !grantsAc.isAuthorized(context)) {
-                log.warn("Per-resource authorization denied access.");
-                throw new ForbiddenException("User " + securityIdentity.getPrincipal().getName()
-                        + " is not authorized to access the requested resource.");
-            }
+        // Per-resource authorization (grants). Restricts within what RBAC allows. The owner of the
+        // addressed artifact/group bypasses grants; resources that do not exist or have no owner
+        // never grant a bypass.
+        if (grantsAcConfig.isEnabled()
+                && !grantsAc.isStrictOwner(context)
+                && !grantsAc.isAuthorized(context)) {
+            log.warn("Per-resource authorization denied access.");
+            log.debug("Denying access for user: {}", securityIdentity.getPrincipal().getName());
+            throw new ForbiddenException(FORBIDDEN_MESSAGE);
         }
 
         return context.proceed();

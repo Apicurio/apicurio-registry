@@ -6,6 +6,9 @@ package io.apicurio.registry.storage.dto;
  */
 public enum SearchFilterType {
 
-    groupId, groupIdIn, groupIdInOrArtifactExact, artifactExactDeny, artifactPrefixDeny, artifactId, version, name, description, labels, contentHash, canonicalHash, globalId, contentId, state, artifactType, content, structure
+    groupId, artifactId, version, name, description, labels, contentHash, canonicalHash, globalId, contentId, state, artifactType, content, structure,
+
+    /** Per-resource authorization restriction; value is an {@link AuthorizationFilter}. */
+    authorization
 
 }

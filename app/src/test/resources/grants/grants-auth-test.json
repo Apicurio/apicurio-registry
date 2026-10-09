@@ -7,6 +7,10 @@
      "resource_pattern_type": "prefix", "resource_pattern": "grants-team-a/"},
     {"principal": "bob1", "operation": "write", "resource_type": "group",
      "resource_pattern_type": "exact", "resource_pattern": "grants-team-a"},
+    {"principal": "bob1", "operation": "write", "resource_type": "group",
+     "resource_pattern_type": "prefix", "resource_pattern": "grants-new-"},
+    {"principal": "bob1", "operation": "write", "resource_type": "artifact",
+     "resource_pattern_type": "prefix", "resource_pattern": "io.github.grantsa"},
     {"principal": "bob2", "operation": "read", "resource_type": "artifact",
      "resource_pattern_type": "prefix", "resource_pattern": "grants-team-b/visible-"}
   ]

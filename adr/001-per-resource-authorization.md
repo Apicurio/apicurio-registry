@@ -85,39 +85,48 @@ Artifact resource names follow the format `{groupId}/{artifactId}`. Group resour
 
 ```
 Request → Authentication (Keycloak/IdP)
-        → Admin Override (admins bypass all checks)
-        → RBAC (coarse-grained role check)
-        → OBAC (owner bypass — owners can access their own artifacts)
-        → Per-resource grants check (final gate)
+        → Admin override                       (bypasses everything below)
+        → Anonymous/authenticated read access  (bypass for reads, when enabled)
+        → RBAC                                 (coarse-grained role check)
+        → OBAC                                 (when enabled)
+        → Per-resource grants                  (owners of the addressed resource bypass)
 ```
 
 Key interactions:
 
-- **Admins** bypass the grants check entirely (via admin override or `config.admin_roles` in the grants file).
-- **Artifact/group owners** bypass the grants check. Creating an artifact does not lock you out of it.
-- **RBAC runs before grants.** Grants restrict within what RBAC allows. A `sr-readonly` user can never write, regardless of grants. This is defense-in-depth.
-- **Deny rules take precedence.** Deny rules are evaluated before allow rules. If any deny rule matches, access is denied regardless of matching allow rules.
-- **`authenticated-read-access`** overrides read grants. A startup warning is logged when both are enabled.
-- **`trust-proxy-authorization`** bypasses all local authorization including grants.
+- **Admins** bypass grants (admin override, or a role listed in `config.admin_roles`).
+- **Owners bypass grants**, independently of whether OBAC is enabled. The bypass is strict: it applies
+  only when the addressed resource exists and its recorded owner is the caller. Missing resources and
+  resources without an owner never bypass. Creating an artifact still requires `write` on the group.
+- **RBAC runs before grants.** Grants restrict within what RBAC allows.
+- **Deny rules take precedence.** A deny on an operation also denies every operation that implies it:
+  denying `read` blocks all access; denying `write` makes a resource read-only.
+- **`authenticated-read-access` / `anonymous-read-access`** override read grants (startup warning).
+- **`apicurio.authn.proxy-header.trust-proxy-authorization`** bypasses all local authorization.
 
 ### Two authorization paths
 
-**Point-access** (can this user read this specific artifact?):
+**Point access** (can this user perform this operation on this resource?): the Kroxylicious
+`Authorizer.authorize()` call. The evaluator filters grants for the current user (~5-20 entries),
+applies deny rules, then allow rules. In-process, ~10-50 µs per check.
 
-The grants evaluator filters the grants list for the current user (~5-20 entries), checks deny rules first, then checks allow rules against the operation hierarchy and resource pattern. Pure Java, in-process, ~10-50 microseconds per check.
+**Search and list filtering** (which resources does this user see?): `GrantsData.getSearchFilterData()`
+returns the user's read grants as resource-name patterns (allow-all flag, allowed exact/prefix names,
+denied exact/prefix names), passed verbatim to storage as one `AuthorizationFilter`, plus the caller as
+owner. Storage translates it into its query:
 
-**Search/list filtering** (which artifacts does this user see in search results?):
+- SQL (`SqlAuthorizationFilter`): one condition shared by artifact, version and group searches.
+  Group IDs may contain `/`, so a name pattern is decomposed at every `/` rather than split once:
+  `g/a` equals `n` iff `n = g + "/" + a` for some split of `n`; `g/a` starts with `p` iff `g` starts
+  with `p`, or `p` splits into `g + "/" + q` and `a` starts with `q`. LIKE patterns are escaped. The
+  default group, named `default` in grants, maps to its stored ID.
+- Elasticsearch: the same decomposition with `term`/`prefix` queries on keyword fields. The owner
+  clause is not applied (the index stores the version owner as analyzed text), which only narrows
+  results.
 
-The grants evaluator extracts the current user's allowed resource patterns and translates them into SQL query filters:
-
-- Group-level prefix grants → `WHERE groupId IN ('team-a', 'shared')`
-- Exact artifact grants → `OR (groupId = 'team-b' AND artifactId = 'public-schema')`
-- Exact deny rules → `AND NOT (groupId = 'team-a' AND artifactId = 'secret-schema')`
-- Prefix deny rules → `AND NOT (groupId = 'team-a' AND artifactId LIKE 'internal-%')`
-
-The database handles filtering, pagination, and counting natively. No over-fetching, no post-filtering.
-
-Both paths read from the same parsed `GrantsData` object.
+**Invariant:** for every subject and resource name, the search patterns select exactly what point
+access allows. This is unit-tested by comparing both paths over adversarial names, and the SQL and
+Elasticsearch translations are tested against the same reference semantics.
 
 ### Architecture
 
@@ -138,7 +147,7 @@ authz/
   ├── GrantsAuthorizer    — implements the Kroxylicious Authorizer, grants evaluation, file hot-reload
   ├── GrantsData          — parsed grants, search filter generation
   ├── Grant               — single grant record with matching logic
-  └── SearchFilterData    — allowed groups/exact/prefix resources, denied exact/prefix resources
+  └── SearchFilterData    — read grants as name patterns: allow-all, allowed/denied exact and prefix names
 ```
 
 Dependencies: `kroxylicious-authorizer-api`, `jackson-databind` and `slf4j-api`. Only
@@ -152,33 +161,53 @@ If pre-filtering is later standardized (for example, as an optional resource-sco
 to `Authorizer`), `SearchFilterData` is the shape Registry needs: allow-all flag, allowed exact and
 prefix names, and denied exact and prefix names.
 
-**Registry integration** (`app/.../auth/grants/`) — Registry-specific:
+**Registry integration** — Registry-specific:
 
 ```
-app/.../auth/grants/
-  ├── GrantsAccessController            — bridges Authorizer with IAccessController, maps SecurityIdentity
-  │                                       to a Kroxylicious Subject, OTel metrics, audit
-  ├── GrantsAccessControllerConfig      — config properties (enabled, grants path, reload interval)
-  ├── GrantsAccessControllerInitializer — startup, hot-reload scheduler, config warnings
-  ├── GrantsSearchFilter                — translates SearchFilterData to SQL filters
-  ├── RegistryResourceType              — Artifact and Group enums (ResourceType impl)
-  ├── ISearchAuthorizer                 — engine-agnostic search filtering interface
-  └── SearchAuthorizerProducer          — CDI producer selecting the right ISearchAuthorizer
+app/.../auth/
+  ├── AbstractAccessController.resolveResource — maps @Authorized style + parameters to a resource
+  ├── AuthorizedInterceptor             — RBAC → OBAC → grants (owners bypass grants)
+  ├── ResourceAccessGuard               — grants checks for body-addressed targets
+  ├── ISearchAuthorizer / SearchAuthorizerProducer — entry point for all client-facing searches
+  └── grants/
+      ├── GrantsAccessController            — maps SecurityIdentity to a Kroxylicious Subject, calls the
+      │                                       Authorizer, OTel metric, audit log
+      ├── GrantsAccessControllerConfig      — configuration properties
+      ├── GrantsAccessControllerInitializer — fail-fast startup, hot-reload scheduler, config warnings
+      ├── GrantsSearchFilter                — adds the caller's AuthorizationFilter to searches
+      └── RegistryResourceType              — Artifact and Group operations (Kroxylicious ResourceType)
+app/.../storage/
+  ├── dto/AuthorizationFilter               — storage-level search restriction
+  ├── impl/sql/repositories/SqlAuthorizationFilter — SQL translation (all SQL variants)
+  └── impl/search/ElasticsearchSearchService       — Elasticsearch translation
 ```
 
 ### Endpoint coverage
 
-| AuthorizedStyle | Resource name resolution | Example endpoints |
+All styles are resolved by one method, `AbstractAccessController.resolveResource()`, shared by OBAC
+and grants, so both always evaluate the resource the endpoint operates on.
+
+| `AuthorizedStyle` | Resolved resource | Used by |
 |---|---|---|
-| `GroupAndArtifact` | `buildResourceName(groupId, artifactId)` → `"team-a/my-schema"` | CRUD on `/groups/{groupId}/artifacts/{artifactId}` |
-| `GroupOnly` | Raw groupId parameter | `/groups/{groupId}` |
-| `ArtifactOnly` | `buildResourceName(null, subject)` → `"default/{subject}"` | Ccompat `/subjects/{subject}` |
-| `GlobalId` | Storage lookup: `globalId → getArtifactVersionMetaData → groupId/artifactId` | `/ids/globalIds/{globalId}` |
-| `None` | Skipped | Admin endpoints, list endpoints |
+| `GroupAndArtifact` | artifact (param 0, param 1) | REST v2/v3 artifact, version, branch operations |
+| `GroupOnly` | group (param 0) | REST v2/v3 group operations, listing/creating artifacts in a group |
+| `ArtifactOnly` | artifact (`X-Registry-GroupId` header or group-concat subject, param 0) | Confluent compatibility API subjects |
+| `GlobalId` | artifact of the global ID | `/ids/globalIds/{id}` |
+| `ContentId`, `ContentHash` | every artifact using the content; allowed if any is allowed | `/ids/contentIds`, `/ids/contentHashes` |
+| `CCompatSchemaId` | content ID, or global ID in legacy ID mode | Confluent compatibility API `/schemas/ids/{id}` |
+| `QualifiedArtifactName` | artifact `namespace/server` | MCP Registry API |
+| `IcebergNamespace`, `IcebergTable` | group = namespace, artifact = table/view (the catalog prefix is ignored) | Iceberg REST catalog |
+| `None` | none | admin/system endpoints; body-addressed and list endpoints (below) |
+
+Endpoints whose target is in the request body (creating groups, Iceberg namespace creation and
+renames, MCP server publishing) call `ResourceAccessGuard.requireAccess()`, which applies the same
+bypasses as the interceptor. Every client-facing search or list goes through `ISearchAuthorizer`
+(REST v2/v3, Confluent compatibility API, Iceberg, MCP Registry, `/.well-known` discovery);
+inbound reference lists and content-ID lists are filtered per item.
 
 ### Hot-reload
 
-The grants file is polled every 5 seconds (configurable via `apicurio.auth.resource-based-authorization.grants.reload-every`; polling can be disabled entirely via `apicurio.auth.resource-based-authorization.grants.reload-enabled=false`). Changes take effect without restart.
+The grants file is polled every 5 seconds (configurable via `apicurio.auth.resource-based-authorization.grants.reload-every`; polling can be disabled via `apicurio.auth.resource-based-authorization.grants.reload-enabled=false`). Changes take effect without restart. A missing or invalid file fails startup; an invalid file on reload is logged and the previous grants stay in effect, so a bad edit cannot lock everyone out.
 
 File polling was chosen over `WatchService` because `WatchService` is unreliable on NFS mounts and Kubernetes ConfigMap volumes.
 
@@ -275,27 +304,26 @@ Every request evaluates grants from scratch. The same user accessing the same ar
 
 **Impact:** increased latency on globalId endpoints. **Mitigation:** add per-user, per-resource cache invalidated on grants reload.
 
-### 2. Elasticsearch search filtering not implemented
+### 2. `permissions` field in search results not populated
 
-`SearchFilterData` is engine-agnostic, but only SQL generation exists. Elasticsearch deployments need `terms` and `must_not` query clauses.
+The UI cannot show or hide edit/delete actions per artifact. **Mitigation:** batch-evaluate
+permissions for returned results in a follow-up.
 
-**Impact:** blocks ES deployments from using per-resource authorization. **Mitigation:** implement ES filter translation using the same `SearchFilterData`.
+### 3. Group and artifact grants are independent
 
-### 3. `permissions` field in search results not populated
+Artifact access is decided by artifact grants only; group grants do not cascade to the artifacts in
+the group, and a group deny does not hide its artifacts. This keeps point access and search
+consistent, but operators usually need both kinds of grant (documented).
 
-The OpenAPI spec defines a `permissions` field on `SearchedArtifact`, `SearchedGroup`, and `SearchedVersion`. No endpoint fills it in. This would let the UI show/hide edit/delete buttons per artifact.
+### 4. Pattern matching follows the database collation in search
 
-**Impact:** UI cannot show per-artifact permission buttons. **Mitigation:** batch-evaluate permissions for returned search results.
-
-### 4. No group-level deny in artifact search filtering
-
-A deny rule on `resource_type: "group"` does not affect artifact search results. You can deny point-access to a group, but artifacts in that group may still appear in search if matched by another grant.
-
-**Impact:** inconsistency between point-access and search filtering for group-level denies. **Mitigation:** exclude artifacts from denied groups in `getSearchFilterData()`.
+Point access compares names case-sensitively. On databases with case-insensitive collations
+(common for MySQL and SQL Server), search matching follows the collation and can include names that
+differ only in case. **Mitigation:** documented; use consistent casing in group and artifact IDs.
 
 ### 5. Scale ceiling at 500+ grants
 
-With hundreds of grants per user, the SQL `WHERE` clause becomes enormous (`IN` with hundreds of values, dozens of `NOT` clauses). Query plan efficiency degrades. The grants file also becomes unmanageable at scale (merge conflicts, review fatigue).
+With hundreds of grants per user, the search `WHERE` clause becomes large (one `OR` branch per pattern and per `/` in it). Query plan efficiency degrades. The grants file also becomes unmanageable at scale (merge conflicts, review fatigue).
 
 **Impact:** limits adoption to team-level, role-based deployments (5-50 grants). **Mitigation:** role-based grants (`principal_role`) keep the per-user count small. For enterprise scale, evolve to database-backed grants with ACL table JOINs.
 
@@ -311,11 +339,12 @@ Grants restrict within what RBAC allows — they cannot override RBAC. A `sr-rea
 
 **Impact:** requires RBAC role awareness when configuring grants. **Mitigation:** document the interaction clearly. Consider a future option to let grants be the sole authority.
 
-### 8. ContentId/ContentHash endpoints bypass grants
+### 8. Search pre-filtering is outside the Kroxylicious API
 
-Content endpoints (`/ids/contentIds/{id}`, `/ids/contentHashes/{hash}`) use `AuthorizedStyle.None` and bypass grants checks entirely. A user who knows a contentId or contentHash can access artifact content regardless of grants. This is a pre-existing behavior — these endpoints were not designed for per-resource authorization because content can belong to multiple artifacts (many-to-many relationship), making grant resolution ambiguous.
-
-**Impact:** information leakage if content IDs or hashes are guessable. **Mitigation:** these endpoints are rarely used directly by end users (primarily by SerDes clients that already have the globalId). For strict environments, restrict access at the network/proxy level.
+The Kroxylicious `Authorizer` answers point-access questions only. Search pre-filtering uses
+`GrantsData`, so replacing the grants implementation with another `Authorizer` requires an equivalent
+resource-scope provider. We expect to standardize this upstream as an optional interface returning
+the shape of `SearchFilterData`.
 
 ## Consequences
 
@@ -344,9 +373,13 @@ Content endpoints (`/ids/contentIds/{id}`, `/ids/contentHashes/{hash}`) use `Aut
 
 ## Implementation Status
 
-- **Contract:** Kroxylicious Authorizer API (`io.kroxylicious:kroxylicious-authorizer-api`, 0.25.0)
-- **Shared module:** `authz/` — `GrantsAuthorizer` (Kroxylicious `Authorizer` implementation), `GrantsData`, `Grant`, `User`, `RolePrincipal`
-- **Registry integration:** `app/.../auth/grants/` — interceptor, search filter, owner bypass, metrics, audit
-- **Tests:** 36 unit (authz) + 13 unit (app) + 34 integration (Keycloak)
-- **Docker-compose example:** `distro/docker-compose/in-memory-with-authz-grants/`
-- **Documentation:** AsciiDoc in `docs/`, README in `auth/grants/`
+- **Contract:** Kroxylicious Authorizer API (`io.kroxylicious:kroxylicious-authorizer-api` 0.25.0)
+- **Grants implementation:** `authz/` — `GrantsAuthorizer`, `GrantsData`, `Grant`, `SearchFilterData`, `User`, `RolePrincipal`
+- **Registry integration:** `app/.../auth/` — `AbstractAccessController.resolveResource`, `ResourceAccessGuard`,
+  `ISearchAuthorizer`; `app/.../auth/grants/` — `GrantsAccessController`, `GrantsSearchFilter`, configuration
+- **Storage:** `AuthorizationFilter` search filter, translated by `SqlAuthorizationFilter` and `ElasticsearchSearchService`
+- **Tests:** `GrantsAuthorizerTest` (evaluation, search/point-access invariant, loading, reload),
+  `GrantsAccessControllerTest`, `GrantsAuthorizationTest` (end-to-end across REST v2/v3, ccompat, Iceberg,
+  MCP Registry, content IDs), `AuthorizationFilterStorageTest` (SQL translation), `ElasticsearchAuthorizationQueryTest`
+- **Example:** `distro/docker-compose/in-memory-with-authz-grants/` with a verification script
+- **Documentation:** `docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc`

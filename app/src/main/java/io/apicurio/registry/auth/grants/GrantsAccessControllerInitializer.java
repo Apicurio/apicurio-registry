@@ -30,39 +30,41 @@ public class GrantsAccessControllerInitializer {
     @Inject
     AuthConfig authConfig;
 
+    /**
+     * Loads the grants file at startup. Misconfiguration fails startup rather than leaving the
+     * registry running in a state where every request is denied.
+     */
     @PostConstruct
     void init() {
         if (!config.isEnabled()) {
             log.debug("Per-resource authorization is disabled.");
             return;
         }
+        if (!authConfig.isAuthenticationEnabled()) {
+            log.warn("Per-resource authorization is enabled but authentication is disabled, so it has no "
+                    + "effect. Enable OIDC, basic or proxy header authentication.");
+        }
 
         String dataPath = config.getDataPath();
-
         if (dataPath == null || dataPath.isBlank()) {
-            log.warn("Per-resource authorization is enabled but no grants data path configured. "
-                    + "Set apicurio.auth.resource-based-authorization.grants.path to a JSON grants file.");
-            return;
+            throw new IllegalStateException("Per-resource authorization is enabled but no grants file is "
+                    + "configured. Set apicurio.auth.resource-based-authorization.grants.path.");
         }
 
         logConfigurationWarnings();
 
-        log.info("Initializing per-resource authorization from grants file: {}", dataPath);
-
+        Map<Class<? extends ResourceType<?>>, String> resourceTypeNames = Map.of(
+                RegistryResourceType.Artifact.class, "artifact",
+                RegistryResourceType.Group.class, "group");
         try {
-            Map<Class<? extends ResourceType<?>>, String> resourceTypeNames = Map.of(
-                    RegistryResourceType.Artifact.class, "artifact",
-                    RegistryResourceType.Group.class, "group");
-
-            GrantsAuthorizer authorizer = GrantsAuthorizer.create(
-                    Path.of(dataPath), resourceTypeNames);
-
+            GrantsAuthorizer authorizer = GrantsAuthorizer.create(Path.of(dataPath), resourceTypeNames);
             controller.setAuthorizer(authorizer);
-            log.info("Per-resource authorization initialized.");
-        } catch (IOException e) {
-            log.error("Failed to initialize per-resource authorization", e);
-            throw new RuntimeException("Failed to load grants data", e);
+        } catch (IOException | IllegalArgumentException e) {
+            throw new IllegalStateException("Failed to load the per-resource authorization grants file "
+                    + dataPath + ": " + e.getMessage(), e);
         }
+        log.info("Per-resource authorization initialized from {} (hot reload: {}).", dataPath,
+                config.isReloadEnabled() ? "every " + config.getReloadEvery() : "disabled");
     }
 
     private void logConfigurationWarnings() {

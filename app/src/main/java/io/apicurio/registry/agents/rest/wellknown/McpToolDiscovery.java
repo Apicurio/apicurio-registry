@@ -230,10 +230,12 @@ public class McpToolDiscovery {
      *
      * <p><b>Authorization note:</b> candidate identity and metadata are exposed at the same
      * read-level scope as {@code searchMcpTools}, which also returns all MCP tools visible
-     * to the caller via {@link AuthorizedLevel#Read}.  No per-artifact visibility label is
-     * applied because MCP tools (unlike A2A agents) do not carry an
-     * {@code apicurio.agent.visibility} label; the caller's read-level authorization is the
-     * sole gate for both endpoints.
+     * to the caller via {@link AuthorizedLevel#Read}. No per-artifact visibility label is
+     * applied: the {@code apicurio.agent.visibility} discovery filter is a deliberate,
+     * agents-only design decision, not a limitation of what MCP tool artifacts can carry.
+     * Tools remain fully readable by any Read-authorized caller through
+     * {@code /apis/registry/v3/search} regardless of the label, so filtering here would only
+     * imply a protection that does not exist.
      */
     private List<McpToolSearchResult> findCompatibleCandidates(String rawGroupId, String sourceArtifactId,
             PreparedProducer producer) {

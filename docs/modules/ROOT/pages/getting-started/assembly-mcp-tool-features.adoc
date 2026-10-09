@@ -305,6 +305,23 @@ The `GET /.well-known/schemas/mcp-tool/v1` endpoint retrieves the JSON Schema fo
 curl "http://localhost:8080/.well-known/schemas/mcp-tool/v1"
 ----
 
+// ref-mcp-tool-visibility
+[id="mcp-tool-visibility_{context}"]
+== MCP tool visibility
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+MCP tool definitions are not subject to the `apicurio.agent.visibility` discovery filter described in xref:getting-started/assembly-a2a-features.adoc#a2a-visibility-model_{context}[Agent visibility model]. This is a deliberate design decision, not a gap: filtering `/.well-known/mcp-tools` would only imply a protection that does not exist, because the same tools are already fully readable by any Read-authorized caller.
+
+* `apicurio.agent.visibility` and its `apicurio.a2a.default-visibility` fallback apply only to Agent Card discovery (`GET /.well-known/agents`, and the agent half of the AI Catalog and ARD responses). They have no effect on MCP tool discovery.
+* `GET /.well-known/mcp-tools`, the compatible-tools endpoint (`/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible`), and the tool half of the AI Catalog and ARD responses return every MCP tool that a Read-authorized caller can see, unfiltered by visibility.
+* The visibility label is a discovery-only hint, not access control, for both agents and tools: any Read-authorized caller can already retrieve any artifact directly through the core v3 API or `/apis/registry/v3/search`, regardless of its visibility label. An MCP tool artifact can still carry an `apicurio.agent.visibility` label, but {registry} does not act on it when serving MCP tool discovery requests.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-a2a-features.adoc#a2a-visibility-model_{context}[Agent visibility model]
+
 // proc-creating-mcp-tool-artifact
 [id="creating-mcp-tool-artifact_{context}"]
 == Creating an MCP tool artifact

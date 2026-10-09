@@ -194,7 +194,7 @@ A crawler that retrieves only the static catalog can discover the search API fro
 
 Artifact visibility::
 {registry} filters Agent Card entries by the `apicurio.agent.visibility` label with the same rules as `/.well-known/agents`.
-MCP tool entries have no visibility label, so {registry} always includes them.
+{registry} does not filter MCP tool entries by visibility, even when the artifact carries an `apicurio.agent.visibility` label: the visibility model applies only to Agent Cards.
 When neither OpenID Connect (OIDC) nor basic authentication is configured, {registry} applies no visibility filtering.
 
 Authorization::

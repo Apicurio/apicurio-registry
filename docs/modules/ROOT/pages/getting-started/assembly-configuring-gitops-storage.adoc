@@ -10,7 +10,7 @@ Configure {registry} to use a Git repository as the source of registry data. Wit
 
 == Prerequisites
 
-* You have a way to run the {registry} container image, for example Docker, Podman, or a {kubernetes} cluster.
+* You have a way to run the {registry} container image, for example Docker, Podman, or {kubernetes-with-article} cluster.
 * You have a Git repository for registry data.
 
 //INCLUDES

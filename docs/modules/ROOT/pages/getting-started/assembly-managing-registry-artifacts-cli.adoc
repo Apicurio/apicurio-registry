@@ -244,7 +244,7 @@ Optional: To delete all contexts, use the `--all` option.
 You can log in to the {registry} instance of your current CLI context by using basic authentication or OAuth2 client credentials. The CLI stores secrets in the operating system keychain, and stores non-secret authentication settings in the context.
 
 .Prerequisites
-* You have configured a CLI context for a {registry} instance that requires authentication.
+* You have configured a CLI context for an instance of {registry} that requires authentication.
 * On Linux, the `secret-tool` utility (libsecret) is available for keychain storage. On macOS, the CLI uses the built-in keychain. On Windows, the CLI uses the built-in Credential Manager, which stores a secret of up to 2560 bytes.
 
 .Procedure
@@ -554,7 +554,7 @@ For the valid rule types and configuration values, see the rule types table in t
 You can use the CLI to assign {registry} roles to principals, such as user accounts or service accounts, when role-based authorization is enabled on the registry.
 
 .Prerequisites
-* You have configured a CLI context for a {registry} instance with role-based authorization enabled.
+* You have configured a CLI context for an instance of {registry} with role-based authorization enabled.
 * You are authenticated as a user with permission to manage role mappings.
 
 .Procedure
@@ -635,7 +635,7 @@ Optional: To import into a registry that already contains data, use the `--no-re
 You can inspect GitOps storage status and request an immediate synchronization from the configured Git repositories.
 
 .Prerequisites
-* Your CLI context points to a {registry} instance that uses GitOps storage.
+* Your CLI context points to an instance of {registry} that uses GitOps storage.
 * You have read access to view status and administrator access to request synchronization when authorization is enabled.
 
 .Procedure
@@ -684,7 +684,7 @@ endif::[]
 You can validate the content of a Git revision before merging a change. Validation does not change the live registry content.
 
 .Prerequisites
-* Your CLI context points to a {registry} instance that uses GitOps storage.
+* Your CLI context points to an instance of {registry} that uses GitOps storage.
 * The server has `apicurio.gitops.validate.enabled=true`.
 * The repository ID is configured on the server, and the server can fetch the Git revision.
 * You have administrator access when authorization is enabled.

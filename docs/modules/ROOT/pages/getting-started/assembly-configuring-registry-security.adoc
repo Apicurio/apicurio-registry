@@ -370,7 +370,7 @@ Without an OIDC-compliant provider, the following {registry} features do not wor
 By deploying Dex between {registry} and your identity provider, all three features work because Dex exposes standard OIDC discovery, issues JWTs with standard claims (`sub`, `name`, `email`, `groups`), and provides a standard JWKS endpoint.
 
 .Prerequisites
-* A {kubernetes} cluster with Helm 3.x installed.
+* Access to {kubernetes-with-article} cluster with Helm 3.x installed.
 * {registry} is installed and running.
 * Access to the upstream identity provider you want to integrate (for example, OpenShift, LDAP, or GitHub).
 

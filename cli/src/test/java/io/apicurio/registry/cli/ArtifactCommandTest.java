@@ -12,6 +12,7 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.time.OffsetDateTime;
 import java.util.Map;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.net.URI;
@@ -182,6 +183,49 @@ public class ArtifactCommandTest extends AbstractCLITest {
                 if (artifactId != null) {
                         executeAndAssertSuccess("artifact", "delete", "--group", "default", artifactId);
                 }
+        }
+    }
+
+
+    @Test
+    public void testArtifactCreateJsonOutputSerializesTimestampsAsIso8601Strings() throws Exception {
+        // Regression test for #10136: createdOn/modifiedOn should serialize as ISO-8601 strings, not epoch millis.
+        Path tempFile = Files.createTempFile("test-timestamp-schema", ".json");
+        Files.writeString(tempFile, """
+                {"type": "string"}
+                """);
+        String artifactId = null;
+
+        try {
+            out.getBuffer().setLength(0);
+            executeAndAssertSuccess("artifact", "create", "--output-type", "json",
+                    "--group", "default",
+                    "--type", "JSON",
+                    "--file", tempFile.toString(),
+                    "timestamp-format-artifact");
+            JsonNode artifact = MAPPER.readTree(out.toString());
+            artifactId = artifact.get("artifactId").asText();
+
+            assertThat(artifact.get("createdOn").isTextual())
+                    .as(withCliOutput("createdOn should be a JSON string, not a numeric timestamp"))
+                    .isTrue();
+            assertThat(OffsetDateTime.parse(artifact.get("createdOn").asText()))
+                    .as(withCliOutput("createdOn should be a valid ISO-8601 timestamp"))
+                    .isNotNull();
+
+            if (artifact.hasNonNull("modifiedOn")) {
+                assertThat(artifact.get("modifiedOn").isTextual())
+                        .as(withCliOutput("modifiedOn should be a JSON string, not a numeric timestamp"))
+                        .isTrue();
+                assertThat(OffsetDateTime.parse(artifact.get("modifiedOn").asText()))
+                        .as(withCliOutput("modifiedOn should be a valid ISO-8601 timestamp"))
+                        .isNotNull();
+            }
+        } finally {
+            Files.deleteIfExists(tempFile);
+            if (artifactId != null) {
+                executeAndAssertSuccess("artifact", "delete", "--group", "default", artifactId);
+            }
         }
     }
 

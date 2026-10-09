@@ -80,6 +80,12 @@ public class RegistryStorageProducer {
         return cachedCurrent;
     }
 
+    @ConfigProperty(name = "apicurio.datasource.url", defaultValue = "unknown")
+    String jdbcUrl;
+
+    @ConfigProperty(name = "apicurio.kafkasql.bootstrap.servers", defaultValue = "unknown")
+    String kafkaBootstrapServers;
+
     @Produces
     @ApplicationScoped
     @Raw
@@ -98,11 +104,50 @@ public class RegistryStorageProducer {
                         .format("No Registry storage variant defined for value %s", registryStorageType));
             }
 
-            cachedRaw.initialize();
+            try {
+                cachedRaw.initialize();
+            } catch (Exception e) {
+                if ("sql".equals(registryStorageType) && isSqlExceptionInCause(e)) {
+                    log.debug("Database connection failure", e);
+                    throw new RuntimeException(String.format(
+                            "ERROR: PostgreSQL not reachable at %s. Check that the database is running and the connection URL is correct.",
+                            jdbcUrl), e);
+                }
+                if ("kafkasql".equals(registryStorageType) && isTimeoutExceptionInCause(e)) {
+                    log.debug("Kafka connection failure", e);
+                    throw new RuntimeException(String.format(
+                            "ERROR: Kafka not reachable at %s. Check that Kafka is running and the bootstrap servers are correct.",
+                            kafkaBootstrapServers), e);
+                }
+                throw e;
+            }
+
             log.info("Using the following RegistryStorage implementation: {}",
                     cachedRaw.getClass().getName());
         }
         return cachedRaw;
+    }
+
+    private boolean isSqlExceptionInCause(Throwable e) {
+        Throwable current = e;
+        while (current != null) {
+            if (current instanceof java.sql.SQLException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
+    }
+
+    private boolean isTimeoutExceptionInCause(Throwable e) {
+        Throwable current = e;
+        while (current != null) {
+            if (current instanceof java.util.concurrent.TimeoutException || current.getClass().getSimpleName().contains("TimeoutException")) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     @Produces

@@ -10,9 +10,12 @@ import io.apicurio.registry.ccompat.rest.v7.beans.SchemaId;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.config.DecoderConfig;
+import io.restassured.config.RestAssuredConfig;
 import org.junit.jupiter.api.Test;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.empty;
@@ -30,6 +33,8 @@ import static org.hamcrest.Matchers.hasSize;
  */
 @QuarkusTest
 public class CCompatV7EnhancementsTest extends AbstractResourceTestBase {
+    private static final RestAssuredConfig NO_AUTO_DECODE = RestAssuredConfig.newConfig()
+            .decoderConfig(DecoderConfig.decoderConfig().noContentDecoders());
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -136,8 +141,21 @@ public class CCompatV7EnhancementsTest extends AbstractResourceTestBase {
                     .post("/ccompat/v7/subjects/{subject}/versions", subject).then().statusCode(200);
         }
 
-        // GET /schemas should return a list
-        given().when().get("/ccompat/v7/schemas").then().statusCode(200);
+        // GET /schemas should return both vendor representations compressed when gzip is accepted.
+        assertCompressedSchemasResponse(ContentTypes.COMPAT_SCHEMA_REGISTRY_STABLE_LATEST);
+        assertCompressedSchemasResponse(ContentTypes.COMPAT_SCHEMA_REGISTRY_V1);
+    }
+
+    private void assertCompressedSchemasResponse(String mediaType) {
+        given().config(NO_AUTO_DECODE)
+                .header("Accept", mediaType)
+                .header("Accept-Encoding", "gzip")
+                .get("/ccompat/v7/schemas")
+                .then()
+                .statusCode(200)
+                .header("Content-Type", containsString(mediaType))
+                .header("Content-Encoding", equalTo("gzip"))
+                .header("Vary", containsString("Accept-Encoding"));
     }
 
     @Test

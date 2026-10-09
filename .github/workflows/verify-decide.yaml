@@ -25,6 +25,8 @@ on:
         value: ${{ jobs.decide.outputs.run-sdk }}
       run-cli:
         value: ${{ jobs.decide.outputs.run-cli }}
+      run-ard-conformance:
+        value: ${{ jobs.decide.outputs.run-ard-conformance }}
       run-go-sdk-freshness:
         value: ${{ jobs.decide.outputs.run-go-sdk-freshness }}
       run-operator:
@@ -54,6 +56,7 @@ jobs:
       run-extras: ${{ steps.decide.outputs.run-extras }}
       run-sdk: ${{ steps.decide.outputs.run-sdk }}
       run-cli: ${{ steps.decide.outputs.run-cli }}
+      run-ard-conformance: ${{ steps.decide.outputs.run-ard-conformance }}
       run-go-sdk-freshness: ${{ steps.decide.outputs.run-go-sdk-freshness }}
       run-operator: ${{ steps.decide.outputs.run-operator }}
       run-console-plugin: ${{ steps.decide.outputs.run-console-plugin }}
@@ -107,6 +110,15 @@ jobs:
               - 'cli/**'
               - 'java-sdk/**'
               - '.github/workflows/verify-cli.yaml'
+            ard:
+              # Defines the /well-known/ard* operations and Ard* response schemas.
+              - 'common/src/main/resources/META-INF/openapi.json'
+              - 'app/src/main/java/io/apicurio/registry/agents/aicatalog/**'
+              - 'app/src/main/java/io/apicurio/registry/agents/ard/**'
+              - 'app/src/main/java/io/apicurio/registry/agents/rest/wellknown/**'
+              - '.github/ard-conformance/**'
+              - '.github/scripts/ard_conformance.py'
+              - '.github/workflows/verify-ard-conformance.yaml'
             operator:
               - 'operator/**'
             console-plugin:
@@ -151,7 +163,7 @@ jobs:
             # to draft (the orchestrator strips them, but that races with this).
             if [ "$IS_DRAFT" = "true" ]; then
               echo "lifecycle-ready=skip" >> "$GITHUB_OUTPUT"
-              for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-operator run-console-plugin run-go-sdk-freshness; do
+              for out in run-build run-unit-tests run-scalpel-report run-integration run-extras run-sdk run-cli run-ard-conformance run-operator run-console-plugin run-go-sdk-freshness; do
                 echo "$out=false" >> "$GITHUB_OUTPUT"
               done
               echo "scalpel-enabled=false" >> "$GITHUB_OUTPUT"
@@ -185,6 +197,7 @@ jobs:
           INTEGRATION='${{ steps.filter.outputs.integration }}'
           SDK='${{ steps.filter.outputs.sdk }}'
           CLI='${{ steps.filter.outputs.cli }}'
+          ARD='${{ steps.filter.outputs.ard }}'
           OPERATOR='${{ steps.filter.outputs.operator }}'
           CONSOLE_PLUGIN='${{ steps.filter.outputs.console-plugin }}'
           GO_SDK_GEN='${{ steps.filter.outputs.go-sdk-gen }}'
@@ -210,7 +223,9 @@ jobs:
           IS_PUSH=$( [ "$EVENT" = "push" ] && echo true || echo false )
 
           echo "lifecycle-ready=$run_tests" >> "$GITHUB_OUTPUT"
-          decide run-build       "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$SDK" "$CLI" "$CI"
+          # ARD feeds run-build: the conformance job needs the image even when only
+          # its seed data or runner script changed.
+          decide run-build       "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$SDK" "$CLI" "$CI" "$ARD"
           decide run-unit-tests  "$run_tests" "$IS_PUSH" "$JAVA" "$CI"
           # Report only when java sources changed: .github-only PRs trip
           # scalpel.disableTriggers and would produce an empty report.
@@ -219,6 +234,7 @@ jobs:
           decide run-extras      "$run_tests" "$IS_PUSH" "$JAVA" "$UI" "$CI"
           decide run-sdk         "$run_tests" "$IS_PUSH" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_tests" "$CLI"
+          decide run-ard-conformance "$run_tests" "$ARD"
           decide run-operator        "$run_tests" "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
           decide run-console-plugin  "$run_tests" "$IS_PUSH" "$CONSOLE_PLUGIN" "$CI"
           decide run-go-sdk-freshness "$run_tests" "$GO_SDK_GEN" "$CI"
@@ -272,7 +288,7 @@ jobs:
 
       - name: Upload decision summary
         if: github.event_name == 'pull_request' && steps.decide.outputs.lifecycle-ready != 'skip'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: verify-decisions
           retention-days: 1

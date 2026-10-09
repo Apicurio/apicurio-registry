@@ -1,0 +1,16 @@
+{
+  "name": "catalog_lookup",
+  "title": "Catalog Lookup",
+  "description": "Look up entries in the product catalog",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": {
+        "type": "string"
+      }
+    },
+    "required": [
+      "query"
+    ]
+  }
+}

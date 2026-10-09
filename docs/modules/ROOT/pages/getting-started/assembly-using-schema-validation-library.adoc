@@ -172,7 +172,7 @@ if (!invalidResult.success()) {
 }
 ----
 +
-The output is `1029: $.time: string found, number expected`. The context is the error code of the violated JSON Schema keyword, and the description names the JSON path of the offending value.
+The output is `1029: $.time: string found, number expected`. The context is the error code of the violated JSON Schema keyword, and the description names the JSON path of the offending value. The error codes and message wording come from the networknt json-schema-validator library and can change when {registry} upgrades that dependency.
 
 . Optional: To choose the schema for each payload at run time, wrap the payload in a `SchemaValidationRecord` and call `validate`:
 +
@@ -312,6 +312,8 @@ SchemaValidationRecord<GenericRecord> record = new SchemaValidationRecord<>(
 
 ValidationResult recordResult = validator.validate(record);
 ----
++
+The `validate` method accepts `GenericRecord` payloads only. To validate JSON-encoded Avro data, call `validateByArtifactReference` instead.
 
 .Verification
 * Run the application. The conforming record prints `ValidationResult [ success ]`, and the invalid JSON prints one error with the context `TYPE_ERROR`.

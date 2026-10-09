@@ -28,6 +28,8 @@ import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.OutboxEvent;
+import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.dto.PeerSearchResultsDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -600,6 +602,36 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public void createPeer(PeerDto peer) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PeerDto getPeer(String peerId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<PeerDto> getPeers() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public PeerSearchResultsDto searchPeers(int offset, int limit) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void updatePeer(PeerDto peer) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void deletePeer(String peerId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void deleteAllUserData() {
         throw new UnsupportedOperationException();
     }
@@ -815,6 +847,11 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
 
     @Override
     public boolean isRoleMappingExists(String principalId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isPeerExists(String peerId) {
         throw new UnsupportedOperationException();
     }
 

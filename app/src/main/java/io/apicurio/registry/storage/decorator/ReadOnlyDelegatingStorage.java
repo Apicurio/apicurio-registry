@@ -20,6 +20,8 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.dto.PeerSearchResultsDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -324,6 +326,21 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     }
 
     @Override
+    public PeerDto getPeer(String peerId) throws RegistryStorageException {
+        return delegate.getPeer(peerId);
+    }
+
+    @Override
+    public List<PeerDto> getPeers() throws RegistryStorageException {
+        return delegate.getPeers();
+    }
+
+    @Override
+    public PeerSearchResultsDto searchPeers(int offset, int limit) throws RegistryStorageException {
+        return delegate.searchPeers(offset, limit);
+    }
+
+    @Override
     public List<DynamicConfigPropertyDto> getConfigProperties() throws RegistryStorageException {
         return delegate.getConfigProperties();
     }
@@ -422,6 +439,11 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     @Override
     public boolean isRoleMappingExists(String principalId) {
         return delegate.isRoleMappingExists(principalId);
+    }
+
+    @Override
+    public boolean isPeerExists(String peerId) {
+        return delegate.isPeerExists(peerId);
     }
 
     @Override

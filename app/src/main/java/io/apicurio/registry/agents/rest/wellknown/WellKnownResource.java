@@ -169,14 +169,15 @@ public interface WellKnownResource {
     /**
      * Returns the JSON Schema for a specific LLM artifact type.
      * This enables IDE autocompletion and validation for PROMPT_TEMPLATE, MODEL_SCHEMA,
-     * and MCP_TOOL artifacts.
+     * MCP_TOOL, and AGENT_CARD artifacts.
      *
      * Supported types:
      * - prompt-template (versions: v1)
      * - model-schema (versions: v1)
      * - mcp-tool (versions: v1)
+     * - agent-card (versions: v1)
      *
-     * @param schemaType the schema type (e.g., "prompt-template", "model-schema", "mcp-tool")
+     * @param schemaType the schema type (e.g., "prompt-template", "model-schema", "mcp-tool", "agent-card")
      * @param version the schema version (e.g., "v1")
      * @return the JSON Schema
      */

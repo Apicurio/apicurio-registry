@@ -44,14 +44,17 @@ public class AgentSchemaProvider {
         }
     }
 
+    private static final java.util.Set<String> ALLOWED_SCHEMAS = java.util.Set.of(
+            "prompt-template-v1",
+            "model-schema-v1",
+            "mcp-tool-v1",
+            "agent-card-v1"
+    );
+
     private String getSchemaResourcePath(String type, String version) {
-        // Only allow known schema types and versions
-        if ("prompt-template".equals(type) && "v1".equals(version)) {
-            return "schemas/prompt-template-v1.json";
-        } else if ("model-schema".equals(type) && "v1".equals(version)) {
-            return "schemas/model-schema-v1.json";
-        } else if ("mcp-tool".equals(type) && "v1".equals(version)) {
-            return "schemas/mcp-tool-v1.json";
+        String schemaId = type + "-" + version;
+        if (ALLOWED_SCHEMAS.contains(schemaId)) {
+            return "schemas/" + schemaId + ".json";
         }
         return null;
     }

@@ -1,0 +1,611 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+ifndef::service-registry-downstream[]
+// assembly-using-schema-validation-library
+[id="using-schema-validation-library_{context}"]
+= Validating data with the {registry} schema validation library
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+You can use the {registry} schema validation library to check JSON, Avro, and Protobuf payloads in a Java application against schemas stored in {registry}. The library fetches and caches each schema and reports every problem it finds, without Kafka serializers or deserializers.
+
+// con-schema-validation-library-overview
+[id="schema-validation-library-overview_{context}"]
+== Schema validation library overview
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+The {registry} schema validation library is a set of standalone Java modules that validate payloads against schemas that are stored in {registry}. Each module provides one validator class for one schema format, and all modules share the same result and error types.
+
+The library is useful when you want to validate data outside of a Kafka producer or consumer, for example in a REST endpoint, a message broker plugin, or a batch job. You choose the schema by its coordinates in {registry}, and the library downloads it through the {registry} Java SDK, caches it, and validates your payload against it.
+
+**Validator classes**
+
+The following table lists the validator that each module provides.
+
+.Validator classes in the schema validation library
+[options="header",cols="2,3,3"]
+|====
+|Schema format
+|Validator class
+|Payload types
+
+|JSON Schema
+|`io.apicurio.schema.validation.json.JsonValidator`
+|Any Java object that Jackson can convert to a JSON tree, such as a Java bean or a `Map`, or a `ByteBuffer` that contains serialized JSON. A `String` that contains JSON is not parsed; the validator treats it as a single JSON string value. To validate serialized JSON, wrap the bytes in a `ByteBuffer`, for example `ByteBuffer.wrap(json.getBytes(StandardCharsets.UTF_8))`.
+
+|Avro
+|`io.apicurio.schema.validation.avro.AvroValidator`
+|An Avro `GenericRecord`, or a `String` that contains JSON-encoded Avro data
+
+|Protobuf
+|`io.apicurio.schema.validation.protobuf.ProtobufValidator`
+|A generated Protobuf `Message`
+|====
+
+**Validation methods**
+
+Every validator offers two ways to choose the schema:
+
+Fixed artifact reference:: You pass an `ArtifactReference` when you create the validator, and then call `validateByArtifactReference` for each payload. The validator always resolves the same artifact. Use this method when one validator instance handles one schema.
+Per-record artifact reference:: You call `validate` with a `Record` whose metadata carries the `ArtifactReference` for that payload. The library provides `SchemaValidationRecord` and `SchemaValidationMetadata` for this purpose. Use this method when one validator instance handles payloads for different schemas.
+
+If you create a validator with `Optional.empty()` instead of an artifact reference, only the `validate` method is available. Calling `validateByArtifactReference` on such a validator throws a `NullPointerException`.
+
+**Validation results**
+
+Each validation method returns a `ValidationResult`. Call `success()` to check the outcome. When validation fails, `getValidationErrors()` returns a list of `ValidationError` objects, and each error has a `description` and a `context`. The meaning of the context depends on the format: an error code for JSON Schema, a field path or error category for Avro, and an empty string for Protobuf.
+
+When the validator cannot fetch the schema from {registry}, for example because the artifact does not exist or the registry is unreachable, it does not throw an exception. Instead, it returns a failed result that contains a single error with the context `SCHEMA_RESOLUTION_ERROR` and a description that starts with `Failed to resolve schema from registry`.
+
+**Schema resolution and caching**
+
+The validators use the same schema resolver as the {registry} Kafka client serializers and deserializers (SerDes), so they accept the same `apicurio.registry.*` configuration properties. The resolver caches each schema after the first lookup and checks {registry} again after the configured check period. When the artifact version references other artifacts, the resolver fetches those references and passes them to the format parser, so schemas with references validate correctly.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:validating-json-with-schema-validation-library_{context}[]
+* xref:validating-avro-with-schema-validation-library_{context}[]
+* xref:validating-protobuf-with-schema-validation-library_{context}[]
+* xref:schema-validation-library-reference_{context}[]
+
+// proc-validating-json-with-schema-validation-library
+[id="validating-json-with-schema-validation-library_{context}"]
+== Validating JSON data against a JSON Schema artifact
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can validate Java objects against a JSON Schema artifact that is stored in {registry} by using the `JsonValidator` class. The validator reports every constraint that the payload violates, which helps you reject bad data before it reaches a downstream system.
+
+The examples in this procedure use the following JSON Schema, registered in the `default` group with the artifact ID `message-schema`:
+
+[source,json]
+----
+{
+  "$id": "https://example.com/message.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["message", "time"],
+  "properties": {
+    "message": { "type": "string" },
+    "time": { "type": "number" }
+  }
+}
+----
+
+.Prerequisites
+* {registry} is installed and running in your environment.
+* A JSON Schema artifact is registered in {registry}, and you know its group ID and artifact ID.
+* You have a Maven project for your Java application.
+
+.Procedure
+. Add the JSON Schema validation module to your Maven project:
++
+[source,xml,subs="+quotes,attributes"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-schema-validation-jsonschema</artifactId>
+    <version>${apicurio-registry.version}</version>
+</dependency>
+----
+
+. Create the validator with the {registry} URL and an artifact reference for the schema:
++
+[source,java]
+----
+import io.apicurio.registry.resolver.config.SchemaResolverConfig;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.schema.validation.json.JsonValidator;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+Map<String, Object> config = new HashMap<>();
+config.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+
+ArtifactReference reference = ArtifactReference.builder()
+        .groupId("default")
+        .artifactId("message-schema")
+        .build();
+
+JsonValidator validator = new JsonValidator(config, Optional.of(reference));
+----
++
+When you omit the version, the validator resolves the latest version of the artifact.
+
+. Validate a payload that conforms to the schema:
++
+[source,java]
+----
+import io.apicurio.schema.validation.ValidationResult;
+
+Map<String, Object> payload = Map.of(
+        "message", "Hello world",
+        "time", System.currentTimeMillis());
+
+ValidationResult result = validator.validateByArtifactReference(payload);
+System.out.println(result);
+----
++
+The output is `ValidationResult [ success ]`.
+
+. Validate a payload that violates the schema and read the errors:
++
+[source,java]
+----
+import io.apicurio.schema.validation.ValidationError;
+
+Map<String, Object> invalidPayload = Map.of(
+        "message", "Hello world",
+        "time", "not-a-number");
+
+ValidationResult invalidResult = validator.validateByArtifactReference(invalidPayload);
+if (!invalidResult.success()) {
+    for (ValidationError error : invalidResult.getValidationErrors()) {
+        System.out.println(error.getContext() + ": " + error.getDescription());
+    }
+}
+----
++
+The output is `1029: $.time: string found, number expected`. The context is the error code of the violated JSON Schema keyword, and the description names the JSON path of the offending value. The error codes and message wording come from the networknt json-schema-validator library and can change when {registry} upgrades that dependency.
+
+. Optional: To choose the schema for each payload at run time, wrap the payload in a `SchemaValidationRecord` and call `validate`:
++
+[source,java]
+----
+import io.apicurio.schema.validation.SchemaValidationMetadata;
+import io.apicurio.schema.validation.SchemaValidationRecord;
+
+SchemaValidationRecord<Object> record = new SchemaValidationRecord<>(
+        payload, new SchemaValidationMetadata(reference));
+
+ValidationResult recordResult = validator.validate(record);
+----
+
+.Verification
+* Run the application. The conforming payload prints `ValidationResult [ success ]`, and the invalid payload prints one error with the context `1029`.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:schema-validation-library-reference_{context}[]
+* {managing-registry-artifacts-api}
+
+// proc-validating-avro-with-schema-validation-library
+[id="validating-avro-with-schema-validation-library_{context}"]
+== Validating Avro data against an Avro schema artifact
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can validate Avro `GenericRecord` objects or JSON-encoded Avro data against an Avro schema artifact that is stored in {registry} by using the `AvroValidator` class. The validator checks required fields, unions, nested records, enum symbols, arrays, and maps against the registered schema.
+
+The examples in this procedure use the following Avro schema, saved as `message.avsc` in the working directory of the application and registered in the `default` group with the artifact ID `message-avro`:
+
+[source,json]
+----
+{
+  "type": "record",
+  "name": "Message",
+  "namespace": "com.example",
+  "fields": [
+    { "name": "message", "type": "string" },
+    { "name": "time", "type": "long" }
+  ]
+}
+----
+
+.Prerequisites
+* {registry} is installed and running in your environment.
+* An Avro schema artifact is registered in {registry}, and you know its group ID and artifact ID.
+* You have a Maven project for your Java application.
+
+.Procedure
+. Add the Avro validation module to your Maven project:
++
+[source,xml,subs="+quotes,attributes"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-schema-validation-avro</artifactId>
+    <version>${apicurio-registry.version}</version>
+</dependency>
+----
+
+. Create the validator with the {registry} URL and an artifact reference for the schema:
++
+[source,java]
+----
+import io.apicurio.registry.resolver.config.SchemaResolverConfig;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.schema.validation.avro.AvroValidator;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+Map<String, Object> config = new HashMap<>();
+config.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+
+ArtifactReference reference = ArtifactReference.builder()
+        .groupId("default")
+        .artifactId("message-avro")
+        .build();
+
+AvroValidator validator = new AvroValidator(config, Optional.of(reference));
+----
+
+. Validate a `GenericRecord` that conforms to the schema:
++
+[source,java]
+----
+import io.apicurio.schema.validation.ValidationResult;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+
+import java.io.File;
+
+Schema schema = new Schema.Parser().parse(new File("message.avsc"));
+
+GenericRecord payload = new GenericData.Record(schema);
+payload.put("message", "Hello world");
+payload.put("time", System.currentTimeMillis());
+
+ValidationResult result = validator.validateByArtifactReference(payload);
+System.out.println(result);
+----
++
+The output is `ValidationResult [ success ]`. When a field that the registered schema requires is missing from the record, the result contains an error whose context is the field path and whose description is `Missing required field: <name>`.
+
+. Validate JSON-encoded data that violates the schema and read the errors:
++
+[source,java]
+----
+import io.apicurio.schema.validation.ValidationError;
+
+String invalidJson = "{\"message\": \"Hello world\", \"time\": \"not-a-number\"}";
+
+ValidationResult invalidResult = validator.validateByArtifactReference(invalidJson);
+if (!invalidResult.success()) {
+    for (ValidationError error : invalidResult.getValidationErrors()) {
+        System.out.println(error.getContext() + ": " + error.getDescription());
+    }
+}
+----
++
+The output is `TYPE_ERROR: Expected long. Got VALUE_STRING`. The `String` overload decodes the JSON with the registered schema, so the context is `TYPE_ERROR` for a type mismatch and `VALIDATION_ERROR` for any other decoding problem.
+
+. Optional: To choose the schema for each record at run time, wrap the record in a `SchemaValidationRecord` and call `validate`:
++
+[source,java]
+----
+import io.apicurio.schema.validation.SchemaValidationMetadata;
+import io.apicurio.schema.validation.SchemaValidationRecord;
+
+SchemaValidationRecord<GenericRecord> record = new SchemaValidationRecord<>(
+        payload, new SchemaValidationMetadata(reference));
+
+ValidationResult recordResult = validator.validate(record);
+----
++
+The `validate` method accepts `GenericRecord` payloads only. To validate JSON-encoded Avro data, call `validateByArtifactReference` instead.
+
+.Verification
+* Run the application. The conforming record prints `ValidationResult [ success ]`, and the invalid JSON prints one error with the context `TYPE_ERROR`.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:schema-validation-library-reference_{context}[]
+* {managing-registry-artifacts-api}
+
+// proc-validating-protobuf-with-schema-validation-library
+[id="validating-protobuf-with-schema-validation-library_{context}"]
+== Validating Protobuf messages against a Protobuf schema artifact
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can validate generated Protobuf messages against a Protobuf schema artifact in {registry} by using the `ProtobufValidator` class. The validator checks that the registered schema defines the message type and that the compiled definition is compatible with it.
+
+This check catches a `.proto` file that has drifted from the registry before you deploy the application.
+
+The examples in this procedure use the following Protobuf schema, registered in the `default` group with the artifact ID `message-proto`, and the `MessageExample` class that `protoc` generates from it:
+
+[source,proto]
+----
+syntax = "proto3";
+package com.example;
+
+message MessageExample {
+  string key = 1;
+  string value = 2;
+}
+----
+
+.Prerequisites
+* {registry} is installed and running in your environment.
+* A Protobuf schema artifact is registered in {registry}, and you know its group ID and artifact ID.
+* You have a Maven project for your Java application that generates Java classes from your `.proto` files.
+
+.Procedure
+. Add the Protobuf validation module to your Maven project:
++
+[source,xml,subs="+quotes,attributes"]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-schema-validation-protobuf</artifactId>
+    <version>${apicurio-registry.version}</version>
+</dependency>
+----
+
+. Create the validator with the {registry} URL and an artifact reference for the schema:
++
+[source,java]
+----
+import io.apicurio.registry.resolver.config.SchemaResolverConfig;
+import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.schema.validation.protobuf.ProtobufValidator;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+Map<String, Object> config = new HashMap<>();
+config.put(SchemaResolverConfig.REGISTRY_URL, "http://localhost:8080/apis/registry/v3");
+
+ArtifactReference reference = ArtifactReference.builder()
+        .groupId("default")
+        .artifactId("message-proto")
+        .build();
+
+ProtobufValidator validator = new ProtobufValidator(config, Optional.of(reference));
+----
+
+. Validate a message whose type the registered schema defines:
++
+[source,java]
+----
+import io.apicurio.schema.validation.ValidationResult;
+
+MessageExample payload = MessageExample.newBuilder()
+        .setKey("order-1001")
+        .setValue("Hello world")
+        .build();
+
+ValidationResult result = validator.validateByArtifactReference(payload);
+System.out.println(result);
+----
++
+The output is `ValidationResult [ success ]`.
+
+. Validate a message whose type the registered schema does not define, and read the errors:
++
+[source,java]
+----
+import io.apicurio.schema.validation.ValidationError;
+
+// MessageExample2 is generated from a different .proto file
+MessageExample2 invalidPayload = MessageExample2.newBuilder()
+        .setKey2("order-1002")
+        .setValue2(32)
+        .build();
+
+ValidationResult invalidResult = validator.validateByArtifactReference(invalidPayload);
+if (!invalidResult.success()) {
+    for (ValidationError error : invalidResult.getValidationErrors()) {
+        System.out.println(error.getDescription());
+    }
+}
+----
++
+The output is `Missing message type MessageExample2 in the protobuf schema`. When the message type exists but its compiled definition removes or changes a field that the registered schema defines, for example a field with a different type or number, the result contains one error for each difference. The context of a Protobuf validation error is always an empty string.
+
+. Optional: To choose the schema for each message at run time, wrap the message in a `SchemaValidationRecord` and call `validate`:
++
+[source,java]
+----
+import com.google.protobuf.Message;
+import io.apicurio.schema.validation.SchemaValidationMetadata;
+import io.apicurio.schema.validation.SchemaValidationRecord;
+
+SchemaValidationRecord<Message> record = new SchemaValidationRecord<>(
+        payload, new SchemaValidationMetadata(reference));
+
+ValidationResult recordResult = validator.validate(record);
+----
+
+.Verification
+* Run the application. The `MessageExample` message prints `ValidationResult [ success ]`, and the `MessageExample2` message prints the missing message type error.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:schema-validation-library-reference_{context}[]
+* {managing-registry-artifacts-api}
+
+// ref-schema-validation-library-reference
+[id="schema-validation-library-reference_{context}"]
+== Schema validation library dependencies and configuration
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The schema validation library consists of four Maven modules that share one result API and one set of configuration properties. The following tables list the modules, the result methods, the error context values, the artifact coordinates, and the configuration properties.
+
+**Maven modules**
+
+All modules use the group ID `io.apicurio` and the same version as the {registry} release. Versions 3.3.0 and later are available from Maven Central. Add only the format modules that you need; each format module pulls in the common module, the schema resolver, and the {registry} Java SDK.
+
+.Maven modules of the schema validation library
+[options="header",cols="3,3"]
+|====
+|Artifact ID
+|Contents
+
+|`apicurio-registry-schema-validation-common`
+|`ValidationResult`, `ValidationError`, `SchemaValidationRecord`, and `SchemaValidationMetadata` in the `io.apicurio.schema.validation` package
+
+|`apicurio-registry-schema-validation-jsonschema`
+|`JsonValidator`, which validates JSON payloads with the networknt `json-schema-validator` library. The validator uses the JSON Schema draft-07 dialect by default; when the artifact declares a `$schema` keyword, the validator uses that dialect.
+
+|`apicurio-registry-schema-validation-avro`
+|`AvroValidator`, which validates `GenericRecord` objects and JSON-encoded data with Apache Avro
+
+|`apicurio-registry-schema-validation-protobuf`
+|`ProtobufValidator`, which compares the compiled message definition with the registered schema by using the {registry} Protobuf compatibility checker
+|====
+
+**Result types**
+
+.Methods of ValidationResult and ValidationError
+[options="header",cols="2,4"]
+|====
+|Method
+|Description
+
+|`ValidationResult.success()`
+|Returns `true` when the payload is valid and `false` otherwise.
+
+|`ValidationResult.getValidationErrors()`
+|Returns the list of errors, or `null` when the payload is valid. Check `success()` before you read the list.
+
+|`ValidationResult.toString()`
+|Returns `+ValidationResult [ success ]+` for a valid payload, or `+ValidationResult [ errors = [...] ]+` with every error for an invalid payload.
+
+|`ValidationError.getDescription()`
+|Returns the human-readable message for one violation.
+
+|`ValidationError.getContext()`
+|Returns where or why the violation occurred. The value depends on the format, as described in the following table.
+|====
+
+.Values of the error context by format
+[options="header",cols="2,4"]
+|====
+|Format
+|Context value
+
+|JSON Schema
+|The error code of the violated keyword from the networknt library, for example `1028` for a missing required property and `1029` for a type mismatch. The description starts with the JSON path of the value, for example `$.time`.
+
+|Avro, `GenericRecord` payload
+|The path of the field that failed, for example `time` or `address.city`.
+
+|Avro, JSON `String` payload
+|`TYPE_ERROR` when the data does not match the schema type, or `VALIDATION_ERROR` for any other decoding failure.
+
+|Protobuf
+|An empty string.
+
+|Any format
+|`SCHEMA_RESOLUTION_ERROR` when the validator cannot fetch the schema from {registry}. The description starts with `Failed to resolve schema from registry` and includes the exception class and message. For JSON payloads, the validator also returns this context when it cannot convert the payload to a JSON tree, for example when a `ByteBuffer` contains malformed JSON.
+|====
+
+**Artifact references**
+
+Build an `ArtifactReference` with `ArtifactReference.builder()` and one of the following combinations of coordinates. When a reference carries more than one kind of coordinate, the resolver uses the first one in the order of the table.
+
+.Ways to reference an artifact version
+[options="header",cols="2,4"]
+|====
+|Builder methods
+|Resolved version
+
+|`contentId(Long)`
+|The content with that content ID.
+
+|`contentHash(String)`
+|The content with that content hash.
+
+|`globalId(Long)`
+|The version with that global ID.
+
+|`groupId(String)`, `artifactId(String)`, `version(String)`
+|The named version of the artifact. When you omit `version`, the latest version of the artifact. The `artifactId` is required.
+|====
+
+**Configuration properties**
+
+You pass configuration properties to the validator constructor as a `Map<String, Object>`. The property keys are available as constants on the `SchemaResolverConfig` class. The following table lists the properties that are most relevant to validation.
+
+.Configuration properties for the schema validation library
+[options="header",cols="3,3,1"]
+|====
+|Property
+|Description
+|Default
+
+|`apicurio.registry.url`
+|URL of the {registry} REST API, for example `\http://localhost:8080/apis/registry/v3`. Required.
+|None
+
+|`apicurio.registry.url.version`
+|Major version of the REST API at the URL, `2` or `3`. Set it only when the resolver cannot detect the version from the URL.
+|Detected from the URL
+
+|`apicurio.registry.auth.service.token.endpoint`, `apicurio.registry.auth.client.id`, `apicurio.registry.auth.client.secret`, `apicurio.registry.auth.client.scope`
+|OAuth 2.0 client credentials for an instance of {registry} that requires authentication.
+|None
+
+|`apicurio.registry.auth.username`, `apicurio.registry.auth.password`
+|Credentials for HTTP basic authentication.
+|None
+
+|`apicurio.registry.check-period-ms`
+|How long, in milliseconds, the resolver caches a schema before it checks {registry} again.
+|`30000`
+
+|`apicurio.registry.cache-latest`
+|Whether the resolver caches lookups that do not specify a version. Set it to `false` to fetch the latest version on every validation.
+|`true`
+
+|`apicurio.registry.retry-count`, `apicurio.registry.retry-backoff-ms`
+|Number of times the resolver retries a failed schema lookup, and the delay between retries in milliseconds.
+|`3`, `300`
+
+|`apicurio.registry.fault-tolerant-refresh`
+|Whether the resolver keeps a cached schema and logs the error when a refresh fails, instead of failing the validation.
+|`false`
+
+|`apicurio.registry.dereference-schema`
+|Whether the resolver asks {registry} for a dereferenced schema instead of fetching the referenced artifacts separately.
+|`false`
+
+|`apicurio.registry.vertx.instance`
+|A `Vertx` object that the resolver uses for HTTP connections. Set it programmatically to reuse a Vert.x instance that you manage. When it is not set, the {registry} Java SDK creates its own HTTP client, with Vert.x when it is available and the JDK HTTP client otherwise.
+|None
+|====
+
+The validators accept every property of the {registry} schema resolver. For the TLS and proxy properties, see {registry-client-serdes-config}. For the complete list, including the HTTP adapter and client retry properties, see the `SchemaResolverConfig` class in the schema resolver module.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-using-the-registry-client.adoc[Managing {registry} content using an SDK]
+* {registry-client-serdes-config}
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/schema-validation[Schema validation library source code]
+endif::[]

@@ -1,7 +1,6 @@
 package io.apicurio.registry.ccompat.rest.v7.impl;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.google.common.util.concurrent.Striped;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
@@ -45,17 +44,13 @@ import io.apicurio.registry.util.ArtifactTypeUtil;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.InternalServerErrorException;
 
 import java.math.BigInteger;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -69,10 +64,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     @Inject
     SchemaFormatService formatService;
 
-    private final Cache<GA, Lock> subjectLocks = CacheBuilder.newBuilder()
-            .expireAfterAccess(1, TimeUnit.HOURS) // Evict locks after 1 hour of inactivity
-            .maximumSize(10000) // Limit the cache size to 10,000 locks
-            .build();
+    private final Striped<Lock> subjectLocks = Striped.lazyWeakLock(1024);
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
@@ -269,17 +261,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
             throw new UnprocessableEntityException("The schema provided is null.");
         }
 
-        Lock lock;
-        try {
-            // Get or create a lock for the specific subject (GA) using the cache
-            // ReentrantLock::new is called only if the key 'ga' is not already present
-            lock = subjectLocks.get(ga, ReentrantLock::new);
-        } catch (ExecutionException e) {
-            // Handle exception during lock creation if necessary
-            log.error("Error creating lock for subject: " + ga, e.getCause());
-            throw new InternalServerErrorException("Error processing request", e.getCause());
-        }
-
+        Lock lock = subjectLocks.get(ga);
         lock.lock(); // Acquire the lock
 
         try {

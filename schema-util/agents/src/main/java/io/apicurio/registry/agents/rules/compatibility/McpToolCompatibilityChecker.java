@@ -7,10 +7,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.TypedContent;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * Compatibility checker for MCP tool definition artifacts.
@@ -19,7 +23,7 @@ import java.util.Set;
  * - Adding optional input parameters: Always compatible
  * - Removing input parameters: Backward incompatible
  * - Adding required parameters: Backward incompatible
- * - Removing required parameters: Backward incompatible
+ * - Removing required parameters (making optional): Always compatible
  * - Changing inputSchema type: Backward incompatible
  * - Changing name, title, description, annotations: Always compatible
  */
@@ -33,6 +37,11 @@ public class McpToolCompatibilityChecker
 
     private static final ObjectMapper mapper = new ObjectMapper();
 
+    private static final String INPUT_SCHEMA = "inputSchema";
+    private static final String PROPERTIES = "properties";
+    private static final String REQUIRED = "required";
+    private static final String TYPE = "type";
+
     @Override
     protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing,
             String proposed, Map<String, TypedContent> resolvedReferences) {
@@ -42,17 +51,22 @@ public class McpToolCompatibilityChecker
             JsonNode existingNode = mapper.readTree(existing);
             JsonNode proposedNode = mapper.readTree(proposed);
 
+            // Fast-path: if JSON trees are identical, no differences exist
+            if (existingNode.equals(proposedNode)) {
+                return Collections.emptySet();
+            }
+
+            JsonNode existingSchema = existingNode.get(INPUT_SCHEMA);
+            JsonNode proposedSchema = proposedNode.get(INPUT_SCHEMA);
+
             // Check inputSchema type changes
-            checkInputSchemaTypeChange(existingNode, proposedNode, differences);
+            checkInputSchemaTypeChange(existingSchema, proposedSchema, differences);
 
             // Check removed properties
-            checkPropertyRemovals(existingNode, proposedNode, differences);
+            checkPropertyRemovals(existingSchema, proposedSchema, differences);
 
             // Check added required parameters
-            checkRequiredParamAdditions(existingNode, proposedNode, differences);
-
-            // Check removed required parameters
-            checkRequiredParamRemovals(existingNode, proposedNode, differences);
+            checkRequiredParamAdditions(existingSchema, proposedSchema, differences);
 
         } catch (Exception e) {
             differences.add(new SimpleCompatibilityDifference(
@@ -62,22 +76,22 @@ public class McpToolCompatibilityChecker
         return differences;
     }
 
-    private void checkInputSchemaTypeChange(JsonNode existing, JsonNode proposed,
+    private void checkInputSchemaTypeChange(JsonNode existingSchema, JsonNode proposedSchema,
             Set<SimpleCompatibilityDifference> differences) {
-        String existingType = getInputSchemaType(existing);
-        String proposedType = getInputSchemaType(proposed);
+        Set<JsonNode> existingTypes = getInputSchemaTypes(existingSchema);
+        Set<JsonNode> proposedTypes = getInputSchemaTypes(proposedSchema);
 
-        if (existingType != null && proposedType != null && !existingType.equals(proposedType)) {
+        if (!existingTypes.isEmpty() && !proposedTypes.isEmpty() && !existingTypes.equals(proposedTypes)) {
             differences.add(new SimpleCompatibilityDifference(
-                    "inputSchema type changed from '" + existingType + "' to '" + proposedType + "'",
+                    "inputSchema type changed from '" + formatTypes(existingTypes) + "' to '" + formatTypes(proposedTypes) + "'",
                     CONTEXT_TYPE));
         }
     }
 
-    private void checkPropertyRemovals(JsonNode existing, JsonNode proposed,
+    private void checkPropertyRemovals(JsonNode existingSchema, JsonNode proposedSchema,
             Set<SimpleCompatibilityDifference> differences) {
-        Set<String> existingProps = extractPropertyNames(existing);
-        Set<String> proposedProps = extractPropertyNames(proposed);
+        Set<String> existingProps = extractPropertyNames(existingSchema);
+        Set<String> proposedProps = extractPropertyNames(proposedSchema);
 
         for (String prop : existingProps) {
             if (!proposedProps.contains(prop)) {
@@ -87,71 +101,72 @@ public class McpToolCompatibilityChecker
         }
     }
 
-    private void checkRequiredParamAdditions(JsonNode existing, JsonNode proposed,
+    private void checkRequiredParamAdditions(JsonNode existingSchema, JsonNode proposedSchema,
             Set<SimpleCompatibilityDifference> differences) {
-        Set<String> existingRequired = extractRequiredParams(existing);
-        Set<String> proposedRequired = extractRequiredParams(proposed);
+        Set<JsonNode> existingRequired = extractRequiredParams(existingSchema);
+        Set<JsonNode> proposedRequired = extractRequiredParams(proposedSchema);
 
-        for (String param : proposedRequired) {
+        for (JsonNode param : proposedRequired) {
             if (!existingRequired.contains(param)) {
+                String paramStr = param.isTextual() ? param.asText() : param.toString();
                 differences.add(new SimpleCompatibilityDifference(
-                        "Required parameter '" + param + "' was added", CONTEXT_REQUIRED));
+                        "Required parameter '" + paramStr + "' was added", CONTEXT_REQUIRED));
             }
         }
     }
 
-    private void checkRequiredParamRemovals(JsonNode existing, JsonNode proposed,
-            Set<SimpleCompatibilityDifference> differences) {
-        Set<String> existingRequired = extractRequiredParams(existing);
-        Set<String> proposedRequired = extractRequiredParams(proposed);
-
-        for (String param : existingRequired) {
-            if (!proposedRequired.contains(param)) {
-                differences.add(new SimpleCompatibilityDifference(
-                        "Required parameter '" + param + "' was removed", CONTEXT_REQUIRED));
-            }
+    private Set<JsonNode> getInputSchemaTypes(JsonNode inputSchema) {
+        if (inputSchema == null || !inputSchema.isObject()) {
+            return Collections.emptySet();
+        }
+        JsonNode typeNode = inputSchema.get(TYPE);
+        if (typeNode == null) {
+            return Collections.emptySet();
+        }
+        if (typeNode.isArray()) {
+            return StreamSupport.stream(typeNode.spliterator(), false)
+                    .collect(Collectors.toSet());
+        } else {
+            return Collections.singleton(typeNode);
         }
     }
 
-    private String getInputSchemaType(JsonNode node) {
-        JsonNode inputSchema = node.get("inputSchema");
-        if (inputSchema != null && inputSchema.isObject()) {
-            JsonNode type = inputSchema.get("type");
-            if (type != null && type.isTextual()) {
-                return type.asText();
-            }
+    private String formatTypes(Set<JsonNode> types) {
+        if (types.size() == 1) {
+            JsonNode node = types.iterator().next();
+            return node.isTextual() ? node.asText() : node.toString();
         }
-        return null;
+        return types.stream()
+                .map(node -> node.isTextual() ? "\"" + node.asText() + "\"" : node.toString())
+                .collect(Collectors.toCollection(TreeSet::new))
+                .toString();
     }
 
-    private Set<String> extractPropertyNames(JsonNode node) {
-        Set<String> properties = new HashSet<>();
-        JsonNode inputSchema = node.get("inputSchema");
-        if (inputSchema != null && inputSchema.isObject()) {
-            JsonNode props = inputSchema.get("properties");
-            if (props != null && props.isObject()) {
-                Iterator<String> fieldNames = props.fieldNames();
-                while (fieldNames.hasNext()) {
-                    properties.add(fieldNames.next());
-                }
-            }
+    private Set<String> extractPropertyNames(JsonNode inputSchema) {
+        if (inputSchema == null || !inputSchema.isObject()) {
+            return Collections.emptySet();
+        }
+        JsonNode props = inputSchema.get(PROPERTIES);
+        if (props == null || !props.isObject() || props.isEmpty()) {
+            return Collections.emptySet();
+        }
+        Set<String> properties = new HashSet<>(props.size());
+        Iterator<String> fieldNames = props.fieldNames();
+        while (fieldNames.hasNext()) {
+            properties.add(fieldNames.next());
         }
         return properties;
     }
 
-    private Set<String> extractRequiredParams(JsonNode node) {
-        Set<String> required = new HashSet<>();
-        JsonNode inputSchema = node.get("inputSchema");
-        if (inputSchema != null && inputSchema.isObject()) {
-            JsonNode requiredNode = inputSchema.get("required");
-            if (requiredNode != null && requiredNode.isArray()) {
-                for (JsonNode item : requiredNode) {
-                    if (item.isTextual()) {
-                        required.add(item.asText());
-                    }
-                }
-            }
+    private Set<JsonNode> extractRequiredParams(JsonNode inputSchema) {
+        if (inputSchema == null || !inputSchema.isObject()) {
+            return Collections.emptySet();
         }
-        return required;
+        JsonNode requiredNode = inputSchema.get(REQUIRED);
+        if (requiredNode == null || !requiredNode.isArray() || requiredNode.isEmpty()) {
+            return Collections.emptySet();
+        }
+        return StreamSupport.stream(requiredNode.spliterator(), false)
+                .collect(Collectors.toSet());
     }
 }

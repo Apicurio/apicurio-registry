@@ -635,7 +635,7 @@ Optional: To import into a registry that already contains data, use the `--no-re
 You can inspect GitOps storage status and request an immediate synchronization from the configured Git repositories.
 
 .Prerequisites
-* Your CLI context points to a {registry} instance that uses GitOps storage.
+* Your CLI context points to an instance of {registry} that uses GitOps storage.
 * You have read access to view status and administrator access to request synchronization when authorization is enabled.
 
 .Procedure
@@ -684,7 +684,7 @@ endif::[]
 You can validate the content of a Git revision before merging a change. Validation does not change the live registry content.
 
 .Prerequisites
-* Your CLI context points to a {registry} instance that uses GitOps storage.
+* Your CLI context points to an instance of {registry} that uses GitOps storage.
 * The server has `apicurio.gitops.validate.enabled=true`.
 * The repository ID is configured on the server, and the server can fetch the Git revision.
 * You have administrator access when authorization is enabled.

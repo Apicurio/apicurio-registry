@@ -4,8 +4,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -22,7 +26,7 @@ class SchemaProjectorTest {
                 + "'properties':{'a':{'type':'string','default':'x','examples':['x']},'b':true},"
                 + "'required':['a'],'additionalProperties':{'type':'integer','$comment':'c'}}");
 
-        assertEquals(json("{'type':'object','properties':{'a':{'type':'string'},'b':true},"
+        assertEquals(json("{'type':'object','properties':{'a':{'type':'string'},'b':{}},"
                 + "'required':['a'],'additionalProperties':{'type':'integer'}}"), projection.projected());
         assertTrue(projection.limitations().isEmpty());
     }
@@ -50,19 +54,55 @@ class SchemaProjectorTest {
     }
 
     @Test
-    void testNestedStructureIsDepthLimit() {
-        SchemaProjection projection = project("{'type':'object','properties':{'tags':{'type':'array',"
-                + "'items':{'type':'string'}}},'additionalProperties':{'required':['x']}}");
+    void testNestedStructureIsKeptAtEveryLevel() {
+        SchemaProjection projection = project("{'type':'object','properties':{'user':{'title':'u',"
+                + "'type':['object','null','object'],'properties':{'id':{'type':'string'}},'required':['id'],"
+                + "'additionalProperties':false},'tags':{'type':'array','items':{'type':'string'}}},"
+                + "'additionalProperties':{'required':['x']}}");
 
-        assertEquals(json("{'type':'object','properties':{'tags':{'type':'array'}},"
-                + "'additionalProperties':{}}"), projection.projected());
-        assertEquals(List.of(
-                new CompatibilityLimitation(LimitationCode.DEPTH_LIMIT_REACHED, SchemaSide.CONSUMER,
-                        "/inputSchema/properties/tags", "/inputSchema/properties/tags/items",
-                        "Nested 'items' is not evaluated yet"),
-                new CompatibilityLimitation(LimitationCode.DEPTH_LIMIT_REACHED, SchemaSide.CONSUMER,
-                        "/inputSchema/additionalProperties", "/inputSchema/additionalProperties/required",
-                        "Nested 'required' is not evaluated yet")), projection.limitations());
+        assertEquals(json("{'type':'object','properties':{'user':{'type':['object','null'],"
+                + "'properties':{'id':{'type':'string'}},'required':['id'],'additionalProperties':false},"
+                + "'tags':{'type':'array','items':{'type':'string'}}},'additionalProperties':{'required':['x']}}"),
+                projection.projected());
+        assertTrue(projection.limitations().isEmpty());
+    }
+
+    @Test
+    void testKeywordNestedBelowAPropertyIsLimitationOnItsOwnNode() {
+        SchemaProjection projection = project("{'type':'object','properties':{'user':{'type':'object',"
+                + "'properties':{'id':{'type':'string','pattern':'^x'}}}}}");
+
+        assertEquals(json("{'type':'object','properties':{'user':{'type':'object',"
+                + "'properties':{'id':{'type':'string'}}}}}"), projection.projected());
+        assertEquals(List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD,
+                SchemaSide.CONSUMER, "/inputSchema/properties/user/properties/id",
+                "/inputSchema/properties/user/properties/id/pattern", "'pattern' is not evaluated yet")),
+                projection.limitations());
+    }
+
+    @Test
+    void testStructureBelowTheDepthLimitIsRemoved() {
+        SchemaProjection projection = project(nested(SchemaProjector.MAX_SCHEMA_DEPTH + 1, "{'type':'string'}"));
+
+        String deepest = "/inputSchema" + "/properties/p".repeat(SchemaProjector.MAX_SCHEMA_DEPTH);
+        assertEquals(json(nested(SchemaProjector.MAX_SCHEMA_DEPTH, "{'type':'object'}")), projection.projected());
+        assertEquals(List.of(new CompatibilityLimitation(LimitationCode.DEPTH_LIMIT_REACHED,
+                SchemaSide.CONSUMER, deepest, deepest + "/properties",
+                "'properties' nests deeper than the comparison evaluates")), projection.limitations());
+    }
+
+    @Test
+    void testItemsIsEvaluatedOnlyAsASingleSchema() {
+        SchemaProjection projection = project("{'type':'object','properties':{"
+                + "'tuple':{'type':'array','items':[{'type':'string'}]},'none':{'type':'array','items':false},"
+                + "'any':{'type':'array','items':true}}}");
+
+        assertEquals(json("{'type':'object','properties':{'tuple':{'type':'array'},"
+                + "'none':{'type':'array','items':false},'any':{'type':'array'}}}"),
+                projection.projected());
+        assertEquals(List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD,
+                SchemaSide.CONSUMER, "/inputSchema/properties/tuple", "/inputSchema/properties/tuple/items",
+                "'items' is evaluated only as a single schema")), projection.limitations());
     }
 
     @Test
@@ -70,18 +110,136 @@ class SchemaProjectorTest {
         SchemaProjection projection = project("{'type':'object','properties':{'enum':{'type':'string'},"
                 + "'format':{'type':'string'},'$ref':{'type':'string'}}}");
 
-        assertEquals(List.of("enum", "format", "$ref"), projection.propertyNames());
+        assertEquals(List.of("enum", "format", "$ref"), projection.root().propertyNames());
         assertTrue(projection.limitations().isEmpty());
     }
 
     @Test
-    void testTypeGivenAsArrayIsRemoved() {
+    void testRootTypeGivenAsArrayIsRemoved() {
         SchemaProjection projection = project("{'type':['object','null'],'properties':{"
-                + "'a':{'type':['string']}}}");
+                + "'a':{'type':'string'}}}");
 
-        assertEquals(json("{'properties':{'a':{}}}"), projection.projected());
-        assertEquals(List.of("/inputSchema/type", "/inputSchema/properties/a/type"),
-                projection.limitations().stream().map(CompatibilityLimitation::pointer).toList());
+        assertEquals(json("{'properties':{'a':{'type':'string'}}}"), projection.projected());
+        assertEquals(List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD,
+                SchemaSide.CONSUMER, "/inputSchema", "/inputSchema/type",
+                "'type' given as an array is not evaluated yet")), projection.limitations());
+    }
+
+    @Test
+    void testPropertyUnionKeepsTheTypesItAccepts() {
+        SchemaProjection projection = project("{'type':'object','properties':{"
+                + "'a':{'type':['string','null']},'b':{'type':['string','string','null']},"
+                + "'c':{'type':['null','string']}}}");
+
+        assertEquals(json("{'type':'object','properties':{'a':{'type':['string','null']},"
+                + "'b':{'type':['string','null']},'c':{'type':['null','string']}}}"),
+                projection.projected());
+        assertTrue(projection.limitations().isEmpty());
+    }
+
+    @Test
+    void testPropertyUnionOfOneTypeIsWrittenAsThatType() {
+        SchemaProjection projection = project("{'type':'object','properties':{'a':{'type':['string']},"
+                + "'b':{'type':['integer','number']},'c':{'type':['number','integer','null']}}}");
+
+        assertEquals(json("{'type':'object','properties':{'a':{'type':'string'},'b':{'type':'number'},"
+                + "'c':{'type':['number','null']}}}"), projection.projected());
+        assertTrue(projection.limitations().isEmpty());
+    }
+
+    @Test
+    void testPropertyTypeThatNamesNoTypeIsLimitation() {
+        SchemaProjection projection = project("{'type':'object','properties':{'a':{'type':[]},"
+                + "'b':{'type':['string',7]}}}");
+
+        assertEquals(json("{'type':'object','properties':{'a':{},'b':{}}}"), projection.projected());
+        assertEquals(List.of(
+                new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.CONSUMER,
+                        "/inputSchema/properties/a", "/inputSchema/properties/a/type",
+                        "'type' does not list type names"),
+                new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.CONSUMER,
+                        "/inputSchema/properties/b", "/inputSchema/properties/b/type",
+                        "'type' does not list type names")), projection.limitations());
+    }
+
+    @Test
+    void testPropertyUnionOfEveryTypeIsWrittenWithoutType() {
+        SchemaProjection projection = project("{'type':'object','properties':{"
+                + "'a':{'type':['string','number','boolean','object','array','null']},"
+                + "'b':{'type':['null','integer','number','string','array','object','boolean'],'enum':[1]},"
+                + "'c':{'type':['string','integer','boolean','object','array','null']}}}");
+
+        assertEquals(json("{'type':'object','properties':{'a':{},'b':{},"
+                + "'c':{'type':['string','integer','boolean','object','array','null']}}}"),
+                projection.projected());
+        assertEquals(List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD,
+                SchemaSide.CONSUMER, "/inputSchema/properties/b", "/inputSchema/properties/b/enum",
+                "'enum' is not evaluated yet")), projection.limitations());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "string", "number", "boolean", "object", "array", "null" })
+    void testPropertyUnionMissingOneTypeKeepsItsType(String missing) {
+        List<String> types = new ArrayList<>(List.of("string", "number", "boolean", "object", "array",
+                "null"));
+        types.remove(missing);
+        String declared = types.stream().map(type -> "'" + type + "'")
+                .collect(Collectors.joining(",", "[", "]"));
+        String schema = "{'type':'object','properties':{'a':{'type':" + declared + "}}}";
+
+        assertEquals(json(schema), project(schema).projected());
+    }
+
+    @Test
+    void testTrueSubschemaIsWrittenAsEmptySchema() {
+        SchemaProjection projection = project("{'type':'object','properties':{'a':true,'b':false}}");
+
+        assertEquals(json("{'type':'object','properties':{'a':{},'b':false}}"), projection.projected());
+        assertTrue(projection.limitations().isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "true", "{}", "{'description':'d'}" })
+    void testInputAdditionalPropertiesAcceptingAnyValueIsWrittenAsTrue(String any) {
+        String schema = "{'type':'object','additionalProperties':" + any + "}";
+        SchemaProjection consumer = project(schema);
+        SchemaProjection producer = produce(schema);
+
+        assertEquals(json("{'type':'object','additionalProperties':true}"), consumer.projected());
+        assertEquals(json("{'type':'object','additionalProperties':{}}"), producer.projected());
+        assertTrue(consumer.limitations().isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "true", "{}", "{'description':'d'}" })
+    void testInputItemsAcceptingAnyValueIsRemoved(String any) {
+        String schema = "{'type':'array','items':" + any + "}";
+
+        assertEquals(json("{'type':'array'}"), project(schema).projected());
+        assertEquals(json("{'type':'array','items':{}}"), produce(schema).projected());
+    }
+
+    @Test
+    void testProducerFormatIsRemovedWithoutLimitation() {
+        SchemaProjection projection = SchemaProjector.project(
+                json("{'type':'object','format':'x','properties':{'a':{'type':'string','format':'email'}}}"),
+                "/outputSchema", SchemaSide.PRODUCER);
+
+        assertEquals(json("{'type':'object','properties':{'a':{'type':'string'}}}"),
+                projection.projected());
+        assertTrue(projection.limitations().isEmpty());
+    }
+
+    @Test
+    void testConsumerFormatStaysLimitation() {
+        SchemaProjection projection = project(
+                "{'type':'object','properties':{'a':{'type':'string','format':'email'}}}");
+
+        assertEquals(json("{'type':'object','properties':{'a':{'type':'string'}}}"),
+                projection.projected());
+        assertEquals(List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD,
+                SchemaSide.CONSUMER, "/inputSchema/properties/a", "/inputSchema/properties/a/format",
+                "'format' is not evaluated yet")), projection.limitations());
     }
 
     @Test
@@ -97,6 +255,25 @@ class SchemaProjectorTest {
     void testRootWithoutDeclaredPropertiesIsNotClosable() {
         assertFalse(project("{'type':'object'}").closable());
         assertFalse(project("{'type':'object','properties':{}}").closable());
+    }
+
+    @Test
+    void testEveryOpenObjectIsClosedAtAnyDepth() {
+        SchemaProjection projection = produce("{'type':'object','properties':{"
+                + "'user':{'type':'object','properties':{'id':{'type':'string'}}},"
+                + "'list':{'type':'array','items':{'type':'object','properties':{'a':{'type':'string'}}}},"
+                + "'kept':{'type':'object','properties':{'a':{'type':'string'}},'additionalProperties':true},"
+                + "'any':{'type':'object'}},'additionalProperties':{'type':'object','properties':{"
+                + "'b':{'type':'string'}}}}");
+
+        assertTrue(projection.closable());
+        assertEquals(json("{'type':'object','properties':{"
+                + "'user':{'type':'object','properties':{'id':{'type':'string'}},'additionalProperties':false},"
+                + "'list':{'type':'array','items':{'type':'object','properties':{'a':{'type':'string'}},"
+                + "'additionalProperties':false}},"
+                + "'kept':{'type':'object','properties':{'a':{'type':'string'}},'additionalProperties':{}},"
+                + "'any':{'type':'object'}},'additionalProperties':{'type':'object','properties':{"
+                + "'b':{'type':'string'}},'additionalProperties':false}}"), projection.closed());
     }
 
     @Test
@@ -134,8 +311,24 @@ class SchemaProjectorTest {
         assertTrue(projection.limitations().isEmpty());
     }
 
+    /**
+     * An object nesting {@code levels} objects below it, each through a property named {@code p},
+     * ending in {@code leaf}.
+     */
+    private static String nested(int levels, String leaf) {
+        String schema = leaf;
+        for (int level = 0; level < levels; level++) {
+            schema = "{'type':'object','properties':{'p':" + schema + "}}";
+        }
+        return schema;
+    }
+
     private static SchemaProjection project(String schema) {
         return SchemaProjector.project(json(schema), "/inputSchema", SchemaSide.CONSUMER);
+    }
+
+    private static SchemaProjection produce(String schema) {
+        return SchemaProjector.project(json(schema), "/outputSchema", SchemaSide.PRODUCER);
     }
 
     private static JsonNode json(String singleQuoted) {

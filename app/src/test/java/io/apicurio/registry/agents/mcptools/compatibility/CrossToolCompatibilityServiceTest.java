@@ -20,6 +20,17 @@ class CrossToolCompatibilityServiceTest {
     private static final String OPEN_PRODUCER_A = "{'type':'object','properties':{'a':{'type':'string'}},"
             + "'required':['a']}";
 
+    /** A record whose {@code id} declares object keywords but no type, so it may also be a number. */
+    private static final String RECORD_WITHOUT_TYPED_ID = "{'type':'object','properties':{'id':{'properties':"
+            + "{'a':{'type':'string'}},'additionalProperties':false}},'required':['id'],'additionalProperties':false}";
+    private static final String RECORD_WITH_TYPED_ID = "{'type':'object','properties':{'id':{'type':'object',"
+            + "'properties':{'a':{'type':'string'}},'additionalProperties':false}},'required':['id'],"
+            + "'additionalProperties':false}";
+    private static final String NULLABLE_USER_WITH_ENUM = "{'type':['object','null'],'properties':{'id':"
+            + "{'type':['string','integer'],'enum':['s']}},'required':['id'],'additionalProperties':false}";
+    private static final String NULLABLE_USER = "{'type':['object','null'],'properties':{'id':{'type':'string'}},"
+            + "'required':['id']}";
+
     private final CrossToolCompatibilityService service = new CrossToolCompatibilityService();
 
     @Test
@@ -318,6 +329,14 @@ class CrossToolCompatibilityServiceTest {
     }
 
     @Test
+    void testAdditionalPropertiesAcceptingAnyValueAcceptsAnOpenOutput() {
+        assertCompatible(compare(OPEN_PRODUCER_A,
+                "{'type':'object','properties':{'a':{'type':'string'}},'additionalProperties':true}"));
+        assertCompatible(compare(OPEN_PRODUCER_A,
+                "{'type':'object','properties':{'a':{'type':'string'}},'additionalProperties':{}}"));
+    }
+
+    @Test
     void testConsumerAdditionalPropertiesSchemaRejectsOnlyMismatchingProducerProperties() {
         PairCompatibility result = compare(
                 "{'type':'object','properties':{'x':{'type':'string'},'y':{'type':'integer'}},"
@@ -432,14 +451,20 @@ class CrossToolCompatibilityServiceTest {
     }
 
     @Test
-    void testFormatKeywordOnProducerIsLimitation() {
-        PairCompatibility result = compare(
+    void testFormatKeywordOnProducerDoesNotChangeVerdict() {
+        PairCompatibility accepted = compare(
                 "{'type':'object','properties':{'a':{'type':'string','format':'email'}},'required':['a'],"
                         + "'additionalProperties':false}",
                 "{'type':'object','properties':{'a':{'type':'string'}}}");
+        PairCompatibility rejected = compare(
+                "{'type':'object','properties':{'a':{'type':'string','format':'email'}},'required':['a'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','properties':{'a':{'type':'integer'}}}");
 
-        assertEquals(CompatibilityVerdict.INDETERMINATE, result.verdict());
-        assertEquals(List.of("/outputSchema/properties/a/format"), limitationPointers(result));
+        assertCompatible(accepted);
+        assertIncompatible(rejected, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/a/type", "/inputSchema/properties/a/type",
+                "The producer's value for 'a' is not accepted by the consumer"));
     }
 
     @Test
@@ -478,32 +503,754 @@ class CrossToolCompatibilityServiceTest {
     }
 
     @Test
-    void testTypeGivenAsArrayIsLimitation() {
+    void testNullableOutputIsNotAcceptedByInputRejectingNull() {
+        PairCompatibility result = compare(union("['string','null']"), input("'string'"));
+
+        assertIncompatible(result, typeNotAccepted());
+    }
+
+    @Test
+    void testNullableOutputIsNotAcceptedByInputOfAnotherType() {
+        PairCompatibility result = compare(union("['string','null']"), input("'integer'"));
+
+        assertIncompatible(result, typeNotAccepted());
+    }
+
+    @Test
+    void testSingleTypeIsAcceptedByUnionDeclaringIt() {
+        assertCompatible(compare(union("'string'"), input("['string','null']")));
+        assertCompatible(compare(union("'null'"), input("['string','null']")));
+    }
+
+    @Test
+    void testNumericTypeIsAcceptedByUnionDeclaringAWiderNumber() {
+        assertCompatible(compare(union("'integer'"), input("['number','null']")));
+        assertCompatible(compare(union("'number'"), input("['number','integer','null']")));
+    }
+
+    @Test
+    void testUnionIsAcceptedByTheTypesItReducesTo() {
+        assertCompatible(compare(union("['integer','number']"), input("['number']")));
+        assertCompatible(compare(union("['null','string']"), input("['string','null']")));
+    }
+
+    @Test
+    void testUnionWidenedByTheInputIsCompatible() {
+        assertCompatible(compare(union("['string','integer']"), input("['string','number']")));
+    }
+
+    @Test
+    void testUnionNarrowedByTheInputIsIncompatible() {
+        assertIncompatible(compare(union("['string','number']"), input("['string','integer']")),
+                typeNotAccepted());
+        assertIncompatible(compare(union("['string','null']"), input("['string','integer','boolean']")),
+                typeNotAccepted());
+    }
+
+    @Test
+    void testOpenProducerWithNullableInputIsIndeterminate() {
         PairCompatibility result = compare(
-                "{'type':'object','properties':{'a':{'type':['string','null']}},'required':['a'],"
+                "{'type':'object','properties':{'a':{'type':'string'}},'required':['a']}",
+                "{'type':'object','properties':{'a':{'type':['string','null']},'b':{'type':'integer'}},"
+                        + "'required':['a']}");
+
+        assertEquals(CompatibilityVerdict.INDETERMINATE, result.verdict());
+        assertTrue(result.reasons().isEmpty());
+        assertEquals(List.of(LimitationCode.PRODUCER_OBJECT_OPEN), limitationCodes(result));
+    }
+
+    @Test
+    void testUndeclaredOutputIsComparedWithTheInputUnionThatAcceptsIt() {
+        PairCompatibility accepted = compare(
+                "{'type':'object','properties':{'x':{'type':'string'}},'required':['x'],"
                         + "'additionalProperties':false}",
+                "{'type':'object','additionalProperties':{'type':['string','null']}}");
+        PairCompatibility rejected = compare(
+                "{'type':'object','properties':{'x':{'type':['string','null']}},'required':['x'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','additionalProperties':{'type':'string'}}");
+
+        assertCompatible(accepted);
+        assertIncompatible(rejected, new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                "/outputSchema/properties/x", "/inputSchema/additionalProperties",
+                "The producer may emit 'x', which the consumer does not accept"));
+    }
+
+    @Test
+    void testUndeclaredInputIsComparedWithTheOutputUnionThatFeedsIt() {
+        PairCompatibility accepted = compare(
+                "{'type':'object','properties':{'a':{'type':'string'}},'required':['a'],"
+                        + "'additionalProperties':{'type':'string'}}",
+                "{'type':'object','properties':{'a':{'type':'string'},'b':{'type':['string','null']}},"
+                        + "'required':['a']}");
+        PairCompatibility rejected = compare(
+                "{'type':'object','properties':{'a':{'type':'string'}},'required':['a'],"
+                        + "'additionalProperties':{'type':['string','null']}}",
+                "{'type':'object','properties':{'a':{'type':'string'},'b':{'type':'string'}},"
+                        + "'required':['a']}");
+
+        assertCompatible(accepted);
+        assertIncompatible(rejected, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/additionalProperties", "/inputSchema/properties/b/type",
+                "The producer may emit 'b' with a value the consumer does not accept"));
+    }
+
+    @Test
+    void testUnionOfEveryTypeAcceptsAnyValue() {
+        String everyType = "{'type':'object','properties':{'a':{'type':"
+                + "['string','number','boolean','object','array','null']}}}";
+
+        assertCompatible(compare("{'type':'object','properties':{'a':{}},'additionalProperties':false}",
+                everyType));
+        assertCompatible(compare("{'type':'object','properties':{'a':true},'additionalProperties':false}",
+                everyType));
+        assertCompatible(compare("{'type':'object','additionalProperties':true}",
+                "{'type':'object','additionalProperties':{'type':"
+                        + "['null','integer','number','string','array','object','boolean']}}"));
+    }
+
+    @Test
+    void testUnionOfEveryTypeKeepsItsSiblingLimitations() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'a':{}},'additionalProperties':false}",
+                "{'type':'object','properties':{'a':{'type':"
+                        + "['string','number','boolean','object','array','null'],'enum':['x']}}}");
+
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.CONSUMER,
+                        "/inputSchema/properties/a", "/inputSchema/properties/a/enum",
+                        "'enum' is not evaluated yet"))), result);
+    }
+
+    @Test
+    void testUnionNamingIntegerInsteadOfNumberDoesNotAcceptAnyValue() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'a':{}},'additionalProperties':false}",
+                "{'type':'object','properties':{'a':{'type':"
+                        + "['string','integer','boolean','object','array','null']}}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/a", "/inputSchema/properties/a/type",
+                "The producer's value for 'a' is not accepted by the consumer"));
+    }
+
+    @Test
+    void testOutputUnionOfEveryTypeIsNotAcceptedByOneType() {
+        PairCompatibility result = compare(union("['string','number','boolean','object','array','null']"),
+                input("'string'"));
+
+        assertIncompatible(result, typeNotAccepted());
+    }
+
+    @Test
+    void testNumberIsNotAcceptedByUnionNamingIntegerWithoutNumber() {
+        assertIncompatible(compare(union("'number'"), input("['integer','null']")), typeNotAccepted());
+        assertIncompatible(compare(union("['number','null']"), input("['integer','null','string']")),
+                typeNotAccepted());
+        assertCompatible(compare(union("'integer'"), input("['integer','null']")));
+    }
+
+    @Test
+    void testNumberIsNotAcceptedByIntegerUnionThroughAdditionalProperties() {
+        PairCompatibility declaredOutput = compare(
+                "{'type':'object','properties':{'x':{'type':'number'}},'required':['x'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','additionalProperties':{'type':['integer','null']}}");
+        PairCompatibility undeclaredOutput = compare(
+                "{'type':'object','additionalProperties':{'type':'number'}}",
+                "{'type':'object','properties':{'b':{'type':['integer','null']}},"
+                        + "'additionalProperties':{'type':['integer','null']}}");
+
+        assertIncompatible(declaredOutput,
+                new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED, "/outputSchema/properties/x",
+                        "/inputSchema/additionalProperties",
+                        "The producer may emit 'x', which the consumer does not accept"));
+        assertIncompatible(undeclaredOutput,
+                new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                        "/outputSchema/additionalProperties", "/inputSchema/additionalProperties",
+                        "The producer may emit undeclared properties that the consumer does not accept"),
+                new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED, "/outputSchema/additionalProperties",
+                        "/inputSchema/properties/b/type",
+                        "The producer may emit 'b' with a value the consumer does not accept"));
+    }
+
+    @Test
+    void testUndeclaredNullOutputIsNotAcceptedByIntegerUnion() {
+        PairCompatibility result = compare(
+                "{'type':'object','additionalProperties':{'type':['string','integer','null']}}",
+                "{'type':'object','properties':{'b':{'type':['string','integer']}}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/additionalProperties", "/inputSchema/properties/b/type",
+                "The producer may emit 'b' with a value the consumer does not accept"));
+    }
+
+    @Test
+    void testRootTypeGivenAsArrayIsLimitation() {
+        PairCompatibility result = compare("{'type':['object','null'],'properties':{"
+                + "'a':{'type':'string'}},'required':['a'],'additionalProperties':false}",
                 "{'type':'object','properties':{'a':{'type':'string'}},'required':['a']}");
 
         assertEquals(CompatibilityVerdict.INDETERMINATE, result.verdict());
         assertTrue(result.reasons().isEmpty());
         assertEquals(List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD,
-                SchemaSide.PRODUCER, "/outputSchema/properties/a", "/outputSchema/properties/a/type",
+                SchemaSide.PRODUCER, "/outputSchema", "/outputSchema/type",
                 "'type' given as an array is not evaluated yet")), result.limitations());
     }
 
     @Test
-    void testNestedStructureIsDepthLimitWhileOtherMismatchStillCounts() {
-        PairCompatibility result = compare(
-                "{'type':'object','properties':{'u':{'type':'object'},'b':{'type':'string'}},"
-                        + "'required':['u','b'],'additionalProperties':false}",
-                "{'type':'object','properties':{'u':{'type':'object','properties':{'id':{'type':'string'}}},"
-                        + "'b':{'type':'integer'}}}");
+    void testTypeListThatNamesNoTypeIsLimitation() {
+        PairCompatibility result = compare(union("['string','null']"),
+                "{'type':'object','properties':{'a':{'type':[]}},'required':['a']}");
 
-        assertEquals(CompatibilityVerdict.INCOMPATIBLE, result.verdict());
-        assertEquals(List.of("/inputSchema/properties/b/type"), consumerPointers(result));
-        assertEquals(List.of(new CompatibilityLimitation(LimitationCode.DEPTH_LIMIT_REACHED,
-                SchemaSide.CONSUMER, "/inputSchema/properties/u", "/inputSchema/properties/u/properties",
-                "Nested 'properties' is not evaluated yet")), result.limitations());
+        assertEquals(CompatibilityVerdict.INDETERMINATE, result.verdict());
+        assertTrue(result.reasons().isEmpty());
+        assertEquals(List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD,
+                SchemaSide.CONSUMER, "/inputSchema/properties/a", "/inputSchema/properties/a/type",
+                "'type' does not list type names")), result.limitations());
+    }
+
+    @Test
+    void testStructureBelowTheDepthLimitIsNotEvaluated() {
+        PairCompatibility result = compare(nested(SchemaProjector.MAX_SCHEMA_DEPTH + 1, "{'type':'string'}"),
+                nested(SchemaProjector.MAX_SCHEMA_DEPTH + 1, "{'type':'integer'}"));
+
+        String deepest = "/properties/p".repeat(SchemaProjector.MAX_SCHEMA_DEPTH);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(), List.of(
+                depthLimitReached(SchemaSide.PRODUCER, "/outputSchema" + deepest),
+                depthLimitReached(SchemaSide.CONSUMER, "/inputSchema" + deepest))), result);
+    }
+
+    @Test
+    void testMismatchAboveTheDepthLimitStillCounts() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'d':" + nested(SchemaProjector.MAX_SCHEMA_DEPTH, "{'type':'string'}")
+                        + ",'b':{'type':'string'}},'required':['b'],'additionalProperties':false}",
+                "{'type':'object','properties':{'d':" + nested(SchemaProjector.MAX_SCHEMA_DEPTH, "{'type':'integer'}")
+                        + ",'b':{'type':'integer'}}}");
+
+        String deepest = "/properties/d" + "/properties/p".repeat(SchemaProjector.MAX_SCHEMA_DEPTH - 1);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INCOMPATIBLE,
+                List.of(new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED, "/outputSchema/properties/b/type",
+                        "/inputSchema/properties/b/type",
+                        "The producer's value for 'b' is not accepted by the consumer")),
+                List.of(depthLimitReached(SchemaSide.PRODUCER, "/outputSchema" + deepest),
+                        depthLimitReached(SchemaSide.CONSUMER, "/inputSchema" + deepest))), result);
+    }
+
+    @Test
+    void testSchemaNestedFarBeyondTheDepthLimitIsNotWalkedPastIt() {
+        PairCompatibility result = compare(nested(200, "{'type':'string'}"), nested(200, "{'type':'integer'}"));
+
+        assertEquals(CompatibilityVerdict.INDETERMINATE, result.verdict());
+        assertEquals(List.of(LimitationCode.DEPTH_LIMIT_REACHED, LimitationCode.DEPTH_LIMIT_REACHED),
+                limitationCodes(result));
+    }
+
+    @Test
+    void testNestedTypeMismatchIsIncompatible() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'id':{'type':'string'}},"
+                        + "'required':['id'],'additionalProperties':false}},'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'id':{'type':'integer'}}}}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/u/properties/id/type", "/inputSchema/properties/u/properties/id/type",
+                "The producer's value for 'id' is not accepted by the consumer"));
+    }
+
+    @Test
+    void testNestedRequiredInputNotGuaranteedIsIncompatible() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'a':{'type':'string'}},"
+                        + "'additionalProperties':false}},'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'a':{'type':'string'}},"
+                        + "'required':['a']}}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.REQUIRED_NOT_GUARANTEED,
+                "/outputSchema/properties/u", "/inputSchema/properties/u/required/0",
+                "Required input 'a' is declared by the producer but not required"));
+    }
+
+    @Test
+    void testArrayElementMismatchPointsIntoItems() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'string'}}},"
+                        + "'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'integer'}}}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/u/items/type", "/inputSchema/properties/u/items/type",
+                "The producer may emit array items that the consumer does not accept"));
+    }
+
+    @Test
+    void testArrayOfObjectsElementMismatchPointsIntoItems() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'object',"
+                        + "'properties':{'id':{'type':'string'}},'required':['id'],'additionalProperties':false}}},"
+                        + "'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'object',"
+                        + "'properties':{'id':{'type':'integer'}}}}}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/u/items/properties/id/type",
+                "/inputSchema/properties/u/items/properties/id/type",
+                "The producer's value for 'id' is not accepted by the consumer"));
+    }
+
+    @Test
+    void testUnconstrainedOutputStructureIsNotAcceptedByAnInputThatConstrainsIt() {
+        PairCompatibility array = compare(
+                "{'type':'object','properties':{'u':{'type':'array'}},'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'integer'}}}}");
+        PairCompatibility object = compare(
+                "{'type':'object','properties':{'u':{'type':'object'}},'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'b':{'type':'integer'}}}}}");
+
+        assertIncompatible(array, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/u", "/inputSchema/properties/u/items/type",
+                "The producer may emit array items that the consumer does not accept"));
+        assertIncompatible(object, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/u", "/inputSchema/properties/u/properties/b/type",
+                "The producer may emit 'b' with a value the consumer does not accept"));
+    }
+
+    @Test
+    void testConstrainedOutputStructureIsAcceptedByAnInputThatLeavesItOpen() {
+        assertCompatible(compare(
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'integer'}}},"
+                        + "'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'array'}}}"));
+        assertCompatible(compare(
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'b':{'type':'integer'}},"
+                        + "'additionalProperties':false}},'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object'}}}"));
+    }
+
+    @Test
+    void testNestedInputThatAcceptsAnyValueAcceptsUnconstrainedOutput() {
+        String output = "{'type':'object','properties':{'u':{'type':'array'},'o':" + OPEN_PRODUCER_A + "},"
+                + "'required':['u','o'],'additionalProperties':false}";
+
+        assertCompatible(compare(output, "{'type':'object','properties':{'u':{'type':'array','items':true},"
+                + "'o':{'type':'object','additionalProperties':true}}}"));
+        assertCompatible(compare(output, "{'type':'object','properties':{'u':{'type':'array','items':{}},"
+                + "'o':{'type':'object','additionalProperties':{}}}}"));
+    }
+
+    @Test
+    void testOpenNestedProducerObjectIsIndeterminate() {
+        PairCompatibility open = compare(
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'a':{'type':'string'}}}},"
+                        + "'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'a':{'type':'string'},"
+                        + "'b':{'type':'integer'}}}}}");
+        PairCompatibility openUnderItems = compare(
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'object',"
+                        + "'properties':{'a':{'type':'string'}}}}},'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'object',"
+                        + "'properties':{'a':{'type':'string'},'b':{'type':'integer'}}}}}}");
+
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(objectOpen("/outputSchema/properties/u"))), open);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(objectOpen("/outputSchema/properties/u/items"))), openUnderItems);
+    }
+
+    @Test
+    void testClosedNestedProducerObjectIsCompatible() {
+        assertCompatible(compare(
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'a':{'type':'string'}},"
+                        + "'additionalProperties':false}},'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'a':{'type':'string'},"
+                        + "'b':{'type':'integer'}}}}}"));
+    }
+
+    @Test
+    void testOpenProducerObjectComparedWithAdditionalPropertiesIsIndeterminate() {
+        String closedInput = "{'type':'object','properties':{'a':{'type':'string'}},'additionalProperties':false}";
+        PairCompatibility declaredOutput = compare(
+                "{'type':'object','properties':{'x':" + OPEN_PRODUCER_A + "},'required':['x'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','additionalProperties':" + closedInput + "}");
+        PairCompatibility undeclaredOutput = compare(
+                "{'type':'object','additionalProperties':" + OPEN_PRODUCER_A + "}",
+                "{'type':'object','properties':{'x':" + closedInput + "}}");
+        PairCompatibility bothUndeclared = compare(
+                "{'type':'object','additionalProperties':" + OPEN_PRODUCER_A + "}",
+                "{'type':'object','additionalProperties':" + closedInput + "}");
+        PairCompatibility underItems = compare(
+                "{'type':'object','properties':{'x':{'type':'array','items':" + OPEN_PRODUCER_A + "}},"
+                        + "'required':['x'],'additionalProperties':false}",
+                "{'type':'object','additionalProperties':{'type':'array','items':" + closedInput + "}}");
+        PairCompatibility besideAnotherType = compare(
+                "{'type':'object','properties':{'x':" + OPEN_PRODUCER_A + ",'y':{'type':'null'}},"
+                        + "'required':['x','y'],'additionalProperties':false}",
+                "{'type':'object','additionalProperties':{'type':['object','null'],"
+                        + "'properties':{'a':{'type':'string'}},'additionalProperties':false}}");
+        PairCompatibility besideAnOpenDeclaredProperty = compare(
+                "{'type':'object','properties':{'x':" + OPEN_PRODUCER_A + ",'z':" + OPEN_PRODUCER_A + "},"
+                        + "'required':['x','z'],'additionalProperties':false}",
+                "{'type':'object','properties':{'z':{'type':'object'}},'additionalProperties':" + closedInput + "}");
+        PairCompatibility undeclaredBesideAnOpenDeclaredProperty = compare(
+                "{'type':'object','properties':{'z':" + OPEN_PRODUCER_A + "},'required':['z'],"
+                        + "'additionalProperties':" + OPEN_PRODUCER_A + "}",
+                "{'type':'object','properties':{'z':{'type':'object'},'x':" + closedInput + "}}");
+        PairCompatibility insideAdditionalProperties = compare(
+                "{'type':'object','properties':{'x':{'type':'object','additionalProperties':" + OPEN_PRODUCER_A
+                        + "}},'required':['x'],'additionalProperties':false}",
+                "{'type':'object','additionalProperties':{'type':'object','additionalProperties':" + closedInput
+                        + "}}");
+
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(objectOpen("/outputSchema/properties/x"))), declaredOutput);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(objectOpen("/outputSchema/additionalProperties"))), undeclaredOutput);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(objectOpen("/outputSchema/additionalProperties"))), bothUndeclared);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(objectOpen("/outputSchema/properties/x/items"))), underItems);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(objectOpen("/outputSchema/properties/x"))), besideAnotherType);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(objectOpen("/outputSchema/properties/x"))), besideAnOpenDeclaredProperty);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(objectOpen("/outputSchema/additionalProperties"))), undeclaredBesideAnOpenDeclaredProperty);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(objectOpen("/outputSchema/properties/x/additionalProperties"))), insideAdditionalProperties);
+    }
+
+    @Test
+    void testIndependentMismatchOfAnOpenObjectComparedWithAdditionalPropertiesStillCounts() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'x':{'type':'object','properties':{'a':{'type':'integer'}},"
+                        + "'required':['a']}},'required':['x'],'additionalProperties':false}",
+                "{'type':'object','additionalProperties':{'type':'object','properties':{'a':{'type':'string'}},"
+                        + "'additionalProperties':false}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                "/outputSchema/properties/x", "/inputSchema/additionalProperties",
+                "The producer may emit 'x', which the consumer does not accept"));
+    }
+
+    @Test
+    void testNestedNullableOutputIsNotAcceptedByANonNullableInput() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'u':{'type':['object','null'],'properties':{'a':{'type':'string'}},"
+                        + "'additionalProperties':false}},'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'a':{'type':'string'}}}}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/u/type", "/inputSchema/properties/u/type",
+                "The producer's value for 'u' is not accepted by the consumer"));
+    }
+
+    @Test
+    void testNestedObjectIsComparedBelowANullableInput() {
+        PairCompatibility mismatch = compare(
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'a':{'type':'string'}},"
+                        + "'additionalProperties':false}},'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':['object','null'],"
+                        + "'properties':{'a':{'type':'integer'}}}}}");
+        PairCompatibility open = compare(
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'a':{'type':'string'}}}},"
+                        + "'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':['object','null'],"
+                        + "'properties':{'a':{'type':'string'}},'additionalProperties':false}}}");
+
+        assertIncompatible(mismatch, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/u/properties/a/type", "/inputSchema/properties/u/properties/a/type",
+                "The producer's value for 'a' is not accepted by the consumer"));
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(objectOpen("/outputSchema/properties/u"))), open);
+    }
+
+    @Test
+    void testNestedNumbersAreComparedByTheValuesTheyAccept() {
+        String integerOutput = "{'type':'object','properties':{'u':{'type':'object','properties':"
+                + "{'n':{'type':'integer'}},'required':['n'],'additionalProperties':false}},'required':['u'],"
+                + "'additionalProperties':false}";
+        String numberOutput = integerOutput.replace("'integer'", "'number'");
+
+        assertCompatible(compare(integerOutput,
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'n':{'type':['number','null']}}}}}"));
+        assertIncompatible(compare(numberOutput,
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'n':{'type':['integer','null']}}}}}"),
+                new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED, "/outputSchema/properties/u/properties/n/type",
+                        "/inputSchema/properties/u/properties/n/type",
+                        "The producer's value for 'n' is not accepted by the consumer"));
+        assertIncompatible(compare(
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'number'}}},"
+                        + "'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':['integer','null']}}}}"),
+                new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED, "/outputSchema/properties/u/items/type",
+                        "/inputSchema/properties/u/items/type",
+                        "The producer may emit array items that the consumer does not accept"));
+    }
+
+    @Test
+    void testNestedOutputWithoutTypeIsNotAcceptedByATypedInput() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'u':{'properties':{'a':{'type':'string'}},"
+                        + "'additionalProperties':false}},'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'a':{'type':'string'}}}}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/u", "/inputSchema/properties/u/type",
+                "The producer's value for 'u' is not accepted by the consumer"));
+    }
+
+    @Test
+    void testInputWithoutTypeAcceptsWhatItsObjectKeywordsDoNotConstrain() {
+        assertCompatible(compare(
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'string'}}},"
+                        + "'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'properties':{'a':{'type':'string'}},"
+                        + "'additionalProperties':false}}}"));
+        assertCompatible(compare("{'type':'object','additionalProperties':{'type':'string'}}",
+                "{'type':'object','additionalProperties':{'properties':{'b':{'type':'string'}},"
+                        + "'additionalProperties':false}}"));
+        assertCompatible(compare(
+                "{'type':'object','properties':{'u':{'type':'string'}},'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'items':{'type':'integer'}}}}"));
+        assertCompatible(compare(
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'string'}}},"
+                        + "'additionalProperties':{'type':'object','properties':{'b':{'type':'string'}},"
+                        + "'additionalProperties':false}}",
+                "{'type':'object','additionalProperties':{'properties':{'b':{'type':'string'}},"
+                        + "'additionalProperties':false}}"));
+    }
+
+    @Test
+    void testEachDeclaredOutputIsComparedWithTheAdditionalPropertiesItFeeds() {
+        PairCompatibility numbers = compare(
+                "{'type':'object','properties':{'x':{'type':'number'},'y':{'type':'string'}},'required':['x','y'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','additionalProperties':{'type':['integer','string','null']}}");
+        PairCompatibility objects = compare(
+                "{'type':'object','properties':{'x':{'type':'object','properties':{'a':{'type':'string'}},"
+                        + "'required':['a'],'additionalProperties':false},'y':{'type':'string'}},'required':['x','y'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','additionalProperties':{'type':['object','string'],"
+                        + "'properties':{'a':{'type':'integer'}}}}");
+        PairCompatibility nested = compare(
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'x':{'type':'number'},"
+                        + "'y':{'type':'string'}},'required':['x','y'],'additionalProperties':false}},'required':['u'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object',"
+                        + "'additionalProperties':{'type':['integer','string','null']}}}}");
+
+        CompatibilityReason xNotAccepted = new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                "/outputSchema/properties/x", "/inputSchema/additionalProperties",
+                "The producer may emit 'x', which the consumer does not accept");
+        assertIncompatible(numbers, xNotAccepted);
+        assertIncompatible(objects, xNotAccepted);
+        assertIncompatible(nested, new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                "/outputSchema/properties/u/properties/x", "/inputSchema/properties/u/additionalProperties",
+                "The producer may emit 'x', which the consumer does not accept"));
+    }
+
+    @Test
+    void testUndeclaredOutputIsComparedWithTheAdditionalPropertiesItFeedsBesideDeclaredOutput() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'y':{'type':'string'}},'required':['y'],"
+                        + "'additionalProperties':{'type':'number'}}",
+                "{'type':'object','additionalProperties':{'type':['integer','string']}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                "/outputSchema/additionalProperties", "/inputSchema/additionalProperties",
+                "The producer may emit undeclared properties that the consumer does not accept"));
+    }
+
+    @Test
+    void testDeclaredOutputIsComparedWithEveryLevelOfAdditionalProperties() {
+        PairCompatibility direct = compare(
+                "{'type':'object','properties':{'x':" + RECORD_WITHOUT_TYPED_ID + "},'required':['x'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','additionalProperties':" + RECORD_WITH_TYPED_ID + "}");
+        PairCompatibility underItems = compare(
+                "{'type':'object','properties':{'list':{'type':'array','items':{'type':'object','properties':"
+                        + "{'x':" + RECORD_WITHOUT_TYPED_ID + "},'required':['x'],'additionalProperties':false}}},"
+                        + "'required':['list'],'additionalProperties':false}",
+                "{'type':'object','properties':{'list':{'type':'array','items':{'type':'object',"
+                        + "'additionalProperties':" + RECORD_WITH_TYPED_ID + "}}},'required':['list']}");
+
+        assertIncompatible(direct, new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                "/outputSchema/properties/x", "/inputSchema/additionalProperties",
+                "The producer may emit 'x', which the consumer does not accept"));
+        assertIncompatible(underItems, new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                "/outputSchema/properties/list/items/properties/x",
+                "/inputSchema/properties/list/items/additionalProperties",
+                "The producer may emit 'x', which the consumer does not accept"));
+    }
+
+    @Test
+    void testUndeclaredOutputIsComparedWithEveryLevelOfAnInputProperty() {
+        PairCompatibility direct = compare(
+                "{'type':'object','additionalProperties':" + RECORD_WITHOUT_TYPED_ID + "}",
+                "{'type':'object','properties':{'x':" + RECORD_WITH_TYPED_ID + "}}");
+        PairCompatibility underItems = compare(
+                "{'type':'object','properties':{'list':{'type':'array','items':{'type':'object',"
+                        + "'additionalProperties':" + RECORD_WITHOUT_TYPED_ID + "}}},'required':['list'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','properties':{'list':{'type':'array','items':{'type':'object','properties':"
+                        + "{'x':" + RECORD_WITH_TYPED_ID + "}}}},'required':['list']}");
+
+        assertIncompatible(direct, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/additionalProperties", "/inputSchema/properties/x/type",
+                "The producer may emit 'x' with a value the consumer does not accept"));
+        assertIncompatible(underItems, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/list/items/additionalProperties",
+                "/inputSchema/properties/list/items/properties/x/type",
+                "The producer may emit 'x' with a value the consumer does not accept"));
+    }
+
+    @Test
+    void testLimitationBelowANullableObjectKeepsTheVerdictIndeterminate() {
+        PairCompatibility direct = compare(
+                "{'type':'object','properties':{'user':" + NULLABLE_USER_WITH_ENUM + "},'required':['user'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','properties':{'user':" + NULLABLE_USER + "},'required':['user']}");
+        PairCompatibility underItems = compare(
+                "{'type':'object','properties':{'users':{'type':'array','items':" + NULLABLE_USER_WITH_ENUM
+                        + "}},'required':['users'],'additionalProperties':false}",
+                "{'type':'object','properties':{'users':{'type':'array','items':" + NULLABLE_USER + "}},"
+                        + "'required':['users']}");
+
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(enumNotEvaluated("/outputSchema/properties/user/properties/id"))), direct);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(enumNotEvaluated("/outputSchema/properties/users/items/properties/id"))), underItems);
+    }
+
+    @Test
+    void testIndependentMismatchBesideALimitationBelowANullableObjectStillCounts() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'user':{'type':['object','null'],'properties':{"
+                        + "'id':{'type':['string','integer'],'enum':['s']},'n':{'type':'string'}},"
+                        + "'required':['id','n'],'additionalProperties':false}},'required':['user'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','properties':{'user':{'type':['object','null'],'properties':{"
+                        + "'id':{'type':'string'},'n':{'type':'integer'}},'required':['id']}},'required':['user']}");
+
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INCOMPATIBLE,
+                List.of(new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                        "/outputSchema/properties/user/properties/n/type",
+                        "/inputSchema/properties/user/properties/n/type",
+                        "The producer's value for 'n' is not accepted by the consumer")),
+                List.of(enumNotEvaluated("/outputSchema/properties/user/properties/id"))), result);
+    }
+
+    @Test
+    void testNestedAdditionalPropertiesAreComparedInBothDirections() {
+        PairCompatibility declaredOutput = compare(
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'x':{'type':'string'}},"
+                        + "'additionalProperties':false}},'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object','additionalProperties':{'type':'integer'}}}}");
+        PairCompatibility undeclaredOutput = compare(
+                "{'type':'object','properties':{'u':{'type':'object','additionalProperties':{'type':'string'}}},"
+                        + "'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'b':{'type':'integer'}}}}}");
+        PairCompatibility bothUndeclared = compare(
+                "{'type':'object','properties':{'u':{'type':'object','additionalProperties':{'type':'string'}}},"
+                        + "'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object','additionalProperties':{'type':'integer'}}}}");
+
+        assertIncompatible(declaredOutput, new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                "/outputSchema/properties/u/properties/x", "/inputSchema/properties/u/additionalProperties",
+                "The producer may emit 'x', which the consumer does not accept"));
+        assertIncompatible(undeclaredOutput, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/u/additionalProperties", "/inputSchema/properties/u/properties/b/type",
+                "The producer may emit 'b' with a value the consumer does not accept"));
+        assertIncompatible(bothUndeclared, new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                "/outputSchema/properties/u/additionalProperties", "/inputSchema/properties/u/additionalProperties",
+                "The producer may emit undeclared properties that the consumer does not accept"));
+    }
+
+    @Test
+    void testUndeclaredNestedPropertyRejectedByTheConsumerIsIncompatible() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'a':{'type':'string'},"
+                        + "'x':{'type':'string'}},'additionalProperties':false}},'required':['u'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'a':{'type':'string'}},"
+                        + "'additionalProperties':false}}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                "/outputSchema/properties/u/properties/x", "/inputSchema/properties/u/additionalProperties",
+                "The producer may emit 'x', which the consumer does not accept"));
+    }
+
+    @Test
+    void testItemsDeclaredFalseEmitsAndAcceptsOnlyEmptyArrays() {
+        assertCompatible(compare(
+                "{'type':'object','properties':{'u':{'type':'array','items':false}},'required':['u'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'integer'}}}}"));
+        assertIncompatible(compare(
+                "{'type':'object','properties':{'u':{'type':'array','items':{'type':'string'}}},'required':['u'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'array','items':false}}}"),
+                new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED, "/outputSchema/properties/u/items/type",
+                        "/inputSchema/properties/u/items",
+                        "The producer may emit array items that the consumer does not accept"));
+    }
+
+    @Test
+    void testTupleItemsIsNotEvaluated() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'u':{'type':'array','items':[{'type':'string'}]}},"
+                        + "'required':['u'],'additionalProperties':false}",
+                "{'type':'object','properties':{'u':{'type':'array','items':[{'type':'integer'}]}}}");
+
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(), List.of(
+                new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.PRODUCER,
+                        "/outputSchema/properties/u", "/outputSchema/properties/u/items",
+                        "'items' is evaluated only as a single schema"),
+                new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.CONSUMER,
+                        "/inputSchema/properties/u", "/inputSchema/properties/u/items",
+                        "'items' is evaluated only as a single schema"))), result);
+    }
+
+    @Test
+    void testNestedPropertiesNamedLikeKeywordsAreComparedAsProperties() {
+        PairCompatibility result = compare(
+                "{'type':'object','properties':{'type':{'type':'object','properties':{'type':{'type':'string'}},"
+                        + "'required':['type'],'additionalProperties':false}},'required':['type'],"
+                        + "'additionalProperties':false}",
+                "{'type':'object','properties':{'type':{'type':'object','properties':{'type':{'type':'integer'}}}}}");
+
+        assertIncompatible(result, new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/type/properties/type/type", "/inputSchema/properties/type/properties/type/type",
+                "The producer's value for 'type' is not accepted by the consumer"));
+    }
+
+    @Test
+    void testPreparedProducerIsReusedAcrossConsumers() {
+        PreparedProducer producer = service.prepareProducer(tool("outputSchema",
+                "{'type':'object','properties':{'u':{'type':'object','properties':{'id':{'type':'string'}},"
+                        + "'required':['id'],'additionalProperties':false},'n':{'type':'integer'}},"
+                        + "'required':['u','n'],'additionalProperties':false}"));
+        JsonNode prepared = producer.asWritten().deepCopy();
+        JsonNode unions = tool("inputSchema", "{'type':'object','properties':{'u':{'type':['object','null'],"
+                + "'properties':{'id':{'type':['string','null']}}},'n':{'type':['number','null']}}}");
+        JsonNode scalars = tool("inputSchema", "{'type':'object','properties':{'u':{'type':'object',"
+                + "'properties':{'id':{'type':'string'}}},'n':{'type':'integer'}}}");
+        JsonNode rejecting = tool("inputSchema", "{'type':'object','properties':{'u':{'type':['object','null'],"
+                + "'properties':{'id':{'type':['integer','null']}}},'n':{'type':['string','null']}}}");
+
+        assertCompatible(service.compare(producer, unions));
+        assertCompatible(service.compare(producer, scalars));
+        assertIncompatible(service.compare(producer, rejecting),
+                new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED, "/outputSchema/properties/n/type",
+                        "/inputSchema/properties/n/type",
+                        "The producer's value for 'n' is not accepted by the consumer"),
+                new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED, "/outputSchema/properties/u/properties/id/type",
+                        "/inputSchema/properties/u/properties/id/type",
+                        "The producer's value for 'id' is not accepted by the consumer"));
+        assertCompatible(service.compare(producer, unions));
+        assertEquals(prepared, producer.asWritten());
     }
 
     @Test
@@ -686,6 +1433,49 @@ class CrossToolCompatibilityServiceTest {
         return new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED, "/outputSchema",
                 "/inputSchema/type",
                 "The producer may emit a value whose type the consumer does not accept");
+    }
+
+    private static String union(String type) {
+        return "{'type':'object','properties':{'a':{'type':" + type + "}},'required':['a'],"
+                + "'additionalProperties':false}";
+    }
+
+    private static String input(String type) {
+        return "{'type':'object','properties':{'a':{'type':" + type + "}},'required':['a']}";
+    }
+
+    private static CompatibilityReason typeNotAccepted() {
+        return new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                "/outputSchema/properties/a/type", "/inputSchema/properties/a/type",
+                "The producer's value for 'a' is not accepted by the consumer");
+    }
+
+    /**
+     * An object nesting {@code levels} objects below it, each through a property named {@code p},
+     * ending in {@code leaf}.
+     */
+    private static String nested(int levels, String leaf) {
+        String schema = leaf;
+        for (int level = 0; level < levels; level++) {
+            schema = "{'type':'object','properties':{'p':" + schema + "}}";
+        }
+        return schema;
+    }
+
+    private static CompatibilityLimitation depthLimitReached(SchemaSide side, String node) {
+        return new CompatibilityLimitation(LimitationCode.DEPTH_LIMIT_REACHED, side, node, node + "/properties",
+                "'properties' nests deeper than the comparison evaluates");
+    }
+
+    private static CompatibilityLimitation objectOpen(String node) {
+        return new CompatibilityLimitation(LimitationCode.PRODUCER_OBJECT_OPEN, SchemaSide.PRODUCER, node, node,
+                "The object does not set additionalProperties, so the verdict depends on the producer emitting"
+                        + " only the properties it declares");
+    }
+
+    private static CompatibilityLimitation enumNotEvaluated(String node) {
+        return new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.PRODUCER, node,
+                node + "/enum", "'enum' is not evaluated yet");
     }
 
     private PairCompatibility compare(String outputSchema, String inputSchema) {

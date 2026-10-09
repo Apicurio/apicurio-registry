@@ -1,10 +1,13 @@
 -- *********************************************************************
 -- DDL for the Apicurio Registry - Database: H2
+-- Pinned baseline snapshot at db_version 110 (before webhook tables).
+-- Used by WebhookSchemaMigrationTest to verify the upgrade script
+-- starts from a real prior-version schema, not a freshly-created one.
 -- *********************************************************************
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 111);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 110);
 
 CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -60,11 +63,6 @@ ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, ar
 CREATE INDEX IDX_alabels_1 ON artifact_labels(labelKey);
 CREATE INDEX IDX_alabels_2 ON artifact_labels(labelValue);
 
-CREATE TABLE artifact_structured_content (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, elementType VARCHAR(64) NOT NULL, elementValue VARCHAR(256) NOT NULL);
-ALTER TABLE artifact_structured_content ADD PRIMARY KEY (groupId, artifactId, elementType, elementValue);
-ALTER TABLE artifact_structured_content ADD CONSTRAINT FK_asc_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
-CREATE INDEX IDX_asc_1 ON artifact_structured_content(elementType, elementValue);
-
 CREATE TABLE artifact_rules (groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, type VARCHAR(32) NOT NULL, configuration VARCHAR(1024) NOT NULL);
 ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);
 -- Note: no FK constraint between artifact_rules and artifacts because the Confluent API allows
@@ -73,7 +71,7 @@ ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);
 -- The "versionOrder" field is needed to generate "version" when it is not provided.
 -- It contains the same information as the "branchOrder" in the "latest" branch, but we cannot use it because of a chicken-and-egg problem.
 -- At least it is no longer confusingly called "versionId". The "versionOrder" field should not be used for any other purpose.
-CREATE TABLE versions (globalId BIGINT NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), versionSortKey VARCHAR(512), versionOrder INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), owner VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedBy VARCHAR(256), modifiedOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, labels TEXT, contentId BIGINT NOT NULL);
+CREATE TABLE versions (globalId BIGINT NOT NULL, groupId VARCHAR(512) NOT NULL, artifactId VARCHAR(512) NOT NULL, version VARCHAR(256), versionOrder INT NOT NULL, state VARCHAR(64) NOT NULL, name VARCHAR(512), description VARCHAR(1024), owner VARCHAR(256), createdOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, modifiedBy VARCHAR(256), modifiedOn TIMESTAMP WITHOUT TIME ZONE NOT NULL, labels TEXT, contentId BIGINT NOT NULL);
 ALTER TABLE versions ADD PRIMARY KEY (globalId);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_1 UNIQUE (groupId, artifactId, version);
 ALTER TABLE versions ADD CONSTRAINT UQ_versions_2 UNIQUE (globalId, versionOrder);
@@ -127,65 +125,3 @@ CREATE TABLE schema_usage (globalId BIGINT NOT NULL, contentId BIGINT NOT NULL D
 CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
 CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);
 CREATE INDEX IDX_schema_usage_3 ON schema_usage(eventTimestamp);
-
-CREATE TABLE webhook_subscriptions (
-  subscriptionId     VARCHAR(36)   NOT NULL,
-  name               VARCHAR(512),
-  ownerId            VARCHAR(256)  NOT NULL,
-  endpointUrl        VARCHAR(2048) NOT NULL,
-  eventTypes         TEXT          NOT NULL,
-  groupFilter        VARCHAR(512),
-  artifactIdFilter   VARCHAR(512),
-  artifactTypeFilter VARCHAR(32),
-  enabled            BOOLEAN       NOT NULL,
-  deletedOn          BIGINT,
-  revision           BIGINT        NOT NULL,
-  signingSecretRef   VARCHAR(512),
-  createdOn          BIGINT        NOT NULL,
-  modifiedOn         BIGINT        NOT NULL
-);
-ALTER TABLE webhook_subscriptions ADD PRIMARY KEY (subscriptionId);
--- serves: SELECT ... WHERE enabled = TRUE AND deletedOn IS NULL (recorder hot path)
-CREATE INDEX IDX_whsubs_1 ON webhook_subscriptions(enabled, deletedOn);
-CREATE INDEX IDX_whsubs_2 ON webhook_subscriptions(createdOn);
-
-CREATE TABLE webhook_events (
-  eventRowId   VARCHAR(36)  NOT NULL,
-  source       TEXT         NOT NULL,
-  eventId      TEXT         NOT NULL,
-  identityHash VARCHAR(64)  NOT NULL,
-  eventType    VARCHAR(256) NOT NULL,
-  payload      BYTEA        NOT NULL,
-  createdOn    BIGINT       NOT NULL
-);
-ALTER TABLE webhook_events ADD PRIMARY KEY (eventRowId);
-ALTER TABLE webhook_events ADD CONSTRAINT UQ_whevents_1 UNIQUE (identityHash);
-CREATE INDEX IDX_whevents_1 ON webhook_events(createdOn);
-
-CREATE TABLE webhook_delivery_logs (
-  deliveryId     VARCHAR(36) NOT NULL,
-  subscriptionId VARCHAR(36) NOT NULL,
-  eventRowId     VARCHAR(36) NOT NULL,
-  status         VARCHAR(16) NOT NULL,
-  attemptCount   INT         NOT NULL DEFAULT 0,
-  nextAttemptAt  BIGINT,
-  claimToken     VARCHAR(36),
-  leaseUntil     BIGINT,
-  lastAttemptAt  BIGINT,
-  httpStatusCode INT,
-  errorCode      VARCHAR(64),
-  createdOn      BIGINT      NOT NULL,
-  updatedOn      BIGINT      NOT NULL,
-  completedOn    BIGINT
-);
-ALTER TABLE webhook_delivery_logs ADD PRIMARY KEY (deliveryId);
-ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_whdlogs_1 FOREIGN KEY (subscriptionId) REFERENCES webhook_subscriptions(subscriptionId);
-ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_whdlogs_2 FOREIGN KEY (eventRowId) REFERENCES webhook_events(eventRowId);
-ALTER TABLE webhook_delivery_logs ADD CONSTRAINT UQ_whdlogs_1 UNIQUE (subscriptionId, eventRowId);
-ALTER TABLE webhook_delivery_logs ADD CONSTRAINT CK_whdlogs_1 CHECK (attemptCount >= 0);
-CREATE INDEX IDX_whdlogs_1 ON webhook_delivery_logs(status, nextAttemptAt);
-CREATE INDEX IDX_whdlogs_2 ON webhook_delivery_logs(status, leaseUntil);
-CREATE INDEX IDX_whdlogs_3 ON webhook_delivery_logs(subscriptionId, createdOn);
-CREATE INDEX IDX_whdlogs_4 ON webhook_delivery_logs(eventRowId);
-CREATE INDEX IDX_whdlogs_5 ON webhook_delivery_logs(status, completedOn);
-

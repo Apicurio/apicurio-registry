@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL, propValue VARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 110);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 111);
 
 CREATE TABLE sequences (seqName VARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -130,4 +130,67 @@ CREATE TABLE schema_usage (globalId BIGINT NOT NULL, contentId BIGINT NOT NULL D
 CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
 CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);
 CREATE INDEX IDX_schema_usage_3 ON schema_usage(eventTimestamp);
+
+CREATE TABLE webhook_subscriptions (
+  subscriptionId     VARCHAR(36)   NOT NULL,
+  name               VARCHAR(512),
+  ownerId            VARCHAR(256)  NOT NULL,
+  endpointUrl        VARCHAR(2048) NOT NULL,
+  eventTypes         TEXT          NOT NULL,
+  groupFilter        VARCHAR(512),
+  artifactIdFilter   VARCHAR(512),
+  artifactTypeFilter VARCHAR(32),
+  enabled            BOOLEAN       NOT NULL,
+  deletedOn          BIGINT,
+  revision           BIGINT        NOT NULL,
+  signingSecretRef   VARCHAR(512),
+  createdOn          BIGINT        NOT NULL,
+  modifiedOn         BIGINT        NOT NULL
+);
+ALTER TABLE webhook_subscriptions ADD PRIMARY KEY (subscriptionId);
+-- serves: SELECT ... WHERE enabled = TRUE AND deletedOn IS NULL (recorder hot path)
+CREATE INDEX IDX_whsubs_1 ON webhook_subscriptions(enabled, deletedOn);
+CREATE INDEX IDX_whsubs_2 ON webhook_subscriptions(createdOn);
+
+CREATE TABLE webhook_events (
+  eventRowId   VARCHAR(36)  NOT NULL,
+  source       TEXT         NOT NULL,
+  eventId      TEXT         NOT NULL,
+  identityHash VARCHAR(64)  NOT NULL,
+  eventType    VARCHAR(256) NOT NULL,
+  payload      BYTEA        NOT NULL,
+  createdOn    BIGINT       NOT NULL
+);
+ALTER TABLE webhook_events ADD PRIMARY KEY (eventRowId);
+ALTER TABLE webhook_events ADD CONSTRAINT UQ_whevents_1 UNIQUE (identityHash);
+CREATE INDEX IDX_whevents_1 ON webhook_events(createdOn);
+
+CREATE TABLE webhook_delivery_logs (
+  deliveryId     VARCHAR(36) NOT NULL,
+  subscriptionId VARCHAR(36) NOT NULL,
+  eventRowId     VARCHAR(36) NOT NULL,
+  status         VARCHAR(16) NOT NULL,
+  attemptCount   INT         NOT NULL DEFAULT 0,
+  nextAttemptAt  BIGINT,
+  claimToken     VARCHAR(36),
+  leaseUntil     BIGINT,
+  lastAttemptAt  BIGINT,
+  httpStatusCode INT,
+  errorCode      VARCHAR(64),
+  createdOn      BIGINT      NOT NULL,
+  updatedOn      BIGINT      NOT NULL,
+  completedOn    BIGINT
+);
+ALTER TABLE webhook_delivery_logs ADD PRIMARY KEY (deliveryId);
+ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_whdlogs_1
+  FOREIGN KEY (subscriptionId) REFERENCES webhook_subscriptions(subscriptionId);
+ALTER TABLE webhook_delivery_logs ADD CONSTRAINT FK_whdlogs_2
+  FOREIGN KEY (eventRowId) REFERENCES webhook_events(eventRowId);
+ALTER TABLE webhook_delivery_logs ADD CONSTRAINT UQ_whdlogs_1 UNIQUE (subscriptionId, eventRowId);
+ALTER TABLE webhook_delivery_logs ADD CONSTRAINT CK_whdlogs_1 CHECK (attemptCount >= 0);
+CREATE INDEX IDX_whdlogs_1 ON webhook_delivery_logs(status, nextAttemptAt);
+CREATE INDEX IDX_whdlogs_2 ON webhook_delivery_logs(status, leaseUntil);
+CREATE INDEX IDX_whdlogs_3 ON webhook_delivery_logs(subscriptionId, createdOn);
+CREATE INDEX IDX_whdlogs_4 ON webhook_delivery_logs(eventRowId);
+CREATE INDEX IDX_whdlogs_5 ON webhook_delivery_logs(status, completedOn);
 

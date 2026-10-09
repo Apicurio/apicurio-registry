@@ -314,6 +314,8 @@ The scheduled orphaned content cleanup job, configured by `apicurio.storage.orph
 
 `apicurio.storage.content-cache.max-size` sets the maximum weight, in bytes, of each of the three caches separately, not of all caches together. The default is 64 MiB (`67108864` bytes) for each cache, so the caches can hold up to about 192 MiB of content in total. The same content can be present in more than one cache, for example, when clients request it by content ID and by content hash.
 
+NOTE: The configuration reference describes this property as a maximum total weight. The limit applies to each cache separately, so the total memory bound is the configured value multiplied by the number of caches.
+
 {registry} weighs each entry as the size of the content bytes plus 64 bytes of overhead and 128 bytes for each reference. The weight estimates the payload, not the JVM objects that hold it. When you plan the JVM heap and the container memory limit, count up to three times the configured `max-size` toward the memory that {registry} uses under sustained load, in addition to the baseline memory that your capacity planning requires.
 
 To size the cache for your workload, compare the total size of the schemas that clients read most often with the per-cache limit. Use the cache metrics to confirm the result after a change.
@@ -364,6 +366,8 @@ environment:
 ----
 
 .Verification
+These steps assume the default setting `apicurio.ccompat.legacy-id-mode.enabled=false`.
+
 . Request the same content twice by content ID. Replace `1` with a content ID that exists in your registry:
 +
 [source,bash]
@@ -397,7 +401,7 @@ $ curl -s http://localhost:9000/metrics | grep 'cache="content'
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The storage content cache has three configuration properties, three named caches, and five Micrometer meters for each cache, exposed at `/metrics` on the management port. The properties are available since {registry} 3.3.3.
+The storage content cache has three configuration properties, three named caches, and five Micrometer meters for each cache, exposed at `/metrics` on the management port. When `apicurio.storage.content-cache.hot-path.ttl-seconds` is `0`, {registry} does not create the `contentAndTypeById` cache and does not register its meters. The properties are available since {registry} 3.3.3.
 
 .Storage content cache configuration properties
 [.table-expandable,width="100%",cols="4,4,2,5",options="header"]

@@ -85,6 +85,7 @@ public class CoreRegistryExceptionMapperService {
             ((RuleViolationProblemDetails) details).setTitle(rve.getMessage());
             ((RuleViolationProblemDetails) details).setDetail(rve.getDetailMessage());
             ((RuleViolationProblemDetails) details).setCauses(toRestCauses(rve.getCauses()));
+            ((RuleViolationProblemDetails) details).setRuleType(rve.getRuleType());
         } else {
             details = new ProblemDetails();
             details.setTitle(t.getLocalizedMessage());
@@ -113,6 +114,10 @@ public class CoreRegistryExceptionMapperService {
             RuleViolationCause cause = new RuleViolationCause();
             cause.setContext(violation.getContext());
             cause.setDescription(violation.getDescription());
+            cause.setCode(violation.getCode());
+            cause.setDirection(violation.getDirection());
+            cause.setProposed(violation.getProposed());
+            cause.setExisting(violation.getExisting());
             return cause;
         }).collect(Collectors.toList());
     }

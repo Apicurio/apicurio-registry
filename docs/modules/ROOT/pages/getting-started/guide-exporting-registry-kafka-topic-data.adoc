@@ -7,9 +7,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-One of the supported {registry} storage options is Apache Kafka, which uses a Kafka topic named `kafkasql-journal` to store data.
-If you encounter a problem when using this storage option and want to report it to {registry} developers, you might need to provide an export of the data present in the `kafkasql-journal` topic for analysis.
-You can create such a topic export by using the `kcat` tool (formerly known as `kafkacat`).
+When {registry} uses Apache Kafka storage, it stores data in a Kafka topic named `kafkasql-journal`. You can export the data in this topic by using the `kcat` tool (formerly known as `kafkacat`), for example, to report a storage problem to {registry} developers for analysis.
 
 == Prerequisites
 
@@ -118,7 +116,7 @@ export KAFKA_BOOTSTRAP_SERVER="my-kafka-cluster-kafka-bootstrap.default.svc:9092
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following examples show how to use `kcat` to list topics and create topic exports.
+You can use `kcat` to list Kafka topics, to export the `kafkasql-journal` topic in JSON format with base64-encoded keys and values, and to create an export file for every listed topic.
 
 * List Kafka topics:
 +

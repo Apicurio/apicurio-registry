@@ -280,7 +280,14 @@ Response: Agent Card JSON document
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Agent Cards support three visibility levels, controlled by the `apicurio.agent.visibility` artifact label. When any authentication mechanism is enabled, `GET /.well-known/agents` and the AI Catalog and ARD endpoints described in xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] enforce visibility.
+Agent Cards support three visibility levels, controlled by the `apicurio.agent.visibility` artifact label. Set the label on an Agent Card to control which clients can see it.
+
+ifndef::service-registry-downstream[]
+When any authentication mechanism is enabled, `GET /.well-known/agents` and the AI Catalog and ARD endpoints described in xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery] enforce visibility.
+endif::[]
+ifdef::service-registry-downstream[]
+When any authentication mechanism is enabled, `GET /.well-known/agents` and the AI Catalog and ARD endpoints enforce visibility.
+endif::[]
 
 .Agent visibility levels
 [cols="1,3",options="header"]
@@ -414,7 +421,9 @@ Agent Cards must conform to the A2A specification:
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-If you already document your API with OpenAPI, you can embed Agent Card metadata directly in your OpenAPI specification's `info` block using the `x-agent-card` vendor extension, instead of authoring and maintaining a separate `AGENT_CARD` artifact by hand. {registry} detects the extension, assembles a valid Agent Card from it, and stores it as a companion artifact.
+If you already document your API with OpenAPI, you can embed Agent Card metadata in the `info` block of your OpenAPI specification by using the `x-agent-card` vendor extension, instead of maintaining a separate `AGENT_CARD` artifact by hand.
+
+{registry} detects the extension, assembles a valid Agent Card from it, and stores it as a companion artifact.
 
 .Enabling OpenAPI-to-Agent-Card auto-generation
 [cols="2,1,3"]
@@ -804,7 +813,7 @@ client.groups().byGroupId("ai-agents").artifacts()
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following table describes the core A2A endpoints available in {registry}.
+{registry} exposes core A2A endpoints under `/.well-known` for getting its own Agent Card and for searching and retrieving registered Agent Cards, and core REST API endpoints for creating and reading Agent Card artifacts.
 
 [cols="2,1,4",options="header"]
 |===

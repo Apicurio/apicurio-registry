@@ -7,6 +7,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 [role="_abstract"]
 You can deploy {registry} with KafkaSQL storage connected to a Kafka instance that requires TLS encryption, SASL authentication, or both.
+
 {registry} supports multiple security configurations for Kafka connections, including TLS-only encryption, OAUTHBEARER authentication, and SCRAM-SHA-512 authentication.
 
 

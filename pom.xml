@@ -371,8 +371,7 @@
     <cel-standalone.version>0.6.0</cel-standalone.version>
 
     <!-- Kroxylicious Authorizer API (shared authorization contract) -->
-    <!-- TODO: switch to 0.25.0 once released to Maven Central -->
-    <kroxylicious.version>0.25.0-SNAPSHOT</kroxylicious.version>
+    <kroxylicious.version>0.25.0</kroxylicious.version>
   </properties>
 
   <dependencyManagement>
@@ -1662,17 +1661,6 @@
           <id>confluent</id>
           <name>Confluent</name>
           <url>https://packages.confluent.io/maven/</url>
-        </repository>
-        <!-- TODO: remove once kroxylicious 0.25.0 is released to Maven Central -->
-        <repository>
-          <id>central-snapshots</id>
-          <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-          <releases>
-            <enabled>false</enabled>
-          </releases>
-          <snapshots>
-            <enabled>true</enabled>
-          </snapshots>
         </repository>
       </repositories>
     </profile>

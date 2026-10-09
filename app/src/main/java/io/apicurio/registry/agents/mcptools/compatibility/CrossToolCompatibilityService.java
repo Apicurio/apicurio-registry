@@ -168,6 +168,7 @@ public class CrossToolCompatibilityService {
                 producer.closed() != null, this::accepts);
         Set<CompatibilityReason> reasons = new LinkedHashSet<>();
         attributor.unrestrictedOutputType().ifPresent(reasons::add);
+        reasons.addAll(attributor.numbersNotAccepted());
         boolean unattributed = false;
         for (Map.Entry<DifferenceKey, Difference> difference : asWritten.entrySet()) {
             if (closed.containsKey(difference.getKey())) {

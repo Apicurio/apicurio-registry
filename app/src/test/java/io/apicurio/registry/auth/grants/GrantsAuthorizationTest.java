@@ -55,6 +55,7 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
             map.put("quarkus.oidc.tenant-enabled", "false");
             map.put("quarkus.http.auth.basic", "true");
             map.put("apicurio.auth.role-based-authorization", "true");
+            map.put("apicurio.auth.owner-only-authorization", "true");
             map.put("quarkus.security.users.embedded.enabled", "true");
             map.put("quarkus.security.users.embedded.plain-text", "true");
             map.put("quarkus.security.users.embedded.users.alice", "alice");
@@ -167,6 +168,9 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
 
         as("bob2").get(artifactPath(TEAM_C, owned)).then().statusCode(200);
         as("bob2").get(artifactPath(TEAM_C, other)).then().statusCode(403);
+        // Owning an artifact also grants access to its content
+        as("bob2").get("/registry/v3/ids/contentIds/" + contentIdOf(TEAM_C, owned)).then().statusCode(200);
+        as("bob2").get("/registry/v3/ids/contentIds/" + contentIdOf(TEAM_C, other)).then().statusCode(403);
     }
 
     @Test
@@ -347,7 +351,24 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
                 .body("servers.server.name", not(hasItem(allowed)));
     }
 
+    @Test
+    public void ownerOnlyAuthorizationAppliesToBodyAddressedTargets() {
+        // bob1 and bob2 both hold write grants on io.github.shared*, but only the owner may publish
+        String name = "io.github.shared" + UUID.randomUUID().toString().replace("-", "").substring(0, 8) + "/w";
+
+        as("bob1").contentType(CT_JSON).body(serverJson(name, "1.0.0")).post("/mcp-registry/v0.1/publish")
+                .then().statusCode(200);
+        as("bob2").contentType(CT_JSON).body(serverJson(name, "2.0.0")).post("/mcp-registry/v0.1/publish")
+                .then().statusCode(403);
+        as("bob1").contentType(CT_JSON).body(serverJson(name, "2.0.0")).post("/mcp-registry/v0.1/publish")
+                .then().statusCode(200);
+    }
+
     private static String serverJson(String name) {
-        return "{\"name\":\"" + name + "\",\"version\":\"1.0.0\",\"description\":\"Grants test\"}";
+        return serverJson(name, "1.0.0");
+    }
+
+    private static String serverJson(String name, String version) {
+        return "{\"name\":\"" + name + "\",\"version\":\"" + version + "\",\"description\":\"Grants test\"}";
     }
 }

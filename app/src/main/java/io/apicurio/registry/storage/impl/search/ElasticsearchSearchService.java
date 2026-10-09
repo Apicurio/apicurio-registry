@@ -12,6 +12,7 @@ import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.AuthorizationFilter;
+import io.apicurio.registry.storage.dto.AuthorizationNames;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
@@ -322,36 +323,32 @@ public class ElasticsearchSearchService {
     }
 
     /**
-     * Builds the per-resource authorization restriction. Documents are matched by their grants
-     * resource name {@code groupId/artifactId} (the default group is indexed as {@code default}),
-     * decomposed exactly as in the SQL implementation because group IDs may contain '/'. The
-     * owner clause is not applied: the index stores the version owner as analyzed text, so
-     * artifact ownership cannot be matched exactly. That only narrows results.
+     * Builds the per-resource authorization restriction. Artifact name patterns are decomposed by
+     * {@link AuthorizationNames}, exactly as in the SQL implementation and point access. The index
+     * does not store artifact ownership, so owned artifacts are matched by the names in
+     * {@link AuthorizationFilter#ownedArtifacts()}.
      */
     Query buildAuthorizationQuery(AuthorizationFilter filter) {
         Query allowed = filter.allowAll() ? Query.of(q -> q.matchAll(m -> m))
                 : anyNameMatches(filter.allowExact(), filter.allowPrefix());
         Query denied = anyNameMatches(filter.denyExact(), filter.denyPrefix());
-        return Query.of(q -> q.bool(b -> b.must(allowed).mustNot(denied)));
+        Query byGrants = Query.of(q -> q.bool(b -> b.must(allowed).mustNot(denied)));
+        if (filter.ownedArtifacts().isEmpty()) {
+            return byGrants;
+        }
+        // Owners always see their artifacts (resolved by ElasticsearchSearchDecorator)
+        Query owned = anyNameMatches(filter.ownedArtifacts(), Set.of());
+        return Query.of(q -> q.bool(b -> b.should(byGrants).should(owned).minimumShouldMatch("1")));
     }
 
-    /** Matches documents whose resource name equals one of {@code exact} or starts with a prefix. */
+    /** Matches documents whose artifact name equals one of {@code exact} or starts with a prefix. */
     private static Query anyNameMatches(Set<String> exact, Set<String> prefixes) {
         List<Query> clauses = new ArrayList<>();
         for (String name : exact) {
-            for (int k = name.indexOf('/'); k >= 0; k = name.indexOf('/', k + 1)) {
-                clauses.add(groupAndArtifact(name.substring(0, k),
-                        termQuery("artifactId", name.substring(k + 1))));
-            }
+            AuthorizationNames.artifactsNamed(name).forEach(c -> clauses.add(clauseQuery(c)));
         }
         for (String prefix : prefixes) {
-            // Either the group alone starts with the prefix...
-            clauses.add(prefixQuery("groupId", prefix));
-            // ...or the prefix spans the whole group plus the start of the artifact ID
-            for (int k = prefix.indexOf('/'); k >= 0; k = prefix.indexOf('/', k + 1)) {
-                clauses.add(groupAndArtifact(prefix.substring(0, k),
-                        prefixQuery("artifactId", prefix.substring(k + 1))));
-            }
+            AuthorizationNames.artifactsWithPrefix(prefix).forEach(c -> clauses.add(clauseQuery(c)));
         }
         if (clauses.isEmpty()) {
             return Query.of(q -> q.matchNone(m -> m));
@@ -359,8 +356,16 @@ public class ElasticsearchSearchService {
         return Query.of(q -> q.bool(b -> b.should(clauses).minimumShouldMatch("1")));
     }
 
-    private static Query groupAndArtifact(String groupId, Query artifactQuery) {
-        return Query.of(q -> q.bool(b -> b.must(termQuery("groupId", groupId)).must(artifactQuery)));
+    /** The default group is indexed with the group ID {@code default}. */
+    private static Query clauseQuery(AuthorizationNames.Clause clause) {
+        Query group = clause.groupPrefix() ? prefixQuery("groupId", clause.group())
+                : termQuery("groupId", clause.group());
+        if (clause.artifact() == null) {
+            return group;
+        }
+        Query artifact = clause.artifactPrefix() ? prefixQuery("artifactId", clause.artifact())
+                : termQuery("artifactId", clause.artifact());
+        return Query.of(q -> q.bool(b -> b.must(group).must(artifact)));
     }
 
     private static Query termQuery(String field, String value) {

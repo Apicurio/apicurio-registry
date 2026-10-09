@@ -1,7 +1,7 @@
 package io.apicurio.registry.storage.impl.sql.repositories;
 
 import io.apicurio.registry.storage.dto.AuthorizationFilter;
-import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.storage.dto.AuthorizationNames;
 import io.apicurio.registry.storage.impl.sql.SqlStatementVariableBinder;
 
 import java.util.List;
@@ -14,21 +14,14 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
  * per-resource authorization reaches SQL, for artifact, version and group searches on every
  * SQL-backed storage variant.
  *
- * <p>Grants name artifacts {@code groupId/artifactId}. Group IDs may themselves contain '/', so a
- * name pattern is never split at a single slash; it is decomposed exactly:</p>
- * <ul>
- * <li>{@code "g/a"} equals pattern {@code n} iff, for some '/' at position k in {@code n},
- * {@code g = n[0,k)} and {@code a = n[k+1..]}</li>
- * <li>{@code "g/a"} starts with {@code p} iff {@code g} starts with {@code p}, or for some '/' at
- * position k in {@code p}, {@code g = p[0,k)} and {@code a} starts with {@code p[k+1..]}</li>
- * </ul>
- * <p>The default group is named {@code default} in grants but stored as
- * {@link RegistryContentUtils#normalizeGroupId(String) a reserved ID}, which is handled explicitly.
- * Matching follows the database collation (case-insensitive on some MySQL and SQL Server setups).</p>
+ * <p>Artifact name patterns are decomposed into group/artifact clauses by
+ * {@link AuthorizationNames}, the same code point access uses to name artifacts. The default
+ * group, named {@code default}, maps to its stored ID. Matching follows the database collation
+ * (case-insensitive on some MySQL and SQL Server setups).</p>
  */
 final class SqlAuthorizationFilter {
 
-    private static final String DEFAULT_GROUP = "default";
+    private static final String DEFAULT_GROUP = AuthorizationNames.DEFAULT_GROUP;
     private static final String STORED_DEFAULT_GROUP = normalizeGroupId(null);
     private static final String LIKE = " LIKE ? ESCAPE '" + SqlSearchRepository.LIKE_ESCAPE_CHAR + "'";
 
@@ -120,38 +113,56 @@ final class SqlAuthorizationFilter {
 
     private static void appendArtifactExact(StringBuilder sql, List<SqlStatementVariableBinder> binders,
             String name, String groupColumn, String artifactColumn) {
-        boolean first = true;
-        for (int k = name.indexOf('/'); k >= 0; k = name.indexOf('/', k + 1)) {
-            sql.append(first ? "" : " OR ");
-            sql.append("(").append(groupColumn).append(" = ? AND ").append(artifactColumn).append(" = ?)");
-            bind(binders, normalizeGroupId(name.substring(0, k)));
-            bind(binders, name.substring(k + 1));
-            first = false;
-        }
-        if (first) {
-            // No '/': cannot name an artifact
-            sql.append("1 = 0");
-        }
+        appendClauses(sql, binders, AuthorizationNames.artifactsNamed(name), groupColumn, artifactColumn);
     }
 
     private static void appendArtifactPrefix(StringBuilder sql, List<SqlStatementVariableBinder> binders,
             String prefix, String groupColumn, String artifactColumn) {
-        // Either the group alone already starts with the prefix...
-        appendGroupPrefix(sql, binders, prefix, groupColumn);
-        // ...or the prefix spans the whole group plus the start of the artifact ID
-        for (int k = prefix.indexOf('/'); k >= 0; k = prefix.indexOf('/', k + 1)) {
-            sql.append(" OR (").append(groupColumn).append(" = ? AND ").append(artifactColumn).append(LIKE)
-                    .append(")");
-            bind(binders, normalizeGroupId(prefix.substring(0, k)));
-            bind(binders, SqlSearchRepository.escapeLikePattern(prefix.substring(k + 1)) + "%");
+        appendClauses(sql, binders, AuthorizationNames.artifactsWithPrefix(prefix), groupColumn, artifactColumn);
+    }
+
+    /** ORs the clauses; no clauses matches nothing. */
+    private static void appendClauses(StringBuilder sql, List<SqlStatementVariableBinder> binders,
+            List<AuthorizationNames.Clause> clauses, String groupColumn, String artifactColumn) {
+        if (clauses.isEmpty()) {
+            sql.append("1 = 0");
+            return;
+        }
+        boolean first = true;
+        for (AuthorizationNames.Clause clause : clauses) {
+            sql.append(first ? "(" : " OR (");
+            if (clause.groupPrefix()) {
+                appendGroupPrefixRaw(sql, binders, clause.group(), groupColumn);
+            } else {
+                sql.append(groupColumn).append(" = ?");
+                bind(binders, normalizeGroupId(clause.group()));
+            }
+            if (clause.artifact() != null) {
+                sql.append(" AND ").append(artifactColumn);
+                if (clause.artifactPrefix()) {
+                    sql.append(LIKE);
+                    bind(binders, SqlSearchRepository.escapeLikePattern(clause.artifact()) + "%");
+                } else {
+                    sql.append(" = ?");
+                    bind(binders, clause.artifact());
+                }
+            }
+            sql.append(")");
+            first = false;
         }
     }
 
-    private static void appendGroupPrefix(StringBuilder sql, List<SqlStatementVariableBinder> binders,
+    /** Raw (stored) group IDs starting with {@code prefix}, excluding the stored default group. */
+    private static void appendGroupPrefixRaw(StringBuilder sql, List<SqlStatementVariableBinder> binders,
             String prefix, String groupColumn) {
         sql.append("(").append(groupColumn).append(LIKE).append(" AND ").append(groupColumn).append(" <> ?)");
         bind(binders, SqlSearchRepository.escapeLikePattern(prefix) + "%");
         bind(binders, STORED_DEFAULT_GROUP);
+    }
+
+    private static void appendGroupPrefix(StringBuilder sql, List<SqlStatementVariableBinder> binders,
+            String prefix, String groupColumn) {
+        appendGroupPrefixRaw(sql, binders, prefix, groupColumn);
         if (DEFAULT_GROUP.startsWith(prefix)) {
             sql.append(" OR ").append(groupColumn).append(" = ?");
             bind(binders, STORED_DEFAULT_GROUP);

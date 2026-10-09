@@ -6,6 +6,7 @@ import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.AuthorizationFilter;
+import io.apicurio.registry.storage.dto.AuthorizationNames;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
@@ -34,8 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * Verifies the storage translation of {@link AuthorizationFilter} (per-resource authorization
  * search pre-filtering) against the reference pattern semantics, using names that are easy to get
- * wrong in SQL: group IDs containing '/', the default group, LIKE metacharacters and the LIKE
- * escape character, and near-miss prefixes.
+ * wrong in SQL: IDs containing '/' and '%' (escaped in names), the default group, LIKE
+ * metacharacters and the LIKE escape character, and near-miss prefixes.
  */
 @QuarkusTest
 public class AuthorizationFilterStorageTest extends AbstractResourceTestBase {
@@ -99,17 +100,14 @@ public class AuthorizationFilterStorageTest extends AbstractResourceTestBase {
         }
     }
 
-    /**
-     * Identifies an artifact by its (group, artifact) pair. Two different artifacts can share a
-     * grants resource name (group "a" + artifact "b/c" vs group "a/b" + artifact "c"), so results
-     * are compared by key, not by grants name.
-     */
+    /** Identifies an artifact by its (group, artifact) pair. */
     private static String key(String group, String artifactId) {
         return (group == null ? DEFAULT : group) + " :: " + artifactId;
     }
 
     private static String grantsName(String key) {
-        return key.replace(" :: ", "/");
+        int sep = key.indexOf(" :: ");
+        return AuthorizationNames.artifact(key.substring(0, sep), key.substring(sep + 4));
     }
 
     /** All artifacts of this test, as keys. */
@@ -155,20 +153,36 @@ public class AuthorizationFilterStorageTest extends AbstractResourceTestBase {
     }
 
     @Test
-    void groupPrefixIncludesGroupsWhoseIdContainsSlash() {
+    void groupPrefixMatchesOnlyThatGroup() {
         AuthorizationFilter filter = allow(Set.of(), Set.of(P + "a/"));
 
         assertArtifactsMatchReference(filter);
-        assertEquals(Set.of(key(P + "a", "x"), key(P + "a", "secret-1"), key(P + "a", "b/c"),
-                key(P + "a/b", "c")), searchArtifacts(filter));
+        assertEquals(Set.of(key(P + "a", "x"), key(P + "a", "secret-1"), key(P + "a", "b/c")),
+                searchArtifacts(filter));
+    }
+
+    /**
+     * Group "a" + artifact "b/c" and group "a/b" + artifact "c" must have different names, or a
+     * grant for one would authorize the other.
+     */
+    @Test
+    void namesAreUnambiguousWhenIdsContainSlash() {
+        AuthorizationFilter artifactWithSlash = allow(Set.of(P + "a/b/c"), Set.of());
+        AuthorizationFilter groupWithSlash = allow(Set.of(P + "a%2Fb/c"), Set.of());
+
+        assertArtifactsMatchReference(artifactWithSlash);
+        assertArtifactsMatchReference(groupWithSlash);
+        assertEquals(Set.of(key(P + "a", "b/c")), searchArtifacts(artifactWithSlash));
+        assertEquals(Set.of(key(P + "a/b", "c")), searchArtifacts(groupWithSlash));
     }
 
     @Test
-    void exactNameMatchesEverySplitAtSlash() {
-        AuthorizationFilter filter = allow(Set.of(P + "a/b/c"), Set.of());
-
-        assertArtifactsMatchReference(filter);
-        assertEquals(Set.of(key(P + "a", "b/c"), key(P + "a/b", "c")), searchArtifacts(filter));
+    void prefixEndingInsideAnEscapeMatchesEscapedGroups() {
+        assertArtifactsMatchReference(allow(Set.of(), Set.of(P + "a%")));
+        assertArtifactsMatchReference(allow(Set.of(), Set.of(P + "a%2")));
+        assertArtifactsMatchReference(allow(Set.of(), Set.of(P + "a%2F")));
+        assertArtifactsMatchReference(allow(Set.of(), Set.of(P + "%25")));
+        assertEquals(Set.of(key(P + "a/b", "c")), searchArtifacts(allow(Set.of(), Set.of(P + "a%2"))));
     }
 
     @Test
@@ -179,7 +193,7 @@ public class AuthorizationFilterStorageTest extends AbstractResourceTestBase {
     @Test
     void likeMetacharactersAndEscapeCharacterMatchLiterally() {
         assertArtifactsMatchReference(allow(Set.of(), Set.of(P + "_")));
-        assertArtifactsMatchReference(allow(Set.of(), Set.of(P + "%")));
+        assertArtifactsMatchReference(allow(Set.of(), Set.of(P + "%25")));
         assertArtifactsMatchReference(allow(Set.of(), Set.of(P + "!")));
         assertEquals(Set.of(key(P + "_", "x")), searchArtifacts(allow(Set.of(), Set.of(P + "_"))));
     }
@@ -201,7 +215,7 @@ public class AuthorizationFilterStorageTest extends AbstractResourceTestBase {
     @Test
     void denyRulesApplyOnTopOfPrefixAllow() {
         assertArtifactsMatchReference(new AuthorizationFilter(false, Set.of(), Set.of(P),
-                Set.of(), Set.of(P + "a/b", P + "%"), null));
+                Set.of(), Set.of(P + "a/b", P + "a%2Fb/", P + "%25"), null));
     }
 
     @Test

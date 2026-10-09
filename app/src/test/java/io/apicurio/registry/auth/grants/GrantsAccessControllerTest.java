@@ -6,9 +6,13 @@ import io.apicurio.authz.User;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.kroxylicious.identity.Subject;
 import io.quarkus.security.runtime.QuarkusPrincipal;
 import io.quarkus.security.runtime.QuarkusSecurityIdentity;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -23,6 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for the Registry side of per-resource authorization: resource naming, the mapping
@@ -46,11 +54,23 @@ public class GrantsAccessControllerTest {
     @TempDir
     Path dir;
 
+    /** Storage in which team-b/owned is owned by "owner" and nothing else exists. */
+    private final RegistryStorage storage = mock(RegistryStorage.class);
+
+    @BeforeEach
+    void setUpStorage() {
+        when(storage.getArtifactMetaData(anyString(), anyString()))
+                .thenThrow(new ArtifactNotFoundException("not found"));
+        doReturn(ArtifactMetaDataDto.builder().groupId("team-b").artifactId("owned").owner("owner").build())
+                .when(storage).getArtifactMetaData("team-b", "owned");
+    }
+
     private GrantsAccessController controller(String user, String... roles) {
         GrantsAccessController controller = new GrantsAccessController();
         OTelMetricsProvider metrics = new OTelMetricsProvider();
         metrics.init();
         controller.metrics = metrics;
+        controller.setStorage(storage);
         controller.setSecurityIdentity(QuarkusSecurityIdentity.builder()
                 .setPrincipal(new QuarkusPrincipal(user))
                 .addRoles(Set.of(roles))
@@ -178,6 +198,20 @@ public class GrantsAccessControllerTest {
 
             assertTrue(dev.isAllowed(AuthorizedLevel.Read, shared));
             assertFalse(dev.isAllowed(AuthorizedLevel.Read, foreign));
+        }
+    }
+
+    @Test
+    void contentIsReadableByTheOwnerOfAnArtifactUsingIt() throws Exception {
+        GrantsAccessController owner = controller("owner");
+        GrantsAccessController other = controller("other");
+        AuthorizedResource content = AuthorizedResource.content(List.of(AuthorizedResource.artifact("team-b", "owned")));
+        try (GrantsAuthorizer authorizer = authorizer()) {
+            owner.setAuthorizer(authorizer);
+            other.setAuthorizer(authorizer);
+
+            assertTrue(owner.isAllowed(AuthorizedLevel.Read, content));
+            assertFalse(other.isAllowed(AuthorizedLevel.Read, content));
         }
     }
 

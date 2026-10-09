@@ -15,7 +15,8 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
-import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.AuthorizationNames;
 import io.kroxylicious.authorizer.service.Action;
 import io.kroxylicious.authorizer.service.AuthorizeResult;
 import io.kroxylicious.authorizer.service.Decision;
@@ -31,9 +32,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Per-resource authorization backed by a Kroxylicious {@link io.kroxylicious.authorizer.service.Authorizer}
- * (the grants-file based {@link GrantsAuthorizer}). Resources are named {@code groupId/artifactId}
- * (resource type {@code artifact}) or {@code groupId} (resource type {@code group}); the default
- * group is named {@code default}.
+ * (the grants-file based {@link GrantsAuthorizer}). Resources are named by
+ * {@link AuthorizationNames}.
  */
 @Singleton
 public class GrantsAccessController extends AbstractAccessController {
@@ -41,7 +41,6 @@ public class GrantsAccessController extends AbstractAccessController {
     private static final Logger LOG = LoggerFactory.getLogger(GrantsAccessController.class);
     private static final Logger AUDIT = LoggerFactory.getLogger("io.apicurio.registry.audit.authz");
 
-    private static final String DEFAULT_GROUP = "default";
     private static final String TYPE_ARTIFACT = "artifact";
     private static final String TYPE_GROUP = "group";
     private static final String TYPE_CONTENT = "content";
@@ -58,6 +57,11 @@ public class GrantsAccessController extends AbstractAccessController {
     // Visible for testing
     void setSecurityIdentity(SecurityIdentity securityIdentity) {
         this.securityIdentity = securityIdentity;
+    }
+
+    // Visible for testing
+    void setStorage(RegistryStorage storage) {
+        this.storage = storage;
     }
 
     public GrantsAuthorizer getAuthorizer() {
@@ -111,8 +115,8 @@ public class GrantsAccessController extends AbstractAccessController {
 
     /**
      * Content can be shared by many artifacts: access is allowed if the caller may access at least
-     * one artifact using it. Content no artifact uses (including unknown IDs) is denied, except
-     * for grants-file admins.
+     * one artifact using it, or owns one. Content no artifact uses (including unknown IDs) is
+     * denied, except for grants-file admins.
      */
     private boolean decideContent(Subject subject, AuthorizedLevel level, List<AuthorizedResource> users) {
         ResourceType<?> operation = toArtifactOp(level);
@@ -122,7 +126,9 @@ public class GrantsAccessController extends AbstractAccessController {
                 .toList();
         boolean allowed = actions.isEmpty()
                 ? isGrantsAdmin()
-                : !authorize(subject, actions).allowed().isEmpty();
+                : !authorize(subject, actions).allowed().isEmpty()
+                        // Owners bypass grants for their artifacts, so also for their content
+                        || users.stream().anyMatch(this::isStrictOwner);
         record(allowed, TYPE_CONTENT, level, "content used by " + actions.size() + " artifact(s)");
         return allowed;
     }
@@ -180,19 +186,17 @@ public class GrantsAccessController extends AbstractAccessController {
     }
 
     /**
-     * @return the grants resource name of an artifact, {@code groupId/artifactId}, where the
-     *         default group is named {@code default}
+     * @return the grants resource name of an artifact; see {@link AuthorizationNames#artifact}
      */
     public static String buildResourceName(String groupId, String artifactId) {
-        return normalizeGroup(groupId) + "/" + artifactId;
+        return AuthorizationNames.artifact(groupId, artifactId);
     }
 
     /**
-     * @return the grants resource name of a group; the default group is named {@code default}
+     * @return the grants resource name of a group; see {@link AuthorizationNames#group}
      */
     public static String normalizeGroup(String groupId) {
-        String raw = groupId != null ? new GroupId(groupId).getRawGroupIdWithNull() : null;
-        return raw != null ? raw : DEFAULT_GROUP;
+        return AuthorizationNames.group(groupId);
     }
 
     private static RegistryResourceType.Artifact toArtifactOp(AuthorizedLevel level) {

@@ -10,14 +10,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Applies per-resource (grants) authorization to a resource that is identified by the request
- * body rather than by method parameters (for example creating a group, publishing an MCP server,
- * or renaming an Iceberg table), so {@link AuthorizedInterceptor} cannot resolve it.
+ * Applies resource-level authorization (owner-only authorization and per-resource grants) to a
+ * resource identified by the request body rather than by method parameters, for example when
+ * creating a group, publishing an MCP server, or renaming an Iceberg table. The
+ * {@link AuthorizedInterceptor} cannot resolve such resources.
  *
- * <p>The endpoint must still carry an {@link Authorized} annotation: this check runs after the
- * interceptor has applied authentication, RBAC and OBAC, and it honours the same bypasses
- * (authorization disabled, trusted proxy authorization, admin override, anonymous/authenticated
- * read access and ownership).</p>
+ * <p>The endpoint must still carry an {@link Authorized} annotation: the interceptor applies
+ * authentication and RBAC, and this check applies the same resource rules and bypasses as the
+ * interceptor (authentication disabled, trusted proxy authorization, admin override,
+ * anonymous/authenticated read access, RBAC admins for OBAC, and owners for grants).</p>
  */
 @ApplicationScoped
 public class ResourceAccessGuard {
@@ -34,24 +35,34 @@ public class ResourceAccessGuard {
     AdminOverride adminOverride;
 
     @Inject
+    RoleBasedAccessController rbac;
+
+    @Inject
     GrantsAccessControllerConfig grantsConfig;
 
     @Inject
     GrantsAccessController grantsAc;
 
     /**
-     * @throws ForbiddenException if per-resource authorization denies {@code level} on
-     *         {@code resource}
+     * @throws ForbiddenException if owner-only authorization or per-resource authorization denies
+     *         {@code level} on {@code resource}
      */
     public void requireAccess(AuthorizedLevel level, AuthorizedResource resource) {
-        if (!isEnforced(level)) {
+        if (level == AuthorizedLevel.None || isBypassed()) {
             return;
         }
-        if (grantsAc.isStrictOwner(resource) || grantsAc.isAllowed(level, resource)) {
-            return;
+        // Owner-only authorization: same rule as the interceptor (write operations, RBAC admins
+        // exempt, missing or unowned resources allowed)
+        if (authConfig.ownerOnlyAuthorizationEnabled.get() && level == AuthorizedLevel.Write
+                && !isAnonymous() && !(authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin())
+                && !grantsAc.isOwnerOf(resource, resource.kind() == AuthorizedResource.Kind.GROUP)) {
+            log.warn("OBAC enabled and operation not permitted due to wrong owner.");
+            throw new ForbiddenException(AuthorizedInterceptor.FORBIDDEN_MESSAGE);
         }
-        log.warn("Per-resource authorization denied access.");
-        throw new ForbiddenException(AuthorizedInterceptor.FORBIDDEN_MESSAGE);
+        if (isEnforced(level) && !grantsAc.isStrictOwner(resource) && !grantsAc.isAllowed(level, resource)) {
+            log.warn("Per-resource authorization denied access.");
+            throw new ForbiddenException(AuthorizedInterceptor.FORBIDDEN_MESSAGE);
+        }
     }
 
     /**
@@ -72,23 +83,33 @@ public class ResourceAccessGuard {
      *         trusted proxy authorization, admin override, anonymous/authenticated read access)
      */
     public boolean isEnforced(AuthorizedLevel level) {
-        if (!grantsConfig.isEnabled() || !authConfig.isAuthenticationEnabled()
-                || level == AuthorizedLevel.None) {
+        if (!grantsConfig.isEnabled() || level == AuthorizedLevel.None || isBypassed()) {
             return false;
         }
-        boolean anonymous = securityIdentity == null || securityIdentity.isAnonymous();
-        if (anonymous) {
+        if (isAnonymous()) {
             // The interceptor only lets anonymous callers through for reads when anonymous read
             // access is enabled, which deliberately overrides grants.
             return !(level == AuthorizedLevel.Read && authConfig.anonymousReadAccessEnabled.get());
         }
+        return !(level == AuthorizedLevel.Read && authConfig.authenticatedReadAccessEnabled.get());
+    }
+
+    /** Bypasses that skip all local resource authorization, as in the interceptor. */
+    private boolean isBypassed() {
+        if (!authConfig.isAuthenticationEnabled()) {
+            return true;
+        }
+        if (isAnonymous()) {
+            return false;
+        }
         if (authConfig.proxyHeaderAuthEnabled && authConfig.proxyHeaderTrustProxyAuthorization
                 && securityIdentity.getCredential(ProxyHeaderCredential.class) != null) {
-            return false;
+            return true;
         }
-        if (adminOverride.isAdmin()) {
-            return false;
-        }
-        return !(level == AuthorizedLevel.Read && authConfig.authenticatedReadAccessEnabled.get());
+        return adminOverride.isAdmin();
+    }
+
+    private boolean isAnonymous() {
+        return securityIdentity == null || securityIdentity.isAnonymous();
     }
 }

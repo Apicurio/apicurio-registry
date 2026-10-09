@@ -341,14 +341,23 @@ class GrantsAuthorizerTest {
     }
 
     @Test
-    void searchFilterDataIgnoresGrantsThatDoNotImplyRead() {
-        GrantsData data = GrantsData.parse("""
-                {"grants": [
-                  {"principal": "u", "operation": "something-else", "resource_type": "artifact",
-                   "resource_pattern_type": "prefix", "resource_pattern": "team-a/"}
-                ]}""");
-
-        assertTrue(data.getSearchFilterData("u", Set.of(), "artifact").allowsNothing());
+    void invalidGrantRejectsTheWholeDocument() {
+        String valid = "\"operation\": \"read\", \"resource_type\": \"artifact\", \"resource_pattern\": \"x/\"";
+        List<String> invalidGrants = List.of(
+                "{\"principal\": \"u\", \"principal_role\": \"r\", " + valid + "}",
+                "{" + valid + "}",
+                "{\"principal\": \"u\", \"operation\": \"reed\", \"resource_type\": \"artifact\", "
+                        + "\"resource_pattern\": \"x/\"}",
+                "{\"principal\": \"u\", \"operation\": \"read\", \"resource_pattern\": \"x/\"}",
+                "{\"principal\": \"u\", \"operation\": \"read\", \"resource_type\": \"artifact\"}",
+                "{\"principal\": \"u\", " + valid + ", \"resource_pattern_type\": \"regex\"}",
+                "{\"principal\": \"u\", " + valid + ", \"deny\": \"yes\"}");
+        for (String grant : invalidGrants) {
+            String json = "{\"grants\": [{\"principal\": \"ok\", " + valid + "}, " + grant + "]}";
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> GrantsData.parseStrict(json), grant);
+            assertTrue(e.getMessage().startsWith("Grant at index 1 "), e.getMessage());
+        }
     }
 
     /**

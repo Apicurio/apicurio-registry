@@ -1,9 +1,12 @@
 package io.apicurio.registry.storage.decorator;
 
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.AuthorizationFilter;
+import io.apicurio.registry.storage.dto.AuthorizationNames;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchFilterType;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
@@ -12,8 +15,11 @@ import io.apicurio.registry.storage.impl.search.ElasticsearchSearchService;
 import io.apicurio.registry.storage.impl.search.ElasticsearchStartupIndexer;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -24,6 +30,11 @@ import java.util.Set;
 @ApplicationScoped
 public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
         implements RegistryStorageDecorator {
+
+    private static final Logger log = LoggerFactory.getLogger(ElasticsearchSearchDecorator.class);
+
+    /** Upper bound on owned artifacts resolved for an index search restricted by authorization. */
+    static final int MAX_OWNED_ARTIFACTS = 1000;
 
     @Inject
     ElasticsearchSearchConfig config;
@@ -59,7 +70,7 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
                         + "available. Enable the Elasticsearch search index to use content search.");
             }
             try {
-                return searchService.searchVersions(filters, orderBy, orderDirection,
+                return searchService.searchVersions(resolveOwnership(filters), orderBy, orderDirection,
                         offset, limit, skipCount);
             } catch (IOException e) {
                 throw new RegistryStorageException(
@@ -79,7 +90,7 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
                         + "available. Enable the Elasticsearch search index to use content search.");
             }
             try {
-                return searchService.searchArtifacts(filters, orderBy, orderDirection,
+                return searchService.searchArtifacts(resolveOwnership(filters), orderBy, orderDirection,
                         offset, limit, skipCount);
             } catch (IOException e) {
                 throw new RegistryStorageException(
@@ -87,5 +98,34 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
             }
         }
         return delegate.searchArtifacts(filters, orderBy, orderDirection, offset, limit, skipCount);
+    }
+
+    /**
+     * The index does not store artifact ownership (and would go stale on ownership transfers), so
+     * per-resource authorization owner matches are resolved from the primary storage and passed to
+     * the index query as artifact names.
+     */
+    private Set<SearchFilter> resolveOwnership(Set<SearchFilter> filters) {
+        Set<SearchFilter> resolved = new HashSet<>();
+        for (SearchFilter filter : filters) {
+            if (filter.getType() == SearchFilterType.authorization
+                    && filter.getAuthorizationValue().owner() != null) {
+                AuthorizationFilter authorization = filter.getAuthorizationValue();
+                ArtifactSearchResultsDto owned = delegate.searchArtifacts(
+                        Set.of(SearchFilter.ofAuthorization(AuthorizationFilter.ownedBy(authorization.owner()))),
+                        OrderBy.name, OrderDirection.asc, 0, MAX_OWNED_ARTIFACTS, true);
+                if (owned.getArtifacts().size() >= MAX_OWNED_ARTIFACTS) {
+                    log.warn("Caller owns more than {} artifacts; index searches include only the first {}.",
+                            MAX_OWNED_ARTIFACTS, MAX_OWNED_ARTIFACTS);
+                }
+                Set<String> names = new HashSet<>();
+                owned.getArtifacts().forEach(a -> names.add(AuthorizationNames.artifact(a.getGroupId(),
+                        a.getArtifactId())));
+                resolved.add(SearchFilter.ofAuthorization(authorization.withOwnedArtifacts(names)));
+            } else {
+                resolved.add(filter);
+            }
+        }
+        return resolved;
     }
 }

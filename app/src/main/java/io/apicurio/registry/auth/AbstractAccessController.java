@@ -95,22 +95,20 @@ public abstract class AbstractAccessController implements IAccessController {
     protected boolean isOwner(InvocationContext context) {
         Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
         AuthorizedStyle style = annotation.style();
-        Optional<AuthorizedResource> resource = resolveResource(context);
-        if (resource.isEmpty()) {
-            return true;
-        }
-        AuthorizedResource r = resource.get();
+        boolean groupStyle = style == AuthorizedStyle.GroupOnly || style == AuthorizedStyle.IcebergNamespace;
+        return resolveResource(context).map(r -> isOwnerOf(r, groupStyle)).orElse(true);
+    }
+
+    /**
+     * Owner-based authorization (OBAC) rule for a resource: artifacts must be owned by the
+     * caller; groups only when {@code groupStyle} and group access is limited by configuration.
+     * Lenient: missing or unowned resources are allowed, and the endpoint decides.
+     */
+    public boolean isOwnerOf(AuthorizedResource r, boolean groupStyle) {
         return switch (r.kind()) {
             case ARTIFACT -> verifyArtifactOwner(r.groupId(), r.artifactId());
-            case GROUP -> {
-                // Group ownership is only enforced when explicitly configured
-                boolean groupStyle = style == AuthorizedStyle.GroupOnly
-                        || style == AuthorizedStyle.IcebergNamespace;
-                if (groupStyle && authConfig.ownerOnlyAuthorizationLimitGroupAccess.get()) {
-                    yield verifyGroupOwner(r.groupId());
-                }
-                yield true;
-            }
+            case GROUP -> !(groupStyle && authConfig.ownerOnlyAuthorizationLimitGroupAccess.get())
+                    || verifyGroupOwner(r.groupId());
             case CONTENT -> true;
         };
     }

@@ -27,6 +27,10 @@ public class GrantsData {
         this.grants = grants;
     }
 
+    private static IllegalArgumentException invalid(int index, String problem) {
+        return new IllegalArgumentException("Grant at index " + index + " " + problem);
+    }
+
     /** @return grants data with no grants and no admin roles (denies everything) */
     public static GrantsData empty() {
         return new GrantsData(Set.of(), List.of());
@@ -48,9 +52,8 @@ public class GrantsData {
     }
 
     /**
-     * Parses grants data, rejecting malformed input. Individual grants with missing fields are
-     * skipped with a warning; a document that is not valid JSON, or whose root is not an object,
-     * is rejected.
+     * Parses grants data, rejecting malformed input: invalid JSON, a root that is not an object,
+     * a missing {@code grants} array, or any invalid grant.
      *
      * @throws IllegalArgumentException if the document is malformed
      */
@@ -87,29 +90,26 @@ public class GrantsData {
                 String resourcePatternType = g.path("resource_pattern_type").asText("");
                 String resourcePattern = g.path("resource_pattern").asText("");
 
-                if (principal.isEmpty() && principalRole.isEmpty()) {
-                    LOG.warn("Grant at index {} has no principal or principal_role, skipping.", i);
-                    continue;
-                }
-                if (operation.isEmpty()) {
-                    LOG.warn("Grant at index {} has no operation, skipping.", i);
-                    continue;
-                }
-                if (resourceType.isEmpty()) {
-                    LOG.warn("Grant at index {} has no resource_type, skipping.", i);
-                    continue;
-                }
-                if (resourcePattern.isEmpty()) {
-                    LOG.warn("Grant at index {} has no resource_pattern, skipping.", i);
-                    continue;
+                // Any invalid grant rejects the whole document: silently skipping a deny rule
+                // would grant access the operator meant to forbid.
+                if (principal.isEmpty() == principalRole.isEmpty()) {
+                    throw invalid(i, "must have exactly one of 'principal' or 'principal_role'");
                 }
                 if (!VALID_OPERATIONS.contains(operation)) {
-                    LOG.warn("Grant at index {} has unrecognized operation '{}'. "
-                            + "Valid values: read, write, admin.", i, operation);
+                    throw invalid(i, "has operation '" + operation + "'; expected read, write or admin");
+                }
+                if (resourceType.isEmpty()) {
+                    throw invalid(i, "has no 'resource_type'");
+                }
+                if (resourcePattern.isEmpty()) {
+                    throw invalid(i, "has no 'resource_pattern'");
                 }
                 if (!resourcePatternType.isEmpty() && !VALID_PATTERN_TYPES.contains(resourcePatternType)) {
-                    LOG.warn("Grant at index {} has unrecognized resource_pattern_type '{}'. "
-                            + "Valid values: prefix, exact.", i, resourcePatternType);
+                    throw invalid(i, "has resource_pattern_type '" + resourcePatternType
+                            + "'; expected prefix or exact");
+                }
+                if (g.has("deny") && !g.get("deny").isBoolean()) {
+                    throw invalid(i, "has a non-boolean 'deny'");
                 }
 
                 boolean deny = g.path("deny").asBoolean(false);

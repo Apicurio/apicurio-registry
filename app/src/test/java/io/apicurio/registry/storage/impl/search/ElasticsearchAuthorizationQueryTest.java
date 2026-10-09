@@ -4,6 +4,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import io.apicurio.authz.SearchFilterData;
 import io.apicurio.registry.storage.dto.AuthorizationFilter;
+import io.apicurio.registry.storage.dto.AuthorizationNames;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -35,6 +36,11 @@ class ElasticsearchAuthorizationQueryTest {
         return List.of(
                 new AuthorizationFilter(false, Set.of(), Set.of("team-a/"), Set.of(), Set.of(), null),
                 new AuthorizationFilter(false, Set.of("team-a/b/c"), Set.of(), Set.of(), Set.of(), null),
+                new AuthorizationFilter(false, Set.of("team-a%2Fb/c"), Set.of("team-a%"), Set.of(), Set.of(), null),
+                new AuthorizationFilter(false, Set.of(), Set.of(), Set.of(), Set.of(), "carol",
+                        Set.of("team-ab/x")),
+                new AuthorizationFilter(false, Set.of(), Set.of("team-a/"), Set.of(), Set.of("team-a/"), "carol",
+                        Set.of("team-a/secret-1")),
                 new AuthorizationFilter(false, Set.of(), Set.of("team-a"), Set.of(), Set.of("team-a/secret"), null),
                 new AuthorizationFilter(true, Set.of(), Set.of(), Set.of("team-ab/x"), Set.of("def"), null),
                 new AuthorizationFilter(false, Set.of("default/shared"), Set.of(), Set.of(), Set.of(), null),
@@ -49,20 +55,33 @@ class ElasticsearchAuthorizationQueryTest {
             SearchFilterData reference = new SearchFilterData(filter.allowAll(), filter.allowExact(),
                     filter.allowPrefix(), filter.denyExact(), filter.denyPrefix());
             for (Map<String, String> doc : DOCS) {
-                String name = doc.get("groupId") + "/" + doc.get("artifactId");
-                assertEquals(reference.matches(name), evaluate(query, doc), filter + " on " + name);
+                String name = AuthorizationNames.artifact(doc.get("groupId"), doc.get("artifactId"));
+                boolean expected = reference.matches(name) || filter.ownedArtifacts().contains(name);
+                assertEquals(expected, evaluate(query, doc), filter + " on " + name);
             }
         }
     }
 
     @Test
-    void exactNameMatchesBothSplitsAtSlash() {
-        Query query = service.buildAuthorizationQuery(
+    void namesAreUnambiguousWhenIdsContainSlash() {
+        Query artifactWithSlash = service.buildAuthorizationQuery(
                 new AuthorizationFilter(false, Set.of("team-a/b/c"), Set.of(), Set.of(), Set.of(), null));
+        Query groupWithSlash = service.buildAuthorizationQuery(
+                new AuthorizationFilter(false, Set.of("team-a%2Fb/c"), Set.of(), Set.of(), Set.of(), null));
 
-        assertTrue(evaluate(query, doc("team-a", "b/c")));
-        assertTrue(evaluate(query, doc("team-a/b", "c")));
-        assertFalse(evaluate(query, doc("team-a", "x")));
+        assertTrue(evaluate(artifactWithSlash, doc("team-a", "b/c")));
+        assertFalse(evaluate(artifactWithSlash, doc("team-a/b", "c")));
+        assertTrue(evaluate(groupWithSlash, doc("team-a/b", "c")));
+        assertFalse(evaluate(groupWithSlash, doc("team-a", "b/c")));
+    }
+
+    @Test
+    void ownedArtifactsMatchDespiteDenyRules() {
+        Query query = service.buildAuthorizationQuery(new AuthorizationFilter(false, Set.of(), Set.of(),
+                Set.of(), Set.of("team-a/"), "carol", Set.of("team-a/x")));
+
+        assertTrue(evaluate(query, doc("team-a", "x")));
+        assertFalse(evaluate(query, doc("team-a", "secret-1")));
     }
 
     /** Minimal evaluator for the query shapes buildAuthorizationQuery emits. */

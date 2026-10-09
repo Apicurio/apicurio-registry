@@ -96,9 +96,13 @@ Key interactions:
 
 - **Admins** bypass grants (admin override, or a role listed in `config.admin_roles`).
 - **Owners bypass grants**, independently of whether OBAC is enabled. The bypass is strict: it applies
-  only when the addressed resource exists and its recorded owner is the caller. Missing resources and
+  only when the addressed resource exists and its recorded owner is the caller (for content: owner of any
+  artifact using it). Missing resources and
   resources without an owner never bypass. Creating an artifact still requires `write` on the group.
 - **RBAC runs before grants.** Grants restrict within what RBAC allows.
+- **Grants files are validated strictly.** Any invalid grant (both or neither principal field, unknown
+  operation or pattern type, non-boolean `deny`) rejects the whole file, since skipping an invalid
+  deny rule would fail open.
 - **Deny rules take precedence.** A deny on an operation also denies every operation that implies it:
   denying `read` blocks all access; denying `write` makes a resource read-only.
 - **`authenticated-read-access` / `anonymous-read-access`** override read grants (startup warning).
@@ -117,12 +121,14 @@ owner. Storage translates it into its query:
 
 - SQL (`SqlAuthorizationFilter`): one condition shared by artifact, version and group searches.
   Group IDs may contain `/`, so a name pattern is decomposed at every `/` rather than split once:
-  `g/a` equals `n` iff `n = g + "/" + a` for some split of `n`; `g/a` starts with `p` iff `g` starts
-  with `p`, or `p` splits into `g + "/" + q` and `a` starts with `q`. LIKE patterns are escaped. The
-  default group, named `default` in grants, maps to its stored ID.
-- Elasticsearch: the same decomposition with `term`/`prefix` queries on keyword fields. The owner
-  clause is not applied (the index stores the version owner as analyzed text), which only narrows
-  results.
+  Artifact names escape `%` and `/` in the group ID (`%25`, `%2F`), so names are injective and the
+  first `/` always separates group and artifact. `AuthorizationNames` decomposes a pattern into
+  group/artifact clauses once, for both SQL and Elasticsearch: an exact name or a prefix containing
+  `/` fixes the group; a prefix ending inside the escaped group becomes a raw group prefix. LIKE
+  patterns are escaped. The default group, named `default` in grants, maps to its stored ID.
+- Elasticsearch: the same clauses as `term`/`prefix` queries on keyword fields. The index does not
+  store artifact ownership (it would go stale on ownership transfers), so the search decorator
+  resolves the caller's owned artifacts from SQL storage and passes them as names that always match.
 
 **Invariant:** for every subject and resource name, the search patterns select exactly what point
 access allows. This is unit-tested by comparing both paths over adversarial names, and the SQL and
@@ -200,8 +206,8 @@ and grants, so both always evaluate the resource the endpoint operates on.
 | `None` | none | admin/system endpoints; body-addressed and list endpoints (below) |
 
 Endpoints whose target is in the request body (creating groups, Iceberg namespace creation and
-renames, MCP server publishing) call `ResourceAccessGuard.requireAccess()`, which applies the same
-bypasses as the interceptor. Every client-facing search or list goes through `ISearchAuthorizer`
+renames, MCP server publishing) call `ResourceAccessGuard.requireAccess()`, which applies OBAC and
+grants with the same rules and bypasses as the interceptor. Every client-facing search or list goes through `ISearchAuthorizer`
 (REST v2/v3, Confluent compatibility API, Iceberg, MCP Registry, `/.well-known` discovery);
 inbound reference lists and content-ID lists are filtered per item.
 

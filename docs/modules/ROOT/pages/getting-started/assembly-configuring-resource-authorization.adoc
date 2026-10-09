@@ -146,14 +146,16 @@ The grants file is a JSON object with an optional `config` section and a require
 |`true` makes the grant deny the matched access. Deny rules take precedence over allow rules. Default: `false`.
 |===
 
-Grants with missing required fields are skipped and logged as warnings.
+Every grant must be valid: exactly one of `principal` and `principal_role`, a known `operation` and `resource_pattern_type`, and a boolean `deny`. A file with an invalid grant is rejected as a whole, because skipping an invalid deny rule would grant access you meant to forbid: {registry} does not start, or keeps the previous grants on reload.
 
 === Resource names
 
 * **Artifacts:** `{groupId}/{artifactId}`, for example `team-a/my-schema`. Artifacts in the default group are named `default/{artifactId}`.
 * **Groups:** the group ID, for example `team-a`. The default group is named `default`.
 
-Patterns are matched against the complete name. For example, the prefix `team-a/` matches every artifact in group `team-a`, and the prefix `team-a/internal-` matches only the artifacts in `team-a` whose ID starts with `internal-`. Because group IDs can contain `/`, the prefix `team-a/` also matches artifacts in a group named `team-a/sub`.
+In artifact names, the characters `%` and `/` in the group ID are written as `%25` and `%2F`, so the first `/` always separates the group from the artifact ID. For example, artifact `x` in group `team-a/sub` is named `team-a%2Fsub/x`, while artifact `sub/x` in group `team-a` is named `team-a/sub/x`. Artifact IDs and group names are not escaped.
+
+Patterns are matched against the complete name. For example, the prefix `team-a/` matches every artifact in group `team-a` (but not in group `team-a/sub`), and the prefix `team-a/internal-` matches only the artifacts in `team-a` whose ID starts with `internal-`.
 
 Matching is case-sensitive, except on databases configured with a case-insensitive collation (common for MySQL and SQL Server), where search results follow the database collation.
 
@@ -302,7 +304,9 @@ A user with the `sr-readonly` role can never write, whatever their grants. To co
 
 === Resource owners
 
-The recorded owner of an artifact or group always has access to it, whether or not owner-only authorization (`apicurio.auth.owner-only-authorization`) is enabled. Owners also see their own resources in search results. A resource without a recorded owner does not grant this exception to anyone.
+The recorded owner of an artifact or group always has access to it, whether or not owner-only authorization (`apicurio.auth.owner-only-authorization`) is enabled. Owners also see their own resources in search results and can read content used by their artifacts. A resource without a recorded owner does not grant this exception to anyone.
+
+When owner-only authorization is enabled, it applies as well to resources named in a request body, such as Iceberg rename targets and published MCP servers: only the owner can change them, even if other users have matching grants.
 
 The creator of an artifact becomes its owner, but creating it still requires `write` on the group.
 

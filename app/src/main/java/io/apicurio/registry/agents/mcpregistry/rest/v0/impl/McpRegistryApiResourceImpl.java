@@ -2,14 +2,12 @@ package io.apicurio.registry.agents.mcpregistry.rest.v0.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.auth.ResourceAccessGuard;
-import io.apicurio.registry.auth.RoleBasedAccessController;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
@@ -65,7 +63,6 @@ import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.ClientErrorException;
-import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.ServerErrorException;
 import jakarta.ws.rs.core.Response;
@@ -148,12 +145,6 @@ public class McpRegistryApiResourceImpl implements ApisResource {
 
     @Inject
     McpRegistryConfig config;
-
-    @Inject
-    AuthConfig authConfig;
-
-    @Inject
-    RoleBasedAccessController rbac;
 
     @Inject
     ISearchAuthorizer searchAuthorizer;
@@ -485,8 +476,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
             throw new BadRequestException("A server definition is required");
         }
         McpServerName name = McpServerName.parse(data.getName());
-        verifyPublishOwnership(name);
-        // The server name comes from the body, so per-resource authorization is checked here
+        // The server name comes from the body, so owner-only and per-resource authorization are
+        // checked here rather than by the interceptor
         accessGuard.requireAccess(AuthorizedLevel.Write,
                 AuthorizedResource.artifact(name.namespace(), name.serverId()));
         boolean exists = artifactExists(name);
@@ -562,30 +553,6 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         }
 
         return response(loadServer(name, version));
-    }
-
-    /**
-     * Owner-only authorization for publishing. The name arrives in the body, not the path, so
-     * {@code AuthorizedStyle.GroupAndArtifact} cannot apply and {@code isOwner} would wave this through.
-     * Any other body-addressed write endpoint needs the same treatment.
-     */
-    private void verifyPublishOwnership(McpServerName name) {
-        if (!authConfig.isObacEnabled()) {
-            return;
-        }
-        if (authConfig.isRbacEnabled() && rbac.isAdmin()) {
-            return;
-        }
-
-        try {
-            String owner = storage.getArtifactMetaData(name.namespace(), name.serverId()).getOwner();
-            if (owner != null && !owner.equals(currentUser())) {
-                throw new ForbiddenException(
-                        "User is not authorized to perform the requested operation.");
-            }
-        } catch (ArtifactNotFoundException e) {
-            // No such server yet, so there is no owner to conflict with.
-        }
     }
 
     /**

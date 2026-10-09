@@ -269,7 +269,7 @@ When {registry} compresses a response, it sets the `Content-Encoding: gzip` head
 
 **Request decompression**
 
-The Quarkus HTTP layer decompresses request bodies that carry the `Content-Encoding: gzip` header before {registry} processes them. Request decompression is always on. The `apicurio.rest.compression.enabled` property does not affect it. The `quarkus.http.limits.max-body-size` limit of 50 MB applies to the decompressed payload, so {registry} rejects a small gzip payload that expands beyond the limit with an HTTP `400` or `413` status code.
+The Quarkus HTTP layer decompresses request bodies that carry the `Content-Encoding: gzip` header before {registry} processes them. Request decompression is always on. The `apicurio.rest.compression.enabled` property does not affect it. The `quarkus.http.limits.max-body-size` limit of 50 MB applies to the decompressed payload, so {registry} rejects a small gzip payload that expands beyond the limit with an HTTP `400` status code. The status code is `400` rather than `413` because the Quarkus HTTP layer decompresses the payload before it checks the body-size limit.
 
 The Kiota-based SDKs, such as the TypeScript SDK and the Go SDK, gzip-compress request bodies by default. Web browsers send the `Accept-Encoding` header automatically, and command-line tools such as `curl` send it when you use the `--compressed` option.
 
@@ -619,7 +619,7 @@ a|One of the following:
 * A version of {registry} earlier than 3.3.2 received the request. Earlier versions do not decompress request bodies.
 |Confirm that the `Content-Encoding` header matches the body encoding at the point where the request reaches {registry}. For versions of {registry} earlier than 3.3.2, disable request compression in the client. For example, the TypeScript SDK accepts `useDefaultMiddlewares = false` as the fourth argument of `RegistryClientFactory.createRegistryClient()`.
 
-|A gzip-compressed request body fails with an HTTP `400` or `413` status code although the compressed payload is small.
+|A gzip-compressed request body fails with an HTTP `400` status code although the compressed payload is small.
 |The decompressed payload exceeds the `quarkus.http.limits.max-body-size` limit of 50 MB. {registry} applies the limit to the decompressed size to prevent decompression-bomb attacks.
 |Reduce the size of the request body.
 
@@ -632,7 +632,6 @@ a|One of the following:
 .Additional resources
 * xref:verifying-http-compression_{context}[]
 * xref:registry-http-compression-properties_{context}[]
-
 
 [id="registry-rest-metrics-distribution_{context}"]
 == REST request metrics distribution configuration

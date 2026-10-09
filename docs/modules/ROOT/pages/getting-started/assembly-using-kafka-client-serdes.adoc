@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-{registry} provides client serializers/deserializers (SerDes) for Kafka producer and consumer applications written in Java, which ensures consistent schema use and helps to prevent data errors at runtime.
+{registry} provides client serializers/deserializers (SerDes) for Kafka producer and consumer applications written in Java. Using these SerDes ensures consistent schema use and helps prevent data errors at runtime.
 
 Kafka producer applications use serializers to encode messages that conform to a specific event schema. Kafka consumer applications use deserializers to validate that messages have been serialized using the correct schema, based on a specific schema ID.
 

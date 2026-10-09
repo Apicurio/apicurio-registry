@@ -7,9 +7,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-When {registry} uses Apache Kafka storage, it stores data in a Kafka topic named `kafkasql-journal`. You can export the data in this topic by using the `kcat` tool (formerly known as `kafkacat`), for example, to report a storage problem.
-
-If you encounter a problem when using this storage option and want to report it to {registry} developers, you might need to provide an export of the data present in the `kafkasql-journal` topic for analysis.
+When {registry} uses Apache Kafka storage, it stores data in a Kafka topic named `kafkasql-journal`. You can export the data in this topic by using the `kcat` tool (formerly known as `kafkacat`), for example, to report a storage problem to {registry} developers for analysis.
 
 == Prerequisites
 

@@ -23,7 +23,14 @@ import java.util.regex.Pattern;
 @ApplicationScoped
 public class PromptTemplateConverter {
 
-    private static final Pattern IF_BLOCK_PATTERN = Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}([\\s\\S]*?)\\{\\{/if\\}\\}");
+    private static final Pattern IF_BLOCK_PATTERN =
+            Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}((?:(?!\\{\\{/if\\}\\})[\\s\\S])*?)\\{\\{/if\\}\\}");
+
+    private static final Pattern IF_ELSE_BLOCK_PATTERN =
+            Pattern.compile("\\{\\{#if\\s+(\\w+)\\}\\}((?:(?!\\{\\{else\\}\\})[\\s\\S])*?)\\{\\{else\\}\\}((?:(?!\\{\\{/if\\}\\})[\\s\\S])*?)\\{\\{/if\\}\\}");
+
+    private static final Pattern UNLESS_BLOCK_PATTERN =
+            Pattern.compile("\\{\\{#unless\\s+(\\w+)\\}\\}((?:(?!\\{\\{/unless\\}\\})[\\s\\S])*?)\\{\\{/unless\\}\\}");
 
     @Inject
     ObjectMapper jsonMapper;
@@ -480,45 +487,87 @@ public class PromptTemplateConverter {
             return template;
         }
 
+        // Process conditional blocks first, matching PromptRenderingService
+        String withBlocksResolved = processConditionalBlocks(template, args);
+
         // Simple {{variable}} substitution, using the canonical pattern shared with the validity
         // rule and the REST render endpoint so that {{name}} and {{ name }} resolve the same way.
-        String rendered = PromptTemplateVariableUtil.substituteVariables(template, varName -> {
+        return PromptTemplateVariableUtil.substituteVariables(withBlocksResolved, varName -> {
             if (!args.containsKey(varName)) {
                 // Returning null leaves the placeholder in the output, as before.
                 return null;
             }
             Object value = args.get(varName);
-            return value != null ? String.valueOf(value) : "";
+            return value != null ? formatValue(value) : "";
         });
-
-        // Handle {{#if variable}} ... {{/if}} blocks
-        rendered = processConditionalBlocks(rendered, args);
-
-        return rendered;
     }
 
     /**
-     * Process {{#if variable}} ... {{/if}} conditional blocks
+     * Format a value for substitution into the template. Complex objects and lists
+     * are serialized to JSON, matching PromptRenderingService.
+     */
+    private String formatValue(Object value) {
+        if (value instanceof List || value instanceof Map) {
+            try {
+                return jsonMapper.writeValueAsString(value);
+            } catch (Exception e) {
+                return String.valueOf(value);
+            }
+        }
+        return String.valueOf(value);
+    }
+
+    /**
+     * Determine whether a value is truthy for conditional evaluation.
+     * Falsy when null, Boolean.FALSE, or empty string.
+     */
+    private boolean isTruthy(Object value) {
+        return value != null
+                && !Boolean.FALSE.equals(value)
+                && !(value instanceof String s && s.isEmpty());
+    }
+
+    /**
+     * Process Handlebars-style conditional blocks (if-else, if, unless).
      */
     private String processConditionalBlocks(String template, Map<String, Object> args) {
-        Matcher matcher = IF_BLOCK_PATTERN.matcher(template);
-        StringBuilder result = new StringBuilder();
-
-        while (matcher.find()) {
-            String varName = matcher.group(1);
-            String content = matcher.group(2);
-
-            Object value = args.get(varName);
-            // Truthy check: non-null, non-empty string, non-false
-            boolean isTruthy = value != null &&
-                    !Boolean.FALSE.equals(value) &&
-                    !(value instanceof String && ((String) value).isEmpty());
-
-            matcher.appendReplacement(result, Matcher.quoteReplacement(isTruthy ? content : ""));
+        // Step 1: resolve if-else blocks first to prevent the plain-if pattern from partially matching them
+        Matcher ifElseMatcher = IF_ELSE_BLOCK_PATTERN.matcher(template);
+        StringBuilder ifElseResult = new StringBuilder();
+        while (ifElseMatcher.find()) {
+            String varName = ifElseMatcher.group(1);
+            String truthyBranch = ifElseMatcher.group(2);
+            String falsyBranch = ifElseMatcher.group(3);
+            String chosen = isTruthy(args.get(varName)) ? truthyBranch : falsyBranch;
+            ifElseMatcher.appendReplacement(ifElseResult, Matcher.quoteReplacement(chosen));
         }
-        matcher.appendTail(result);
+        ifElseMatcher.appendTail(ifElseResult);
+        template = ifElseResult.toString();
 
-        return result.toString();
+        // Step 2: resolve plain if blocks
+        Matcher ifMatcher = IF_BLOCK_PATTERN.matcher(template);
+        StringBuilder ifResult = new StringBuilder();
+        while (ifMatcher.find()) {
+            String varName = ifMatcher.group(1);
+            String content = ifMatcher.group(2);
+            String chosen = isTruthy(args.get(varName)) ? content : "";
+            ifMatcher.appendReplacement(ifResult, Matcher.quoteReplacement(chosen));
+        }
+        ifMatcher.appendTail(ifResult);
+        template = ifResult.toString();
+
+        // Step 3: resolve unless blocks (logical complement of if)
+        Matcher unlessMatcher = UNLESS_BLOCK_PATTERN.matcher(template);
+        StringBuilder unlessResult = new StringBuilder();
+        while (unlessMatcher.find()) {
+            String varName = unlessMatcher.group(1);
+            String content = unlessMatcher.group(2);
+            String chosen = isTruthy(args.get(varName)) ? "" : content;
+            unlessMatcher.appendReplacement(unlessResult, Matcher.quoteReplacement(chosen));
+        }
+        unlessMatcher.appendTail(unlessResult);
+
+        return unlessResult.toString();
     }
 
     /**

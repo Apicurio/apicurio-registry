@@ -86,6 +86,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.nio.charset.StandardCharsets;
@@ -2116,6 +2117,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("data", data);
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
 
@@ -2132,6 +2134,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         ? PromotionStage.valueOf(data.getStage().value()) : null)
                 .compatibilityGroup(data.getCompatibilityGroup())
                 .build();
+
+        contractMetadataValidator.validate(editableDto);
 
         // Resolve the contract id and the labels to store before handing them to storage. The
         // merge removes the contract.{id}.id label, so the id has to be read up front, and the
@@ -2255,6 +2259,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        ParameterValidationUtils.requireParameter("data", data);
         ParameterValidationUtils.requireParameter("status", data.getStatus());
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
@@ -2275,7 +2280,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String prefix = ContractLabels.prefixFor(contractId);
         storage.transitionContractStatus(rawGroupId, artifactId,
                 currentMetadata.getStatus() != null ? currentMetadata.getStatus().name() : null,
-                targetStatus.name(), prefix, LocalDate.now().toString());
+                targetStatus.name(), prefix, LocalDate.now(ZoneId.systemDefault()).toString());
 
         // Audit log
         contractAuditService.recordAction(rawGroupId, artifactId, null,

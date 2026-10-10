@@ -224,7 +224,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
             Assertions.assertNotNull(headers.lastHeader(KafkaSerdeHeaders.HEADER_VALUE_GLOBAL_ID));
             Header headerGlobalId = headers.lastHeader(KafkaSerdeHeaders.HEADER_VALUE_GLOBAL_ID);
             long id = ByteBuffer.wrap(headerGlobalId.value()).getLong();
-            assertEquals(globalId.intValue(), Long.valueOf(id).intValue());
+            assertEquals(globalId.intValue(), (int) id);
 
             Assertions.assertNotNull(headers.lastHeader(KafkaSerdeHeaders.HEADER_VALUE_MESSAGE_TYPE));
             Header headerMsgType = headers.lastHeader(KafkaSerdeHeaders.HEADER_VALUE_MESSAGE_TYPE);

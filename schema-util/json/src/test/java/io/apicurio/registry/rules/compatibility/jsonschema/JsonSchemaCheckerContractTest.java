@@ -116,13 +116,16 @@ public class JsonSchemaCheckerContractTest {
     }
 
     /**
-     * Every difference becomes a {@code RuleViolation} in the API response, so both fields have to
-     * be populated whichever checker produced it.
+     * Every difference becomes a {@code RuleViolation} in the API response, which is what a user
+     * whose upload was rejected reads, so both fields have to be populated whichever checker
+     * produced it.
      * <p>
      * Both checkers report a change inside a nested schema at the keyword that changed, as a JSON
-     * Pointer into the schema, so the context is asserted exactly. The descriptions still differ —
-     * the legacy checker says {@code "String type max length decreased"}, the Apitomy adapter
-     * {@code STRING_TYPE_MAX_LENGTH_DECREASED} — which is #10240, so only their presence is.
+     * Pointer into the schema, so the context is asserted exactly. The descriptions are worded
+     * differently — the legacy checker says {@code "String type max length decreased"}, Data Models
+     * {@code "The 'maxLength' string-length limit was decreased."} — so what is asserted is that
+     * the description is a sentence rather than a constant name such as
+     * {@code STRING_TYPE_MAX_LENGTH_DECREASED}, which the Apitomy adapter used to report.
      */
     @ParameterizedTest(name = "{0}")
     @MethodSource("checkers")
@@ -150,8 +153,10 @@ public class JsonSchemaCheckerContractTest {
                 () -> "One edit, one violation: " + result.getIncompatibleDifferences());
 
         var violation = result.getIncompatibleDifferences().iterator().next().asRuleViolation();
-        assertFalse(violation.getDescription() == null || violation.getDescription().isBlank(),
-                "Every violation needs a description");
+        var description = violation.getDescription();
+        assertFalse(description == null || description.isBlank(), "Every violation needs a description");
+        assertTrue(description.contains(" ") && !description.contains("_"),
+                () -> "The description is prose for the user, not a constant name: " + description);
         assertEquals("/properties/name/maxLength", violation.getContext(),
                 "The context points at the keyword that changed");
     }

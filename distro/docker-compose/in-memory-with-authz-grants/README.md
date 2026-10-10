@@ -36,7 +36,19 @@ docker compose up -d
 ./demo.sh          # seeds data, then checks point access and search filtering (needs curl, jq)
 ```
 
-`demo.sh` prints one line per check and exits non-zero if any check fails. To run against a
+`demo.sh` prints one line per check and exits non-zero if any check fails.
+
+If the default ports are in use, override them for both commands:
+
+```bash
+export KEYCLOAK_PORT=18080 REGISTRY_PORT=18081 UI_PORT=18888
+docker compose up -d
+KEYCLOAK=http://localhost:$KEYCLOAK_PORT API=http://localhost:$REGISTRY_PORT/apis ./demo.sh
+```
+
+With Podman on macOS, run Compose from a path under your home directory or `/private/tmp`
+rather than `/tmp`: the `/tmp` symlink cannot be shared into the VM, and the registry then fails
+at startup with `Grants file not found`. To run against a
 locally built registry, build the image first
 (`./mvnw install -pl distro/docker -am -DskipTests`, then build `distro/docker/target/docker/Dockerfile.jvm`
 as `apicurio/apicurio-registry:latest-snapshot`).

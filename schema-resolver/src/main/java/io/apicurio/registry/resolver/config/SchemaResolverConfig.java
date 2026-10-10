@@ -195,17 +195,55 @@ public class SchemaResolverConfig extends AbstractConfig {
      * If a schema can not be retrieved from the Registry, serdes may retry a number of times. This
      * configuration option controls the number of retries before failing. Valid values are non-negative
      * integers.
+     * <p>
+     * Controls the <strong>schema-cache</strong> retry layer in {@code ERCache}. Distinct from
+     * {@link #CLIENT_RETRY_MAX_ATTEMPTS}, which configures the underlying HTTP client retry ladder that may
+     * run inside each cache attempt.
+     * <p>
+     * <strong>Outage retries are opt-in.</strong> By default the cache layer only retries HTTP 429. Set
+     * {@link #RETRY_TRANSIENT_ERRORS}{@code =true} (and preferably {@link #RETRY_TOTAL_TIMEOUT_MS}) to also
+     * retry network/outage failures (502/503/504 and connection errors). Raising this count alone does not
+     * cover registry-down. When that opt-in is enabled, the layers multiply: worst-case blocking is roughly
+     * {@code (retry-count + 1) × (full client retry ladder) + (retry-count × retry-backoff-ms)}.
+     * Bound it with {@link #RETRY_TOTAL_TIMEOUT_MS}, and size together with {@link #CLIENT_RETRY_MAX_ATTEMPTS},
+     * especially for Kafka producers ({@code max.block.ms}) and Connect polls.
      */
     public static final String RETRY_COUNT = "apicurio.registry.retry-count";
     public static final long RETRY_COUNT_DEFAULT = 3;
 
     /**
-     * If a schema can not be be retrieved from the Registry, serdes may retry a number of times. This
+     * If a schema can not be retrieved from the Registry, serdes may retry a number of times. This
      * configuration option controls the delay between the retry attempts, in milliseconds. Valid values are
      * non-negative integers.
+     * <p>
+     * Controls the <strong>schema-cache</strong> retry layer in {@code ERCache}. Distinct from
+     * {@link #CLIENT_RETRY_DELAY_MS}, which configures the underlying HTTP client retry ladder that may run
+     * inside each cache attempt. See {@link #RETRY_COUNT} for how the two layers multiply when transient
+     * retries are enabled.
      */
     public static final String RETRY_BACKOFF_MS = "apicurio.registry.retry-backoff-ms";
     public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
+
+    /**
+     * When {@code false} (default), the schema-cache retry layer only retries HTTP 429, matching historical
+     * behavior so existing deployments do not silently gain multiplicative blocking on connection failures.
+     * When {@code true}, also retries typical registry outage signals (502/503/504) and retriable network
+     * failures. See {@link #RETRY_COUNT} and {@link #RETRY_TOTAL_TIMEOUT_MS} for sizing / bounding guidance.
+     */
+    public static final String RETRY_TRANSIENT_ERRORS = "apicurio.registry.retry.transient-errors";
+    public static final boolean RETRY_TRANSIENT_ERRORS_DEFAULT = false;
+
+    /**
+     * Optional wall-clock budget (milliseconds) for a single schema-cache load's retry loop in
+     * {@code ERCache}. Checked before each re-attempt after a retriable failure; it does
+     * <strong>not</strong> interrupt an in-flight cache attempt (that attempt may still run a full
+     * HTTP client retry ladder plus request timeouts). {@code 0} (default) means unlimited.
+     * Strongly recommended when {@link #RETRY_TRANSIENT_ERRORS} is enabled so
+     * {@code Producer.send()} / Connect polls cannot block for
+     * {@code (retry-count + 1) × (client retry ladder)} unboundedly.
+     */
+    public static final String RETRY_TOTAL_TIMEOUT_MS = "apicurio.registry.retry.total-timeout-ms";
+    public static final long RETRY_TOTAL_TIMEOUT_MS_DEFAULT = 0;
 
     /**
      * Enable or disable retry for the underlying registry client.
@@ -215,9 +253,15 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     /**
      * Maximum number of retry attempts for the underlying registry client.
+     * Must be an integer in {@code [1, 1000]}. The upper bound is required so that
+     * {@code AbstractSchemaResolver#estimateClientRetryLadderSleepMs}, which loops up to
+     * {@code max-attempts - 1} times to estimate worst-case blocking for
+     * {@link #RETRY_TRANSIENT_ERRORS}, cannot hang {@code configure()} on a fat-fingered value.
      */
     public static final String CLIENT_RETRY_MAX_ATTEMPTS = "apicurio.registry.client.retry.max-attempts";
     public static final long CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT = 3;
+    /** Inclusive upper bound for {@link #CLIENT_RETRY_MAX_ATTEMPTS}. */
+    public static final long CLIENT_RETRY_MAX_ATTEMPTS_MAX = 1000;
 
     /**
      * Initial retry delay in milliseconds for the underlying registry client.
@@ -505,16 +549,26 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getDurationNonNegativeMillis(RETRY_BACKOFF_MS);
     }
 
+    public boolean getRetryTransientErrors() {
+        return getBoolean(RETRY_TRANSIENT_ERRORS);
+    }
+
+    public Duration getRetryTotalTimeout() {
+        return getDurationNonNegativeMillis(RETRY_TOTAL_TIMEOUT_MS);
+    }
+
     public boolean getClientRetryEnabled() {
         return getBoolean(CLIENT_RETRY_ENABLED);
     }
 
     public long getClientRetryMaxAttempts() {
+        // Fail fast with the property name rather than hanging estimateClientRetryLadderSleepMs's loop.
         long value = getLongNonNegative(CLIENT_RETRY_MAX_ATTEMPTS);
-        if (value > Integer.MAX_VALUE) {
+        if (value < 1 || value > CLIENT_RETRY_MAX_ATTEMPTS_MAX) {
             throw new IllegalArgumentException("Invalid configuration property value for '"
-                    + CLIENT_RETRY_MAX_ATTEMPTS + "'. Expected a value less than or equal to "
-                    + Integer.MAX_VALUE + ", but got '" + value + "'.");
+                    + CLIENT_RETRY_MAX_ATTEMPTS
+                    + "'. Expected an integer in [1, " + CLIENT_RETRY_MAX_ATTEMPTS_MAX
+                    + "], but got '" + value + "'.");
         }
         return value;
     }
@@ -710,6 +764,8 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),
             entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
+            entry(RETRY_TRANSIENT_ERRORS, RETRY_TRANSIENT_ERRORS_DEFAULT),
+            entry(RETRY_TOTAL_TIMEOUT_MS, RETRY_TOTAL_TIMEOUT_MS_DEFAULT),
             entry(CLIENT_RETRY_ENABLED, CLIENT_RETRY_ENABLED_DEFAULT),
             entry(CLIENT_RETRY_MAX_ATTEMPTS, CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT),
             entry(CLIENT_RETRY_DELAY_MS, CLIENT_RETRY_DELAY_MS_DEFAULT),

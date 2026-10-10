@@ -106,22 +106,22 @@ The following {registry} configuration options are available for each component 
 |`apicurio.ai-catalog.enabled`
 |`boolean`
 |`false`
-|`3.3.2`
+|`3.3.3`
 |Enable the AI Catalog well-known discovery endpoint _(experimental)_
 |`apicurio.ai-catalog.host-name`
 |`string`
 |`Apicurio Registry`
-|`3.3.2`
+|`3.3.3`
 |Display name for this registry instance, reported as the AI Catalog host
 |`apicurio.ai-catalog.publisher-domain`
 |`optional<string>`
 |
-|`3.3.2`
+|`3.3.3`
 |The publisher domain segment used when building 'urn:air:' identifiers for AI Catalog entries. When not configured, the domain is derived from the incoming request's host and port.
 |`apicurio.ai-catalog.spec-version`
 |`string`
 |`1.0`
-|`3.3.2`
+|`3.3.3`
 |The AI Catalog specification version reported in the catalog document
 |===
 
@@ -173,12 +173,12 @@ The following {registry} configuration options are available for each component 
 |`apicurio.ard.enabled`
 |`boolean`
 |`false`
-|`3.3.2`
+|`3.3.3`
 |Enable the ARD (Agentic Resource Discovery) well-known API endpoints _(experimental)_
 |`apicurio.ard.federation.default`
 |`string`
 |`none`
-|`3.3.2`
+|`3.3.3`
 |Default ARD federation mode advertised by this registry. Only 'none' (no federation) is currently implemented.
 |===
 
@@ -1587,11 +1587,6 @@ The following {registry} configuration options are available for each component 
 |`/tmp/apicurio-registry-artifact-types.json`
 |`3.1.0`
 |Path to a configuration file containing a list of supported artifact types.
-|`apicurio.compat.json-schema.use-apitomy`
-|`boolean`
-|`true`
-|`3.3.1`
-|Use the Apitomy Data Models JSON Schema compatibility checker, which supports drafts 4, 6, 7, 2019-09 and 2020-12. Set to false to use the legacy everit-based checker instead, which supports drafts 4 to 7 only, is deprecated, and will be removed.
 |===
 
 == ui

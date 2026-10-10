@@ -1,0 +1,35 @@
+{
+  "groupId": "ard-conformance",
+  "artifacts": [
+    {
+      "artifactId": "sentiment-agent",
+      "artifactType": "AGENT_CARD",
+      "file": "sentiment-agent.json",
+      "name": "Sentiment Analysis Agent"
+    },
+    {
+      "artifactId": "analyzer-agent",
+      "artifactType": "AGENT_CARD",
+      "file": "analyzer-agent.json",
+      "name": "Issue Analyzer Agent"
+    },
+    {
+      "artifactId": "response-generator-agent",
+      "artifactType": "AGENT_CARD",
+      "file": "response-generator-agent.json",
+      "name": "Response Generator Agent"
+    },
+    {
+      "artifactId": "translator-agent",
+      "artifactType": "AGENT_CARD",
+      "file": "translator-agent.json",
+      "name": "Translation Agent"
+    },
+    {
+      "artifactId": "catalog-lookup-tool",
+      "artifactType": "MCP_TOOL",
+      "file": "catalog-lookup-tool.json",
+      "name": "Catalog Lookup"
+    }
+  ]
+}

@@ -378,25 +378,31 @@ public class AdminResourceImpl implements AdminResource {
      * Reads the manifest entity to determine whether the import needs a v1/v2 -&gt; v3 upgrade.
      */
     private boolean isUpgradeRequired(EntityReader reader) {
+        Entity entity;
         try {
-            Entity entity = reader.readNextEntity();
-            if (entity.getEntityType() != EntityType.Manifest) {
-                throw new BadRequestException("Invalid import file: missing Manifest file");
-            }
-            ManifestEntity manifestEntity = (ManifestEntity) entity;
-
-            // Version 2 or 1 requires an upgrade to v3.
-            if (manifestEntity.exportVersion.startsWith("3")) {
-                return false;
-            } else if (manifestEntity.exportVersion.startsWith("2")
-                    || manifestEntity.exportVersion.startsWith("1")) {
-                return true;
-            } else {
-                throw new BadRequestException(
-                        "Invalid import file, unknown manifest version: " + manifestEntity.systemVersion);
-            }
+            entity = reader.readNextEntity();
         } catch (IOException e) {
             throw new BadRequestException("Error importing data: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            // EntityReader.createEntityIndex() throws a plain RuntimeException when the ZIP
+            // has no manifest entry, or when the manifest entry itself can't be parsed.
+            throw new BadRequestException("Invalid import file: missing Manifest file", e);
+        }
+
+        if (entity == null || entity.getEntityType() != EntityType.Manifest) {
+            throw new BadRequestException("Invalid import file: missing Manifest file");
+        }
+        ManifestEntity manifestEntity = (ManifestEntity) entity;
+
+        // Version 2 or 1 requires an upgrade to v3.
+        if (manifestEntity.exportVersion.startsWith("3")) {
+            return false;
+        } else if (manifestEntity.exportVersion.startsWith("2")
+                || manifestEntity.exportVersion.startsWith("1")) {
+            return true;
+        } else {
+            throw new BadRequestException(
+                    "Invalid import file, unknown manifest version: " + manifestEntity.systemVersion);
         }
     }
 

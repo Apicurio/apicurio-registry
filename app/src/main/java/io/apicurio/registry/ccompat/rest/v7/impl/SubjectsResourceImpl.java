@@ -97,7 +97,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         int effectiveLimit = (limit != null && limit.intValue() > 0) ? limit.intValue()
                 : cconfig.maxSubjects.get();
 
-        ArtifactSearchResultsDto searchResults = storage.searchArtifacts(filters, OrderBy.createdOn,
+        ArtifactSearchResultsDto searchResults = searchAuthorizer.searchArtifacts(filters, OrderBy.createdOn,
                 OrderDirection.asc, effectiveOffset, effectiveLimit, false);
         Function<SearchedArtifactDto, String> toSubject = SearchedArtifactDto::getArtifactId;
         if (cconfig.groupConcatEnabled) {

@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.v3.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -51,11 +52,14 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
     @Inject
     RestConfig restConfig;
 
+    @Inject
+    ISearchAuthorizer searchAuthorizer;
+
     /**
      * @see io.apicurio.registry.rest.v3.IdsResource#getContentById(long)
      */
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ContentId, level = AuthorizedLevel.Read)
     @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
     @EntityIdContentCache
     public Response getContentById(long contentId) {
@@ -136,7 +140,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      * @see io.apicurio.registry.rest.v3.IdsResource#getContentByHash(java.lang.String)
      */
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ContentHash, level = AuthorizedLevel.Read)
     @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
     @EntityIdContentCache
     public Response getContentByHash(String contentHash) {
@@ -155,7 +159,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      * @see io.apicurio.registry.rest.v3.IdsResource#referencesByContentHash(java.lang.String)
      */
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ContentHash, level = AuthorizedLevel.Read)
     @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
     @EntityIdContentCache
     public List<ArtifactReference> referencesByContentHash(String contentHash) {
@@ -166,7 +170,7 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
      * @see io.apicurio.registry.rest.v3.IdsResource#referencesByContentId(long)
      */
     @Override
-    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.ContentId, level = AuthorizedLevel.Read)
     @MethodMetadata(extractParameters = {"0", MPK_ENTITY_ID})
     @EntityIdContentCache
     public List<ArtifactReference> referencesByContentId(long contentId) {
@@ -190,9 +194,11 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
                     .collect(Collectors.toList());
         } else {
             ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(globalId);
+            // Inbound references point from other artifacts: only list those the caller may read
             return storage
                     .getInboundArtifactReferences(vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion())
-                    .stream().map(V3ApiUtil::referenceDtoToReference).collect(Collectors.toList());
+                    .stream().filter(ref -> searchAuthorizer.canReadArtifact(ref.getGroupId(), ref.getArtifactId()))
+                    .map(V3ApiUtil::referenceDtoToReference).collect(Collectors.toList());
         }
     }
 }

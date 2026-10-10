@@ -52,7 +52,7 @@ public class SqlSearchRepository {
      * escapes the escape character itself, so a value that genuinely contains '!' still matches
      * literally - the character is only ever consumed as an escape when this code puts it there.
      */
-    private static final char LIKE_ESCAPE_CHAR = '!';
+    static final char LIKE_ESCAPE_CHAR = '!';
 
     private static final String STRUCTURE_FILTER_FORMAT_HELP = "Expected '<artifactType>:<kind>:<name>', "
             + "'<kind>:<name>' or '<name>', for example 'agent_card:skill:translation'.";
@@ -110,6 +110,10 @@ public class SqlSearchRepository {
                     case groupId:
                         buildWildcardClause(where, "a.groupId",
                                 normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
+                        break;
+                    case authorization:
+                        SqlAuthorizationFilter.appendArtifactCondition(where, binders,
+                                filter.getAuthorizationValue(), "a.groupId", "a.artifactId", "a.owner");
                         break;
                     case artifactId:
                         buildWildcardClause(where, "a.artifactId",
@@ -356,6 +360,10 @@ public class SqlSearchRepository {
                         buildWildcardClause(where, "a.groupId",
                                 normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
                         break;
+                    case authorization:
+                        SqlAuthorizationFilter.appendArtifactCondition(where, binders,
+                                filter.getAuthorizationValue(), "a.groupId", "a.artifactId", "a.owner");
+                        break;
                     case artifactType:
                         op = filter.isNot() ? "!=" : "=";
                         where.append("a.type " + op + " ?");
@@ -531,7 +539,7 @@ public class SqlSearchRepository {
      * is used inside a LIKE pattern, so request-derived text is matched literally. The caller is
      * responsible for adding any intentional wildcards and the matching {@code ESCAPE} clause.
      */
-    private static String escapeLikePattern(String value) {
+    static String escapeLikePattern(String value) {
         StringBuilder escaped = new StringBuilder(value.length());
         for (char c : value.toCharArray()) {
             if (c == LIKE_ESCAPE_CHAR || c == '%' || c == '_') {

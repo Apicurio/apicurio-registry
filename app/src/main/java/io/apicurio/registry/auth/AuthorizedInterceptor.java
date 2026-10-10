@@ -1,5 +1,7 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.auth.grants.GrantsAccessController;
+import io.apicurio.registry.auth.grants.GrantsAccessControllerConfig;
 import io.apicurio.registry.util.Priorities;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
@@ -46,6 +48,12 @@ public class AuthorizedInterceptor {
 
     @Inject
     OwnerBasedAccessController obac;
+
+    @Inject
+    GrantsAccessController grantsAc;
+
+    @Inject
+    GrantsAccessControllerConfig grantsAcConfig;
 
     @AroundInvoke
     public Object authorizeMethod(InvocationContext context) throws Exception {
@@ -150,6 +158,17 @@ public class AuthorizedInterceptor {
                 log.debug("Denying access for user: {}", securityIdentity.getPrincipal().getName());
                 throw new ForbiddenException(FORBIDDEN_MESSAGE);
             }
+        }
+
+        // Per-resource authorization (grants). Restricts within what RBAC allows. The owner of the
+        // addressed artifact/group bypasses grants; resources that do not exist or have no owner
+        // never grant a bypass.
+        if (grantsAcConfig.isEnabled()
+                && !grantsAc.isStrictOwner(context)
+                && !grantsAc.isAuthorized(context)) {
+            log.warn("Per-resource authorization denied access.");
+            log.debug("Denying access for user: {}", securityIdentity.getPrincipal().getName());
+            throw new ForbiddenException(FORBIDDEN_MESSAGE);
         }
 
         return context.proceed();

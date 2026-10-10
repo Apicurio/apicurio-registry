@@ -35,4 +35,15 @@ public class CCompatConfig {
     @Info(category = CATEGORY_CCOMPAT, description = "Separator to use when group concatenation is enabled (compatibility API)", availableSince = "2.6.2.Final")
     String groupConcatSeparator;
 
+    public boolean isLegacyIdModeEnabled() {
+        return legacyIdModeEnabled.get();
+    }
+
+    public boolean isGroupConcatEnabled() {
+        return groupConcatEnabled;
+    }
+
+    public String getGroupConcatSeparator() {
+        return groupConcatSeparator;
+    }
 }

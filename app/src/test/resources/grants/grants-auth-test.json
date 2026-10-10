@@ -1,0 +1,58 @@
+{
+  "config": {
+    "admin_roles": [
+      "sr-admin"
+    ]
+  },
+  "grants": [
+    {
+      "principal": "bob1",
+      "operation": "write",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "grants-team-a/"
+    },
+    {
+      "principal": "bob1",
+      "operation": "write",
+      "resource_type": "group",
+      "resource_pattern_type": "exact",
+      "resource_pattern": "grants-team-a"
+    },
+    {
+      "principal": "bob1",
+      "operation": "write",
+      "resource_type": "group",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "grants-new-"
+    },
+    {
+      "principal": "bob1",
+      "operation": "write",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "io.github.grantsa"
+    },
+    {
+      "principal": "bob2",
+      "operation": "read",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "grants-team-b/visible-"
+    },
+    {
+      "principal": "bob1",
+      "operation": "write",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "io.github.shared"
+    },
+    {
+      "principal": "bob2",
+      "operation": "write",
+      "resource_type": "artifact",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "io.github.shared"
+    }
+  ]
+}

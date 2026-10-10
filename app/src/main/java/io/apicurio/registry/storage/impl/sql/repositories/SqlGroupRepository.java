@@ -300,6 +300,10 @@ public class SqlGroupRepository {
                         buildWildcardClause(where, "g.groupId",
                                 filter.getStringValue(), filter.isNot(), binders);
                         break;
+                    case authorization:
+                        SqlAuthorizationFilter.appendGroupCondition(where, binders,
+                                filter.getAuthorizationValue(), "g.groupId", "g.owner");
+                        break;
                     case labels:
                         Pair<String, String> label = filter.getLabelFilterValue();
                         String labelKey = asLowerCase(label.getKey());

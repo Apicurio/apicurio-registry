@@ -213,7 +213,7 @@ inbound reference lists and content-ID lists are filtered per item.
 
 ### Hot-reload
 
-The grants file is polled every 5 seconds (configurable via `apicurio.auth.resource-based-authorization.grants.reload-every`; polling can be disabled via `apicurio.auth.resource-based-authorization.grants.reload-enabled=false`). Changes take effect without restart. A missing or invalid file fails startup; an invalid file on reload is logged and the previous grants stay in effect, so a bad edit cannot lock everyone out.
+The grants file is polled every 5 seconds (configurable via `apicurio.auth.resource-based-authorization.grants.reload-every`; polling can be disabled via `apicurio.auth.resource-based-authorization.grants.reload-enabled=false`). Changes take effect without restart. A missing or invalid file fails startup; an invalid file on reload is logged and the previous grants stay in effect, so a bad edit cannot lock everyone out. The reload job is registered programmatically only when the feature and reload are both enabled.
 
 File polling was chosen over `WatchService` because `WatchService` is unreliable on NFS mounts and Kubernetes ConfigMap volumes.
 

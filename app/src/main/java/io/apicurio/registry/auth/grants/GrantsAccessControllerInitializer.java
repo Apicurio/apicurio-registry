@@ -9,6 +9,7 @@ import io.apicurio.registry.auth.AuthConfig;
 import io.kroxylicious.authorizer.service.ResourceType;
 import io.quarkus.runtime.Startup;
 import io.quarkus.scheduler.Scheduled;
+import io.quarkus.scheduler.Scheduler;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -17,6 +18,11 @@ import org.slf4j.Logger;
 @Singleton
 @Startup
 public class GrantsAccessControllerInitializer {
+
+    static final String RELOAD_JOB = "apicurio-grants-reload";
+
+    @Inject
+    Scheduler scheduler;
 
     @Inject
     Logger log;
@@ -56,12 +62,21 @@ public class GrantsAccessControllerInitializer {
         Map<Class<? extends ResourceType<?>>, String> resourceTypeNames = Map.of(
                 RegistryResourceType.Artifact.class, "artifact",
                 RegistryResourceType.Group.class, "group");
+        GrantsAuthorizer authorizer;
         try {
-            GrantsAuthorizer authorizer = GrantsAuthorizer.create(Path.of(dataPath), resourceTypeNames);
+            authorizer = GrantsAuthorizer.create(Path.of(dataPath), resourceTypeNames);
             controller.setAuthorizer(authorizer);
         } catch (IOException | IllegalArgumentException e) {
             throw new IllegalStateException("Failed to load the per-resource authorization grants file "
                     + dataPath + ": " + e.getMessage(), e);
+        }
+        if (config.isReloadEnabled()) {
+            // Registered only when needed, so no timer runs when the feature or reload is disabled
+            scheduler.newJob(RELOAD_JOB)
+                    .setInterval(config.getReloadEvery())
+                    .setConcurrentExecution(Scheduled.ConcurrentExecution.SKIP)
+                    .setTask(execution -> authorizer.checkForDataFileChanges())
+                    .schedule();
         }
         log.info("Per-resource authorization initialized from {} (hot reload: {}).", dataPath,
                 config.isReloadEnabled() ? "every " + config.getReloadEvery() : "disabled");
@@ -76,14 +91,5 @@ public class GrantsAccessControllerInitializer {
             log.warn("Per-resource authorization is enabled alongside authenticated-read-access. "
                     + "All authenticated users will be able to read all resources regardless of grants.");
         }
-    }
-
-    @Scheduled(every = "${apicurio.auth.resource-based-authorization.grants.reload-every:5s}",
-            concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
-    void checkForDataFileChanges() {
-        if (!config.isEnabled() || !config.isReloadEnabled() || controller.getAuthorizer() == null) {
-            return;
-        }
-        controller.getAuthorizer().checkForDataFileChanges();
     }
 }

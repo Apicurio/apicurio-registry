@@ -10,11 +10,13 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.quarkus.scheduler.Scheduler;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.specification.RequestSpecification;
 import io.vertx.core.Vertx;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +35,7 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * End-to-end per-resource authorization with the grants-based Kroxylicious Authorizer enabled.
@@ -113,6 +116,14 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
 
     private static String artifactPath(String groupId, String artifactId) {
         return "/registry/v3/groups/" + groupId + "/artifacts/" + artifactId;
+    }
+
+    @Inject
+    Scheduler scheduler;
+
+    @Test
+    public void noReloadJobWhenReloadIsDisabled() {
+        assertNull(scheduler.getScheduledJob(GrantsAccessControllerInitializer.RELOAD_JOB));
     }
 
     // ==================== v3 point access ====================

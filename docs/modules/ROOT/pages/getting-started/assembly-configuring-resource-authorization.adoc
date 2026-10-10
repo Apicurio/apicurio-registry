@@ -304,7 +304,7 @@ A user with the `sr-readonly` role can never write, whatever their grants. To co
 
 === Resource owners
 
-The recorded owner of an artifact or group always has access to it, whether or not owner-only authorization (`apicurio.auth.owner-only-authorization`) is enabled. Owners also see their own resources in search results and can read content used by their artifacts. A resource without a recorded owner does not grant this exception to anyone.
+The recorded owner of an artifact or group always has access to it, whether or not owner-only authorization (`apicurio.auth.owner-only-authorization`) is enabled. Owners also see their own resources in search results and can read content used by their artifacts. With the Elasticsearch search index, searches that require the index (content and structure searches) include at most 1000 of the caller's owned artifacts that are not otherwise covered by grants. A resource without a recorded owner does not grant this exception to anyone.
 
 When owner-only authorization is enabled, it applies as well to resources named in a request body, such as Iceberg rename targets and published MCP servers: only the owner can change them, even if other users have matching grants.
 

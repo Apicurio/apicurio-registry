@@ -1,5 +1,6 @@
 package io.apicurio.registry.storage.dto;
 
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.storage.dto.AuthorizationNames.Clause;
 import org.junit.jupiter.api.Test;
 
@@ -29,6 +30,7 @@ class AuthorizationNamesTest {
     void groupNamesAreRaw() {
         assertEquals("team-a/sub", AuthorizationNames.group("team-a/sub"));
         assertEquals("default", AuthorizationNames.group(null));
+        assertEquals("default", AuthorizationNames.group(GroupId.DEFAULT.getRawGroupId()));
     }
 
     @Test

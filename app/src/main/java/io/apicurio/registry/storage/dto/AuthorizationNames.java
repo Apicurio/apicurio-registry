@@ -1,5 +1,7 @@
 package io.apicurio.registry.storage.dto;
 
+import io.apicurio.registry.model.GroupId;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,7 +35,7 @@ public final class AuthorizationNames {
     }
 
     private static boolean isStoredDefault(String groupId) {
-        return "__$GROUPID$__".equals(groupId);
+        return GroupId.DEFAULT.getRawGroupId().equals(groupId);
     }
 
     static String escape(String groupId) {

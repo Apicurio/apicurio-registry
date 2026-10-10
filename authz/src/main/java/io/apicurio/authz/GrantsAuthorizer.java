@@ -79,6 +79,14 @@ public class GrantsAuthorizer implements Authorizer, AutoCloseable {
         return grantsData;
     }
 
+    /**
+     * @return the modification time of the last grants file version this authorizer processed,
+     *         whether it was loaded or rejected as invalid; null if created without a file
+     */
+    public FileTime getLastSeenModified() {
+        return lastModified;
+    }
+
     @Override
     public CompletionStage<AuthorizeResult> authorize(Identity subject, List<Action> actions) {
         String user = extractUsername(subject);

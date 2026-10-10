@@ -85,16 +85,22 @@ public class GrantsHotReloadTest extends AbstractResourceTestBase {
     @Inject
     Scheduler scheduler;
 
+    @Inject
+    GrantsAccessController grantsAc;
+
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
         return RegistryClientFactory.create(RegistryClientOptions.create()
                 .registryUrl(registryV3ApiUrl).vertx(vertx).basicAuth("alice", "alice"));
     }
 
-    private static void write(String content, long modifiedOffsetMs) throws IOException {
+    /** @return the modification time set on the file */
+    private static FileTime write(String content, long modifiedOffsetMs) throws IOException {
         Files.writeString(GRANTS, content);
         // Distinct modification time even on filesystems with coarse timestamps
-        Files.setLastModifiedTime(GRANTS, FileTime.fromMillis(System.currentTimeMillis() + modifiedOffsetMs));
+        FileTime modified = FileTime.fromMillis(System.currentTimeMillis() + modifiedOffsetMs);
+        Files.setLastModifiedTime(GRANTS, modified);
+        return Files.getLastModifiedTime(GRANTS);
     }
 
     private int bobStatus(String artifactId) {
@@ -111,11 +117,12 @@ public class GrantsHotReloadTest extends AbstractResourceTestBase {
         assertEquals(403, bobStatus(artifactId));
 
         write(BOB_READS, 10_000);
-        await().atMost(Duration.ofSeconds(15)).until(() -> bobStatus(artifactId) == 200);
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertEquals(200, bobStatus(artifactId)));
 
-        write("{ not json", 20_000);
-        // Two reload intervals: the invalid file is seen and rejected, previous grants stay
-        Thread.sleep(2_500);
+        FileTime invalidVersion = write("{ not json", 20_000);
+        // Wait until the reload job has processed (and rejected) the invalid version
+        await().atMost(Duration.ofSeconds(15))
+                .untilAsserted(() -> assertEquals(invalidVersion, grantsAc.getAuthorizer().getLastSeenModified()));
         assertEquals(200, bobStatus(artifactId));
     }
 }

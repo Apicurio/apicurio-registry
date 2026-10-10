@@ -128,7 +128,8 @@ owner. Storage translates it into its query:
   patterns are escaped. The default group, named `default` in grants, maps to its stored ID.
 - Elasticsearch: the same clauses as `term`/`prefix` queries on keyword fields. The index does not
   store artifact ownership (it would go stale on ownership transfers), so the search decorator
-  resolves the caller's owned artifacts from SQL storage and passes them as names that always match.
+  resolves the caller's owned artifacts from SQL storage and passes them as names that always match
+  (capped at 1000 owned artifacts, with a warning logged when reached).
 
 **Invariant:** for every subject and resource name, the search patterns select exactly what point
 access allows. This is unit-tested by comparing both paths over adversarial names, and the SQL and

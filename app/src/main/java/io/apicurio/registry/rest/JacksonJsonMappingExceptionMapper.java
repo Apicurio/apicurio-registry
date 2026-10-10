@@ -4,35 +4,24 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.ValueInstantiationException;
 import io.apicurio.registry.rest.v3.beans.ContractStatusTransition;
-import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
-import io.apicurio.registry.extensions.ApiExceptionMapper;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
-import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
 
 /**
- * Intentionally handles JsonMappingException globally so malformed JSON
- * responses use the consistent ProblemDetails format across the API. The MCP Registry API is the
- * exception: its specification defines its own error shape.
+ * Intentionally handles JsonMappingException globally so malformed JSON is converted once. The
+ * resulting error is delegated to {@link RegistryExceptionMapper} so each API surface preserves
+ * its response contract.
  */
 @Provider
 @ApplicationScoped
 public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMappingException> {
 
     @Inject
-    CoreRegistryExceptionMapperService coreMapper;
-
-    @Inject
-    Instance<ApiExceptionMapper> apiMappers;
-
-    @Context
-    HttpServletRequest request;
+    RegistryExceptionMapper registryExceptionMapper;
 
     @Override
     public Response toResponse(JsonMappingException exception) {
@@ -54,16 +43,11 @@ public class JacksonJsonMappingExceptionMapper implements ExceptionMapper<JsonMa
     }
 
     /**
-     * This mapper is selected by exception type, so it bypasses the path dispatch in
-     * {@link RegistryExceptionMapper} and has to repeat the part of it that applies here.
+     * This mapper is selected by exception type, so delegate explicitly to the registry mapper to
+     * preserve API-surface-specific error responses.
      */
     private Response map(Throwable t) {
-        for (ApiExceptionMapper mapper : apiMappers) {
-            if (mapper.handles(request)) {
-                return mapper.mapException(t);
-            }
-        }
-        return coreMapper.mapException(t);
+        return registryExceptionMapper.toResponse(t);
     }
 
     /**

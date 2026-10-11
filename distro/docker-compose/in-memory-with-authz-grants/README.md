@@ -8,8 +8,6 @@ Two layers of authorization:
   [Kroxylicious Authorizer API](https://github.com/kroxylicious/kroxylicious/tree/main/kroxylicious-authorizer-api)
   implementation in Registry. Grants restrict within what RBAC allows; they never widen it.
 
-Per-resource authorization is experimental (`apicurio.features.experimental.enabled=true`).
-
 ## Services
 
 | Service               | URL                   | Purpose                               |

@@ -249,7 +249,6 @@ One ConfigMap, one source of truth. Because `GrantsAuthorizer` implements the Kr
 | `apicurio.auth.resource-based-authorization.grants.path` | _(none)_ | Path to JSON grants file |
 | `apicurio.auth.resource-based-authorization.grants.reload-every` | `5s` | File change polling interval (valid duration, e.g. `5s`, `1m`) |
 | `apicurio.auth.resource-based-authorization.grants.reload-enabled` | `true` | Set to `false` to disable hot-reload polling |
-| `apicurio.features.experimental.enabled` | `false` | Must be `true` (feature is experimental) |
 
 ## Alternatives Considered
 
@@ -369,7 +368,6 @@ the shape of `SearchFilterData`.
 - New JSON format to learn and manage (not a standard)
 - File-based grants have a scale ceiling (~500 grants)
 - Adds latency to every authorized request (grant evaluation) and globalId requests (storage lookup)
-- Experimental feature flag required
 - Search pre-filtering is tied to the grants implementation (`GrantsData`), not the Kroxylicious `Authorizer` API
 
 ### Neutral

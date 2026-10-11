@@ -74,7 +74,6 @@ public class GrantsHotReloadTest extends AbstractResourceTestBase {
             map.put("quarkus.security.users.embedded.users.bob", "bob");
             map.put("quarkus.security.users.embedded.roles.alice", "sr-admin");
             map.put("quarkus.security.users.embedded.roles.bob", "sr-developer");
-            map.put("apicurio.features.experimental.enabled", "true");
             map.put("apicurio.auth.resource-based-authorization.enabled", "true");
             map.put("apicurio.auth.resource-based-authorization.grants.path", GRANTS.toString());
             map.put("apicurio.auth.resource-based-authorization.grants.reload-every", "1s");

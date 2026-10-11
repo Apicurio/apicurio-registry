@@ -8,8 +8,6 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 Per-resource authorization controls access to individual groups and artifacts, for example "Alice can write artifacts in group `team-a` and read `shared`, but cannot see `team-b`". Access is defined in a grants file and applies to every {registry} API, including search and list results.
 
-IMPORTANT: Per-resource authorization is an experimental feature. To use it, set `apicurio.features.experimental.enabled=true`. The grants file format and behavior might change in future releases.
-
 * xref:resource-authorization-overview_{context}[]
 * xref:resource-authorization-configuration_{context}[]
 * xref:resource-authorization-grants_{context}[]
@@ -60,17 +58,12 @@ Per-resource authorization requires authentication (OIDC, HTTP basic, or proxy h
 |`apicurio.auth.resource-based-authorization.grants.reload-enabled`
 |`true`
 |Reloads the grants file when it changes. Set to `false` to load it only at startup.
-
-|`apicurio.features.experimental.enabled`
-|`false`
-|Must be `true` to use experimental features, including per-resource authorization.
 |===
 
 .Example configuration
 [source,yaml]
 ----
 environment:
-  apicurio.features.experimental.enabled: "true"
   apicurio.auth.resource-based-authorization.enabled: "true"
   apicurio.auth.resource-based-authorization.grants.path: "/opt/apicurio/authz/grants.json"
 ----

@@ -39,8 +39,6 @@ services:
       QUARKUS_OIDC_TOKEN_ISSUER: "any"
       # Coarse-grained RBAC from Keycloak roles (grants restrict within what RBAC allows)
       apicurio.auth.role-based-authorization: "true"
-      # Per-resource authorization is experimental
-      apicurio.features.experimental.enabled: "true"
       apicurio.auth.resource-based-authorization.enabled: "true"
       apicurio.auth.resource-based-authorization.grants.path: "/opt/apicurio/authz/grants.json"
       apicurio.auth.resource-based-authorization.grants.reload-every: "5s"

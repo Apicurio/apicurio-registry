@@ -67,6 +67,7 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
             map.put("quarkus.security.users.embedded.roles.alice", "sr-admin");
             map.put("quarkus.security.users.embedded.roles.bob1", "sr-developer");
             map.put("quarkus.security.users.embedded.roles.bob2", "sr-developer");
+            // Iceberg and the MCP Registry API are experimental; per-resource authorization is not
             map.put("apicurio.features.experimental.enabled", "true");
             map.put("apicurio.iceberg.enabled", "true");
             map.put("apicurio.mcp-registry.enabled", "true");

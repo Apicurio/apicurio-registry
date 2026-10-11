@@ -47,12 +47,17 @@ public class IngressITTest extends ITBase {
         final var appIngress = k8sCell(client, () -> client.network().v1().ingresses().withName(primary.getCached().getMetadata().getName() + "-app-ingress").get());
         final var uiIngress = k8sCell(client, () -> client.network().v1().ingresses().withName(primary.getCached().getMetadata().getName() + "-ui-ingress").get());
 
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-            assertThat(appIngress.get()).isNotNull();
+        // Creating the Ingress requires a full reconciliation of the freshly created CR, which can
+        // take considerably longer than a subsequent update to an already existing resource. Use
+        // MEDIUM_DURATION here, consistent with the other resource-creation waits such as
+        // ITBase.checkDeploymentExists(). getOptional() is used instead of get() so that a timeout
+        // reports the resource as missing rather than surfacing an IllegalStateException.
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            assertThat(appIngress.getOptional()).isPresent();
         });
 
-        await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {
-            assertThat(uiIngress.get()).isNotNull();
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().untilAsserted(() -> {
+            assertThat(uiIngress.getOptional()).isPresent();
         });
 
         await().atMost(SHORT_DURATION).ignoreExceptions().untilAsserted(() -> {

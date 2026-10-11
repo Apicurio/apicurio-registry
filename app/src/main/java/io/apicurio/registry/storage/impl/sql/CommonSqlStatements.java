@@ -474,6 +474,22 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "DELETE FROM artifact_labels WHERE groupId = ? AND artifactId = ? AND labelKey LIKE ?";
     }
 
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteArtifactStructuredContent()
+     */
+    @Override
+    public String deleteArtifactStructuredContent() {
+        return "DELETE FROM artifact_structured_content WHERE groupId = ? AND artifactId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertArtifactStructuredContent()
+     */
+    @Override
+    public String insertArtifactStructuredContent() {
+        return "INSERT INTO artifact_structured_content (groupId, artifactId, elementType, elementValue) VALUES (?, ?, ?, ?)";
+    }
+
     @Override
     public String deleteVersionLabelsByPrefix() {
         return "DELETE FROM version_labels WHERE globalId = ? AND labelKey LIKE ?";
@@ -665,6 +681,17 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String selectContentById() {
         return "SELECT c.content, c.contentType, c.refs, c.contentHash FROM content c "
                 + "WHERE c.contentId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentAndArtifactTypeById()
+     */
+    @Override
+    public String selectContentAndArtifactTypeById() {
+        return "SELECT c.content, c.contentType, c.refs, c.contentHash, a.type AS artifactType FROM content c "
+                + "JOIN versions v ON v.contentId = c.contentId "
+                + "JOIN artifacts a ON v.groupId = a.groupId AND v.artifactId = a.artifactId "
+                + "WHERE c.contentId = ? LIMIT 1";
     }
 
     /**
@@ -1153,6 +1180,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#upsertConfigProperty()
+     */
+    @Override
+    public String upsertConfigProperty() {
+        return "MERGE INTO config (propName, propValue, modifiedOn) KEY (propName) VALUES (?, ?, ?)";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteAllConfigProperties()
      */
     @Override
@@ -1175,7 +1210,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String deleteOrphanedContentReferences() {
-        return "DELETE FROM content_references WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId)";
+        return "DELETE FROM content_references WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = content_references.contentId)";
     }
 
     @Override

@@ -57,22 +57,17 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(id.longValue());
             artifactType = vmd.getArtifactType();
         } else {
-            ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
+            ContentWrapperDto contentWrapper = storage.getContentAndArtifactTypeById(id.longValue());
             contentHandle = contentWrapper.getContent();
             references = contentWrapper.getReferences();
-            List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(id.longValue());
-            if (versions == null || versions.isEmpty()) {
-                //the contentId points to an orphaned content
-                throw new ArtifactNotFoundException("ContentId: " + id);
-            }
-            artifactType = versions.get(0).getArtifactType();
+            artifactType = contentWrapper.getArtifactType();
         }
 
         // Apply default format if configured and no format was explicitly provided
         if (format == null || format.isBlank()) {
             java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
-                    && "DEREFERENCE".equalsIgnoreCase(configuredDefault.get())) {
+            if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()
+                    && "DEREFERENCE".equalsIgnoreCase(configuredDefault.orElseThrow())) {
                 // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
                 if (ArtifactType.AVRO.equals(artifactType) || ArtifactType.PROTOBUF.equals(artifactType)) {
                     format = "resolved";
@@ -103,22 +98,17 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
             ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(id.longValue());
             artifactType = vmd.getArtifactType();
         } else {
-            ContentWrapperDto contentWrapper = storage.getContentById(id.longValue());
+            ContentWrapperDto contentWrapper = storage.getContentAndArtifactTypeById(id.longValue());
             contentHandle = contentWrapper.getContent();
             references = contentWrapper.getReferences();
-            List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(id.longValue());
-            if (versions == null || versions.isEmpty()) {
-                //the contentId points to an orphaned content
-                throw new ArtifactNotFoundException("ContentId: " + id);
-            }
-            artifactType = versions.get(0).getArtifactType();
+            artifactType = contentWrapper.getArtifactType();
         }
 
         // Apply default format if configured and no format was explicitly provided
         if (format == null || format.isBlank()) {
             java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-            if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
-                    && "DEREFERENCE".equals(configuredDefault.get())) {
+            if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()
+                    && "DEREFERENCE".equals(configuredDefault.orElseThrow())) {
                 // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
                 if (ArtifactType.AVRO.equals(artifactType) || ArtifactType.PROTOBUF.equals(artifactType)) {
                     format = "RESOLVED";

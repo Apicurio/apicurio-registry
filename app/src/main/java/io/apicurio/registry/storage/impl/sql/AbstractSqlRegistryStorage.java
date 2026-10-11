@@ -5,6 +5,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.extract.NoopStructuredContentExtractor;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
+import io.apicurio.registry.content.extract.StructuredElement;
 import io.apicurio.registry.core.System;
 import io.apicurio.registry.events.ArtifactCreated;
 import io.apicurio.registry.contracts.ContractLabels;
@@ -41,6 +44,7 @@ import io.apicurio.registry.storage.importing.v2.SqlDataUpgrader;
 import io.apicurio.registry.storage.importing.v3.SqlDataImporter;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.IoUtil;
 import io.apicurio.registry.utils.impexp.Entity;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
@@ -55,6 +59,8 @@ import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
@@ -66,17 +72,26 @@ import org.slf4j.Logger;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STORAGE;
+import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_STRUCTURED_CONTENT_INDEX_FAILURES;
+import static io.apicurio.registry.metrics.MetricsConstants.STORAGE_STRUCTURED_CONTENT_INDEX_FAILURES_DESCRIPTION;
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementType;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementValue;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.isIndexable;
+import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.rowKey;
 import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.utils.StringUtil.limitStr;
+import static io.apicurio.registry.utils.StringUtil.sanitizeForLog;
 
 /**
  * A SQL implementation of the {@link RegistryStorage} interface. This impl does not use any ORM technology -
@@ -93,6 +108,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         mapper.configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, true);
     }
+
 
     @Inject
     Logger log;
@@ -119,6 +135,12 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Inject
     RestConfig restConfig;
+
+    @Inject
+    ArtifactTypeUtilProviderFactory typeProviderFactory;
+
+    @Inject
+    MeterRegistry metrics;
 
     @ConfigProperty(name = "apicurio.storage.references.max-depth", defaultValue = "100")
     @Info(category = CATEGORY_STORAGE, description = "Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.", availableSince = "3.0.6")
@@ -459,6 +481,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         return contentRepository.getContentById(contentId);
     }
 
+    @Override
+    public ContentWrapperDto getContentAndArtifactTypeById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException {
+
+        return contentRepository.getContentAndArtifactTypeById(contentId);
+    }
+
     public ContentWrapperDto getContentByIdRaw(Handle handle, long contentId)
             throws ContentNotFoundException, RegistryStorageException {
         return contentRepository.getContentByIdRaw(handle, contentId);
@@ -558,6 +587,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 // The artifact was successfully created! Create the version as well, if one was included.
                 ImmutablePair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> pair;
                 if (versionContent != null) {
+                    // Index the structured content BEFORE creating the version: createArtifactVersionRaw
+                    // locks the shared globalId sequence row until commit, so any work after it
+                    // serializes every concurrent create in the registry. For a new artifact the
+                    // result is identical to refreshing afterwards: its first version is the 'latest'
+                    // branch head and is ENABLED unless it is a draft (in which case nothing is
+                    // indexed), its content is exactly versionContent, and there are no prior rows.
+                    if (!versionIsDraft) {
+                        updateStructuredContentRaw(handle, groupId, artifactId, artifactType, versionContent);
+                    }
                     ArtifactVersionMetaDataDto vmdDto = createArtifactVersionRaw(handle, true, groupId,
                             artifactId, version, versionMetaData, owner, createdOn, contentId,
                             versionBranches, versionIsDraft);
@@ -576,6 +614,129 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 throw new ArtifactAlreadyExistsException(groupId, artifactId);
             }
             throw ex;
+        }
+    }
+
+    /**
+     * Extracts structured elements (e.g. Agent Card skills, MCP tool parameters) from the given content
+     * and replaces the artifact's rows in the artifact_structured_content table. Only artifact types
+     * with a structured content extractor produce rows. Extraction failures are logged and ignored so
+     * they never fail the enclosing artifact operation.
+     */
+    private void updateStructuredContentRaw(Handle handle, String groupId, String artifactId,
+            String artifactType, ContentWrapperDto content) {
+        if (artifactType == null || content == null || content.getContent() == null) {
+            return;
+        }
+        StructuredContentExtractor extractor = structuredContentExtractorFor(artifactType);
+        if (extractor == null) {
+            return;
+        }
+        List<StructuredElement> elements;
+        try {
+            elements = extractor.extract(StructuredContentIndexUtils.extractionContent(artifactType, content.getContent()));
+        } catch (Exception e) {
+            recordStructuredContentIndexFailure(groupId, artifactId, e);
+            elements = List.of();
+        }
+        // SQL failures must roll back the content write; swallowing one leaves PostgreSQL aborted.
+        handle.createUpdate(sqlStatements.deleteArtifactStructuredContent())
+                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
+        Set<String> seen = new HashSet<>();
+        for (StructuredElement element : elements) {
+            if (!isIndexable(element)) {
+                continue;
+            }
+            String elementType = elementType(artifactType, element.kind());
+            String elementValue = elementValue(element.name());
+            if (seen.add(rowKey(elementType, elementValue))) {
+                handle.createUpdate(sqlStatements.insertArtifactStructuredContent())
+                        .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, elementType)
+                        .bind(3, elementValue).execute();
+            }
+        }
+    }
+
+    private void refreshStructuredContentRaw(Handle handle, String groupId, String artifactId) {
+        String type = artifactRepository.getArtifactMetaData(groupId, artifactId).getArtifactType();
+        if (!hasStructuredContentExtractor(type)) {
+            return;
+        }
+        lockArtifactForVersionWrite(handle, groupId, artifactId);
+        var selected = handle.createQuery("SELECT v.contentId FROM versions v JOIN branch_versions b"
+                + " ON b.groupId = v.groupId AND b.artifactId = v.artifactId AND b.version = v.version"
+                + " WHERE v.groupId = ? AND v.artifactId = ? AND b.branchId = 'latest'"
+                + " AND v.state NOT IN ('DRAFT', 'DISABLED') ORDER BY b.branchOrder DESC")
+                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Long.class).findFirst();
+        // Importers can load versions before branch entities. Index their latest published version
+        // provisionally, then refresh again when the actual branch is imported.
+        if (selected.isEmpty()) {
+            boolean hasBranch = handle.createQuery("SELECT count(*) FROM branches WHERE groupId = ? AND artifactId = ? AND branchId = 'latest'")
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Integer.class).one() > 0;
+            if (!hasBranch) {
+                selected = handle.createQuery("SELECT v.contentId FROM versions v WHERE v.groupId = ? AND v.artifactId = ?"
+                        + " AND v.state NOT IN ('DRAFT', 'DISABLED') ORDER BY v.versionOrder DESC")
+                        .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Long.class).findFirst();
+            }
+        }
+        if (selected.isPresent()) {
+            updateStructuredContentRaw(handle, groupId, artifactId, type,
+                    contentRepository.getContentById(selected.get()));
+        } else {
+            handle.createUpdate(sqlStatements.deleteArtifactStructuredContent())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
+        }
+    }
+
+    /**
+     * Reports a failed structured-content index update. Indexing is best-effort - the artifact write
+     * succeeds either way - which means the artifact silently stops matching structure-based search
+     * filters. Emitting a metric alongside the log line gives operators a way to see how often that
+     * happens without grepping logs. groupId and artifactId are user-controlled, so they are sanitized
+     * before being logged; the exception is passed through so its stack trace is preserved.
+     */
+    private void recordStructuredContentIndexFailure(String groupId, String artifactId, Exception e) {
+        log.warn("Failed to update structured content for {}/{}. The artifact was written, but it will "
+                + "not match structure-based search filters until it is written again.",
+                sanitizeForLog(groupId), sanitizeForLog(artifactId), e);
+        incrementCounter(STORAGE_STRUCTURED_CONTENT_INDEX_FAILURES,
+                STORAGE_STRUCTURED_CONTENT_INDEX_FAILURES_DESCRIPTION);
+    }
+
+    private void incrementCounter(String name, String description) {
+        if (metrics != null) {
+            Counter.builder(name).description(description).register(metrics).increment();
+        }
+    }
+
+    /**
+     * Returns the structured content extractor for the given artifact type, or null when that type does
+     * not extract structured content. Providers never return null here - types without structured
+     * extraction get {@link NoopStructuredContentExtractor}, so that is what identifies them. Checking
+     * for null alone would treat every artifact type as extractable, making the callers do work for
+     * types (AVRO, PROTOBUF, ...) that can never produce structured elements.
+     */
+    private StructuredContentExtractor structuredContentExtractorFor(String artifactType) {
+        StructuredContentExtractor extractor = typeProviderFactory.getArtifactTypeProvider(artifactType)
+                .getStructuredContentExtractor();
+        return extractor instanceof NoopStructuredContentExtractor ? null : extractor;
+    }
+
+    /**
+     * Returns true when the given artifact type produces structured content. Used to decide whether
+     * structured-content work is needed at all, so an unknown artifact type - for which the provider
+     * factory throws rather than returning null - answers "no" instead of failing the caller.
+     */
+    private boolean hasStructuredContentExtractor(String artifactType) {
+        if (artifactType == null) {
+            return false;
+        }
+        try {
+            return structuredContentExtractorFor(artifactType) != null;
+        } catch (Exception e) {
+            log.debug("Could not check structured-content extractor for artifact type {}.",
+                    sanitizeForLog(artifactType), e);
+            return false;
         }
     }
 
@@ -625,14 +786,15 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     handle.setRollback(true);
                 }
 
+                lockArtifactForVersionWrite(handle, groupId, artifactId);
                 boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
+                indexNewVersionBeforeGlobalIdRaw(handle, groupId, artifactId, content, isDraft);
 
                 // Now create the version and return the new version metadata.
-                ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(handle, isFirstVersion,
+                return createArtifactVersionRaw(handle, isFirstVersion,
                         groupId, artifactId, version,
                         metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData, owner,
                         createdOn, contentId, branches, isDraft);
-                return versionDto;
             });
         } catch (Exception ex) {
             if (sqlStatements.isPrimaryKeyViolation(ex)) {
@@ -654,7 +816,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         try {
             return handles.withHandle(handle -> {
-                // Lock the artifact's versions and get current max versionOrder
+                // Lock a stable parent row before selecting the version set. Locking only existing
+                // versions lets a waiting statement miss a concurrently inserted version on PostgreSQL.
+                lockArtifactForVersionWrite(handle, groupId, artifactId);
                 Integer currentMax = handle
                         .createQuery(sqlStatements.selectMaxVersionOrderForUpdate())
                         .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Integer.class)
@@ -670,6 +834,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 // Safe to proceed — we hold the FOR UPDATE lock
                 boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
+                indexNewVersionBeforeGlobalIdRaw(handle, groupId, artifactId, content, isDraft);
                 ArtifactVersionMetaDataDto result = createArtifactVersionRaw(handle, isFirstVersion,
                         groupId, artifactId, version,
                         metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData,
@@ -713,6 +878,35 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throws RegistryStorageException {
 
         return versionRepository.countActiveArtifactVersions(groupId, artifactId);
+    }
+
+    /**
+     * Updates the structured-content index for a version that is about to be created on an existing,
+     * already-locked artifact. Must run BEFORE createArtifactVersionRaw, which locks the shared globalId
+     * sequence row until commit (every concurrent create in the registry queues on it). Equivalent to
+     * refreshing afterwards: a non-draft version is appended to the end of the 'latest' branch as an
+     * ENABLED version, so it becomes the indexed tip with exactly this content; a draft version is only
+     * added to the 'drafts' branch and leaves the index unchanged. The stored artifact type is used,
+     * not the caller's, matching refreshStructuredContentRaw.
+     */
+    private void indexNewVersionBeforeGlobalIdRaw(Handle handle, String groupId, String artifactId,
+            ContentWrapperDto content, boolean isDraft) {
+        if (isDraft) {
+            return;
+        }
+        String type = artifactRepository.getArtifactMetaData(groupId, artifactId).getArtifactType();
+        if (hasStructuredContentExtractor(type)) {
+            updateStructuredContentRaw(handle, groupId, artifactId, type, content);
+        }
+    }
+
+    private void lockArtifactForVersionWrite(Handle handle,
+            String groupId, String artifactId) {
+        int count = handle.createUpdate("UPDATE artifacts SET modifiedOn = modifiedOn WHERE groupId = ? AND artifactId = ?")
+                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
+        if (count == 0) {
+            throw new ArtifactNotFoundException(groupId, artifactId);
+        }
     }
 
     @Override
@@ -920,27 +1114,22 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public void mergeArtifactLabels(String groupId, String artifactId, String prefix,
             Map<String, String> labels) throws RegistryStorageException {
         String normalizedGroup = normalizeGroupId(groupId);
-        handles.withHandleNoException(
-                (io.apicurio.registry.storage.impl.sql.jdb.HandleAction<RegistryStorageException>) handle -> {
-                    handle.createUpdate(sqlStatements.deleteArtifactLabelsByPrefix())
-                            .bind(0, normalizedGroup).bind(1, artifactId)
-                            .bind(2, prefix + "%").execute();
-                    for (Map.Entry<String, String> entry : labels.entrySet()) {
-                        String key = entry.getKey().toLowerCase(java.util.Locale.ROOT);
-                        if (key.length() > 256) {
-                            throw new RegistryStorageException(
-                                    "Label key exceeds maximum length (256): " + key);
-                        }
-                        handle.createUpdate(sqlStatements.insertArtifactLabel())
-                                .bind(0, normalizedGroup).bind(1, artifactId)
-                                .bind(2, key)
-                                .bind(3, limitStr(entry.getValue(), 512)).execute();
-                    }
-                    handle.createUpdate(sqlStatements.updateArtifactLabels())
-                            .bind(0, RegistryContentUtils.serializeLabels(
-                                    rebuildLabels(handle, normalizedGroup, artifactId)))
-                            .bind(1, normalizedGroup).bind(2, artifactId).execute();
-                });
+        handles.withHandleNoException(handle -> {
+            // An UPDATE locks the canonical row on every supported SQL dialect, including SQL Server.
+            // Read/merge after acquiring it so concurrent label writers cannot clobber unrelated keys.
+            int count = handle.createUpdate("UPDATE artifacts SET modifiedOn = modifiedOn WHERE groupId = ? AND artifactId = ?")
+                    .bind(0, normalizedGroup).bind(1, artifactId).execute();
+            if (count == 0) {
+                throw new ArtifactNotFoundException(groupId, artifactId);
+            }
+            var existing = artifactRepository.getArtifactMetaData(groupId, artifactId).getLabels();
+            Map<String, String> merged = existing == null ? new HashMap<>() : new HashMap<>(existing);
+            merged.keySet().removeIf(key -> key.startsWith(prefix));
+            merged.putAll(labels);
+            artifactRepository.updateArtifactMetaData(groupId, artifactId,
+                    EditableArtifactMetaDataDto.builder().labels(merged).build());
+            return null;
+        });
     }
 
     @Override
@@ -973,19 +1162,6 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         outboxEvent.fire(SqlOutboxEvent
                 .of(ContractStatusChanged.of(groupId, artifactId, fromStatus, toStatus)));
-    }
-
-    private Map<String, String> rebuildLabels(
-            io.apicurio.registry.storage.impl.sql.jdb.Handle handle,
-            String groupId, String artifactId) {
-        Map<String, String> result = new java.util.LinkedHashMap<>();
-        handle.createQuery(sqlStatements.selectArtifactLabels())
-                .bind(0, groupId).bind(1, artifactId)
-                .map(rs -> {
-                    result.put(rs.getString("labelKey"), rs.getString("labelValue"));
-                    return null;
-                }).list();
-        return result;
     }
 
     @Override
@@ -1076,14 +1252,35 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         // Put the new content in the DB and get the unique content ID back.
         long contentId = ensureContentAndGetId(artifactType, content, true);
 
-        versionRepository.updateArtifactVersionContent(groupId, artifactId, version, contentId);
+        // Update the version content and its structured-content index in a single transaction so the
+        // index can never be left pointing at a previous version's content.
+        handles.withHandleNoException(handle -> {
+            lockArtifactForVersionWrite(handle, groupId, artifactId);
+            versionRepository.updateArtifactVersionContentRaw(handle, groupId, artifactId, version,
+                    contentId);
+            // The structured-content index is artifact-scoped and reflects the artifact's latest version.
+            // This method can target any DRAFT version, which is not necessarily the latest one (e.g. a
+            // DRAFT v1 sitting behind an ENABLED v2), so re-indexing unconditionally would replace the
+            // latest version's elements with an older version's and make the latest content unsearchable.
+            // The extractor check is first on purpose: it is an in-memory lookup, so the artifact types
+            // that never produce structured content (AVRO, PROTOBUF, JSON, ...) - the overwhelming
+            // majority of writes - skip the latest-version query entirely, and only agent card, MCP tool
+            // and OpenAPI/AsyncAPI writes pay for it.
+            refreshStructuredContentRaw(handle, groupId, artifactId);
+            return null;
+        });
     }
 
     @Override
     public void deleteArtifactVersion(String groupId, String artifactId, String version)
             throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
 
-        versionRepository.deleteArtifactVersion(groupId, artifactId, version);
+        handles.withHandleNoException(handle -> {
+            lockArtifactForVersionWrite(handle, groupId, artifactId);
+            versionRepository.deleteArtifactVersion(groupId, artifactId, version);
+            refreshStructuredContentRaw(handle, groupId, artifactId);
+            return null;
+        });
     }
 
     @Override
@@ -1179,31 +1376,59 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
+        handles.withHandleNoException(handle -> {
+            // Validate every target before changing any of them. Nested repository calls share this
+            // handle and transaction, including outbox rows and label indexes.
+            for (String version : versions) {
+                versionRepository.getArtifactVersionMetaData(groupId, artifactId, version);
+            }
+            for (String version : versions) {
+                updateArtifactVersionState(groupId, artifactId, version, newState, false);
+                ArtifactVersionMetaDataDto metadata = versionRepository.getArtifactVersionMetaData(
+                        groupId, artifactId, version);
+                Map<String, String> merged = new HashMap<>();
+                if (metadata.getLabels() != null) {
+                    merged.putAll(metadata.getLabels());
+                }
+                merged.keySet().removeIf(key -> key.startsWith(labelPrefix));
+                merged.putAll(labels);
+                // Keep the canonical label map intact. Rebuilding it from the search index would
+                // truncate/lowercase unrelated publisher metadata.
+                versionRepository.updateArtifactVersionMetaData(groupId, artifactId, version,
+                        EditableVersionMetaDataDto.builder().labels(merged).build());
+            }
+            return null;
+        });
+    }
+
+    @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
             VersionState newState, boolean dryRun) {
-
-        // Get the current state before updating.
-        VersionState currentState = versionRepository.getArtifactVersionState(groupId, artifactId, version);
-
-        // Delegate to the version repository to update the state.
-        versionRepository.updateArtifactVersionState(groupId, artifactId, version, newState, dryRun);
-
-        // When transitioning from DRAFT to a non-DRAFT state, recalculate content hashes.
-        // Draft content uses fake hashes ("draft:" + UUID) to prevent content-based search.
-        // Once the version is no longer a draft, we need real hashes so that searches work.
-        if (!dryRun && currentState == VersionState.DRAFT && newState != VersionState.DRAFT) {
-            ArtifactVersionMetaDataDto versionMeta = versionRepository.getArtifactVersionMetaData(groupId,
-                    artifactId, version);
-            ContentWrapperDto contentDto = contentRepository.getContentById(versionMeta.getContentId());
-            if (contentDto.getContentHash() != null && contentDto.getContentHash().startsWith("draft:")) {
-                String artifactType = versionMeta.getArtifactType();
-                long newContentId = ensureContentAndGetId(artifactType, contentDto, false);
-                if (newContentId != versionMeta.getContentId()) {
-                    versionRepository.updateArtifactVersionContent(groupId, artifactId, version,
-                            newContentId);
+        handles.withHandleNoException(handle -> {
+            lockArtifactForVersionWrite(handle, groupId, artifactId);
+            if (dryRun) {
+                handle.setRollback(true);
+            }
+            VersionState currentState = versionRepository.getArtifactVersionState(groupId, artifactId, version);
+            versionRepository.updateArtifactVersionState(groupId, artifactId, version, newState, dryRun);
+            // Published drafts need real content hashes; deduplication must not abort this transaction.
+            if (!dryRun && currentState == VersionState.DRAFT && newState != VersionState.DRAFT) {
+                ArtifactVersionMetaDataDto versionMeta = versionRepository.getArtifactVersionMetaData(groupId,
+                        artifactId, version);
+                ContentWrapperDto contentDto = contentRepository.getContentById(versionMeta.getContentId());
+                if (contentDto.getContentHash() != null && contentDto.getContentHash().startsWith("draft:")) {
+                    String artifactType = versionMeta.getArtifactType();
+                    long newContentId = ensureContentAndGetId(artifactType, contentDto, false);
+                    if (newContentId != versionMeta.getContentId()) {
+                        versionRepository.updateArtifactVersionContent(groupId, artifactId, version, newContentId);
+                    }
                 }
             }
-        }
+            refreshStructuredContentRaw(handle, groupId, artifactId);
+            return null;
+        });
     }
 
     @Override
@@ -1593,14 +1818,17 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void importArtifact(ArtifactEntity entity) {
-
         artifactRepository.importArtifact(entity);
     }
 
     @Override
     public void importArtifactVersion(ArtifactVersionEntity entity) {
-
-        versionRepository.importArtifactVersion(entity);
+        handles.withHandleNoException(handle -> {
+            lockArtifactForVersionWrite(handle, entity.groupId, entity.artifactId);
+            versionRepository.importArtifactVersion(entity);
+            refreshStructuredContentRaw(handle, entity.groupId, entity.artifactId);
+            return null;
+        });
     }
 
     @Override
@@ -1692,7 +1920,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public BranchMetaDataDto createBranch(GA ga, BranchId branchId, String description,
             List<String> versions) {
 
-        return branchRepository.createBranch(ga, branchId, description, versions);
+        return handles.withHandleNoException(handle -> {
+            lockArtifactForVersionWrite(handle, ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+            var result = branchRepository.createBranch(ga, branchId, description, versions);
+            if (BranchId.LATEST.equals(branchId)) {
+                refreshStructuredContentRaw(handle, ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+            }
+            return result;
+        });
     }
 
     @Override
@@ -1723,14 +1958,26 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void appendVersionToBranch(GA ga, BranchId branchId, VersionId version) {
-
-        branchRepository.appendVersionToBranch(ga, branchId, version);
+        handles.withHandleNoException(handle -> {
+            lockArtifactForVersionWrite(handle, ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+            branchRepository.appendVersionToBranch(ga, branchId, version);
+            if (BranchId.LATEST.equals(branchId)) {
+                refreshStructuredContentRaw(handle, ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+            }
+            return null;
+        });
     }
 
     @Override
     public void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions) {
-
-        branchRepository.replaceBranchVersions(ga, branchId, versions);
+        handles.withHandleNoException(handle -> {
+            lockArtifactForVersionWrite(handle, ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+            branchRepository.replaceBranchVersions(ga, branchId, versions);
+            if (BranchId.LATEST.equals(branchId)) {
+                refreshStructuredContentRaw(handle, ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+            }
+            return null;
+        });
     }
 
     @Override
@@ -1741,14 +1988,24 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @Override
     public void deleteBranch(GA ga, BranchId branchId) {
-
-        branchRepository.deleteBranch(ga, branchId);
+        handles.withHandleNoException(handle -> {
+            lockArtifactForVersionWrite(handle, ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+            branchRepository.deleteBranch(ga, branchId);
+            if (BranchId.LATEST.equals(branchId)) {
+                refreshStructuredContentRaw(handle, ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+            }
+            return null;
+        });
     }
 
     @Override
     public void importBranch(BranchEntity entity) {
-
-        branchRepository.importBranch(entity);
+        handles.withHandleNoException(handle -> {
+            lockArtifactForVersionWrite(handle, entity.groupId, entity.artifactId);
+            branchRepository.importBranch(entity);
+            refreshStructuredContentRaw(handle, entity.groupId, entity.artifactId);
+            return null;
+        });
     }
 
     @Override

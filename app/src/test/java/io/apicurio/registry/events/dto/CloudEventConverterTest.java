@@ -20,6 +20,7 @@ import java.util.Locale;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class CloudEventConverterTest {
 
@@ -146,5 +147,59 @@ public class CloudEventConverterTest {
 
         assertNotNull(cloudEvent);
         assertEquals("/custom-source", cloudEvent.getSource());
+    }
+
+    // --- conversion-boundary negative tests ---
+    // These go through toCloudEvent() (not validate() directly) so that removing the
+    // dto.validate() call at CloudEventConverter.java:71 causes these tests to fail.
+
+    private static OutboxEvent artifactCreatedEventWithId(String id) {
+        return new OutboxEvent(id, "aggregate-test", Instant.now()) {
+            @Override
+            public JSONObject getPayload() {
+                return new JSONObject().put("eventType", StorageEventType.ARTIFACT_CREATED.name());
+            }
+
+            @Override
+            public String getType() {
+                return StorageEventType.ARTIFACT_CREATED.name();
+            }
+        };
+    }
+
+    @Test
+    public void testToCloudEvent_throwsWhenIdIsNull() {
+        assertThrows(IllegalArgumentException.class,
+                () -> CloudEventConverter.toCloudEvent(artifactCreatedEventWithId(null), SOURCE));
+    }
+
+    @Test
+    public void testToCloudEvent_throwsWhenIdIsEmpty() {
+        assertThrows(IllegalArgumentException.class,
+                () -> CloudEventConverter.toCloudEvent(artifactCreatedEventWithId(""), SOURCE));
+    }
+
+    @Test
+    public void testToCloudEvent_throwsWhenIdIsBlank() {
+        assertThrows(IllegalArgumentException.class,
+                () -> CloudEventConverter.toCloudEvent(artifactCreatedEventWithId("   "), SOURCE));
+    }
+
+    @Test
+    public void testToCloudEvent_throwsWhenSourceIsNull() {
+        assertThrows(IllegalArgumentException.class,
+                () -> CloudEventConverter.toCloudEvent(artifactCreatedEventWithId("valid-id"), (String) null));
+    }
+
+    @Test
+    public void testToCloudEvent_throwsWhenSourceIsEmpty() {
+        assertThrows(IllegalArgumentException.class,
+                () -> CloudEventConverter.toCloudEvent(artifactCreatedEventWithId("valid-id"), ""));
+    }
+
+    @Test
+    public void testToCloudEvent_throwsWhenSourceIsBlank() {
+        assertThrows(IllegalArgumentException.class,
+                () -> CloudEventConverter.toCloudEvent(artifactCreatedEventWithId("valid-id"), "   "));
     }
 }

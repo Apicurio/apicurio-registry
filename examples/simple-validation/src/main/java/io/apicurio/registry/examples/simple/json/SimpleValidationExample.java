@@ -25,11 +25,11 @@ import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
-import org.everit.json.schema.ValidationException;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -116,15 +116,13 @@ public class SimpleValidationExample {
                 message.setMessage("Hello!  A random integer is: " + rand.nextInt());
                 message.setTime(System.currentTimeMillis());
 
-                try {
-                    // Validate the message before sending it
-                    validator.validate(message);
-
-                    // Send the message
+                // Validate the message before sending it
+                List<String> problems = validator.validate(message);
+                if (problems.isEmpty()) {
                     publisher.publishMessage(message);
-                } catch (ValidationException e) {
+                } else {
                     System.err.println("Message validation failed:");
-                    System.err.println("  Message: " + e.getMessage());
+                    problems.forEach(problem -> System.err.println("  " + problem));
                     System.err.println("  Failed message: " + message);
                 }
 

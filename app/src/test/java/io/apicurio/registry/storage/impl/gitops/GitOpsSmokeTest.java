@@ -3,6 +3,11 @@ package io.apicurio.registry.storage.impl.gitops;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.util.GitopsTestProfile;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.JsonObjectMapper;
@@ -11,11 +16,11 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Set;
@@ -65,6 +70,11 @@ public class GitOpsSmokeTest {
         var artifactMeta = storage.getArtifactMetaData("foo", "petstore");
         assertEquals("petstore", artifactMeta.getArtifactId());
         assertEquals("OPENAPI", artifactMeta.getArtifactType());
+        var search = storage.searchArtifacts(Set.of(SearchFilter.ofGroupId("foo"),
+                SearchFilter.ofStructure("openapi:operation:listpets")), OrderBy.artifactId,
+                OrderDirection.asc, 0, 10, false);
+        assertEquals(1, search.getCount());
+        assertEquals("petstore", search.getArtifacts().get(0).getArtifactId());
 
         // Artifact rules
         assertEquals(Set.of(RuleType.COMPATIBILITY), Set.copyOf(storage.getArtifactRules("foo", "petstore")));
@@ -73,6 +83,8 @@ public class GitOpsSmokeTest {
 
         // Artifact version content
         var version = storage.getArtifactVersionContent("foo", "petstore", "1");
+        assertEquals("1", storage.getBranchTip(new GA("foo", "petstore"), BranchId.LATEST,
+                RegistryStorage.RetrievalBehavior.SKIP_DISABLED_LATEST).getRawVersionId());
         assertNotNull(version.getContent());
         assertNotNull(version.getGlobalId());
         assertNotNull(version.getContentId());
@@ -190,7 +202,7 @@ public class GitOpsSmokeTest {
         try {
             var fullPath = Path.of(
                     requireNonNull(Thread.currentThread().getContextClassLoader().getResource(path)).toURI());
-            return ContentHandle.create(FileUtils.readFileToByteArray(fullPath.toFile()));
+            return ContentHandle.create(Files.readAllBytes(fullPath));
         } catch (IOException | URISyntaxException ex) {
             throw new RuntimeException(ex);
         }

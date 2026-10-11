@@ -87,7 +87,11 @@ Use `run-product.sh` for a single product during development:
 
 `run-comparison.sh` randomizes product order for every repetition. Five repetitions are the
 minimum for publishing a comparison. The aggregation script emits JSON, CSV, and Markdown with
-median successful RPS, p99, p99.9, failure rate, and bootstrap confidence intervals.
+median successful measured-window RPS, p99, p99.9, failure rate, and bootstrap confidence
+intervals. Measured-window RPS is the number of successful requests in the measured scenario
+divided by its configured duration. JSON and CSV output also retain Gatling's simulation-wide
+mean as `gatlingSimulationWindowRps`; that diagnostic includes warm-up and in-flight request drain
+and must not be used as measured-phase throughput.
 With only five repetitions, bootstrap confidence intervals are indicative and discrete; use more
 runs for external claims.
 

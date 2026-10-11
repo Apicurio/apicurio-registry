@@ -19,14 +19,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 import static io.apicurio.registry.operator.it.ITBase.MEDIUM_DURATION;
 import static io.apicurio.registry.operator.it.ITBase.SHORT_DURATION;
 import static io.apicurio.registry.operator.it.ITBase.setDefaultAwaitilityTimings;
 import static io.apicurio.registry.operator.it.OLMTestUtils.waitForCatalogPodReady;
+import static io.apicurio.registry.operator.it.OLMTestUtils.waitForClusterCatalogServing;
 import static io.apicurio.registry.operator.resource.Labels.getOperatorManagedLabels;
 import static io.apicurio.registry.operator.utils.K8sCell.k8sCell;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -182,45 +180,13 @@ public abstract class OLMITBase implements OperatorTestContext {
                     }
                 });
 
-                await().atMost(MEDIUM_DURATION).ignoreExceptions().until(() -> {
-                    log.debug("Deleting ApicurioRegistry3 CRD.");
-                    crd.getOptional().ifPresent(c -> {
-                        client.resource(c).delete();
-                    });
-                    try {
-                        await().atMost(SHORT_DURATION).ignoreExceptions().until(() -> {
-                            var c = crd.getOptional();
-                            if (c.isPresent()) {
-                                log.debug("Waiting on ApicurioRegistry3 CRD to be deleted. Terminating condition: {}", c.get().getStatus().getConditions().stream()
-                                        .filter(cond -> "Terminating".equals(cond.getType())).findFirst().orElse(null));
-                                return false;
-                            } else {
-                                return true;
-                            }
-                        });
-                        return true;
-                    } catch (Exception ex) {
-                        log.debug("Could not delete ApicurioRegistry3 CRD. Trying to force the deletion by deleting the finalizer.");
-                        crd.update(r -> {
-                            r.getMetadata().setFinalizers(List.of());
-                        });
-                        return false;
-                    }
-                });
+                log.debug("Deleting ApicurioRegistry3 CRD.");
+                crd.delete(MEDIUM_DURATION, SHORT_DURATION);
             }
 
             createResource("olmv1/cluster-catalog.yaml");
 
-            await().ignoreExceptions().until(() -> {
-                var r = client.genericKubernetesResources("olm.operatorframework.io/v1", "ClusterCatalog")
-                        .inNamespace(namespace)
-                        .withName("apicurio-registry-operator-catalog")
-                        .get();
-
-                return ((Collection<Map<String, Object>>) r.get("status", "conditions")).stream().anyMatch(c -> {
-                    return "Serving".equals(c.get("type")) && "True".equals(c.get("status"));
-                });
-            });
+            waitForClusterCatalogServing(client, namespace, "apicurio-registry-operator-catalog");
 
             createResource("olmv1/service-account.yaml");
             createResource("olmv1/cluster-role.yaml");

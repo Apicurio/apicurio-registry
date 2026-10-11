@@ -430,46 +430,69 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         int errorCount = 0;
         if (validate()) {
             Vertx vertx = createVertx();
-            RegistryClient registryClient = createClient(vertx);
+            try {
+                RegistryClient registryClient = createClient(vertx);
 
-            for (RegisterArtifact artifact : artifacts) {
-                String groupId = artifact.getGroupId();
-                String artifactId = artifact.getArtifactId();
-                try {
-                    if (artifact.getAutoRefs() != null && artifact.getAutoRefs()) {
-                        // If we have references, then we'll need to create the local resource index and then
-                        // process all refs.
-                        ReferenceIndex index = createIndex(artifact);
-                        addExistingReferencesToIndex(registryClient, index, existingReferences);
-                        addExistingReferencesToIndex(registryClient, index, artifact.getExistingReferences());
-                        Stack<RegisterArtifact> registrationStack = new Stack<>();
+                for (RegisterArtifact artifact : artifacts) {
+                    String groupId = artifact.getGroupId();
+                    String artifactId = artifact.getArtifactId();
+                    try {
+                        if (artifact.getAutoRefs() != null && artifact.getAutoRefs()) {
+                            // If we have references, then we'll need to create the local resource index and then
+                            // process all refs.
+                            ReferenceIndex index = createIndex(artifact);
+                            addExistingReferencesToIndex(registryClient, index, existingReferences);
+                            addExistingReferencesToIndex(registryClient, index, artifact.getExistingReferences());
+                            Deque<RegisterArtifact> registrationStack = new ArrayDeque<>();
 
-                        this.avroAutoRefsNamingStrategy = artifact.getAvroAutoRefsNamingStrategy();
-                        registerWithAutoRefs(registryClient, artifact, index, registrationStack);
-                    } else {
-                        List<ArtifactReference> references = new ArrayList<>();
-                        // First, we check if the artifact being processed has references defined
-                        if (hasReferences(artifact)) {
-                            references = processArtifactReferences(registryClient, artifact.getReferences());
+                            this.avroAutoRefsNamingStrategy = artifact.getAvroAutoRefsNamingStrategy();
+                            registerWithAutoRefs(registryClient, artifact, index, registrationStack);
+                        } else {
+                            List<ArtifactReference> references = new ArrayList<>();
+                            // First, we check if the artifact being processed has references defined
+                            if (hasReferences(artifact)) {
+                                references = processArtifactReferences(registryClient, artifact.getReferences());
+                            }
+                            registerArtifact(registryClient, artifact, references);
                         }
-                        registerArtifact(registryClient, artifact, references);
+                    } catch (Exception e) {
+                        // The registry client wraps an InterruptedException (e.g. RuntimeException from
+                        // Kiota's Vert.x adapter) and clears the interrupt flag, so look for it in the cause
+                        // chain rather than relying on a bare InterruptedException reaching this loop.
+                        InterruptedException interrupt = findInterrupt(e);
+                        if (interrupt != null) {
+                            Thread.currentThread().interrupt();
+                            throw new MojoExecutionException(String.format(
+                                    "Interrupted while registering artifact [%s] / [%s]", groupId, artifactId),
+                                    interrupt);
+                        }
+                        errorCount++;
+                        getLog().error(String.format("Exception while registering artifact [%s] / [%s]", groupId,
+                                artifactId), e);
                     }
-                } catch (Exception e) {
-                    errorCount++;
-                    getLog().error(String.format("Exception while registering artifact [%s] / [%s]", groupId,
-                            artifactId), e);
+
                 }
 
-            }
-
-            if (errorCount > 0) {
-                throw new MojoExecutionException("Errors while registering artifacts ...");
+                if (errorCount > 0) {
+                    throw new MojoExecutionException("Errors while registering artifacts ...");
+                }
+            } finally {
+                vertx.close();
             }
         }
     }
 
+    private static InterruptedException findInterrupt(Throwable t) {
+        for (Throwable c = t; c != null; c = c.getCause() == c ? null : c.getCause()) {
+            if (c instanceof InterruptedException) {
+                return (InterruptedException) c;
+            }
+        }
+        return null;
+    }
+
     private VersionMetaData registerWithAutoRefs(RegistryClient registryClient, RegisterArtifact artifact,
-                                                 ReferenceIndex index, Stack<RegisterArtifact> registrationStack) throws IOException,
+                                                 ReferenceIndex index, Deque<RegisterArtifact> registrationStack) throws IOException,
             ExecutionException, InterruptedException, MojoExecutionException, MojoFailureException {
         if (loopDetected(artifact, registrationStack)) {
             throw new MojoExecutionException(
@@ -505,7 +528,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 Optional<ArtifactReference> registryReference = resolveRegistryReference(registryClient,
                         externalRef, resolvedRegistryReferences);
                 if (registryReference.isPresent()) {
-                    registeredReferences.add(registryReference.get());
+                    registeredReferences.add(registryReference.orElseThrow());
                     continue;
                 }
 
@@ -543,7 +566,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                 try {
                     var car = registerWithAutoRefs(registryClient, refArtifact, index, registrationStack);
                     iresource.setRegistration(car);
-                } catch (IOException | ExecutionException | InterruptedException e) {
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                } catch (IOException | ExecutionException e) {
                     throw new RuntimeException(e);
                 }
             }
@@ -569,7 +595,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
             return Optional.empty();
         }
 
-        RegistryReferenceLocation ref = location.get();
+        RegistryReferenceLocation ref = location.orElseThrow();
         VersionMetaData vmd = resolvedRegistryReferences.get(externalRef.getResource());
         if (vmd == null) {
             vmd = getRegistryReferenceMetadata(registryClient, ref);
@@ -981,7 +1007,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
      * @param registrationStack
      */
     private static boolean loopDetected(RegisterArtifact artifact,
-                                        Stack<RegisterArtifact> registrationStack) {
+                                        Deque<RegisterArtifact> registrationStack) {
         for (RegisterArtifact stackArtifact : registrationStack) {
             if (artifact.getFile().equals(stackArtifact.getFile())) {
                 return true;
@@ -990,9 +1016,19 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return false;
     }
 
-    private static String printLoop(Stack<RegisterArtifact> registrationStack) {
-        return registrationStack.stream().map(artifact -> artifact.getFile().getName())
-                .collect(Collectors.joining(" -> "));
+    private static String printLoop(Deque<RegisterArtifact> registrationStack) {
+        // descendingIterator: bottom-to-top (root → leaf), matching the original
+        // Stack iteration order. ArrayDeque.stream() iterates head-to-tail
+        // (most-recently-pushed first), which would reverse the chain.
+        var sb = new StringBuilder();
+        var it = registrationStack.descendingIterator();
+        while (it.hasNext()) {
+            if (sb.length() > 0) {
+                sb.append(" -> ");
+            }
+            sb.append(it.next().getFile().getName());
+        }
+        return sb.toString();
     }
 
 }

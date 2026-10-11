@@ -1,0 +1,100 @@
+name: ARD Conformance
+
+# Runs the official ARD conformance CLI (ards-project/ard-spec) against a
+# Registry with AI Catalog + ARD enabled, seeded from .github/ard-conformance/seed.
+#
+#   - workflow_call: from verify.yaml when AI Catalog/ARD code changes, against
+#     the image built for that commit. Aggregated by the Verification Gate.
+#   - schedule / workflow_dispatch: against latest-snapshot, the image published
+#     from main after it passed the Verification Gate.
+#
+# The CLI is pinned. ard-spec publishes no tags or releases, so the pin is a
+# commit SHA plus the spec version that commit states. Changing ARD_SPEC_REF must
+# be its own PR that records the spec delta and the new conformance result.
+
+on:
+  workflow_call:
+    inputs:
+      image-tag:
+        type: string
+        required: true
+        description: 'Build artifact identifier (commit SHA)'
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  # ards-project/ard-spec main @ 2026-09-12 (PR #85); spec/ard.md states "Version: v0.91".
+  ARD_SPEC_REF: b76f235a8f461876ad4f1e77abd0eb0eb302b48d
+  ARD_SPEC_VERSION: v0.91
+  # The CLI skips its ArdManifest/ArdEntry schema checks (with only a warning) when
+  # jsonschema is missing, so install it explicitly rather than relying on the runner image.
+  JSONSCHEMA_VERSION: 4.23.0
+
+jobs:
+  ard-conformance:
+    name: ARD Conformance (spec v0.91)
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Checkout pinned ARD conformance CLI
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          repository: ards-project/ard-spec
+          ref: ${{ env.ARD_SPEC_REF }}
+          path: ard-spec
+          persist-credentials: false
+
+      - name: Load Registry image for this commit
+        if: inputs.image-tag != ''
+        uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        with:
+          artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
+          image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
+          image-name: apicurio/apicurio-registry
+          tag: ${{ inputs.image-tag }}
+
+      - name: Start Registry with AI Catalog and ARD enabled
+        env:
+          IMAGE: ${{ inputs.image-tag != '' && format('apicurio/apicurio-registry:{0}', inputs.image-tag) || 'quay.io/apicurio/apicurio-registry:latest-snapshot' }}
+        run: |
+          echo "Testing image: $IMAGE"
+          docker run -d --name registry -p 8080:8080 \
+            -e APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true \
+            -e APICURIO_AI_CATALOG_ENABLED=true \
+            -e APICURIO_ARD_ENABLED=true \
+            "$IMAGE"
+
+      - name: Install pinned schema validator
+        run: |
+          python3 -m venv "$RUNNER_TEMP/ard-venv"
+          "$RUNNER_TEMP/ard-venv/bin/pip" install --quiet "jsonschema==${JSONSCHEMA_VERSION}"
+
+      - name: Seed and run conformance CLI
+        run: |
+          "$RUNNER_TEMP/ard-venv/bin/python" .github/scripts/ard_conformance.py \
+            --registry-url http://localhost:8080 \
+            --ard-spec-dir ard-spec \
+            --ard-spec-ref "${ARD_SPEC_REF} (${ARD_SPEC_VERSION})" \
+            --seed-dir .github/ard-conformance/seed \
+            --report ard-conformance-report.md
+
+      - name: Registry logs
+        if: failure()
+        run: docker logs registry
+
+      - name: Upload conformance report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: ard-conformance-report-${{ inputs.image-tag || github.sha }}
+          path: ard-conformance-report.md
+          if-no-files-found: warn
+          retention-days: 30

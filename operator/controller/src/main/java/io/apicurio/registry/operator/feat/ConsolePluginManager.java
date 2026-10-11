@@ -4,6 +4,7 @@ import io.apicurio.registry.operator.Configuration;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.ConsolePluginSpec;
+import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 import io.fabric8.kubernetes.api.model.GenericKubernetesResourceBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.dsl.base.CustomResourceDefinitionContext;
@@ -33,8 +34,15 @@ public class ConsolePluginManager {
     private ConsolePluginManager() {
     }
 
+    /**
+     * The {@code ConsolePlugin} custom resource is cluster-scoped, unlike the primary
+     * {@code ApicurioRegistry3} resource and the other (namespaced) resources the operator manages.
+     * The namespace must therefore be included in the name to keep it unique across CRs that share the
+     * same name in different namespaces.
+     */
     public static String getPluginName(ApicurioRegistry3 primary) {
-        return primary.getMetadata().getName() + "-console-plugin";
+        return primary.getMetadata().getNamespace() + "-" + primary.getMetadata().getName()
+                + "-console-plugin";
     }
 
     public static boolean isOpenShift(KubernetesClient client) {
@@ -70,8 +78,11 @@ public class ConsolePluginManager {
             return;
         }
 
+        var crdContext = newCrdContext();
+        deleteLegacyPluginCR(client, primary, crdContext);
+
         var pluginName = getPluginName(primary);
-        var serviceName = primary.getMetadata().getName() + "-" + COMPONENT_CONSOLE_PLUGIN + "-" + RESOURCE_TYPE_SERVICE;
+        var serviceName = getServiceName(primary);
         var namespace = primary.getMetadata().getNamespace();
 
         var desired = new GenericKubernetesResourceBuilder()
@@ -110,13 +121,6 @@ public class ConsolePluginManager {
         ));
 
         try {
-            var crdContext = new CustomResourceDefinitionContext.Builder()
-                    .withGroup(CONSOLE_PLUGIN_API_GROUP)
-                    .withVersion(CONSOLE_PLUGIN_API_VERSION)
-                    .withPlural(CONSOLE_PLUGIN_PLURAL)
-                    .withScope("Cluster")
-                    .build();
-
             var existing = client.genericKubernetesResources(crdContext)
                     .withName(pluginName)
                     .get();
@@ -142,15 +146,11 @@ public class ConsolePluginManager {
         if (!isOpenShift(client)) {
             return;
         }
+        var crdContext = newCrdContext();
+        deleteLegacyPluginCR(client, primary, crdContext);
+
         var pluginName = getPluginName(primary);
         try {
-            var crdContext = new CustomResourceDefinitionContext.Builder()
-                    .withGroup(CONSOLE_PLUGIN_API_GROUP)
-                    .withVersion(CONSOLE_PLUGIN_API_VERSION)
-                    .withPlural(CONSOLE_PLUGIN_PLURAL)
-                    .withScope("Cluster")
-                    .build();
-
             var existing = client.genericKubernetesResources(crdContext)
                     .withName(pluginName)
                     .get();
@@ -164,5 +164,72 @@ public class ConsolePluginManager {
         } catch (Exception e) {
             log.warn("Failed to delete ConsolePlugin CR", e);
         }
+    }
+
+    private static String getServiceName(ApicurioRegistry3 primary) {
+        return primary.getMetadata().getName() + "-" + COMPONENT_CONSOLE_PLUGIN + "-" + RESOURCE_TYPE_SERVICE;
+    }
+
+    private static CustomResourceDefinitionContext newCrdContext() {
+        return new CustomResourceDefinitionContext.Builder()
+                .withGroup(CONSOLE_PLUGIN_API_GROUP)
+                .withVersion(CONSOLE_PLUGIN_API_VERSION)
+                .withPlural(CONSOLE_PLUGIN_PLURAL)
+                .withScope("Cluster")
+                .build();
+    }
+
+    /**
+     * The {@code ConsolePlugin} name used before it was scoped by namespace (see {@link #getPluginName}).
+     */
+    public static String getLegacyPluginName(ApicurioRegistry3 primary) {
+        return primary.getMetadata().getName() + "-console-plugin";
+    }
+
+    /**
+     * Before the plugin name was scoped by namespace, {@code ConsolePlugin} objects were named
+     * {@code <cr-name>-console-plugin}. Clean up any such object left over from before the upgrade so
+     * it doesn't stay orphaned on the cluster (it has no owner-reference GC, since the cluster-scoped
+     * {@code ConsolePlugin} can't be owned by the namespaced {@code ApicurioRegistry3} CR) pointing at a
+     * stale service alongside the new namespace-scoped one.
+     * <p>
+     * The lookup is by name only, and {@code getLegacyPluginName(primary)} can coincide with
+     * {@code getPluginName(other)} for an unrelated CR {@code other} (e.g. a namespace literally named
+     * like {@code primary}'s CR name). {@link #belongsTo} guards against deleting that CR's
+     * already-migrated, namespace-scoped {@code ConsolePlugin} in that case.
+     */
+    private static void deleteLegacyPluginCR(KubernetesClient client, ApicurioRegistry3 primary,
+            CustomResourceDefinitionContext crdContext) {
+        var legacyName = getLegacyPluginName(primary);
+        try {
+            var legacy = client.genericKubernetesResources(crdContext)
+                    .withName(legacyName)
+                    .get();
+
+            if (legacy != null && belongsTo(legacy, primary)) {
+                client.genericKubernetesResources(crdContext)
+                        .withName(legacyName)
+                        .delete();
+                log.info("Deleted legacy ConsolePlugin CR: {}", legacyName);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to delete legacy ConsolePlugin CR", e);
+        }
+    }
+
+    /**
+     * Checks that {@code plugin}'s backend service reference points at {@code primary}'s own
+     * console-plugin service, before an operation deletes or overwrites it based on a name lookup alone.
+     */
+    @SuppressWarnings("unchecked")
+    static boolean belongsTo(GenericKubernetesResource plugin, ApicurioRegistry3 primary) {
+        var spec = (Map<String, Object>) plugin.getAdditionalProperties().get("spec");
+        var backend = spec == null ? null : (Map<String, Object>) spec.get("backend");
+        var service = backend == null ? null : (Map<String, Object>) backend.get("service");
+        if (service == null) {
+            return false;
+        }
+        return getServiceName(primary).equals(service.get("name"))
+                && primary.getMetadata().getNamespace().equals(service.get("namespace"));
     }
 }

@@ -31,13 +31,17 @@ def parse_run(stats_path):
     total = metric(block, "numberOfRequests")
     ok = metric(block, "numberOfRequests", "ok")
     ko = metric(block, "numberOfRequests", "ko")
+    duration = metadata.get("duration")
+    if not isinstance(duration, (int, float)) or duration <= 0:
+        raise ValueError(f"Invalid measured duration for {run_dir}: {duration}")
     return {
         **metadata,
         "total": int(total),
         "ok": int(ok),
         "ko": int(ko),
         "failedPercent": 100.0 * ko / total if total else 0.0,
-        "rps": metric(block, "meanNumberOfRequestsPerSecond", "ok"),
+        "rps": ok / duration,
+        "gatlingSimulationWindowRps": metric(block, "meanNumberOfRequestsPerSecond", "ok"),
         "meanMs": metric(block, "meanResponseTime", "ok"),
         "p50Ms": metric(block, "percentiles1", "ok"),
         "p95Ms": metric(block, "percentiles2", "ok"),
@@ -68,7 +72,7 @@ def main():
         writer.writeheader()
         writer.writerows(runs)
 
-    lines = ["# Product-neutral schema registry comparison", "", "| Operation | Product | Runs | Median successful RPS (95% CI) | Median p99 ms (95% CI) | Median p99.9 ms | Median failures |", "| --- | --- | ---: | ---: | ---: | ---: | ---: |"]
+    lines = ["# Product-neutral schema registry comparison", "", "| Operation | Product | Runs | Median successful measured-window RPS (95% CI) | Median p99 ms (95% CI) | Median p99.9 ms | Median failures |", "| --- | --- | ---: | ---: | ---: | ---: | ---: |"]
     for operation, product in sorted({(run["operation"], run["product"]) for run in runs}):
         group = [run for run in runs if run["operation"] == operation and run["product"] == product]
         comparable = {(run["users"], run["warmup"], run["duration"], run["seeds"]) for run in group}

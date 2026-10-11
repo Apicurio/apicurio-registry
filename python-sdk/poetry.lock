@@ -394,14 +394,14 @@ files = [
 
 [[package]]
 name = "microsoft-kiota-abstractions"
-version = "1.10.3"
+version = "1.14.1"
 description = "Core abstractions for kiota generated libraries in Python"
 optional = false
-python-versions = "<4.0,>=3.10"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "microsoft_kiota_abstractions-1.10.3-py3-none-any.whl", hash = "sha256:8f08c82f75362bb8525aad977c0d064dbf20c89219e31f5fea09a5728f8b1988"},
-    {file = "microsoft_kiota_abstractions-1.10.3.tar.gz", hash = "sha256:07367351399396c1f1713a4ab112fd499f84fe019696ba477cf63d4ce48b8165"},
+    {file = "microsoft_kiota_abstractions-1.14.1-py3-none-any.whl", hash = "sha256:a05cce0bd09fa272d897d17bfbf9231b3a2bcc168c8977990aa936cb02882286"},
+    {file = "microsoft_kiota_abstractions-1.14.1.tar.gz", hash = "sha256:ee8a5bd1c315b8927f825611216e212c3449f4ef0c9097183e7a277667ddda8a"},
 ]
 
 [package.dependencies]
@@ -411,81 +411,81 @@ std-uritemplate = ">=2.0.0"
 
 [[package]]
 name = "microsoft-kiota-http"
-version = "1.10.3"
+version = "1.14.1"
 description = "Core abstractions for kiota generated libraries in Python"
 optional = false
-python-versions = "<4.0,>=3.10"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "microsoft_kiota_http-1.10.3-py3-none-any.whl", hash = "sha256:5f025a5ec0e218d098b6f36982b75a5a9feb1be914d7ff409e525757d4de12e4"},
-    {file = "microsoft_kiota_http-1.10.3.tar.gz", hash = "sha256:56e0e0799f6de04d56346b4ee6b18f6c79af02e6bd08064d875a3b05e375e7b4"},
+    {file = "microsoft_kiota_http-1.14.1-py3-none-any.whl", hash = "sha256:e1a629bada988ff3ac8148cd09a309004f4dcab4f62a4b9981d4f2cd7320024a"},
+    {file = "microsoft_kiota_http-1.14.1.tar.gz", hash = "sha256:e1766c8b34eb9fa1af016df22ccfb10ab67da2a51757bb850b1d21ab526637c5"},
 ]
 
 [package.dependencies]
 httpx = {version = ">=0.25,<1.0.0", extras = ["http2"]}
-microsoft-kiota-abstractions = ">=1.10.3,<1.11.0"
+microsoft-kiota-abstractions = ">=1.11.1,<2.0.0"
 opentelemetry-api = ">=1.27.0"
 opentelemetry-sdk = ">=1.27.0"
 
 [[package]]
 name = "microsoft-kiota-serialization-form"
-version = "1.10.3"
+version = "1.14.1"
 description = "Core abstractions for kiota generated libraries in Python"
 optional = false
-python-versions = "<4.0,>=3.10"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "microsoft_kiota_serialization_form-1.10.3-py3-none-any.whl", hash = "sha256:f63dee0bf059804ce325aca8f14228f73598de25a3b9e56c3c32050e0427130d"},
-    {file = "microsoft_kiota_serialization_form-1.10.3.tar.gz", hash = "sha256:323ad8856bcd3db74c9cf5950e22dc83e52713ad5aa4d7353d5650c518697c0e"},
+    {file = "microsoft_kiota_serialization_form-1.14.1-py3-none-any.whl", hash = "sha256:d6bd90b6aef3bf2feac2c3553471af0028b8219a4bb3401c01506c4fb1709640"},
+    {file = "microsoft_kiota_serialization_form-1.14.1.tar.gz", hash = "sha256:4ae3945a780147f739ed3ec13e74b5d9533297d2dcd1f6e4fe9b991a7e52104f"},
 ]
 
 [package.dependencies]
-microsoft-kiota-abstractions = ">=1.10.3,<1.11.0"
+microsoft-kiota-abstractions = ">=1.11.1,<2.0.0"
 
 [[package]]
 name = "microsoft-kiota-serialization-json"
-version = "1.10.3"
+version = "1.14.1"
 description = "Core abstractions for kiota generated libraries in Python"
 optional = false
-python-versions = "<4.0,>=3.10"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "microsoft_kiota_serialization_json-1.10.3-py3-none-any.whl", hash = "sha256:9e6453cef81e4d6c00596b920503097ea2be795e304e7212c65ed7ecea66001a"},
-    {file = "microsoft_kiota_serialization_json-1.10.3.tar.gz", hash = "sha256:84feb6b683289b7a8ca0495201050d36ce5ff28f384c24389f9e3fe221a38c93"},
+    {file = "microsoft_kiota_serialization_json-1.14.1-py3-none-any.whl", hash = "sha256:61cd19d511b98f373cddb456523008cc6ea260f31c8ba27de1f66f80b6fae69e"},
+    {file = "microsoft_kiota_serialization_json-1.14.1.tar.gz", hash = "sha256:4c3eb47ace9128ad53bbcd51d5862d8501dbd687d988dd9ffef8567532d63497"},
 ]
 
 [package.dependencies]
-microsoft-kiota-abstractions = ">=1.10.3,<1.11.0"
+microsoft-kiota-abstractions = ">=1.11.1,<2.0.0"
 
 [[package]]
 name = "microsoft-kiota-serialization-multipart"
-version = "1.10.3"
+version = "1.14.1"
 description = "Core abstractions for kiota generated libraries in Python"
 optional = false
-python-versions = "<4.0,>=3.10"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "microsoft_kiota_serialization_multipart-1.10.3-py3-none-any.whl", hash = "sha256:9153e944ff0018f6c1b650f9e79599d7d473932a8acd4713655be45a01f5a538"},
-    {file = "microsoft_kiota_serialization_multipart-1.10.3.tar.gz", hash = "sha256:916fc578522985876f615f35ba676ee4d1abdae26304bc0d248fb2e34212b897"},
+    {file = "microsoft_kiota_serialization_multipart-1.14.1-py3-none-any.whl", hash = "sha256:0167b6b964a17b4737ff1f7f4d909012ac3d81033c853f64096aa547c1e254ce"},
+    {file = "microsoft_kiota_serialization_multipart-1.14.1.tar.gz", hash = "sha256:cc2b4ca810351835a7e0f36c499fba396e3373ea337da10db177a07f53548a8f"},
 ]
 
 [package.dependencies]
-microsoft-kiota-abstractions = ">=1.10.3,<1.11.0"
+microsoft-kiota-abstractions = ">=1.11.1,<2.0.0"
 
 [[package]]
 name = "microsoft-kiota-serialization-text"
-version = "1.10.3"
+version = "1.14.1"
 description = "Core abstractions for kiota generated libraries in Python"
 optional = false
-python-versions = "<4.0,>=3.10"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "microsoft_kiota_serialization_text-1.10.3-py3-none-any.whl", hash = "sha256:4ffca348d9af69431a455a5778929398d4cba78178906b0ad31db95fb3418aea"},
-    {file = "microsoft_kiota_serialization_text-1.10.3.tar.gz", hash = "sha256:0db370ccbbfded4e9e01c2f967850478cd1198c748f3baef60abec0c10e58e0f"},
+    {file = "microsoft_kiota_serialization_text-1.14.1-py3-none-any.whl", hash = "sha256:78dcec9e18db5c8cfd8c522459a315fe3b48aafd9c1062c19da6f69170514c28"},
+    {file = "microsoft_kiota_serialization_text-1.14.1.tar.gz", hash = "sha256:a56f1b71a350e09aab9b19b66b391c8c23fa554b9477c0696da1994c47c516ff"},
 ]
 
 [package.dependencies]
-microsoft-kiota-abstractions = ">=1.10.3,<1.11.0"
+microsoft-kiota-abstractions = ">=1.11.1,<2.0.0"
 
 [[package]]
 name = "mypy-extensions"
@@ -775,4 +775,4 @@ zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "1f605e3590259e1c3b746f76aa267cf1ab9664a1637a00e0a7b23dba7b6142e1"
+content-hash = "4b4289972c586229f4d99512fc2598c5e527044becfbe86cfe69d27441b62e49"

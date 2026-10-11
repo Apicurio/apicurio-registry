@@ -223,6 +223,7 @@ public class TestUtils {
             try {
                 Thread.sleep(sleepTime);
             } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
                 return deadline - System.currentTimeMillis();
             }
         }

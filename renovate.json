@@ -6,7 +6,7 @@
   ],
   "baseBranches": [
     "main",
-    "3.2.x"
+    "3.3.x"
   ],
   "enabledManagers": [
     "npm",
@@ -48,6 +48,17 @@
     }
   ],
   "packageRules": [
+    {
+      "description": "Keep fat-JAR runners on Netty 4.1-compatible Gatling until #9967 is resolved",
+      "matchFileNames": [
+        "perf-comparison-tests/pom.xml",
+        "perf-tests/pom.xml"
+      ],
+      "matchPackageNames": [
+        "io.gatling.highcharts:gatling-charts-highcharts"
+      ],
+      "allowedVersions": "3.13.5"
+    },
     {
       "groupName": "Dependencies: Maven App: All",
       "matchFileNames": [
@@ -370,10 +381,7 @@
       "matchPackageNames": [
         "@microsoft/kiota-*"
       ],
-      "enabled": true,
-      "schedule": [
-        "* 0 15 * *"
-      ]
+      "enabled": true
     },
     {
       "groupName": "Dependencies: UI Tests",
@@ -438,9 +446,9 @@
     },
 
     {
-      "description": "On 3.2.x branch, only allow patch updates",
+      "description": "On 3.3.x LTS branch, only allow patch updates",
       "matchBaseBranches": [
-        "3.2.x"
+        "3.3.x"
       ],
       "matchUpdateTypes": [
         "major",

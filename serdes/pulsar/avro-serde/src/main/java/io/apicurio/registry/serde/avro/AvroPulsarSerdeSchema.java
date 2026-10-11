@@ -37,6 +37,6 @@ public class AvroPulsarSerdeSchema<T> implements Schema<T> {
 
     @Override
     public Schema<T> clone() {
-        return this.clone();
+        return new AvroPulsarSerdeSchema<>(serde);
     }
 }

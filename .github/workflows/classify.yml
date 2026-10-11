@@ -1,0 +1,164 @@
+name: Classify
+
+# Assigns area/* labels (and, for issues, an issue type) using the embedding
+# classifier in .github/scripts/label-classification, and then assigns (or,
+# for maintainer PRs, suggests) a reviewer for each PR — see the "Reviewer
+# assignment" section of .github/PR_LIFECYCLE.md.
+#
+# PRs are classified when they open, and when a draft is marked ready for
+# review — the same two moments the lifecycle orchestrator treats as a PR's
+# entry into the lifecycle (see initNewPr in pr-lifecycle.js). The original
+# design hung this off `/accept`, but that command no longer exists: the
+# triage stage was removed and every non-draft PR now goes straight to
+# lifecycle/ready-for-review, so PR open *is* the triage moment.
+#
+# The two jobs below are deliberately separate rather than one job branching on
+# the event: each reads as a straight line to a single classify.py invocation,
+# and each can hold exactly the write permission its target needs. The shared
+# setup lives in .github/actions/setup-classifier.
+#
+# Security note on pull_request_target: classify-pr needs a write token to apply
+# labels, so it must not run PR code. It never checks out the PR head — the
+# default checkout ref for pull_request_target is the base branch — and both
+# the classifier and the reviewer assignment only read PR metadata (title,
+# body, labels, changed file paths, linked issues) and repository history
+# through the API. Nothing from the PR is executed.
+
+on:
+  issues:
+    types: [opened, edited]
+  pull_request_target:
+    types: [opened, ready_for_review]
+    branches: [main, '3.3.x']
+  workflow_dispatch:
+    inputs:
+      # Typed as string rather than number so "not supplied" is unambiguously
+      # the empty string; an optional number input does not round-trip cleanly
+      # through the expression syntax used below.
+      issue:
+        description: Issue number to classify (leave empty when classifying a PR)
+        required: false
+        default: ''
+        type: string
+      pr:
+        description: PR number to classify (leave empty when classifying an issue)
+        required: false
+        default: ''
+        type: string
+      dry_run:
+        description: Print the scores without applying labels or assigning a reviewer
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+# Issue edits arrive in bursts while someone writes a description; a PR open
+# can be followed immediately by ready_for_review. Only the last run per target
+# is worth completing. Issue and PR numbers come from one sequence, so a single
+# group covers both jobs without collisions.
+concurrency:
+  group: classify-${{ github.event.issue.number || github.event.pull_request.number || inputs.issue || inputs.pr }}
+  cancel-in-progress: true
+
+jobs:
+  classify-issue:
+    name: Classify Issue
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    if: |
+      github.repository_owner == 'Apicurio' &&
+      (github.event_name == 'issues' ||
+       (github.event_name == 'workflow_dispatch' && inputs.issue != ''))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up classifier
+        uses: ./.github/actions/setup-classifier
+
+      - name: Classify
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number || inputs.issue }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          case "$NUMBER" in
+            ''|*[!0-9]*) echo "::error::Issue number must be digits, got '$NUMBER'."; exit 1 ;;
+          esac
+          args=(--repo "$REPO" --issue "$NUMBER")
+          if [ "${DRY_RUN:-}" = "true" ]; then args+=(--dry-run); fi
+          python .github/scripts/label-classification/classify.py "${args[@]}"
+
+  classify-pr:
+    name: Classify PR
+    runs-on: ubuntu-latest
+    # Labels on a PR are applied through the issues API, which is why both
+    # scopes are needed; neither grants anything to PR code, which never runs.
+    # The same two scopes cover the reviewer assignment and its comment.
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+    # Drafts are outside the lifecycle entirely; they get classified when they
+    # are marked ready for review.
+    if: |
+      github.repository_owner == 'Apicurio' &&
+      ((github.event_name == 'pull_request_target' && github.event.pull_request.draft != true) ||
+       (github.event_name == 'workflow_dispatch' && inputs.pr != ''))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up classifier
+        uses: ./.github/actions/setup-classifier
+
+      - name: Classify
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.pull_request.number || inputs.pr }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          OUTPUT: ${{ runner.temp }}/classification.json
+        run: |
+          set -euo pipefail
+          case "$NUMBER" in
+            ''|*[!0-9]*) echo "::error::PR number must be digits, got '$NUMBER'."; exit 1 ;;
+          esac
+          args=(--repo "$REPO" --pr "$NUMBER" --output-json "$OUTPUT")
+          if [ "${DRY_RUN:-}" = "true" ]; then args+=(--dry-run); fi
+          python .github/scripts/label-classification/classify.py "${args[@]}"
+
+      # Reviewer assignment (#9005) reads the area labels just applied, which
+      # is why it lives here rather than in pr-lifecycle.yml. It still runs if
+      # classification failed: it falls back to whatever labels the PR has.
+      # The maintainer list and its own settings come from pr-lifecycle.yml.
+      - name: Convert config to JSON
+        if: ${{ !cancelled() }}
+        run: yq -o json .github/pr-lifecycle.yml > .github/pr-lifecycle.json
+
+      - name: Assign reviewer
+        if: ${{ !cancelled() }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          NUMBER: ${{ github.event.pull_request.number || inputs.pr }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          CLASSIFICATION_JSON: ${{ runner.temp }}/classification.json
+        with:
+          script: |
+            const prNumber = Number(process.env.NUMBER);
+            if (!Number.isInteger(prNumber) || prNumber <= 0) {
+              core.setFailed(`PR number must be a positive integer, got '${process.env.NUMBER}'.`);
+              return;
+            }
+            const handler = require('./.github/scripts/pr-reviewer-assignment.js');
+            await handler.assignReviewer({
+              github, context, core, prNumber,
+              dryRun: process.env.DRY_RUN === 'true',
+              classificationPath: process.env.CLASSIFICATION_JSON,
+            });

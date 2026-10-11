@@ -22,7 +22,12 @@ public class KafkaFacade implements AutoCloseable {
     private static KafkaFacade instance;
     private StrimziKafkaCluster kafkaContainer;
 
-    public static KafkaFacade getInstance() {
+    // Number of test classes currently using the shared cluster. The cluster is only
+    // stopped when the last user releases it, so concurrently running test classes
+    // cannot stop Kafka from under each other.
+    private int users = 0;
+
+    public static synchronized KafkaFacade getInstance() {
         if (instance == null) {
             instance = new KafkaFacade();
         }
@@ -53,7 +58,8 @@ public class KafkaFacade implements AutoCloseable {
         return kafkaContainer != null;
     }
 
-    public void startIfNeeded() {
+    public synchronized void startIfNeeded() {
+        users++;
         if (isRunning()) {
             LOGGER.info("Skipping deployment of kafka, because it's already deployed");
         } else {
@@ -63,7 +69,7 @@ public class KafkaFacade implements AutoCloseable {
 
     private static final int MAX_START_ATTEMPTS = 2;
 
-    public void start() {
+    public synchronized void start() {
         if (isRunning()) {
             throw new IllegalStateException("Kafka cluster is already running");
         }
@@ -99,13 +105,16 @@ public class KafkaFacade implements AutoCloseable {
         }
     }
 
-    public void stopIfPossible() throws Exception {
-        if (isRunning()) {
+    public synchronized void stopIfPossible() throws Exception {
+        if (users > 0) {
+            users--;
+        }
+        if (users == 0 && isRunning()) {
             close();
         }
     }
 
-    public AdminClient adminClient() {
+    public synchronized AdminClient adminClient() {
         if (client == null) {
             client = AdminClient.create(connectionProperties());
         }
@@ -113,7 +122,7 @@ public class KafkaFacade implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public synchronized void close() throws Exception {
         LOGGER.info("Stopping kafka container");
         if (client != null) {
             client.close();

@@ -25,6 +25,12 @@ public final class Tags {
     /** Feature-specific tests (ingress, TLS, env vars, etc.) */
     public static final String FEATURE = "feature";
 
+    /** Feature tests, shard A (balanced split of FEATURE for parallel CI jobs) */
+    public static final String FEATURE_A = "feature-a";
+
+    /** Feature tests, shard B (balanced split of FEATURE for parallel CI jobs) */
+    public static final String FEATURE_B = "feature-b";
+
     /** Feature tests with heavy infrastructure setup (multi-namespace, TLS, operator restarts) */
     public static final String FEATURE_SETUP = "feature-setup";
 

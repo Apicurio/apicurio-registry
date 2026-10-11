@@ -96,8 +96,10 @@ spec:
     - name: Issues
       url: https://github.com/Apicurio/apicurio-registry/issues
   maintainers:
-    - email: apicurio@lists.jboss.org
+    - email: cncf-apicurio-registry-dev@lists.cncf.io
       name: Apicurio
+    - email: cncf-apicurio-registry-security@lists.cncf.io
+      name: Apicurio Security
   maturity: alpha
   provider:
     name: Apicurio

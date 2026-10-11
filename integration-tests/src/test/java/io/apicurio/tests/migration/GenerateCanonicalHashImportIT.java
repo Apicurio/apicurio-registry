@@ -40,10 +40,12 @@ import java.util.zip.ZipOutputStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.parallel.Isolated;
 
 @QuarkusIntegrationTest
 @Tag(MIGRATION)
 @Disabled
+@Isolated
 public class GenerateCanonicalHashImportIT extends ApicurioRegistryBaseIT {
 
     private static final Logger log = LoggerFactory.getLogger(GenerateCanonicalHashImportIT.class);

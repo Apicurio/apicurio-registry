@@ -36,7 +36,9 @@ public class DebeziumContainerResource implements QuarkusTestResourceLifecycleMa
         // Configure debezium with kafka's internal network address.
         // In testcontainers 2.x with apache/kafka, port 9092 is for external (host) access
         // and port 9093 is the internal broker listener for container-to-container communication.
-        debeziumContainer.withKafka(network,
+        // Debezium 3.7 replaced withKafka(Network, String) with withKafka(StrimziKafkaCluster), which
+        // only sets BOOTSTRAP_SERVERS; the network is already configured above, so set it directly.
+        debeziumContainer.withEnv("BOOTSTRAP_SERVERS",
                 DebeziumKafkaContainer.KAFKA_ALIAS + ":9093");
 
         // Start the postgresql database and debezium

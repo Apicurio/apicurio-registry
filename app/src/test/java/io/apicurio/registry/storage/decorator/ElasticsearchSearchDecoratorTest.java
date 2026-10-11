@@ -4,6 +4,7 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ContentSearchNotSupportedException;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
@@ -83,6 +84,49 @@ public class ElasticsearchSearchDecoratorTest {
                 .thenReturn(results);
 
         VersionSearchResultsDto actual = decorator.searchVersions(filters, OrderBy.name, OrderDirection.asc,
+                0, 10, false);
+
+        assertEquals(results, actual);
+        verifyNoInteractions(startupIndexer);
+    }
+
+    @Test
+    void searchArtifactsThrowsContentSearchNotSupportedWhenIndexerNotReady() {
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofContent("test"));
+        when(searchService.requiresSearchIndex(filters)).thenReturn(true);
+        when(startupIndexer.isReady()).thenReturn(false);
+
+        assertThrows(ContentSearchNotSupportedException.class,
+                () -> decorator.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false));
+
+        verifyNoInteractions(delegate);
+    }
+
+    @Test
+    void searchArtifactsDelegatesToSearchServiceWhenIndexerReady() throws IOException {
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofContent("test"));
+        ArtifactSearchResultsDto results = ArtifactSearchResultsDto.builder().count(1).build();
+        when(searchService.requiresSearchIndex(filters)).thenReturn(true);
+        when(startupIndexer.isReady()).thenReturn(true);
+        when(searchService.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false))
+                .thenReturn(results);
+
+        ArtifactSearchResultsDto actual = decorator.searchArtifacts(filters, OrderBy.name, OrderDirection.asc,
+                0, 10, false);
+
+        assertEquals(results, actual);
+        verifyNoInteractions(delegate);
+    }
+
+    @Test
+    void searchArtifactsFallsThroughToDelegateWhenIndexNotRequired() {
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofName("test"));
+        ArtifactSearchResultsDto results = ArtifactSearchResultsDto.builder().count(1).build();
+        when(searchService.requiresSearchIndex(filters)).thenReturn(false);
+        when(delegate.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false))
+                .thenReturn(results);
+
+        ArtifactSearchResultsDto actual = decorator.searchArtifacts(filters, OrderBy.name, OrderDirection.asc,
                 0, 10, false);
 
         assertEquals(results, actual);

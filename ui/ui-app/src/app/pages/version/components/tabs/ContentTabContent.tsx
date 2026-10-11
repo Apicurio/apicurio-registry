@@ -2,11 +2,10 @@ import { FunctionComponent, useEffect, useState } from "react";
 import "./ContentTabContent.css";
 import { ToggleGroup, ToggleGroupItem } from "@patternfly/react-core";
 import YAML from "yaml";
-import Editor from "@monaco-editor/react";
+import { RegistryCodeEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
 import { detectContentType } from "@utils/content.utils.ts";
 import { ContentTypes } from "@models/ContentTypes.ts";
 import { useResizeObserver } from "@apitomy/common-ui-components";
-import { registerCustomLanguages } from "@editors/registerLanguages.ts";
 
 
 const TYPE_MAP: any = {};
@@ -104,8 +103,7 @@ export const ContentTabContent: FunctionComponent<ContentTabContentProps> = (pro
                 </ToggleGroup>
             }
 
-            <Editor
-                beforeMount={registerCustomLanguages}
+            <RegistryCodeEditor
                 className="text-editor"
                 language={editorMode}
                 value={content}

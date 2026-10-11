@@ -1,5 +1,6 @@
 ---
 description: Create a detailed implementation plan for a feature or fix
+agent: plan
 ---
 
 You are creating an implementation plan for the Apicurio Registry project.
@@ -67,6 +68,6 @@ Create a numbered list of implementation steps in logical order:
 
 ## Output
 
-Present the plan in a structured format and use the ExitPlanMode tool when ready for user approval.
+Present the plan in a structured format and ask the user for approval before implementing (using your tool's plan-approval mechanism if it has one).
 
 After plan approval, the user can run `/implement-changes` to execute the plan.

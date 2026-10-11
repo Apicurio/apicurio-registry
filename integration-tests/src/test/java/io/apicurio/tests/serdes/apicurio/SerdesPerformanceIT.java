@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * Performance comparison test: Measures and compares the serialization/deserialization
@@ -50,6 +51,7 @@ import java.util.UUID;
  */
 @Tag(SERDES)
 @QuarkusIntegrationTest
+@Isolated
 public class SerdesPerformanceIT extends ApicurioRegistryBaseIT {
 
     // Number of warmup iterations (not measured)

@@ -17,8 +17,6 @@ public class PortForwardManager implements AutoCloseable {
 
     private final KubernetesClient k8sClient;
 
-    private int nextLocalPort = 55001;
-
     private final Map<Integer, LocalPortForward> portForwardMap = new HashMap<>();
 
     public PortForwardManager(String namespace) {
@@ -33,19 +31,23 @@ public class PortForwardManager implements AutoCloseable {
                 .build();
     }
 
+    PortForwardManager(KubernetesClient k8sClient) {
+        this.k8sClient = k8sClient;
+    }
+
     public synchronized int startPodPortForward(String targetPod, int targetPort, int localPort) {
         check(localPort);
         var pf = k8sClient.pods().withName(targetPod).portForward(targetPort, localPort);
-        portForwardMap.put(localPort, pf);
-        return localPort;
+        portForwardMap.put(pf.getLocalPort(), pf);
+        return pf.getLocalPort();
     }
 
     public synchronized int startServicePortForward(String targetService, int targetPort, int localPort) {
-        log.warn("Starting port-forward {}:{}->{}", targetService, targetPort, localPort);
+        log.debug("Starting port-forward {}:{}->{}", targetService, targetPort, localPort);
         check(localPort);
         var pf = k8sClient.services().withName(targetService).portForward(targetPort, localPort);
-        portForwardMap.put(localPort, pf);
-        return localPort;
+        portForwardMap.put(pf.getLocalPort(), pf);
+        return pf.getLocalPort();
     }
 
     private void check(int localPort) {
@@ -54,8 +56,12 @@ public class PortForwardManager implements AutoCloseable {
         }
     }
 
+    /**
+     * Starts a port-forward on an automatically chosen free local port.
+     * Binding port zero lets the OS allocate and reserve the port atomically.
+     */
     public int startServicePortForward(String targetService, int targetPort) {
-        return startServicePortForward(targetService, targetPort, nextLocalPort++);
+        return startServicePortForward(targetService, targetPort, 0);
     }
 
     public synchronized LocalPortForward getPortForward(int localPort) {

@@ -75,6 +75,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
      * Test v2 SDK client with JKS keystore - should successfully connect with mTLS
      */
     @Test
+    @SuppressWarnings("removal")
     public void testV2ClientWithJksKeystore() throws Exception {
         URL truststoreUrl = getClass().getClassLoader().getResource("tls/registry-truststore.jks");
         URL keystoreUrl = getClass().getClassLoader().getResource("tls/client-keystore.jks");
@@ -121,6 +122,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
      * Test v2 SDK client with PKCS12 keystore - should successfully connect with mTLS
      */
     @Test
+    @SuppressWarnings("removal")
     public void testV2ClientWithPkcs12Keystore() throws Exception {
         URL truststoreUrl = getClass().getClassLoader().getResource("tls/registry-truststore.p12");
         URL keystoreUrl = getClass().getClassLoader().getResource("tls/client-keystore.p12");
@@ -167,6 +169,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
      * Test v2 SDK client with PEM keystore - should successfully connect with mTLS
      */
     @Test
+    @SuppressWarnings("removal")
     public void testV2ClientWithPemKeystore() throws Exception {
         URL truststoreUrl = getClass().getClassLoader().getResource("tls/registry-cert.pem");
         URL clientCertUrl = getClass().getClassLoader().getResource("tls/client-cert.pem");
@@ -220,6 +223,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
      * Test v2 SDK client with PEM keystore content - should successfully connect with mTLS
      */
     @Test
+    @SuppressWarnings("removal")
     public void testV2ClientWithPemKeystoreContent() throws Exception {
         URL truststoreUrl = getClass().getClassLoader().getResource("tls/registry-cert.pem");
         URL clientCertUrl = getClass().getClassLoader().getResource("tls/client-cert.pem");
@@ -291,6 +295,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
      * This verifies that the server actually requires client certificates
      */
     @Test
+    @SuppressWarnings("removal")
     public void testV2ClientWithoutClientCertificate() {
         URL truststoreUrl = getClass().getClassLoader().getResource("tls/registry-truststore.jks");
         Assertions.assertNotNull(truststoreUrl, "Truststore file not found");

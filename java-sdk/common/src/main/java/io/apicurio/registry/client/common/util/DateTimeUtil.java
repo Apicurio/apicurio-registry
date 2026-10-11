@@ -53,7 +53,7 @@ public class DateTimeUtil {
                     .map(DateTimeFormatter::ofPattern);
 
             if (formatter.isPresent()) {
-                return formatter.get();
+                return formatter.orElseThrow();
             }
         } catch (LinkageError | IllegalStateException e) {
             // MicroProfile Config API or implementation is not available,

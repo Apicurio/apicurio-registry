@@ -23,6 +23,7 @@ jobs:
   examples-http-caching:
     name: Examples HTTP Caching Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # longest green run, week to 2026-10-01: 2 min
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -45,7 +46,7 @@ jobs:
 
       - name: Upload tests logs artifacts
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: tests-logs-http-caching
           path: artifacts
@@ -53,12 +54,13 @@ jobs:
   ui-e2e-tests:
     name: UI End-to-End Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 40  # longest green run, week to 2026-10-01: 19 min
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: ${{ inputs.node-version }}
           cache: 'npm'
@@ -99,7 +101,7 @@ jobs:
           npm run test
 
       - name: Upload Test Report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: playwright-report
@@ -109,6 +111,7 @@ jobs:
   legacy-v2-compatibility:
     name: Legacy V2 Compatibility Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 20  # longest green run, week to 2026-10-01: 5 min
     steps:
       - name: Checkout Registry 2.6
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -143,7 +146,7 @@ jobs:
 
       - name: Upload tests logs artifacts
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: tests-logs-legacy-v2
           path: artifacts
@@ -151,6 +154,7 @@ jobs:
   typescript-sdk-tests:
     name: TypeScript SDK Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # longest green run, week to 2026-10-01: 2 min
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -175,6 +179,7 @@ jobs:
   build-examples:
     name: Build and Run Application Examples
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # longest green run, week to 2026-10-01: 13 min
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -189,7 +194,7 @@ jobs:
         uses: ./.github/actions/setup-maven-cache
 
       - name: Download Build Artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: build-artifacts-${{ inputs.image-tag }}
           path: .

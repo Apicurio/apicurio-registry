@@ -259,6 +259,36 @@ public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
         Assertions.assertEquals("/properties/name/maxLength", exception.getCauses().get(0).getContext());
     }
 
+    /**
+     * A reference Registry has no content for means part of the schema could not be compared. That
+     * is reported as an unprocessable schema (422), as for any schema a checker can't process,
+     * rather than as an incompatibility or a server error.
+     */
+    @Test
+    public void testJsonSchemaUnresolvedReferenceIsUnprocessable() throws Exception {
+        String artifactId = "testJsonSchemaUnresolvedReferenceIsUnprocessable";
+        String v1 = """
+                { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object" }
+                """;
+        String v2 = """
+                {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "type": "object",
+                  "properties": { "x": { "$ref": "missing.json" } }
+                }
+                """;
+        createArtifact(artifactId, ArtifactType.JSON, v1, ContentTypes.APPLICATION_JSON);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.BACKWARD.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(createRule);
+
+        var exception = Assertions.assertThrows(ApiException.class,
+                () -> createArtifactVersion(artifactId, v2, ContentTypes.APPLICATION_JSON));
+        Assertions.assertEquals(422, exception.getResponseStatusCode());
+    }
+
     @Test
     public void testCompatibilityRuleApplication_FullTransitive() throws Exception {
         String artifactId = "testCompatibilityRuleApplication_FullTransitive";

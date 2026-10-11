@@ -24,9 +24,9 @@ Closes #<issue-number>
      runs immediately for trusted authors) and is the final merge gate.
 
      The PR validation check also requires a milestone on this PR and on the
-     issue it closes. Setting one needs triage permission, so a maintainer
-     does it -- there is no checklist item for you here, and the check turns
-     green on its own once they have.
+     issue it closes (if that issue is still open). Setting one needs triage
+     permission, so a maintainer does it -- there is no checklist item for you
+     here, and the check turns green on its own once they have.
 
      Full details, including the lifecycle labels and the commands you can
      use: .github/PR_LIFECYCLE.md -->

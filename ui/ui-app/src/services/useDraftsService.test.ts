@@ -23,6 +23,7 @@ vi.mock("@utils/rest.utils.ts", async (importOriginal) => {
     };
 });
 
+import { DraftsFilterBy } from "@models/drafts";
 import { useDraftsService } from "./useDraftsService";
 
 // Regression test for issue #9086: the `limit` query param must always equal
@@ -50,5 +51,31 @@ describe("useDraftsService pagination", () => {
             expect(params.limit).toBe(10);
             expect(params.offset).toBe(pagesToCheck[i].expectedOffset);
         });
+    });
+
+    it("wraps partial name in wildcards for searchDrafts", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 0, versions: [] });
+        getRegistryClientMock.mockReturnValue({ search: { versions: { get } } });
+
+        const service = useDraftsService();
+        await service.searchDrafts(
+            [{ by: DraftsFilterBy.name, value: "Cart" }], "name" as any, "asc" as any, { page: 1, pageSize: 10 }
+        );
+
+        expect(get).toHaveBeenCalledTimes(1);
+        expect(get.mock.calls[0][0].queryParameters.name).toBe("*Cart*");
+    });
+
+    it("preserves explicit wildcards in searchDrafts", async () => {
+        const get = vi.fn().mockResolvedValue({ count: 0, versions: [] });
+        getRegistryClientMock.mockReturnValue({ search: { versions: { get } } });
+
+        const service = useDraftsService();
+        await service.searchDrafts(
+            [{ by: DraftsFilterBy.name, value: "Cart*" }], "name" as any, "asc" as any, { page: 1, pageSize: 10 }
+        );
+
+        expect(get).toHaveBeenCalledTimes(1);
+        expect(get.mock.calls[0][0].queryParameters.name).toBe("Cart*");
     });
 });

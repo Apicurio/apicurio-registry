@@ -174,7 +174,7 @@ welcome_message: |
   | Command | Description |
   |---------|-------------|
   | `/unstale` | Remove the stale label |
-  | `/retry` | Re-run the lifecycle orchestrator and retry failed tests |
+  | `/retry` | Re-run the lifecycle orchestrator, retry failed tests, and re-run a failed PR validation |
 
   **Maintainer commands:**
   | Command | Description |

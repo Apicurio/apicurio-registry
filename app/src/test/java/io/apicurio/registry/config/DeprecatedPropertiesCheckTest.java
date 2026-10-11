@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -135,6 +136,7 @@ public class DeprecatedPropertiesCheckTest {
         List<String> oldNames = defaultCheck.getRegistry().stream()
                 .map(DeprecatedPropertiesCheck.DeprecatedPropertyDef::getOldName).toList();
         assertEquals(List.of(
+                "apicurio.compat.json-schema.use-apitomy",
                 "apicurio.kafkasql.ssl.truststore.password",
                 "apicurio.kafkasql.ssl.keystore.location",
                 "apicurio.kafkasql.ssl.keystore.type",
@@ -142,11 +144,31 @@ public class DeprecatedPropertiesCheckTest {
                 "apicurio.kafkasql.ssl.key.password"), oldNames);
         List<String> replacementNames = defaultCheck.getRegistry().stream()
                 .map(DeprecatedPropertiesCheck.DeprecatedPropertyDef::getReplacementName).toList();
-        assertEquals(List.of(
+        // The JSON Schema checker property has no replacement: it no longer does anything.
+        assertEquals(Arrays.asList(
+                null,
                 "apicurio.kafkasql.security.ssl.truststore.password",
                 "apicurio.kafkasql.security.ssl.keystore.location",
                 "apicurio.kafkasql.security.ssl.keystore.type",
                 "apicurio.kafkasql.security.ssl.keystore.password",
                 "apicurio.kafkasql.security.ssl.key.password"), replacementNames);
+    }
+
+    /**
+     * A property can be deprecated without a replacement, because it no longer does anything. The
+     * warning then says so through the note, rather than pointing at a replacement that doesn't exist.
+     */
+    @Test
+    void testDeprecatedPropertyWithoutReplacementLogsNote() {
+        var withoutReplacement = new DeprecatedPropertiesCheck(List.of(new DeprecatedPropertiesCheck.DeprecatedPropertyDef(
+                "apicurio.example.inert", null, "3.4.0", "4.0.0", false, "It no longer has any effect.")));
+        withoutReplacement.config = config;
+        withoutReplacement.log = log;
+        when(config.getOptionalValue("apicurio.example.inert", String.class)).thenReturn(Optional.of("false"));
+
+        assertDoesNotThrow(() -> withoutReplacement.validate());
+
+        verify(log).warn("Property '{}' is deprecated since {} and will be removed in {}.{}",
+                "apicurio.example.inert", "3.4.0", "4.0.0", " It no longer has any effect.");
     }
 }

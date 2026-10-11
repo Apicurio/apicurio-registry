@@ -42,7 +42,7 @@ import io.apicurio.registry.json.content.dereference.JsonSchemaDereferencer;
 import io.apicurio.registry.json.content.extract.JsonContentExtractor;
 import io.apicurio.registry.json.content.extract.JsonSchemaStructuredContentExtractor;
 import io.apicurio.registry.json.content.refs.JsonSchemaReferenceFinder;
-import io.apicurio.registry.json.rules.compatibility.JsonSchemaCompatibilityChecker;
+import io.apicurio.registry.json.rules.compatibility.ApitomyJsonSchemaCompatibilityChecker;
 import io.apicurio.registry.json.rules.validity.JsonSchemaContentValidator;
 import io.apicurio.registry.kconnect.content.canon.KafkaConnectContentCanonicalizer;
 import io.apicurio.registry.kconnect.rules.validity.KafkaConnectContentValidator;
@@ -135,7 +135,7 @@ public class StandardArtifactTypeProviderRegistry {
         PROVIDERS.put(ArtifactType.JSON, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
                 .accepter(JsonSchemaContentAccepter::new)
-                .compatibilityChecker(JsonSchemaCompatibilityChecker::new)
+                .compatibilityChecker(ApitomyJsonSchemaCompatibilityChecker::new)
                 .canonicalizer(JsonContentCanonicalizer::new)
                 .validator(JsonSchemaContentValidator::new)
                 .extractor(JsonContentExtractor::new)

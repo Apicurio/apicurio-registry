@@ -1971,6 +1971,68 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("components.schemas.Widget.properties.description.type", equalTo("string"));
     }
 
+    /**
+     * Verifies that DEREFERENCE inlines an external reference when the referenced OpenAPI artifact is
+     * stored as YAML (regression test for #10159).
+     */
+    @Test
+    public void testGetArtifactVersionWithReferencesToYamlArtifact() throws Exception {
+        String referencedTypesContent = """
+                openapi: 3.0.3
+                info:
+                  title: Common API
+                  version: 1.0.0
+                paths: {}
+                components:
+                  schemas:
+                    CommonResponse:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                """;
+        String withExternalRefContent = """
+                openapi: 3.0.3
+                info:
+                  title: Parent API
+                  version: 1.0.0
+                paths:
+                  /example:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+                          content:
+                            application/json:
+                              schema:
+                                $ref: "common-api.yaml#/components/schemas/CommonResponse"
+                """;
+
+        createArtifact(GROUP, "testGetArtifactVersionWithReferencesToYamlArtifact/Common",
+                ArtifactType.OPENAPI, referencedTypesContent, ContentTypes.APPLICATION_YAML);
+
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("common-api.yaml#/components/schemas/CommonResponse").groupId(GROUP)
+                .artifactId("testGetArtifactVersionWithReferencesToYamlArtifact/Common").version("1")
+                .build());
+        createArtifactWithReferences(GROUP, "testGetArtifactVersionWithReferencesToYamlArtifact/Parent",
+                ArtifactType.OPENAPI, withExternalRefContent, ContentTypes.APPLICATION_YAML, refs);
+
+        String dereferenced = given().when().pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testGetArtifactVersionWithReferencesToYamlArtifact/Parent")
+                .queryParam("references", "DEREFERENCE")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .extract().asString();
+
+        JsonNode root = ContentTypeUtil.parseYaml(ContentHandle.create(dereferenced));
+        assertEquals("Parent API", root.at("/info/title").asText());
+        assertEquals("#/components/schemas/CommonResponse", root
+                .at("/paths/~1example/get/responses/200/content/application~1json/schema/$ref").asText());
+        assertEquals("object", root.at("/components/schemas/CommonResponse/type").asText());
+        assertEquals("string", root.at("/components/schemas/CommonResponse/properties/id/type").asText());
+    }
+
     @Test
     public void testGetArtifactVersionWithReferencesRewriteNotSupportedForAvro() throws Exception {
         String referencedAvroContent = resourceToString("../avro-referenced-type.json");

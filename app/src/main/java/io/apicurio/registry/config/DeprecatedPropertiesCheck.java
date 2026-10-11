@@ -32,13 +32,28 @@ public class DeprecatedPropertiesCheck {
         private final String deprecatedSince;
         private final String removeInVersion;
         private final boolean removed;
+        private final String note;
 
         public DeprecatedPropertyDef(String oldName, String replacementName, String deprecatedSince, String removeInVersion, boolean removed) {
+            this(oldName, replacementName, deprecatedSince, removeInVersion, removed, null);
+        }
+
+        /**
+         * @param note added to the deprecation warning when there is no replacement, to say what
+         *             becomes of the property in the meantime; may be {@code null}
+         */
+        public DeprecatedPropertyDef(String oldName, String replacementName, String deprecatedSince, String removeInVersion, boolean removed,
+                String note) {
             this.oldName = oldName;
             this.replacementName = replacementName;
             this.deprecatedSince = deprecatedSince;
             this.removeInVersion = removeInVersion;
             this.removed = removed;
+            this.note = note;
+        }
+
+        public String getNote() {
+            return note;
         }
 
         public String getOldName() {
@@ -73,6 +88,9 @@ public class DeprecatedPropertiesCheck {
     @Inject
     public DeprecatedPropertiesCheck() {
         this(List.of(
+                new DeprecatedPropertyDef("apicurio.compat.json-schema.use-apitomy", null, "3.4.0", "4.0.0", false,
+                        "It no longer has any effect: JSON Schema compatibility is always checked with Apitomy Data Models,"
+                                + " because the legacy everit-based checker was removed."),
                 new DeprecatedPropertyDef("apicurio.kafkasql.ssl.truststore.password", "apicurio.kafkasql.security.ssl.truststore.password", "3.1.0", "4.0.0", false),
                 new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.location", "apicurio.kafkasql.security.ssl.keystore.location", "3.1.0", "4.0.0", false),
                 new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.type", "apicurio.kafkasql.security.ssl.keystore.type", "3.1.0", "4.0.0", false),
@@ -121,9 +139,13 @@ public class DeprecatedPropertiesCheck {
                     if (isReplacementPresent) {
                         log.warn("Both '{}' (deprecated since {}) and '{}' are configured. '{}' will take precedence.",
                                 def.getOldName(), def.getDeprecatedSince(), def.getReplacementName(), def.getReplacementName());
-                    } else {
+                    } else if (def.getReplacementName() != null) {
                         log.warn("Property '{}' is deprecated since {} and will be removed in {}. Use '{}' instead.",
                                 def.getOldName(), def.getDeprecatedSince(), def.getRemoveInVersion(), def.getReplacementName());
+                    } else {
+                        log.warn("Property '{}' is deprecated since {} and will be removed in {}.{}",
+                                def.getOldName(), def.getDeprecatedSince(), def.getRemoveInVersion(),
+                                def.getNote() != null ? " " + def.getNote() : "");
                     }
                 }
             }

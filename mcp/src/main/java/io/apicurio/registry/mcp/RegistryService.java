@@ -1,6 +1,11 @@
 package io.apicurio.registry.mcp;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.models.ArdFilter;
+import io.apicurio.registry.rest.client.models.ArdSearchQuery;
+import io.apicurio.registry.rest.client.models.ArdSearchRequest;
+import io.apicurio.registry.rest.client.models.ArdSearchResponse;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactSortBy;
 import io.apicurio.registry.rest.client.models.ArtifactTypeInfo;
@@ -16,6 +21,8 @@ import io.apicurio.registry.rest.client.models.GroupMetaData;
 import io.apicurio.registry.rest.client.models.GroupSortBy;
 import io.apicurio.registry.rest.client.models.Rule;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.SearchedArtifact;
 import io.apicurio.registry.rest.client.models.SearchedGroup;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
@@ -277,6 +284,41 @@ public class RegistryService {
         return client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(v);
     }
 
+    public String testSchemaRules(
+            String groupId,
+            String artifactId,
+            String versionContent,
+            String versionContentType
+    ) {
+        var v = new CreateVersion();
+        var c = new VersionContent();
+        c.setContentType(versionContentType);
+        c.setContent(versionContent);
+        v.setContent(c);
+
+        try {
+            client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(v, r -> {
+                r.queryParameters.dryRun = true;
+            });
+            return "Schema is valid and compatible.";
+        } catch (RuleViolationProblemDetails e) {
+            StringBuilder sb = new StringBuilder();
+            sb.append("Schema rules check failed: ").append(e.getDetail()).append("\n");
+            if (e.getCauses() != null) {
+                for (var cause : e.getCauses()) {
+                    sb.append("- ").append(cause.getDescription());
+                    if (cause.getContext() != null) {
+                        sb.append(" at ").append(cause.getContext());
+                    }
+                    sb.append("\n");
+                }
+            }
+            return sb.toString();
+        } catch (ApiException e) {
+            throw new ToolCallException("Failed to test schema rules: " + e.getMessage(), e);
+        }
+    }
+
     public void updateVersionState(
             String groupId,
             String artifactId,
@@ -442,6 +484,54 @@ public class RegistryService {
                 throw new ToolCallException("Unable to retrieve MCP tool.");
             }
             return new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        }
+    }
+
+    /**
+     * Invokes the registry's {@code POST /.well-known/ard/search} endpoint (ARD - Agentic
+     * Resource Discovery). {@code type}, {@code tags}, {@code capabilities} and
+     * {@code publisher} are comma-separated lists that populate the corresponding
+     * {@code query.filter} keys (OR semantics within a key, AND semantics across keys), per
+     * the ARD spec.
+     */
+    public String ardSearch(
+            String text,
+            String type,
+            String tags,
+            String capabilities,
+            String publisher,
+            String pageToken,
+            Integer pageSize
+    ) throws Exception {
+        var query = new ArdSearchQuery();
+        query.setText(text);
+
+        Map<String, Object> filter = new HashMap<>();
+        putCommaSeparatedFilter(filter, "type", type);
+        putCommaSeparatedFilter(filter, "tags", tags);
+        putCommaSeparatedFilter(filter, "capabilities", capabilities);
+        putCommaSeparatedFilter(filter, "publisher", publisher);
+        if (!filter.isEmpty()) {
+            var ardFilter = new ArdFilter();
+            ardFilter.setAdditionalData(filter);
+            query.setFilter(ardFilter);
+        }
+
+        var request = new ArdSearchRequest();
+        request.setQuery(query);
+        request.setPageToken(pageToken);
+        request.setPageSize(pageSize);
+
+        ArdSearchResponse response = client().wellKnown().ard().search().post(request);
+        return utils.toPrettyJson(response);
+    }
+
+    private void putCommaSeparatedFilter(Map<String, Object> filter, String key, String value) {
+        if (value != null && !value.isBlank()) {
+            filter.put(key, Arrays.stream(value.split(","))
+                    .map(String::trim)
+                    .filter(v -> !v.isEmpty())
+                    .toList());
         }
     }
 
@@ -620,5 +710,14 @@ public class RegistryService {
 
     public void deleteAllArtifactRules(String groupId, String artifactId) {
         client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().delete();
+    public void deleteGroup(String groupId) {
+        client().groups().byGroupId(groupId).delete();
+    }
+
+    public void createArtifactRule(String groupId, String artifactId, String ruleType, String ruleConfig) {
+        var createRule = new CreateRule();
+        createRule.setRuleType(RuleType.forValue(ruleType));
+        createRule.setConfig(ruleConfig);
+        client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
     }
 }

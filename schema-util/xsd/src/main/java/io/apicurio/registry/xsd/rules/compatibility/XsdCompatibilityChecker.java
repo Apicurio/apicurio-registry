@@ -27,7 +27,8 @@ import java.util.*;
 public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
     private static final String XSD_NS = "http://www.w3.org/2001/XMLSchema";
-    
+    private static final String ATTRIBUTE_LABEL = "Attribute '";
+
     @Override
     protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing, String proposed,
             Map<String, TypedContent> resolvedReferences) {
@@ -150,7 +151,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
                 // Attribute was removed - backward incompatible even if optional
                 // because old data may have this attribute
                 incompatibilities.add(new SimpleCompatibilityDifference(
-                    "Attribute '" + existingAttr.getName() + "' was removed",
+                    ATTRIBUTE_LABEL + existingAttr.getName() + "' was removed",
                     "/attribute[" + existingAttr.getName() + "]"
                 ));
             } else {
@@ -174,19 +175,20 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
             Set<SimpleCompatibilityDifference> incompatibilities) {
         String attrPath = "/attribute[" + existing.getName() + "]";
         
-        // Check if optional became required
+        // Check if optional became required (making it more restrictive)
         if (!existing.isRequired() && proposed.isRequired()) {
-            // This is actually OK for backward (new schema can read old data)
-            // but NOT OK for forward (old schema cannot read new data)
-            // This will be caught in forward compatibility check
+            incompatibilities.add(new SimpleCompatibilityDifference(
+                ATTRIBUTE_LABEL + existing.getName() + "' changed from optional to required",
+                attrPath
+            ));
         }
-        
+
         // Check if required became optional - this is OK for backward
         
         // Check type compatibility
         if (!isTypeCompatible(existing.getType(), proposed.getType(), false)) {
             incompatibilities.add(new SimpleCompatibilityDifference(
-                "Attribute '" + existing.getName() + "' type changed from " +
+                ATTRIBUTE_LABEL + existing.getName() + "' type changed from " +
                 existing.getType() + " to " + proposed.getType() + " in an incompatible way",
                 attrPath
             ));

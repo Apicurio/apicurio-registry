@@ -29,6 +29,7 @@ website
 
 apicurio-codegen
 /docs/.jbang/
+/docs/superpowers/
 
 python-sdk/dist
 python-sdk/kiota_tmp
@@ -66,3 +67,5 @@ claudedocs
 .vale/
 
 .claude/scheduled_tasks.lock
+
+.worktrees/

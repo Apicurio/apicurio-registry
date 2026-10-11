@@ -122,3 +122,11 @@ The demo includes a multi-agent workflow that processes customer complaints thro
 summarization, and translation agents - all using real HTTP communication.
 
 See the [a2a-real-world-integration](a2a-real-world-integration/) directory for details.
+
+## Custom Artifact Types (Java providers)
+
+Adds a custom `MARKDOWN` artifact type to the registry with Java implementations of the artifact
+type interfaces (content accepter, validator, compatibility checker, canonicalizer), configured
+through `apicurio.artifact-types.config-file`. The providers are loaded into the
+`apicurio/apicurio-registry:VERSION-mutable` container image by re-augmenting it, so no custom
+build of the registry is needed. See the [custom-artifact-types](custom-artifact-types/) directory for details.

@@ -577,6 +577,33 @@ VALIDATE_POLL_INTERVAL="${APICURIO_GITOPS_VALIDATE_POLL_INTERVAL_SECONDS:-2}"
 VALIDATE_CLEANUP_AGE="${APICURIO_GITOPS_VALIDATE_CLEANUP_AGE_SECONDS:-7200}"
 VALIDATE_FETCH_TIMEOUT="${APICURIO_GITOPS_VALIDATE_FETCH_TIMEOUT_SECONDS:-120}"
 
+# Atomically write a jq-computed status back to the request file.
+# Untrusted values (repoId, ref, apiVersion, error text) MUST be passed as jq
+# variables via --arg and referenced inside the filter — never interpolated into
+# the jq program text, which would allow a crafted request file to inject jq.
+# Usage: update_status <request_file> <jq_filter> [jq_args...]
+update_status() {
+    local request_file="$1"
+    local filter="$2"
+    shift 2
+    if jq "$@" "${filter}" "${request_file}" > "${request_file}.tmp"; then
+        mv "${request_file}.tmp" "${request_file}"
+    else
+        rm -f "${request_file}.tmp"
+        warning "Failed to update status for ${request_file}"
+    fi
+}
+
+# Mark a request as failed with the given (untrusted) error message, passed safely via --arg.
+fail_request() {
+    local request_file="$1"
+    local error_msg="$2"
+    update_status "${request_file}" \
+        '.status = {"state": "failed", "error": $err, "completedAt": $ts}' \
+        --arg err "${error_msg}" \
+        --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+
 process_validate_request() {
     local request_file="$1"
     local task_id
@@ -591,8 +618,7 @@ process_validate_request() {
     local api_version req_type repo_id ref
     api_version=$(jq -r '.apiVersion // ""' "${request_file}")
     if [ -n "${api_version}" ] && [ "${api_version}" != "v1" ]; then
-        jq '.status = {"state": "failed", "error": "Unsupported apiVersion: '"${api_version}"'. Expected v1.", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
-            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        fail_request "${request_file}" "Unsupported apiVersion: ${api_version}. Expected v1."
         return
     fi
 
@@ -601,14 +627,19 @@ process_validate_request() {
     ref=$(jq -r '.spec.ref // ""' "${request_file}")
 
     if [ "${req_type}" != "pull" ]; then
-        jq '.status = {"state": "failed", "error": "Unsupported validation type: '"${req_type}"'. Only pull is supported.", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
-            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        fail_request "${request_file}" "Unsupported validation type: ${req_type}. Only pull is supported."
         return
     fi
 
     if [ -z "${repo_id}" ] || [ -z "${ref}" ]; then
-        jq '.status = {"state": "failed", "error": "Missing repoId or ref in spec", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
-            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        fail_request "${request_file}" "Missing repoId or ref in spec"
+        return
+    fi
+
+    # Reject a ref that could be interpreted as a command-line option (argument injection into
+    # the git clone/fetch below). Legitimate refs are branch names or refs/... paths.
+    if [ "${ref#-}" != "${ref}" ]; then
+        fail_request "${request_file}" "Invalid ref: must not begin with '-'"
         return
     fi
 
@@ -622,33 +653,32 @@ process_validate_request() {
     done
 
     if [ "${repo_index}" -eq -1 ]; then
-        jq '.status = {"state": "failed", "error": "Unknown repoId: '"${repo_id}"'", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
-            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        fail_request "${request_file}" "Unknown repoId: ${repo_id}"
         return
     fi
 
     local repo_url="${REPO_URLS[$repo_index]}"
     if [ -z "${repo_url}" ]; then
-        jq '.status = {"state": "failed", "error": "Repo '"${repo_id}"' has no remote URL configured", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
-            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        fail_request "${request_file}" "Repo ${repo_id} has no remote URL configured"
         return
     fi
 
     log "[validate:${task_id}] Fetching ref '${ref}' from repo '${repo_id}'"
 
     # Update status to fetching
-    jq '.status = {"state": "fetching"}' \
-        "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+    update_status "${request_file}" '.status = {"state": "fetching"}'
 
     local checkout_dir="${VALIDATE_DIR}/${task_id}/repo"
     mkdir -p "${checkout_dir}"
 
-    # Clone the repo at the specified ref
+    # Clone the repo at the specified ref. The ref is bound to --branch as a single value and
+    # has been checked not to start with '-', so it cannot be read as a git option.
     local clone_args="--depth 1 --single-branch"
     if timeout "${VALIDATE_FETCH_TIMEOUT}" git clone ${clone_args} --branch "${ref}" "${repo_url}" "${checkout_dir}" 2>/dev/null; then
         log "[validate:${task_id}] Fetch completed successfully"
-        jq '.status = {"state": "fetched", "checkoutPath": "repo", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
-            "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+        update_status "${request_file}" \
+            '.status = {"state": "fetched", "checkoutPath": "repo", "completedAt": $ts}' \
+            --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
     else
         # Try fetching as a ref (PR refs can't be cloned directly with --branch)
         rm -rf "${checkout_dir}"
@@ -657,14 +687,14 @@ process_validate_request() {
            timeout "${VALIDATE_FETCH_TIMEOUT}" git -C "${checkout_dir}" fetch origin --depth 1 -- "${ref}" 2>/dev/null && \
            git -C "${checkout_dir}" checkout FETCH_HEAD 2>/dev/null; then
             log "[validate:${task_id}] Fetch completed successfully (via ref fetch)"
-            jq '.status = {"state": "fetched", "checkoutPath": "repo", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
-                "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+            update_status "${request_file}" \
+                '.status = {"state": "fetched", "checkoutPath": "repo", "completedAt": $ts}' \
+                --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
         else
             local err_msg="Failed to fetch ref '${ref}' from $(sanitize_url "${repo_url}")"
             warning "[validate:${task_id}] ${err_msg}"
             rm -rf "${checkout_dir}"
-            jq '.status = {"state": "failed", "error": "'"${err_msg}"'", "completedAt": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}' \
-                "${request_file}" > "${request_file}.tmp" && mv "${request_file}.tmp" "${request_file}"
+            fail_request "${request_file}" "${err_msg}"
         fi
     fi
 }

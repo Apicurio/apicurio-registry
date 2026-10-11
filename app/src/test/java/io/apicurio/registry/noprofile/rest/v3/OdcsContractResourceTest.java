@@ -87,6 +87,36 @@ public class OdcsContractResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testUpdateMetadataOnProjectedContractReturnsMetadata() throws Exception {
+        String artifactId = "testUpdateMetadataProjected-" + UUID.randomUUID();
+        createArtifact(GROUP, artifactId, ArtifactType.AVRO, AVRO_SCHEMA,
+                ContentTypes.APPLICATION_JSON);
+
+        given()
+                .when()
+                .header("Content-Type", "application/x-yaml")
+                .pathParam("groupId", GROUP)
+                .body(odcsContract(GROUP, artifactId).getBytes())
+                .post("/registry/v3/groups/{groupId}/contracts")
+                .then()
+                .statusCode(200);
+
+        // The merge deletes the contract.{id}.id label, so the contract id has to be resolved
+        // before the merge. Otherwise the response body comes back empty.
+        given()
+                .when()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .body("{\"ownerTeam\": \"probe-team\", \"status\": \"DRAFT\"}")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then()
+                .statusCode(200)
+                .body("ownerTeam", equalTo("probe-team"))
+                .body("status", equalTo("DRAFT"));
+    }
+
+    @Test
     public void testListContracts() throws Exception {
         String artifactId = "testListContracts-" + UUID.randomUUID();
         createArtifact(GROUP, artifactId, ArtifactType.AVRO, AVRO_SCHEMA,

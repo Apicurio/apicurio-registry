@@ -132,8 +132,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     String effectiveFormat = format;
                     if (effectiveFormat == null || effectiveFormat.isBlank()) {
                         java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-                        if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
-                                && "DEREFERENCE".equals(configuredDefault.get())) {
+                        if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()
+                                && "DEREFERENCE".equals(configuredDefault.orElseThrow())) {
                             // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
                             if (ArtifactType.AVRO.equals(amd.getArtifactType())
                                     || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {
@@ -506,8 +506,8 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
                     String effectiveFormat = format;
                     if (effectiveFormat == null || effectiveFormat.isBlank()) {
                         java.util.Optional<String> configuredDefault = restConfig.getDefaultReferenceHandling();
-                        if (configuredDefault.isPresent() && !configuredDefault.get().trim().isEmpty()
-                                && "DEREFERENCE".equals(configuredDefault.get())) {
+                        if (configuredDefault.isPresent() && !configuredDefault.orElseThrow().trim().isEmpty()
+                                && "DEREFERENCE".equals(configuredDefault.orElseThrow())) {
                             // Apply RESOLVED format for Avro and Protobuf when DEREFERENCE is configured
                             if (ArtifactType.AVRO.equals(amd.getArtifactType())
                                     || ArtifactType.PROTOBUF.equals(amd.getArtifactType())) {

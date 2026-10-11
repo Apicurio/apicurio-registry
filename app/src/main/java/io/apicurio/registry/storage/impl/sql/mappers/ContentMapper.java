@@ -10,12 +10,21 @@ import java.sql.SQLException;
 
 public class ContentMapper implements RowMapper<ContentWrapperDto> {
 
-    public static final ContentMapper instance = new ContentMapper();
+    public static final ContentMapper instance = new ContentMapper(false);
+
+    /**
+     * Variant that also reads an "artifactType" column from the result set, for queries that join content
+     * with an artifact/version so the artifact type can be returned without a second round-trip.
+     */
+    public static final ContentMapper instanceWithArtifactType = new ContentMapper(true);
+
+    private final boolean includeArtifactType;
 
     /**
      * Constructor.
      */
-    private ContentMapper() {
+    private ContentMapper(boolean includeArtifactType) {
+        this.includeArtifactType = includeArtifactType;
     }
 
     /**
@@ -30,6 +39,9 @@ public class ContentMapper implements RowMapper<ContentWrapperDto> {
         contentWrapperDto.setContentType(rs.getString("contentType"));
         contentWrapperDto.setReferences(RegistryContentUtils.deserializeReferences(rs.getString("refs")));
         contentWrapperDto.setContentHash(rs.getString("contentHash"));
+        if (includeArtifactType) {
+            contentWrapperDto.setArtifactType(rs.getString("artifactType"));
+        }
         return contentWrapperDto;
     }
 

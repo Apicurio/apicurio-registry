@@ -270,7 +270,7 @@ public class FileDescriptorUtilsTest {
         return Stream.of(files).filter(f -> f.getName().equals(fileName))
                 .collect(Collectors.reducing((a, b) -> {
                     throw new IllegalStateException("More than one file with name " + fileName + " found");
-                })).map(FileDescriptorUtilsTest::readSchemaAsString).get();
+                })).map(FileDescriptorUtilsTest::readSchemaAsString).orElseThrow();
     }
 
     private static String readSchemaAsString(File file) {

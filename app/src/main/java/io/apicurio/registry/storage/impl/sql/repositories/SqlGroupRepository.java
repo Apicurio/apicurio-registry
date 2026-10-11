@@ -308,7 +308,9 @@ public class SqlGroupRepository {
                         if (label.getValue() != null) {
                             String labelValue = asLowerCase(label.getValue());
                             where.append(" AND ");
-                            buildWildcardClause(where, "l.labelValue", labelValue, filter.isNot(),
+                            // Compare against LOWER(l.labelValue) because label values are not always
+                            // lowercased at write time.
+                            buildWildcardClause(where, "LOWER(l.labelValue)", labelValue, filter.isNot(),
                                     binders);
                         }
                         where.append(" AND l.groupId = g.groupId)");

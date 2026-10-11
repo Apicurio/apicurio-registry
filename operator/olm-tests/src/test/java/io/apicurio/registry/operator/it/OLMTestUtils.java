@@ -11,9 +11,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import static org.awaitility.Awaitility.await;
+
 public final class OLMTestUtils {
 
     public static final String PACKAGE_NAME = "apicurio-registry-3";
+    public static final String CATALOG_NAME = "apicurio-registry-operator-catalog";
     public static final String PROJECT_VERSION_PROP = "registry.version";
     public static final String PROJECT_ROOT_PROP = "test.operator.project-root";
     public static final String CATALOG_IMAGE_PROP = "test.operator.catalog-image";
@@ -24,6 +27,13 @@ public final class OLMTestUtils {
 
     public static String getProjectVersion() {
         return ConfigProvider.getConfig().getValue(PROJECT_VERSION_PROP, String.class);
+    }
+
+    /**
+     * The configured OLM version this test run targets (0 for OLM v0, 1 for OLM v1).
+     */
+    public static int getOlmVersion() {
+        return ConfigProvider.getConfig().getOptionalValue(OLM_VERSION_PROP, Integer.class).orElse(0);
     }
 
     public static String getCatalogImage() {
@@ -122,7 +132,7 @@ public final class OLMTestUtils {
     }
 
     public static void waitForCatalogPodReady(KubernetesClient client, String namespace) {
-        org.awaitility.Awaitility.await().ignoreExceptions()
+        await().ignoreExceptions()
                 .until(() -> client.pods().inNamespace(namespace).list().getItems().stream()
                         .filter(pod -> pod.getMetadata().getName()
                                 .startsWith("apicurio-registry-operator-catalog"))
@@ -130,12 +140,33 @@ public final class OLMTestUtils {
                                 c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus()))));
         // A Ready pod is not immediately routable: the Service endpoints (and kube-proxy
         // rules) lag by a beat, and OLM's resolver otherwise fails with "no route to host".
-        org.awaitility.Awaitility.await().ignoreExceptions().until(() -> {
+        await().ignoreExceptions().until(() -> {
             var endpoints = client.endpoints().inNamespace(namespace)
                     .withName("apicurio-registry-operator-catalog").get();
             return endpoints != null && endpoints.getSubsets() != null
                     && endpoints.getSubsets().stream()
                             .anyMatch(s -> s.getAddresses() != null && !s.getAddresses().isEmpty());
+        });
+    }
+
+    /**
+     * Waits until the OLM v1 {@code ClusterCatalog} named {@code catalogName} reports a {@code Serving}
+     * condition of {@code True}, meaning catalogd has finished unpacking it and its content is queryable.
+     */
+    @SuppressWarnings("unchecked")
+    public static void waitForClusterCatalogServing(KubernetesClient client, String namespace,
+            String catalogName) {
+        await().ignoreExceptions().until(() -> {
+            var cc = client.genericKubernetesResources("olm.operatorframework.io/v1", "ClusterCatalog")
+                    .inNamespace(namespace)
+                    .withName(catalogName)
+                    .get();
+            if (cc == null) {
+                return false;
+            }
+            var conditions = (Collection<Map<String, Object>>) cc.get("status", "conditions");
+            return conditions != null && conditions.stream()
+                    .anyMatch(c -> "Serving".equals(c.get("type")) && "True".equals(c.get("status")));
         });
     }
 }

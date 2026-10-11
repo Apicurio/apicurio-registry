@@ -300,6 +300,11 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public ContentWrapperDto getContentAndArtifactTypeById(long contentId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public ContentWrapperDto getContentByHash(String contentHash) {
         throw new UnsupportedOperationException();
     }

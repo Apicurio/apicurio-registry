@@ -751,6 +751,8 @@ You can update applications that use the {registry} REST API directly by updatin
 * You have existing applications that use the {registry} {registry-v2} REST API or Java SDK.
 * You have access to the source code or deployment configuration for each application.
 
+NOTE: This procedure covers the legacy `apicurio-registry-client` (2.6.13.Final) product client. If your application instead uses the Kiota-generated `client-v2` module (Maven artifact `apicurio-registry-v2-java-sdk`, class `RegistryV2ClientFactory`), see the link:https://github.com/Apicurio/apicurio-registry/blob/main/java-sdk/MIGRATING_FROM_V2.md[Java SDK v2 to v3 migration guide] instead.
+
 .Procedure
 
 . Update your SDK Maven dependency coordinates from v2 to v3.

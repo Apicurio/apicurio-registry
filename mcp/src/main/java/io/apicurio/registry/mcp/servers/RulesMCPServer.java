@@ -184,5 +184,22 @@ public class RulesMCPServer {
             service.deleteAllArtifactRules(groupId, artifactId);
             return "All artifact rules deleted successfully.";
         });
+    @Tool(description = """
+            Test schema validity and compatibility against an existing artifact in the Apicurio Registry. \
+            This does not create a new version; it simulates doing so to verify if the provided \
+            schema content passes all configured rules (validity, integrity, compatibility). \
+            If it fails, it returns a detailed explanation of why it broke the rules.""")
+    String test_schema_rules(
+            @ToolArg(description = GROUP_ID) String groupId,
+            @ToolArg(description = ARTIFACT_ID) String artifactId,
+            @ToolArg(description = "The raw content of the new version to test.") String versionContent,
+            @ToolArg(description = "The content type of the new version (e.g. application/json).", required = false) String versionContentType
+    ) {
+        return handleError(() -> service.testSchemaRules(
+                groupId,
+                artifactId,
+                versionContent,
+                versionContentType
+        ));
     }
 }

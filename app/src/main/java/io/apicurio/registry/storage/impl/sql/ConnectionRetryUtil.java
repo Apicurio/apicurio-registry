@@ -131,7 +131,7 @@ public final class ConnectionRetryUtil {
      * @return the delay in milliseconds before the next retry
      */
     public static long calculateRetryDelay(int attempt, ConnectionRetryConfig config) {
-        double delay = config.getInitialDelayMs() * Math.pow(config.getBackoffMultiplier(), attempt - 1);
+        double delay = config.getInitialDelayMs() * Math.pow(config.getBackoffMultiplier(), (double) attempt - 1);
         return Math.min((long) delay, config.getMaxDelayMs());
     }
 

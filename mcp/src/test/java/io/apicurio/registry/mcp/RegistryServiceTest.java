@@ -98,7 +98,7 @@ public class RegistryServiceTest {
                 return;
             }
 
-            if (path.matches(".*/well-known/agents/g1/a1.*")) {
+            if (path.contains("/well-known/agents/g1/a1")) {
                 String response = "{\"id\":\"a1\",\"name\":\"card-a1\"}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
@@ -119,7 +119,7 @@ public class RegistryServiceTest {
                 return;
             }
 
-            if (path.matches(".*/well-known/mcp-tools/g1/m1.*")) {
+            if (path.contains("/well-known/mcp-tools/g1/m1")) {
                 String response = "{\"id\":\"m1\",\"name\":\"tool-m1\"}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
@@ -173,6 +173,22 @@ public class RegistryServiceTest {
 
             if (path.matches(".*/groups/[^/]+/artifacts/[^/]+/rules") && exchange.getRequestMethod().equals("GET")) {
                 String response = "[\"COMPATIBILITY\"]";
+            if (path.endsWith("/well-known/ard/search") && "POST".equals(exchange.getRequestMethod())) {
+                byte[] body = exchange.getRequestBody().readAllBytes();
+                lastRequestBody = new String(body, StandardCharsets.UTF_8);
+                boolean disabled = lastRequestBody.contains("ard-disabled");
+                if (disabled) {
+                    String response = "{\"error_code\":404,\"message\":\"ARD support is disabled\"}";
+                    exchange.getResponseHeaders().set("Content-Type", "application/json");
+                    exchange.sendResponseHeaders(404, response.length());
+                    try (OutputStream os = exchange.getResponseBody()) {
+                        os.write(response.getBytes(StandardCharsets.UTF_8));
+                    }
+                    return;
+                }
+                String response = "{\"results\":[{\"identifier\":\"air://example.com/system/entry-1\","
+                        + "\"displayName\":\"Test Agent\",\"type\":\"application/agent-card+json\","
+                        + "\"url\":\"http://example.com/agent\"}],\"pageToken\":null}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
                 try (OutputStream os = exchange.getResponseBody()) {
@@ -198,6 +214,7 @@ public class RegistryServiceTest {
             }
 
             if (path.matches(".*/well-known/(agents|mcp-tools)/err/404.*")) {
+            if (path.contains("/well-known/agents/err/404") || path.contains("/well-known/mcp-tools/err/404")) {
                 String response = "{\"error_code\":404,\"message\":\"Not Found\"}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 if (path.contains("/state") && exchange.getRequestMethod().equals("PUT")) {
@@ -620,6 +637,45 @@ public class RegistryServiceTest {
         
         // Also verify comma-separated configs for INTEGRITY are accepted
         assertDoesNotThrow(() -> service.createGlobalRule("INTEGRITY", "NO_DUPLICATES,REFS_EXIST"));
+    public void testArdSearchSendsQueryTextAndFilters() throws Exception {
+        RegistryService service = createService("http://localhost:" + port, false);
+        String result = service.ardSearch("discover agents", "application/agent-card+json",
+                "streaming,production", "java", "example.com", null, 5);
+
+        assertNotNull(result);
+        assertTrue(result.contains("Test Agent"));
+        assertTrue(result.contains("air://example.com/system/entry-1"));
+
+        assertNotNull(lastRequestBody);
+        assertTrue(lastRequestBody.contains("\"text\":\"discover agents\""));
+        assertTrue(lastRequestBody.contains("\"type\""));
+        assertTrue(lastRequestBody.contains("application/agent-card+json"));
+        assertTrue(lastRequestBody.contains("\"tags\""));
+        assertTrue(lastRequestBody.contains("streaming"));
+        assertTrue(lastRequestBody.contains("production"));
+        assertTrue(lastRequestBody.contains("\"capabilities\""));
+        assertTrue(lastRequestBody.contains("java"));
+        assertTrue(lastRequestBody.contains("\"publisher\""));
+        assertTrue(lastRequestBody.contains("example.com"));
+        assertTrue(lastRequestBody.contains("\"pageSize\":5"));
+    }
+
+    @Test
+    public void testArdSearchOmitsFilterWhenNoStructuredFiltersProvided() throws Exception {
+        RegistryService service = createService("http://localhost:" + port, false);
+        String result = service.ardSearch("discover agents", null, null, null, null, null, null);
+
+        assertNotNull(result);
+        assertNotNull(lastRequestBody);
+        assertTrue(lastRequestBody.contains("\"text\":\"discover agents\""));
+        assertTrue(!lastRequestBody.contains("\"filter\""));
+    }
+
+    @Test
+    public void testArdSearchThrowsWhenArdDisabled() {
+        RegistryService service = createService("http://localhost:" + port, false);
+        assertThrows(Exception.class,
+                () -> service.ardSearch("ard-disabled", null, null, null, null, null, null));
     }
 }
 

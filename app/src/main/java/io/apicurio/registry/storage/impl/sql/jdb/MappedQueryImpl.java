@@ -101,12 +101,10 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
      */
     @Override
     public Optional<T> findFirst() {
-        Optional<T> rval = null;
+        Optional<T> rval = Optional.empty();
         try (ResultSet resultSet = statement.executeQuery()) {
             if (resultSet.next()) {
                 rval = Optional.of(this.mapper.map(resultSet));
-            } else {
-                rval = Optional.empty();
             }
         } catch (SQLException e) {
             throw new RuntimeSqlException(e);
@@ -121,13 +119,10 @@ public class MappedQueryImpl<T> implements MappedQuery<T>, Closeable {
      */
     @Override
     public Optional<T> findLast() {
-        Optional<T> rval = null;
+        Optional<T> rval = Optional.empty();
         try (ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
                 rval = Optional.of(this.mapper.map(resultSet));
-            }
-            if (rval == null) {
-                rval = Optional.empty();
             }
         } catch (SQLException e) {
             throw new RuntimeSqlException(e);

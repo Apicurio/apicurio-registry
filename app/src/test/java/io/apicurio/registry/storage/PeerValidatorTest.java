@@ -57,6 +57,22 @@ class PeerValidatorTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = { "https://registry.example.com:0", "https://registry.example.com:65536",
+            "https://registry.example.com:99999" })
+    void rejectsPortsOutsideTheTcpRange(String url) {
+        InvalidPeerException ex = assertThrows(InvalidPeerException.class,
+                () -> PeerValidator.validate(validPeer().url(url).build()));
+        assertEquals("Peer url port must be between 1 and 65535.", ex.getMessage());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "https://registry.example.com:1", "https://registry.example.com:8443",
+            "https://registry.example.com:65535", "https://registry.example.com" })
+    void acceptsPortsInsideTheTcpRangeAndNoPort(String url) {
+        assertDoesNotThrow(() -> PeerValidator.validate(validPeer().url(url).build()));
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = { "..data", "..2026_09_27_10_00_00.123456789", "...token", "..", ".", "../token",
             "dir/token", "" })
     void rejectsCredentialSecretRefsThatAreNotPlainKeyNames(String ref) {

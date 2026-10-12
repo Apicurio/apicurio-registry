@@ -82,6 +82,11 @@ public final class PeerValidator {
         if (uri.getUserInfo() != null) {
             throw new InvalidPeerException("Peer url must not contain userinfo.");
         }
+        // java.net.URI accepts any number as a port, but no client can connect outside the TCP range.
+        int port = uri.getPort();
+        if (port != -1 && (port < 1 || port > 65535)) {
+            throw new InvalidPeerException("Peer url port must be between 1 and 65535.");
+        }
         if (uri.getFragment() != null) {
             throw new InvalidPeerException("Peer url must not contain a fragment.");
         }

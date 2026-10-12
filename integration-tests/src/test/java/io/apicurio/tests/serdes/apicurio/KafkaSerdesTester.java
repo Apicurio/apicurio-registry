@@ -39,6 +39,8 @@ public class KafkaSerdesTester<K, P, C> {
     private static final Logger LOGGER = LoggerFactory.getLogger(KafkaSerdesTester.class);
 
     private static final int MILLIS_PER_MESSAGE = 700;
+    // How long a timed out consume waits for its consumer thread to end after wakeup().
+    private static final long WAKEUP_JOIN_MILLIS = 5000L;
     private static final String BOOTSTRAP_SERVERS = "localhost:9092";
     private static final String MAC_OS_BOOTSTRAP_SERVERS = "docker.host.internal:9092";
 
@@ -182,28 +184,27 @@ public class KafkaSerdesTester<K, P, C> {
                     TimeUnit.MILLISECONDS);
             assertEquals(messageCount, messagesConsumed.intValue());
         } catch (TimeoutException e) {
-            // Without this, the next occurrence of a stuck consume shows only a silent consumer thread.
             LOGGER.error("Consumer for topic {} did not finish in time. Stack of {} ({}):\n{}", topicName,
                     consumerThread.getName(), consumerThread.getState(),
                     formatStack(consumerThread.getStackTrace()));
-            // wakeup() is the one KafkaConsumer method that is safe from another thread. It ends a poll()
-            // that waits on the broker, so the consumer closes instead of lingering after the test fails.
-            // It cannot interrupt a poll() that is inside a deserializer call; the stack above shows that.
             try {
+                // The only KafkaConsumer method safe from another thread. It ends a poll() that waits on
+                // the broker, but not one that is inside a deserializer call.
                 consumer.wakeup();
-                // Waiting for the thread lets the helper's own close() finish when autoClose is on, and
-                // lets poll() exit before the caller's close() when it is off, because
+                // Lets the helper's close() finish, and lets poll() end before a caller's close():
                 // KafkaConsumer.close() fails if another thread is still inside poll().
-                consumerThread.join(5000);
+                consumerThread.join(WAKEUP_JOIN_MILLIS);
                 if (consumerThread.isAlive()) {
-                    // Still alive after wakeup(): it is blocked somewhere wakeup() cannot reach, for
-                    // example inside a deserializer's registry call. This second stack shows where.
                     LOGGER.error("Consumer thread {} survived wakeup(). Stack:\n{}", consumerThread.getName(),
                             formatStack(consumerThread.getStackTrace()));
                 }
             } catch (RuntimeException cleanupFailure) {
                 // The timeout is the failure to report, not a problem while cleaning up after it.
                 e.addSuppressed(cleanupFailure);
+            } catch (InterruptedException interrupted) {
+                // The caller was interrupted while waiting. Keep the interrupt and still report the timeout.
+                Thread.currentThread().interrupt();
+                e.addSuppressed(interrupted);
             }
             throw e;
         }

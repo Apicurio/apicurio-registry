@@ -17,8 +17,10 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.apicurio.deployment.Constants.SMOKE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -97,6 +99,39 @@ class KafkaSerdesTesterIT {
 
         // A caller that reuses the consumer closes it right after this exception; poll() must be over.
         assertTrue(pollExited.get(), "consumeMessages returned while poll() was still running");
+    }
+
+    @Test
+    void consumeTimeoutStillReportsTheTimeoutWhenTheCallerIsInterruptedWhileWaiting() throws Exception {
+        CountDownLatch pollEntered = new CountDownLatch(1);
+        Consumer<String, String> consumer = mockConsumer();
+        // A poll() that ignores wakeup(), so the helper stays in its wait for the thread to end.
+        when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
+            pollEntered.countDown();
+            Thread.sleep(10_000);
+            throw new WakeupException();
+        });
+        AtomicReference<Throwable> thrown = new AtomicReference<>();
+        AtomicBoolean interruptKept = new AtomicBoolean();
+        Thread caller = new Thread(() -> {
+            try {
+                tester.consumeMessages(consumer, TOPIC, 1, null);
+            } catch (Throwable t) {
+                thrown.set(t);
+            }
+            interruptKept.set(Thread.currentThread().isInterrupted());
+        });
+        caller.start();
+        assertTrue(pollEntered.await(10, TimeUnit.SECONDS));
+        // The helper's own wait expires after 2.7 s and it then waits for the thread; interrupt that wait.
+        Thread.sleep(3200);
+        caller.interrupt();
+        caller.join(10_000);
+
+        assertInstanceOf(TimeoutException.class, thrown.get());
+        assertEquals(1, thrown.get().getSuppressed().length);
+        assertInstanceOf(InterruptedException.class, thrown.get().getSuppressed()[0]);
+        assertTrue(interruptKept.get(), "the caller's interrupt flag was cleared");
     }
 
     @Test

@@ -93,10 +93,6 @@ public final class PeerValidator {
         if (uri.getRawQuery() != null) {
             throw new InvalidPeerException("Peer url must not contain a query.");
         }
-        // The url column is ASCII on MySQL; internationalized hosts must be given in punycode.
-        if (!url.chars().allMatch(c -> c < 0x80)) {
-            throw new InvalidPeerException("Peer url must contain only ASCII characters.");
-        }
     }
 
     private static void validateCredentialSecretRef(String credentialSecretRef) {

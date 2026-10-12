@@ -114,6 +114,25 @@ public abstract class AbstractPeersResourceTest extends AbstractResourceTestBase
     }
 
     @Test
+    void urlWithNonAsciiPathRoundTrips() {
+        createPeer(newPeer("unicode-path", "https://registry.example.com/régistre")).statusCode(204);
+
+        given().when().pathParam("peerId", "unicode-path").get(PEER_PATH).then()
+                .statusCode(200)
+                .body("url", equalTo("https://registry.example.com/régistre"));
+
+        Map<String, Object> update = new HashMap<>();
+        update.put("url", "https://registry.example.com/注册表");
+        update.put("enabled", true);
+        given().when().contentType(ContentType.JSON).body(update).pathParam("peerId", "unicode-path")
+                .put(PEER_PATH).then().statusCode(204);
+
+        given().when().pathParam("peerId", "unicode-path").get(PEER_PATH).then()
+                .statusCode(200)
+                .body("url", equalTo("https://registry.example.com/注册表"));
+    }
+
+    @Test
     void sdkRoundTrip() throws Exception {
         NewPeer newPeer = new NewPeer();
         newPeer.setPeerId("sdk-peer");

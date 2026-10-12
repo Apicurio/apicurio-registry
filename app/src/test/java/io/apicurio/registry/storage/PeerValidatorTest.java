@@ -44,16 +44,24 @@ class PeerValidatorTest {
         assertEquals("Peer url must not contain a query.", ex.getMessage());
     }
 
-    @Test
-    void rejectsNonAsciiUrl() {
-        InvalidPeerException ex = assertThrows(InvalidPeerException.class,
-                () -> PeerValidator.validate(validPeer().url("https://registry.example.com/régistre").build()));
-        assertEquals("Peer url must contain only ASCII characters.", ex.getMessage());
+    @ParameterizedTest
+    @ValueSource(strings = { "https://registry.example.com/régistre", "https://registry.example.com/注册表" })
+    void acceptsNonAsciiPathCharacters(String url) {
+        // Every storage variant stores them: the MySQL url column is utf8mb4.
+        assertDoesNotThrow(() -> PeerValidator.validate(validPeer().url(url).build()));
     }
 
     @Test
     void acceptsPunycodeHost() {
         assertDoesNotThrow(() -> PeerValidator.validate(validPeer().url("https://xn--rgistre-bya.example.com").build()));
+    }
+
+    @Test
+    void rejectsNonAsciiHost() {
+        // java.net.URI does not parse an internationalized host, so it has to be given in punycode.
+        PeerDto peer = validPeer().url("https://régistre.example.com").build();
+        InvalidPeerException ex = assertThrows(InvalidPeerException.class, () -> PeerValidator.validate(peer));
+        assertEquals("Peer url must be an absolute URI with a host.", ex.getMessage());
     }
 
     @ParameterizedTest

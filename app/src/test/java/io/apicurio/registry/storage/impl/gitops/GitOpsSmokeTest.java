@@ -274,6 +274,28 @@ public class GitOpsSmokeTest {
     }
 
     @Test
+    void peerWithAnAddressTheOutboundPolicyRefusesIsRejected() throws Exception {
+        var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        // Plain http is refused unless apicurio.federation.peer.insecure-http.enabled is set, which
+        // this profile does not do. The admin API refuses the same url, so a declarative peer must
+        // not be a way around the policy.
+        testRepository.load("git/peers-insecure");
+
+        // The detail only exists for this revision, so it cannot be satisfied by an earlier error.
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("ERROR"))
+                    .body("errors", hasSize(1))
+                    .body("errors[0].detail", containsString(
+                            "Plain http requires apicurio.federation.peer.insecure-http.enabled=true."));
+        });
+        assertTrue(storage.getPeers().stream().noneMatch(peer -> "insecure-peer".equals(peer.getPeerId())));
+    }
+
+    @Test
     void validatedUpToSkipsIncompatibleVersions() throws Exception {
         var testRepository = GitTestRepositoryManager.getTestRepository();
 

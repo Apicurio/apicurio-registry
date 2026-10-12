@@ -172,6 +172,29 @@ class KubernetesOpsSmokeTest {
         });
     }
 
+    @Test
+    void peerWithAnAddressTheOutboundPolicyRefusesIsNotLoaded() throws Exception {
+        var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
+
+        configMapStore.load("git/peers-update-1");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var peers = storage.getPeers();
+            assertEquals(1, peers.size());
+            assertEquals("https://before.example.com", peers.get(0).getUrl());
+        });
+
+        // Plain http is refused unless apicurio.federation.peer.insecure-http.enabled is set, which
+        // this profile does not do. A refused revision is not swapped in, so the peer loaded above has
+        // to stay as it was over several polls, and the refused peer must never appear.
+        configMapStore.load("git/peers-insecure");
+        await().during(Duration.ofSeconds(10)).atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var peers = storage.getPeers();
+            assertEquals(1, peers.size());
+            assertEquals("update-test-peer", peers.get(0).getPeerId());
+            assertEquals("https://before.example.com", peers.get(0).getUrl());
+        });
+    }
+
     @ActivateRequestContext
     public <T> T withContext(Supplier<T> supplier) {
         return supplier.get();

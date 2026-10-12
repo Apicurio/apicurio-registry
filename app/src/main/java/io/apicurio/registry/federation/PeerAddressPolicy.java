@@ -29,8 +29,9 @@ import java.util.regex.Pattern;
  * address checked at write time says nothing about the address a later lookup returns.
  * <p>
  * This policy depends on configuration, so it is applied where a peer is written through the API
- * and never inside {@link io.apicurio.registry.storage.PeerValidator}, which also runs when the
- * KafkaSQL journal is replayed.
+ * and where a GitOps or KubernetesOps peer is loaded, and never inside
+ * {@link io.apicurio.registry.storage.PeerValidator}, which also runs when the KafkaSQL journal
+ * is replayed.
  */
 @ApplicationScoped
 public class PeerAddressPolicy {

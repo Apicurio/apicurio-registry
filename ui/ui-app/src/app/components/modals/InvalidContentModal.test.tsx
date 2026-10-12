@@ -76,7 +76,7 @@ describe("InvalidContentModal", () => {
 
     it("titles the empty pointer as the whole document", () => {
         render(modal({
-            additionalData: { ruleType: "COMPATIBILITY" },
+            additionalData: { ruleViolation: { ruleType: "COMPATIBILITY" } },
             causes: [{ description: "root changed", additionalData: { proposed: { pointer: "" } } }]
         }, SUBMITTED));
 
@@ -86,7 +86,7 @@ describe("InvalidContentModal", () => {
     it("groups causes by proposed location and labels what each one breaks", () => {
         render(modal({
             nameEscaped: "RuleViolationException",
-            additionalData: { ruleType: "COMPATIBILITY" },
+            additionalData: { ruleViolation: { ruleType: "COMPATIBILITY" } },
             causes: [
                 { description: "maxLength decreased", context: "/x", additionalData: { direction: "BACKWARD", proposed: { pointer: "/properties/name" } } },
                 { description: "type changed", context: "/y", additionalData: { direction: "BOTH", proposed: { pointer: "/properties/name" } } },
@@ -102,7 +102,7 @@ describe("InvalidContentModal", () => {
 
     it("lists a location in a referenced artifact on its own, naming the reference", () => {
         render(modal({
-            additionalData: { ruleType: "COMPATIBILITY" },
+            additionalData: { ruleViolation: { ruleType: "COMPATIBILITY" } },
             causes: [
                 { description: "in document", additionalData: { proposed: { pointer: "/p" } } },
                 { description: "in reference", additionalData: { proposed: { pointer: "/p", reference: "common.json" } } }
@@ -115,7 +115,7 @@ describe("InvalidContentModal", () => {
     it("keeps the plain list for a validity violation", () => {
         render(modal({
             nameEscaped: "RuleViolationException",
-            additionalData: { ruleType: "VALIDITY" },
+            additionalData: { ruleViolation: { ruleType: "VALIDITY" } },
             causes: [{ description: "Syntax error", context: "line 3" }]
         }, SUBMITTED));
 
@@ -124,11 +124,11 @@ describe("InvalidContentModal", () => {
         expect(screen.getByText("Syntax error")).toBeInTheDocument();
     });
 
-    it("keeps the plain list for a validity violation identified only by ruleType", () => {
-        // After #9657 the exception name changes, so ruleType is the only signal.
+    it("keeps the plain list for a validity violation identified only by ruleViolation", () => {
+        // After #9657 the exception name changes, so ruleViolation is the only signal.
         render(modal({
             nameEscaped: "RuleViolation",
-            additionalData: { ruleType: "VALIDITY" },
+            additionalData: { ruleViolation: { ruleType: "VALIDITY" } },
             causes: [{ description: "Syntax error", context: "line 3" }],
             detail: "raw detail"
         }, SUBMITTED));
@@ -136,6 +136,19 @@ describe("InvalidContentModal", () => {
         expect(screen.queryByTestId("compatibility-report")).not.toBeInTheDocument();
         expect(screen.getByText("Syntax error")).toBeInTheDocument();
         expect(screen.queryByText("raw detail")).not.toBeInTheDocument();
+    });
+
+    it("reads the causes from ruleViolation, the shape the API moves to in 3.5", () => {
+        render(modal({
+            additionalData: {
+                ruleViolation: {
+                    ruleType: "COMPATIBILITY",
+                    causes: [{ description: "Field 'b' was added without a default.", context: "/fields/1", direction: "BACKWARD" }]
+                }
+            }
+        }, SUBMITTED));
+
+        expect(groupTexts()).toEqual(["/fields/1Field 'b' was added without a default.Breaks backward compatibility"]);
     });
 
     it("shows the detail text for an error that is not a rule violation", () => {
@@ -148,7 +161,7 @@ describe("InvalidContentModal", () => {
     it("offers the compared version only when the server names it, and loads it on request", async () => {
         getArtifactVersionContent.mockResolvedValueOnce("EXISTING");
         render(modal({
-            additionalData: { ruleType: "COMPATIBILITY" },
+            additionalData: { ruleViolation: { ruleType: "COMPATIBILITY" } },
             causes: [{ description: "b", context: "/fields/1", additionalData: { existing: { pointer: "/fields", version: "3" } } }]
         }, SUBMITTED));
 
@@ -165,7 +178,7 @@ describe("InvalidContentModal", () => {
         let resolve!: (v: string) => void;
         getArtifactVersionContent.mockReturnValueOnce(new Promise<string>(r => { resolve = r; }));
         render(modal({
-            additionalData: { ruleType: "COMPATIBILITY" },
+            additionalData: { ruleViolation: { ruleType: "COMPATIBILITY" } },
             causes: [{ description: "b", context: "/fields/1", additionalData: { existing: { version: "3" } } }]
         }, SUBMITTED));
         const compare = screen.getByTestId("compatibility-report-compare");
@@ -188,7 +201,7 @@ describe("InvalidContentModal", () => {
     it("keeps showing the submitted content, and says so, when the compared version cannot be loaded", async () => {
         getArtifactVersionContent.mockRejectedValueOnce(new Error("404"));
         render(modal({
-            additionalData: { ruleType: "COMPATIBILITY" },
+            additionalData: { ruleViolation: { ruleType: "COMPATIBILITY" } },
             causes: [{ description: "b", context: "/fields/1", additionalData: { existing: { version: "3" } } }]
         }, SUBMITTED));
 

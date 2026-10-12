@@ -117,28 +117,31 @@ for (const entry of CREATE_ARTIFACT_ENTRY_POINTS) {
     });
 }
 
+const CAUSES = [
+    {
+        description: "Field 'b' was added without a default value.",
+        context: "/fields/1",
+        direction: "BACKWARD",
+        proposed: { pointer: "/fields/1" },
+        existing: { pointer: "/fields", version: "1" }
+    },
+    {
+        description: "The reader schema has no default for 'b'.",
+        context: "/fields/1/type",
+        direction: "BACKWARD",
+        proposed: { pointer: "/fields/1" },
+        existing: { pointer: "/fields", version: "1" }
+    }
+];
+
 test("Compatibility report - a rejected new version lists the causes and shows the submitted content", async ({ page }) => {
     await mockRegistry(page, {
         status: 400,
         title: "Incompatible artifact: test-artifact [AVRO]",
         name: "RuleViolationException",
-        ruleType: "COMPATIBILITY",
-        causes: [
-            {
-                description: "Field 'b' was added without a default value.",
-                context: "/fields/1",
-                direction: "BACKWARD",
-                proposed: { pointer: "/fields/1" },
-                existing: { pointer: "/fields", version: "1" }
-            },
-            {
-                description: "The reader schema has no default for 'b'.",
-                context: "/fields/1/type",
-                direction: "BACKWARD",
-                proposed: { pointer: "/fields/1" },
-                existing: { pointer: "/fields", version: "1" }
-            }
-        ]
+        // During 3.4 the server sends the causes in both places (#10518).
+        ruleViolation: { ruleType: "COMPATIBILITY", causes: CAUSES },
+        causes: CAUSES
     });
 
     await submitNewVersion(page);
@@ -191,6 +194,20 @@ test("Compatibility report - an error that is not a rule violation still shows t
 
     await expect(page.getByText("Error creating artifact.")).toBeVisible();
     await expect(page.getByTestId("compatibility-report")).toHaveCount(0);
+});
+
+test("Compatibility report - the 3.5 body, with causes only under ruleViolation, still shows the report", async ({ page }) => {
+    await mockRegistry(page, {
+        status: 400,
+        title: "Incompatible artifact: test-artifact [AVRO]",
+        ruleViolation: { ruleType: "COMPATIBILITY", causes: [{ description: "b", context: "/fields/1" }] }
+    });
+
+    await submitNewVersion(page);
+
+    const groups = page.getByTestId("compatibility-report-group");
+    await expect(groups).toHaveCount(1);
+    await expect(groups.first().locator("b")).toHaveText("/fields/1");
 });
 
 test("Compatibility report - without the new fields it shows the same rows as before", async ({ page }) => {

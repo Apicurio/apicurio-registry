@@ -215,7 +215,7 @@ public class ProtobufCompatibilityCheckerLibraryTest {
 
          ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
 
-        assertTrue(checker.validate());
+        assertTrue(checker.validate(), () -> "differences: " + checker.findDifferences());
     }
 
     /**

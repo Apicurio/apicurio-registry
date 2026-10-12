@@ -326,7 +326,9 @@ public class PeerSearchClient {
     }
 
     private static String requestUri(URI uri, PeerQuery query) {
-        String basePath = uri.getRawPath() == null ? "" : uri.getRawPath();
+        // A peer url may carry non-ASCII path characters; they go on the wire percent-encoded.
+        String rawPath = URI.create(uri.toASCIIString()).getRawPath();
+        String basePath = rawPath == null ? "" : rawPath;
         if (basePath.endsWith("/")) {
             basePath = basePath.substring(0, basePath.length() - 1);
         }

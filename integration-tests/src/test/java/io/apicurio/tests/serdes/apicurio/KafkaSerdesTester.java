@@ -202,7 +202,6 @@ public class KafkaSerdesTester<K, P, C> {
      * arrives during the cleanup is kept as the thread's interrupt flag.
      */
     private void stopConsumer(Consumer<K, C> consumer, Thread consumerThread, Exception failure) {
-        boolean interruptedDuringCleanup = false;
         try {
             // The only KafkaConsumer method safe from another thread. It ends a poll() that waits on
             // the broker, but not one that is inside a deserializer call.
@@ -220,9 +219,6 @@ public class KafkaSerdesTester<K, P, C> {
             }
         } catch (InterruptedException cleanupInterrupted) {
             failure.addSuppressed(cleanupInterrupted);
-            interruptedDuringCleanup = true;
-        }
-        if (interruptedDuringCleanup) {
             Thread.currentThread().interrupt();
         }
     }

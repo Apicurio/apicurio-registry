@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static io.apicurio.deployment.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,9 +34,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Covers the consume helper itself, with no broker and no registry. A consume that times out must not
- * leave its consumer running: issue 10520 showed a consumer that stayed open for five minutes after its
- * test failed and then logged connection warnings once the broker was stopped.
+ * Covers the consume helper itself, with no broker and no registry. A consume that times out or is
+ * interrupted must stop its consumer instead of leaving it running.
  */
 @Tag(SMOKE)
 class KafkaSerdesTesterIT {
@@ -77,6 +77,30 @@ class KafkaSerdesTesterIT {
         verify(consumer).wakeup();
         // The consumer thread has exited by now, so close() has already run.
         verify(consumer).close();
+    }
+
+    @Test
+    void consumeTimeoutLeavesTheConsumerOpenWhenAutoCloseIsOff() {
+        CountDownLatch woken = new CountDownLatch(1);
+        AtomicBoolean pollExited = new AtomicBoolean();
+        Consumer<String, String> consumer = mockConsumer();
+        when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
+            woken.await(30, TimeUnit.SECONDS);
+            pollExited.set(true);
+            throw new WakeupException();
+        });
+        doAnswer(invocation -> {
+            woken.countDown();
+            return null;
+        }).when(consumer).wakeup();
+        tester.setAutoClose(false);
+
+        assertThrows(TimeoutException.class, () -> tester.consumeMessages(consumer, TOPIC, 1, null));
+
+        // The caller owns a reused consumer and closes it itself, so the helper only stops the poll.
+        verify(consumer).wakeup();
+        assertTrue(pollExited.get(), "consumeMessages returned while poll() was still running");
+        verify(consumer, never()).close();
     }
 
     @Test
@@ -137,6 +161,7 @@ class KafkaSerdesTesterIT {
             releasePoll.countDown();
         }
 
+        assertFalse(caller.isAlive(), "the caller thread did not finish");
         assertInstanceOf(TimeoutException.class, thrown.get());
         assertEquals(1, thrown.get().getSuppressed().length);
         assertInstanceOf(InterruptedException.class, thrown.get().getSuppressed()[0]);
@@ -171,6 +196,7 @@ class KafkaSerdesTesterIT {
         caller.interrupt();
         caller.join(10_000);
 
+        assertFalse(caller.isAlive(), "the caller thread did not finish");
         assertInstanceOf(InterruptedException.class, thrown.get());
         verify(consumer).wakeup();
         verify(consumer).close();

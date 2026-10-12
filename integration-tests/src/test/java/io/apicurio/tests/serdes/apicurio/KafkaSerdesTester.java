@@ -170,9 +170,7 @@ public class KafkaSerdesTester<K, P, C> {
 
     public void consumeMessages(Consumer<K, C> consumer, String topicName, int messageCount,
             Predicate<C> dataValidator) throws Exception {
-        // A dedicated thread, not the shared common pool: test classes run concurrently and share it,
-        // and the wait below must measure this consumer only. Pool contention is not shown to be the
-        // cause of issue 10520. produceMessages still uses the pool.
+        // A named thread of its own, so a timeout can dump this consumer's stack and wake it up.
         FutureTask<Integer> resultPromise = new FutureTask<>(
                 () -> pollUntilConsumed(consumer, topicName, messageCount, dataValidator));
         Thread consumerThread = new Thread(resultPromise, "kafka-serdes-consumer-" + topicName);
@@ -203,15 +201,17 @@ public class KafkaSerdesTester<K, P, C> {
      */
     private void stopConsumer(Consumer<K, C> consumer, Thread consumerThread, Exception failure) {
         try {
-            // The only KafkaConsumer method safe from another thread. It ends a poll() that waits on
-            // the broker, but not one that is inside a deserializer call.
+            // The only KafkaConsumer method that skips its single-thread check (acquire() in
+            // ClassicKafkaConsumer). It ends a poll() that waits on the broker, but not one that is
+            // inside a deserializer call.
             consumer.wakeup();
         } catch (RuntimeException cleanupFailure) {
             failure.addSuppressed(cleanupFailure);
         }
         try {
             // Lets the helper's close() finish, and lets poll() end before a caller's close():
-            // KafkaConsumer.close() fails if another thread is still inside poll().
+            // close() calls acquire() and throws ConcurrentModificationException while another thread
+            // is inside poll().
             consumerThread.join(WAKEUP_JOIN_MILLIS);
             if (consumerThread.isAlive()) {
                 LOGGER.error("Consumer thread {} survived wakeup(). Stack:\n{}", consumerThread.getName(),

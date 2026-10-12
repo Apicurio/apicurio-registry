@@ -46,7 +46,7 @@ class RegistryClientRequestTimeoutTest {
             server.close().toCompletionStage().toCompletableFuture().get(30, TimeUnit.SECONDS);
         }
         if (vertx != null) {
-            vertx.close();
+            vertx.close().toCompletionStage().toCompletableFuture().get(30, TimeUnit.SECONDS);
         }
     }
 

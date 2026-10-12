@@ -587,10 +587,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 // The artifact was successfully created! Create the version as well, if one was included.
                 ImmutablePair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> pair;
                 if (versionContent != null) {
+                    // Index the structured content BEFORE creating the version: createArtifactVersionRaw
+                    // locks the shared globalId sequence row until commit, so any work after it
+                    // serializes every concurrent create in the registry. For a new artifact the
+                    // result is identical to refreshing afterwards: its first version is the 'latest'
+                    // branch head and is ENABLED unless it is a draft (in which case nothing is
+                    // indexed), its content is exactly versionContent, and there are no prior rows.
+                    if (!versionIsDraft) {
+                        updateStructuredContentRaw(handle, groupId, artifactId, artifactType, versionContent);
+                    }
                     ArtifactVersionMetaDataDto vmdDto = createArtifactVersionRaw(handle, true, groupId,
                             artifactId, version, versionMetaData, owner, createdOn, contentId,
                             versionBranches, versionIsDraft);
-                    refreshStructuredContentRaw(handle, groupId, artifactId);
 
                     pair = ImmutablePair.of(amdDto, vmdDto);
                 } else {
@@ -780,14 +788,13 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 lockArtifactForVersionWrite(handle, groupId, artifactId);
                 boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
+                indexNewVersionBeforeGlobalIdRaw(handle, groupId, artifactId, content, isDraft);
 
                 // Now create the version and return the new version metadata.
-                ArtifactVersionMetaDataDto versionDto = createArtifactVersionRaw(handle, isFirstVersion,
+                return createArtifactVersionRaw(handle, isFirstVersion,
                         groupId, artifactId, version,
                         metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData, owner,
                         createdOn, contentId, branches, isDraft);
-                refreshStructuredContentRaw(handle, groupId, artifactId);
-                return versionDto;
             });
         } catch (Exception ex) {
             if (sqlStatements.isPrimaryKeyViolation(ex)) {
@@ -827,11 +834,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
                 // Safe to proceed — we hold the FOR UPDATE lock
                 boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
+                indexNewVersionBeforeGlobalIdRaw(handle, groupId, artifactId, content, isDraft);
                 ArtifactVersionMetaDataDto result = createArtifactVersionRaw(handle, isFirstVersion,
                         groupId, artifactId, version,
                         metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData,
                         owner, createdOn, contentId, branches, isDraft);
-                refreshStructuredContentRaw(handle, groupId, artifactId);
 
                 // Atomically update artifact-level metadata in the same transaction
                 if (artifactMetaData != null && artifactMetaData.getLabels() != null) {
@@ -871,6 +878,26 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             throws RegistryStorageException {
 
         return versionRepository.countActiveArtifactVersions(groupId, artifactId);
+    }
+
+    /**
+     * Updates the structured-content index for a version that is about to be created on an existing,
+     * already-locked artifact. Must run BEFORE createArtifactVersionRaw, which locks the shared globalId
+     * sequence row until commit (every concurrent create in the registry queues on it). Equivalent to
+     * refreshing afterwards: a non-draft version is appended to the end of the 'latest' branch as an
+     * ENABLED version, so it becomes the indexed tip with exactly this content; a draft version is only
+     * added to the 'drafts' branch and leaves the index unchanged. The stored artifact type is used,
+     * not the caller's, matching refreshStructuredContentRaw.
+     */
+    private void indexNewVersionBeforeGlobalIdRaw(Handle handle, String groupId, String artifactId,
+            ContentWrapperDto content, boolean isDraft) {
+        if (isDraft) {
+            return;
+        }
+        String type = artifactRepository.getArtifactMetaData(groupId, artifactId).getArtifactType();
+        if (hasStructuredContentExtractor(type)) {
+            updateStructuredContentRaw(handle, groupId, artifactId, type, content);
+        }
     }
 
     private void lockArtifactForVersionWrite(Handle handle,
@@ -1346,6 +1373,34 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     public VersionState getArtifactVersionState(String groupId, String artifactId, String version) {
 
         return versionRepository.getArtifactVersionState(groupId, artifactId, version);
+    }
+
+    @Override
+    public void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
+        handles.withHandleNoException(handle -> {
+            // Validate every target before changing any of them. Nested repository calls share this
+            // handle and transaction, including outbox rows and label indexes.
+            for (String version : versions) {
+                versionRepository.getArtifactVersionMetaData(groupId, artifactId, version);
+            }
+            for (String version : versions) {
+                updateArtifactVersionState(groupId, artifactId, version, newState, false);
+                ArtifactVersionMetaDataDto metadata = versionRepository.getArtifactVersionMetaData(
+                        groupId, artifactId, version);
+                Map<String, String> merged = new HashMap<>();
+                if (metadata.getLabels() != null) {
+                    merged.putAll(metadata.getLabels());
+                }
+                merged.keySet().removeIf(key -> key.startsWith(labelPrefix));
+                merged.putAll(labels);
+                // Keep the canonical label map intact. Rebuilding it from the search index would
+                // truncate/lowercase unrelated publisher metadata.
+                versionRepository.updateArtifactVersionMetaData(groupId, artifactId, version,
+                        EditableVersionMetaDataDto.builder().labels(merged).build());
+            }
+            return null;
+        });
     }
 
     @Override

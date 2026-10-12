@@ -1,0 +1,86 @@
+{
+  "$comment": "Validation keywords transcribed from https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json. Descriptions/examples omitted; local references only. See the companion provenance document.",
+  "$id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$ref": "#/definitions/ServerDetail",
+  "definitions": {
+    "Input": {
+      "type": "object",
+      "properties": {
+        "description": {"type": "string"},
+        "isRequired": {"type": "boolean", "default": false},
+        "format": {"type": "string", "enum": ["string", "number", "boolean", "filepath"], "default": "string"},
+        "value": {"type": "string"}, "isSecret": {"type": "boolean", "default": false},
+        "default": {"type": "string"}, "placeholder": {"type": "string"},
+        "choices": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "InputWithVariables": {
+      "allOf": [{"$ref": "#/definitions/Input"}, {"type": "object", "properties": {
+        "variables": {"type": "object", "additionalProperties": {"$ref": "#/definitions/Input"}}
+      }}]
+    },
+    "KeyValueInput": {
+      "allOf": [{"$ref": "#/definitions/InputWithVariables"}, {"type": "object", "required": ["name"],
+        "properties": {"name": {"type": "string"}}}]
+    },
+    "PositionalArgument": {
+      "allOf": [{"$ref": "#/definitions/InputWithVariables"}, {"type": "object", "required": ["type"],
+        "anyOf": [{"required": ["valueHint"]}, {"required": ["value"]}],
+        "properties": {"type": {"type": "string", "enum": ["positional"]},
+          "valueHint": {"type": "string"}, "isRepeated": {"type": "boolean", "default": false}}}]
+    },
+    "NamedArgument": {
+      "allOf": [{"$ref": "#/definitions/InputWithVariables"}, {"type": "object", "required": ["type", "name"],
+        "properties": {"type": {"type": "string", "enum": ["named"]}, "name": {"type": "string"},
+          "isRepeated": {"type": "boolean", "default": false}}}]
+    },
+    "Argument": {"anyOf": [{"$ref": "#/definitions/PositionalArgument"}, {"$ref": "#/definitions/NamedArgument"}]},
+    "StdioTransport": {"type": "object", "required": ["type"], "properties": {
+      "type": {"type": "string", "enum": ["stdio"]}}},
+    "StreamableHttpTransport": {"type": "object", "required": ["type", "url"], "properties": {
+      "type": {"type": "string", "enum": ["streamable-http"]},
+      "url": {"type": "string", "pattern": "^https?://[^\\s]+$"},
+      "headers": {"type": "array", "items": {"$ref": "#/definitions/KeyValueInput"}}}},
+    "SseTransport": {"type": "object", "required": ["type", "url"], "properties": {
+      "type": {"type": "string", "enum": ["sse"]},
+      "url": {"type": "string", "pattern": "^https?://[^\\s]+$"},
+      "headers": {"type": "array", "items": {"$ref": "#/definitions/KeyValueInput"}}}},
+    "LocalTransport": {"anyOf": [{"$ref": "#/definitions/StdioTransport"},
+      {"$ref": "#/definitions/StreamableHttpTransport"}, {"$ref": "#/definitions/SseTransport"}]},
+    "RemoteTransport": {"allOf": [
+      {"anyOf": [{"$ref": "#/definitions/StreamableHttpTransport"}, {"$ref": "#/definitions/SseTransport"}]},
+      {"type": "object", "properties": {"variables": {"type": "object", "additionalProperties": {"$ref": "#/definitions/Input"}}}}]},
+    "Package": {"type": "object", "required": ["registryType", "identifier", "transport"], "properties": {
+      "registryType": {"type": "string"}, "identifier": {"type": "string"},
+      "registryBaseUrl": {"type": "string", "format": "uri"},
+      "version": {"type": "string", "minLength": 1, "not": {"const": "latest"}},
+      "fileSha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+      "runtimeHint": {"type": "string"}, "transport": {"$ref": "#/definitions/LocalTransport"},
+      "runtimeArguments": {"type": "array", "items": {"$ref": "#/definitions/Argument"}},
+      "packageArguments": {"type": "array", "items": {"$ref": "#/definitions/Argument"}},
+      "environmentVariables": {"type": "array", "items": {"$ref": "#/definitions/KeyValueInput"}}
+    }},
+    "Repository": {"type": "object", "required": ["url", "source"], "properties": {
+      "url": {"type": "string", "format": "uri"}, "source": {"type": "string"},
+      "id": {"type": "string"}, "subfolder": {"type": "string"}}},
+    "Icon": {"type": "object", "required": ["src"], "properties": {
+      "src": {"type": "string", "format": "uri", "maxLength": 255},
+      "mimeType": {"type": "string", "enum": ["image/png", "image/jpeg", "image/jpg", "image/svg+xml", "image/webp"]},
+      "sizes": {"type": "array", "items": {"type": "string", "pattern": "^(\\d+x\\d+|any)$"}},
+      "theme": {"type": "string", "enum": ["light", "dark"]}}},
+    "ServerDetail": {"type": "object", "required": ["name", "description", "version"], "properties": {
+      "name": {"type": "string", "minLength": 3, "maxLength": 200, "pattern": "^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$"},
+      "description": {"type": "string", "minLength": 1, "maxLength": 100},
+      "title": {"type": "string", "minLength": 1, "maxLength": 100},
+      "version": {"type": "string", "maxLength": 255},
+      "websiteUrl": {"type": "string", "format": "uri"}, "$schema": {"type": "string", "format": "uri"},
+      "repository": {"$ref": "#/definitions/Repository"},
+      "packages": {"type": "array", "items": {"$ref": "#/definitions/Package"}},
+      "remotes": {"type": "array", "items": {"$ref": "#/definitions/RemoteTransport"}},
+      "icons": {"type": "array", "items": {"$ref": "#/definitions/Icon"}},
+      "_meta": {"type": "object", "properties": {
+        "io.modelcontextprotocol.registry/publisher-provided": {"type": "object", "additionalProperties": true}}}
+    }}
+  }
+}

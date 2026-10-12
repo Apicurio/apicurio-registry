@@ -3,7 +3,7 @@ FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:6e2216b796e97edb
 ENV APP_URL="quarkus-app" \
     JAVA_OPTIONS="-Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 
-ADD "$APP_URL" /deployments
+COPY "$APP_URL" /deployments
 
 USER root
 

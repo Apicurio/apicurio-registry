@@ -88,6 +88,8 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -539,8 +541,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                 dryRun, owner);
         var uuid = blockOnResult(submitter.submitMessage(message));
 
-        Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createdArtifact = (Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto>) coordinator
-                .waitForResponse(uuid);
+        Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createdArtifact = Objects.requireNonNull(
+                (Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto>) coordinator.waitForResponse(uuid),
+                "Missing KafkaSQL response for createArtifact operation");
 
         if (!dryRun) {
             outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactCreated.of(createdArtifact.getLeft())));
@@ -911,6 +914,23 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
      * @see io.apicurio.registry.storage.RegistryStorage#updateArtifactVersionState(java.lang.String,
      *      java.lang.String, java.lang.String, io.apicurio.registry.types.VersionState, boolean)
      */
+    @Override
+    public void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
+        Map<String, VersionState> oldStates = new HashMap<>();
+        for (String version : versions) {
+            oldStates.put(version, getArtifactVersionState(groupId, artifactId, version));
+        }
+        var message = new UpdateArtifactVersionStatesMessage(groupId, artifactId, versions, newState,
+                labelPrefix, labels);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+        for (String version : versions) {
+            outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactVersionStateChanged.of(groupId, artifactId,
+                    version, oldStates.get(version), newState)));
+        }
+    }
+
     @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
             VersionState newState, boolean dryRun) {

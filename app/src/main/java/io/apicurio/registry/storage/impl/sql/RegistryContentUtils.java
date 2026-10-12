@@ -204,7 +204,7 @@ public class RegistryContentUtils {
                                         .getArtifactTypeProvider(nested.getArtifactType());
                                 RewrittenContentHolder rewrittenContentHolder = resolveReferencesWithContext(
                                         artifactTypeUtilProviderFactory,
-                                        TypedContent.create(nested.getContent(), nested.getArtifactType()),
+                                        TypedContent.create(nested.getContent(), nested.getContentType()),
                                         nested.getArtifactType(), partialRecursivelyResolvedReferences,
                                         nested.getReferences(), loader, referencesRewrites);
                                 referencesRewrites.put(refName, newRefName);

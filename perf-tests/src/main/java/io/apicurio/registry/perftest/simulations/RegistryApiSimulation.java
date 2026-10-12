@@ -92,9 +92,9 @@ public class RegistryApiSimulation extends Simulation {
     private static final String CLIENT_SECRET = System.getenv("AUTH_CLIENT_SECRET");
 
     private static final int USERS = Integer.parseInt(envOrDefault("PERF_USERS", "20"));
-    private static final int DURATION_SECONDS = Integer
-            .parseInt(envOrDefault("PERF_DURATION_SECONDS", "120"));
-    private static final int RAMP_SECONDS = 10;
+    private static final long DURATION_SECONDS = Long
+            .parseLong(envOrDefault("PERF_DURATION_SECONDS", "120"));
+    private static final long RAMP_SECONDS = 10L;
     private static final double WRITE_RATIO = Double.parseDouble(envOrDefault("PERF_WRITE_RATIO", "0.05"));
     private static final int SEED_ARTIFACTS = Integer
             .parseInt(envOrDefault("PERF_SEED_ARTIFACTS", "200"));
@@ -263,6 +263,10 @@ public class RegistryApiSimulation extends Simulation {
                 if (record != null) {
                     records.add(record);
                 }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("Interrupted while waiting for artifact seeding to complete", e);
+                break;
             } catch (Exception e) {
                 log.warn("Failed to seed an artifact", e);
             }
@@ -293,6 +297,10 @@ public class RegistryApiSimulation extends Simulation {
                 log.warn("Failed to seed artifact {}: HTTP {}", artifactId, response.statusCode());
                 return null;
             }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrupted while seeding artifact {}", artifactId, e);
+            return null;
         } catch (Exception e) {
             log.warn("Failed to seed artifact {}", artifactId, e);
             return null;
@@ -336,6 +344,9 @@ public class RegistryApiSimulation extends Simulation {
             }
             CACHED_TOKEN.set(tokenMatcher.group(1));
             log.info("Refreshed OAuth token (cached for reuse across all virtual users)");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted while fetching OAuth token", e);
         } catch (Exception e) {
             log.error("Failed to fetch OAuth token", e);
         }

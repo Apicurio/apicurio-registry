@@ -9,6 +9,7 @@ jobs:
   build:
     name: Build Console Plugin
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # longest green run, week to 2026-10-01: 2 min
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
 
     steps:

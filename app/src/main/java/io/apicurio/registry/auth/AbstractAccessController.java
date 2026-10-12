@@ -33,7 +33,16 @@ public abstract class AbstractAccessController implements IAccessController {
         Authorized annotation = context.getMethod().getAnnotation(Authorized.class);
         AuthorizedStyle style = annotation.style();
 
-        if (style == AuthorizedStyle.GroupAndArtifact) {
+        if (style == AuthorizedStyle.QualifiedArtifactName) {
+            // A single "groupId/artifactId" parameter. Malformed values are not ours to reject: the
+            // resource method validates its own name format and answers 400 before doing any work.
+            String name = getStringParam(context, 0);
+            int slash = name == null ? -1 : name.indexOf('/');
+            if (slash < 0) {
+                return true;
+            }
+            return verifyArtifactOwner(name.substring(0, slash), name.substring(slash + 1));
+        } else if (style == AuthorizedStyle.GroupAndArtifact) {
             String groupId = getStringParam(context, 0);
             String artifactId = getStringParam(context, 1);
             return verifyArtifactOwner(groupId, artifactId);

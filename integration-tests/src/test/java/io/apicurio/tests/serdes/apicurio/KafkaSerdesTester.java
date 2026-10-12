@@ -201,9 +201,9 @@ public class KafkaSerdesTester<K, P, C> {
      */
     private void stopConsumer(Consumer<K, C> consumer, Thread consumerThread, Exception failure) {
         try {
-            // The only KafkaConsumer method that skips its single-thread check (acquire() in
-            // ClassicKafkaConsumer). It ends a poll() that waits on the broker, but not one that is
-            // inside a deserializer call.
+            // Safe from another thread: unlike poll() and close(), it does not call acquire() in
+            // ClassicKafkaConsumer. It ends a poll() that waits on the broker, but does not interrupt a
+            // deserializer call.
             consumer.wakeup();
         } catch (RuntimeException cleanupFailure) {
             failure.addSuppressed(cleanupFailure);

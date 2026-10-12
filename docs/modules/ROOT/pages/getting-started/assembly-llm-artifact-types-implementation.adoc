@@ -714,7 +714,7 @@ POST /apis/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version
 }
 ----
 
-The `PromptRenderingService` class (`app/src/main/java/io/apicurio/registry/services/PromptRenderingService.java`) includes the following features:
+The `PromptRenderingService` class (`app/src/main/java/io/apicurio/registry/agents/services/PromptRenderingService.java`) includes the following features:
 
 .Rendering service features
 [%header,cols="2,4"]

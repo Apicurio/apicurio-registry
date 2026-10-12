@@ -1,0 +1,8 @@
+{
+  "name": "io.github.example/weather",
+  "version": "1.0.0",
+  "repository": {
+    "url": "https://github.com/example/weather",
+    "source": 123
+  }
+}

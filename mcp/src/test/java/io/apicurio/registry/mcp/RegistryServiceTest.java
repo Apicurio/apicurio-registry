@@ -85,7 +85,7 @@ public class RegistryServiceTest {
                 return;
             }
 
-            if (path.matches(".*/well-known/agents/g1/a1.*")) {
+            if (path.contains("/well-known/agents/g1/a1")) {
                 String response = "{\"id\":\"a1\",\"name\":\"card-a1\"}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
@@ -106,7 +106,7 @@ public class RegistryServiceTest {
                 return;
             }
 
-            if (path.matches(".*/well-known/mcp-tools/g1/m1.*")) {
+            if (path.contains("/well-known/mcp-tools/g1/m1")) {
                 String response = "{\"id\":\"m1\",\"name\":\"tool-m1\"}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 exchange.sendResponseHeaders(200, response.length());
@@ -140,7 +140,7 @@ public class RegistryServiceTest {
                 return;
             }
 
-            if (path.matches(".*/well-known/(agents|mcp-tools)/err/404.*")) {
+            if (path.contains("/well-known/agents/err/404") || path.contains("/well-known/mcp-tools/err/404")) {
                 String response = "{\"error_code\":404,\"message\":\"Not Found\"}";
                 exchange.getResponseHeaders().set("Content-Type", "application/json");
                 if (path.contains("/state") && exchange.getRequestMethod().equals("PUT")) {

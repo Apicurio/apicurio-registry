@@ -27,6 +27,10 @@ jobs:
   notify:
     name: Send Slack Notification
     runs-on: ubuntu-latest
+    # Two webhook calls. Callers (operator.yaml, verify.yaml) can't set a
+    # timeout on a reusable-workflow call, and Verify Result waits for the
+    # operator workflow, including its notification.
+    timeout-minutes: 5
     steps:
       - name: Slack Notification
         run: |

@@ -60,11 +60,11 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected static final String CT_YAML = "application/x-yaml";
     protected static final String CT_XML = "application/xml";
 
-    // A response the server sent but the client never received would otherwise block the test until the
-    // 1800 second surefire limit (issue 10424). The read idle limit is far above any single request in
-    // these tests, so only a lost response reaches it.
-    protected static final long CLIENT_CONNECT_TIMEOUT_MS = 30_000;
-    protected static final long CLIENT_READ_IDLE_TIMEOUT_MS = 60_000;
+    // A response that never reaches the client leaves the test thread waiting on the response future with
+    // no bound (issue 10424, 30 minutes in CI). Requests in these tests answer well within the read idle
+    // limit, so only a stalled response reaches it.
+    private static final long CLIENT_CONNECT_TIMEOUT_MS = 30_000;
+    private static final long CLIENT_READ_IDLE_TIMEOUT_MS = 60_000;
 
     public String registryApiBaseUrl;
     protected String registryV2ApiUrl;

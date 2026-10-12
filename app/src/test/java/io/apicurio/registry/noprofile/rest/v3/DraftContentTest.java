@@ -11,6 +11,7 @@ import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.UserInterfaceConfig;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
@@ -756,10 +757,14 @@ public class DraftContentTest extends AbstractResourceTestBase {
         WrappedVersionState newState = new WrappedVersionState();
         newState.setState(VersionState.ENABLED);
 
-        Assertions.assertThrows(Exception.class, () -> {
+        Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
                     .byVersionExpression("2.0").state().put(newState);
         });
+
+        VersionMetaData v2 = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("2.0").get();
+        Assertions.assertEquals(VersionState.DRAFT, v2.getState());
     }
 
     @Test
@@ -786,8 +791,13 @@ public class DraftContentTest extends AbstractResourceTestBase {
         version3.setVersion("3.0");
         version3.setIsDraft(false);
 
-        Assertions.assertThrows(Exception.class, () -> {
+        Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(version3);
+        });
+
+        Assertions.assertThrows(ProblemDetails.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                    .byVersionExpression("3.0").get();
         });
     }
 

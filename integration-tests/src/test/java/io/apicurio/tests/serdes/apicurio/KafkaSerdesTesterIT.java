@@ -22,10 +22,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import static io.apicurio.deployment.Constants.SMOKE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -103,14 +105,19 @@ class KafkaSerdesTesterIT {
 
     @Test
     void consumeTimeoutStillReportsTheTimeoutWhenTheCallerIsInterruptedWhileWaiting() throws Exception {
-        CountDownLatch pollEntered = new CountDownLatch(1);
+        CountDownLatch wakeupCalled = new CountDownLatch(1);
+        CountDownLatch releasePoll = new CountDownLatch(1);
         Consumer<String, String> consumer = mockConsumer();
-        // A poll() that ignores wakeup(), so the helper stays in its wait for the thread to end.
+        // A poll() that ignores wakeup(), so the helper stays in its wait for the thread to end. The test
+        // releases it at the end instead of leaving it parked.
         when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
-            pollEntered.countDown();
-            Thread.sleep(10_000);
+            releasePoll.await(30, TimeUnit.SECONDS);
             throw new WakeupException();
         });
+        doAnswer(invocation -> {
+            wakeupCalled.countDown();
+            return null;
+        }).when(consumer).wakeup();
         AtomicReference<Throwable> thrown = new AtomicReference<>();
         AtomicBoolean interruptKept = new AtomicBoolean();
         Thread caller = new Thread(() -> {
@@ -122,16 +129,74 @@ class KafkaSerdesTesterIT {
             interruptKept.set(Thread.currentThread().isInterrupted());
         });
         caller.start();
-        assertTrue(pollEntered.await(10, TimeUnit.SECONDS));
-        // The helper's own wait expires after 2.7 s and it then waits for the thread; interrupt that wait.
-        Thread.sleep(3200);
-        caller.interrupt();
-        caller.join(10_000);
+        try {
+            // wakeup() is the last call before the helper waits for the thread, so its timeout has expired.
+            assertTrue(wakeupCalled.await(10, TimeUnit.SECONDS));
+            caller.interrupt();
+            caller.join(10_000);
+        } finally {
+            releasePoll.countDown();
+        }
 
         assertInstanceOf(TimeoutException.class, thrown.get());
         assertEquals(1, thrown.get().getSuppressed().length);
         assertInstanceOf(InterruptedException.class, thrown.get().getSuppressed()[0]);
         assertTrue(interruptKept.get(), "the caller's interrupt flag was cleared");
+    }
+
+    @Test
+    void consumeStopsTheConsumerWhenTheCallerIsInterruptedWhileWaitingForMessages() throws Exception {
+        CountDownLatch pollEntered = new CountDownLatch(1);
+        CountDownLatch woken = new CountDownLatch(1);
+        Consumer<String, String> consumer = mockConsumer();
+        when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
+            pollEntered.countDown();
+            woken.await(30, TimeUnit.SECONDS);
+            throw new WakeupException();
+        });
+        doAnswer(invocation -> {
+            woken.countDown();
+            return null;
+        }).when(consumer).wakeup();
+        AtomicReference<Throwable> thrown = new AtomicReference<>();
+        Thread caller = new Thread(() -> {
+            try {
+                tester.consumeMessages(consumer, TOPIC, 1, null);
+            } catch (Throwable t) {
+                thrown.set(t);
+            }
+        });
+        caller.start();
+        assertTrue(pollEntered.await(10, TimeUnit.SECONDS));
+        // The caller is now inside the helper's timed wait for messages, long before it expires.
+        caller.interrupt();
+        caller.join(10_000);
+
+        assertInstanceOf(InterruptedException.class, thrown.get());
+        verify(consumer).wakeup();
+        verify(consumer).close();
+    }
+
+    @Test
+    void consumeTimeoutIsStillReportedWhenWakeupFails() {
+        CountDownLatch release = new CountDownLatch(1);
+        Consumer<String, String> consumer = mockConsumer();
+        when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
+            release.await(30, TimeUnit.SECONDS);
+            throw new WakeupException();
+        });
+        IllegalStateException wakeupFailure = new IllegalStateException("consumer already closed");
+        doThrow(wakeupFailure).when(consumer).wakeup();
+
+        try {
+            TimeoutException e = assertThrows(TimeoutException.class,
+                    () -> tester.consumeMessages(consumer, TOPIC, 1, null));
+
+            assertEquals(1, e.getSuppressed().length);
+            assertSame(wakeupFailure, e.getSuppressed()[0]);
+        } finally {
+            release.countDown();
+        }
     }
 
     @Test

@@ -183,30 +183,42 @@ public class KafkaSerdesTester<K, P, C> {
             Integer messagesConsumed = resultPromise.get((MILLIS_PER_MESSAGE * messageCount) + 2000,
                     TimeUnit.MILLISECONDS);
             assertEquals(messageCount, messagesConsumed.intValue());
-        } catch (TimeoutException e) {
-            LOGGER.error("Consumer for topic {} did not finish in time. Stack of {} ({}):\n{}", topicName,
-                    consumerThread.getName(), consumerThread.getState(),
-                    formatStack(consumerThread.getStackTrace()));
-            try {
-                // The only KafkaConsumer method safe from another thread. It ends a poll() that waits on
-                // the broker, but not one that is inside a deserializer call.
-                consumer.wakeup();
-                // Lets the helper's close() finish, and lets poll() end before a caller's close():
-                // KafkaConsumer.close() fails if another thread is still inside poll().
-                consumerThread.join(WAKEUP_JOIN_MILLIS);
-                if (consumerThread.isAlive()) {
-                    LOGGER.error("Consumer thread {} survived wakeup(). Stack:\n{}", consumerThread.getName(),
-                            formatStack(consumerThread.getStackTrace()));
-                }
-            } catch (RuntimeException cleanupFailure) {
-                // The timeout is the failure to report, not a problem while cleaning up after it.
-                e.addSuppressed(cleanupFailure);
-            } catch (InterruptedException interrupted) {
-                // The caller was interrupted while waiting. Keep the interrupt and still report the timeout.
-                Thread.currentThread().interrupt();
-                e.addSuppressed(interrupted);
+        } catch (TimeoutException | InterruptedException e) {
+            if (e instanceof TimeoutException) {
+                LOGGER.error("Consumer for topic {} did not finish in time. Stack of {} ({}):\n{}", topicName,
+                        consumerThread.getName(), consumerThread.getState(),
+                        formatStack(consumerThread.getStackTrace()));
             }
+            stopConsumer(consumer, consumerThread, e);
             throw e;
+        }
+    }
+
+    /**
+     * Ends a consume that did not finish, so its consumer does not stay open after the test fails. Any
+     * failure while doing so is added to {@code failure}, which is the one to report.
+     */
+    private void stopConsumer(Consumer<K, C> consumer, Thread consumerThread, Exception failure) {
+        boolean interrupted = failure instanceof InterruptedException;
+        try {
+            // The only KafkaConsumer method safe from another thread. It ends a poll() that waits on
+            // the broker, but not one that is inside a deserializer call.
+            consumer.wakeup();
+            // Lets the helper's close() finish, and lets poll() end before a caller's close():
+            // KafkaConsumer.close() fails if another thread is still inside poll().
+            consumerThread.join(WAKEUP_JOIN_MILLIS);
+            if (consumerThread.isAlive()) {
+                LOGGER.error("Consumer thread {} survived wakeup(). Stack:\n{}", consumerThread.getName(),
+                        formatStack(consumerThread.getStackTrace()));
+            }
+        } catch (RuntimeException cleanupFailure) {
+            failure.addSuppressed(cleanupFailure);
+        } catch (InterruptedException cleanupInterrupted) {
+            failure.addSuppressed(cleanupInterrupted);
+            interrupted = true;
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
         }
     }
 

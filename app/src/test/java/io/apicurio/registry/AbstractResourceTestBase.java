@@ -60,6 +60,12 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected static final String CT_YAML = "application/x-yaml";
     protected static final String CT_XML = "application/xml";
 
+    // A response the server sent but the client never received would otherwise block the test until the
+    // 1800 second surefire limit (issue 10424). The read idle limit is far above any single request in
+    // these tests, so only a lost response reaches it.
+    protected static final long CLIENT_CONNECT_TIMEOUT_MS = 30_000;
+    protected static final long CLIENT_READ_IDLE_TIMEOUT_MS = 60_000;
+
     public String registryApiBaseUrl;
     protected String registryV2ApiUrl;
     protected String registryV3ApiUrl;
@@ -115,7 +121,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected RegistryClient createRestClientV3(Vertx vertx) {
         return RegistryClientFactory.create(RegistryClientOptions.create()
                 .registryUrl(registryV3ApiUrl)
-                .vertx(vertx));
+                .vertx(vertx)
+                .requestTimeout(CLIENT_CONNECT_TIMEOUT_MS, CLIENT_READ_IDLE_TIMEOUT_MS));
     }
 
     @BeforeEach

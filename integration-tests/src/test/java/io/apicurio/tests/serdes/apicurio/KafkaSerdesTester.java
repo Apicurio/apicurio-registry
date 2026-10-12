@@ -25,6 +25,7 @@ import java.util.Properties;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -167,50 +168,89 @@ public class KafkaSerdesTester<K, P, C> {
 
     public void consumeMessages(Consumer<K, C> consumer, String topicName, int messageCount,
             Predicate<C> dataValidator) throws Exception {
-        CompletableFuture<Integer> resultPromise = CompletableFuture.supplyAsync(() -> {
-
-            consumer.subscribe(Collections.singletonList(topicName));
-
-            AtomicInteger consumedMessages = new AtomicInteger();
-
-            try {
-                while (consumedMessages.get() < messageCount) {
-
-                    final ConsumerRecords<K, C> records = consumer.poll(Duration.ofSeconds(1));
-                    if (records.count() == 0) {
-                        LOGGER.info("None found");
-                    } else
-                        records.forEach(record -> {
-
-                            if (dataValidator != null) {
-                                assertTrue(dataValidator.test(record.value()),
-                                        "Consumed record validation failed");
-                            }
-
-                            consumedMessages.getAndIncrement();
-                            LOGGER.info("{} {} {} {}", record.topic(), record.partition(), record.offset(),
-                                    record.value());
-                        });
-                }
-
-                LOGGER.info("Consumed {} messages", consumedMessages.get());
-            } finally {
-                if (autoClose) {
-                    consumer.close();
-                }
-            }
-
-            return consumedMessages.get();
-        });
+        // A dedicated thread, not the shared common pool: test classes run concurrently and share it,
+        // and the wait below must measure this consumer only. Pool contention is not shown to be the
+        // cause of issue 10520. produceMessages still uses the pool.
+        FutureTask<Integer> resultPromise = new FutureTask<>(
+                () -> pollUntilConsumed(consumer, topicName, messageCount, dataValidator));
+        Thread consumerThread = new Thread(resultPromise, "kafka-serdes-consumer-" + topicName);
+        consumerThread.setDaemon(true);
+        consumerThread.start();
 
         try {
             Integer messagesConsumed = resultPromise.get((MILLIS_PER_MESSAGE * messageCount) + 2000,
                     TimeUnit.MILLISECONDS);
             assertEquals(messageCount, messagesConsumed.intValue());
-        } catch (Exception e) {
+        } catch (TimeoutException e) {
+            // Without this, the next occurrence of a stuck consume shows only a silent consumer thread.
+            LOGGER.error("Consumer for topic {} did not finish in time. Stack of {} ({}):\n{}", topicName,
+                    consumerThread.getName(), consumerThread.getState(),
+                    formatStack(consumerThread.getStackTrace()));
+            // wakeup() is the one KafkaConsumer method that is safe from another thread. It ends a poll()
+            // that waits on the broker, so the consumer closes instead of lingering after the test fails.
+            // It cannot interrupt a poll() that is inside a deserializer call; the stack above shows that.
+            try {
+                consumer.wakeup();
+                // Waiting for the thread lets the helper's own close() finish when autoClose is on, and
+                // lets poll() exit before the caller's close() when it is off, because
+                // KafkaConsumer.close() fails if another thread is still inside poll().
+                consumerThread.join(5000);
+                if (consumerThread.isAlive()) {
+                    // Still alive after wakeup(): it is blocked somewhere wakeup() cannot reach, for
+                    // example inside a deserializer's registry call. This second stack shows where.
+                    LOGGER.error("Consumer thread {} survived wakeup(). Stack:\n{}", consumerThread.getName(),
+                            formatStack(consumerThread.getStackTrace()));
+                }
+            } catch (RuntimeException cleanupFailure) {
+                // The timeout is the failure to report, not a problem while cleaning up after it.
+                e.addSuppressed(cleanupFailure);
+            }
             throw e;
         }
+    }
 
+    private int pollUntilConsumed(Consumer<K, C> consumer, String topicName, int messageCount,
+            Predicate<C> dataValidator) {
+        consumer.subscribe(Collections.singletonList(topicName));
+
+        AtomicInteger consumedMessages = new AtomicInteger();
+
+        try {
+            while (consumedMessages.get() < messageCount) {
+
+                final ConsumerRecords<K, C> records = consumer.poll(Duration.ofSeconds(1));
+                if (records.count() == 0) {
+                    LOGGER.info("None found");
+                } else
+                    records.forEach(record -> {
+
+                        if (dataValidator != null) {
+                            assertTrue(dataValidator.test(record.value()),
+                                    "Consumed record validation failed");
+                        }
+
+                        consumedMessages.getAndIncrement();
+                        LOGGER.info("{} {} {} {}", record.topic(), record.partition(), record.offset(),
+                                record.value());
+                    });
+            }
+
+            LOGGER.info("Consumed {} messages", consumedMessages.get());
+        } finally {
+            if (autoClose) {
+                consumer.close();
+            }
+        }
+
+        return consumedMessages.get();
+    }
+
+    private static String formatStack(StackTraceElement[] stack) {
+        StringBuilder out = new StringBuilder();
+        for (StackTraceElement frame : stack) {
+            out.append("\tat ").append(frame).append('\n');
+        }
+        return out.toString();
     }
 
     @FunctionalInterface

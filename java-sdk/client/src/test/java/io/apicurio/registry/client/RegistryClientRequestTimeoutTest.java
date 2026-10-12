@@ -3,6 +3,7 @@ package io.apicurio.registry.client;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClosedException;
 import io.vertx.core.http.HttpServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -11,6 +12,7 @@ import org.junit.jupiter.api.Timeout;
 
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,9 +41,9 @@ class RegistryClientRequestTimeoutTest {
     }
 
     @AfterAll
-    static void stopServer() {
+    static void stopServer() throws Exception {
         if (server != null) {
-            server.close();
+            server.close().toCompletionStage().toCompletableFuture().get(30, TimeUnit.SECONDS);
         }
         if (vertx != null) {
             vertx.close();
@@ -52,14 +54,20 @@ class RegistryClientRequestTimeoutTest {
     @Timeout(value = 30, unit = TimeUnit.SECONDS)
     void requestFailsOnceTheReadIdleTimeoutPasses() {
         RegistryClient client = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl("http://localhost:" + port + "/apis/registry/v3")
+                .registryUrl("http://127.0.0.1:" + port + "/apis/registry/v3")
                 .vertx(vertx)
                 .requestTimeout(5_000, 1_000));
 
         long start = System.nanoTime();
-        assertThrows(RuntimeException.class, () -> client.groups().get());
+        RuntimeException failure = assertThrows(RuntimeException.class, () -> client.groups().get());
         long elapsedMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
 
-        assertTrue(elapsedMillis < 15_000, "the call took " + elapsedMillis + " ms");
+        // A refused connection or a URL error would end in a different exception than a closed connection.
+        Throwable root = failure;
+        while (root.getCause() != null) {
+            root = root.getCause();
+        }
+        assertInstanceOf(HttpClosedException.class, root, failure::toString);
+        assertTrue(elapsedMillis < 15_000, "expected under 15000 ms, took " + elapsedMillis + " ms");
     }
 }

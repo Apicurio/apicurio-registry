@@ -61,8 +61,9 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     protected static final String CT_XML = "application/xml";
 
     // A response that never reaches the client leaves the test thread waiting on the response future with
-    // no bound (issue 10424, 30 minutes in CI). Requests in these tests answer well within the read idle
-    // limit, so only a stalled response reaches it.
+    // no bound, which cost a CI shard the full 1800 second class limit (issue 10424). The slowest test class
+    // in the app-other shard of run 38295474390 took 11 seconds in total, so a single request that stays
+    // silent for 60 seconds is a stalled response.
     private static final long CLIENT_CONNECT_TIMEOUT_MS = 30_000;
     private static final long CLIENT_READ_IDLE_TIMEOUT_MS = 60_000;
 

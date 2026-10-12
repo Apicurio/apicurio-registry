@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -180,13 +179,19 @@ class KafkaSerdesTesterIT {
     @Test
     void consumeTimeoutIsStillReportedWhenWakeupFails() {
         CountDownLatch release = new CountDownLatch(1);
+        AtomicBoolean pollExited = new AtomicBoolean();
         Consumer<String, String> consumer = mockConsumer();
         when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
             release.await(30, TimeUnit.SECONDS);
+            Thread.sleep(300);
+            pollExited.set(true);
             throw new WakeupException();
         });
         IllegalStateException wakeupFailure = new IllegalStateException("consumer already closed");
-        doThrow(wakeupFailure).when(consumer).wakeup();
+        doAnswer(invocation -> {
+            release.countDown();
+            throw wakeupFailure;
+        }).when(consumer).wakeup();
 
         try {
             TimeoutException e = assertThrows(TimeoutException.class,
@@ -194,6 +199,8 @@ class KafkaSerdesTesterIT {
 
             assertEquals(1, e.getSuppressed().length);
             assertSame(wakeupFailure, e.getSuppressed()[0]);
+            // The helper still waited for the consumer thread after the failed wakeup().
+            assertTrue(pollExited.get(), "consumeMessages returned while poll() was still running");
         } finally {
             release.countDown();
         }

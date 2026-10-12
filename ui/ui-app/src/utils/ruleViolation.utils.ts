@@ -83,23 +83,44 @@ const readLocation = (source: unknown, key: string): DifferenceLocation | undefi
 };
 
 /**
- * The rule that was violated, from the `ruleType` field (VALIDITY, COMPATIBILITY, INTEGRITY), when the
+ * The rule-violation details of a problem, from the `ruleViolation` extension member (#10518), when the
  * server sends it.
  */
-export const ruleTypeOf = (error: RuleViolationProblemDetails | undefined): string | undefined => {
-    return readString(error, "ruleType");
+const ruleViolationOf = (error: RuleViolationProblemDetails | undefined): unknown => {
+    const ruleViolation: unknown = readField(error, "ruleViolation");
+    return ruleViolation !== null && typeof ruleViolation === "object" ? ruleViolation : undefined;
 };
 
 /**
- * Whether the error is a rule violation with causes to list. Uses `ruleType` when present, and falls
- * back to the exception name otherwise, which is the check the UI has always made (#9657 changes
- * `name`, so it cannot be the only signal).
+ * The causes of a rule violation: `ruleViolation.causes` when present (#10518), otherwise the top-level
+ * `causes`, which is deprecated but still sent until 3.5.
+ */
+export const causesOf = (error: RuleViolationProblemDetails | undefined): RuleViolationCause[] => {
+    const nested: unknown = readField(ruleViolationOf(error), "causes");
+    if (Array.isArray(nested)) {
+        return nested as RuleViolationCause[];
+    }
+    return Array.isArray(error?.causes) ? error.causes : [];
+};
+
+/**
+ * The rule that was violated (VALIDITY, COMPATIBILITY, INTEGRITY), from `ruleViolation.ruleType`, when
+ * the server sends it.
+ */
+export const ruleTypeOf = (error: RuleViolationProblemDetails | undefined): string | undefined => {
+    return readString(ruleViolationOf(error), "ruleType");
+};
+
+/**
+ * Whether the error is a rule violation with causes to list. A `ruleViolation` member says so directly;
+ * without one, this falls back to the exception name, which is the check the UI has always made (#9657
+ * changes `name`, so it cannot be the only signal).
  */
 export const isRuleViolation = (error: RuleViolationProblemDetails | undefined): boolean => {
-    if (!error || !Array.isArray(error.causes) || error.causes.length === 0) {
+    if (!error || causesOf(error).length === 0) {
         return false;
     }
-    return ruleTypeOf(error) !== undefined || error.nameEscaped === "RuleViolationException";
+    return ruleViolationOf(error) !== undefined || error.nameEscaped === "RuleViolationException";
 };
 
 /**

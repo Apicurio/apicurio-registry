@@ -4,6 +4,7 @@ import {
     comparedVersionOf,
     groupCausesByLocation,
     isCompatibilityViolation,
+    causesOf,
     isRuleViolation,
     ruleTypeOf,
     toSubmittedContent,
@@ -17,12 +18,36 @@ const violation = (fields: Record<string, unknown>): RuleViolationProblemDetails
 const cause = (description: string, extra: Partial<ViolationCause> = {}): ViolationCause => ({ description, ...extra });
 
 describe("ruleTypeOf", () => {
-    it("reads ruleType from additionalData, where the generated SDK keeps fields it does not know yet", () => {
-        expect(ruleTypeOf(violation({ additionalData: { ruleType: "COMPATIBILITY" } }))).toBe("COMPATIBILITY");
+    it("reads ruleViolation.ruleType from additionalData, where the generated SDK keeps fields it does not know yet", () => {
+        expect(ruleTypeOf(violation({ additionalData: { ruleViolation: { ruleType: "COMPATIBILITY" } } }))).toBe("COMPATIBILITY");
     });
 
     it("is undefined when the server does not send ruleType", () => {
         expect(ruleTypeOf(violation({ nameEscaped: "RuleViolationException" }))).toBeUndefined();
+    });
+});
+
+describe("causesOf", () => {
+    it("prefers ruleViolation.causes over the deprecated top-level causes", () => {
+        expect(causesOf(violation({
+            causes: [{ description: "top", context: "/t" }],
+            additionalData: { ruleViolation: { causes: [{ description: "nested", context: "/n" }] } }
+        })).map(c => c.description)).toEqual(["nested"]);
+    });
+
+    it("falls back to the top-level causes when ruleViolation has none", () => {
+        expect(causesOf(violation({ additionalData: { ruleViolation: { ruleType: "VALIDITY" } } })).map(c => c.description))
+            .toEqual(["d"]);
+    });
+
+    it("is empty for an error with neither", () => {
+        expect(causesOf({ nameEscaped: "NotFoundException" } as RuleViolationProblemDetails)).toEqual([]);
+    });
+});
+
+describe("ruleTypeOf (top level)", () => {
+    it("ignores a top-level ruleType, which the agreed contract does not have", () => {
+        expect(ruleTypeOf(violation({ additionalData: { ruleType: "COMPATIBILITY" } }))).toBeUndefined();
     });
 });
 
@@ -31,9 +56,15 @@ describe("isRuleViolation", () => {
         expect(isRuleViolation(violation({ nameEscaped: "RuleViolationException" }))).toBe(true);
     });
 
-    it("uses ruleType when present, so a renamed exception still counts", () => {
-        expect(isRuleViolation(violation({ nameEscaped: "SomethingElse", additionalData: { ruleType: "VALIDITY" } })))
+    it("uses ruleViolation when present, so a renamed exception still counts", () => {
+        expect(isRuleViolation(violation({ nameEscaped: "SomethingElse", additionalData: { ruleViolation: { ruleType: "VALIDITY" } } })))
             .toBe(true);
+    });
+
+    it("recognises the 3.5 shape, with causes only under ruleViolation and no exception name", () => {
+        expect(isRuleViolation({
+            additionalData: { ruleViolation: { causes: [{ description: "d", context: "/c" }] } }
+        } as RuleViolationProblemDetails)).toBe(true);
     });
 
     it("is false without causes, so the modal keeps showing the detail text", () => {
@@ -48,11 +79,11 @@ describe("isRuleViolation", () => {
 
 describe("isCompatibilityViolation", () => {
     it("is true for ruleType COMPATIBILITY", () => {
-        expect(isCompatibilityViolation(violation({ additionalData: { ruleType: "COMPATIBILITY" } }))).toBe(true);
+        expect(isCompatibilityViolation(violation({ additionalData: { ruleViolation: { ruleType: "COMPATIBILITY" } } }))).toBe(true);
     });
 
     it("is false for ruleType VALIDITY", () => {
-        expect(isCompatibilityViolation(violation({ additionalData: { ruleType: "VALIDITY" } }))).toBe(false);
+        expect(isCompatibilityViolation(violation({ additionalData: { ruleViolation: { ruleType: "VALIDITY" } } }))).toBe(false);
     });
 
     it("is true for any rule violation when ruleType is absent", () => {

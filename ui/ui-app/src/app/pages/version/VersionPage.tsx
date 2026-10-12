@@ -1,7 +1,7 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./VersionPage.css";
 import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
-import { SubmittedContent, toSubmittedContent } from "@utils/ruleViolation.utils.ts";
+import { isRuleViolation, SubmittedContent, toSubmittedContent } from "@utils/ruleViolation.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useMatch, useParams } from "react-router";
 import {
@@ -326,7 +326,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             setIsTestVersionSuccessModalOpen(true);
         }).catch(error => {
             pleaseWait(false);
-            if (error && (error.status === 400 || error.status === 409) && Array.isArray(error.causes)) {
+            if (isRuleViolation(error)) {
                 handleInvalidContentError(error, toSubmittedContent(data.content));
             } else {
                 setPageError(toPageError(error, "Error testing content."));

@@ -15,7 +15,7 @@ import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { RuleViolationProblemDetails } from "@sdk/lib/generated-client/models";
 import { CompatibilityReport } from "@app/components/ruleViolation";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { isCompatibilityViolation, isRuleViolation, toViolationCause } from "@utils/ruleViolation.utils.ts";
+import { causesOf, isCompatibilityViolation, isRuleViolation, toViolationCause } from "@utils/ruleViolation.utils.ts";
 
 
 /**
@@ -50,7 +50,7 @@ export const InvalidContentModal: FunctionComponent<InvalidContentModalProps> = 
             if (isCompatibilityViolation(props.error)) {
                 return (
                     <CompatibilityReport
-                        causes={(props.error.causes ?? []).map(toViolationCause)}
+                        causes={causesOf(props.error).map(toViolationCause)}
                         content={props.content}
                         contentType={props.contentType}
                         loadComparedContent={loadComparedContent}
@@ -60,7 +60,7 @@ export const InvalidContentModal: FunctionComponent<InvalidContentModalProps> = 
                 return (
                     <DataList aria-label="Error causes" className="error-causes" >
                         {
-                            (props.error.causes ?? []).map( (cause, idx) =>
+                            causesOf(props.error).map( (cause, idx) =>
                                 <DataListItemRow key={""+idx} className="error-causes-item">
                                     <DataListItemCells
                                         dataListCells={[

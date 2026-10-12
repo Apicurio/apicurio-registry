@@ -208,17 +208,26 @@ public class KafkaSerdesTester<K, P, C> {
         } catch (RuntimeException cleanupFailure) {
             failure.addSuppressed(cleanupFailure);
         }
-        try {
-            // Lets the helper's close() finish, and lets poll() end before a caller's close():
-            // close() calls acquire() and throws ConcurrentModificationException while another thread
-            // is inside poll().
-            consumerThread.join(WAKEUP_JOIN_MILLIS);
-            if (consumerThread.isAlive()) {
-                LOGGER.error("Consumer thread {} survived wakeup(). Stack:\n{}", consumerThread.getName(),
-                        formatStack(consumerThread.getStackTrace()));
+        // Lets the helper's close() finish, and lets poll() end before a caller's close():
+        // close() calls acquire() and throws ConcurrentModificationException while another thread
+        // is inside poll(). An interrupt does not cut the wait short, for the same reason.
+        boolean interruptedDuringCleanup = false;
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(WAKEUP_JOIN_MILLIS);
+        long remainingNanos = TimeUnit.MILLISECONDS.toNanos(WAKEUP_JOIN_MILLIS);
+        while (consumerThread.isAlive() && remainingNanos > 0) {
+            try {
+                TimeUnit.NANOSECONDS.timedJoin(consumerThread, remainingNanos);
+            } catch (InterruptedException cleanupInterrupted) {
+                failure.addSuppressed(cleanupInterrupted);
+                interruptedDuringCleanup = true;
             }
-        } catch (InterruptedException cleanupInterrupted) {
-            failure.addSuppressed(cleanupInterrupted);
+            remainingNanos = deadline - System.nanoTime();
+        }
+        if (consumerThread.isAlive()) {
+            LOGGER.error("Consumer thread {} survived wakeup(). Stack:\n{}", consumerThread.getName(),
+                    formatStack(consumerThread.getStackTrace()));
+        }
+        if (interruptedDuringCleanup) {
             Thread.currentThread().interrupt();
         }
     }

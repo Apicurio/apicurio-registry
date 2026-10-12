@@ -127,14 +127,16 @@ class KafkaSerdesTesterIT {
     }
 
     @Test
-    void consumeTimeoutStillReportsTheTimeoutWhenTheCallerIsInterruptedWhileWaiting() throws Exception {
+    void consumeTimeoutKeepsWaitingForTheConsumerThreadWhenTheCallerIsInterrupted() throws Exception {
         CountDownLatch wakeupCalled = new CountDownLatch(1);
         CountDownLatch releasePoll = new CountDownLatch(1);
+        AtomicBoolean pollExited = new AtomicBoolean();
         Consumer<String, String> consumer = mockConsumer();
-        // A poll() that ignores wakeup(), so the helper stays in its wait for the thread to end. The test
-        // releases it at the end instead of leaving it parked.
+        // A poll() that ignores wakeup() until the test releases it, so the helper stays in its wait for
+        // the thread to end.
         when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
             releasePoll.await(30, TimeUnit.SECONDS);
+            pollExited.set(true);
             throw new WakeupException();
         });
         doAnswer(invocation -> {
@@ -142,6 +144,7 @@ class KafkaSerdesTesterIT {
             return null;
         }).when(consumer).wakeup();
         AtomicReference<Throwable> thrown = new AtomicReference<>();
+        AtomicBoolean pollExitedOnReturn = new AtomicBoolean();
         AtomicBoolean interruptKept = new AtomicBoolean();
         Thread caller = new Thread(() -> {
             try {
@@ -149,19 +152,26 @@ class KafkaSerdesTesterIT {
             } catch (Throwable t) {
                 thrown.set(t);
             }
+            pollExitedOnReturn.set(pollExited.get());
             interruptKept.set(Thread.currentThread().isInterrupted());
         });
         caller.start();
+        boolean aliveAfterInterrupt;
         try {
             // wakeup() is the last call before the helper waits for the thread, so its timeout has expired.
             assertTrue(wakeupCalled.await(10, TimeUnit.SECONDS));
             caller.interrupt();
-            caller.join(10_000);
+            // A helper that stops waiting on the interrupt would return within this time.
+            caller.join(500);
+            aliveAfterInterrupt = caller.isAlive();
         } finally {
             releasePoll.countDown();
         }
+        caller.join(10_000);
 
+        assertTrue(aliveAfterInterrupt, "the interrupt cut the wait for the consumer thread short");
         assertFalse(caller.isAlive(), "the caller thread did not finish");
+        assertTrue(pollExitedOnReturn.get(), "consumeMessages returned while poll() was still running");
         assertInstanceOf(TimeoutException.class, thrown.get());
         assertEquals(1, thrown.get().getSuppressed().length);
         assertInstanceOf(InterruptedException.class, thrown.get().getSuppressed()[0]);

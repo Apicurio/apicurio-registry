@@ -215,9 +215,6 @@ public class ProtobufCompatibilityCheckerLibraryTest {
 
          ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
 
-        List<ProtobufDifference> entries = checker.findDifferences();
-        System.out.println(entries);
-
         assertTrue(checker.validate());
     }
 

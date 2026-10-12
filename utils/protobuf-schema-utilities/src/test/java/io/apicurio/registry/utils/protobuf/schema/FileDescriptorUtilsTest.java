@@ -312,10 +312,8 @@ public class FileDescriptorUtilsTest {
         assertThat(actualFileDescriptorProto).ignoringRepeatedFieldOrder()
             .isEqualTo(expectedFileDescriptorProto);
 
-        // This assertion is not working for json_name as the generation of FileDescriptorProto will always
-        // contain
-        // the json_name field as long as it is specifies (no matter it is default or non default)
-        // assertThat(expectedFileDescriptorProto).ignoringRepeatedFieldOrder().isEqualTo(fileDescriptorProto);
+        // The reverse comparison (expected against the original FileDescriptorProto) is not made: generating
+        // a FileDescriptorProto always includes json_name once it is specified, whether or not it is the default.
     }
 
     /**

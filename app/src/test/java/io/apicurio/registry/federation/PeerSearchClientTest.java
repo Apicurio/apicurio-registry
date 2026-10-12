@@ -121,6 +121,14 @@ class PeerSearchClientTest {
     }
 
     @Test
+    void percentEncodesANonAsciiPeerPath() throws Exception {
+        try (StubPeer stub = StubPeer.start(vertx, (request, response) -> StubPeer.publicAgents(response, 0))) {
+            succeeded(search(stub.url() + "/régistre/"));
+            assertEquals("/r%C3%A9gistre/.well-known/agents", stub.requests().get(0).path());
+        }
+    }
+
+    @Test
     void discardsAnAnswerThatDoesNotConfirmThePublicOnlyMode() throws Exception {
         String legacyAnswer = "{\"count\":1,\"agents\":[{\"groupId\":\"g\",\"artifactId\":\"private-card\"}]}";
         try (StubPeer stub = StubPeer.start(vertx, (request, response) -> StubPeer.json(response, legacyAnswer))) {

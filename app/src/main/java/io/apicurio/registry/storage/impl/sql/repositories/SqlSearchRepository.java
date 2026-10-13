@@ -625,14 +625,10 @@ public class SqlSearchRepository {
                 .append(artifactIdColumn).append(" ").append(op).append(" ?)");
 
         // Translate leading/trailing '*' into SQL '%' wildcards, else bind the literal for exact match
-        String boundValue;
-        if (wildcard) {
-            boundValue = (startsWithWildcard ? "%" : "") + searchValue
-                    + (endsWithWildcard ? "%" : "");
-        } else {
-            boundValue = searchValue;
-        }
-        final String bound = caseInsensitive ? boundValue.toLowerCase(Locale.ROOT) : boundValue;
+        String pattern = wildcard
+                ? (startsWithWildcard ? "%" : "") + searchValue + (endsWithWildcard ? "%" : "")
+                : searchValue;
+        final String bound = caseInsensitive ? pattern.toLowerCase(Locale.ROOT) : pattern;
         binders.add((query, idx) -> {
             query.bind(idx, bound);
         });

@@ -1,6 +1,7 @@
 package io.apicurio.registry.search;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionSearchResults;
 import io.apicurio.registry.storage.impl.search.ElasticsearchIndexUpdater;
@@ -100,15 +101,18 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
     public void testSearchVersionsByNameCaseInsensitive() throws Exception {
         String group = TestUtils.generateGroupId();
         String artifactId = "MixedCaseArtifact-" + TestUtils.generateArtifactId();
-        String versionName = "MixedCaseVersion-" + TestUtils.generateArtifactId();
-        var createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
-                "{\"openapi\":\"3.0.0\"}", ContentTypes.APPLICATION_JSON);
+        String versionName = "Mixed?Case*Version\\Name-" + TestUtils.generateArtifactId();
+        String content = "{\"openapi\":\"3.0.0\",\"info\":{\"title\":\"caseinsensitivemarker\"}}";
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+                content, ContentTypes.APPLICATION_JSON);
         createArtifact.getFirstVersion().setName(versionName);
         clientV3.groups().byGroupId(group).artifacts().post(createArtifact);
 
         indexUpdater.awaitIdle(10, TimeUnit.SECONDS);
 
         VersionSearchResults results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.content = "caseinsensitivemarker";
             config.queryParameters.name = "*" + versionName.toLowerCase(Locale.ROOT) + "*";
             config.queryParameters.nameCaseInsensitive = true;
         });
@@ -117,6 +121,8 @@ public class SearchVersionsViaIndexTest extends AbstractResourceTestBase {
         Assertions.assertEquals(artifactId, results.getVersions().get(0).getArtifactId());
 
         results = clientV3.search().versions().get(config -> {
+            config.queryParameters.groupId = group;
+            config.queryParameters.content = "caseinsensitivemarker";
             config.queryParameters.name = "*" + artifactId.toLowerCase(Locale.ROOT) + "*";
             config.queryParameters.nameCaseInsensitive = true;
         });

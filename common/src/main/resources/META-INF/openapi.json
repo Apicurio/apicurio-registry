@@ -429,7 +429,7 @@
           },
           {
             "name": "nameCaseInsensitive",
-            "description": "When true, matches the `name` filter without regard to letter case. Defaults to false.",
+            "description": "When true, matches the `name` filter against names and artifact IDs without regard to letter case. Defaults to false.",
             "schema": {
               "default": false,
               "type": "boolean"
@@ -4091,7 +4091,7 @@
           },
           {
             "name": "nameCaseInsensitive",
-            "description": "When true, matches the `name` filter without regard to letter case. Defaults to false.",
+            "description": "When true, matches the `name` filter against names and artifact IDs without regard to letter case. Defaults to false.",
             "schema": {
               "default": false,
               "type": "boolean"

@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -312,8 +313,38 @@ public class FileDescriptorUtilsTest {
         assertThat(actualFileDescriptorProto).ignoringRepeatedFieldOrder()
             .isEqualTo(expectedFileDescriptorProto);
 
-        // The reverse comparison (expected against the original FileDescriptorProto) is not made here: it
-        // fails on the json_name entries of the two descriptors, and the cause has not been analysed yet.
+        // The text to descriptor path drops a json_name equal to the default derived from the field name,
+        // while the generated descriptor keeps every json_name its schema declares. Clear those in the
+        // original before comparing, so every non-default json_name must survive the round trip.
+        DescriptorProtos.FileDescriptorProto.Builder originalWithoutDefaultJsonNames = fileDescriptorProto
+                .toBuilder();
+        for (DescriptorProtos.DescriptorProto.Builder message : originalWithoutDefaultJsonNames
+                .getMessageTypeBuilderList()) {
+            clearDefaultJsonNames(message);
+        }
+        assertThat(expectedFileDescriptorProto).ignoringRepeatedFieldOrder()
+            .isEqualTo(originalWithoutDefaultJsonNames.build());
+    }
+
+    private static void clearDefaultJsonNames(DescriptorProtos.DescriptorProto.Builder message) {
+        for (DescriptorProtos.FieldDescriptorProto.Builder field : message.getFieldBuilderList()) {
+            if (field.hasJsonName() && field.getJsonName().equals(defaultJsonName(field.getName()))) {
+                field.clearJsonName();
+            }
+        }
+        for (DescriptorProtos.DescriptorProto.Builder nested : message.getNestedTypeBuilderList()) {
+            clearDefaultJsonNames(nested);
+        }
+    }
+
+    // Same rule as protoc: drop each underscore and capitalise the letter after it.
+    private static String defaultJsonName(String fieldName) {
+        String[] parts = fieldName.split("_");
+        StringBuilder jsonName = new StringBuilder(parts[0]);
+        for (int i = 1; i < parts.length; i++) {
+            jsonName.append(parts[i].substring(0, 1).toUpperCase(Locale.ROOT)).append(parts[i].substring(1));
+        }
+        return jsonName.toString();
     }
 
     /**

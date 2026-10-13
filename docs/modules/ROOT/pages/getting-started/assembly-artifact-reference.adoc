@@ -44,7 +44,7 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |*
 |`JSON`
 |JSON Schema
-|`draft-04`, `draft-07`, `2019-09`, `2020-12`
+|`draft-04`, `draft-06`, `draft-07`, `2019-09`, `2020-12`
 |`KCONNECT`
 |Apache Kafka Connect schema
 |`2.0.0`

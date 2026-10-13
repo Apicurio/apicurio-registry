@@ -254,7 +254,7 @@ non-Java changes (docs, UI).
 | `review-relay.yaml` | PR review submitted/dismissed | No-op with no permissions; exists so the review reaches `pr-lifecycle.yml` via `workflow_run`, which can re-run Verify for fork PRs too | seconds |
 | `build-java`/`build-ui` (jobs in `verify.yaml`) | Called by verify | Parallel Java (`mvnw install -T 0.5C`) + UI (`npm build`) builds. Produces Docker images and build artifacts uploaded with 1-day retention. The sole build for a commit, shared by every other job in the same run via `needs:` | ~6 min |
 | `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
-| `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads a JSON artifact plus a summary for offline analysis (see [Reading the Scalpel report](#reading-the-scalpel-report)). Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label | ~2 min |
+| `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads a JSON artifact plus a summary for offline analysis (see [Reading the Scalpel report](#reading-the-scalpel-report)). Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label, which also turns off Scalpel in the `non-app` unit-test shard | ~2 min |
 | `verify-integration-tests.yaml` | Called by verify | 13-job matrix across storage backends, each with Minikube | ~15 min per job |
 | `verify-extras.yaml` | Called by verify | 5 parallel jobs: extra tests, UI Playwright tests, legacy V2 compatibility tests, TypeScript SDK tests, example builds | ~13 min |
 | `verify-sdk.yaml` | Called by verify | Go and Python SDK verification | ~2 min |
@@ -306,10 +306,9 @@ The job writes `scalpel-report-summary.md` next to the JSON and into the run
 summary, so the table above is already built for the run you are looking at.
 The summary reads the native fields only. The summary lives in
 [`scalpel-summary.sh`](../scripts/scalpel-summary.sh) and is unit tested by
-[`scalpel-summary.test.sh`](../scripts/scalpel-summary.test.sh) in the
-`scripts-tests.yaml` workflow. When the native counts are missing, malformed,
-negative or mutually inconsistent, the summary says so instead of reading
-anything as zero.
+[`scalpel-summary.test.sh`](../scripts/scalpel-summary.test.sh). When the native
+counts are missing, malformed, negative or mutually inconsistent, the summary
+says so instead of reading anything as zero.
 
 Not every run produces a decision table. When a changed file matches
 `scalpel.disableTriggers` or `scalpel.fullBuildTriggers`, or when
@@ -390,17 +389,42 @@ pinned in `.mvn/extensions.xml` writes today. On any other schema the summary
 refuses the decision table and prints the producer version it found, rather
 than reading absent fields as zero and claiming the whole reactor as a saving.
 That refusal is safe but quiet, so `scalpel-summary.test.sh` also asserts that
-the pinned version is one that writes schema 2. A pull request to `main` moving
-the pin turns `scripts-tests.yaml` red until the script learns the newer schema.
-Two gaps in that gate are worth knowing. The workflow triggers on
-`pull_request` against `main`, so a bump landing any other way skips the check.
-And it is not part of the Verification Gate, the single required check for
-branch protection, so a red run there is a signal a reviewer has to read rather
-than a merge blocker.
+the pinned version is one that writes schema 2. A pull request moving the pin
+fails that assertion until the script learns the newer schema. The
+`lint-and-validate` job is in the Verification Gate, the single required check
+for branch protection, so the failure blocks the merge. That job runs only once
+Decide requires the full suite. For authors on neither the maintainer nor the
+`auto_accept` list, that normally means after an approving review.
+`scripts-tests.yaml` runs the same suite earlier, on pull requests to `main` or
+`3.3.x` that touch the scripts or the `.mvn` pins, but it is not in the Gate.
 
-The job passes no `scalpel.baseBranch`, so Scalpel derives it from
-`GITHUB_BASE_REF` and diffs against `origin/<base branch>`, which is
-`origin/main` for most PRs but is whatever branch a PR actually targets.
+Both places CI runs Scalpel, the `scalpel-report` job and the shadow carrier
+described below, pass `scalpel.baseBranch=origin/<base branch>`. Decide builds
+the value from `github.event.pull_request.base.ref` (`origin/main` for most PRs)
+and hands it to both as its `scalpel-base-branch` output. They do not rely on
+Scalpel's fallback, `GITHUB_BASE_REF`, because GitHub leaves it empty on
+`pull_request_review`, one of the events the shadow carrier runs on. If the ref
+is ever empty, the output is empty and both drop the flag instead of failing,
+because both only collect data and the carrier shares a shard with real unit
+tests. Scalpel then falls back to `GITHUB_BASE_REF`, and reports `no base branch
+configured` where that is empty too. `scalpel-summary.test.sh` checks the
+wiring from Decide to both consumers. `scripts-tests.yaml` does not watch the
+other workflow and action files the suite reads, so a pull request that changes
+them without touching the scripts or the `.mvn` pins runs those checks only in
+`lint-and-validate`.
+
+The shadow carrier is the `non-app` unit-test shard, which runs Scalpel in
+`mode=shadow` and uploads `target/scalpel-shadow.json` and
+`target/scalpel-shadow-history.jsonl` as `scalpel-shadow-<shard>-<sha>`. A
+review run that runs the unit-test shards gets a carrier document reflecting
+the change set. A change that touches only `app` gets a skip-status document
+instead, because `app` is not in the carrier's session. A review run
+superseded while still pending starts no jobs and adds nothing.
+
+The `<sha>` in the artifact name is the merge commit, which does not reliably
+pair runs. To pair documents, group runs by `head_sha` from the API and keep
+the latest. Two documents for the same head can still differ if `main` moved
+between the runs, because the merge base moves with it.
 
 #### Measured baseline
 

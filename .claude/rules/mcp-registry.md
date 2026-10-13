@@ -1,8 +1,8 @@
 ---
 paths:
-  - "app/src/main/java/io/apicurio/registry/mcpregistry/**/*.java"
+  - "app/src/main/java/io/apicurio/registry/agents/mcpregistry/**/*.java"
   - "app/src/main/resources-unfiltered/META-INF/resources/api-specifications/mcp-registry/**"
-  - "app/src/test/java/io/apicurio/registry/noprofile/mcpregistry/**/*.java"
+  - "app/src/test/java/io/apicurio/registry/agents/noprofile/mcpregistry/**/*.java"
   - "app/src/test/java/io/apicurio/registry/auth/McpRegistryAuth*.java"
   - "schema-util/agents/src/main/java/io/apicurio/registry/agents/**/McpServer*.java"
 ---
@@ -38,7 +38,7 @@ https://github.com/modelcontextprotocol/registry/blob/739b70e8bc1bea203c5a35ab69
 `io.github.user/weather` maps to group `io.github.user`, artifact `weather`.
 `McpServerName` validates identifiers and excludes traversal dot segments.
 Routes declare the single encoded `{serverName}` segment directly, matching upstream.
-`AuthorizedStyle.McpServerName` validates/splits parameter 0 for owner checks. The
+`AuthorizedStyle.QualifiedArtifactName` validates/splits parameter 0 for owner checks. The
 former rewrite filter and two-segment aliases are removed; no global encoded-slash
 switch is enabled. Internal Java/spec directory `v0` is the facade generation, not
 another served API: the wire version stays `v0.1`.

@@ -4,8 +4,9 @@ import io.apicurio.registry.services.http.CCompatExceptionMapperService;
 import io.apicurio.registry.services.http.CoreRegistryExceptionMapperService;
 import io.apicurio.registry.services.http.CoreV2RegistryExceptionMapperService;
 import io.apicurio.registry.services.http.IcebergExceptionMapperService;
-import io.apicurio.registry.services.http.McpRegistryExceptionMapperService;
+import io.apicurio.registry.extensions.ApiExceptionMapper;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.core.Context;
@@ -33,7 +34,7 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
     IcebergExceptionMapperService icebergMapper;
 
     @Inject
-    McpRegistryExceptionMapperService mcpRegistryMapper;
+    Instance<ApiExceptionMapper> apiMappers;
 
     @Context
     HttpServletRequest request;
@@ -50,10 +51,8 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
             res = coreV2Mapper.mapException(t);
         } else if (isIcebergEndpoint()) {
             res = icebergMapper.mapException(t);
-        } else if (isMcpRegistryEndpoint()) {
-            res = mcpRegistryMapper.mapException(t);
         } else {
-            res = coreMapper.mapException(t);
+            res = mapWithExtensionOrCore(t);
         }
 
         // Response.ResponseBuilder builder;
@@ -101,8 +100,13 @@ public class RegistryExceptionMapper implements ExceptionMapper<Throwable> {
     /**
      * Returns true if the endpoint that caused the error is an MCP Registry API endpoint.
      */
-    private boolean isMcpRegistryEndpoint() {
-        return McpRegistryExceptionMapperService.handles(this.request);
+    private Response mapWithExtensionOrCore(Throwable t) {
+        for (ApiExceptionMapper mapper : apiMappers) {
+            if (mapper.handles(this.request)) {
+                return mapper.mapException(t);
+            }
+        }
+        return coreMapper.mapException(t);
     }
 
 }

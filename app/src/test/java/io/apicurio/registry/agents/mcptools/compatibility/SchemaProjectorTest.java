@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.ArrayList;
@@ -92,12 +93,10 @@ class SchemaProjectorTest {
     @Test
     void testPropertyUnionKeepsTheTypesItAccepts() {
         SchemaProjection projection = project("{'type':'object','properties':{"
-                + "'a':{'type':['string','null']},'b':{'type':['string','string','null']},"
-                + "'c':{'type':['null','string']}}}");
+                + "'a':{'type':['string','null']},'c':{'type':['null','string']}}}");
 
         assertEquals(json("{'type':'object','properties':{'a':{'type':['string','null']},"
-                + "'b':{'type':['string','null']},'c':{'type':['null','string']}}}"),
-                projection.projected());
+                + "'c':{'type':['null','string']}}}"), projection.projected());
         assertTrue(projection.limitations().isEmpty());
     }
 
@@ -124,6 +123,26 @@ class SchemaProjectorTest {
                 new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.CONSUMER,
                         "/inputSchema/properties/b", "/inputSchema/properties/b/type",
                         "'type' does not list type names")), projection.limitations());
+    }
+
+    @ParameterizedTest
+    @CsvSource(delimiter = '|', quoteCharacter = '"', value = {
+        "['null','boolean','object','array','number','string','strng'] | 'type' names 'strng', which is not a JSON type",
+        "['strng','null','boolean','object','array','number','string'] | 'type' names 'strng', which is not a JSON type",
+        "['integer','number','null','strng'] | 'type' names 'strng', which is not a JSON type",
+        "['string','String'] | 'type' names 'String', which is not a JSON type",
+        "['string','string','null'] | 'type' names 'string' twice",
+        "['null','boolean','object','array','number','string','null'] | 'type' names 'null' twice" })
+    void testPropertyTypeListThatIsNotValidJsonSchemaIsLimitation(String type, String message) {
+        JsonNode schema = json("{'type':'object','properties':{'a':{'type':" + type + "}}}");
+        for (SchemaSide side : SchemaSide.values()) {
+            String base = side == SchemaSide.PRODUCER ? "/outputSchema" : "/inputSchema";
+            SchemaProjection projection = SchemaProjector.project(schema, base, side);
+
+            assertEquals(json("{'type':'object','properties':{'a':{}}}"), projection.projected());
+            assertEquals(List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, side,
+                    base + "/properties/a", base + "/properties/a/type", message)), projection.limitations());
+        }
     }
 
     @Test

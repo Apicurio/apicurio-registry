@@ -34,6 +34,9 @@ final class SchemaProjector {
     private static final Set<String> EVERY_TYPE = Set.of("null", "boolean", "object", "array",
             NUMBER, "string");
 
+    private static final Set<String> TYPE_NAMES = Set.of("null", "boolean", "object", "array",
+            NUMBER, INTEGER, "string");
+
     private static final Set<String> NON_SEMANTIC = Set.of("title", "description", "default",
             "examples", "$comment");
 
@@ -158,12 +161,14 @@ final class SchemaProjector {
     }
 
     /**
-     * Reduces a property's union to the types it accepts: duplicates are dropped, and
-     * {@code integer} is dropped beside {@code number} because every integer is a number. A union
-     * left with one type is written as that type. A union of every JSON type accepts any value, so
-     * it is written as no {@code type} at all: the engine reports a producer without a
-     * {@code type} as narrowed by any declared one. A list that does not name types is not
-     * evaluated; a {@code type} that is neither a list nor a name is left for the engine to reject.
+     * Reduces a property's union to the types it accepts: {@code integer} is dropped beside
+     * {@code number} because every integer is a number, and a union left with one type is written
+     * as that type. A union of every JSON type accepts any value, so it is written as no
+     * {@code type} at all: the engine reports a producer without a {@code type} as narrowed by any
+     * declared one. A list that is not valid JSON Schema, because it is empty, names something
+     * other than a JSON type or names a type twice, is not evaluated rather than repaired, since a
+     * stored schema may not have been validated. A {@code type} that is neither a list nor a name
+     * is left for the engine to reject.
      */
     private static void projectPropertyType(JsonNode type, String node, String pointer, SchemaSide side,
             ObjectNode projected, List<CompatibilityLimitation> limitations) {
@@ -177,9 +182,17 @@ final class SchemaProjector {
                 limitations.add(unnamedTypes(side, node, pointer));
                 return;
             }
-            if (!names.contains(entry.textValue())) {
-                names.add(entry.textValue());
+            String name = entry.textValue();
+            if (!TYPE_NAMES.contains(name)) {
+                limitations.add(invalidTypes(side, node, pointer,
+                        "'type' names '" + name + "', which is not a JSON type"));
+                return;
             }
+            if (names.contains(name)) {
+                limitations.add(invalidTypes(side, node, pointer, "'type' names '" + name + "' twice"));
+                return;
+            }
+            names.add(name);
         }
         if (names.isEmpty()) {
             limitations.add(unnamedTypes(side, node, pointer));
@@ -210,8 +223,12 @@ final class SchemaProjector {
     }
 
     private static CompatibilityLimitation unnamedTypes(SchemaSide side, String node, String pointer) {
-        return new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, side, node, pointer,
-                "'type' does not list type names");
+        return invalidTypes(side, node, pointer, "'type' does not list type names");
+    }
+
+    private static CompatibilityLimitation invalidTypes(SchemaSide side, String node, String pointer,
+            String message) {
+        return new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, side, node, pointer, message);
     }
 
     private static CompatibilityLimitation unsupportedKeyword(SchemaSide side, String node,

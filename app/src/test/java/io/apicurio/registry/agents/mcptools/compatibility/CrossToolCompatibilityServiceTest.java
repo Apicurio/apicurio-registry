@@ -700,6 +700,41 @@ class CrossToolCompatibilityServiceTest {
     }
 
     @Test
+    void testTypeListNamingEveryTypeAndAnInvalidNameIsIndeterminate() {
+        String malformed = "['null','boolean','object','array','number','string','strng']";
+        String message = "'type' names 'strng', which is not a JSON type";
+        PairCompatibility consumer = compare("{'type':'object','properties':{'a':{}},'additionalProperties':false}",
+                "{'type':'object','properties':{'a':{'type':" + malformed + "}}}");
+        PairCompatibility producer = compare(union(malformed), "{'type':'object','properties':{'a':{}}}");
+        PairCompatibility producerIntoOneType = compare(union(malformed), input("'string'"));
+
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.CONSUMER,
+                        "/inputSchema/properties/a", "/inputSchema/properties/a/type", message))), consumer);
+        CompatibilityLimitation onOutput = new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD,
+                SchemaSide.PRODUCER, "/outputSchema/properties/a", "/outputSchema/properties/a/type", message);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(), List.of(onOutput)),
+                producer);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(), List.of(onOutput)),
+                producerIntoOneType);
+    }
+
+    @Test
+    void testTypeListNamingATypeTwiceIsIndeterminate() {
+        PairCompatibility consumer = compare(union("'string'"), input("['string','string','null']"));
+        PairCompatibility producer = compare(union("['string','string']"), input("['string','null']"));
+
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.CONSUMER,
+                        "/inputSchema/properties/a", "/inputSchema/properties/a/type",
+                        "'type' names 'string' twice"))), consumer);
+        assertEquals(new PairCompatibility(CompatibilityVerdict.INDETERMINATE, List.of(),
+                List.of(new CompatibilityLimitation(LimitationCode.UNSUPPORTED_KEYWORD, SchemaSide.PRODUCER,
+                        "/outputSchema/properties/a", "/outputSchema/properties/a/type",
+                        "'type' names 'string' twice"))), producer);
+    }
+
+    @Test
     void testNestedStructureIsDepthLimitWhileOtherMismatchStillCounts() {
         PairCompatibility result = compare(
                 "{'type':'object','properties':{'u':{'type':'object'},'b':{'type':'string'}},"

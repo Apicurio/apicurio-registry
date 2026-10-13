@@ -7743,10 +7743,6 @@
                 "items": {
                   "$ref": "#/components/schemas/RuleViolationCause"
                 }
-              },
-              "ruleType": {
-                "description": "The type of rule that was violated. Clients should use this, rather than `name`, to recognise a rule violation.",
-                "$ref": "#/components/schemas/RuleType"
               }
             }
           },

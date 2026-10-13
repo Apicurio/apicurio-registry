@@ -3,7 +3,6 @@ package io.apicurio.registry.rest.v3.beans;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.types.CompatibilityDifferenceDirection;
-import io.apicurio.registry.types.RuleType;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -70,8 +69,8 @@ public class RuleViolationCauseTest {
     }
 
     /**
-     * The acceptance criterion the other way round: a response that does carry the new fields, including
-     * `ruleType`, still has to be readable by a client generated before they existed.
+     * The acceptance criterion the other way round: a response that does carry the new fields still has to be
+     * readable by a client generated before they existed.
      * {@link LegacyProblemDetails} and {@link LegacyCause} stand in for such a client, declaring only the
      * fields the 3.3 document had. This fails if a legacy field is ever renamed, removed or restructured,
      * which is what actually breaks an older client - new fields appearing is expected, and tolerating them
@@ -94,7 +93,6 @@ public class RuleViolationCauseTest {
         details.setTitle("Artifact failed compatibility checking");
         details.setStatus(409);
         details.setCauses(List.of(cause));
-        details.setRuleType(RuleType.COMPATIBILITY);
 
         String json = new ObjectMapper().writeValueAsString(details);
 

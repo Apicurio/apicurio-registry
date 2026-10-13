@@ -337,7 +337,8 @@ public class FileDescriptorUtilsTest {
         }
     }
 
-    // Same rule as protoc: drop each underscore and capitalise the letter after it.
+    // Same rule as protoc: drop each underscore and capitalize the letter after it. Kept apart from
+    // FileDescriptorUtils on purpose, so the comparison cannot agree with the code under test by construction.
     private static String defaultJsonName(String fieldName) {
         String[] parts = fieldName.split("_");
         StringBuilder jsonName = new StringBuilder(parts[0]);

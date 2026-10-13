@@ -9,6 +9,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.impl.polling.PollingStorageStatus;
 import io.apicurio.registry.util.YAMLObjectMapper;
 import io.apicurio.registry.storage.util.KubernetesOpsTestProfile;
 import io.apicurio.registry.types.RuleType;
@@ -25,6 +26,7 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Supplier;
 
@@ -48,6 +50,9 @@ class KubernetesOpsSmokeTest {
 
     @Inject
     KubernetesClient kubernetesClient;
+
+    @Inject
+    KubernetesOpsRegistryStorage kubernetesOpsStorage;
 
     @BeforeEach
     void setup() {
@@ -176,23 +181,45 @@ class KubernetesOpsSmokeTest {
     void peerWithAnAddressTheOutboundPolicyRefusesIsNotLoaded() throws Exception {
         var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
 
+        // This load has to succeed and leave no error behind, so that the error waited for below can
+        // only come from the revision loaded after it.
         configMapStore.load("git/peers-update-1");
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
-            var peers = storage.getPeers();
-            assertEquals(1, peers.size());
-            assertEquals("https://before.example.com", peers.get(0).getUrl());
+            var status = kubernetesOpsStorage.getStatus();
+            assertEquals(PollingStorageStatus.SyncState.IDLE, status.getSyncState());
+            assertEquals(List.of(), status.getErrors());
+            assertPeerLoadedBeforeTheRefusedRevision();
         });
 
         // Plain http is refused unless apicurio.federation.peer.insecure-http.enabled is set, which
-        // this profile does not do. A refused revision is not swapped in, so the peer loaded above has
-        // to stay as it was over several polls, and the refused peer must never appear.
+        // this profile does not do. The admin API refuses the same url, so a declarative peer must
+        // not be a way around the policy.
         configMapStore.load("git/peers-insecure");
-        await().during(Duration.ofSeconds(10)).atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
-            var peers = storage.getPeers();
-            assertEquals(1, peers.size());
-            assertEquals("update-test-peer", peers.get(0).getPeerId());
-            assertEquals("https://before.example.com", peers.get(0).getUrl());
+
+        // KubernetesOps has no status endpoint, so this reads the status the GitOps endpoint is built
+        // from. The detail names a peer that only this revision defines, so it shows that this
+        // revision was processed and refused. A refused revision is not swapped in: the peer loaded
+        // before it must still be the only one, unchanged.
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var status = kubernetesOpsStorage.getStatus();
+            assertEquals(PollingStorageStatus.SyncState.ERROR, status.getSyncState());
+            assertEquals(1, status.getErrors().size());
+            assertEquals("Could not import peer insecure-peer: Peer url must use https. Plain http requires "
+                    + "apicurio.federation.peer.insecure-http.enabled=true.",
+                    status.getErrors().get(0).detail());
+            assertPeerLoadedBeforeTheRefusedRevision();
         });
+    }
+
+    private void assertPeerLoadedBeforeTheRefusedRevision() {
+        var peers = storage.getPeers();
+        assertEquals(1, peers.size());
+        var peer = peers.get(0);
+        assertEquals("update-test-peer", peer.getPeerId());
+        assertEquals("https://before.example.com", peer.getUrl());
+        assertEquals("Before Update", peer.getName());
+        assertFalse(peer.isEnabled());
+        assertEquals("before-cred", peer.getCredentialSecretRef());
     }
 
     @ActivateRequestContext

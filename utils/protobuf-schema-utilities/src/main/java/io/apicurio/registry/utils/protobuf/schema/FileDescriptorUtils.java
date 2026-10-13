@@ -850,7 +850,7 @@ public class FileDescriptorUtils {
                     fieldType = "message";
                     String fieldMapEntryName = toMapEntry(field.getName());
                     // Map entry field name is capitalized
-                    fieldMapEntryName = fieldMapEntryName.substring(0, 1).toUpperCase()
+                    fieldMapEntryName = fieldMapEntryName.substring(0, 1).toUpperCase(Locale.ROOT)
                             + fieldMapEntryName.substring(1);
                     // Map field type name is resolved with reference to the package
                     fieldTypeName = String.format("%s.%s", messageElem.getType(), fieldMapEntryName);
@@ -1612,12 +1612,20 @@ public class FileDescriptorUtils {
     // Default json_name is constructed following lower camel case
     // https://github.com/protocolbuffers/protobuf/blob/3e1967e10be786062ccd026275866c3aef487eba/src/google/protobuf/descriptor.cc#L405
     private static String getDefaultJsonName(String fieldName) {
-        String[] parts = fieldName.split("_");
-        String defaultJsonName = parts[0];
-        for (int i = 1; i < parts.length; ++i) {
-            defaultJsonName += parts[i].substring(0, 1).toUpperCase() + parts[i].substring(1);
+        StringBuilder defaultJsonName = new StringBuilder(fieldName.length());
+        boolean capitalizeNext = false;
+        for (int i = 0; i < fieldName.length(); i++) {
+            char c = fieldName.charAt(i);
+            if (c == '_') {
+                capitalizeNext = true;
+            } else if (capitalizeNext) {
+                defaultJsonName.append(Character.toUpperCase(c));
+                capitalizeNext = false;
+            } else {
+                defaultJsonName.append(c);
+            }
         }
-        return defaultJsonName;
+        return defaultJsonName.toString();
     }
 
     public static Descriptors.Descriptor toDescriptor(String name, ProtoFileElement protoFileElement,

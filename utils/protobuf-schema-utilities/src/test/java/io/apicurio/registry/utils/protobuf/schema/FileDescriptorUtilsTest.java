@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -672,5 +673,23 @@ public class FileDescriptorUtilsTest {
         assertEquals("google.protobuf.Value",
                 metadata.getMessageType().findFieldByName("value").getMessageType().getFullName());
         assertTrue(descriptor.findFieldByName("labels").isMapField());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "a__b", "a_", "_a", "a_b_c", "_street" })
+    public void testFieldNamesWithUnderscoresConvertInBothDirections(String fieldName) throws Exception {
+        String schema = "syntax = \"proto3\";\nmessage M {\n  int32 " + fieldName + " = 1;\n}\n";
+
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema, "p.proto",
+                Optional.empty());
+        assertEquals(fieldName, fd.toProto().getMessageType(0).getField(0).getName());
+
+        DescriptorProtos.FileDescriptorProto withJsonName = fd.toProto().toBuilder()
+                .setMessageType(0, fd.toProto().getMessageType(0).toBuilder()
+                        .setField(0, fd.toProto().getMessageType(0).getField(0).toBuilder()
+                                .setJsonName("someJsonName")))
+                .build();
+        String regenerated = FileDescriptorUtils.fileDescriptorToProtoFile(withJsonName).toSchema();
+        assertTrue(regenerated.contains("int32 " + fieldName + " = 1"), regenerated);
     }
 }

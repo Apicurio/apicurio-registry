@@ -248,7 +248,7 @@
 
     <!-- Dependency versions -->
     <lombok.version>1.18.48</lombok.version>
-    <commons-codec.version>1.22.1</commons-codec.version>
+    <commons-codec.version>1.23.0</commons-codec.version>
     <netty.version>4.1.136.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.18.0</kafka-oauth-client.version>

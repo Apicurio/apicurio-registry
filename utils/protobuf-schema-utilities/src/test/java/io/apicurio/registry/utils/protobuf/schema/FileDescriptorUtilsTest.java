@@ -684,12 +684,9 @@ public class FileDescriptorUtilsTest {
                 Optional.empty());
         assertEquals(fieldName, fd.toProto().getMessageType(0).getField(0).getName());
 
-        DescriptorProtos.FileDescriptorProto withJsonName = fd.toProto().toBuilder()
-                .setMessageType(0, fd.toProto().getMessageType(0).toBuilder()
-                        .setField(0, fd.toProto().getMessageType(0).getField(0).toBuilder()
-                                .setJsonName("someJsonName")))
-                .build();
-        String regenerated = FileDescriptorUtils.fileDescriptorToProtoFile(withJsonName).toSchema();
+        DescriptorProtos.FileDescriptorProto.Builder withJsonName = fd.toProto().toBuilder();
+        withJsonName.getMessageTypeBuilder(0).getFieldBuilder(0).setJsonName("someJsonName");
+        String regenerated = FileDescriptorUtils.fileDescriptorToProtoFile(withJsonName.build()).toSchema();
         assertTrue(regenerated.contains("int32 " + fieldName + " = 1"), regenerated);
     }
 }

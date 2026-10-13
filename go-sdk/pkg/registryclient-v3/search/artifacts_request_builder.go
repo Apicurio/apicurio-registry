@@ -34,7 +34,7 @@ type ArtifactsRequestBuilderGetQueryParameters struct {
 	Limit *int32 "uriparametername:\"limit\""
 	// Filter by artifact name.
 	Name *string "uriparametername:\"name\""
-	// When true, matches the `name` filter without regard to letter case. Defaults to false.
+	// When true, matches the `name` filter against names and artifact IDs without regard to letter case. Defaults to false.
 	NameCaseInsensitive *bool "uriparametername:\"nameCaseInsensitive\""
 	// The number of artifacts to skip before starting to collect the result set.  Defaults to 0.
 	Offset *int32 "uriparametername:\"offset\""

@@ -50,6 +50,11 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.name, value);
     }
 
+    /**
+     * Creates a name filter that matches names and artifact IDs without regard to letter case.
+     *
+     * @param value the name or artifact ID to match
+     */
     public static SearchFilter ofNameCaseInsensitive(String value) {
         return new SearchFilter(SearchFilterType.nameCaseInsensitive, value);
     }

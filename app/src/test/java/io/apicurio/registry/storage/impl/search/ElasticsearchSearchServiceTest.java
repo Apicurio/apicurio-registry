@@ -110,15 +110,26 @@ public class ElasticsearchSearchServiceTest {
     void caseInsensitiveNameFilterUsesCaseInsensitiveWildcardQueries() {
         ElasticsearchSearchService service = new ElasticsearchSearchService();
 
-        Query query = service.buildEsQuery(Set.of(SearchFilter.ofNameCaseInsensitive("*cart*")));
+        Query query = service.buildEsQuery(
+                Set.of(SearchFilter.ofNameCaseInsensitive("*ca?rt\\id*part*")));
 
-        Query nameQuery = query.bool().must().get(0).bool().should().get(0);
-        Query artifactIdQuery = query.bool().must().get(0).bool().should().get(1);
+        assertNotNull(query.bool(), "The top-level query should be a bool query");
+        List<Query> mustQueries = query.bool().must();
+        assertEquals(1, mustQueries.size(), "The name filter should add one required query");
+
+        Query nameFilterQuery = mustQueries.get(0);
+        assertNotNull(nameFilterQuery.bool(), "The name filter should combine fields with a bool query");
+        List<Query> fieldQueries = nameFilterQuery.bool().should();
+        assertEquals(2, fieldQueries.size(), "The name filter should search name and artifactId");
+
+        Query nameQuery = fieldQueries.get(0);
+        Query artifactIdQuery = fieldQueries.get(1);
+        String escapedPattern = "*ca\\?rt\\\\id\\*part*";
         assertEquals("name.keyword", nameQuery.wildcard().field());
-        assertEquals("*cart*", nameQuery.wildcard().value());
+        assertEquals(escapedPattern, nameQuery.wildcard().value());
         assertTrue(nameQuery.wildcard().caseInsensitive());
         assertEquals("artifactId", artifactIdQuery.wildcard().field());
-        assertEquals("*cart*", artifactIdQuery.wildcard().value());
+        assertEquals(escapedPattern, artifactIdQuery.wildcard().value());
         assertTrue(artifactIdQuery.wildcard().caseInsensitive());
     }
 }

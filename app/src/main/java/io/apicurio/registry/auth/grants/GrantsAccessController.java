@@ -30,6 +30,8 @@ import jakarta.interceptor.InvocationContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static io.apicurio.registry.utils.StringUtil.sanitizeForLog;
+
 /**
  * Per-resource authorization backed by a Kroxylicious {@link io.kroxylicious.authorizer.service.Authorizer}
  * (the grants-file based {@link GrantsAuthorizer}). Resources are named by
@@ -157,8 +159,10 @@ public class GrantsAccessController extends AbstractAccessController {
         String operation = level.name().toLowerCase(Locale.ROOT);
         metrics.recordAuthzDecision(allowed, resourceType, operation);
         if (!allowed) {
+            // user and resource are not fully registry-controlled (IdP principal name; a resource
+            // name embeds group/artifact IDs), so sanitize before writing them to the audit log
             AUDIT.info("authz.denied user=\"{}\" operation=\"{}\" resource_type=\"{}\" resource=\"{}\"",
-                    getUsername(), operation, resourceType, resource);
+                    sanitizeForLog(getUsername()), operation, resourceType, sanitizeForLog(resource));
         }
     }
 

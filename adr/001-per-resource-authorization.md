@@ -75,7 +75,7 @@ A JSON file defines who can access what. Each grant maps a principal (user or Id
 | `principal_role` | One of `principal` or `principal_role` | IdP role to match |
 | `operation` | Yes | `read`, `write`, or `admin` (hierarchy: admin > write > read) |
 | `resource_type` | Yes | `artifact` or `group` (extensible for other systems) |
-| `resource_pattern_type` | No | `prefix` (startsWith), `exact` (equals), or omitted for wildcard |
+| `resource_pattern_type` | No | `prefix` (startsWith), `exact` or omitted (equals). `resource_pattern: "*"` matches everything regardless of this field. |
 | `resource_pattern` | Yes | The pattern to match (`team-a/`, `team-b/public-schema`, `*`) |
 | `deny` | No | When `true`, denies the matched access. Deny rules take precedence over allow rules. |
 
@@ -236,9 +236,9 @@ One ConfigMap, one source of truth. Because `GrantsAuthorizer` implements the Kr
 
 ### Observability
 
-- **OTel metrics:** `apicurio.authz.decisions` counter with attributes `decision` (allow/deny), `resource_type`, `operation`
+- **OTel metrics:** `apicurio.authz.decisions` counter with attributes `apicurio.registry.result` (allow/deny), `apicurio.registry.entity_type`, `apicurio.registry.operation`
 - **Audit logging:** denied decisions logged to `io.apicurio.registry.audit.authz` with structured fields
-- **Grants validation:** missing fields skipped with warning, unrecognized values logged, summary on every load
+- **Grants validation:** strict; any invalid grant rejects the whole file (see "Grants files are validated strictly" above), summary logged on every successful load
 - **Config conflict warnings:** startup warnings when grants are enabled alongside `authenticated-read-access` or `anonymous-read-access`
 
 ### Configuration
@@ -385,6 +385,9 @@ the shape of `SearchFilterData`.
 - **Storage:** `AuthorizationFilter` search filter, translated by `SqlAuthorizationFilter` and `ElasticsearchSearchService`
 - **Tests:** `GrantsAuthorizerTest` (evaluation, search/point-access invariant, loading, reload),
   `GrantsAccessControllerTest`, `GrantsAuthorizationTest` (end-to-end across REST v2/v3, ccompat, Iceberg,
-  MCP Registry, content IDs), `AuthorizationFilterStorageTest` (SQL translation), `ElasticsearchAuthorizationQueryTest`
+  MCP Registry, content IDs), `GrantsArtifactScopeTest` (group grant must not authorize an
+  artifact-scoped operation the artifact itself denies, for the comment endpoints and
+  `createArtifact`'s `ifExists` path), `AuthorizationFilterStorageTest` and its PostgreSQL variant
+  (SQL translation), `ElasticsearchAuthorizationQueryTest`
 - **Example:** `distro/docker-compose/in-memory-with-authz-grants/` with a verification script
 - **Documentation:** `docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc`

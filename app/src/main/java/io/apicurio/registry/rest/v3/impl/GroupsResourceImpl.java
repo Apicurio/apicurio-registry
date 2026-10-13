@@ -1279,7 +1279,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Override
     @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION})
     @Audited
-    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public Comment addArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             NewComment data) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
@@ -1302,7 +1302,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION, "3",
             "comment_id"})
     @Audited
-    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void deleteArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             String commentId) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
@@ -1344,7 +1344,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID, "2", MPK_VERSION, "3",
             "comment_id"})
     @Audited
-    @Authorized(style = AuthorizedStyle.GroupOnly, level = AuthorizedLevel.Write)
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void updateArtifactVersionComment(String groupId, String artifactId, String versionExpression,
             String commentId, NewComment data) {
         ParameterValidationUtils.requireParameter("groupId", groupId);

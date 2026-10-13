@@ -678,7 +678,7 @@ public class FileDescriptorUtilsTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "a__b", "a_", "_a", "a_b_c", "_street" })
+    @ValueSource(strings = { "a__b", "a_", "_a", "___", "a_b_c", "_street" })
     public void testFieldNamesWithUnderscoresConvertInBothDirections(String fieldName) throws Exception {
         String schema = "syntax = \"proto3\";\nmessage M {\n  int32 " + fieldName + " = 1;\n}\n";
 
@@ -690,6 +690,7 @@ public class FileDescriptorUtilsTest {
         withJsonName.getMessageTypeBuilder(0).getFieldBuilder(0).setJsonName("someJsonName");
         String regenerated = FileDescriptorUtils.fileDescriptorToProtoFile(withJsonName.build()).toSchema();
         assertTrue(regenerated.contains("int32 " + fieldName + " = 1"), regenerated);
+        assertTrue(regenerated.contains("json_name = \"someJsonName\""), regenerated);
     }
 
     @ParameterizedTest
@@ -701,16 +702,30 @@ public class FileDescriptorUtilsTest {
 
         Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema, "p.proto",
                 Optional.empty());
-        assertFalse(fd.toProto().getMessageType(0).getField(0).hasJsonName());
+        assertFalse(fd.toProto().getMessageType(0).getField(0).hasJsonName(),
+                "a json_name equal to the default is dropped when the text becomes a descriptor");
 
         DescriptorProtos.FileDescriptorProto.Builder withDefault = fd.toProto().toBuilder();
         withDefault.getMessageTypeBuilder(0).getFieldBuilder(0).setJsonName(defaultJsonName);
-        assertFalse(FileDescriptorUtils.fileDescriptorToProtoFile(withDefault.build()).toSchema()
-                .contains("json_name"));
+        String withDefaultText = FileDescriptorUtils.fileDescriptorToProtoFile(withDefault.build()).toSchema();
+        assertFalse(withDefaultText.contains("json_name"), withDefaultText);
 
         DescriptorProtos.FileDescriptorProto.Builder withOther = fd.toProto().toBuilder();
         withOther.getMessageTypeBuilder(0).getFieldBuilder(0).setJsonName("someJsonName");
-        assertTrue(FileDescriptorUtils.fileDescriptorToProtoFile(withOther.build()).toSchema()
-                .contains("json_name = \"someJsonName\""));
+        String withOtherText = FileDescriptorUtils.fileDescriptorToProtoFile(withOther.build()).toSchema();
+        assertTrue(withOtherText.contains("json_name = \"someJsonName\""), withOtherText);
+    }
+
+    @Test
+    public void testOneofFieldNameWithConsecutiveUnderscoresConverts() throws Exception {
+        String schema = "syntax = \"proto3\";\nmessage M {\n  oneof choice {\n    int32 a__b = 1;\n"
+                + "    string c = 2;\n  }\n}\n";
+
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema, "p.proto",
+                Optional.empty());
+
+        Descriptors.Descriptor message = fd.findMessageTypeByName("M");
+        assertEquals(0, message.findFieldByName("a__b").getContainingOneof().getIndex());
+        assertFalse(fd.toProto().getMessageType(0).getField(0).hasJsonName());
     }
 }

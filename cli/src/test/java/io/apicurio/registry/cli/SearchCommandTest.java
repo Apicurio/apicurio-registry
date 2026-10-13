@@ -5,47 +5,59 @@ import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import io.quarkus.test.junit.QuarkusTest;
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.UUID;
 
 import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
 import static org.assertj.core.api.Assertions.assertThat;
 
+/**
+ * Tests for the search CLI commands.
+ *
+ * <p>Every test that reads registry data builds its own fixture, so no execution order is
+ * declared and any method can run on its own. The per-call UUID in the names, the label and
+ * the content is what makes that hold: a search cannot be satisfied by an artifact created by
+ * a sibling method.
+ */
 @QuarkusTest
-@TestMethodOrder(OrderAnnotation.class)
 public class SearchCommandTest extends AbstractCLITest {
 
-    private static final String TEST_GROUP = "search-test-group";
-    private static final String TEST_ARTIFACT = "search-test-artifact";
+    private String testGroup;
+    private String testArtifact;
+    private String testLabel;
+    private String testContent;
 
-    @Test
-    @Order(0)
-    public void testSetup() throws Exception {
-        executeAndAssertSuccess("group", "create", TEST_GROUP);
+    /**
+     * Creates a group holding a single-version JSON artifact whose names, label and content are
+     * unique per call.
+     */
+    private void givenArtifact() throws Exception {
+        var suffix = UUID.randomUUID().toString();
+        testGroup = "search-test-group-" + suffix;
+        testArtifact = "search-test-artifact-" + suffix;
+        testLabel = "env=" + suffix;
+        testContent = "{\"type\": \"string\", \"description\": \"" + suffix + "\"}";
+
+        executeAndAssertSuccess("group", "create", testGroup);
         final Path tempFile = Files.createTempFile("search-test", ".json");
-        Files.writeString(tempFile, "{\"type\": \"string\"}");
         try {
-            assertThat(cmd.execute("artifact", "create", "-g", TEST_GROUP,
+            Files.writeString(tempFile, testContent);
+            executeAndAssertSuccess("artifact", "create", "-g", testGroup,
                     "--type", "JSON", "--file", tempFile.toString(),
-                    "-l", "env=test", TEST_ARTIFACT))
-                    .as(withCliOutput("Artifact creation should succeed"))
-                    .isZero();
+                    "-l", testLabel, testArtifact);
         } finally {
             Files.deleteIfExists(tempFile);
         }
     }
 
     @Test
-    @Order(1)
     public void testSearchHelp() {
         testHelpCommand("search");
         testHelpCommand("search", "group");
@@ -55,8 +67,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(2)
-    public void testSearchGroups() throws JsonProcessingException {
+    public void testSearchGroups() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "groups", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
@@ -67,20 +79,19 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(3)
-    public void testSearchGroupsWithFilter() throws JsonProcessingException {
+    public void testSearchGroupsWithFilter() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
-        executeAndAssertSuccess("search", "groups", "-g", TEST_GROUP, "--output-type", "json");
+        executeAndAssertSuccess("search", "groups", "-g", testGroup, "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
         assertThat(results.getGroups())
                 .as(withCliOutput("Filtered search should return only matching groups"))
                 .isNotEmpty()
-                .allMatch(g -> g.getGroupId().contains(TEST_GROUP));
+                .allMatch(g -> g.getGroupId().contains(testGroup));
     }
 
     @Test
-    @Order(4)
     public void testSearchGroupsNoResults() throws JsonProcessingException {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "groups", "-g", "non-existent-group-xyz", "--output-type", "json");
@@ -92,8 +103,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(5)
-    public void testSearchGroupsTableOutput() {
+    public void testSearchGroupsTableOutput() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "groups");
         assertThat(out.toString())
@@ -102,8 +113,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(6)
-    public void testSearchGroupsPagination() throws JsonProcessingException {
+    public void testSearchGroupsPagination() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "groups", "-p", "1", "-s", "1", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
@@ -115,8 +126,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(7)
-    public void testSearchGroupsOrderBy() throws JsonProcessingException {
+    public void testSearchGroupsOrderBy() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "groups", "--order-by", "CreatedOn", "--order", "Desc",
                 "--output-type", "json");
@@ -128,7 +139,6 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(8)
     public void testSearchGroupsInvalidOrderBy() {
         assertThat(cmd.execute("search", "groups", "--order-by", "INVALID"))
                 .as(withCliOutput("Command should fail with the expected exit code"))
@@ -136,7 +146,6 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(9)
     public void testSearchGroupsInvalidOrder() {
         assertThat(cmd.execute("search", "groups", "--order", "INVALID"))
                 .as(withCliOutput("Command should fail with the expected exit code"))
@@ -144,8 +153,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(10)
-    public void testSearchArtifacts() throws JsonProcessingException {
+    public void testSearchArtifacts() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
@@ -156,21 +165,20 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(11)
-    public void testSearchArtifactsWithFilter() throws JsonProcessingException {
+    public void testSearchArtifactsWithFilter() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
-        executeAndAssertSuccess("search", "artifacts", "-g", TEST_GROUP, "-a", TEST_ARTIFACT,
+        executeAndAssertSuccess("search", "artifacts", "-g", testGroup, "-a", testArtifact,
                 "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
 
         assertThat(results.getArtifacts())
                 .as(withCliOutput("Filtered search should return only matching artifacts"))
                 .isNotEmpty()
-                .allMatch(a -> TEST_ARTIFACT.equals(a.getArtifactId()));
+                .allMatch(a -> testArtifact.equals(a.getArtifactId()));
     }
 
     @Test
-    @Order(12)
     public void testSearchArtifactsNoResults() throws JsonProcessingException {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "-a", "non-existent-artifact-xyz",
@@ -183,8 +191,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(13)
-    public void testSearchArtifactsTableOutput() {
+    public void testSearchArtifactsTableOutput() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts");
         assertThat(out.toString())
@@ -194,8 +202,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(14)
-    public void testSearchArtifactsByType() throws JsonProcessingException {
+    public void testSearchArtifactsByType() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "--type", "JSON", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
@@ -207,8 +215,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(15)
-    public void testSearchArtifactsOrderBy() throws JsonProcessingException {
+    public void testSearchArtifactsOrderBy() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "--order-by", "CreatedOn", "--order", "Desc",
                 "--output-type", "json");
@@ -220,8 +228,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(16)
-    public void testSearchVersions() throws JsonProcessingException {
+    public void testSearchVersions() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -232,21 +240,20 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(17)
-    public void testSearchVersionsWithFilter() throws JsonProcessingException {
+    public void testSearchVersionsWithFilter() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
-        executeAndAssertSuccess("search", "versions", "-g", TEST_GROUP, "-a", TEST_ARTIFACT,
+        executeAndAssertSuccess("search", "versions", "-g", testGroup, "-a", testArtifact,
                 "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
 
         assertThat(results.getVersions())
                 .as(withCliOutput("Filtered search should return only matching versions"))
                 .isNotEmpty()
-                .allMatch(v -> TEST_ARTIFACT.equals(v.getArtifactId()));
+                .allMatch(v -> testArtifact.equals(v.getArtifactId()));
     }
 
     @Test
-    @Order(18)
     public void testSearchVersionsNoResults() throws JsonProcessingException {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "-a", "non-existent-artifact-xyz",
@@ -259,8 +266,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(19)
-    public void testSearchVersionsTableOutput() {
+    public void testSearchVersionsTableOutput() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions");
         assertThat(out.toString())
@@ -271,8 +278,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(20)
-    public void testSearchVersionsByState() throws JsonProcessingException {
+    public void testSearchVersionsByState() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "--state", "ENABLED", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -284,8 +291,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(21)
-    public void testSearchVersionsByVersion() throws JsonProcessingException {
+    public void testSearchVersionsByVersion() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "-v", "1", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -296,8 +303,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(22)
-    public void testSearchVersionsPagination() throws JsonProcessingException {
+    public void testSearchVersionsPagination() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "-p", "1", "-s", "1", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -308,8 +315,8 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(23)
-    public void testSearchVersionsOrderBy() throws JsonProcessingException {
+    public void testSearchVersionsOrderBy() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "--order-by", "CreatedOn", "--order", "Desc",
                 "--output-type", "json");
@@ -321,20 +328,19 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(24)
-    public void testSearchArtifactsByLabel() throws JsonProcessingException {
+    public void testSearchArtifactsByLabel() throws Exception {
+        givenArtifact();
         out.getBuffer().setLength(0);
-        executeAndAssertSuccess("search", "artifacts", "-l", "env=test", "--output-type", "json");
+        executeAndAssertSuccess("search", "artifacts", "-l", testLabel, "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
 
         assertThat(results.getArtifacts())
                 .as(withCliOutput("Label-filtered search should return matching artifacts"))
                 .isNotEmpty()
-                .anyMatch(a -> TEST_ARTIFACT.equals(a.getArtifactId()));
+                .anyMatch(a -> testArtifact.equals(a.getArtifactId()));
     }
 
     @Test
-    @Order(25)
     public void testSearchArtifactsInvalidLabel() {
         assertThat(cmd.execute("search", "artifacts", "-l", ":foo"))
                 .as(withCliOutput("Command should fail with the expected exit code"))
@@ -342,7 +348,6 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(26)
     public void testSearchVersionsInvalidState() {
         assertThat(cmd.execute("search", "versions", "--state", "INVALID"))
                 .as(withCliOutput("Command should fail with the expected exit code"))
@@ -352,10 +357,10 @@ public class SearchCommandTest extends AbstractCLITest {
     // -- Search by content --
 
     @Test
-    @Order(27)
     public void testSearchByContent() throws Exception {
+        givenArtifact();
         final Path tempFile = Files.createTempFile("search-content", ".json");
-        Files.writeString(tempFile, "{\"type\": \"string\"}");
+        Files.writeString(tempFile, testContent);
         try {
             out.getBuffer().setLength(0);
             executeAndAssertSuccess("search", "content", "--output-type", "json",
@@ -366,21 +371,21 @@ public class SearchCommandTest extends AbstractCLITest {
                     .as(withCliOutput("Search by content should find the test artifact"))
                     .isNotEmpty();
             assertThat(results.getArtifacts())
-                    .anyMatch(a -> TEST_ARTIFACT.equals(a.getArtifactId()));
+                    .anyMatch(a -> testArtifact.equals(a.getArtifactId()));
         } finally {
             Files.deleteIfExists(tempFile);
         }
     }
 
     @Test
-    @Order(28)
     public void testSearchByContentWithGroup() throws Exception {
+        givenArtifact();
         final Path tempFile = Files.createTempFile("search-content", ".json");
-        Files.writeString(tempFile, "{\"type\": \"string\"}");
+        Files.writeString(tempFile, testContent);
         try {
             out.getBuffer().setLength(0);
             executeAndAssertSuccess("search", "content", "--output-type", "json",
-                    "-f", tempFile.toString(), "-g", TEST_GROUP);
+                    "-f", tempFile.toString(), "-g", testGroup);
             ArtifactSearchResults results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
 
             assertThat(results.getArtifacts())
@@ -392,7 +397,6 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(29)
     public void testSearchByContentNoMatch() throws Exception {
         final Path tempFile = Files.createTempFile("search-content", ".json");
         Files.writeString(tempFile, "{\"type\": \"nonexistent-content-that-wont-match\"}");
@@ -411,7 +415,6 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(30)
     public void testSearchByContentMissingFile() {
         assertThat(cmd.execute("search", "content"))
                 .as(withCliOutput("Command should fail with the expected exit code"))
@@ -419,12 +422,12 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(31)
     public void testSearchByContentStdin() throws Exception {
+        givenArtifact();
         final InputStream originalIn = System.in;
         try {
             System.setIn(new ByteArrayInputStream(
-                    "{\"type\": \"string\"}".getBytes(StandardCharsets.UTF_8)));
+                    testContent.getBytes(StandardCharsets.UTF_8)));
             out.getBuffer().setLength(0);
             executeAndAssertSuccess("search", "content", "-o", "json", "-f", "-");
             var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
@@ -437,7 +440,6 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    @Order(32)
     public void testSearchByContentCanonicalWithoutType() throws Exception {
         final Path tempFile = Files.createTempFile("search-content", ".json");
         Files.writeString(tempFile, "{\"type\": \"string\"}");

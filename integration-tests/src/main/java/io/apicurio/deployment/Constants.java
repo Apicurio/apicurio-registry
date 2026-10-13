@@ -36,6 +36,7 @@ public final class Constants {
     public static final String KUBERNETES_OPS = "kubernetesops";
     public static final String ICEBERG = "iceberg";
     public static final String SEARCH = "search";
+    public static final String FEDERATION = "federation";
 
     /**
      * Active test groups from the Maven groups property.

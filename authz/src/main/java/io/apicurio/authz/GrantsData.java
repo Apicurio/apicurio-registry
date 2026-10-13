@@ -27,6 +27,22 @@ public class GrantsData {
         this.grants = grants;
     }
 
+    /**
+     * @return the string value of an optional field ("" if absent); non-string values are rejected
+     *         rather than coerced, so e.g. {@code "resource_pattern": true} cannot silently become
+     *         the pattern {@code "true"}
+     */
+    private static String text(JsonNode grant, int index, String field) {
+        JsonNode value = grant.get(field);
+        if (value == null || value.isNull()) {
+            return "";
+        }
+        if (!value.isTextual()) {
+            throw invalid(index, "has a non-string '" + field + "'");
+        }
+        return value.asText();
+    }
+
     private static IllegalArgumentException invalid(int index, String problem) {
         return new IllegalArgumentException("Grant at index " + index + " " + problem);
     }
@@ -83,12 +99,15 @@ public class GrantsData {
         if (grantsNode.isArray()) {
             for (int i = 0; i < grantsNode.size(); i++) {
                 JsonNode g = grantsNode.get(i);
-                String principal = g.path("principal").asText("");
-                String principalRole = g.path("principal_role").asText("");
-                String operation = g.path("operation").asText("");
-                String resourceType = g.path("resource_type").asText("");
-                String resourcePatternType = g.path("resource_pattern_type").asText("");
-                String resourcePattern = g.path("resource_pattern").asText("");
+                if (!g.isObject()) {
+                    throw invalid(i, "is not a JSON object");
+                }
+                String principal = text(g, i, "principal");
+                String principalRole = text(g, i, "principal_role");
+                String operation = text(g, i, "operation");
+                String resourceType = text(g, i, "resource_type");
+                String resourcePatternType = text(g, i, "resource_pattern_type");
+                String resourcePattern = text(g, i, "resource_pattern");
 
                 // Any invalid grant rejects the whole document: silently skipping a deny rule
                 // would grant access the operator meant to forbid.

@@ -351,7 +351,14 @@ class GrantsAuthorizerTest {
                 "{\"principal\": \"u\", \"operation\": \"read\", \"resource_pattern\": \"x/\"}",
                 "{\"principal\": \"u\", \"operation\": \"read\", \"resource_type\": \"artifact\"}",
                 "{\"principal\": \"u\", " + valid + ", \"resource_pattern_type\": \"regex\"}",
-                "{\"principal\": \"u\", " + valid + ", \"deny\": \"yes\"}");
+                "{\"principal\": \"u\", " + valid + ", \"deny\": \"yes\"}",
+                "{\"principal\": \"u\", \"operation\": \"read\", \"resource_type\": \"artifact\", "
+                        + "\"resource_pattern\": true, \"deny\": true}",
+                "{\"principal\": \"u\", \"operation\": \"read\", \"resource_type\": 1, "
+                        + "\"resource_pattern\": \"x/\"}",
+                "{\"principal\": 7, " + valid + "}",
+                "{\"principal\": \"u\", " + valid + ", \"resource_pattern_type\": [\"prefix\"]}",
+                "\"not-an-object\"");
         for (String grant : invalidGrants) {
             String json = "{\"grants\": [{\"principal\": \"ok\", " + valid + "}, " + grant + "]}";
             IllegalArgumentException e = assertThrows(IllegalArgumentException.class,

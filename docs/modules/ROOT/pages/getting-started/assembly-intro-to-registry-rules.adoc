@@ -80,7 +80,13 @@ When a rule is executed, it is provided with the content of the current version 
 [role="_abstract"]
 Administrators can configure {registry} global rules, group-specific rules, and artifact-specific rules. Developers can configure group-specific and artifact-specific rules only.
 
-{registry} applies the rules configured for the specific artifact. If no rules are configured at that level, {registry} applies the group-specific rules. If no rules are configured at the group level, then {registry} applies the globally configured rules. If no global rules are configured, then no rules are applied.
+{registry} evaluates rule precedence separately for each rule type, such as `COMPATIBILITY` or `VALIDITY`. For each rule type, an artifact-specific rule overrides a group-specific rule of the same type, and a group-specific rule overrides a global rule of the same type. If a rule type is not configured at any level, {registry} does not enforce that rule type. Configuring one rule type at a lower level does not disable other rule types that are configured at a higher level.
+
+For example, consider a group with a `COMPATIBILITY` rule set to `BACKWARD`, and an artifact in that group with only a `VALIDITY` rule set to `FULL`:
+
+* When you add a new version of the artifact, {registry} enforces both rules: the `VALIDITY` rule from the artifact and the `COMPATIBILITY` rule from the group. The group rule still applies because the artifact rule is of a different type.
+* {registry} rejects a new version that is not backward compatible, and accepts a new version that passes both rules.
+* To disable compatibility checks for this artifact only, configure a `COMPATIBILITY` rule set to `NONE` on the artifact. The artifact-specific rule then overrides the group rule, and {registry} accepts the previously rejected content.
 
 You can configure group-specific and artifact-specific rules using the {registry} web console or REST API.
 

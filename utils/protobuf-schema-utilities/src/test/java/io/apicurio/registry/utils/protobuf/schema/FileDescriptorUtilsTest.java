@@ -314,16 +314,16 @@ public class FileDescriptorUtilsTest {
             .isEqualTo(expectedFileDescriptorProto);
 
         // The text to descriptor path drops a json_name equal to the default derived from the field name,
-        // while the generated descriptor keeps every json_name its schema declares. Clear those in the
-        // original before comparing, so every non-default json_name must survive the round trip.
-        DescriptorProtos.FileDescriptorProto.Builder originalWithoutDefaultJsonNames = fileDescriptorProto
-                .toBuilder();
-        for (DescriptorProtos.DescriptorProto.Builder message : originalWithoutDefaultJsonNames
-                .getMessageTypeBuilderList()) {
-            clearDefaultJsonNames(message);
-        }
+        // while the generated descriptor keeps every json_name its schema declares.
         assertThat(expectedFileDescriptorProto).ignoringRepeatedFieldOrder()
-            .isEqualTo(originalWithoutDefaultJsonNames.build());
+            .isEqualTo(withoutDefaultJsonNames(fileDescriptorProto));
+    }
+
+    private static DescriptorProtos.FileDescriptorProto withoutDefaultJsonNames(
+            DescriptorProtos.FileDescriptorProto file) {
+        DescriptorProtos.FileDescriptorProto.Builder builder = file.toBuilder();
+        builder.getMessageTypeBuilderList().forEach(FileDescriptorUtilsTest::clearDefaultJsonNames);
+        return builder.build();
     }
 
     private static void clearDefaultJsonNames(DescriptorProtos.DescriptorProto.Builder message) {

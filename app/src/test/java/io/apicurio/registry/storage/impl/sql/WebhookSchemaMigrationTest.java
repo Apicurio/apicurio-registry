@@ -1,18 +1,4 @@
-/*
- * Copyright 2025 Red Hat
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 
 package io.apicurio.registry.storage.impl.sql;
 
@@ -31,25 +17,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
-/**
- * Verifies the webhook schema migration (110 → 111) on H2 in-memory:
- * <ul>
- *   <li>Fresh install: three webhook tables exist with correct columns and constraints.</li>
- *   <li>Upgrade parity: applying the upgrade DDL to a real 110-baseline database produces the
- *       same tables, preserves pre-existing data, and leaves unrelated apicurio properties
- *       unchanged.</li>
- *   <li>Binary payload: round-trip including null bytes and high-byte sequences.</li>
- *   <li>Foreign keys: restrictive FKs are enforced.</li>
- *   <li>Check constraint: {@code CK_whdlogs_1} rejects negative {@code attemptCount}.</li>
- * </ul>
- */
+
 public class WebhookSchemaMigrationTest {
 
     private static final int VERSION_BEFORE = 110;
-    private static final int VERSION_AFTER = 111;
+    private static final int VERSION_PEERS = 111;
+    private static final int VERSION_AFTER = 112;
 
     // ------------------------------------------------------------
     // Fresh-install tests
@@ -66,7 +42,7 @@ public class WebhookSchemaMigrationTest {
     }
 
     @Test
-    void freshInstall_dbVersionIs111() throws Exception {
+    void freshInstall_dbVersionIs112() throws Exception {
         try (Connection conn = freshH2()) {
             executeDdlResource(conn, "h2.ddl");
             assertDbVersion(conn, VERSION_AFTER);
@@ -124,7 +100,7 @@ public class WebhookSchemaMigrationTest {
     void upgrade_fromRealV110BaselineProducesWebhookTables() throws Exception {
         try (Connection conn = freshH2()) {
             // Start from the actual pinned v110 schema — not a fresh install with tables dropped.
-            executeDdlResource(conn, "h2-v110-baseline.ddl");
+            executeDdlResource(conn, "pre-peers-schema/h2.ddl");
             assertDbVersion(conn, VERSION_BEFORE);
 
             // Seed an unrelated apicurio property that must survive the upgrade unchanged.
@@ -140,15 +116,17 @@ public class WebhookSchemaMigrationTest {
                 ps.executeUpdate();
             }
 
-            // Apply the upgrade script.
+            // Apply the full upgrade chain: 110 → 111 (peers) → 112 (webhooks).
             executeDdlResource(conn, "upgrades/111/h2.upgrade.ddl");
+            assertDbVersion(conn, VERSION_PEERS);
+            executeDdlResource(conn, "upgrades/112/h2.upgrade.ddl");
 
             // All three webhook tables must now exist.
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
 
-            // Version marker must be 111.
+            // Version marker must be 112.
             assertDbVersion(conn, VERSION_AFTER);
 
             // Unrelated apicurio property must be unchanged.
@@ -172,25 +150,68 @@ public class WebhookSchemaMigrationTest {
         }
     }
 
+    @Test
+    void upgrade_fromV111BaselinePreservesPeersTableAndData() throws Exception {
+        try (Connection conn = freshH2()) {
+            // Build a genuine v111 state: apply the pinned v110 baseline then the peers migration.
+            executeDdlResource(conn, "pre-peers-schema/h2.ddl");
+            executeDdlResource(conn, "upgrades/111/h2.upgrade.ddl");
+            assertDbVersion(conn, VERSION_PEERS);
+            assertTableExists(conn, "peers");
+
+            // Seed a peer row that must survive the 112 (webhook) upgrade unchanged.
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "INSERT INTO peers (peerId, url, name, description, enabled) VALUES (?, ?, ?, ?, ?)")) {
+                ps.setString(1, "test-peer-1");
+                ps.setString(2, "https://peer.example.com/apis/registry/v3");
+                ps.setString(3, "Test Peer");
+                ps.setString(4, "A peer registry for testing");
+                ps.setBoolean(5, true);
+                ps.executeUpdate();
+            }
+
+            // Apply the 112 (webhooks) upgrade.
+            executeDdlResource(conn, "upgrades/112/h2.upgrade.ddl");
+            assertDbVersion(conn, VERSION_AFTER);
+
+            // The peers table must still exist after the 112 upgrade.
+            assertTableExists(conn, "peers");
+
+            // The seeded peer row must be intact.
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT url, name, enabled FROM peers WHERE peerId = 'test-peer-1'")) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "Peer row must survive the 112 upgrade");
+                    assertEquals("https://peer.example.com/apis/registry/v3", rs.getString("url"));
+                    assertEquals("Test Peer", rs.getString("name"));
+                    assertTrue(rs.getBoolean("enabled"));
+                }
+            }
+        }
+    }
+
     // ------------------------------------------------------------
     // Partial-upgrade retry test
     // ------------------------------------------------------------
 
     /**
-     * Simulates a MySQL-style partial failure: the first CREATE TABLE auto-committed but the
-     * process died before the rest of the script ran, leaving the version marker at 110.  On the
-     * next start the upgrade runner reads version 110, re-runs the upgrade script, and must
-     * succeed because every statement is guarded by IF NOT EXISTS.
+     * Simulates a MySQL-style partial failure during the 112 (webhook) upgrade: the first
+     * CREATE TABLE auto-committed but the process died before the rest of the script ran,
+     * leaving the version marker at 111.  On the next start the upgrade runner reads version 111,
+     * re-runs the 112 upgrade script, and must succeed because every statement is guarded by
+     * IF NOT EXISTS.
      */
     @Test
     void upgrade_partialApplication_isRetryable() throws Exception {
         try (Connection conn = freshH2()) {
-            // Start from the real v110 baseline.
-            executeDdlResource(conn, "h2-v110-baseline.ddl");
-            assertDbVersion(conn, VERSION_BEFORE);
+            // Start from v111 (peers already applied).
+            executeDdlResource(conn, "pre-peers-schema/h2.ddl");
+            executeDdlResource(conn, "upgrades/111/h2.upgrade.ddl");
+            assertDbVersion(conn, VERSION_PEERS);
 
-            // Simulate partial failure: webhook_subscriptions was committed but the script died
-            // before webhook_events, webhook_delivery_logs, and the version marker were written.
+            // Simulate partial failure during 112: webhook_subscriptions was committed but the
+            // script died before webhook_events, webhook_delivery_logs, and the version marker
+            // were written.
             try (Statement st = conn.createStatement()) {
                 st.execute("CREATE TABLE webhook_subscriptions ("
                         + "subscriptionId VARCHAR(36) NOT NULL,"
@@ -211,13 +232,13 @@ public class WebhookSchemaMigrationTest {
                         + ")");
             }
 
-            // Version is still 110: the marker had not been written yet (it is last in the script).
-            assertDbVersion(conn, VERSION_BEFORE);
+            // Version is still 111: the marker had not been written yet (it is last in the script).
+            assertDbVersion(conn, VERSION_PEERS);
 
-            // Retry: the full upgrade script must succeed without "table already exists" errors.
-            executeDdlResource(conn, "upgrades/111/h2.upgrade.ddl");
+            // Retry: the full 112 upgrade script must succeed without "table already exists" errors.
+            executeDdlResource(conn, "upgrades/112/h2.upgrade.ddl");
 
-            // All three tables must now exist and the version must be 111.
+            // All three webhook tables must now exist and the version must be 112.
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
@@ -330,6 +351,7 @@ public class WebhookSchemaMigrationTest {
             String eventRowId = UUID.randomUUID().toString();
             insertEvent(conn, eventRowId);
 
+            long now = System.currentTimeMillis();
             try (PreparedStatement ps = conn.prepareStatement(
                     "INSERT INTO webhook_delivery_logs "
                     + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
@@ -337,13 +359,12 @@ public class WebhookSchemaMigrationTest {
                 ps.setString(1, UUID.randomUUID().toString());
                 ps.setString(2, "no-such-subscription");  // FK violation
                 ps.setString(3, eventRowId);
-                long now = System.currentTimeMillis();
                 ps.setLong(4, now);
                 ps.setLong(5, now);
-                ps.executeUpdate();
-                fail("Expected FK violation for unknown subscriptionId");
-            } catch (SQLException e) {
-                // expected
+                SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
+                        "FK_whdlogs_1 must reject unknown subscriptionId");
+                assertTrue(ex.getSQLState().startsWith("23"),
+                        "SQL state must be integrity-constraint class 23, was: " + ex.getSQLState());
             }
         }
     }
@@ -356,6 +377,7 @@ public class WebhookSchemaMigrationTest {
             String subId = UUID.randomUUID().toString();
             insertSubscription(conn, subId);
 
+            long now = System.currentTimeMillis();
             try (PreparedStatement ps = conn.prepareStatement(
                     "INSERT INTO webhook_delivery_logs "
                     + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
@@ -363,13 +385,12 @@ public class WebhookSchemaMigrationTest {
                 ps.setString(1, UUID.randomUUID().toString());
                 ps.setString(2, subId);
                 ps.setString(3, "no-such-event");  // FK violation
-                long now = System.currentTimeMillis();
                 ps.setLong(4, now);
                 ps.setLong(5, now);
-                ps.executeUpdate();
-                fail("Expected FK violation for unknown eventRowId");
-            } catch (SQLException e) {
-                // expected
+                SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
+                        "FK_whdlogs_2 must reject unknown eventRowId");
+                assertTrue(ex.getSQLState().startsWith("23"),
+                        "SQL state must be integrity-constraint class 23, was: " + ex.getSQLState());
             }
         }
     }
@@ -388,6 +409,7 @@ public class WebhookSchemaMigrationTest {
             String eventRowId = UUID.randomUUID().toString();
             insertEvent(conn, eventRowId);
 
+            long now = System.currentTimeMillis();
             try (PreparedStatement ps = conn.prepareStatement(
                     "INSERT INTO webhook_delivery_logs "
                     + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
@@ -395,13 +417,12 @@ public class WebhookSchemaMigrationTest {
                 ps.setString(1, UUID.randomUUID().toString());
                 ps.setString(2, subId);
                 ps.setString(3, eventRowId);
-                long now = System.currentTimeMillis();
                 ps.setLong(4, now);
                 ps.setLong(5, now);
-                ps.executeUpdate();
-                fail("Expected check constraint violation for negative attemptCount");
-            } catch (SQLException e) {
-                // expected
+                SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
+                        "CK_whdlogs_1 must reject negative attemptCount");
+                assertTrue(ex.getSQLState().startsWith("23"),
+                        "SQL state must be integrity-constraint class 23, was: " + ex.getSQLState());
             }
         }
     }

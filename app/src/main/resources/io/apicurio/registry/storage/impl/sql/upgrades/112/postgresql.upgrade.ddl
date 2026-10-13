@@ -5,7 +5,8 @@
 -- PostgreSQL DDL runs inside a transaction; a failure rolls back the
 -- entire script, so partial-upgrade retry is handled automatically.
 -- IF NOT EXISTS guards are included for consistency with the other
--- dialects and to make manual re-runs safe.
+-- dialects. The ALTER TABLE constraint statements below are unconditional,
+-- so a successfully applied script cannot be manually re-run.
 -- *********************************************************************
 
 -- serves: SELECT ... WHERE enabled = TRUE AND deletedOn IS NULL (recorder hot path)

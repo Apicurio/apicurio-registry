@@ -230,13 +230,13 @@ the only safe way to parallelize `@QuarkusTest` classes.
 
 ## Integration Tests
 
-`verify-integration-tests.yaml` runs a 13-job matrix across storage backends:
+`verify-integration-tests.yaml` runs a 15-job matrix across storage backends:
 
 | Storage | Test groups |
 |---------|------------|
-| h2 (in-memory) | default, auth, migration, debezium, iceberg |
+| h2 (in-memory) | default, auth, migration, debezium, iceberg, federation |
 | postgresql | default, auth, migration |
-| kafkasql | default, auth, migration, snapshotting |
+| kafkasql | default, auth, migration, snapshotting, startup |
 | kubernetesops | kubernetesops |
 
 Each job sets up Minikube, loads the registry Docker image, and runs the

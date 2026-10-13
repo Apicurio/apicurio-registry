@@ -261,16 +261,18 @@ jobs:
           MESSAGE="TypeScript SDK release for ${{ needs.prepare.outputs.release-version }} completed with status: ${{ job.status }}"
           echo "$MESSAGE"
 
-  # Consolidated Slack Notification (using reusable workflow)
-  notify-slack:
-    name: Slack Notification
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
     needs: [prepare, release-python-sdk, release-go-sdk, release-typescript-sdk]
-    if: always()
-    uses: ./.github/workflows/reusable-notify-slack.yaml
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
     with:
-      workflow-name: ${{ github.workflow }}
-      job-name: 'sdk-releases'
-      job-status: ${{ (needs.release-python-sdk.result == 'failure' || needs.release-go-sdk.result == 'failure' || needs.release-typescript-sdk.result == 'failure') && 'failure' || 'success' }}
+      results: ${{ toJSON(needs) }}
+      version: ${{ github.event.release.tag_name || inputs.tag }}
     secrets:
-      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
-      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+      SLACK_GENERAL_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

@@ -28,6 +28,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -50,6 +51,7 @@ import java.util.Base64;
 
 import static com.google.common.truth.extensions.proto.ProtoTruth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -688,5 +690,27 @@ public class FileDescriptorUtilsTest {
         withJsonName.getMessageTypeBuilder(0).getFieldBuilder(0).setJsonName("someJsonName");
         String regenerated = FileDescriptorUtils.fileDescriptorToProtoFile(withJsonName.build()).toSchema();
         assertTrue(regenerated.contains("int32 " + fieldName + " = 1"), regenerated);
+    }
+
+    @ParameterizedTest
+    @CsvSource({ "a__b,aB", "a_,a", "_a,A", "a_b_c,aBC", "_street,Street" })
+    public void testDefaultJsonNameIsDroppedInBothDirections(String fieldName, String defaultJsonName)
+            throws Exception {
+        String schema = "syntax = \"proto3\";\nmessage M {\n  int32 " + fieldName + " = 1 [json_name = \""
+                + defaultJsonName + "\"];\n}\n";
+
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema, "p.proto",
+                Optional.empty());
+        assertFalse(fd.toProto().getMessageType(0).getField(0).hasJsonName());
+
+        DescriptorProtos.FileDescriptorProto.Builder withDefault = fd.toProto().toBuilder();
+        withDefault.getMessageTypeBuilder(0).getFieldBuilder(0).setJsonName(defaultJsonName);
+        assertFalse(FileDescriptorUtils.fileDescriptorToProtoFile(withDefault.build()).toSchema()
+                .contains("json_name"));
+
+        DescriptorProtos.FileDescriptorProto.Builder withOther = fd.toProto().toBuilder();
+        withOther.getMessageTypeBuilder(0).getFieldBuilder(0).setJsonName("someJsonName");
+        assertTrue(FileDescriptorUtils.fileDescriptorToProtoFile(withOther.build()).toSchema()
+                .contains("json_name = \"someJsonName\""));
     }
 }

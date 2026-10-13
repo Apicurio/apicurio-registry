@@ -1153,6 +1153,12 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param newState
      * @param dryRun
      */
+    /** Atomically updates the selected versions and descriptive metadata under a reserved label prefix. */
+    default void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
+        throw new UnsupportedOperationException("Atomic version state updates are not supported");
+    }
+
     void updateArtifactVersionState(String groupId, String artifactId, String version, VersionState newState,
             boolean dryRun);
 

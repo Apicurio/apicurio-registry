@@ -218,6 +218,8 @@ public final class V3ApiUtil {
             searchedBranch.setBranchId(branch.getBranchId());
             searchedBranch.setModifiedBy(branch.getModifiedBy());
             searchedBranch.setModifiedOn(new Date(branch.getModifiedOn()));
+            searchedBranch.setGroupId(branch.getGroupId());
+            searchedBranch.setArtifactId(branch.getArtifactId());
             results.getBranches().add(searchedBranch);
         });
         return results;

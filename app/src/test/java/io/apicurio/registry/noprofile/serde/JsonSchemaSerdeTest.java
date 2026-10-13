@@ -48,7 +48,6 @@ import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.Headers;
 import org.apache.kafka.common.header.internals.RecordHeaders;
 import org.apache.kafka.common.serialization.Deserializer;
-import org.everit.json.schema.ValidationException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -224,7 +223,7 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
             Assertions.assertNotNull(headers.lastHeader(KafkaSerdeHeaders.HEADER_VALUE_GLOBAL_ID));
             Header headerGlobalId = headers.lastHeader(KafkaSerdeHeaders.HEADER_VALUE_GLOBAL_ID);
             long id = ByteBuffer.wrap(headerGlobalId.value()).getLong();
-            assertEquals(globalId.intValue(), Long.valueOf(id).intValue());
+            assertEquals(globalId.intValue(), (int) id);
 
             Assertions.assertNotNull(headers.lastHeader(KafkaSerdeHeaders.HEADER_VALUE_MESSAGE_TYPE));
             Header headerMsgType = headers.lastHeader(KafkaSerdeHeaders.HEADER_VALUE_MESSAGE_TYPE);
@@ -873,11 +872,8 @@ public class JsonSchemaSerdeTest extends AbstractClientFacadeTestBase {
 
     protected static void validateDataWithSchema(ParsedSchema<JsonSchema> schema, byte[] data,
             ObjectMapper mapper) throws IOException {
-        try {
-            schema.getParsedSchema().validate(mapper.readTree(data));
-        } catch (ValidationException e) {
-            System.out.println(e.getAllMessages());
-        }
+        var messages = schema.getParsedSchema().validate(mapper.readTree(data));
+        Assertions.assertTrue(messages.isEmpty(), () -> "The data should be valid against the schema: " + messages);
     }
 
     private String getSchemaRegistryUrl() {

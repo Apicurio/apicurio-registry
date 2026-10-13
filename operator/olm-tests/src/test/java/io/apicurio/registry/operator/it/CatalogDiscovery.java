@@ -16,7 +16,9 @@ import java.util.concurrent.TimeUnit;
 
 import static io.apicurio.registry.operator.it.CatalogInfo.extractVersionString;
 import static io.apicurio.registry.operator.it.CatalogInfo.parseVersion;
+import static io.apicurio.registry.operator.it.ITBase.SHORT_DURATION;
 import static io.apicurio.registry.operator.it.OLMTestUtils.*;
+import static org.awaitility.Awaitility.await;
 
 /**
  * Queries the live OLM catalog to discover channels, CSV names, and upgrade paths, by reading the
@@ -86,6 +88,7 @@ public class CatalogDiscovery {
             try {
                 if (olmVersion == 1) {
                     deleteResourceQuietly(client, namespace, "olmv1/cluster-catalog.yaml");
+                    waitForClusterCatalogDeleted(client);
                 } else {
                     deleteResourceQuietly(client, namespace, "olmv0/catalog-source.yaml");
                 }
@@ -111,12 +114,21 @@ public class CatalogDiscovery {
 
     private static CatalogInfo discoverViaCatalogd(KubernetesClient client, String namespace)
             throws Exception {
+        // ClusterCatalog is cluster-scoped with a fixed name; a previous test's catalog may still be
+        // terminating, so wait for it to be gone before creating ours.
+        waitForClusterCatalogDeleted(client);
         createResource(client, namespace, "olmv1/cluster-catalog.yaml");
         waitForClusterCatalogServing(client, namespace, CATALOG_NAME);
 
         var fbcContent = CatalogdClient.readCatalogContent(client, namespace, CATALOG_NAME);
         log.info("FBC content read from catalogd ({} bytes)", fbcContent.length());
         return parseFBC(fbcContent);
+    }
+
+    private static void waitForClusterCatalogDeleted(KubernetesClient client) {
+        await().atMost(SHORT_DURATION).ignoreExceptions().until(() -> client
+                .genericKubernetesResources("olm.operatorframework.io/v1", "ClusterCatalog")
+                .withName(CATALOG_NAME).get() == null);
     }
 
     private static String findCatalogPodName(KubernetesClient client, String namespace) {

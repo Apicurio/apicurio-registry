@@ -4,14 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.util.ContentTypeUtil;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.JsonUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.validity.AbstractContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.RuleType;
-import org.everit.json.schema.SchemaException;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -47,21 +45,15 @@ public class JsonSchemaContentValidator extends AbstractContentValidator {
                         RuleType.VALIDITY, level.name(), e);
             }
         } else if (level == ValidityLevel.FULL) {
+            Set<RuleViolation> violations;
             try {
-                JsonUtil.readSchema(content.getContent().content(), resolvedReferences);
-            } catch (SchemaException e) {
-                String context = e.getSchemaLocation();
-                String description = e.getMessage();
-                if (description != null && description.contains(":")) {
-                    description = description.substring(description.indexOf(":") + 1).trim();
-                }
-                RuleViolation violation = new RuleViolation(description, context);
-                throw new RuleViolationException("Syntax or semantic violation for JSON Schema artifact.",
-                        RuleType.VALIDITY, level.name(), Collections.singleton(violation));
+                violations = new HashSet<>(JsonSchemaLoader.load(content.getContent().content(), resolvedReferences));
             } catch (Exception e) {
-                RuleViolation violation = new RuleViolation("JSON schema not valid: " + e.getMessage(), "");
+                violations = Collections.singleton(new RuleViolation("JSON schema not valid: " + e.getMessage(), ""));
+            }
+            if (!violations.isEmpty()) {
                 throw new RuleViolationException("Syntax or semantic violation for JSON Schema artifact.",
-                        RuleType.VALIDITY, level.name(), Collections.singleton(violation));
+                        RuleType.VALIDITY, level.name(), violations);
             }
         }
     }

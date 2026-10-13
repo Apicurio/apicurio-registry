@@ -39,7 +39,7 @@ See [SECURITY.md](SECURITY.md) for details.
 
 For general questions and development discussions, use the
 [cncf-apicurio-registry-dev@lists.cncf.io](mailto:cncf-apicurio-registry-dev@lists.cncf.io) mailing list
-or the [#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+or the [#apicurio-registry channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
 
 ## Getting started and where to ask
 
@@ -105,10 +105,10 @@ CI runs in two tiers:
    gives you rapid feedback while iterating.
 2. **Full verification** (`Verify` workflow): the complete suite — build, unit
    tests, CLI, SDKs, console plugin, integration tests, extra tests, operator
-   tests, and the Verification Gate (the single required check for merging). It
-   runs immediately for maintainers and other trusted authors (e.g. Renovate), or
-   once your PR has an approving review otherwise — not gated by any label a
-   maintainer has to apply. It also always runs on every push to `main`. If it
+   tests. Its result is reported as the Verification Gate status (the single
+   required check for merging). It runs immediately for maintainers and other
+   trusted authors (e.g. Renovate), or once your PR has an approving review
+   otherwise — not gated by any label a maintainer has to apply. It also always runs on every push to `main`. If it
    fails, the PR reverts to `lifecycle/ready-for-review` and `lifecycle/tested` is
    cleared so it's clear a fresh fast-gate pass and review are needed again.
 
@@ -173,7 +173,7 @@ Apicurio Registry uses [Semantic Versioning](https://semver.org/) with a clear s
 | Release type | Contains | Example |
 |--------------|----------|---------|
 | **Minor** (3.3.0 → 3.4.0) | New features, enhancements, bug fixes | Scheduled development milestones |
-| **Patch** (3.3.0 → 3.3.1) | CVE / security fixes only | Dependency upgrades, security patches |
+| **Patch** (3.3.0 → 3.3.1) | CVE / security fixes and important bug fixes | Dependency upgrades, security patches, backported bug fixes |
 
 ### Support window
 
@@ -189,8 +189,7 @@ We maintain the **latest two minor versions** with security patches. Once a new 
 ### Where to target your PR
 
 - **Features and bug fixes** → target `main`
-- **CVE / security backports for N-1** → target the maintenance branch (e.g., `3.3.x`), cherry-picked from the fix on `main`
-- Bug fix backports are **not** accepted on maintenance branches — patches are strictly CVE-only
+- **CVEs and important bug fixes** are backported to the maintenance branch (e.g., `3.3.x`) after the fix lands on `main`. Maintainers decide which bug fixes are important enough, and mark them with the `backport/3.3.x` label, which opens the backport PR automatically. If you think your fix should be backported, say so in the PR description.
 
 ## The small print
 

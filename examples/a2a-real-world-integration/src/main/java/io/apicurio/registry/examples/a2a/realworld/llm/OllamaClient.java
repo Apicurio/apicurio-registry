@@ -110,6 +110,9 @@ public class OllamaClient {
                     HttpResponse.BodyHandlers.ofString());
 
             return response.statusCode() == 200;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
         } catch (Exception e) {
             return false;
         }
@@ -143,6 +146,9 @@ public class OllamaClient {
                     }
                 }
             }
+            return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             return false;
         } catch (Exception e) {
             return false;

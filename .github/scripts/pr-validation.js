@@ -2,13 +2,14 @@
 //
 // Validates submission quality and surfaces duplicate PRs. Deliberately
 // independent of the lifecycle state machine in pr-lifecycle.js: validation
-// runs on every PR regardless of lifecycle state, and a failure here never
-// blocks /accept. See .github/pr-lifecycle.yml for the shared config.
+// runs on every PR regardless of lifecycle state. See .github/pr-lifecycle.yml
+// for the shared config.
 //
-// Blocking checks (fail the GitHub check):
-//   - issue link: the body references an issue this PR closes
-//   - DCO sign-off: every commit carries a Signed-off-by trailer
-//   - milestone: the PR and every issue it closes carry an open milestone
+// Blocking checks (fail the GitHub check), each owned by whoever can fix it:
+//   - issue link (author): the body references an issue this PR closes
+//   - DCO sign-off (author): every non-merge commit carries a Signed-off-by trailer
+//   - milestone (maintainer): the PR and every open issue it closes carry an
+//     open milestone
 //
 // Advisory only (reported, never blocking):
 //   - duplicate PRs, matched by linked issue or by overlapping files
@@ -35,6 +36,39 @@ const CLOSING_KEYWORD_PATTERN =
 const ISSUE_URL_PATTERN =
   /\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+https?:\/\/github\.com\/([\w.-]+)\/([\w.-]+)\/issues\/(\d+)\b/gi;
 
+// Who can act on a violation. The comment groups by it, because a check the
+// author cannot clear otherwise reads as "the author broke something".
+const AUTHOR = 'author';
+const MAINTAINER = 'maintainer';
+
+// The state of one requirement in the comment. Every requirement is listed,
+// not just the failing ones, so the comment shows at a glance what is checked.
+// A missing milestone is "waiting" rather than "action needed" because the
+// author can't set one: a red cross would tell them they broke something.
+const PASSED = 'passed';
+const ACTION_NEEDED = 'action-needed';
+const WAITING = 'waiting';
+const NOT_CHECKED = 'not-checked';
+const STATUS_ICONS = { [PASSED]: '✅', [ACTION_NEEDED]: '❌', [WAITING]: '⏳', [NOT_CHECKED]: '➖' };
+
+function isBlocking(item) {
+  return item.status === ACTION_NEEDED || item.status === WAITING;
+}
+
+// The workflow file whose latest run carries a PR's "Validate PR" check.
+const VALIDATION_WORKFLOW_FILE = 'pr-validation.yml';
+
+// The base branches pr-validation.yml validates (its pull_request_target
+// branches filter). Issue events can't be filtered by branch, so
+// revalidateForIssue applies the same scope itself.
+const VALIDATED_BASE_BRANCHES = ['main', '3.3.x'];
+
+// How long revalidateForIssue waits for a validation run that is still going
+// before re-running it: such a run may already have read the old milestone.
+// A validation run normally takes well under a minute.
+const IN_PROGRESS_POLL_MS = 10 * 1000;
+const IN_PROGRESS_DEADLINE_MS = 3 * 60 * 1000;
+
 // Comparing files against every open PR costs one API call per PR. Above this
 // many open PRs we skip file-based duplicate detection rather than burn the
 // rate limit; issue-based detection still runs and is the more precise signal.
@@ -55,12 +89,99 @@ function isExemptAuthor(config, username) {
 }
 
 /**
+ * Markdown with fenced code blocks and code spans removed. A closing keyword
+ * quoted in code is being discussed, not used: explaining why a PR no longer
+ * says ``Fixes #7317`` must not link #7317 again.
+ *
+ * Follows the CommonMark rules that matter here rather than a regex: a fence
+ * may be indented up to three spaces, is closed only by a fence of the same
+ * character at least as long, and an unclosed fence runs to the end; a code
+ * span ends at the next backtick run of exactly its length, may span lines,
+ * and never crosses a blank line.
+ *
+ * Removed code leaves a non-whitespace placeholder, and a fenced block also a
+ * paragraph break, so the text on either side can't join up into a closing
+ * reference that wasn't there ("Closes", a fence, "#42" on the next line).
+ *
+ * Fences inside block quotes or list items are not recognised; that would
+ * take a real Markdown parser, and quoting a fenced closing keyword that way
+ * in a PR description is rare.
+ */
+function stripCode(markdown) {
+  const kept = [];
+  let fence = null;
+  // Bodies edited on github.com use CRLF, and a trailing \r would stop a
+  // closing fence or a blank line from being recognised.
+  for (const line of markdown.replace(/\r\n?/g, '\n').split('\n')) {
+    if (fence) {
+      const close = /^ {0,3}(`{3,}|~{3,})[ \t]*$/.exec(line);
+      if (close && close[1][0] === fence.char && close[1].length >= fence.length) fence = null;
+      continue;
+    }
+    const open = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
+    // The info string of a backtick fence can't contain a backtick; that
+    // line is inline code instead.
+    if (open && !(open[1][0] === '`' && open[2].includes('`'))) {
+      fence = { char: open[1][0], length: open[1].length };
+      kept.push('', CODE_PLACEHOLDER, '');
+      continue;
+    }
+    kept.push(line);
+  }
+  return kept.join('\n').split(/(\n[ \t]*\n)/).map(stripCodeSpans).join('');
+}
+
+// Stands in for removed code; anything without whitespace or a '#' works.
+const CODE_PLACEHOLDER = '[code]';
+
+// Code spans replaced in one paragraph. A backtick run with no closing run of
+// the same length is literal text.
+function stripCodeSpans(paragraph) {
+  const runLength = at => {
+    let n = 0;
+    while (paragraph[at + n] === '`') n++;
+    return n;
+  };
+  let out = '';
+  let i = 0;
+  while (i < paragraph.length) {
+    if (paragraph[i] !== '`') {
+      out += paragraph[i++];
+      continue;
+    }
+    const n = runLength(i);
+    let j = i + n;
+    let close = -1;
+    while (j < paragraph.length) {
+      if (paragraph[j] !== '`') {
+        j++;
+        continue;
+      }
+      const m = runLength(j);
+      if (m === n) {
+        close = j;
+        break;
+      }
+      j += m;
+    }
+    if (close === -1) {
+      out += paragraph.slice(i, i + n);
+      i += n;
+    } else {
+      out += CODE_PLACEHOLDER;
+      i = close + n;
+    }
+  }
+  return out;
+}
+
+/**
  * Issue numbers this PR declares it closes. Only closing keywords count: a bare
  * "#123" is a reference, not a link, and GitHub will not close the issue on merge.
  */
 function extractLinkedIssues(body, owner, repo) {
   const issues = new Set();
-  const text = body || '';
+  const text = stripCode(body || '');
 
   for (const match of text.matchAll(CLOSING_KEYWORD_PATTERN)) {
     issues.add(Number(match[1]));
@@ -101,28 +222,51 @@ function firstLine(message) {
 }
 
 function checkIssueLink(linkedIssues) {
+  const item = { name: 'Issue link', label: 'Issue link', audience: AUTHOR };
   if (linkedIssues.size > 0) {
-    return null;
+    const numbers = [...linkedIssues].sort((a, b) => a - b).map(n => `#${n}`);
+    return { ...item, status: PASSED, summary: `closes ${numbers.join(', ')}` };
   }
   return {
-    name: 'Issue link',
+    ...item,
+    status: ACTION_NEEDED,
+    summary: 'no linked issue',
     detail: 'The PR body does not link an issue. Add a closing keyword such as '
       + '`Closes #1234` (or `Fixes`/`Resolves`, or the full issue URL) so the issue '
       + 'closes when this merges.',
   };
 }
 
+/**
+ * A merge commit has two or more parents, and carries no authored change of
+ * its own. GitHub creates one server-side when the "Update branch" button (or
+ * `gh pr update-branch`) brings a PR up to date; that commit never carries a
+ * Signed-off-by trailer, and branch protection on main makes updating the
+ * branch mandatory, so flagging it would make a required action break a
+ * required check.
+ *
+ * Exempting merge commits cannot put unsigned content on main, because this
+ * repository allows only squash and rebase merges: a merge commit on a PR
+ * branch is discarded when the PR merges.
+ */
+function isMergeCommit(commit) {
+  return (commit.parents || []).length > 1;
+}
+
 function checkDcoSignOff(commits) {
-  const unsigned = commits.filter(c => !hasSignOff(c));
+  const item = { name: 'DCO sign-off', label: 'DCO sign-off', audience: AUTHOR };
+  const unsigned = commits.filter(c => !isMergeCommit(c) && !hasSignOff(c));
   if (unsigned.length === 0) {
-    return null;
+    return { ...item, status: PASSED, summary: 'every commit is signed off (merge commits are exempt)' };
   }
   const list = unsigned
-    .map(c => `  - \`${shortSha(c.sha)}\` ${firstLine(c.commit.message)}`)
+    .map(c => `- \`${shortSha(c.sha)}\` ${firstLine(c.commit.message)}`)
     .join('\n');
   return {
-    name: 'DCO sign-off',
-    detail: `${unsigned.length} commit(s) are missing a \`Signed-off-by:\` trailer:\n\n${list}\n\n`
+    ...item,
+    status: ACTION_NEEDED,
+    summary: `${unsigned.length} commit(s) missing a \`Signed-off-by:\` trailer`,
+    detail: `${list}\n\n`
       + 'Sign off with `git commit -s`, or repair existing commits with '
       + '`git rebase --signoff upstream/main` and force-push.',
   };
@@ -149,40 +293,43 @@ async function fetchLinkedIssues(github, owner, repo, linkedIssues, core) {
 
 /**
  * Milestones drive the release notes (generated from the milestone's issues)
- * and make work findable after the fact, so both the PR and everything it
- * closes need one. A closed milestone is treated as missing — it belongs to a
- * release that already shipped, so nothing new can land in it.
+ * and make work findable after the fact, so both the PR and every open issue
+ * it closes need one. A closed milestone is treated as missing — it belongs to
+ * a release that already shipped, so nothing new can land in it.
+ *
+ * A closed linked issue is not checked. Its milestone records when its work
+ * shipped, which is history: a follow-up PR to an issue fixed in 3.3.2 must not
+ * require moving that issue to the current release. The PR's own milestone
+ * places this work in the release notes.
  *
  * Setting a milestone needs triage permission, so this is the one blocking
  * check an outside contributor cannot clear themselves. The message says so.
  */
 function checkMilestone(pr, issues) {
-  const problems = [];
-
-  const describe = (subject, milestone) => {
+  const item = (label, status, summary) => ({ name: 'Milestone', label, audience: MAINTAINER, status, summary });
+  const milestoneItem = (label, milestone) => {
     if (!milestone) {
-      problems.push(`- ${subject} has no milestone.`);
-    } else if (milestone.state === 'closed') {
-      problems.push(`- ${subject} is on milestone \`${milestone.title}\`, which is closed.`);
+      return item(label, WAITING, 'not set');
     }
+    if (milestone.state === 'closed') {
+      return item(label, WAITING, `\`${milestone.title}\` is closed`);
+    }
+    return item(label, PASSED, `\`${milestone.title}\``);
   };
 
-  describe('This PR', pr.milestone);
+  const items = [milestoneItem('Milestone on this PR', pr.milestone)];
   for (const issue of issues) {
-    describe(`Issue #${issue.number}`, issue.milestone);
+    items.push(issue.state === 'closed'
+      ? item(`Milestone on #${issue.number}`, NOT_CHECKED, 'the issue is closed, so its milestone is not checked')
+      : milestoneItem(`Milestone on #${issue.number}`, issue.milestone));
   }
-
-  if (problems.length === 0) {
-    return null;
-  }
-  return {
-    name: 'Milestone',
-    detail: `${problems.join('\n')}\n\n`
-      + 'Setting a milestone requires triage permission, so **a maintainer has to '
-      + 'do this** — there is no action for the PR author here. The milestone '
-      + 'determines which release notes this work appears in.',
-  };
+  return items;
 }
+
+// Shown once under the maintainer section when a milestone is missing.
+const MILESTONE_NOTE = 'Setting a milestone requires triage permission, so **a maintainer has to '
+  + 'do this**. There is no action for the PR author here. The milestone '
+  + 'determines which release notes this work appears in.';
 
 async function findDuplicates(github, owner, repo, pr, linkedIssues, config, core) {
   const openPrs = await github.paginate(github.rest.pulls.list, {
@@ -225,18 +372,35 @@ async function findDuplicates(github, owner, repo, pr, linkedIssues, config, cor
   return { byIssue, byFile };
 }
 
-function buildComment(pr, violations, duplicates) {
+function buildComment(pr, items, duplicates) {
   const lines = [COMMENT_MARKER, '## PR validation', ''];
+  const blocking = items.filter(isBlocking);
 
-  if (violations.length === 0) {
-    lines.push('All validation checks passed.', '');
-  } else {
-    lines.push(`This PR has ${violations.length} validation issue(s):`, '');
-    for (const violation of violations) {
-      lines.push(`### ${violation.name}`, '', violation.detail, '');
+  lines.push(blocking.length === 0
+    ? 'All validation checks passed.'
+    : `This PR has ${blocking.length} validation issue(s).`, '');
+
+  for (const [audience, heading] of [[AUTHOR, 'For the author'], [MAINTAINER, 'For a maintainer']]) {
+    const owned = items.filter(i => i.audience === audience);
+    if (owned.length === 0) continue;
+    lines.push(`### ${heading}`, '');
+    for (const item of owned) {
+      lines.push(`- ${STATUS_ICONS[item.status]} **${item.label}:** ${item.summary}`);
+      if (isBlocking(item) && item.detail) {
+        // Indented, so it renders as part of the list item it explains.
+        lines.push('', ...item.detail.split('\n').map(l => (l ? `  ${l}` : l)), '');
+      }
     }
-    lines.push('The check updates automatically when you push. This does not '
-      + 'close your PR, and a maintainer can still accept it.', '');
+    lines.push('');
+    if (audience === MAINTAINER && owned.some(i => i.name === 'Milestone' && i.status === WAITING)) {
+      lines.push(MILESTONE_NOTE, '');
+    }
+  }
+
+  if (blocking.length > 0) {
+    lines.push('The check re-runs on its own when you push or edit the description, '
+      + 'and when a maintainer sets a milestone on this PR or on an issue it closes. '
+      + 'To re-run it by hand, comment `/retry`. This does not close your PR.', '');
   }
 
   const { byIssue, byFile } = duplicates;
@@ -334,7 +498,13 @@ async function postDuplicateAdvisories(github, owner, repo, pr, duplicates, core
 
 async function validate({ github, context, core }) {
   const { owner, repo } = context.repo;
-  const pr = context.payload.pull_request;
+  // Read back rather than taken from the event: a re-run of this workflow
+  // replays the original event, whose body and milestone may be stale, and a
+  // re-run is how a milestone set on a linked issue reaches the check
+  // (revalidateForIssue, and /retry in pr-lifecycle.js).
+  const { data: pr } = await github.rest.pulls.get({
+    owner, repo, pull_number: context.payload.pull_request.number,
+  });
   const config = loadConfig();
 
   if (isExemptAuthor(config, pr.user.login)) {
@@ -348,11 +518,12 @@ async function validate({ github, context, core }) {
 
   const linkedIssues = extractLinkedIssues(pr.body, owner, repo);
   const issues = await fetchLinkedIssues(github, owner, repo, linkedIssues, core);
-  const violations = [
+  const items = [
     checkIssueLink(linkedIssues),
     checkDcoSignOff(commits),
-    checkMilestone(pr, issues),
-  ].filter(Boolean);
+    ...checkMilestone(pr, issues),
+  ];
+  const violations = items.filter(isBlocking);
 
   let duplicates = { byIssue: [], byFile: [] };
   try {
@@ -362,7 +533,7 @@ async function validate({ github, context, core }) {
   }
 
   await upsertComment(github, owner, repo, pr.number,
-    buildComment(pr, violations, duplicates), COMMENT_MARKER, core);
+    buildComment(pr, items, duplicates), COMMENT_MARKER, core);
   await setFailedLabel(github, owner, repo, pr, violations.length > 0, core);
 
   try {
@@ -372,15 +543,75 @@ async function validate({ github, context, core }) {
   }
 
   if (violations.length > 0) {
-    core.setFailed(`PR validation failed: ${violations.map(v => v.name).join(', ')}`);
+    core.setFailed(`PR validation failed: ${[...new Set(violations.map(v => v.name))].join(', ')}`);
   } else {
     core.info('PR validation passed');
   }
 }
 
+/**
+ * A linked issue's milestone changed, or it was closed or reopened (closed
+ * issues aren't milestone-checked). Re-runs the latest validation run of
+ * every open PR that closes it.
+ *
+ * Validating here directly would update the comment and the label, but not
+ * the PR's "Validate PR" check: that check belongs to the PR's own
+ * pull_request_target run, and this run (an issues event) is attached to the
+ * default branch. Re-running that run updates the check, and validate() reads
+ * the current state. Only when there is no run to re-run, or GitHub won't
+ * re-run it (older than 30 days), does this validate directly, so that at
+ * least the comment and the label are right.
+ */
+async function revalidateForIssue({ github, context, core,
+                                   pollMs = IN_PROGRESS_POLL_MS, deadlineMs = IN_PROGRESS_DEADLINE_MS }) {
+  const { owner, repo } = context.repo;
+  const issue = context.payload.issue;
+  // A PR's own milestone reaches the check through pull_request_target
+  // milestoned/demilestoned; the matching issues event is ignored.
+  if (issue.pull_request) return;
+
+  const openPrs = await github.paginate(github.rest.pulls.list, {
+    owner, repo, state: 'open', per_page: 100,
+  });
+  const linking = openPrs.filter(p => VALIDATED_BASE_BRANCHES.includes(p.base.ref)
+    && extractLinkedIssues(p.body, owner, repo).has(issue.number));
+  core.info(`Issue #${issue.number} ${context.payload.action}; ${linking.length} open PR(s) close it`);
+
+  for (const pr of linking) {
+    const { data } = await github.rest.actions.listWorkflowRuns({
+      owner, repo, workflow_id: VALIDATION_WORKFLOW_FILE, head_sha: pr.head.sha, per_page: 1,
+    });
+    let run = data.workflow_runs[0];
+    // A run still going may have read the issue before this change. Let it
+    // finish, then re-run it.
+    for (let waited = 0; run && run.status !== 'completed' && waited < deadlineMs; waited += pollMs) {
+      await new Promise(resolve => setTimeout(resolve, pollMs));
+      run = (await github.rest.actions.getWorkflowRun({ owner, repo, run_id: run.id })).data;
+    }
+    if (run && run.status !== 'completed') {
+      core.warning(`PR #${pr.number} validation run ${run.id} is still running after `
+        + `${deadlineMs / 1000}s; not re-running it. /retry re-runs it once it has finished.`);
+      continue;
+    }
+    if (run) {
+      try {
+        await github.rest.actions.reRunWorkflow({ owner, repo, run_id: run.id });
+        core.info(`PR #${pr.number} re-ran validation run ${run.id}`);
+        continue;
+      } catch (e) {
+        core.warning(`PR #${pr.number} could not re-run validation run ${run.id} (${e.message}); `
+          + 'validating directly, which updates the comment and label but not the check');
+      }
+    }
+    await validate({ github, context: { repo: context.repo, payload: { pull_request: pr } }, core });
+  }
+}
+
 module.exports = {
   validate,
+  revalidateForIssue,
   // exported for tests
+  stripCode,
   extractLinkedIssues,
   hasSignOff,
   checkIssueLink,

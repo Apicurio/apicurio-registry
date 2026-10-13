@@ -146,15 +146,6 @@ jobs:
           git push
           echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Slack Notification (Error)
-        if: failure()
-        run: |
-          MESSAGE="'${{ github.workflow }}/release-prepare' job FAILED!"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
-
   # Phase 2a: Build the registry app (Maven).
   # Runs in parallel with UI and CLI builds.
   release-build-app:
@@ -431,20 +422,40 @@ jobs:
           git commit -m "Automated update to next Snapshot Version: ${{ env.SNAPSHOT_VERSION }}"
           git push
 
-      - name: Slack Notification (Always)
-        if: always()
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
+    needs: [release-prepare, release-build-app, release-build-ui, release-build-cli, release-publish]
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The run was not cancelled, so a cancelled job timed out: a failure.
+      - name: Find failed jobs
+        id: failed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
         run: |
-          MESSAGE="'${{ github.workflow }}' completed with status: ${{ job.status }}"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
+          jobs=$(jq -r '[to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key] | join(", ")' <<< "$NEEDS")
+          echo "jobs=$jobs" >> "$GITHUB_OUTPUT"
 
-      - name: Slack Notification (Error)
-        if: failure()
-        run: |
-          MESSAGE="'${{ github.workflow }}' FAILED!"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
+      - name: Notify failure
+        if: steps.failed.outputs.jobs != ''
+        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
+        with:
+          level: important
+          text: ":x: ${{ github.workflow }} failed for ${{ inputs.release-version }} in ${{ steps.failed.outputs.jobs }}"
+          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          mention: ${{ github.triggering_actor }}
+          user-map: ${{ secrets.SLACK_USER_MAP }}
+          important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+
+      # Every job was skipped (e.g. a release not tagged 3.*): say nothing.
+      - name: Notify success
+        if: steps.failed.outputs.jobs == '' && contains(needs.*.result, 'success')
+        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
+        with:
+          level: general
+          text: ":white_check_mark: ${{ github.workflow }} finished for ${{ inputs.release-version }}"
+          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          general-webhook: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

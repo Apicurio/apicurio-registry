@@ -11,7 +11,7 @@ Two top-level workflows make up the whole pipeline:
 
 Performance workflows are intentionally not PR gates:
 
-- `perf-main.yaml` tracks Apicurio-specific capacity/regressions after merges to `main`.
+- `perf-main.yaml` tracks Apicurio-specific capacity/regressions on `main`, nightly and on demand.
 - `perf-comparison.yaml` is a manually dispatched, product-neutral Confluent-compatible API
   comparison across Apicurio, Confluent, Karapace, and Redpanda. It runs sequential randomized
   repetitions and publishes raw evidence; it is not part of Verify/Decide/Verification Gate.
@@ -520,4 +520,38 @@ and tags starting with `3.`.
 | Workflow | Used by | Purpose |
 |----------|---------|---------|
 | `reusable-docker-build.yaml` | verify-publish, release-images | Multi-arch Docker build with QEMU + Buildx. Supports optional Maven/npm pre-build steps. Pushes to DockerHub and/or Quay.io. Includes retry logic (3 attempts, 30s wait). Configurable platforms, tags, registries | 30-60 min |
-| `reusable-notify-slack.yaml` | verify, operator, release-* | Sends Slack notifications. Always posts to notification webhook; additionally posts to error webhook on failure. Payload includes workflow name, status, and link |
+
+## Notifications
+
+Workflows post to Slack through the shared
+[`notify-slack`](https://github.com/Apicurio/apicurio-github-actions/tree/main/notify-slack)
+action. A message goes to a channel by whether anyone has to act on it, not by its status
+(#10380):
+
+| Level | Channel | When |
+|-------|---------|------|
+| **important** | team channel | Someone must act. Names one owner with a Slack mention: whoever started the run. |
+| **general** | notification channel | Worth knowing, nothing to do. No mention. |
+| none | — | Routine success. It stays in the GitHub UI. |
+
+| Workflow | Success | Failure |
+|----------|---------|---------|
+| `release.yaml`, `release-artifacts.yaml`, `release-images.yaml`, `release-sdks.yaml`, `release-operator.yaml`, `release-release-notes.yaml`, `update-website.yaml` | general | important |
+| `publish-docs.yaml` | none | important |
+| `verify.yaml` (push) | none | general, until failures are confirmed by a retry and attributed to the PRs that caused them |
+| `perf-main.yaml` | none | general |
+
+When `release-post` in `release-operator.yaml` fails, the message goes out before its tmate
+session starts, and says so: the person who started the run can SSH into the runner to debug
+until the job times out.
+
+A run cancelled by hand, or by a newer push, says nothing. In the release workflows, a single job
+cancelled while its run was not has timed out, and counts as a failure.
+
+The action needs three organization secrets: `SLACK_IMPORTANT_NOTIFICATION_WEBHOOK`,
+`SLACK_GENERAL_NOTIFICATION_WEBHOOK` and `SLACK_USER_MAP` (GitHub login to Slack member ID). To be
+mentioned, ask an organization admin to add you to the map. Bots and unmapped logins are named in
+the text instead.
+
+This applies to `main`. Workflows run from the branch or tag they were triggered on, so `3.3.x`
+pushes and patch releases tagged from it still use that branch's copies.

@@ -262,6 +262,9 @@ jobs:
     if: always() && needs.release-build.result == 'success' && (needs.release-test.result == 'success' || needs.release-test.result == 'skipped')
     runs-on: ubuntu-26.04
     timeout-minutes: 60
+    # Read by the notify job, which skips a failure already reported here.
+    outputs:
+      notified: ${{ steps.notify.outcome }}
     env:
       RELEASE_VERSION: ${{ needs.release-build.outputs.release-version }}
       BRANCH: ${{ needs.release-build.outputs.branch }}
@@ -538,26 +541,65 @@ jobs:
           git rebase origin/main
           git push origin main
 
-      - name: Slack Notification (Always)
-        if: always()
-        run: |
-          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}"
-
-      - name: Slack Notification (Error)
+      # Before tmate, which holds the job open until it times out, so whoever is
+      # notified can still connect. tmate lets in only github.actor's SSH keys.
+      - name: Notify failure
+        id: notify
         if: failure()
-        run: |
-          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "${{ secrets.SLACK_ERROR_WEBHOOK }}"
+        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
+        with:
+          level: important
+          text: ":x: ${{ github.workflow }} failed for ${{ inputs.tag }} in release-post. :mag: Debug it on the runner: @${{ github.actor }} can SSH in with tmate until the job times out. The ssh command is in the job log."
+          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          mention: ${{ github.actor }},${{ github.triggering_actor }}
+          user-map: ${{ secrets.SLACK_USER_MAP }}
+          important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
 
       - name: Setup tmate session on failure
         if: failure()
         uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3
         with:
           limit-access-to-actor: true
+
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
+    needs: [release-build, release-test, release-post]
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # The run was not cancelled, so a cancelled job timed out: a failure.
+      # A job that already notified is left out: release-post reports its own
+      # failure before tmate, then ends as cancelled when tmate times out.
+      - name: Find failed jobs
+        id: failed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          jobs=$(jq -r '[to_entries[] | select((.value.result == "failure" or .value.result == "cancelled") and .value.outputs.notified != "success") | .key] | join(", ")' <<< "$NEEDS")
+          echo "jobs=$jobs" >> "$GITHUB_OUTPUT"
+
+      - name: Notify failure
+        if: steps.failed.outputs.jobs != ''
+        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
+        with:
+          level: important
+          text: ":x: ${{ github.workflow }} failed for ${{ inputs.tag }} in ${{ steps.failed.outputs.jobs }}"
+          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          mention: ${{ github.triggering_actor }}
+          user-map: ${{ secrets.SLACK_USER_MAP }}
+          important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+
+      # Every job was skipped (e.g. a release not tagged 3.*): say nothing.
+      - name: Notify success
+        if: >-
+          !contains(needs.*.result, 'failure')
+          && !contains(needs.*.result, 'cancelled')
+          && contains(needs.*.result, 'success')
+        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
+        with:
+          level: general
+          text: ":white_check_mark: ${{ github.workflow }} finished for ${{ inputs.tag }}"
+          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          general-webhook: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

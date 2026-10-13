@@ -30,6 +30,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -704,15 +705,16 @@ public class FileDescriptorUtilsTest {
         assertTrue(withOtherText.contains("json_name = \"someJsonName\""), withOtherText);
     }
 
-    @Test
-    public void testOneofFieldNameWithConsecutiveUnderscoresConverts() throws Exception {
-        String schema = "syntax = \"proto3\";\nmessage M {\n  oneof choice {\n    int32 a__b = 1;\n"
-                + "    string c = 2;\n  }\n}\n";
+    @ParameterizedTest
+    @ValueSource(strings = { "a__b", "___", "_a" })
+    public void testOneofFieldNameWithUnderscoresConverts(String fieldName) throws Exception {
+        String schema = "syntax = \"proto3\";\nmessage M {\n  oneof choice {\n    int32 " + fieldName
+                + " = 1;\n    string c = 2;\n  }\n}\n";
 
         Descriptors.FileDescriptor fd = schemaTextToFileDescriptor(schema, "p.proto");
 
         Descriptors.Descriptor message = fd.findMessageTypeByName("M");
-        assertEquals(0, message.findFieldByName("a__b").getContainingOneof().getIndex());
+        assertEquals(0, message.findFieldByName(fieldName).getContainingOneof().getIndex());
         assertFalse(fd.toProto().getMessageType(0).getField(0).hasJsonName());
     }
 }

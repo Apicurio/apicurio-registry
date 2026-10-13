@@ -1612,7 +1612,8 @@ public class FileDescriptorUtils {
     // Default json_name is constructed following lower camel case
     // https://github.com/protocolbuffers/protobuf/blob/3e1967e10be786062ccd026275866c3aef487eba/src/google/protobuf/descriptor.cc#L405
     // Same rule as Descriptors.FieldDescriptor.fieldNameToJsonName in protobuf-java. It walks the name instead
-    // of splitting on "_", because a split yields empty parts for consecutive underscores.
+    // of splitting on "_", because a split yields empty parts for consecutive underscores. Proto identifiers
+    // are ASCII, so Character.toUpperCase gives the same result as protobuf-java's a-z only upper-casing.
     private static String getDefaultJsonName(String fieldName) {
         StringBuilder defaultJsonName = new StringBuilder(fieldName.length());
         boolean capitalizeNext = false;

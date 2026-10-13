@@ -30,7 +30,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.File;
 import java.io.IOException;
@@ -677,22 +676,7 @@ public class FileDescriptorUtilsTest {
         assertTrue(descriptor.findFieldByName("labels").isMapField());
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = { "a__b", "a_", "_a", "___", "a_b_c", "_street" })
-    public void testFieldNamesWithUnderscoresConvertInBothDirections(String fieldName) throws Exception {
-        String schema = "syntax = \"proto3\";\nmessage M {\n  int32 " + fieldName + " = 1;\n}\n";
-
-        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema, "p.proto",
-                Optional.empty());
-        assertEquals(fieldName, fd.toProto().getMessageType(0).getField(0).getName());
-
-        DescriptorProtos.FileDescriptorProto.Builder withJsonName = fd.toProto().toBuilder();
-        withJsonName.getMessageTypeBuilder(0).getFieldBuilder(0).setJsonName("someJsonName");
-        String regenerated = FileDescriptorUtils.fileDescriptorToProtoFile(withJsonName.build()).toSchema();
-        assertTrue(regenerated.contains("int32 " + fieldName + " = 1"), regenerated);
-        assertTrue(regenerated.contains("json_name = \"someJsonName\""), regenerated);
-    }
-
+    // '' is the empty string in @CsvSource: a name made only of underscores has an empty default json_name.
     @ParameterizedTest
     @CsvSource({ "a__b,aB", "a_,a", "_a,A", "___,''", "a_b_c,aBC", "_street,Street" })
     public void testDefaultJsonNameIsDroppedInBothDirections(String fieldName, String defaultJsonName)
@@ -700,14 +684,18 @@ public class FileDescriptorUtilsTest {
         String schema = "syntax = \"proto3\";\nmessage M {\n  int32 " + fieldName + " = 1 [json_name = \""
                 + defaultJsonName + "\"];\n}\n";
 
-        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema, "p.proto",
-                Optional.empty());
-        assertFalse(fd.toProto().getMessageType(0).getField(0).hasJsonName(),
+        Descriptors.FileDescriptor fd = schemaTextToFileDescriptor(schema, "p.proto");
+        DescriptorProtos.FieldDescriptorProto field = fd.toProto().getMessageType(0).getField(0);
+        assertEquals(fieldName, field.getName());
+        assertFalse(field.hasJsonName(),
                 "a json_name equal to the default is dropped when the text becomes a descriptor");
+        assertEquals(defaultJsonName, fd.findMessageTypeByName("M").findFieldByName(fieldName).getJsonName(),
+                "protobuf-java computes the same default");
 
         DescriptorProtos.FileDescriptorProto.Builder withDefault = fd.toProto().toBuilder();
         withDefault.getMessageTypeBuilder(0).getFieldBuilder(0).setJsonName(defaultJsonName);
         String withDefaultText = FileDescriptorUtils.fileDescriptorToProtoFile(withDefault.build()).toSchema();
+        assertTrue(withDefaultText.contains("int32 " + fieldName + " = 1"), withDefaultText);
         assertFalse(withDefaultText.contains("json_name"), withDefaultText);
 
         DescriptorProtos.FileDescriptorProto.Builder withOther = fd.toProto().toBuilder();
@@ -721,8 +709,7 @@ public class FileDescriptorUtilsTest {
         String schema = "syntax = \"proto3\";\nmessage M {\n  oneof choice {\n    int32 a__b = 1;\n"
                 + "    string c = 2;\n  }\n}\n";
 
-        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema, "p.proto",
-                Optional.empty());
+        Descriptors.FileDescriptor fd = schemaTextToFileDescriptor(schema, "p.proto");
 
         Descriptors.Descriptor message = fd.findMessageTypeByName("M");
         assertEquals(0, message.findFieldByName("a__b").getContainingOneof().getIndex());

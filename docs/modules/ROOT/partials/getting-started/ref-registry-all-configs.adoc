@@ -519,12 +519,12 @@ The following {registry} configuration options are available for each component 
 |`boolean`
 |`false`
 |`3.4.0`
-|Allow peer registry URLs that use plain HTTP instead of HTTPS
+|Allow peer registry URLs that use plain HTTP instead of HTTPS. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively
 |`apicurio.federation.peer.loopback.enabled`
 |`boolean`
 |`false`
 |`3.4.0`
-|Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests
+|Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively
 |===
 
 == gitops

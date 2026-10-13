@@ -1,4 +1,7 @@
 name: Release Workflow
+# Found by this name to learn who ran the release: the workflows it triggers
+# run as apicurio-ci (reusable-notify.yaml).
+run-name: Release ${{ inputs.release-version }}
 on:
   workflow_dispatch:
     inputs:
@@ -9,9 +12,6 @@ on:
         description: Branch to release from (main for minor releases, X.Y.x for patches)
         required: true
         default: main
-      notice:
-        type: boolean
-        description: I will notify jsenko if the operator release workflow fails!
 
 permissions:
   contents: read
@@ -24,13 +24,6 @@ jobs:
     outputs:
       release-sha: ${{ steps.release-commit.outputs.sha }}
     steps:
-
-      - name: Check
-        run: |
-          if [ "${{ inputs.notice }}" != "true" ]; then
-            echo "Error: You must check the notice checkbox to proceed with the release!"
-            exit 1
-          fi
 
       - name: Calculate Versions
         run: |
@@ -427,35 +420,13 @@ jobs:
     name: Notify
     needs: [release-prepare, release-build-app, release-build-ui, release-build-cli, release-publish]
     if: "!cancelled() && github.repository_owner == 'Apicurio'"
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      # The run was not cancelled, so a cancelled job timed out: a failure.
-      - name: Find failed jobs
-        id: failed
-        env:
-          NEEDS: ${{ toJSON(needs) }}
-        run: |
-          jobs=$(jq -r '[to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key] | join(", ")' <<< "$NEEDS")
-          echo "jobs=$jobs" >> "$GITHUB_OUTPUT"
-
-      - name: Notify failure
-        if: steps.failed.outputs.jobs != ''
-        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
-        with:
-          level: important
-          text: ":x: ${{ github.workflow }} failed for ${{ inputs.release-version }} in ${{ steps.failed.outputs.jobs }}"
-          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          mention: ${{ github.triggering_actor }}
-          user-map: ${{ secrets.SLACK_USER_MAP }}
-          important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
-
-      # Every job was skipped (e.g. a release not tagged 3.*): say nothing.
-      - name: Notify success
-        if: steps.failed.outputs.jobs == '' && contains(needs.*.result, 'success')
-        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
-        with:
-          level: general
-          text: ":white_check_mark: ${{ github.workflow }} finished for ${{ inputs.release-version }}"
-          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          general-webhook: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
+    with:
+      results: ${{ toJSON(needs) }}
+      version: ${{ inputs.release-version }}
+    secrets:
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+      SLACK_GENERAL_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

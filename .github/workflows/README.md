@@ -520,17 +520,18 @@ and tags starting with `3.`.
 | Workflow | Used by | Purpose |
 |----------|---------|---------|
 | `reusable-docker-build.yaml` | verify-publish, release-images | Multi-arch Docker build with QEMU + Buildx. Supports optional Maven/npm pre-build steps. Pushes to DockerHub and/or Quay.io. Includes retry logic (3 attempts, 30s wait). Configurable platforms, tags, registries | 30-60 min |
+| `reusable-notify.yaml` | release-*, release, update-website, publish-docs | Final Slack notification of a run, from the results of all its jobs: failure to the important channel mentioning the owner, success to general. See [Notifications](#notifications) |
 
 ## Notifications
 
 Workflows post to Slack through the shared
-[`notify-slack`](https://github.com/Apicurio/apicurio-github-actions/tree/main/notify-slack)
+[`notify-slack`](https://github.com/Apicurio/apicurio-github-actions/tree/v2.3.0/notify-slack)
 action. A message goes to a channel by whether anyone has to act on it, not by its status
 (#10380):
 
 | Level | Channel | When |
 |-------|---------|------|
-| **important** | team channel | Someone must act. Names one owner with a Slack mention: whoever started the run. |
+| **important** | team channel | Someone must act. Names one owner with a Slack mention (see below). |
 | **general** | notification channel | Worth knowing, nothing to do. No mention. |
 | none | — | Routine success. It stays in the GitHub UI. |
 
@@ -541,17 +542,27 @@ action. A message goes to a channel by whether anyone has to act on it, not by i
 | `verify.yaml` (push) | none | general, until failures are confirmed by a retry and attributed to the PRs that caused them |
 | `perf-main.yaml` | none | general |
 
-When `release-post` in `release-operator.yaml` fails, the message goes out before its tmate
-session starts, and says so: the person who started the run can SSH into the runner to debug
-until the job times out.
+The release, website and docs workflows end with a `notify` job that calls
+`reusable-notify.yaml`. The owner it mentions is whoever started or re-ran the run. Most of these
+runs are started by `apicurio-ci`: `release.yaml` creates the release with its token, so every
+workflow the release triggers runs as `apicurio-ci`. So does `release-operator.yaml`, which
+`release-images.yaml` dispatches, and `publish-docs.yaml` for the release's version bumps. In
+those cases the owner is whoever ran `release.yaml`, found by its run name,
+`Release <version>`.
+
+When `release-post` in `release-operator.yaml` fails in a run started by a person, the message
+goes out before its tmate session starts, and says so: that person can SSH into the runner to
+debug until the job times out. tmate admits only the SSH keys of the user who started the run, so
+there is no session when `apicurio-ci` started it.
 
 A run cancelled by hand, or by a newer push, says nothing. In the release workflows, a single job
 cancelled while its run was not has timed out, and counts as a failure.
 
 The action needs three organization secrets: `SLACK_IMPORTANT_NOTIFICATION_WEBHOOK`,
 `SLACK_GENERAL_NOTIFICATION_WEBHOOK` and `SLACK_USER_MAP` (GitHub login to Slack member ID). To be
-mentioned, ask an organization admin to add you to the map. Bots and unmapped logins are named in
-the text instead.
+mentioned, ask an organization admin to add you to the map. Bots (`apicurio-ci`, `*[bot]`) are
+never mentioned or named. When none of the candidates has a mapping, the message names them in the
+text and goes out without a mention.
 
 This applies to `main`. Workflows run from the branch or tag they were triggered on, so `3.3.x`
 pushes and patch releases tagged from it still use that branch's copies.

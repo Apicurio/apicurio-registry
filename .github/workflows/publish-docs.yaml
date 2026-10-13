@@ -59,14 +59,17 @@ jobs:
           git pull origin main
           git push
 
-      # Slack: see "Notifications" in .github/workflows/README.md.
-      - name: Notify failure
-        if: failure()
-        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
-        with:
-          level: important
-          text: ":x: ${{ github.workflow }} failed for ${{ github.ref_name }}"
-          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          mention: ${{ github.triggering_actor }}
-          user-map: ${{ secrets.SLACK_USER_MAP }}
-          important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
+    needs: [publish-docs]
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
+    with:
+      results: ${{ toJSON(needs) }}
+      notify-success: false
+    secrets:
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}

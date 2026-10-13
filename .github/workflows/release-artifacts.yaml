@@ -284,35 +284,13 @@ jobs:
     name: Notify
     needs: [prepare, release-maven, release-sboms, release-site]
     if: "!cancelled() && github.repository_owner == 'Apicurio'"
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      # The run was not cancelled, so a cancelled job timed out: a failure.
-      - name: Find failed jobs
-        id: failed
-        env:
-          NEEDS: ${{ toJSON(needs) }}
-        run: |
-          jobs=$(jq -r '[to_entries[] | select(.value.result == "failure" or .value.result == "cancelled") | .key] | join(", ")' <<< "$NEEDS")
-          echo "jobs=$jobs" >> "$GITHUB_OUTPUT"
-
-      - name: Notify failure
-        if: steps.failed.outputs.jobs != ''
-        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
-        with:
-          level: important
-          text: ":x: ${{ github.workflow }} failed for ${{ github.event.release.tag_name || inputs.tag }} in ${{ steps.failed.outputs.jobs }}"
-          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          mention: ${{ github.triggering_actor }}
-          user-map: ${{ secrets.SLACK_USER_MAP }}
-          important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
-
-      # Every job was skipped (e.g. a release not tagged 3.*): say nothing.
-      - name: Notify success
-        if: steps.failed.outputs.jobs == '' && contains(needs.*.result, 'success')
-        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
-        with:
-          level: general
-          text: ":white_check_mark: ${{ github.workflow }} finished for ${{ github.event.release.tag_name || inputs.tag }}"
-          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          general-webhook: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
+    with:
+      results: ${{ toJSON(needs) }}
+      version: ${{ github.event.release.tag_name || inputs.tag }}
+    secrets:
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+      SLACK_GENERAL_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

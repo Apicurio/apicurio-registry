@@ -213,9 +213,11 @@ public class ProtobufCompatibilityCheckerLibraryTest {
                         "    int32 addressId = 4;\n" + //
                         "}");
 
-         ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
+        ProtobufCompatibilityCheckerLibrary checker = new ProtobufCompatibilityCheckerLibrary(fileBefore, fileAfter);
 
-        assertTrue(checker.validate(), () -> "differences: " + checker.findDifferences());
+        assertTrue(checker.validate(),
+                () -> "Expected no differences when a new field is added. Found: "
+                        + checker.findDifferences());
     }
 
     /**

@@ -312,8 +312,8 @@ public class FileDescriptorUtilsTest {
         assertThat(actualFileDescriptorProto).ignoringRepeatedFieldOrder()
             .isEqualTo(expectedFileDescriptorProto);
 
-        // The reverse comparison (expected against the original FileDescriptorProto) is not made here because
-        // it fails on the json_name entries of the two descriptors.
+        // The reverse comparison (expected against the original FileDescriptorProto) is not made here: it
+        // fails on the json_name entries of the two descriptors, and the cause has not been analysed yet.
     }
 
     /**

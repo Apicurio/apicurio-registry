@@ -694,7 +694,7 @@ public class FileDescriptorUtilsTest {
     }
 
     @ParameterizedTest
-    @CsvSource({ "a__b,aB", "a_,a", "_a,A", "a_b_c,aBC", "_street,Street" })
+    @CsvSource({ "a__b,aB", "a_,a", "_a,A", "___,''", "a_b_c,aBC", "_street,Street" })
     public void testDefaultJsonNameIsDroppedInBothDirections(String fieldName, String defaultJsonName)
             throws Exception {
         String schema = "syntax = \"proto3\";\nmessage M {\n  int32 " + fieldName + " = 1 [json_name = \""

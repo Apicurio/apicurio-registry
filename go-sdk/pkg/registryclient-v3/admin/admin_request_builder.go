@@ -80,3 +80,9 @@ func (m *AdminRequestBuilder) Snapshots() *SnapshotsRequestBuilder {
 func (m *AdminRequestBuilder) Usage() *UsageRequestBuilder {
 	return NewUsageRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
 }
+
+// Webhooks collection of webhook subscriptions.
+// returns a *WebhooksRequestBuilder when successful
+func (m *AdminRequestBuilder) Webhooks() *WebhooksRequestBuilder {
+	return NewWebhooksRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}

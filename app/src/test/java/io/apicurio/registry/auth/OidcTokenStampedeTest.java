@@ -7,10 +7,7 @@ import io.smallrye.mutiny.Uni;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-import no.nav.security.mock.oauth2.MockOAuth2Server;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
@@ -36,21 +33,6 @@ import static org.mockito.Mockito.when;
 /** Verifies concurrent client-credentials requests with same credentials result in exactly one token fetch. */
 class OidcTokenStampedeTest {
 
-    private MockOAuth2Server mockServer;
-
-    @BeforeEach
-    void startMockServer() {
-        mockServer = new MockOAuth2Server();
-        mockServer.start();
-    }
-
-    @AfterEach
-    void stopMockServer() {
-        if (mockServer != null) {
-            mockServer.shutdown();
-        }
-    }
-
     @Test
     void concurrentClientCredentialsFetchResultsInSingleTokenRequest() throws Exception {
         int threadCount = 20;
@@ -70,11 +52,11 @@ class OidcTokenStampedeTest {
                             Duration.ofMinutes(10), Instant.now(), "mock-access-token");
                 });
 
-        // Point AuthConfig at the mock OIDC server
+        // No request ever reaches the token endpoint: getAccessToken is mocked above, so a
+        // fixed dummy URL is all the strategy needs.
         AuthConfig authConfig = new AuthConfig();
-        String tokenUrl = mockServer.tokenEndpointUrl("default").toString();
-        authConfig.authServerUrl = mockServer.issuerUrl("default").toString();
-        authConfig.oidcTokenPath = tokenUrl;
+        authConfig.authServerUrl = "http://localhost/realms/test";
+        authConfig.oidcTokenPath = "http://localhost/realms/test/token";
         authConfig.accessTokenExpiration = 10;
         authConfig.accessTokenExpirationOffset = 10;
 

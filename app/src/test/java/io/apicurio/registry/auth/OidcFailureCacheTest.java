@@ -11,7 +11,6 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
@@ -325,16 +324,20 @@ class OidcFailureCacheTest {
      * recorded by then. Recorded after the remove, a second fetch could succeed and its token
      * would sit unused behind a failure that lands after it.
      *
-     * <p>A watcher thread polls the token cache from inside the fetch. The moment the entry
-     * disappears, it reads the failure cache. That is the earliest point at which a second
-     * request would be let through, so the failure must be visible there.
+     * <p>The observer does not race the cleanup: it takes the token cache's bin lock for the
+     * key from inside the fetch, before the fetch is allowed to fail. While it holds that
+     * lock the creator's {@code remove(key, future)} cannot complete, so the observer can
+     * wait for the failure to appear and still be certain the future has not been released.
+     * With the failure written after the remove, the write can never happen while the lock is
+     * held, the observer waits out its deadline and the assertion fails.
      */
-    @RepeatedTest(25)
+    @Test
     void failureIsCachedBeforeTheFailedFutureIsReleased() throws Exception {
         String credentialsHash = DigestUtils.sha256Hex("gap-clientgap-secret");
-        AtomicReference<CompletableFuture<WrappedValue<String>>> inFlight = new AtomicReference<>();
-        AtomicReference<RuntimeException> failureWhenEntryRemoved = new AtomicReference<>();
+        AtomicReference<CompletableFuture<WrappedValue<String>>> entryHeld = new AtomicReference<>();
+        AtomicReference<WrappedValue<RuntimeException>> failureWhileHeld = new AtomicReference<>();
         AtomicReference<Thread> watcher = new AtomicReference<>();
+        CountDownLatch watcherHoldsTheEntry = new CountDownLatch(1);
         AtomicInteger fetchCount = new AtomicInteger(0);
 
         AppAuthenticationMechanism mockParent = mock(AppAuthenticationMechanism.class);
@@ -350,18 +353,29 @@ class OidcFailureCacheTest {
         when(mockParent.getAccessToken(any(Pair.class), anyString()))
                 .thenAnswer(invocation -> {
                     fetchCount.incrementAndGet();
-                    inFlight.set(strategy.cachedAccessTokens.get(credentialsHash));
                     watcher.set(Thread.ofPlatform().daemon().start(() -> {
-                        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-                        while (strategy.cachedAccessTokens.get(credentialsHash) != null
-                                && System.nanoTime() < deadline) {
-                            Thread.onSpinWait();
-                        }
-                        // The entry is gone: this is when a second request could get in.
-                        WrappedValue<RuntimeException> failure =
-                                strategy.cachedAuthFailures.get(credentialsHash);
-                        failureWhenEntryRemoved.set(failure == null ? null : failure.getValue());
+                        // Holding the bin lock: the creator's remove(key, future) cannot
+                        // return while this function is running, and it returns what it
+                        // received, leaving the entry untouched.
+                        strategy.cachedAccessTokens.computeIfPresent(credentialsHash,
+                                (key, entry) -> {
+                                    entryHeld.set(entry);
+                                    watcherHoldsTheEntry.countDown();
+                                    long deadline = System.nanoTime()
+                                            + TimeUnit.SECONDS.toNanos(10);
+                                    while (strategy.cachedAuthFailures.get(key) == null
+                                            && System.nanoTime() < deadline) {
+                                        Thread.onSpinWait();
+                                    }
+                                    failureWhileHeld.set(
+                                            strategy.cachedAuthFailures.get(key));
+                                    return entry;
+                                });
                     }));
+                    // Fail only once the observer holds the entry, so the cleanup cannot
+                    // outrun the observation.
+                    assertTrue(watcherHoldsTheEntry.await(10, TimeUnit.SECONDS),
+                            "The observer never locked the in-flight future");
                     throw new OidcAuthException("OIDC token request failed with status 500");
                 });
 
@@ -369,15 +383,17 @@ class OidcFailureCacheTest {
                 () -> strategy.authenticateWithClientCredentials(Pair.of("gap-client", "gap-secret"),
                         createMockRoutingContext(), mock(IdentityProviderManager.class)));
         watcher.get().join(TimeUnit.SECONDS.toMillis(15));
-        assertFalse(watcher.get().isAlive(), "The watcher never saw the entry disappear");
+        assertFalse(watcher.get().isAlive(), "The observer never released the entry");
 
         assertEquals(1, fetchCount.get(), "Exactly one fetch should have been made");
-        assertNotNull(inFlight.get(), "The in-flight future should have been registered");
-        assertNull(strategy.cachedAccessTokens.get(credentialsHash),
-                "The failed future should no longer be the cache entry");
-        assertSame(thrown, failureWhenEntryRemoved.get(),
+        assertNotNull(entryHeld.get(), "The in-flight future should have been the cache entry");
+        assertNotNull(failureWhileHeld.get(),
                 "The failed future was removed before the failure was cached, so a request "
                         + "arriving in between would start a second fetch");
+        assertSame(thrown, failureWhileHeld.get().getValue(),
+                "The cached failure should be the exact exception the fetch threw");
+        assertNull(strategy.cachedAccessTokens.get(credentialsHash),
+                "The failed future should no longer be the cache entry");
     }
 
     /**

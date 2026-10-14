@@ -17,6 +17,7 @@ import java.time.Instant;
 
 import static io.restassured.RestAssured.given;
 import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -28,6 +29,16 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
 public class GitOpsValidateTest {
+
+    /**
+     * The test repo's configured repoId is not "default" — GitTestRepositoryManager wires
+     * apicurio.gitops.repo.dir to a randomly generated temp directory name, and the
+     * single-repo shorthand in GitOpsConfig derives the repo id from that same dir value.
+     */
+    private static String repoId() {
+        return Path.of(GitTestRepositoryManager.getTestRepository().getGitRepoUrl())
+                .getFileName().toString();
+    }
 
     @BeforeEach
     void cleanup() {
@@ -48,16 +59,45 @@ public class GitOpsValidateTest {
         given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
                 .statusCode(200)
                 .body("taskId", notNullValue())
                 .body("state", notNullValue())
-                .body("repoId", equalTo("default"))
+                .body("repoId", equalTo(repoId()))
                 .body("ref", equalTo("main"));
+    }
+
+    @Test
+    void createValidateTaskRejectsUnknownRepoId() {
+        given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "does-not-exist", "ref": "main"}
+                        """)
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(400)
+                .body("detail", containsString("Repository 'does-not-exist' is not configured"))
+                .body("detail", containsString(repoId()));
+    }
+
+    @Test
+    void createValidateTaskRejectsMissingRepoId() {
+        given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "ref": "main"}
+                        """)
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(400)
+                .body("detail", containsString("is not configured"));
     }
 
     @Test
@@ -65,8 +105,8 @@ public class GitOpsValidateTest {
         var taskId = given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
@@ -86,8 +126,8 @@ public class GitOpsValidateTest {
         var taskId = given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
@@ -108,8 +148,8 @@ public class GitOpsValidateTest {
         var taskId = given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
@@ -148,8 +188,8 @@ public class GitOpsValidateTest {
         var taskId = given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
@@ -202,8 +242,8 @@ public class GitOpsValidateTest {
         var taskId = given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
@@ -253,8 +293,8 @@ public class GitOpsValidateTest {
         final var taskId = given()
                 .contentType("application/json")
                 .body("""
-                        {"type": "pull", "repoId": "default", "ref": "main"}
-                        """)
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
                 .when()
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()

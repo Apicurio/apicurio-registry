@@ -11,6 +11,7 @@ permissions:
   contents: read
 
 env:
+  KUBERNETES_VERSION: v1.33.3
   # Operator/operand/gitops-sync: saved as artifacts, pushed to localhost:5000 in test shards.
   # Bundle/catalog: pushed to ttl.sh by build job (opm requires HTTPS for catalog-build).
   REGISTRY_APP_IMAGE: localhost:5000/apicurio-registry:${{ github.sha }}
@@ -24,6 +25,7 @@ jobs:
   operator-build:
     name: Build Operator
     runs-on: ubuntu-latest
+    timeout-minutes: 30  # longest green run, week to 2026-10-01: 8 min
     if: github.repository_owner == 'Apicurio' && !contains(github.event.*.labels.*.name, 'DO NOT MERGE')
     steps:
 
@@ -126,6 +128,7 @@ jobs:
   operator-test-local:
     name: Local Tests (${{ matrix.name }})
     runs-on: ubuntu-latest
+    timeout-minutes: 45  # longest green run, week to 2026-10-01: 21 min
     needs: operator-build
     # Same JUnit @Tag groups as Remote Tests below, minus the OLM ones — OLM
     # install/upgrade is a remote-cluster-only concept (subscribing to a
@@ -181,12 +184,17 @@ jobs:
 
 
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+      - name: Cache Kubernetes binaries with verified downloads
+        timeout-minutes: 20
+        run: bash .github/scripts/cache-kubernetes-binaries.sh "$KUBERNETES_VERSION"
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         id: minikube-setup
         continue-on-error: true
         timeout-minutes: 10
         with:
           driver: 'none'
+          kubernetes-version: ${{ env.KUBERNETES_VERSION }}
           ingress-enable: 'true'
           olm-enable: 'false'
           olm-v1-enable: 'false'
@@ -194,11 +202,12 @@ jobs:
       # medyagh/setup-minikube (invoked by the composite action) intermittently
       # fails with transient HTTP 504s while downloading; one retry absorbs it
       # instead of failing the whole job.
-      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         if: steps.minikube-setup.outcome == 'failure'
         timeout-minutes: 10
         with:
           driver: 'none'
+          kubernetes-version: ${{ env.KUBERNETES_VERSION }}
           ingress-enable: 'true'
           olm-enable: 'false'
           olm-v1-enable: 'false'
@@ -248,6 +257,7 @@ jobs:
   operator-test:
     name: Remote Tests (${{ matrix.name }})
     runs-on: ubuntu-latest
+    timeout-minutes: 60  # longest green run, week to 2026-10-01: 34 min
     needs: operator-build
     strategy:
       fail-fast: false
@@ -329,27 +339,53 @@ jobs:
 
       # driver=none: Kubernetes runs directly on the host, sharing all runner
       # resources (4 vCPU / 16 GB) and the host network (localhost:5000 registry).
-      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+      - name: Cache Kubernetes binaries with verified downloads
+        timeout-minutes: 20
+        run: bash .github/scripts/cache-kubernetes-binaries.sh "$KUBERNETES_VERSION"
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         id: minikube-setup
         continue-on-error: true
         timeout-minutes: 10
         with:
           driver: 'none'
+          kubernetes-version: ${{ env.KUBERNETES_VERSION }}
           ingress-enable: 'true'
           olm-enable: ${{ matrix.olm-enable }}
           olm-v1-enable: ${{ matrix.olm-v1-enable }}
           start-args: '--alsologtostderr --v=2'
 
+      # OLM v0's installer rejects an existing installation. Reuse it when healthy
+      # after an OLM v1 download failure; only remove an incomplete v0 installation.
+      # OLM v1 uses kubectl apply and can resume without deleting cert-manager/webhooks.
+      - name: Prepare OLM for Minikube setup retry
+        id: retry-olm
+        if: steps.minikube-setup.outcome == 'failure' && matrix.olm-enable == 'true'
+        timeout-minutes: 5
+        run: |
+          if ! kubectl cluster-info >/dev/null 2>&1; then
+            echo "install-v0=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if kubectl rollout status deployment/olm-operator -n olm --timeout=30s &&
+             kubectl rollout status deployment/catalog-operator -n olm --timeout=30s; then
+            echo "install-v0=false" >> "$GITHUB_OUTPUT"
+          else
+            kubectl delete namespace olm operators --ignore-not-found --timeout=180s
+            echo "install-v0=true" >> "$GITHUB_OUTPUT"
+          fi
+
       # medyagh/setup-minikube (invoked by the composite action) intermittently
       # fails with transient HTTP 504s while downloading; one retry absorbs it
       # instead of failing the whole job.
-      - uses: apicurio/apicurio-github-actions/setup-minikube@97d452c41f1abd7142c0ce2ac37e87922e35e71d # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
         if: steps.minikube-setup.outcome == 'failure'
         timeout-minutes: 10
         with:
           driver: 'none'
+          kubernetes-version: ${{ env.KUBERNETES_VERSION }}
           ingress-enable: 'true'
-          olm-enable: ${{ matrix.olm-enable }}
+          olm-enable: ${{ steps.retry-olm.outputs.install-v0 || matrix.olm-enable }}
           olm-v1-enable: ${{ matrix.olm-v1-enable }}
           start-args: '--alsologtostderr --v=2'
 
@@ -423,6 +459,7 @@ jobs:
   operator-check-install:
     name: Check Install File
     runs-on: ubuntu-latest
+    timeout-minutes: 15  # longest green run, week to 2026-10-01: 1 min
     needs: operator-build
     steps:
 
@@ -468,21 +505,46 @@ jobs:
   operator-publish:
     name: Publish Operator
     runs-on: ubuntu-latest
+    timeout-minutes: 20  # longest green run, week to 2026-10-01: 7 min
     needs: [operator-test, operator-check-install]
     if: inputs.publish
+    # One publish at a time per branch, as for Verify's images: a retried
+    # Verify run can reach this job while a newer run does (#10380).
+    concurrency:
+      group: ${{ github.workflow }}-publish-operator-${{ github.ref }}
+      cancel-in-progress: false
+      queue: max
     steps:
 
+      # The snapshot tag instead of x.y.z-snapshot: latest-snapshot from main,
+      # <branch>-snapshot from any other branch, as Verify tags its images.
+      # The operands are that branch's snapshot images too.
       - name: Configure env. variables
+        env:
+          SNAPSHOT_TAG: ${{ github.ref_name == 'main' && 'latest-snapshot' || format('{0}-snapshot', github.ref_name) }}
         run: |
-          # We want to use latest-snapshot instead of x.y.z-snapshot
-          echo "IMAGE_TAG=latest-snapshot" >> $GITHUB_ENV
-          echo "BUNDLE_IMAGE_TAG=latest-snapshot" >> $GITHUB_ENV
-          echo "CATALOG_IMAGE_TAG=latest-snapshot" >> $GITHUB_ENV
+          echo "SNAPSHOT_TAG=$SNAPSHOT_TAG" >> $GITHUB_ENV
+          echo "IMAGE_TAG=$SNAPSHOT_TAG" >> $GITHUB_ENV
+          echo "BUNDLE_IMAGE_TAG=$SNAPSHOT_TAG" >> $GITHUB_ENV
+          echo "CATALOG_IMAGE_TAG=$SNAPSHOT_TAG" >> $GITHUB_ENV
+          echo "OPERAND_IMAGE_TAG=$SNAPSHOT_TAG" >> $GITHUB_ENV
 
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # Publish only a commit newer than the one the snapshot tag was built
+      # from; every step below is skipped otherwise. The image name is the
+      # Makefile's IMAGE_REGISTRY/IMAGE_NAME. Checking the operator image is
+      # enough: the bundle and catalog are pushed after it, so they can't be
+      # newer.
+      - name: Compare with the published commit
+        id: guard
+        uses: ./.github/actions/newer-than-published
+        with:
+          images: quay.io/apicurio/apicurio-registry-3-operator:${{ env.SNAPSHOT_TAG }}
+
       - name: Set up JDK 21
+        if: steps.guard.outputs.publish == 'true'
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
           java-version: '21'
@@ -490,50 +552,43 @@ jobs:
           cache: maven
 
       - name: Build
+        if: steps.guard.outputs.publish == 'true'
         working-directory: operator
         run: |
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make BUILD_OPTS="--no-transfer-progress -Daether.syncContext.named.factory=noop" SKIP_TESTS=true build
 
       - name: Set up QEMU
+        if: steps.guard.outputs.publish == 'true'
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        if: steps.guard.outputs.publish == 'true'
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Login to quay.io registry
+        if: steps.guard.outputs.publish == 'true'
         run: |
           docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
       # TODO: Also push to DockerHub Registry
       - name: Build and publish operator image
+        if: steps.guard.outputs.publish == 'true'
         working-directory: operator
         run: |
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make image-buildx-push
 
       - name: Build and publish operator bundle
+        if: steps.guard.outputs.publish == 'true'
         working-directory: operator
         run: |
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make bundle
 
       - name: Build and publish operator catalog
+        if: steps.guard.outputs.publish == 'true'
         working-directory: operator
         run: |
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make catalog
-
-  # Slack notification using reusable workflow
-  notify-slack:
-    name: Slack Notification
-    needs: operator-publish
-    if: always() && inputs.publish
-    uses: ./.github/workflows/reusable-notify-slack.yaml
-    with:
-      workflow-name: ${{ github.workflow }}
-      job-name: 'operator-publish'
-      job-status: ${{ needs.operator-publish.result }}
-    secrets:
-      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
-      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

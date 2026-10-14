@@ -2,7 +2,7 @@ blank_issues_enabled: true
 contact_links:
   - name: "Usage question or help (CNCF Slack)"
     url: https://cloud-native.slack.com/archives/C0BDWTC1DTM
-    about: "Ask how-to and usage questions in the #apicurio channel on CNCF Slack. New to CNCF Slack? Join at https://slack.cncf.io first."
+    about: "Ask how-to and usage questions in the #apicurio-registry channel on CNCF Slack. New to CNCF Slack? Join at https://slack.cncf.io first."
   - name: "Questions and answers (GitHub Discussions)"
     url: https://github.com/Apicurio/apicurio-registry/discussions/categories/q-a
     about: "Search existing answers, or ask a question that stays findable for the next person. Best for configuration, deployment, and integration help."

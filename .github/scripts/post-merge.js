@@ -17,8 +17,14 @@
 // compares commits and ignores a result older than the one it would replace,
 // or one it can't order against it (see compare).
 //
-// Slack is sent by the workflow, from the outputs this sets: level, text and
-// link. See "Post-merge verification" in .github/workflows/README.md.
+// A confirmed break names its suspects: the PRs merged since the last green
+// commit. The issue lists them with who merged each; Slack mentions one merger
+// (it has a single mention slot) and names the rest. A failed lookup names
+// nobody rather than leaving the break unreported.
+//
+// Slack is sent by the workflow, from the outputs this sets: level, text,
+// link and mention. See "Post-merge verification" in
+// .github/workflows/README.md.
 
 const VERIFY_PATH = '.github/workflows/verify.yaml';
 const VERIFY_WORKFLOW_FILE = 'verify.yaml';
@@ -38,7 +44,16 @@ const BROKEN = new Set(['failure', 'timed_out', 'startup_failure']);
 
 // Verify Result only aggregates the jobs that actually failed.
 const AGGREGATE_JOBS = new Set(['Verify Result']);
-const MAX_JOBS_NAMED = 5;
+// How many jobs or suspects a message names before "and N more".
+const MAX_NAMED = 5;
+// Above this many commits since the last green one, nobody is named: the
+// range is too wide to point at anyone. It is also one page of compare.
+const MAX_SUSPECTS = 100;
+// Why nobody is named, in place of the suspects.
+const NOT_NAMED = {
+  tooMany: `more than ${MAX_SUSPECTS} changes since the last green commit`,
+  lookupFailed: 'they could not be looked up',
+};
 
 const STATE_RE = /<!-- post-merge-state (\{.*?\}) -->/;
 
@@ -81,6 +96,33 @@ function createApi(github, owner, repo) {
         if (e.status === 404 || e.status === 422) return null;
         throw e;
       }
+    },
+
+    // The commits after base up to head, oldest first, and how many there are
+    // in all. Null when GitHub can't compare them (see compare).
+    commitsBetween: async (base, head) => {
+      try {
+        const { data } = await github.rest.repos.compareCommitsWithBasehead({
+          owner, repo, basehead: `${base}...${head}`, per_page: MAX_SUSPECTS,
+        });
+        return { shas: data.commits.map(c => c.sha), total: data.total_commits };
+      } catch (e) {
+        if (e.status === 404 || e.status === 422) return null;
+        throw e;
+      }
+    },
+
+    // The PR a commit on branch came from, and who merged it. Null for a
+    // commit pushed directly, such as update-openapi.yaml's.
+    mergedPullRequest: async (sha, branch) => {
+      const { data } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+        owner, repo, commit_sha: sha,
+      });
+      const pr = data.find(p => p.merged_at && p.base.ref === branch);
+      if (!pr) return null;
+      // Only the single-PR endpoint says who merged it.
+      const { data: full } = await github.rest.pulls.get({ owner, repo, pull_number: pr.number });
+      return { number: full.number, url: full.html_url, mergedBy: full.merged_by?.login || null };
     },
 
     // The commit of the most recent successful push run, by file rather than
@@ -179,8 +221,12 @@ function duration(fromIso, now) {
 function jobList(names, code) {
   if (names.length === 0) return 'no job named';
   const wrap = code ? n => `\`${n}\`` : n => n;
-  const shown = names.slice(0, MAX_JOBS_NAMED).map(wrap).join(', ');
-  const rest = names.length - MAX_JOBS_NAMED;
+  return firstFew(names.map(wrap));
+}
+
+function firstFew(items) {
+  const shown = items.slice(0, MAX_NAMED).join(', ');
+  const rest = items.length - MAX_NAMED;
   return rest > 0 ? `${shown} and ${rest} more` : shown;
 }
 
@@ -211,7 +257,64 @@ async function failedJobs(api, run, attempt) {
     .map(j => j.name);
 }
 
-function issueBody(ctx, run, jobs, greenSha, state) {
+// ---------------------------------------------------------------------------
+// Suspects
+// ---------------------------------------------------------------------------
+
+// The commits that may have broken the branch, newest first, each with its PR
+// (null when pushed directly). Without a green commit to start from, or with
+// one GitHub can't compare, only the failing commit is known. A NOT_NAMED
+// reason instead when the range is too wide to name anyone (MAX_SUSPECTS).
+async function findSuspects(api, branch, sha, greenSha) {
+  const range = greenSha ? await api.commitsBetween(greenSha, sha) : null;
+  if (range && range.total > MAX_SUSPECTS) return NOT_NAMED.tooMany;
+  const shas = range?.shas.length ? [...range.shas].reverse() : [sha];
+  const suspects = [];
+  for (const s of shas) {
+    suspects.push({ sha: s, pr: await api.mergedPullRequest(s, branch) });
+  }
+  return suspects;
+}
+
+// Who to mention, most likely owner first: mergers by how many suspects each
+// merged, a tie going to whoever merged the newest. Authors are left out: the
+// merger knows whether to bring the author in.
+function mergersByCount(suspects) {
+  const mergers = [];
+  suspects.forEach(({ pr }, newest) => {
+    if (!pr?.mergedBy) return;
+    const known = mergers.find(m => m.login === pr.mergedBy);
+    if (known) known.count++;
+    else mergers.push({ login: pr.mergedBy, count: 1, newest });
+  });
+  return mergers
+    .sort((a, b) => b.count - a.count || a.newest - b.newest)
+    .map(m => m.login);
+}
+
+// "Suspects: <PR url> merged by alice, ...". Plain URLs, which Slack links:
+// the Workflow Builder webhook shows Slack markup literally.
+function suspectsText(ctx, suspects) {
+  if (!Array.isArray(suspects)) return `Suspects not named: ${suspects}`;
+  const items = suspects.map(({ sha, pr }) => {
+    if (!pr) return `${ctx.serverUrl}/${ctx.owner}/${ctx.repo}/commit/${sha} pushed directly`;
+    return pr.mergedBy ? `${pr.url} merged by ${pr.mergedBy}` : pr.url;
+  });
+  return `Suspects: ${firstFew(items)}`;
+}
+
+function suspectsTable(ctx, suspects) {
+  if (!Array.isArray(suspects)) return [`Suspects not named: ${suspects}.`];
+  return [
+    '| Suspect | Merged by |',
+    '|---|---|',
+    ...suspects.map(({ sha, pr }) => pr
+      ? `| #${pr.number} | ${pr.mergedBy ? `@${pr.mergedBy}` : 'unknown'} |`
+      : `| ${commitLink(ctx, sha)}, pushed directly | |`),
+  ];
+}
+
+function issueBody(ctx, run, jobs, greenSha, suspects, state) {
   const changes = greenSha
     ? `[changes since the last green commit, ${short(greenSha)}](${ctx.serverUrl}/${ctx.owner}/${ctx.repo}/compare/${greenSha}...${run.head_sha})`
     : 'no earlier green commit found';
@@ -222,8 +325,10 @@ function issueBody(ctx, run, jobs, greenSha, state) {
     '|---|---|',
     `| Failing run | [Verify #${run.run_number}](${run.html_url}) |`,
     `| Failed jobs | ${isStartupFailure(run) ? 'none, the run did not start' : jobList(jobs, true)} |`,
-    `| Suspects | ${changes} |`,
+    `| Changes | ${changes} |`,
     `| Broken since | ${state.since.replace('T', ' ').replace(/:\d\d(\.\d+)?Z$/, ' UTC')} |`,
+    '',
+    ...suspectsTable(ctx, suspects),
     '',
     `${MAINTAINERS_TEAM}: please find the cause, then fix it or revert it. This issue closes itself when Verify passes on \`${run.head_branch}\` again.`,
     '',
@@ -298,13 +403,20 @@ async function onRed(api, ctx, run, now, log) {
     return null;
   }
 
+  // Naming suspects must not stop the break from being reported: when a
+  // lookup fails, it goes out without them.
+  const suspects = await findSuspects(api, branch, sha, greenSha).catch(e => {
+    log.warning(`Could not look up the suspects: ${e.message}`);
+    return NOT_NAMED.lookupFailed;
+  });
   const state = { branch, lastRed: sha, since: now.toISOString() };
-  const issue = await api.createTrackingIssue(`\`${branch}\` is broken`, issueBody(ctx, run, jobs, greenSha, state));
+  const issue = await api.createTrackingIssue(`\`${branch}\` is broken`, issueBody(ctx, run, jobs, greenSha, suspects, state));
   log.info(`Opened #${issue.number}`);
   return {
     level: 'important',
-    text: `:rotating_light: ${branch} is broken: ${failureText(run, short(sha))}${isStartupFailure(run) ? '' : ` (${jobList(jobs, false)})`}. Tracking issue: #${issue.number}`,
+    text: `:rotating_light: ${branch} is broken: ${failureText(run, short(sha))}${isStartupFailure(run) ? '' : ` (${jobList(jobs, false)})`}. ${suspectsText(ctx, suspects)}. Tracking issue: #${issue.number}`,
     link: issue.html_url,
+    mention: Array.isArray(suspects) ? mergersByCount(suspects).join(',') : '',
   };
 }
 
@@ -361,6 +473,7 @@ async function handle({ github, context, core }) {
   core.setOutput('level', message?.level || '');
   core.setOutput('text', message?.text || '');
   core.setOutput('link', message?.link || '');
+  core.setOutput('mention', message?.mention || '');
 }
 
 module.exports = {

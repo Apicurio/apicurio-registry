@@ -29,6 +29,7 @@ permissions:
   actions: write   # re-run failed jobs
   contents: read   # compare commits
   issues: write    # tracking issue
+  pull-requests: read  # the PRs suspected of a break, and who merged them
 
 jobs:
   handle:
@@ -50,8 +51,7 @@ jobs:
             const handler = require('./.github/scripts/post-merge.js');
             await handler.handle({ github, context, core });
 
-      # Slack: see "Notifications" in .github/workflows/README.md. No mention
-      # (nor user-map) yet: a break has no owner until #10576 attributes it.
+      # Slack: see "Notifications" in .github/workflows/README.md.
       - name: Notify
         if: steps.handle.outputs.level != ''
         uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
@@ -59,5 +59,7 @@ jobs:
           level: ${{ steps.handle.outputs.level }}
           text: ${{ steps.handle.outputs.text }}
           link: ${{ steps.handle.outputs.link }}
+          mention: ${{ steps.handle.outputs.mention }}
+          user-map: ${{ secrets.SLACK_USER_MAP }}
           important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
           general-webhook: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

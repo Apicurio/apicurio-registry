@@ -1,6 +1,5 @@
 package io.apicurio.registry.cli;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.SearchedArtifact;
@@ -20,7 +19,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -86,7 +84,7 @@ public class SearchCommandTest extends AbstractCLITest {
     /** Adds a version whose content differs from {@code baseContent}, so it is never a duplicate. */
     private void createVersion(String group, String artifactId, String version, String baseContent)
             throws IOException {
-        var content = baseContent.replace("}", ", \"version\": \"" + version + "\"}");
+        var content = "{\"version\": \"" + version + "\", \"base\": " + baseContent + "}";
         executeAndAssertSuccess("artifact", "version", "create", "-g", group, "-a", artifactId,
                 "--file", contentFile(content).toString(), version);
         out.getBuffer().setLength(0);
@@ -150,9 +148,11 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testSearchGroupsNoResults() throws JsonProcessingException {
+    public void testSearchGroupsNoResults() throws Exception {
+        var group = "search-test-group-" + UUID.randomUUID();
+        executeAndAssertSuccess("group", "create", group);
         out.getBuffer().setLength(0);
-        executeAndAssertSuccess("search", "groups", "-g", "non-existent-group-xyz", "--output-type", "json");
+        executeAndAssertSuccess("search", "groups", "-g", group + "-nope", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
         assertThat(results.getGroups())
@@ -177,36 +177,57 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     public void testSearchGroupsPagination() throws Exception {
-        out.getBuffer().setLength(0);
-        executeAndAssertSuccess("search", "groups", "-p", "1", "-s", "1", "--output-type", "json");
-        var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
+        // the label filter keeps the CLI from injecting the implicit default group, so every page
+        // holds exactly the rows the server returned
+        var suffix = UUID.randomUUID().toString();
+        var label = "page=" + suffix;
+        for (var name : List.of("a", "b", "c")) {
+            executeAndAssertSuccess("group", "create", "-l", label, "search-page-" + name + "-" + suffix);
+        }
 
-        assertThat(results.getGroups())
-                .as(withCliOutput("Paginated search with limit=1 should return at most 2 results "
-                        + "(1 from server + the injected implicit default group)"))
-                .hasSizeLessThanOrEqualTo(2);
+        var seen = new ArrayList<String>();
+        for (var page : List.of("1", "2", "3")) {
+            out.getBuffer().setLength(0);
+            executeAndAssertSuccess("search", "groups", "-l", label, "-p", page, "-s", "1",
+                    "--output-type", "json");
+            var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
+
+            assertThat(results.getCount())
+                    .as(withCliOutput("The total must count all three groups on page " + page))
+                    .isEqualTo(3);
+            assertThat(results.getGroups())
+                    .as(withCliOutput("Page " + page + " of size 1 should hold exactly one group"))
+                    .hasSize(1);
+            seen.add(results.getGroups().get(0).getGroupId());
+        }
+        assertThat(seen)
+                .as(withCliOutput("The three pages should hold the three different groups, in default order"))
+                .containsExactly("search-page-a-" + suffix, "search-page-b-" + suffix,
+                        "search-page-c-" + suffix);
     }
 
     @Test
     public void testSearchGroupsOrderBy() throws Exception {
-        // two groups that share a label, so one filter finds exactly these two
+        // two groups that share a label, so one filter finds exactly these two. The second one
+        // created sorts first by name, so only CreatedOn (not the GroupId default) gives this order.
         var suffix = UUID.randomUUID().toString();
         var label = "order=" + suffix;
-        var ascending = List.of("search-order-a-" + suffix, "search-order-b-" + suffix);
+        var ascending = List.of("search-order-b-" + suffix, "search-order-a-" + suffix);
+        var descending = List.of(ascending.get(1), ascending.get(0));
         for (var groupId : ascending) {
             executeAndAssertSuccess("group", "create", "-l", label, groupId);
         }
-        var descending = new ArrayList<>(ascending);
-        Collections.reverse(descending);
+        // no label, so only the -l filter can leave it out
+        executeAndAssertSuccess("group", "create", "search-order-unlabeled-" + suffix);
 
         for (var direction : List.of("Asc", "Desc")) {
             out.getBuffer().setLength(0);
-            executeAndAssertSuccess("search", "groups", "--order-by", "GroupId", "--order", direction,
+            executeAndAssertSuccess("search", "groups", "--order-by", "CreatedOn", "--order", direction,
                     "-l", label, "--output-type", "json");
             var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
             assertThat(results.getGroups())
-                    .as(withCliOutput("Order by GroupId " + direction + " should list the two groups in that order"))
+                    .as(withCliOutput("Order by CreatedOn " + direction + " should list the two groups in that order"))
                     .extracting(SearchedGroup::getGroupId)
                     .containsExactlyElementsOf(direction.equals("Asc") ? ascending : descending);
         }
@@ -218,7 +239,8 @@ public class SearchCommandTest extends AbstractCLITest {
         executeAndAssertFailure("search", "groups", "--order-by", "INVALID");
         assertThat(err.toString())
                 .as(withCliOutput("An invalid --order-by value must be reported"))
-                .contains("--order-by");
+                .contains("Invalid value for option '--order-by'")
+                .contains("'INVALID'");
     }
 
     @Test
@@ -261,9 +283,9 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testSearchArtifactsNoResults() throws JsonProcessingException {
-        out.getBuffer().setLength(0);
-        executeAndAssertSuccess("search", "artifacts", "-a", "non-existent-artifact-xyz",
+    public void testSearchArtifactsNoResults() throws Exception {
+        var f = givenArtifact();
+        executeAndAssertSuccess("search", "artifacts", "-g", f.group(), "-a", f.artifactId() + "-nope",
                 "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
 
@@ -281,6 +303,7 @@ public class SearchCommandTest extends AbstractCLITest {
                 .as(withCliOutput("Table output should contain the header and only the fixture artifact"))
                 .contains("Group ID")
                 .contains("Artifact ID")
+                .contains(f.group())
                 .contains(f.artifactId())
                 .doesNotContain(siblings.otherArtifactId())
                 .doesNotContain(siblings.otherGroup());
@@ -354,9 +377,9 @@ public class SearchCommandTest extends AbstractCLITest {
     }
 
     @Test
-    public void testSearchVersionsNoResults() throws JsonProcessingException {
-        out.getBuffer().setLength(0);
-        executeAndAssertSuccess("search", "versions", "-a", "non-existent-artifact-xyz",
+    public void testSearchVersionsNoResults() throws Exception {
+        var f = givenArtifact();
+        executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId() + "-nope",
                 "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
 
@@ -375,6 +398,7 @@ public class SearchCommandTest extends AbstractCLITest {
                 .contains("Group ID")
                 .contains("Artifact ID")
                 .contains("Version")
+                .contains(f.group())
                 .contains(f.artifactId())
                 .doesNotContain(siblings.otherArtifactId())
                 .doesNotContain(siblings.otherGroup());
@@ -383,25 +407,24 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchVersionsByState() throws Exception {
         var f = givenArtifact();
+        createVersion(f.group(), f.artifactId(), "2", f.content());
         executeAndAssertSuccess("artifact", "version", "update", "-g", f.group(), "-a", f.artifactId(),
                 "--state", "DISABLED", "1");
         out.getBuffer().setLength(0);
 
-        executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId(),
-                "--state", "DISABLED", "--output-type", "json");
-        var disabled = MAPPER.readValue(out.toString(), VersionSearchResults.class);
-        assertThat(disabled.getVersions())
-                .as(withCliOutput("DISABLED filter should return the version that was disabled"))
-                .hasSize(1)
-                .allMatch(v -> VersionState.DISABLED.equals(v.getState()));
+        for (var state : List.of(VersionState.DISABLED, VersionState.ENABLED)) {
+            executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId(),
+                    "--state", state.name(), "--output-type", "json");
+            var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
+            out.getBuffer().setLength(0);
 
-        out.getBuffer().setLength(0);
-        executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId(),
-                "--state", "ENABLED", "--output-type", "json");
-        var enabled = MAPPER.readValue(out.toString(), VersionSearchResults.class);
-        assertThat(enabled.getVersions())
-                .as(withCliOutput("ENABLED filter should not return the disabled version"))
-                .isEmpty();
+            assertThat(results.getVersions())
+                    .as(withCliOutput(state + " filter should return only the version in that state"))
+                    .hasSize(1)
+                    .allMatch(v -> state.equals(v.getState()))
+                    .extracting(SearchedVersion::getVersion)
+                    .containsExactly(state == VersionState.DISABLED ? "1" : "2");
+        }
     }
 
     @Test
@@ -466,7 +489,7 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchArtifactsByLabel() throws Exception {
         var first = givenArtifact();
-        givenArtifact();
+        givenArtifact(); // decoy with a different label
         executeAndAssertSuccess("search", "artifacts", "-l", first.label(), "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
 
@@ -491,7 +514,8 @@ public class SearchCommandTest extends AbstractCLITest {
         executeAndAssertFailure("search", "versions", "--state", "INVALID");
         assertThat(err.toString())
                 .as(withCliOutput("An invalid --state value must be reported"))
-                .contains("--state");
+                .contains("Invalid value for option '--state'")
+                .contains("'INVALID'");
     }
 
     // -- Search by content --
@@ -499,7 +523,7 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchByContent() throws Exception {
         var first = givenArtifact();
-        givenArtifact();
+        givenArtifact(); // decoy with different content
         executeAndAssertSuccess("search", "content", "--output-type", "json",
                 "-f", contentFile(first.content()).toString());
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
@@ -529,8 +553,8 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     public void testSearchByContentNoMatch() throws Exception {
-        var file = contentFile("{\"type\": \"nonexistent-content-that-wont-match\"}");
-        out.getBuffer().setLength(0);
+        var f = givenArtifact();
+        var file = contentFile(f.content().replace("\"string\"", "\"number\""));
         executeAndAssertSuccess("search", "content", "--output-type", "json", "-f", file.toString());
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
 
@@ -551,7 +575,7 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchByContentStdin() throws Exception {
         var first = givenArtifact();
-        givenArtifact();
+        givenArtifact(); // decoy with different content
         final InputStream originalIn = System.in;
         try {
             System.setIn(new ByteArrayInputStream(

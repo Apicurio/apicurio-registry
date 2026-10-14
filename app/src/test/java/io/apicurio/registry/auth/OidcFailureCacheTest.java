@@ -499,16 +499,33 @@ class OidcFailureCacheTest {
 
     @Test
     void concurrentCallersShareOneFailedFetch() throws Exception {
+        verifyConcurrentFailure(true);
+    }
+
+    @Test
+    void concurrentNonCacheableFailureAllowsRetryAndRecovery() throws Exception {
+        verifyConcurrentFailure(false);
+    }
+
+    private void verifyConcurrentFailure(boolean cacheable) throws Exception {
         CountDownLatch fetchStarted = new CountDownLatch(1);
         CountDownLatch releaseFetch = new CountDownLatch(1);
         AtomicInteger fetchCount = new AtomicInteger();
 
-        OidcAuthException failure = new OidcAuthException("Token server unavailable");
+        RuntimeException failure = cacheable
+                ? new OidcAuthException("Token server unavailable")
+                : new IllegalStateException("Unexpected token fetch failure");
         AppAuthenticationMechanism parent = mock(AppAuthenticationMechanism.class);
 
         when(parent.getAccessToken(any(Pair.class), anyString()))
                 .thenAnswer(invocation -> {
-                    fetchCount.incrementAndGet();
+                    int attempt = fetchCount.incrementAndGet();
+
+                    if (!cacheable && attempt > 1) {
+                        return new WrappedValue<>(
+                                Duration.ofMinutes(10), Instant.now(), "recovered-token");
+                    }
+
                     fetchStarted.countDown();
                     assertTrue(releaseFetch.await(10, TimeUnit.SECONDS),
                             "The test did not release the fetch");
@@ -571,13 +588,41 @@ class OidcFailureCacheTest {
             assertSame(failure, creatorOutcome.get());
             assertSame(failure, joinerOutcome.get());
 
-            // A later request must also reuse the recorded failure.
-            assertSame(failure, assertThrows(OidcAuthException.class,
-                    () -> strategy.authenticateWithClientCredentials(
-                            credentials, createMockRoutingContext(), manager)));
-
             assertEquals(1, fetchCount.get(),
-                    "Concurrent and later callers must share one failed fetch");
+                    "Both concurrent callers must share the first fetch");
+
+            if (cacheable) {
+                // A later caller receives the cached failure without another fetch.
+                assertSame(failure, assertThrows(OidcAuthException.class,
+                        () -> strategy.authenticateWithClientCredentials(
+                                credentials, createMockRoutingContext(), manager)));
+
+                assertEquals(1, fetchCount.get(),
+                        "A cached failure must prevent another fetch");
+            } else {
+                // Neither the creator nor the joiner may cache this failure.
+                assertTrue(strategy.credentialStates.isEmpty(),
+                        "A non-cacheable failure must leave no cache entry");
+
+                RoutingContext retryContext = createMockRoutingContext();
+                strategy.authenticateWithClientCredentials(
+                        credentials, retryContext, manager);
+
+                assertEquals(2, fetchCount.get(),
+                        "A later caller must make a fresh fetch");
+                assertEquals("Bearer recovered-token",
+                        retryContext.request().headers().get("Authorization"));
+
+                // Once recovery succeeds, subsequent callers should reuse its token.
+                RoutingContext cachedContext = createMockRoutingContext();
+                strategy.authenticateWithClientCredentials(
+                        credentials, cachedContext, manager);
+
+                assertEquals(2, fetchCount.get(),
+                        "The recovered token should be reused");
+                assertEquals("Bearer recovered-token",
+                        cachedContext.request().headers().get("Authorization"));
+            }
         } finally {
             releaseFetch.countDown();
             creator.interrupt();

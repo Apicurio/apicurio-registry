@@ -45,6 +45,9 @@ public class FileDescriptorUtils {
     private static final String DEPRECATED_OPTION = "deprecated";
     private static final String OPTIONAL = "optional";
 
+    private static final int MAX_FIELD_NUMBER = 536870911;
+    private static final int MAX_EXCLUSIVE_END = 536870912;
+
     // field options
     private static final String PACKED_OPTION = "packed";
     private static final String JSON_NAME_OPTION = "json_name";
@@ -944,15 +947,19 @@ public class FileDescriptorUtils {
                 }
                 else if (elem instanceof Integer) {
                     int tag = (Integer) elem;
-                    DescriptorProto.ReservedRange.Builder rangeBuilder = DescriptorProto.ReservedRange
-                            .newBuilder().setStart(tag).setEnd(tag + 1);
-                    message.protoBuilder().addReservedRange(rangeBuilder.build());
+                    if (tag <= MAX_FIELD_NUMBER) {
+                        DescriptorProto.ReservedRange.Builder rangeBuilder = DescriptorProto.ReservedRange
+                                .newBuilder().setStart(tag).setEnd(toExclusiveEnd(tag));
+                        message.protoBuilder().addReservedRange(rangeBuilder.build());
+                    }
                 }
                 else if (elem instanceof IntRange) {
                     IntRange range = (IntRange) elem;
-                    DescriptorProto.ReservedRange.Builder rangeBuilder = DescriptorProto.ReservedRange
-                            .newBuilder().setStart(range.getStart()).setEnd(range.getEndInclusive() + 1);
-                    message.protoBuilder().addReservedRange(rangeBuilder.build());
+                    if (range.getStart() <= MAX_FIELD_NUMBER) {
+                        DescriptorProto.ReservedRange.Builder rangeBuilder = DescriptorProto.ReservedRange
+                                .newBuilder().setStart(range.getStart()).setEnd(toExclusiveEnd(range.getEndInclusive()));
+                        message.protoBuilder().addReservedRange(rangeBuilder.build());
+                    }
                 }
                 else {
                     throw new IllegalStateException(
@@ -998,6 +1005,13 @@ public class FileDescriptorUtils {
         message.protoBuilder().addAllNestedType(allNestedTypes.values());
         message.protoBuilder().addAllField(allFields);
         return message.build();
+    }
+
+    private static int toExclusiveEnd(int endInclusive) {
+        if (endInclusive >= MAX_FIELD_NUMBER) {
+            return MAX_EXCLUSIVE_END;
+        }
+        return endInclusive + 1;
     }
 
     private static String determineFieldType(ProtoType protoType, Schema schema) {
@@ -1766,11 +1780,15 @@ public class FileDescriptorUtils {
                 }
                 else if (elem instanceof Integer) {
                     int tag = (Integer) elem;
-                    message.addReservedRange(tag, tag);
+                    if (tag <= MAX_FIELD_NUMBER) {
+                        message.addReservedRange(tag, toExclusiveEnd(tag));
+                    }
                 }
                 else if (elem instanceof IntRange) {
                     IntRange range = (IntRange) elem;
-                    message.addReservedRange(range.getStart(), range.getEndInclusive());
+                    if (range.getStart() <= MAX_FIELD_NUMBER) {
+                        message.addReservedRange(range.getStart(), toExclusiveEnd(range.getEndInclusive()));
+                    }
                 }
                 else {
                     throw new IllegalStateException(

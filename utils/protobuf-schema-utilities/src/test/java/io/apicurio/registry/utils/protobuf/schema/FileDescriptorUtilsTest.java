@@ -49,6 +49,7 @@ import java.util.Base64;
 
 import static com.google.common.truth.extensions.proto.ProtoTruth.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -672,5 +673,181 @@ public class FileDescriptorUtilsTest {
         assertEquals("google.protobuf.Value",
                 metadata.getMessageType().findFieldByName("value").getMessageType().getFullName());
         assertTrue(descriptor.findFieldByName("labels").isMapField());
+    }
+
+    @Test
+    public void testReservedRangeIntegerMaxOverflow() throws Exception {
+        String schema = """
+                syntax = "proto3";
+                package test.reserved;
+                message M {
+                  int32 a = 1;
+                  reserved 20 to 2147483647;
+                }
+                """;
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema,
+                "test_overflow.proto", Optional.of("test.reserved"));
+        Descriptors.Descriptor desc = fd.getMessageTypes().get(0);
+        assertEquals(1, desc.toProto().getReservedRangeCount());
+        DescriptorProtos.DescriptorProto.ReservedRange range = desc.toProto().getReservedRange(0);
+
+        assertEquals(20, range.getStart());
+        assertEquals(536870912, range.getEnd());
+        assertTrue(range.getEnd() > 0);
+        assertTrue(range.getEnd() > range.getStart());
+
+        assertTrue(desc.isReservedNumber(20));
+        assertTrue(desc.isReservedNumber(100));
+        assertTrue(desc.isReservedNumber(536870911));
+        assertFalse(desc.isReservedNumber(19));
+        assertFalse(desc.isReservedNumber(536870912));
+
+        ProtoFileElement pfe = ProtobufFile.toProtoFileElement(schema);
+        Descriptors.Descriptor dynamicDesc = FileDescriptorUtils.toDescriptor("M", pfe, Collections.emptyMap());
+        assertEquals(1, dynamicDesc.toProto().getReservedRangeCount());
+        DescriptorProtos.DescriptorProto.ReservedRange dynamicRange = dynamicDesc.toProto().getReservedRange(0);
+        assertEquals(20, dynamicRange.getStart());
+        assertEquals(536870912, dynamicRange.getEnd());
+        assertTrue(dynamicDesc.isReservedNumber(20));
+        assertTrue(dynamicDesc.isReservedNumber(100));
+        assertTrue(dynamicDesc.isReservedNumber(536870911));
+        assertFalse(dynamicDesc.isReservedNumber(19));
+        assertFalse(dynamicDesc.isReservedNumber(536870912));
+    }
+
+    @Test
+    public void testReservedRangeBeyondLegalFieldNumber() throws Exception {
+        String schema = """
+                syntax = "proto3";
+                package test.reserved;
+                message M {
+                  int32 a = 1;
+                  reserved 536870912 to 536870920;
+                }
+                """;
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema,
+                "test_beyond.proto", Optional.of("test.reserved"));
+        Descriptors.Descriptor desc = fd.getMessageTypes().get(0);
+        assertEquals(0, desc.toProto().getReservedRangeCount());
+        assertFalse(desc.isReservedNumber(536870911));
+        assertFalse(desc.isReservedNumber(536870912));
+        assertFalse(desc.isReservedNumber(536870920));
+
+        ProtoFileElement pfe = ProtobufFile.toProtoFileElement(schema);
+        Descriptors.Descriptor dynamicDesc = FileDescriptorUtils.toDescriptor("M", pfe, Collections.emptyMap());
+        assertEquals(0, dynamicDesc.toProto().getReservedRangeCount());
+        assertFalse(dynamicDesc.isReservedNumber(536870911));
+        assertFalse(dynamicDesc.isReservedNumber(536870912));
+        assertFalse(dynamicDesc.isReservedNumber(536870920));
+    }
+
+    @Test
+    public void testReservedRangeToMax() throws Exception {
+        String schema = """
+                syntax = "proto3";
+                package test.reserved;
+                message M {
+                  int32 a = 1;
+                  reserved 20 to max;
+                }
+                """;
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema,
+                "test_max.proto", Optional.of("test.reserved"));
+        Descriptors.Descriptor desc = fd.getMessageTypes().get(0);
+        assertEquals(1, desc.toProto().getReservedRangeCount());
+        DescriptorProtos.DescriptorProto.ReservedRange range = desc.toProto().getReservedRange(0);
+
+        assertEquals(20, range.getStart());
+        assertEquals(536870912, range.getEnd());
+        assertTrue(desc.isReservedNumber(20));
+        assertTrue(desc.isReservedNumber(536870911));
+        assertFalse(desc.isReservedNumber(19));
+        assertFalse(desc.isReservedNumber(536870912));
+
+        ProtoFileElement pfe = ProtobufFile.toProtoFileElement(schema);
+        Descriptors.Descriptor dynamicDesc = FileDescriptorUtils.toDescriptor("M", pfe, Collections.emptyMap());
+        assertEquals(1, dynamicDesc.toProto().getReservedRangeCount());
+        DescriptorProtos.DescriptorProto.ReservedRange dynamicRange = dynamicDesc.toProto().getReservedRange(0);
+        assertEquals(20, dynamicRange.getStart());
+        assertEquals(536870912, dynamicRange.getEnd());
+        assertTrue(dynamicDesc.isReservedNumber(20));
+        assertTrue(dynamicDesc.isReservedNumber(536870911));
+        assertFalse(dynamicDesc.isReservedNumber(19));
+        assertFalse(dynamicDesc.isReservedNumber(536870912));
+    }
+
+    @Test
+    public void testSingleReservedTag() throws Exception {
+        String schema = """
+                syntax = "proto3";
+                package test.reserved;
+                message M {
+                  int32 a = 1;
+                  reserved 5;
+                  reserved 536870912;
+                }
+                """;
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema,
+                "test_single.proto", Optional.of("test.reserved"));
+        Descriptors.Descriptor desc = fd.getMessageTypes().get(0);
+        assertEquals(1, desc.toProto().getReservedRangeCount());
+        DescriptorProtos.DescriptorProto.ReservedRange range = desc.toProto().getReservedRange(0);
+
+        assertEquals(5, range.getStart());
+        assertEquals(6, range.getEnd());
+        assertTrue(desc.isReservedNumber(5));
+        assertFalse(desc.isReservedNumber(4));
+        assertFalse(desc.isReservedNumber(6));
+        assertFalse(desc.isReservedNumber(536870912));
+
+        ProtoFileElement pfe = ProtobufFile.toProtoFileElement(schema);
+        Descriptors.Descriptor dynamicDesc = FileDescriptorUtils.toDescriptor("M", pfe, Collections.emptyMap());
+        assertEquals(1, dynamicDesc.toProto().getReservedRangeCount());
+        DescriptorProtos.DescriptorProto.ReservedRange dynamicRange = dynamicDesc.toProto().getReservedRange(0);
+        assertEquals(5, dynamicRange.getStart());
+        assertEquals(6, dynamicRange.getEnd());
+        assertTrue(dynamicDesc.isReservedNumber(5));
+        assertFalse(dynamicDesc.isReservedNumber(4));
+        assertFalse(dynamicDesc.isReservedNumber(6));
+        assertFalse(dynamicDesc.isReservedNumber(536870912));
+    }
+
+    @Test
+    public void testReservedRangesCombinedIssue10561() throws Exception {
+        String schema = """
+                syntax = "proto3";
+                package test.reserved;
+                message M {
+                  int32 a = 1;
+                  reserved 20 to 2147483647;
+                  reserved 536870912 to 536870920;
+                }
+                """;
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(schema,
+                "test_combined.proto", Optional.of("test.reserved"));
+        Descriptors.Descriptor desc = fd.getMessageTypes().get(0);
+
+        assertEquals(1, desc.toProto().getReservedRangeCount());
+        DescriptorProtos.DescriptorProto.ReservedRange range0 = desc.toProto().getReservedRange(0);
+        assertEquals(20, range0.getStart());
+        assertEquals(536870912, range0.getEnd());
+
+        assertTrue(desc.isReservedNumber(20));
+        assertTrue(desc.isReservedNumber(100));
+        assertTrue(desc.isReservedNumber(536870911));
+        assertFalse(desc.isReservedNumber(19));
+        assertFalse(desc.isReservedNumber(536870912));
+
+        ProtoFileElement pfe = ProtobufFile.toProtoFileElement(schema);
+        Descriptors.Descriptor dynamicDesc = FileDescriptorUtils.toDescriptor("M", pfe, Collections.emptyMap());
+        assertEquals(1, dynamicDesc.toProto().getReservedRangeCount());
+        DescriptorProtos.DescriptorProto.ReservedRange dynamicRange0 = dynamicDesc.toProto().getReservedRange(0);
+        assertEquals(20, dynamicRange0.getStart());
+        assertEquals(536870912, dynamicRange0.getEnd());
+        assertTrue(dynamicDesc.isReservedNumber(20));
+        assertTrue(dynamicDesc.isReservedNumber(100));
+        assertTrue(dynamicDesc.isReservedNumber(536870911));
+        assertFalse(dynamicDesc.isReservedNumber(19));
+        assertFalse(dynamicDesc.isReservedNumber(536870912));
     }
 }

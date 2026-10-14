@@ -34,6 +34,8 @@ import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
@@ -338,6 +340,23 @@ public abstract class ReadOnlyDelegatingStorage implements RegistryStorage {
     @Override
     public PeerSearchResultsDto searchPeers(int offset, int limit) throws RegistryStorageException {
         return delegate.searchPeers(offset, limit);
+    }
+
+    @Override
+    public boolean isWebhookManagementSupported() {
+        return delegate.isWebhookManagementSupported();
+    }
+
+    @Override
+    public WebhookSubscriptionDto getWebhookSubscription(String subscriptionId)
+            throws RegistryStorageException {
+        return delegate.getWebhookSubscription(subscriptionId);
+    }
+
+    @Override
+    public WebhookSubscriptionSearchResultsDto searchWebhookSubscriptions(int offset, int limit)
+            throws RegistryStorageException {
+        return delegate.searchWebhookSubscriptions(offset, limit);
     }
 
     @Override

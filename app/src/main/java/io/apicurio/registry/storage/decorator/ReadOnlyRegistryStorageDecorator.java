@@ -335,6 +335,24 @@ public class ReadOnlyRegistryStorageDecorator extends RegistryStorageDecoratorBa
         delegate.deletePeer(peerId);
     }
 
+    public WebhookSubscriptionDto createWebhookSubscription(WebhookSubscriptionDto subscription)
+            throws RegistryStorageException {
+        checkReadOnly();
+        return delegate.createWebhookSubscription(subscription);
+    }
+
+    public WebhookSubscriptionDto updateWebhookSubscription(String subscriptionId, long expectedRevision,
+            WebhookSubscriptionDto subscription) throws RegistryStorageException {
+        checkReadOnly();
+        return delegate.updateWebhookSubscription(subscriptionId, expectedRevision, subscription);
+    }
+
+    public void softDeleteWebhookSubscription(String subscriptionId, long expectedRevision)
+            throws RegistryStorageException {
+        checkReadOnly();
+        delegate.softDeleteWebhookSubscription(subscriptionId, expectedRevision);
+    }
+
     public void deleteAllUserData() throws RegistryStorageException {
         checkReadOnly();
         delegate.deleteAllUserData();

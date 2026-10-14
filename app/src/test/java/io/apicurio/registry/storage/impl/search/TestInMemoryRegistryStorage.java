@@ -42,6 +42,8 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.CommitFailedException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
@@ -628,6 +630,37 @@ public class TestInMemoryRegistryStorage implements RegistryStorage {
 
     @Override
     public void deletePeer(String peerId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isWebhookManagementSupported() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public WebhookSubscriptionDto createWebhookSubscription(WebhookSubscriptionDto subscription) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public WebhookSubscriptionDto getWebhookSubscription(String subscriptionId) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public WebhookSubscriptionSearchResultsDto searchWebhookSubscriptions(int offset, int limit) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public WebhookSubscriptionDto updateWebhookSubscription(String subscriptionId, long expectedRevision,
+            WebhookSubscriptionDto subscription) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void softDeleteWebhookSubscription(String subscriptionId, long expectedRevision) {
         throw new UnsupportedOperationException();
     }
 

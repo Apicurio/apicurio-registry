@@ -42,6 +42,8 @@ import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.dto.VersionContentDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.CommitFailedException;
@@ -1010,6 +1012,59 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param peerId
      */
     void deletePeer(String peerId) throws RegistryStorageException;
+
+    /**
+     * Whether this storage can manage webhook subscriptions. Only SQL storage can; every other variant
+     * throws {@link io.apicurio.registry.storage.error.WebhookStorageNotSupportedException} from the
+     * webhook subscription methods below. The REST layer checks this before calling them.
+     */
+    boolean isWebhookManagementSupported();
+
+    /**
+     * Creates a webhook subscription. The stored subscription starts at revision 1.
+     *
+     * @param subscription
+     * @return the stored subscription
+     */
+    WebhookSubscriptionDto createWebhookSubscription(WebhookSubscriptionDto subscription)
+            throws RegistryStorageException;
+
+    /**
+     * Gets a single webhook subscription that has not been deleted.
+     *
+     * @param subscriptionId
+     */
+    WebhookSubscriptionDto getWebhookSubscription(String subscriptionId) throws RegistryStorageException;
+
+    /**
+     * Search webhook subscriptions that have not been deleted, ordered by creation time.
+     *
+     * @param offset the number of subscriptions to skip
+     * @param limit the maximum number of subscriptions to return
+     */
+    WebhookSubscriptionSearchResultsDto searchWebhookSubscriptions(int offset, int limit)
+            throws RegistryStorageException;
+
+    /**
+     * Replaces the mutable fields of a webhook subscription, if its revision still equals
+     * {@code expectedRevision}.
+     *
+     * @param subscriptionId
+     * @param expectedRevision
+     * @param subscription
+     * @return the updated subscription
+     */
+    WebhookSubscriptionDto updateWebhookSubscription(String subscriptionId, long expectedRevision,
+            WebhookSubscriptionDto subscription) throws RegistryStorageException;
+
+    /**
+     * Soft-deletes a webhook subscription, if its revision still equals {@code expectedRevision}.
+     *
+     * @param subscriptionId
+     * @param expectedRevision
+     */
+    void softDeleteWebhookSubscription(String subscriptionId, long expectedRevision)
+            throws RegistryStorageException;
 
     /**
      * Deletes ALL user data. Does not delete global data, such as log configuration.

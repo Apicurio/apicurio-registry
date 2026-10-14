@@ -671,6 +671,20 @@ public interface SqlStatements {
 
     public String selectPeerCountById();
 
+    public String insertWebhookSubscription();
+
+    public String selectWebhookSubscriptionById();
+
+    public String selectActiveWebhookSubscriptionCountById();
+
+    public String selectWebhookSubscriptions();
+
+    public String countWebhookSubscriptions();
+
+    public String updateWebhookSubscription();
+
+    public String softDeleteWebhookSubscription();
+
     /*
      * The next few statements support group rule management.
      */

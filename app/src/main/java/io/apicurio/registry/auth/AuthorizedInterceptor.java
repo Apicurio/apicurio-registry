@@ -14,9 +14,12 @@ import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.slf4j.Logger;
 
 /**
- * This class implements authorization logic for the registry. It is driven by a combination of the security
- * identity (authenticated user) and configured security level of the operation the user is attempting to
- * perform. This interceptor will be triggered for any method that is annotated with the {@link Authorized}
+ * This class implements authorization logic for the registry. It is driven by a
+ * combination of the security
+ * identity (authenticated user) and configured security level of the operation
+ * the user is attempting to
+ * perform. This interceptor will be triggered for any method that is annotated
+ * with the {@link Authorized}
  * annotation. Please ensure that all JAX-RS operations are propertly annotated.
  */
 @Authorized
@@ -25,6 +28,8 @@ import org.slf4j.Logger;
 public class AuthorizedInterceptor {
 
     static final String FORBIDDEN_MESSAGE = "User is not authorized to perform the requested operation.";
+
+    static final String WEBHOOK_MANAGEMENT_NOT_ENFORCED_MESSAGE = "Webhook management requires enforced administrator authorization.";
 
     @Inject
     Logger log;
@@ -60,6 +65,13 @@ public class AuthorizedInterceptor {
                         "Access to /admin/roleMappings denied because application managed RBAC is not enabled.");
                 throw new ForbiddenException("Application RBAC not enabled.");
             }
+        }
+
+        // Webhook management is decided here, before the trusted-proxy and
+        // auth-disabled shortcuts
+        // below, so neither of them can let a caller through.
+        if (context.getMethod().isAnnotationPresent(WebhookManagementApiOperation.class)) {
+            return authorizeWebhookManagement(context);
         }
 
         // If proxy authorization is trusted, skip local authorization checks
@@ -122,14 +134,16 @@ public class AuthorizedInterceptor {
             return context.proceed();
         }
 
-        // If the user is an admin (via the admin-override check) then there's no need to
+        // If the user is an admin (via the admin-override check) then there's no need
+        // to
         // check rbac or obac.
         if (adminOverride.isAdmin()) {
             log.trace("Admin override successful.");
             return context.proceed();
         }
 
-        // If Authenticated read access is enabled, and the operation auth level is Read, allow it.
+        // If Authenticated read access is enabled, and the operation auth level is
+        // Read, allow it.
         if (authConfig.authenticatedReadAccessEnabled.get() && annotation.level() == AuthorizedLevel.Read) {
             return context.proceed();
         }
@@ -153,5 +167,26 @@ public class AuthorizedInterceptor {
         }
 
         return context.proceed();
+    }
+
+    private Object authorizeWebhookManagement(InvocationContext context) throws Exception {
+        boolean adminDecidable = authConfig.roleBasedAuthorizationEnabled || authConfig.adminOverrideEnabled;
+        if (!authConfig.isAuthenticationEnabled() || !adminDecidable) {
+            log.warn("Webhook management denied: administrator authorization is not enforced.");
+            throw new ForbiddenException(WEBHOOK_MANAGEMENT_NOT_ENFORCED_MESSAGE);
+        }
+
+        if (securityIdentity == null || securityIdentity.isAnonymous()) {
+            log.warn("Authentication credentials missing and required for webhook management.");
+            throw new UnauthorizedException("User is not authenticated.");
+        }
+
+        if (adminOverride.isAdmin()
+                || (authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin())) {
+            return context.proceed();
+        }
+
+        log.warn("Webhook management denied: caller is not an administrator.");
+        throw new ForbiddenException(FORBIDDEN_MESSAGE);
     }
 }

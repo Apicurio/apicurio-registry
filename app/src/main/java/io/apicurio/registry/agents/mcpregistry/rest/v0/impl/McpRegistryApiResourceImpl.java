@@ -483,6 +483,9 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         boolean exists = artifactExists(name);
         if (exists) {
             requireServerArtifact(name);
+        } else {
+            // Publishing a new server creates an artifact, which needs write access to its group too
+            accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.group(name.namespace()));
         }
 
         String version = data.getVersion();

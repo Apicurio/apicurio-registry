@@ -3,6 +3,9 @@ package io.apicurio.registry.agents.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedResource;
+import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.extensions.ArtifactVersionWriteHook;
@@ -47,9 +50,20 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
     @Inject
     Logger log;
 
+    @Inject
+    ResourceAccessGuard accessGuard;
+
     @Override
     public ContentWrapperDto prepareContent(VersionWriteContext context, TypedContent content) {
         String contentType = content.getContentType();
+        // The extracted schemas are written as separate artifacts (created, or given a new version).
+        // Check them all before writing any, so a forbidden target fails the request without side
+        // effects instead of being written on behalf of a caller who may not write it directly.
+        for (String target : embeddedSchemaArtifactIds(context.getArtifactType(),
+                context.getGa().getRawArtifactId(), content)) {
+            accessGuard.requireGrantsAccess(AuthorizedLevel.Write,
+                    AuthorizedResource.artifact(context.getGa().getRawGroupIdWithNull(), target));
+        }
         if (ArtifactType.MODEL_SCHEMA.equals(context.getArtifactType())) {
             return extractModelSchemaEmbeddedSchemas(context.getStorage(), context.getGa().getRawGroupIdWithNull(),
                     context.getGa().getRawArtifactId(), content.getContent(), contentType, context.getOwner());
@@ -59,6 +73,38 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
                     context.getGa().getRawArtifactId(), content.getContent(), contentType, context.getOwner());
         }
         return null;
+    }
+
+    /**
+     * @return the IDs of the artifacts the embedded schemas of this content would be registered as,
+     *         using the same conditions as the extraction; empty if nothing would be extracted
+     */
+    List<String> embeddedSchemaArtifactIds(String artifactType, String artifactId, TypedContent content) {
+        List<String> fields;
+        if (ArtifactType.MODEL_SCHEMA.equals(artifactType)) {
+            fields = List.of("input", "output");
+        } else if (ArtifactType.PROMPT_TEMPLATE.equals(artifactType)) {
+            fields = List.of("outputSchema");
+        } else {
+            return List.of();
+        }
+        JsonNode root;
+        try {
+            root = parseContent(content.getContent().content(), content.getContentType());
+        } catch (Exception e) {
+            // Unparseable content: nothing is extracted
+            return List.of();
+        }
+        if (root == null || !root.isObject()) {
+            return List.of();
+        }
+        List<String> ids = new ArrayList<>();
+        for (String field : fields) {
+            if (root.has(field) && root.get(field).isObject() && hasSchemaProperties(root.get(field))) {
+                ids.add(artifactId + ("input".equals(field) ? "-input-schema" : "-output-schema"));
+            }
+        }
+        return ids;
     }
 
     /**

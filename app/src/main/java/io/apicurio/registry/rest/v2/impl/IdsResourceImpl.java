@@ -4,6 +4,7 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.ISearchAuthorizer;
+import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
@@ -46,6 +47,9 @@ public class IdsResourceImpl implements IdsResource {
     @Inject
     @Current
     RegistryStorage storage;
+
+    @Inject
+    protected ResourceAccessGuard accessGuard;
 
     @Inject
     ISearchAuthorizer searchAuthorizer;
@@ -101,14 +105,14 @@ public class IdsResourceImpl implements IdsResource {
             if (artifactTypeProvider.supportsReferencesWithContext()) {
                 RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
                         .recursivelyResolveReferencesWithContext(factory, contentToReturn, metaData.getArtifactType(),
-                                artifact.getReferences(), storage::getContentByReference);
+                                artifact.getReferences(), accessGuard.referenceLoader());
 
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
                         rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
             } else {
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(contentToReturn,
                         RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(),
-                                storage::getContentByReference));
+                                accessGuard.referenceLoader()));
             }
         }
 

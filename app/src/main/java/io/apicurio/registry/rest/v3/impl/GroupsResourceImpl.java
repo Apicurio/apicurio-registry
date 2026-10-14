@@ -6,7 +6,6 @@ import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.auth.OwnershipTransferAuthorizer;
-import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.storage.dto.PromotionStage;
@@ -204,8 +203,6 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Inject
     ISearchAuthorizer searchAuthorizer;
 
-    @Inject
-    ResourceAccessGuard accessGuard;
 
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
@@ -1074,7 +1071,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (Boolean.TRUE.equals(canonical)) {
             Map<String, TypedContent> resolvedReferences = RegistryContentUtils
                     .recursivelyResolveReferences(artifactCell.get().getReferences(),
-                            storage::getContentByReference);
+                            accessGuard.referenceLoader());
             contentToReturn = contentUtils.canonicalizeContent(metaData.getArtifactType(),
                     contentToReturn, resolvedReferences);
         }
@@ -1264,7 +1261,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),
                     gav.getRawArtifactId(), gav.getRawVersionId());
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                    .recursivelyResolveReferences(artifact.getReferences(), storage::getContentByReference);
+                    .recursivelyResolveReferences(artifact.getReferences(), accessGuard.referenceLoader());
             final List<ArtifactReference> references = V3ApiUtil
                     .referenceDtosToReferences(artifact.getReferences());
 
@@ -1576,7 +1573,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
                 // Try to resolve the references
                 final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                        .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+                        .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
                 // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
                 TypedContent effectiveTypedContent = TypedContent.create(effectiveContent, effectiveContentType);
@@ -1710,7 +1707,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
             // Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+                    .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
             TypedContent typedContent = TypedContent.create(effectiveContent, effectiveContentType);
             rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
@@ -2028,7 +2025,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Apply rules only if not a draft version (unless draft production mode is enabled)
         if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+                    .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
             final TypedContent typedContent = TypedContent.create(content, contentType);
             rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
                     typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);

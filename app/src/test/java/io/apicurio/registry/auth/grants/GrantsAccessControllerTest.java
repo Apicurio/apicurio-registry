@@ -8,7 +8,9 @@ import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.kroxylicious.identity.Subject;
 import io.quarkus.security.runtime.QuarkusPrincipal;
 import io.quarkus.security.runtime.QuarkusSecurityIdentity;
@@ -44,6 +46,10 @@ public class GrantsAccessControllerTest {
               "grants": [
                 {"principal_role": "team-a-dev", "operation": "write", "resource_type": "artifact",
                  "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
+                {"principal_role": "team-a-dev", "operation": "read", "resource_type": "artifact",
+                 "resource_pattern_type": "exact", "resource_pattern": "team-a/victim", "deny": true},
+                {"principal_role": "team-a-dev", "operation": "read", "resource_type": "group",
+                 "resource_pattern_type": "exact", "resource_pattern": "TEAM-C"},
                 {"principal_role": "team-a-dev", "operation": "read", "resource_type": "group",
                  "resource_pattern_type": "exact", "resource_pattern": "team-a"},
                 {"principal": "alice", "operation": "read", "resource_type": "artifact",
@@ -54,7 +60,10 @@ public class GrantsAccessControllerTest {
     @TempDir
     Path dir;
 
-    /** Storage in which team-b/owned is owned by "owner" and nothing else exists. */
+    /**
+     * Storage in which team-b/owned is owned by "owner", and team-a/victim and group team-a exist.
+     * Like MySQL and SQL Server, it matches IDs case-insensitively and returns the stored spelling.
+     */
     private final RegistryStorage storage = mock(RegistryStorage.class);
 
     @BeforeEach
@@ -63,6 +72,13 @@ public class GrantsAccessControllerTest {
                 .thenThrow(new ArtifactNotFoundException("not found"));
         doReturn(ArtifactMetaDataDto.builder().groupId("team-b").artifactId("owned").owner("owner").build())
                 .when(storage).getArtifactMetaData("team-b", "owned");
+        ArtifactMetaDataDto victim = ArtifactMetaDataDto.builder().groupId("team-a").artifactId("victim").build();
+        for (String artifactId : List.of("victim", "VICTIM", "Victim")) {
+            doReturn(victim).when(storage).getArtifactMetaData("team-a", artifactId);
+            doReturn(victim).when(storage).getArtifactMetaData("TEAM-A", artifactId);
+        }
+        when(storage.getGroupMetaData(anyString())).thenThrow(new GroupNotFoundException("not found"));
+        doReturn(GroupMetaDataDto.builder().groupId("team-a").build()).when(storage).getGroupMetaData("TEAM-A");
     }
 
     private GrantsAccessController controller(String user, String... roles) {
@@ -256,6 +272,41 @@ public class GrantsAccessControllerTest {
             nobody.setAuthorizer(authorizer);
 
             assertTrue(nobody.isAllowed(AuthorizedLevel.None, AuthorizedResource.artifact("team-b", "x")));
+        }
+    }
+
+    // ==================== Stored identity ====================
+
+    @Test
+    void aCaseOnlyChangeDoesNotEscapeADeny() throws Exception {
+        GrantsAccessController dev = controller("dev", "team-a-dev");
+        try (GrantsAuthorizer authorizer = authorizer()) {
+            dev.setAuthorizer(authorizer);
+
+            // Storage resolves every spelling to team-a/victim, so the deny must apply to all of them
+            for (String artifactId : List.of("victim", "VICTIM", "Victim")) {
+                assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.artifact("team-a", artifactId)),
+                        artifactId);
+                assertFalse(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.artifact("TEAM-A", artifactId)),
+                        artifactId);
+            }
+            // Other artifacts in the group are still writable
+            assertTrue(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.artifact("team-a", "other")));
+        }
+    }
+
+    @Test
+    void grantsApplyToTheStoredGroupSpelling() throws Exception {
+        GrantsAccessController dev = controller("dev", "team-a-dev");
+        try (GrantsAuthorizer authorizer = authorizer()) {
+            dev.setAuthorizer(authorizer);
+
+            // TEAM-A resolves to the stored group team-a, also for an artifact not created yet
+            assertTrue(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("TEAM-A")));
+            assertTrue(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.artifact("TEAM-A", "new")));
+            // A group that does not exist keeps the requested spelling
+            assertTrue(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("TEAM-C")));
+            assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("team-c")));
         }
     }
 }

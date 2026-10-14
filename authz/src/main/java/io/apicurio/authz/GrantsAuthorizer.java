@@ -130,16 +130,20 @@ public class GrantsAuthorizer implements Authorizer, AutoCloseable {
         if (dataFilePath == null) {
             return false;
         }
+        FileTime currentModified;
         try {
             if (!Files.isRegularFile(dataFilePath)) {
                 return false;
             }
-            FileTime currentModified = Files.getLastModifiedTime(dataFilePath);
-            if (currentModified.equals(lastModified)) {
-                return false;
-            }
-            // Recorded before parsing so a bad file is reported once, not on every poll
-            this.lastModified = currentModified;
+            currentModified = Files.getLastModifiedTime(dataFilePath);
+        } catch (IOException e) {
+            LOG.error("Failed to check grants data file {}: {}", dataFilePath, e.getMessage());
+            return false;
+        }
+        if (currentModified.equals(lastModified)) {
+            return false;
+        }
+        try {
             LOG.info("Grants data file changed, reloading: {}", dataFilePath);
             this.grantsData = GrantsData.parseStrict(Files.readString(dataFilePath));
             LOG.info("Grants data reloaded successfully.");
@@ -148,6 +152,11 @@ public class GrantsAuthorizer implements Authorizer, AutoCloseable {
             LOG.error("Failed to reload grants data file {}; keeping the previously loaded grants: {}",
                     dataFilePath, e.getMessage());
             return false;
+        } finally {
+            // Recorded whether the version was loaded or rejected, so a bad file is reported once,
+            // not on every poll; and only once processing is complete, so getLastSeenModified()
+            // never reports a version whose grants are not in effect yet
+            this.lastModified = currentModified;
         }
     }
 

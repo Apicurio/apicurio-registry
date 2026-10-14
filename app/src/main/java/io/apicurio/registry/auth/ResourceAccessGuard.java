@@ -5,7 +5,9 @@ import io.apicurio.registry.auth.grants.GrantsAccessControllerConfig;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
@@ -18,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Set;
+import java.util.function.Function;
 
 /**
  * Applies resource-level authorization (owner-only authorization and per-resource grants) to a
@@ -131,6 +134,26 @@ public class ResourceAccessGuard {
             }
             offset += PAGE_SIZE;
         }
+    }
+
+    /**
+     * Loader for resolving artifact references (dereferencing, canonicalizing, validating or
+     * registering content that references other artifacts). Referenced content becomes part of
+     * the response or influences it, so every reference, direct or transitive, must be readable
+     * by the caller, as if it were read directly.
+     *
+     * @return a loader that throws {@link ForbiddenException} for a reference the caller may not
+     *         read; the plain storage loader when per-resource authorization does not apply
+     */
+    public Function<ArtifactReferenceDto, ContentWrapperDto> referenceLoader() {
+        if (!isEnforced(AuthorizedLevel.Read)) {
+            return storage::getContentByReference;
+        }
+        return reference -> {
+            requireGrantsAccess(AuthorizedLevel.Read,
+                    AuthorizedResource.artifact(reference.getGroupId(), reference.getArtifactId()));
+            return storage.getContentByReference(reference);
+        };
     }
 
     /**

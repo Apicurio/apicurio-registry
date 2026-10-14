@@ -103,7 +103,18 @@ Key interactions:
   `apicurio.auth.resource-based-authorization.owner-bypass.enabled=false`.
 - **Creation and group deletes check artifacts too.** Creating an artifact requires `write` on the
   group and on the new name (otherwise a deny could be bypassed by creating the artifact and owning
-  it). Deleting a group, or all its artifacts, requires `write` on every artifact in it.
+  it), through every API that creates artifacts (core, Confluent compatibility, MCP publishing,
+  Iceberg renames). Deleting a group, or all its artifacts, requires `write` on every artifact in it.
+- **Indirectly accessed artifacts are authorized like direct access.** Resolving references
+  (dereferencing, canonical content, Protobuf export, Confluent `format=resolved`) and registering
+  content with references require `read` on every referenced artifact, transitively; the request
+  fails with 403 rather than leaving a reference unresolved, so the response never depends silently
+  on the caller. Write hooks that generate artifacts (embedded schemas, OpenAPI agent cards) require
+  `write` on every generated artifact, checked before anything is written.
+- **Grants are evaluated against stored IDs.** MySQL and SQL Server match IDs case-insensitively, so
+  `GrantsAccessController` resolves an existing group or artifact to its stored spelling before
+  evaluating grants; otherwise a case-only change of the ID would address the same resource under a
+  name no deny rule matches.
 - **RBAC runs before grants.** Grants restrict within what RBAC allows.
 - **Grants files are validated strictly.** Any invalid grant (both or neither principal field, unknown
   operation or pattern type, non-boolean `deny`) rejects the whole file, since skipping an invalid
@@ -218,11 +229,13 @@ Endpoints whose target is in the request body (creating groups, Iceberg namespac
 renames, MCP server publishing) call `ResourceAccessGuard.requireAccess()`, which applies OBAC and
 grants with the same rules and bypasses as the interceptor. Every client-facing search or list goes through `ISearchAuthorizer`
 (REST v2/v3, Confluent compatibility API, Iceberg, MCP Registry, `/.well-known` discovery);
-inbound reference lists and content-ID lists are filtered per item.
+inbound reference lists (including the Confluent `referencedby` list) and content-ID lists are
+filtered per item. References are resolved through `ResourceAccessGuard.referenceLoader()`, which
+checks `read` on each referenced artifact.
 
 ### Hot-reload
 
-The grants file is polled every 5 seconds (configurable via `apicurio.auth.resource-based-authorization.grants.reload-every`; polling can be disabled via `apicurio.auth.resource-based-authorization.grants.reload-enabled=false`). Changes take effect without restart. A missing or invalid file fails startup; an invalid file on reload is logged and the previous grants stay in effect, so a bad edit cannot lock everyone out. The reload job is registered programmatically only when the feature and reload are both enabled.
+The grants file is polled every 5 seconds (configurable via `apicurio.auth.resource-based-authorization.grants.reload-every`; polling can be disabled via `apicurio.auth.resource-based-authorization.grants.reload-enabled=false`). Changes take effect without restart. A missing or invalid file fails startup; an invalid file on reload is logged once and the previous grants stay in effect, so a bad edit cannot lock everyone out. A file version is recorded as processed only after it has been loaded or rejected. The reload job is registered programmatically only when the feature and reload are both enabled.
 
 File polling was chosen over `WatchService` because `WatchService` is unreliable on NFS mounts and Kubernetes ConfigMap volumes.
 
@@ -314,9 +327,9 @@ Fetch more results than needed, filter by authorization, return the requested pa
 
 ### 1. No authorization decision caching
 
-Every request evaluates grants from scratch. The same user accessing the same artifact repeatedly recomputes the same result. GlobalId endpoints add a storage roundtrip (`getArtifactVersionMetaData`) before the grants check. High-traffic SerDes clients will feel this.
+Every request evaluates grants from scratch. The same user accessing the same artifact repeatedly recomputes the same result. GlobalId endpoints add a storage roundtrip (`getArtifactVersionMetaData`) before the grants check, and every artifact or group check adds one more to resolve the stored IDs (see "Grants are evaluated against stored IDs"). Resolving references checks each referenced artifact. High-traffic SerDes clients will feel this.
 
-**Impact:** increased latency on globalId endpoints. **Mitigation:** add per-user, per-resource cache invalidated on grants reload.
+**Impact:** increased latency on globalId endpoints and on dereferencing. **Mitigation:** add per-user, per-resource cache invalidated on grants reload.
 
 ### 2. `permissions` field in search results not populated
 

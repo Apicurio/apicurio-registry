@@ -165,14 +165,14 @@ public class GroupsResourceImpl implements GroupsResource {
                     RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
                             .recursivelyResolveReferencesWithContext(factory, contentToReturn,
                                     metaData.getArtifactType(), artifact.getReferences(),
-                                    storage::getContentByReference);
+                                    accessGuard.referenceLoader());
 
                     contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
                             rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
                 } else {
                     contentToReturn = artifactTypeProvider.getContentDereferencer()
                             .dereference(contentToReturn, RegistryContentUtils.recursivelyResolveReferences(
-                                    artifact.getReferences(), storage::getContentByReference));
+                                    artifact.getReferences(), accessGuard.referenceLoader()));
                 }
             }
 
@@ -695,14 +695,14 @@ public class GroupsResourceImpl implements GroupsResource {
             if (artifactTypeProvider.supportsReferencesWithContext()) {
                 RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
                         .recursivelyResolveReferencesWithContext(factory, contentToReturn, metaData.getArtifactType(),
-                                artifact.getReferences(), storage::getContentByReference);
+                                artifact.getReferences(), accessGuard.referenceLoader());
 
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
                         rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
             } else {
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(contentToReturn,
                         RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(),
-                                storage::getContentByReference));
+                                accessGuard.referenceLoader()));
             }
         }
 
@@ -1102,7 +1102,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
             // Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+                    .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
             rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
                     RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
@@ -1249,7 +1249,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         // Try to resolve the new artifact references and the nested ones (if any)
         final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+                .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
         final String owner = securityIdentity.getPrincipal().getName();
 
@@ -1361,7 +1361,7 @@ public class GroupsResourceImpl implements GroupsResource {
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
         final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+                .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
         TypedContent typedContent = TypedContent.create(content, contentType);
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,

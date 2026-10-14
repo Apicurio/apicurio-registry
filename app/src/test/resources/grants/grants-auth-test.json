@@ -53,6 +53,27 @@
       "resource_type": "artifact",
       "resource_pattern_type": "prefix",
       "resource_pattern": "io.github.shared"
+    },
+    {
+      "principal": "bob1",
+      "operation": "write",
+      "resource_type": "group",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "io.github.grantsa"
+    },
+    {
+      "principal": "bob1",
+      "operation": "write",
+      "resource_type": "group",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "io.github.shared"
+    },
+    {
+      "principal": "bob2",
+      "operation": "write",
+      "resource_type": "group",
+      "resource_pattern_type": "prefix",
+      "resource_pattern": "io.github.shared"
     }
   ]
 }

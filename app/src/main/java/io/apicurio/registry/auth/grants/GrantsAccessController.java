@@ -16,7 +16,10 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.AuthorizationNames;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.error.NotFoundException;
 import io.kroxylicious.authorizer.service.Action;
 import io.kroxylicious.authorizer.service.AuthorizeResult;
 import io.kroxylicious.authorizer.service.Decision;
@@ -111,6 +114,7 @@ public class GrantsAccessController extends AbstractAccessController {
             return false;
         }
         Subject subject = currentSubject();
+        resource = canonical(resource);
         return switch (resource.kind()) {
             case ARTIFACT -> decide(subject, toArtifactOp(level), TYPE_ARTIFACT, level,
                     buildResourceName(resource.groupId(), resource.artifactId()));
@@ -118,6 +122,46 @@ public class GrantsAccessController extends AbstractAccessController {
                     normalizeGroup(resource.groupId()));
             case CONTENT -> decideContent(subject, level, resource.contentUsers());
         };
+    }
+
+    /**
+     * Returns the resource with the group and artifact IDs as stored. Some databases (MySQL, SQL
+     * Server) compare IDs case-insensitively, so a request for {@code TEAM-A/Foo} operates on the
+     * stored {@code team-a/foo}; grants must be evaluated against the stored spelling, or a
+     * case-only change would bypass them. Resources that do not exist keep the requested IDs,
+     * except that the group of a new artifact resolves to the existing group it is created in.
+     */
+    AuthorizedResource canonical(AuthorizedResource resource) {
+        if (storage == null) {
+            return resource;
+        }
+        return switch (resource.kind()) {
+            case ARTIFACT -> {
+                try {
+                    ArtifactMetaDataDto stored = storage.getArtifactMetaData(resource.groupId(),
+                            resource.artifactId());
+                    yield stored == null ? resource
+                            : AuthorizedResource.artifact(stored.getGroupId(), stored.getArtifactId());
+                } catch (NotFoundException e) {
+                    yield AuthorizedResource.artifact(canonicalGroupId(resource.groupId()),
+                            resource.artifactId());
+                }
+            }
+            case GROUP -> AuthorizedResource.group(canonicalGroupId(resource.groupId()));
+            case CONTENT -> resource;
+        };
+    }
+
+    private String canonicalGroupId(String groupId) {
+        if (AuthorizationNames.DEFAULT_GROUP.equals(AuthorizationNames.group(groupId))) {
+            return groupId;
+        }
+        try {
+            GroupMetaDataDto stored = storage.getGroupMetaData(groupId);
+            return stored == null || stored.getGroupId() == null ? groupId : stored.getGroupId();
+        } catch (NotFoundException e) {
+            return groupId;
+        }
     }
 
     /**

@@ -130,6 +130,18 @@ public class GrantsArtifactScopeTest extends AbstractResourceTestBase {
         String deniedComments = path(DENIED_ARTIFACT) + "/versions/branch=latest/comments";
         given().auth().preemptive().basic(asBob(), "bob").contentType(CT_JSON).body("{\"value\":\"hi\"}")
                 .post(deniedComments).then().statusCode(403);
+        // Editing or deleting an existing comment on the denied artifact is refused too, and the
+        // comment is left unchanged
+        String adminCommentId = given().auth().preemptive().basic("alice", "alice").contentType(CT_JSON)
+                .body("{\"value\":\"by admin\"}").post(deniedComments).then().statusCode(200)
+                .extract().path("commentId");
+        given().auth().preemptive().basic(asBob(), "bob").contentType(CT_JSON).body("{\"value\":\"edited\"}")
+                .put(deniedComments + "/" + adminCommentId).then().statusCode(403);
+        given().auth().preemptive().basic(asBob(), "bob").delete(deniedComments + "/" + adminCommentId)
+                .then().statusCode(403);
+        given().auth().preemptive().basic("alice", "alice").get(deniedComments).then().statusCode(200)
+                .body("size()", equalTo(1)).body("[0].commentId", equalTo(adminCommentId))
+                .body("[0].value", equalTo("by admin"));
 
         String allowedComments = path(allowedArtifact) + "/versions/branch=latest/comments";
         String commentId = given().auth().preemptive().basic(asBob(), "bob").contentType(CT_JSON)

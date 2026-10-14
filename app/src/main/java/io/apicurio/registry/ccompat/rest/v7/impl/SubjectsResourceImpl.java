@@ -38,6 +38,7 @@ import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactStateException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidVersionStateException;
+import io.apicurio.registry.storage.error.NotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.types.ArtifactType;
@@ -422,12 +423,45 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
         if (cconfig.legacyIdModeEnabled.get()) {
             return parseVersionString(ga.getRawArtifactId(), versionString, ga.getRawGroupIdWithNull(),
                     version -> storage.getGlobalIdsReferencingArtifactVersion(ga.getRawGroupIdWithNull(),
-                            ga.getRawArtifactId(), version)).stream().map(BigInteger::valueOf).collect(Collectors.toList());
+                            ga.getRawArtifactId(), version)).stream().filter(this::canReadGlobalId)
+                    .map(BigInteger::valueOf).collect(Collectors.toList());
         }
 
         return parseVersionString(ga.getRawArtifactId(), versionString, ga.getRawGroupIdWithNull(),
                 version -> storage.getContentIdsReferencingArtifactVersion(ga.getRawGroupIdWithNull(),
-                        ga.getRawArtifactId(), version)).stream().map(BigInteger::valueOf).collect(Collectors.toList());
+                        ga.getRawArtifactId(), version)).stream().filter(this::canReadContentId)
+                .map(BigInteger::valueOf).collect(Collectors.toList());
+    }
+
+    /**
+     * A referrer is listed only if the caller could read it by ID: as for {@code /schemas/ids/{id}}.
+     */
+    private boolean canReadGlobalId(Long globalId) {
+        if (!accessGuard.isEnforced(AuthorizedLevel.Read)) {
+            return true;
+        }
+        try {
+            ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(globalId);
+            return accessGuard.canRead(vmd.getGroupId(), vmd.getArtifactId());
+        } catch (NotFoundException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Content can be shared by several artifacts; like {@code /schemas/ids/{id}}, it is readable if
+     * any artifact using it is readable.
+     */
+    private boolean canReadContentId(Long contentId) {
+        if (!accessGuard.isEnforced(AuthorizedLevel.Read)) {
+            return true;
+        }
+        try {
+            return storage.getArtifactVersionsByContentId(contentId).stream()
+                    .anyMatch(vmd -> accessGuard.canRead(vmd.getGroupId(), vmd.getArtifactId()));
+        } catch (NotFoundException e) {
+            return false;
+        }
     }
 
     @Override

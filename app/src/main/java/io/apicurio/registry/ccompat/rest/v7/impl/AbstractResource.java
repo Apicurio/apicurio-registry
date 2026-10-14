@@ -30,6 +30,9 @@ import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.auth.ISearchAuthorizer;
+import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedResource;
+import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
@@ -62,6 +65,9 @@ public abstract class AbstractResource {
     @Inject
     @Current
     RegistryStorage storage;
+
+    @Inject
+    protected ResourceAccessGuard accessGuard;
 
     @Inject
     ISearchAuthorizer searchAuthorizer;
@@ -123,7 +129,7 @@ public abstract class AbstractResource {
                         .artifactId(dto.getArtifactId()).version(dto.getVersion()).build())
                 .collect(Collectors.toList());
         final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                .recursivelyResolveReferences(parsedReferences, storage::getContentByReference);
+                .recursivelyResolveReferences(parsedReferences, accessGuard.referenceLoader());
 
         String owner = securityIdentity.getPrincipal().getName();
 
@@ -159,6 +165,9 @@ public abstract class AbstractResource {
             }
 
             if (!doesArtifactExist(artifactId, groupId)) {
+                // Registering a new subject creates an artifact: as with the core API, this needs
+                // write access to the group as well as to the artifact (checked by the interceptor)
+                accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.group(groupId));
                 // Apply rules using the potentially converted text content
                 rulesService.applyRules(groupId, artifactId, artifactType, contentForRules,
                         RuleApplicationType.CREATE, artifactReferences, resolvedReferences);
@@ -254,7 +263,7 @@ public abstract class AbstractResource {
                         .create(artifactVersion.getContent(), artifactVersion.getContentType());
                 Map<String, TypedContent> artifactVersionReferences = RegistryContentUtils
                         .recursivelyResolveReferences(artifactVersion.getReferences(),
-                                storage::getContentByReference);
+                                accessGuard.referenceLoader());
                 String dereferencedExistingContentSha = DigestUtils
                         .sha256Hex(artifactTypeProvider.getContentDereferencer()
                                 .dereference(typedArtifactVersion, artifactVersionReferences)
@@ -298,7 +307,7 @@ public abstract class AbstractResource {
         Map<String, TypedContent> resolvedReferences = Collections.emptyMap();
         if (referencesAsDtos != null && !referencesAsDtos.isEmpty()) {
             resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(referencesAsDtos,
-                    storage::getContentByReference);
+                    accessGuard.referenceLoader());
 
             if (referencesAsDtos.size() > resolvedReferences.size()) {
                 // There are unresolvable references, which is not allowed.

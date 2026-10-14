@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 @Priority(Priorities.Interceptors.AUTHORIZATION)
 public class AuthorizedInterceptor {
 
-    static final String FORBIDDEN_MESSAGE = "User is not authorized to perform the requested operation.";
+    public static final String FORBIDDEN_MESSAGE = "User is not authorized to perform the requested operation.";
 
     @Inject
     Logger log;

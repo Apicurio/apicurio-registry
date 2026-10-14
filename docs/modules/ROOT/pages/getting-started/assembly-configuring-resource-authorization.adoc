@@ -154,7 +154,7 @@ In artifact names, the characters `%` and `/` in the group ID are written as `%2
 
 Patterns are matched against the complete name. For example, the prefix `team-a/` matches every artifact in group `team-a` (but not in group `team-a/sub`), and the prefix `team-a/internal-` matches only the artifacts in `team-a` whose ID starts with `internal-`.
 
-Matching is case-sensitive on every storage variant, in direct access and in search results.
+Matching is case-sensitive on every storage variant, in direct access and in search results. Some databases, such as MySQL and SQL Server, look up group and artifact IDs case-insensitively, so a request for `TEAM-A/My-Schema` can address the stored artifact `team-a/my-schema`. Such a request is authorized against the stored IDs, so changing the case of an ID never gets around a grant or deny rule.
 
 === Operations
 
@@ -167,7 +167,7 @@ Matching is case-sensitive on every storage variant, in direct access and in sea
 
 Some operations need both:
 
-* Creating an artifact requires `write` on the group and on the new artifact's name, so a deny on an artifact name also prevents creating it.
+* Creating an artifact requires `write` on the group and on the new artifact's name, so a deny on an artifact name also prevents creating it. This applies to every API that creates artifacts, including registering a new subject with the Confluent compatibility API, publishing a new MCP server, and renaming an Iceberg table.
 * Deleting a group, or all artifacts in a group, requires `write` on the group and on every artifact in it.
 
 Most deployments need both. For example, to give a user full access to `team-a`:
@@ -201,6 +201,15 @@ A deny rule denies its operation and every operation that implies it:
 {registry} checks the grants file for changes at the interval set by `apicurio.auth.resource-based-authorization.grants.reload-every` and applies changes without a restart. If the changed file is not valid JSON, is not an object, or has no `grants` array, {registry} logs an error and keeps using the previously loaded grants.
 
 [id="resource-authorization-coverage_{context}"]
+=== References and generated artifacts
+
+Some operations read or write artifacts other than the one addressed by the request. These artifacts are authorized as if the caller accessed them directly:
+
+* **Resolving references:** dereferencing content (`references=DEREFERENCE`, or `dereference=true` in the v2 API), returning canonical content, exporting a Protobuf version as a ZIP file, and the Confluent `format=resolved` option all include the content of referenced artifacts. They require `read` on every referenced artifact, including references of references; otherwise the request fails with 403. Without these options, content is returned as stored, with its references unresolved.
+* **Registering references:** creating an artifact or version whose content references other artifacts requires `read` on every referenced artifact, through any API.
+* **Listing references:** inbound reference lists, including the Confluent `referencedby` endpoint, contain only readable artifacts. The outbound reference graph shows that a reference exists but hides the metadata of unreadable targets.
+* **Generated artifacts:** some artifact types make {registry} write additional artifacts in the same group. Embedded schemas of `MODEL_SCHEMA` and `PROMPT_TEMPLATE` artifacts are registered as `{artifactId}-input-schema` and `{artifactId}-output-schema`, and an OpenAPI artifact with an `x-agent-card` extension generates `{artifactId}-agent-card`. Writing the artifact requires `write` on each artifact it would generate. This is checked before anything is written, so a forbidden generated artifact fails the whole request with 403.
+
 == Covered APIs
 
 Per-resource authorization applies to every API that addresses or lists groups and artifacts:
@@ -216,13 +225,13 @@ Per-resource authorization applies to every API that addresses or lists groups a
 |A global ID resolves to its artifact. Content can be shared by several artifacts, so a content ID or hash is readable if at least one artifact that uses it is readable.
 
 |Confluent Schema Registry compatibility API
-|A subject is an artifact in the group given by the `X-Registry-GroupId` header (or, with `apicurio.ccompat.group-concat.enabled`, in the group encoded in the subject name). Schema IDs resolve as content IDs, or as global IDs in legacy ID mode. Subject and schema lists contain only readable subjects.
+|A subject is an artifact in the group given by the `X-Registry-GroupId` header (or, with `apicurio.ccompat.group-concat.enabled`, in the group encoded in the subject name). Schema IDs resolve as content IDs, or as global IDs in legacy ID mode. Subject and schema lists, and `referencedby` lists, contain only readable subjects. Registering a schema under a new subject also requires `write` on its group.
 
 |Iceberg REST catalog
-|A namespace is a group and a table or view is an artifact in it. The catalog prefix in the URL does not affect authorization. Renaming requires `write` on both the source and the destination.
+|A namespace is a group and a table or view is an artifact in it. The catalog prefix in the URL does not affect authorization. Renaming requires `write` on the source, on the destination, and on the destination namespace.
 
 |MCP Registry API
-|A server name `namespace/server` is the artifact `namespace/server`. Publishing requires `write` on it, and server lists contain only readable servers.
+|A server name `namespace/server` is the artifact `namespace/server`. Publishing requires `write` on it, and publishing a new server also requires `write` on the `namespace` group. Server lists contain only readable servers.
 
 |Discovery endpoints (`/.well-known/...`)
 |Agent, AI catalog, and MCP tool listings contain only readable artifacts.
@@ -377,6 +386,7 @@ Check, in order:
 . **Operation:** does the grant's operation cover the request? Changes and deletes require `write`.
 . **Resource type:** operations on a group itself, such as listing its artifacts or creating an artifact in it, need a `group` grant.
 . **Deny rules:** does a deny rule match? Deny rules take precedence.
+. **Referenced and generated artifacts:** dereferencing, or registering content with references, requires `read` on every referenced artifact; writing an artifact that generates other artifacts requires `write` on them.
 . **Resource name:** artifacts are named `{groupId}/{artifactId}`; the default group is `default`. For the Confluent compatibility API, check which group the request addresses.
 . **Audit log:** the `authz.denied` message shows the exact resource name and operation that were evaluated.
 

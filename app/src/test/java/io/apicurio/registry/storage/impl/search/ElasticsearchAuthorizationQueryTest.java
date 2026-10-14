@@ -84,7 +84,29 @@ class ElasticsearchAuthorizationQueryTest {
         assertFalse(evaluate(query, doc("team-a", "secret-1")));
     }
 
-    /** Minimal evaluator for the query shapes buildAuthorizationQuery emits. */
+    @Test
+    void evaluatorFollowsElasticsearchShouldSemantics() {
+        Query matchAll = Query.of(q -> q.matchAll(m -> m));
+        Query matchNone = Query.of(q -> q.matchNone(m -> m));
+        Map<String, String> doc = doc("g", "a");
+
+        // Alongside must, should clauses are optional unless minimumShouldMatch requires them
+        assertTrue(evaluate(Query.of(q -> q.bool(b -> b.must(matchAll).should(matchNone))), doc));
+        assertFalse(evaluate(Query.of(q -> q.bool(b -> b.must(matchAll).should(matchNone)
+                .minimumShouldMatch("1"))), doc));
+        // Without must or filter, at least one should clause must match
+        assertFalse(evaluate(Query.of(q -> q.bool(b -> b.should(matchNone))), doc));
+        assertTrue(evaluate(Query.of(q -> q.bool(b -> b.should(matchNone).should(matchAll))), doc));
+        // A minimum the should clauses cannot reach matches nothing
+        assertFalse(evaluate(Query.of(q -> q.bool(b -> b.must(matchAll).minimumShouldMatch("1"))), doc));
+    }
+
+    /**
+     * Minimal evaluator for the query shapes buildAuthorizationQuery emits, following Elasticsearch
+     * bool semantics: {@code should} clauses are required only as far as {@code minimumShouldMatch}
+     * says, which defaults to 1 when there are no {@code must} or {@code filter} clauses and to 0
+     * otherwise. Shapes it does not model are rejected rather than approximated.
+     */
     private static boolean evaluate(Query query, Map<String, String> doc) {
         if (query.isMatchAll()) {
             return true;
@@ -101,9 +123,19 @@ class ElasticsearchAuthorizationQueryTest {
         }
         if (query.isBool()) {
             BoolQuery bool = query.bool();
-            boolean must = bool.must().stream().allMatch(q -> evaluate(q, doc));
+            boolean must = bool.must().stream().allMatch(q -> evaluate(q, doc))
+                    && bool.filter().stream().allMatch(q -> evaluate(q, doc));
             boolean mustNot = bool.mustNot().stream().noneMatch(q -> evaluate(q, doc));
-            boolean should = bool.should().isEmpty() || bool.should().stream().anyMatch(q -> evaluate(q, doc));
+            long requiredShould;
+            if (bool.minimumShouldMatch() != null) {
+                // Only absolute counts are modeled (not percentages or combinations)
+                requiredShould = Long.parseLong(bool.minimumShouldMatch());
+            } else {
+                requiredShould = !bool.should().isEmpty() && bool.must().isEmpty() && bool.filter().isEmpty()
+                        ? 1 : 0;
+            }
+            long matchedShould = bool.should().stream().filter(q -> evaluate(q, doc)).count();
+            boolean should = matchedShould >= requiredShould;
             return must && mustNot && should;
         }
         throw new IllegalArgumentException("Unexpected query kind: " + query._kind());

@@ -140,7 +140,7 @@ Verify push run on `main` (#10380):
 
 | Run | Action | Slack |
 |---|---|---|
-| failed, first attempt | re-runs the failed jobs | none |
+| failed, first attempt (or after an attempt that passed or was cancelled, re-run by hand) | re-runs the failed jobs | none |
 | failed again (or `startup_failure`, which can't be re-run) | opens the tracking issue, labelled `ci/broken`, pinging `@Apicurio/maintainers`; when one is already open, notes the newer failure on it | important, when it opens the issue |
 | passed, while an issue is open | closes the issue | general: green again, and for how long it was broken |
 | passed on a re-run, no issue open | none | general: flaky, naming the jobs that failed first |
@@ -153,9 +153,11 @@ in the important channel (hourly schedule).
 A retry can finish after the run of a newer commit, so the handler compares
 commits: a failure older than the newest green commit, or than the failure the
 issue already tracks, is ignored, and so is a pass older than the tracked
-failure. Events are handled one at a time (`queue: max`). The tracking state
-lives in a hidden comment in the issue body. A run that keeps failing is
-re-run only once by the handler; re-running it again by hand still counts.
+failure. A result that can't be ordered against the tracked failure (after a
+force push) leaves the issue as it is, with a warning. Events are handled one
+at a time (`queue: max`). The tracking state lives in a hidden comment in the
+issue body. A run that keeps failing is re-run only once by the handler;
+re-running it again by hand still counts.
 
 ### Re-runs and snapshot publishing on main
 
@@ -580,7 +582,7 @@ action. A message goes to a channel by whether anyone has to act on it, not by i
 
 | Level | Channel | When |
 |-------|---------|------|
-| **important** | team channel | Someone must act. Names one owner with a Slack mention (see below). |
+| **important** | team channel | Someone must act. Names one owner with a Slack mention (see below); `post-merge.yml` names none until breaks are attributed to PRs (#10576). |
 | **general** | notification channel | Worth knowing, nothing to do. No mention. |
 | none | — | Routine success. It stays in the GitHub UI. |
 

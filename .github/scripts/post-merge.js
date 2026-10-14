@@ -3,9 +3,10 @@
 // Confirms a failed Verify run on a protected branch before anyone is told
 // about it, and keeps one tracking issue open while the branch is broken:
 //
-//   failure, attempt 1        re-run the failed jobs, say nothing
-//   failure, attempt 2 or so  confirmed: open the tracking issue (important
-//                             Slack), or note it on the open one
+//   failure, first attempt    re-run the failed jobs, say nothing; also
+//                             after a pass or cancellation (a re-run by hand)
+//   failure, after a failed   confirmed: open the tracking issue (important
+//   attempt                   Slack), or note it on the open one
 //   success                   close the tracking issue (general Slack); a
 //                             re-run that passed with no issue open is a
 //                             flake (general Slack)
@@ -13,7 +14,8 @@
 //
 // A retry runs in a concurrency group of its own commit (verify.yaml), so it
 // can finish after the run of a newer commit. Every transition therefore
-// compares commits and ignores a result older than the one it would replace.
+// compares commits and ignores a result older than the one it would replace,
+// or one it can't order against it (see compare).
 //
 // Slack is sent by the workflow, from the outputs this sets: level, text and
 // link. See "Post-merge verification" in .github/workflows/README.md.
@@ -54,13 +56,22 @@ function createApi(github, owner, repo) {
       }
     },
 
+    attemptConclusion: async (runId, attempt) => {
+      const { data } = await github.rest.actions.getWorkflowRunAttempt({
+        owner, repo, run_id: runId, attempt_number: attempt,
+      });
+      return data.conclusion;
+    },
+
     listAttemptJobs: async (runId, attempt) => github.paginate(
       github.rest.actions.listJobsForWorkflowRunAttempt,
       { owner, repo, run_id: runId, attempt_number: attempt, per_page: 100 },
     ),
 
     // compare/{base}...{head}: 'ahead' means head is newer than base. Null
-    // when GitHub can't compare them (a commit it doesn't have).
+    // when GitHub can't compare them (a commit it doesn't have). Null and
+    // 'diverged' (only after a force push) don't order the commits, so the
+    // handlers never close or advance an issue on them.
     compare: async (base, head) => {
       try {
         const { data } = await github.rest.repos.compareCommitsWithBasehead({
@@ -174,6 +185,26 @@ function jobList(names, code) {
   return rest > 0 ? `${shown} and ${rest} more` : shown;
 }
 
+// A startup failure is confirmed without a re-run (see BROKEN) and ran no jobs.
+function isStartupFailure(run) {
+  return run.conclusion === 'startup_failure';
+}
+
+// "Verify failed at X, and again when re-run", or that it could not start.
+function failureText(run, commit) {
+  return isStartupFailure(run)
+    ? `Verify could not start at ${commit} (startup failure)`
+    : `Verify failed at ${commit}, and again when re-run`;
+}
+
+// Whether the attempt before this one failed. Checked on the run, not its
+// jobs: a job that times out ends as cancelled, so the only failed job can be
+// Verify Result, which failedJobs leaves out.
+async function previousAttemptFailed(api, run) {
+  return run.run_attempt > 1
+    && RETRIED.has(await api.attemptConclusion(run.id, run.run_attempt - 1));
+}
+
 async function failedJobs(api, run, attempt) {
   const jobs = await api.listAttemptJobs(run.id, attempt);
   return jobs
@@ -186,12 +217,12 @@ function issueBody(ctx, run, jobs, greenSha, state) {
     ? `[changes since the last green commit, ${short(greenSha)}](${ctx.serverUrl}/${ctx.owner}/${ctx.repo}/compare/${greenSha}...${run.head_sha})`
     : 'no earlier green commit found';
   return [
-    `\`${run.head_branch}\` is broken: Verify failed at ${commitLink(ctx, run.head_sha)}, and failed again when re-run.`,
+    `\`${run.head_branch}\` is broken: ${failureText(run, commitLink(ctx, run.head_sha))}.`,
     '',
     '| | |',
     '|---|---|',
     `| Failing run | [Verify #${run.run_number}](${run.html_url}) |`,
-    `| Failed jobs | ${jobList(jobs, true)} |`,
+    `| Failed jobs | ${isStartupFailure(run) ? 'none, the run did not start' : jobList(jobs, true)} |`,
     `| Suspects | ${changes} |`,
     `| Broken since | ${state.since.replace('T', ' ').replace(/:\d\d(\.\d+)?Z$/, ' UTC')} |`,
     '',
@@ -217,57 +248,63 @@ function isTrackedPushRun(run, ctx) {
 
 async function onVerifyRun(api, ctx, run, now, log) {
   if (!isTrackedPushRun(run, ctx)) {
-    log(`Not a tracked push run of Verify (${run.event} on ${run.head_branch}, ${run.path}); ignoring`);
+    log.info(`Not a tracked push run of Verify (${run.event} on ${run.head_branch}, ${run.path}); ignoring`);
     return null;
   }
-  const attempt = run.run_attempt;
-  log(`Verify #${run.run_number} attempt ${attempt} on ${run.head_branch} at ${run.head_sha}: ${run.conclusion}`);
+  log.info(`Verify #${run.run_number} attempt ${run.run_attempt} on ${run.head_branch} at ${run.head_sha}: ${run.conclusion}`);
 
-  if (RETRIED.has(run.conclusion) && attempt === 1) {
-    log(await api.reRunFailedJobs(run.id)
+  if (RETRIED.has(run.conclusion) && !await previousAttemptFailed(api, run)) {
+    log.info(await api.reRunFailedJobs(run.id)
       ? 'Re-running the failed jobs to confirm the failure'
       : 'Already being re-run');
     return null;
   }
   if (BROKEN.has(run.conclusion)) return onRed(api, ctx, run, now, log);
   if (run.conclusion === 'success') return onGreen(api, ctx, run, now, log);
-  log('Neither passed nor failed; ignoring');
+  log.info('Neither passed nor failed; ignoring');
   return null;
 }
 
 async function onRed(api, ctx, run, now, log) {
   const branch = run.head_branch;
   const sha = run.head_sha;
-  const jobs = await failedJobs(api, run, run.run_attempt);
+  const jobs = isStartupFailure(run) ? [] : await failedJobs(api, run, run.run_attempt);
   const tracked = await findTrackingIssue(api, branch);
 
   if (tracked) {
     const { issue, state } = tracked;
     const status = await api.compare(state.lastRed, sha);
     if (status === 'behind' || status === 'identical') {
-      log(`#${issue.number} already tracks ${short(state.lastRed)}, which is not older than this commit; ignoring`);
+      log.info(`#${issue.number} already tracks ${short(state.lastRed)}, which is not older than this commit; ignoring`);
+      return null;
+    }
+    if (status !== 'ahead') {
+      log.warning(`Can't order ${short(sha)} against ${short(state.lastRed)}, which #${issue.number} tracks (${status}); leaving the issue as it is`);
       return null;
     }
     const next = { ...state, lastRed: sha };
     await api.updateIssueBody(issue.number, writeState(issue.body, next));
+    const detail = isStartupFailure(run) ? 'could not start' : `failed in ${jobList(jobs, true)}`;
     await api.comment(issue.number,
-      `Still failing at ${commitLink(ctx, sha)}: [Verify #${run.run_number}](${run.html_url}), ${jobList(jobs, true)}.`);
-    log(`Noted on #${issue.number}`);
+      `Still failing at ${commitLink(ctx, sha)}: [Verify #${run.run_number}](${run.html_url}) ${detail}.`);
+    log.info(`Noted on #${issue.number}`);
     return null;
   }
 
+  // Reported unless a newer commit is known to have passed: when the two can't
+  // be ordered, a false alarm costs less than a missed break.
   const greenSha = await api.newestGreenSha(branch);
   if (greenSha && await api.compare(sha, greenSha) === 'ahead') {
-    log(`${short(greenSha)} has passed since; this result is stale`);
+    log.info(`${short(greenSha)} has passed since; this result is stale`);
     return null;
   }
 
   const state = { branch, firstRed: sha, lastRed: sha, since: now.toISOString(), reminded: false };
   const issue = await api.createTrackingIssue(`\`${branch}\` is broken`, issueBody(ctx, run, jobs, greenSha, state));
-  log(`Opened #${issue.number}`);
+  log.info(`Opened #${issue.number}`);
   return {
     level: 'important',
-    text: `:rotating_light: ${branch} is broken: Verify failed at ${short(sha)}, and again when re-run (${jobList(jobs, false)}). Tracking issue: #${issue.number}`,
+    text: `:rotating_light: ${branch} is broken: ${failureText(run, short(sha))}${isStartupFailure(run) ? '' : ` (${jobList(jobs, false)})`}. Tracking issue: #${issue.number}`,
     link: issue.html_url,
   };
 }
@@ -281,14 +318,18 @@ async function onGreen(api, ctx, run, now, log) {
     const { issue, state } = tracked;
     const status = await api.compare(state.lastRed, sha);
     if (status === 'behind') {
-      log(`#${issue.number} tracks ${short(state.lastRed)}, which is newer than this commit; still broken`);
+      log.info(`#${issue.number} tracks ${short(state.lastRed)}, which is newer than this commit; still broken`);
+      return null;
+    }
+    if (status !== 'ahead' && status !== 'identical') {
+      log.warning(`Can't order ${short(sha)} against ${short(state.lastRed)}, which #${issue.number} tracks (${status}); leaving it open`);
       return null;
     }
     const broken = duration(state.since, now);
     await api.comment(issue.number,
       `Verify passed at ${commitLink(ctx, sha)}: [Verify #${run.run_number}](${run.html_url}). \`${branch}\` was broken for ${broken}.`);
     await api.closeIssue(issue.number);
-    log(`Closed #${issue.number}`);
+    log.info(`Closed #${issue.number}`);
     return {
       level: 'general',
       text: `:white_check_mark: ${branch} is green again at ${short(sha)}, after ${broken} (#${issue.number})`,
@@ -296,14 +337,10 @@ async function onGreen(api, ctx, run, now, log) {
     };
   }
 
-  if (run.run_attempt > 1) {
-    // A re-run of a run that was cancelled, not one that failed, is no flake.
+  // A re-run of a run that was cancelled, not one that failed, is no flake.
+  if (await previousAttemptFailed(api, run)) {
     const jobs = await failedJobs(api, run, run.run_attempt - 1);
-    if (jobs.length === 0) {
-      log(`Passed on re-run; attempt ${run.run_attempt - 1} had no failed job`);
-      return null;
-    }
-    log(`Passed on re-run; attempt ${run.run_attempt - 1} failed in ${jobs.join(', ')}`);
+    log.info(`Passed on re-run; attempt ${run.run_attempt - 1} failed in ${jobs.join(', ')}`);
     return {
       level: 'general',
       text: `:warning: Verify on ${branch} failed at ${short(sha)} and passed when re-run, so probably flaky: ${jobList(jobs, false)}`,
@@ -324,7 +361,7 @@ async function remind(api, ctx, now, log) {
     await api.updateIssueBody(issue.number, writeState(issue.body, { ...state, reminded: true }));
     await api.comment(issue.number,
       `${MAINTAINERS_TEAM}: \`${branch}\` has been broken for ${duration(state.since, now)}, since ${commitLink(ctx, state.firstRed)}.`);
-    log(`Reminded on #${issue.number}`);
+    log.info(`Reminded on #${issue.number}`);
     return {
       level: 'important',
       text: `:rotating_light: ${branch} has been broken for ${duration(state.since, now)}, since ${short(state.firstRed)} (#${issue.number})`,
@@ -340,11 +377,10 @@ async function handle({ github, context, core }) {
   const ctx = { owner, repo, serverUrl: context.serverUrl || 'https://github.com' };
   const api = createApi(github, owner, repo);
   const now = new Date();
-  const log = msg => core.info(msg);
 
   const message = context.eventName === 'workflow_run'
-    ? await onVerifyRun(api, ctx, context.payload.workflow_run, now, log)
-    : await remind(api, ctx, now, log);
+    ? await onVerifyRun(api, ctx, context.payload.workflow_run, now, core)
+    : await remind(api, ctx, now, core);
 
   core.setOutput('level', message?.level || '');
   core.setOutput('text', message?.text || '');

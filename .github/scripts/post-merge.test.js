@@ -20,8 +20,10 @@ function httpError(status) {
   return Object.assign(new Error(`HTTP ${status}`), { status });
 }
 
-function makeWorld({ issues = [], labelExists = true, greens = [], jobs = {}, reRunConflict = false } = {}) {
-  const calls = { reRuns: [], comments: [], createdLabels: [], outputs: {}, logs: [] };
+// attempts: the conclusion of earlier attempts, by `run:attempt`; failure
+// unless given, so attempt 2 of a failed run is a confirmation.
+function makeWorld({ issues = [], labelExists = true, greens = [], jobs = {}, attempts = {}, reRunConflict = false } = {}) {
+  const calls = { reRuns: [], comments: [], createdLabels: [], outputs: {}, logs: [], warnings: [] };
   let labelPresent = labelExists;
   let nextIssue = 500;
 
@@ -33,6 +35,9 @@ function makeWorld({ issues = [], labelExists = true, greens = [], jobs = {}, re
           if (reRunConflict) throw httpError(409);
           calls.reRuns.push(run_id);
         },
+        getWorkflowRunAttempt: async ({ run_id, attempt_number }) => ({
+          data: { conclusion: attempts[`${run_id}:${attempt_number}`] || 'failure' },
+        }),
         listJobsForWorkflowRunAttempt: async ({ run_id, attempt_number }) => ({
           data: jobs[`${run_id}:${attempt_number}`] || [],
         }),
@@ -83,6 +88,7 @@ function makeWorld({ issues = [], labelExists = true, greens = [], jobs = {}, re
 
   const core = {
     info: msg => calls.logs.push(msg),
+    warning: msg => calls.warnings.push(msg),
     setOutput: (name, value) => { calls.outputs[name] = value; },
   };
 
@@ -184,6 +190,15 @@ test('a failed first attempt is re-run without a message', async () => {
   }
 });
 
+test('a failure after a pass or a cancellation, re-run by hand, is re-run before it counts', async () => {
+  for (const previous of ['success', 'cancelled']) {
+    const w = makeWorld({ attempts: { '1000:1': previous } });
+    assert.deepEqual(await onRun(w, verifyRun({ run_attempt: 2 })), NOTHING, previous);
+    assert.deepEqual(w.calls.reRuns, [1000]);
+    assert.equal(w.issues.length, 0);
+  }
+});
+
 test('a run already being re-run is left alone', async () => {
   const w = makeWorld({ reRunConflict: true });
   assert.deepEqual(await onRun(w, verifyRun()), NOTHING);
@@ -239,13 +254,19 @@ test('the label is not re-created when it exists', async () => {
   assert.equal(w.issues.length, 1);
 });
 
-test('a startup failure is confirmed at once, since it cannot be re-run', async () => {
+test('a startup failure is confirmed at once, since it cannot be re-run, and says it could not start', async () => {
   const w = makeWorld();
   const out = await onRun(w, verifyRun({ conclusion: 'startup_failure' }));
   assert.deepEqual(w.calls.reRuns, []);
   assert.equal(w.issues.length, 1);
-  assert.match(w.issues[0].body, /\| Failed jobs \| no job named \|/);
+  assert.match(w.issues[0].body, /^`main` is broken: Verify could not start at \[`c300000`\]\(.*\) \(startup failure\)\.\n/);
+  assert.match(w.issues[0].body, /\| Failed jobs \| none, the run did not start \|/);
   assert.equal(out.level, 'important');
+  assert.equal(out.text, ':rotating_light: main is broken: Verify could not start at c300000 (startup failure). Tracking issue: #500');
+
+  w.calls.outputs = {};
+  assert.deepEqual(await onRun(w, verifyRun({ conclusion: 'startup_failure', head_sha: C4 })), NOTHING);
+  assert.match(w.calls.comments[0].body, /^Still failing at \[`c400000`\].*\) could not start\.$/);
 });
 
 test('with no green run on record the issue says so instead of linking the changes', async () => {
@@ -284,6 +305,25 @@ test('an older or the same confirmed failure leaves the open issue alone', async
     assert.equal(w.calls.comments.length, 0);
     assert.equal(postMerge.readState(w.issues[0].body).lastRed, C3);
   }
+});
+
+test('a result that can\'t be ordered against the tracked failure leaves the issue as it is', async () => {
+  const unknown = 'f'.repeat(40);
+  for (const conclusion of ['failure', 'success']) {
+    const w = makeWorld({ issues: [trackingIssue({ lastRed: C3 })] });
+    assert.deepEqual(await onRun(w, verifyRun({ conclusion, run_attempt: 2, head_sha: unknown })), NOTHING, conclusion);
+    assert.equal(w.issues[0].state, 'open');
+    assert.equal(w.calls.comments.length, 0);
+    assert.equal(postMerge.readState(w.issues[0].body).lastRed, C3);
+    assert.equal(w.calls.warnings.length, 1);
+  }
+});
+
+test('a confirmed failure that can\'t be ordered against the newest green commit is still reported', async () => {
+  const w = makeWorld({ greens: ['f'.repeat(40)] });
+  const out = await onRun(w, verifyRun({ run_attempt: 2 }));
+  assert.equal(w.issues.length, 1);
+  assert.equal(out.level, 'important');
 });
 
 test('a tracking issue for another branch, or a labelled issue without state, is not this branch\'s', async () => {
@@ -352,7 +392,10 @@ test('a re-run that passes with no issue open is reported as a flake', async () 
 });
 
 test('a re-run of a cancelled run that passes is not a flake', async () => {
-  const w = makeWorld({ jobs: { '1000:1': [{ name: 'Unit Tests (2)', conclusion: 'cancelled' }] } });
+  const w = makeWorld({
+    attempts: { '1000:1': 'cancelled' },
+    jobs: { '1000:1': [{ name: 'Unit Tests (2)', conclusion: 'cancelled' }] },
+  });
   assert.deepEqual(await onRun(w, verifyRun({ conclusion: 'success', run_attempt: 2 })), NOTHING);
 });
 

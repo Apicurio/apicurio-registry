@@ -147,8 +147,8 @@ Verify push run on `main` (#10380):
 | cancelled or skipped | none | none |
 
 The issue links the changes since the last green commit; nobody is mentioned
-in Slack yet. An issue still open after a day gets one reminder, on the issue and
-in the important channel (hourly schedule).
+in Slack yet. There is no reminder: the important message stays in the channel,
+and the issue stays open until `main` is green.
 
 A retry can finish after the run of a newer commit, so the handler compares
 commits: a failure older than the newest green commit, or than the failure the
@@ -558,7 +558,7 @@ and tags starting with `3.`.
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
 | `pr-lifecycle.yml` | PR events, review submissions, comments, workflow_run, every 6 hours | Label-driven PR state machine. States: `ready-for-review` -> `ready-to-merge` (no triage stage — every PR starts at `ready-for-review`). Draft PRs are ignored until marked ready for review. Comment commands: `/reject`, `/merge` (toggles native GitHub auto-merge), `/unstale`, `/retry`. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close; 4/7 for PRs waiting on the author). PRs waiting on a maintainer are exempt from staleness entirely and instead get `lifecycle/review-overdue` at 14 days and a reviewer ping at 30, never a close. Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
-| `post-merge.yml` | Verify completed (push to main), hourly | Re-runs a failed Verify push run once to confirm it, keeps a `ci/broken` tracking issue open while `main` is broken, posts the transitions to Slack. See [Post-merge verification](#post-merge-verification) | <1 min |
+| `post-merge.yml` | Verify completed (push to main) | Re-runs a failed Verify push run once to confirm it, keeps a `ci/broken` tracking issue open while `main` is broken, posts the transitions to Slack. See [Post-merge verification](#post-merge-verification) | <1 min |
 | `classify.yml` | Issue opened/edited, PR opened/ready for review (non-draft), workflow_dispatch | Embedding classifier (`.github/scripts/label-classification`) assigns `area/*` labels to issues and PRs, and an issue type to issues. For PRs, then picks a reviewer (`pr-reviewer-assignment.js`): assigns contributor PRs, posts a suggestion on maintainer PRs, rotates Renovate PRs. Configured by `reviewer_assignment` in `.github/pr-lifecycle.yml`; see [PR_LIFECYCLE.md](../PR_LIFECYCLE.md#reviewer-assignment). `pull_request_target`, but never checks out or runs PR code. Manual runs take `dry_run` to print scores without applying anything | 2-4 min |
 | `update-openapi.yaml` | Push to main (openapi.json changes) | Auto-copies v3 OpenAPI spec to v2 path, commits if changed, then validates via `validate-openapi.yaml` | 10-15 min |
 | `update-website.yaml` | Release event, workflow_dispatch | Updates `latestRelease.json` on apicurio.github.io with release metadata | 5-10 min |
@@ -590,7 +590,7 @@ action. A message goes to a channel by whether anyone has to act on it, not by i
 |----------|---------|---------|
 | `release.yaml`, `release-artifacts.yaml`, `release-images.yaml`, `release-sdks.yaml`, `release-operator.yaml`, `release-release-notes.yaml`, `update-website.yaml` | general | important |
 | `publish-docs.yaml` | none | important |
-| `post-merge.yml` (Verify on `main`) | general when `main` is green again, or a re-run passed (a flake) | important when a re-run confirms `main` is broken, and once more after a day |
+| `post-merge.yml` (Verify on `main`) | general when `main` is green again, or a re-run passed (a flake) | important when a re-run confirms `main` is broken |
 | `perf-main.yaml` | none | general |
 
 The release, website and docs workflows end with a `notify` job that calls

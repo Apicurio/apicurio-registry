@@ -30,7 +30,6 @@ const LABEL = 'ci/broken';
 const LABEL_COLOR = 'b60205';
 const LABEL_DESCRIPTION = 'Tracking issue: a branch is broken after merge (post-merge.yml)';
 const MAINTAINERS_TEAM = '@Apicurio/maintainers';
-const REMINDER_HOURS = 24;
 
 // failure and timed_out are retried first; startup_failure means the workflow
 // itself is broken and can't be re-run, so it is a confirmed break at once.
@@ -299,7 +298,7 @@ async function onRed(api, ctx, run, now, log) {
     return null;
   }
 
-  const state = { branch, firstRed: sha, lastRed: sha, since: now.toISOString(), reminded: false };
+  const state = { branch, lastRed: sha, since: now.toISOString() };
   const issue = await api.createTrackingIssue(`\`${branch}\` is broken`, issueBody(ctx, run, jobs, greenSha, state));
   log.info(`Opened #${issue.number}`);
   return {
@@ -350,37 +349,14 @@ async function onGreen(api, ctx, run, now, log) {
   return null;
 }
 
-async function remind(api, ctx, now, log) {
-  // One message per run: with a single tracked branch, at most one reminder
-  // is ever due at once.
-  for (const branch of BRANCHES) {
-    const tracked = await findTrackingIssue(api, branch);
-    if (!tracked) continue;
-    const { issue, state } = tracked;
-    if (state.reminded || now - new Date(state.since) < REMINDER_HOURS * 3600 * 1000) continue;
-    await api.updateIssueBody(issue.number, writeState(issue.body, { ...state, reminded: true }));
-    await api.comment(issue.number,
-      `${MAINTAINERS_TEAM}: \`${branch}\` has been broken for ${duration(state.since, now)}, since ${commitLink(ctx, state.firstRed)}.`);
-    log.info(`Reminded on #${issue.number}`);
-    return {
-      level: 'important',
-      text: `:rotating_light: ${branch} has been broken for ${duration(state.since, now)}, since ${short(state.firstRed)} (#${issue.number})`,
-      link: issue.html_url,
-    };
-  }
-  return null;
-}
-
-// Entry point for post-merge.yml: a completed Verify run, or the schedule.
+// Entry point for post-merge.yml: a completed Verify run.
 async function handle({ github, context, core }) {
   const { owner, repo } = context.repo;
   const ctx = { owner, repo, serverUrl: context.serverUrl || 'https://github.com' };
   const api = createApi(github, owner, repo);
   const now = new Date();
 
-  const message = context.eventName === 'workflow_run'
-    ? await onVerifyRun(api, ctx, context.payload.workflow_run, now, core)
-    : await remind(api, ctx, now, core);
+  const message = await onVerifyRun(api, ctx, context.payload.workflow_run, now, core);
 
   core.setOutput('level', message?.level || '');
   core.setOutput('text', message?.text || '');
@@ -389,12 +365,7 @@ async function handle({ github, context, core }) {
 
 module.exports = {
   handle,
-  onVerifyRun,
-  remind,
-  createApi,
   readState,
   duration,
-  BRANCHES,
   LABEL,
-  REMINDER_HOURS,
 };

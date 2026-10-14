@@ -15,10 +15,6 @@ on:
     workflows: ["Verify"]
     types: [completed]
     branches: [main]
-  # The one reminder on a tracking issue that has been open for a day.
-  schedule:
-    - cron: '41 * * * *'
-  workflow_dispatch:
 
 # One event at a time, so two completed runs can't both find no issue and open
 # one each. queue: max keeps every waiting event: with the default queue of

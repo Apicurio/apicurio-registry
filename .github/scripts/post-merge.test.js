@@ -125,17 +125,8 @@ async function onRun(world, run) {
   return world.calls.outputs;
 }
 
-async function onSchedule(world) {
-  await postMerge.handle({
-    github: world.github,
-    core: world.core,
-    context: { eventName: 'schedule', repo: { owner: OWNER, repo: REPO }, serverUrl: 'https://github.com', payload: {} },
-  });
-  return world.calls.outputs;
-}
-
-function trackingIssue({ number = 77, branch = 'main', firstRed = C2, lastRed = C2, since, reminded = false } = {}) {
-  const state = { branch, firstRed, lastRed, since: since || new Date(Date.now() - HOUR).toISOString(), reminded };
+function trackingIssue({ number = 77, branch = 'main', lastRed = C2, since } = {}) {
+  const state = { branch, lastRed, since: since || new Date(Date.now() - HOUR).toISOString() };
   return {
     number,
     title: `\`${branch}\` is broken`,
@@ -236,9 +227,7 @@ test('a failed re-run opens the tracking issue and posts to the important channe
   assert.ok(issue.body.includes('[Verify #42](https://github.com/Apicurio/apicurio-registry/actions/runs/1000)'));
   const state = postMerge.readState(issue.body);
   assert.equal(state.branch, 'main');
-  assert.equal(state.firstRed, C3);
   assert.equal(state.lastRed, C3);
-  assert.equal(state.reminded, false);
 
   assert.equal(out.level, 'important');
   assert.equal(out.text,
@@ -283,14 +272,13 @@ test('a confirmed failure older than the newest green commit is stale', async ()
 
 test('a newer confirmed failure is noted on the open issue, without a message', async () => {
   const w = makeWorld({
-    issues: [trackingIssue({ firstRed: C2, lastRed: C2 })],
+    issues: [trackingIssue({ lastRed: C2 })],
     jobs: { '1000:2': [{ name: 'Unit Tests (1)', conclusion: 'failure' }] },
   });
   assert.deepEqual(await onRun(w, verifyRun({ run_attempt: 2, head_sha: C4 })), NOTHING);
 
   assert.equal(w.issues.length, 1);
   const state = postMerge.readState(w.issues[0].body);
-  assert.equal(state.firstRed, C2);
   assert.equal(state.lastRed, C4);
   assert.equal(w.calls.comments.length, 1);
   assert.equal(w.calls.comments[0].issue_number, 77);
@@ -300,7 +288,7 @@ test('a newer confirmed failure is noted on the open issue, without a message', 
 
 test('an older or the same confirmed failure leaves the open issue alone', async () => {
   for (const sha of [C2, C3]) {
-    const w = makeWorld({ issues: [trackingIssue({ firstRed: C3, lastRed: C3 })] });
+    const w = makeWorld({ issues: [trackingIssue({ lastRed: C3 })] });
     assert.deepEqual(await onRun(w, verifyRun({ run_attempt: 2, head_sha: sha })), NOTHING);
     assert.equal(w.calls.comments.length, 0);
     assert.equal(postMerge.readState(w.issues[0].body).lastRed, C3);
@@ -349,7 +337,7 @@ test('more than five failed jobs are summarised', async () => {
 
 test('a newer green run closes the issue and posts to the general channel', async () => {
   const since = new Date(Date.now() - (5 * HOUR + 12 * 60 * 1000)).toISOString();
-  const w = makeWorld({ issues: [trackingIssue({ firstRed: C2, lastRed: C3, since })] });
+  const w = makeWorld({ issues: [trackingIssue({ lastRed: C3, since })] });
   const out = await onRun(w, verifyRun({ conclusion: 'success', head_sha: C4 }));
 
   assert.equal(w.issues[0].state, 'closed');
@@ -403,35 +391,6 @@ test('a first attempt that passes with no issue open says nothing', async () => 
   const w = makeWorld();
   assert.deepEqual(await onRun(w, verifyRun({ conclusion: 'success' })), NOTHING);
   assert.equal(w.calls.comments.length, 0);
-});
-
-// ---------------------------------------------------------------------------
-// Reminder
-// ---------------------------------------------------------------------------
-
-test('an issue open for a day gets one reminder', async () => {
-  const since = new Date(Date.now() - 25 * HOUR).toISOString();
-  const w = makeWorld({ issues: [trackingIssue({ firstRed: C2, since })] });
-  const out = await onSchedule(w);
-
-  assert.equal(out.level, 'important');
-  assert.equal(out.text, ':rotating_light: main has been broken for 25h, since c200000 (#77)');
-  assert.equal(out.link, 'https://github.com/Apicurio/apicurio-registry/issues/77');
-  assert.equal(w.calls.comments.length, 1);
-  assert.match(w.calls.comments[0].body, /^@Apicurio\/maintainers: `main` has been broken for 25h, since \[`c200000`\]/);
-  assert.equal(postMerge.readState(w.issues[0].body).reminded, true);
-
-  w.calls.outputs = {};
-  assert.deepEqual(await onSchedule(w), NOTHING);
-  assert.equal(w.calls.comments.length, 1);
-});
-
-test('no reminder before a day, or with no issue open', async () => {
-  const young = makeWorld({ issues: [trackingIssue({ since: new Date(Date.now() - 23 * HOUR).toISOString() })] });
-  assert.deepEqual(await onSchedule(young), NOTHING);
-  assert.equal(young.calls.comments.length, 0);
-
-  assert.deepEqual(await onSchedule(makeWorld()), NOTHING);
 });
 
 // ---------------------------------------------------------------------------

@@ -8,6 +8,7 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.logging.Logged;
@@ -123,6 +124,9 @@ public class AdminResourceImpl implements AdminResource {
     private static final String TELEMETRY_NOT_ENABLED = "Usage telemetry is not enabled on this registry instance.";
     private static final String PARAM_GROUP_ID = "groupId";
     private static final String PARAM_ARTIFACT_ID = "artifactId";
+
+    @Inject
+    ResourceAccessGuard accessGuard;
 
     @Inject
     Logger log;
@@ -633,6 +637,8 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public GitOpsStatus getGitOpsStatus() {
+        // Reports name groups and artifacts, so only for callers not restricted by grants
+        accessGuard.requireUnrestrictedRead();
         var gitOps = requireGitOpsStorage();
         var status = gitOps.getStatus();
         return toGitOpsStatus(status);
@@ -658,6 +664,8 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<GitOpsValidateTask> listGitOpsValidateTasks() {
+        // Reports name groups and artifacts, so only for callers not restricted by grants
+        accessGuard.requireUnrestrictedRead();
         requireGitOpsStorage();
         return requireValidationTaskManager().listTasks();
     }
@@ -665,6 +673,8 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public GitOpsValidateTask getGitOpsValidateTask(String taskId) {
+        // Reports name groups and artifacts, so only for callers not restricted by grants
+        accessGuard.requireUnrestrictedRead();
         requireGitOpsStorage();
         var task = requireValidationTaskManager().getTask(taskId);
         if (task == null) {

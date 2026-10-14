@@ -2,12 +2,22 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.registry.auth.grants.GrantsAccessController;
 import io.apicurio.registry.auth.grants.GrantsAccessControllerConfig;
+import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Set;
 
 /**
  * Applies resource-level authorization (owner-only authorization and per-resource grants) to a
@@ -17,13 +27,19 @@ import org.slf4j.LoggerFactory;
  *
  * <p>The endpoint must still carry an {@link Authorized} annotation: the interceptor applies
  * authentication and RBAC, and this check applies the same resource rules and bypasses as the
- * interceptor (authentication disabled, trusted proxy authorization, admin override,
- * anonymous/authenticated read access, RBAC admins for OBAC, and owners for grants).</p>
+ * interceptor (authentication disabled, trusted proxy authorization, admin override, RBAC admins,
+ * and owners for grants).</p>
  */
 @ApplicationScoped
 public class ResourceAccessGuard {
 
     private static final Logger log = LoggerFactory.getLogger(ResourceAccessGuard.class);
+
+    private static final int PAGE_SIZE = 500;
+
+    @Inject
+    @Current
+    RegistryStorage storage;
 
     @Inject
     AuthConfig authConfig;
@@ -59,9 +75,61 @@ public class ResourceAccessGuard {
             log.warn("OBAC enabled and operation not permitted due to wrong owner.");
             throw new ForbiddenException(AuthorizedInterceptor.FORBIDDEN_MESSAGE);
         }
+        requireGrantsAccess(level, resource);
+    }
+
+    /**
+     * Applies only per-resource (grants) authorization, not owner-only authorization. Used where
+     * the interceptor has already authorized the operation for the group, but grants must also
+     * hold for the specific artifact, e.g. the name of an artifact being created.
+     *
+     * @throws ForbiddenException if per-resource authorization denies {@code level} on
+     *         {@code resource}
+     */
+    public void requireGrantsAccess(AuthorizedLevel level, AuthorizedResource resource) {
         if (isEnforced(level) && !grantsAc.isStrictOwner(resource) && !grantsAc.isAllowed(level, resource)) {
             log.warn("Per-resource authorization denied access.");
             throw new ForbiddenException(AuthorizedInterceptor.FORBIDDEN_MESSAGE);
+        }
+    }
+
+    /**
+     * For endpoints that report on the whole registry (e.g. GitOps status) and cannot be filtered
+     * per resource: when per-resource authorization applies, only callers who bypass it (admins)
+     * may use them.
+     *
+     * @throws ForbiddenException if per-resource authorization applies to the caller
+     */
+    public void requireUnrestrictedRead() {
+        if (isEnforced(AuthorizedLevel.Read)) {
+            log.warn("Per-resource authorization denied access to a registry-wide report.");
+            throw new ForbiddenException(AuthorizedInterceptor.FORBIDDEN_MESSAGE);
+        }
+    }
+
+    /**
+     * Requires per-resource write access on every artifact in a group. Group-level deletes remove
+     * all of them, so a group grant alone must not override an artifact-level deny.
+     *
+     * @throws ForbiddenException if any artifact in the group is not writable by the caller
+     */
+    public void requireWriteOnAllArtifacts(String groupId) {
+        if (!isEnforced(AuthorizedLevel.Write)) {
+            return;
+        }
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        int offset = 0;
+        while (true) {
+            ArtifactSearchResultsDto page = storage.searchArtifacts(Set.of(SearchFilter.ofGroupId(rawGroupId)),
+                    OrderBy.artifactId, OrderDirection.asc, offset, PAGE_SIZE, true);
+            for (SearchedArtifactDto artifact : page.getArtifacts()) {
+                requireGrantsAccess(AuthorizedLevel.Write,
+                        AuthorizedResource.artifact(artifact.getGroupId(), artifact.getArtifactId()));
+            }
+            if (page.getArtifacts().size() < PAGE_SIZE) {
+                return;
+            }
+            offset += PAGE_SIZE;
         }
     }
 
@@ -80,18 +148,14 @@ public class ResourceAccessGuard {
     /**
      * @return true if per-resource authorization applies to an operation at {@code level} for the
      *         current caller; false when it is disabled or bypassed (authentication disabled,
-     *         trusted proxy authorization, admin override, anonymous/authenticated read access)
+     *         trusted proxy authorization, admin override, RBAC admin)
      */
     public boolean isEnforced(AuthorizedLevel level) {
         if (!grantsConfig.isEnabled() || level == AuthorizedLevel.None || isBypassed()) {
             return false;
         }
-        if (isAnonymous()) {
-            // The interceptor only lets anonymous callers through for reads when anonymous read
-            // access is enabled, which deliberately overrides grants.
-            return !(level == AuthorizedLevel.Read && authConfig.anonymousReadAccessEnabled.get());
-        }
-        return !(level == AuthorizedLevel.Read && authConfig.authenticatedReadAccessEnabled.get());
+        // Anonymous and authenticated read access only bypass RBAC; grants still apply
+        return true;
     }
 
     /** Bypasses that skip all local resource authorization, as in the interceptor. */
@@ -106,7 +170,7 @@ public class ResourceAccessGuard {
                 && securityIdentity.getCredential(ProxyHeaderCredential.class) != null) {
             return true;
         }
-        return adminOverride.isAdmin();
+        return adminOverride.isAdmin() || (authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin());
     }
 
     private boolean isAnonymous() {

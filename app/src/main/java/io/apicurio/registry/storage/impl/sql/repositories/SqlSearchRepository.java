@@ -113,7 +113,8 @@ public class SqlSearchRepository {
                         break;
                     case authorization:
                         SqlAuthorizationFilter.appendArtifactCondition(where, binders,
-                                filter.getAuthorizationValue(), "a.groupId", "a.artifactId", "a.owner");
+                                filter.getAuthorizationValue(), sqlStatements.dbType(), "a.groupId", "a.artifactId",
+                                "a.owner");
                         break;
                     case artifactId:
                         buildWildcardClause(where, "a.artifactId",
@@ -362,7 +363,8 @@ public class SqlSearchRepository {
                         break;
                     case authorization:
                         SqlAuthorizationFilter.appendArtifactCondition(where, binders,
-                                filter.getAuthorizationValue(), "a.groupId", "a.artifactId", "a.owner");
+                                filter.getAuthorizationValue(), sqlStatements.dbType(), "a.groupId", "a.artifactId",
+                                "a.owner");
                         break;
                     case artifactType:
                         op = filter.isNot() ? "!=" : "=";

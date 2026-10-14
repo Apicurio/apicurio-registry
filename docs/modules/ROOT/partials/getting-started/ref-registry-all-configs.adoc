@@ -266,6 +266,11 @@ The following {registry} configuration options are available for each component 
 |`5s`
 |`3.4.0`
 |Interval for checking grants file changes. Must be a valid duration (e.g. '5s', '1m'). Use apicurio.auth.resource-based-authorization.grants.reload-enabled to disable hot-reload.
+|`apicurio.auth.resource-based-authorization.owner-bypass.enabled`
+|`boolean`
+|`true`
+|`3.4.0`
+|Let the recorded owner of an artifact or group access it regardless of grants. Set to 'false' to make grants the only per-resource authority.
 |`apicurio.auth.role-based-authorization`
 |`boolean`
 |`false`

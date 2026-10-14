@@ -104,9 +104,14 @@ public class AuthorizedInterceptor {
                 }
 
                 // Anonymous users are allowed to perform read-only operations, but only if
-                // apicurio.auth.anonymous-read-access.enabled is set to 'true'
+                // apicurio.auth.anonymous-read-access.enabled is set to 'true'. Per-resource
+                // authorization still applies: anonymous callers get the "$anonymous" grants role.
                 if (authConfig.anonymousReadAccessEnabled.get()
                         && annotation.level() == AuthorizedLevel.Read) {
+                    if (grantsAcConfig.isEnabled() && !grantsAc.isAuthorized(context)) {
+                        log.warn("Per-resource authorization denied anonymous read access.");
+                        throw new UnauthorizedException("User is not authenticated.");
+                    }
                     log.trace("Anonymous user is being granted access to read-only operation.");
                     return context.proceed();
                 }
@@ -137,20 +142,24 @@ public class AuthorizedInterceptor {
             return context.proceed();
         }
 
-        // If Authenticated read access is enabled, and the operation auth level is Read, allow it.
-        if (authConfig.authenticatedReadAccessEnabled.get() && annotation.level() == AuthorizedLevel.Read) {
+        // If Authenticated read access is enabled, and the operation auth level is Read, any
+        // authenticated user passes RBAC (and OBAC, which only restricts writes). Per-resource
+        // authorization below still applies.
+        boolean authenticatedRead = authConfig.authenticatedReadAccessEnabled.get()
+                && annotation.level() == AuthorizedLevel.Read;
+        if (authenticatedRead && !grantsAcConfig.isEnabled()) {
             return context.proceed();
         }
 
         // If RBAC is enabled, apply role based rules
-        if (authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
+        if (!authenticatedRead && authConfig.roleBasedAuthorizationEnabled && !rbac.isAuthorized(context)) {
             log.warn("RBAC enabled and required role missing.");
             log.debug("Denying access for user: {}", securityIdentity.getPrincipal().getName());
             throw new ForbiddenException(FORBIDDEN_MESSAGE);
         }
 
         // If Owner-only is enabled, apply ownership rules
-        if (authConfig.ownerOnlyAuthorizationEnabled.get()) {
+        if (!authenticatedRead && authConfig.ownerOnlyAuthorizationEnabled.get()) {
             if (authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin()) {
                 // User is admin, that's good enough.
             } else if (!obac.isAuthorized(context)) {
@@ -163,7 +172,9 @@ public class AuthorizedInterceptor {
         // Per-resource authorization (grants). Restricts within what RBAC allows. The owner of the
         // addressed artifact/group bypasses grants; resources that do not exist or have no owner
         // never grant a bypass.
+        // RBAC administrators are not subject to per-resource authorization.
         if (grantsAcConfig.isEnabled()
+                && !(authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin())
                 && !grantsAc.isStrictOwner(context)
                 && !grantsAc.isAuthorized(context)) {
             log.warn("Per-resource authorization denied access.");

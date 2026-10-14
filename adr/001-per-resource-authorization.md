@@ -86,26 +86,34 @@ Artifact resource names follow the format `{groupId}/{artifactId}`. Group resour
 ```
 Request → Authentication (Keycloak/IdP)
         → Admin override                       (bypasses everything below)
-        → Anonymous/authenticated read access  (bypass for reads, when enabled)
-        → RBAC                                 (coarse-grained role check)
+        → RBAC                                 (coarse-grained role check; skipped for reads under
+                                                anonymous/authenticated read access)
         → OBAC                                 (when enabled)
-        → Per-resource grants                  (owners of the addressed resource bypass)
+        → Per-resource grants                  (RBAC admins and, by default, owners bypass)
 ```
 
 Key interactions:
 
-- **Admins** bypass grants (admin override, or a role listed in `config.admin_roles`).
+- **Admins** bypass grants: admin override, RBAC admins (`sr-admin`), or a role listed in
+  `config.admin_roles`.
 - **Owners bypass grants**, independently of whether OBAC is enabled. The bypass is strict: it applies
   only when the addressed resource exists and its recorded owner is the caller (for content: owner of any
   artifact using it). Missing resources and
-  resources without an owner never bypass. Creating an artifact still requires `write` on the group.
+  resources without an owner never bypass. It can be disabled with
+  `apicurio.auth.resource-based-authorization.owner-bypass.enabled=false`.
+- **Creation and group deletes check artifacts too.** Creating an artifact requires `write` on the
+  group and on the new name (otherwise a deny could be bypassed by creating the artifact and owning
+  it). Deleting a group, or all its artifacts, requires `write` on every artifact in it.
 - **RBAC runs before grants.** Grants restrict within what RBAC allows.
 - **Grants files are validated strictly.** Any invalid grant (both or neither principal field, unknown
   operation or pattern type, non-boolean `deny`) rejects the whole file, since skipping an invalid
   deny rule would fail open.
 - **Deny rules take precedence.** A deny on an operation also denies every operation that implies it:
   denying `read` blocks all access; denying `write` makes a resource read-only.
-- **`authenticated-read-access` / `anonymous-read-access`** override read grants (startup warning).
+- **`authenticated-read-access` / `anonymous-read-access`** skip RBAC for reads, not grants.
+  Unauthenticated callers get the `$anonymous` role, so anonymous access is granted explicitly.
+- **Registry-wide reports** that cannot be filtered per resource (GitOps status and validation tasks)
+  are limited to callers who are not restricted by grants.
 - **`apicurio.authn.proxy-header.trust-proxy-authorization`** bypasses all local authorization.
 
 ### Two authorization paths
@@ -321,11 +329,13 @@ Artifact access is decided by artifact grants only; group grants do not cascade 
 the group, and a group deny does not hide its artifacts. This keeps point access and search
 consistent, but operators usually need both kinds of grant (documented).
 
-### 4. Pattern matching follows the database collation in search
+### 4. Case-sensitive search cannot use the ID indexes on MySQL and SQL Server
 
-Point access compares names case-sensitively. On databases with case-insensitive collations
-(common for MySQL and SQL Server), search matching follows the collation and can include names that
-differ only in case. **Mitigation:** documented; use consistent casing in group and artifact IDs.
+Point access compares names case-sensitively, so search does too on every variant: MySQL compares
+the ID columns byte-wise (`CAST(... AS BINARY)`, the columns are `ascii_general_ci`) and SQL Server
+uses a binary collation. These comparisons cannot use the ID indexes, so grant-restricted searches
+are slower on those databases. Index-routed (Elasticsearch) searches that combine content or
+structure filters with content-hash filters are rejected with `400` rather than evaluated partially.
 
 ### 5. Scale ceiling at 500+ grants
 
@@ -387,7 +397,9 @@ the shape of `SearchFilterData`.
   `GrantsAccessControllerTest`, `GrantsAuthorizationTest` (end-to-end across REST v2/v3, ccompat, Iceberg,
   MCP Registry, content IDs), `GrantsArtifactScopeTest` (group grant must not authorize an
   artifact-scoped operation the artifact itself denies, for the comment endpoints and
-  `createArtifact`'s `ifExists` path), `AuthorizationFilterStorageTest` and its PostgreSQL variant
-  (SQL translation), `ElasticsearchAuthorizationQueryTest`
+  `createArtifact`'s `ifExists` path, creation of denied names, group deletes, the outbound reference
+  graph), `GrantsInteractionsTest` (anonymous/authenticated read access, RBAC admins, owner-bypass switch,
+  registry-wide reports), `AuthorizationFilterStorageTest` and its PostgreSQL, MySQL and SQL Server
+  variants (SQL translation, case sensitivity), `ElasticsearchAuthorizationQueryTest`
 - **Example:** `distro/docker-compose/in-memory-with-authz-grants/` with a verification script
 - **Documentation:** `docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc`

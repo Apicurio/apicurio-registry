@@ -389,6 +389,7 @@ public class GroupsResourceImpl implements GroupsResource {
                     (String[]) null);
         }
 
+        accessGuard.requireWriteOnAllArtifacts(groupId);
         storage.deleteGroup(groupId);
     }
 
@@ -937,6 +938,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ParameterValidationUtils.requireParameter("groupId", groupId);
 
+        accessGuard.requireWriteOnAllArtifacts(groupId);
         storage.deleteArtifacts(defaultGroupIdToNull(groupId));
     }
 
@@ -1084,6 +1086,8 @@ public class GroupsResourceImpl implements GroupsResource {
             } else if (!ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
                 throw new InvalidArtifactIdException(ArtifactIdValidator.ARTIFACT_ID_ERROR_MESSAGE);
             }
+            // The interceptor checked the group; grants must also allow writing this artifact name
+            accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(groupId, artifactId));
 
             TypedContent typedContent = TypedContent.create(content, ct);
             String artifactType = ArtifactType.AVRO;

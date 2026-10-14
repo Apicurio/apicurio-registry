@@ -84,12 +84,12 @@ public class GrantsAccessControllerInitializer {
 
     private void logConfigurationWarnings() {
         if (authConfig.isAnonymousReadsEnabled()) {
-            log.warn("Per-resource authorization is enabled alongside anonymous-read-access. "
-                    + "Anonymous users will be able to read all resources regardless of grants.");
+            log.info("Anonymous read access is enabled: anonymous callers can read only what grants allow to "
+                    + "the role '{}'.", GrantsAccessController.ANONYMOUS_ROLE);
         }
         if (authConfig.isAuthenticatedReadsEnabled()) {
-            log.warn("Per-resource authorization is enabled alongside authenticated-read-access. "
-                    + "All authenticated users will be able to read all resources regardless of grants.");
+            log.info("Authenticated read access is enabled: authenticated callers skip the RBAC check for "
+                    + "reads, but per-resource authorization still applies.");
         }
     }
 }

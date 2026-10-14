@@ -407,6 +407,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 String refVersion = ref.getVersion();
                 String targetNodeId = createNodeId(refGroupId, refArtifactId, refVersion);
                 String targetArtifactKey = createArtifactKey(refGroupId, refArtifactId);
+                // The referenced coordinates are part of this (readable) version's content, but
+                // the referenced artifact's metadata and its own references are only shown to
+                // callers who may read it
+                boolean readable = searchAuthorizer.canReadArtifact(refGroupId, refArtifactId);
 
                 // Add edge
                 ReferenceGraphEdge edge = ReferenceGraphEdge.builder()
@@ -426,10 +430,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 // Add the node the first time this exact version is seen (avoid duplicate nodes)
                 if (!expandedAt.containsKey(targetNodeId)) {
                     expandedAt.put(targetNodeId, Integer.MAX_VALUE);
-                    try {
-                        ArtifactVersionMetaDataDto refMetadata = storage.getArtifactVersionMetaData(
-                                refGroupId, refArtifactId, refVersion);
-
+                    ArtifactVersionMetaDataDto refMetadata = readable
+                            ? findVersionMetaData(refGroupId, refArtifactId, refVersion) : null;
+                    if (refMetadata != null) {
                         ReferenceGraphNode node = ReferenceGraphNode.builder()
                                 .id(targetNodeId)
                                 .groupId(refGroupId != null ? refGroupId : "default")
@@ -441,8 +444,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                                 .isCycleNode(isArtifactCycle)
                                 .build();
                         nodes.add(node);
-                    } catch (Exception e) {
-                        // Reference might not exist, add a placeholder node
+                    } else {
+                        // Reference does not exist or is not readable: add a placeholder node
                         ReferenceGraphNode node = ReferenceGraphNode.builder()
                                 .id(targetNodeId)
                                 .groupId(refGroupId != null ? refGroupId : "default")
@@ -455,8 +458,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     }
                 }
 
-                // Don't traverse through a cycle node
-                if (isArtifactCycle) {
+                // Don't traverse through a cycle node, or into an artifact the caller may not read
+                if (isArtifactCycle || !readable) {
                     continue;
                 }
 
@@ -479,6 +482,17 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             // Artifact content might not be accessible. Remember that, so re-expanding this node
             // does not retry the same failing lookup.
             outboundReferences.putIfAbsent(sourceNodeId, Collections.emptyList());
+        }
+    }
+
+    /**
+     * @return the version metadata, or null if the version does not exist
+     */
+    private ArtifactVersionMetaDataDto findVersionMetaData(String groupId, String artifactId, String version) {
+        try {
+            return storage.getArtifactVersionMetaData(groupId, artifactId, version);
+        } catch (Exception e) {
+            return null;
         }
     }
 
@@ -707,6 +721,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     (String[]) null);
         }
 
+        accessGuard.requireWriteOnAllArtifacts(groupId);
         storage.deleteGroup(groupId);
     }
 
@@ -1403,6 +1418,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ParameterValidationUtils.requireParameter("groupId", groupId);
 
+        accessGuard.requireWriteOnAllArtifacts(groupId);
         storage.deleteArtifacts(new GroupId(groupId).getRawGroupIdWithNull());
     }
 
@@ -1504,6 +1520,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             String artifactType = ArtifactTypeUtil.determineArtifactType(typedContent, data.getArtifactType(), factory);
 
             final String owner = securityIdentity.getPrincipal().getName();
+
+            // The interceptor checked the group; grants must also allow writing this artifact name,
+            // or an artifact-level deny could be bypassed by creating the artifact (and owning it)
+            accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(groupId, artifactId));
 
             // An existing artifact is handled by ifExists, which checks artifact-level access before running
             // the write hooks. Running the CREATE_ARTIFACT hooks first would let them write (e.g. register
@@ -2468,6 +2488,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 : contract.getInfo() != null && contract.getInfo().getTitle() != null
                         ? contract.getInfo().getTitle().replaceAll("[^a-zA-Z0-9._\\-+]", "-")
                         : "odcs-contract-" + UUID.randomUUID();
+
+        // The interceptor checked the group; grants must also allow writing this contract artifact
+        accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(groupId, contractId));
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;

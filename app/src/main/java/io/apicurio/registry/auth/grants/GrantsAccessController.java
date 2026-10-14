@@ -43,12 +43,21 @@ public class GrantsAccessController extends AbstractAccessController {
     private static final Logger LOG = LoggerFactory.getLogger(GrantsAccessController.class);
     private static final Logger AUDIT = LoggerFactory.getLogger("io.apicurio.registry.audit.authz");
 
+    /**
+     * Role given to unauthenticated callers, so grants can allow anonymous access explicitly with
+     * {@code "principal_role": "$anonymous"}. Never matches a {@code principal} grant.
+     */
+    public static final String ANONYMOUS_ROLE = "$anonymous";
+
     private static final String TYPE_ARTIFACT = "artifact";
     private static final String TYPE_GROUP = "group";
     private static final String TYPE_CONTENT = "content";
 
     @Inject
     OTelMetricsProvider metrics;
+
+    @Inject
+    GrantsAccessControllerConfig config;
 
     private volatile GrantsAuthorizer authorizer;
 
@@ -109,6 +118,14 @@ public class GrantsAccessController extends AbstractAccessController {
                     normalizeGroup(resource.groupId()));
             case CONTENT -> decideContent(subject, level, resource.contentUsers());
         };
+    }
+
+    /**
+     * Owner bypass of per-resource authorization, unless disabled by configuration.
+     */
+    @Override
+    public boolean isStrictOwner(AuthorizedResource resource) {
+        return (config == null || config.isOwnerBypassEnabled()) && super.isStrictOwner(resource);
     }
 
     public boolean canReadArtifact(String groupId, String artifactId) {
@@ -175,11 +192,12 @@ public class GrantsAccessController extends AbstractAccessController {
 
     /**
      * Maps the current Quarkus {@link SecurityIdentity} to a Kroxylicious {@link Subject}: one
-     * {@link User} principal plus one {@link RolePrincipal} per role.
+     * {@link User} principal plus one {@link RolePrincipal} per role. Unauthenticated callers get
+     * only the {@link #ANONYMOUS_ROLE} role.
      */
     public Subject currentSubject() {
         if (securityIdentity == null || securityIdentity.isAnonymous()) {
-            return Subject.anonymous();
+            return new Subject(Set.of(new RolePrincipal(ANONYMOUS_ROLE)));
         }
         Set<Principal> principals = new HashSet<>();
         principals.add(new User(securityIdentity.getPrincipal().getName()));

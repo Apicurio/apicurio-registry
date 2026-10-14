@@ -27,6 +27,10 @@ public class GrantsAccessControllerConfig {
     @Info(category = CATEGORY_AUTH, description = "Enable periodic hot-reload of the grants file. Set to 'false' to disable polling for changes.", availableSince = "3.4.0")
     boolean reloadEnabled;
 
+    @ConfigProperty(name = "apicurio.auth.resource-based-authorization.owner-bypass.enabled", defaultValue = "true")
+    @Info(category = CATEGORY_AUTH, description = "Let the recorded owner of an artifact or group access it regardless of grants. Set to 'false' to make grants the only per-resource authority.", availableSince = "3.4.0")
+    boolean ownerBypassEnabled;
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -37,6 +41,10 @@ public class GrantsAccessControllerConfig {
 
     public boolean isReloadEnabled() {
         return reloadEnabled;
+    }
+
+    public boolean isOwnerBypassEnabled() {
+        return ownerBypassEnabled;
     }
 
     public String getReloadEvery() {

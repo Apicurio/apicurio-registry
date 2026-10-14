@@ -58,6 +58,10 @@ Per-resource authorization requires authentication (OIDC, HTTP basic, or proxy h
 |`apicurio.auth.resource-based-authorization.grants.reload-enabled`
 |`true`
 |Reloads the grants file when it changes. Set to `false` to load it only at startup.
+
+|`apicurio.auth.resource-based-authorization.owner-bypass.enabled`
+|`true`
+|Lets the recorded owner of an artifact or group access it regardless of grants.
 |===
 
 .Example configuration
@@ -102,7 +106,7 @@ The grants file is a JSON object with an optional `config` section and a require
 }
 ----
 
-`config.admin_roles` lists roles whose users have full access to all resources; no grants are evaluated for them. Include your administrator role here: users with the `sr-admin` RBAC role are otherwise also subject to grants.
+`config.admin_roles` lists roles whose users have full access to all resources; no grants are evaluated for them. RBAC administrators (the `sr-admin` role, or the role configured as the RBAC admin role) always bypass grants, so `admin_roles` is only needed for additional roles.
 
 === Grant fields
 
@@ -150,7 +154,7 @@ In artifact names, the characters `%` and `/` in the group ID are written as `%2
 
 Patterns are matched against the complete name. For example, the prefix `team-a/` matches every artifact in group `team-a` (but not in group `team-a/sub`), and the prefix `team-a/internal-` matches only the artifacts in `team-a` whose ID starts with `internal-`.
 
-Matching is case-sensitive, except on databases configured with a case-insensitive collation (common for MySQL and SQL Server), where search results follow the database collation.
+Matching is case-sensitive on every storage variant, in direct access and in search results.
 
 === Operations
 
@@ -158,8 +162,13 @@ Matching is case-sensitive, except on databases configured with a case-insensiti
 
 === Group grants and artifact grants
 
-* **Group grants** control operations on the group itself: reading group metadata, listing and creating artifacts in it, and creating, updating, or deleting the group.
-* **Artifact grants** control operations on artifacts and their versions, content, and references.
+* **Group grants** control operations on the group itself: reading group metadata, listing artifacts in it, and creating, updating, or deleting the group.
+* **Artifact grants** control operations on artifacts and their versions, content, comments, and references.
+
+Some operations need both:
+
+* Creating an artifact requires `write` on the group and on the new artifact's name, so a deny on an artifact name also prevents creating it.
+* Deleting a group, or all artifacts in a group, requires `write` on the group and on every artifact in it.
 
 Most deployments need both. For example, to give a user full access to `team-a`:
 
@@ -285,27 +294,41 @@ Requests are authorized in this order:
 ----
 Authentication
   → Admin override                     (bypasses everything below)
-  → Anonymous / authenticated read access  (bypass for read operations, when enabled)
-  → RBAC                                (role check)
+  → RBAC                                (role check; skipped for reads when anonymous or
+                                         authenticated read access applies)
   → Owner-only authorization (OBAC)     (when enabled)
-  → Per-resource authorization          (owners of the resource bypass this check)
+  → Per-resource authorization          (RBAC admins, and by default resource owners, bypass it)
 ----
 
 === RBAC
 
-A user with the `sr-readonly` role can never write, whatever their grants. To control write access with grants, give users the `sr-developer` role and use grants to choose which resources they can change.
+RBAC administrators bypass per-resource authorization. A user with the `sr-readonly` role can never write, whatever their grants. To control write access with grants, give users the `sr-developer` role and use grants to choose which resources they can change.
 
 === Resource owners
 
-The recorded owner of an artifact or group always has access to it, whether or not owner-only authorization (`apicurio.auth.owner-only-authorization`) is enabled. Owners also see their own resources in search results and can read content used by their artifacts. With the Elasticsearch search index, searches that require the index (content and structure searches) include at most 1000 of the caller's owned artifacts that are not otherwise covered by grants. A resource without a recorded owner does not grant this exception to anyone.
+By default, the recorded owner of an artifact or group has access to it whatever the grants, whether or not owner-only authorization (`apicurio.auth.owner-only-authorization`) is enabled. Set `apicurio.auth.resource-based-authorization.owner-bypass.enabled` to `false` to make grants the only per-resource authority. Owners also see their own resources in search results and can read content used by their artifacts. With the Elasticsearch search index, searches that require the index (content and structure searches) include at most 1000 of the caller's owned artifacts that are not otherwise covered by grants. A resource without a recorded owner does not grant this exception to anyone.
 
 When owner-only authorization is enabled, it applies as well to resources named in a request body, such as Iceberg rename targets and published MCP servers: only the owner can change them, even if other users have matching grants.
 
-The creator of an artifact becomes its owner, but creating it still requires `write` on the group.
+The creator of an artifact becomes its owner, but creating it requires `write` on both the group and the artifact name, so the owner bypass cannot be used to get around a deny on that name.
 
 === Anonymous and authenticated read access
 
-When `apicurio.auth.anonymous-read-access.enabled` or `apicurio.auth.authenticated-read-access.enabled` is `true`, the corresponding users can read all resources regardless of grants. {registry} logs a startup warning when either is combined with per-resource authorization.
+These settings skip the RBAC check for reads; per-resource authorization still applies:
+
+* With `apicurio.auth.authenticated-read-access.enabled`, any authenticated user can read, even without a registry role, but only the resources their grants allow.
+* With `apicurio.auth.anonymous-read-access.enabled`, unauthenticated callers get the role `$anonymous`. They can read only what grants allow to that role, for example:
++
+[source,json]
+----
+{"principal_role": "$anonymous", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "public/"}
+----
++
+Other reads by unauthenticated callers are answered with `401`.
+
+=== Registry-wide reports
+
+Reports that cover the whole registry and cannot be filtered per resource, such as the GitOps status and validation tasks, are available only to callers who are not restricted by grants (administrators).
 
 === Admin override and trusted proxy authorization
 
@@ -359,7 +382,7 @@ Check, in order:
 
 === A user can see more than expected
 
-Check whether anonymous or authenticated read access is enabled, whether the user has a role listed in `config.admin_roles`, and whether the user owns the resources.
+Check whether the user is an RBAC administrator or has a role listed in `config.admin_roles`, whether the user owns the resources (see `owner-bypass.enabled`), and, for unauthenticated callers, what the `$anonymous` role is granted.
 
 === {registry} does not start
 

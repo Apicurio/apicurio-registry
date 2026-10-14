@@ -54,6 +54,7 @@ public class ElasticsearchSearchDecoratorTest {
         decorator.searchService = searchService;
         decorator.startupIndexer = startupIndexer;
         decorator.setDelegate(delegate);
+        when(searchService.canHandleFilters(any())).thenReturn(true);
     }
 
     @Test
@@ -221,5 +222,20 @@ public class ElasticsearchSearchDecoratorTest {
         decorator.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false);
 
         assertEquals(limit, authorizationOf(captureIndexFilters(filters)).ownedArtifacts().size());
+    }
+
+    @Test
+    void indexSearchRejectsFiltersTheIndexCannotEvaluate() throws Exception {
+        Set<SearchFilter> filters = Set.of(SearchFilter.ofContent("test"), SearchFilter.ofContentHash("abc"));
+        when(searchService.requiresSearchIndex(filters)).thenReturn(true);
+        when(startupIndexer.isReady()).thenReturn(true);
+        when(searchService.canHandleFilters(filters)).thenReturn(false);
+
+        // Dropping the hash filter would return more than the caller asked for
+        assertThrows(ContentSearchNotSupportedException.class,
+                () -> decorator.searchArtifacts(filters, OrderBy.name, OrderDirection.asc, 0, 10, false));
+        assertThrows(ContentSearchNotSupportedException.class,
+                () -> decorator.searchVersions(filters, OrderBy.name, OrderDirection.asc, 0, 10, false));
+        verifyNoInteractions(delegate);
     }
 }

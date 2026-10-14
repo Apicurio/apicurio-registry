@@ -473,6 +473,7 @@ public class SubjectsResourceImpl extends AbstractResource implements SubjectsRe
     }
 
     @Override
+    @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Read)
     public Schema getSubjectMetadata(String subject, String key, String value, String format, Boolean deleted, String xRegistryGroupId) {
         //TODO not implemented
         return null;

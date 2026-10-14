@@ -302,7 +302,7 @@ public class SqlGroupRepository {
                         break;
                     case authorization:
                         SqlAuthorizationFilter.appendGroupCondition(where, binders,
-                                filter.getAuthorizationValue(), "g.groupId", "g.owner");
+                                filter.getAuthorizationValue(), sqlStatements.dbType(), "g.groupId", "g.owner");
                         break;
                     case labels:
                         Pair<String, String> label = filter.getLabelFilterValue();

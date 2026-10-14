@@ -11,6 +11,7 @@ import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
+import io.restassured.specification.RequestSpecification;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
@@ -46,6 +49,7 @@ public class GrantsArtifactScopeTest extends AbstractResourceTestBase {
 
     private static final String GROUP = "grants-artifact-scope";
     private static final String DENIED_ARTIFACT = "no-write";
+    private static final String DELETE_GROUP_PREFIX = "grants-delete";
 
     private static final String GRANTS_JSON = """
             {"config": {"admin_roles": ["sr-admin"]}, "grants": [
@@ -54,8 +58,16 @@ public class GrantsArtifactScopeTest extends AbstractResourceTestBase {
               {"principal": "bob", "operation": "write", "resource_type": "artifact",
                "resource_pattern_type": "prefix", "resource_pattern": "%1$s/"},
               {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%1$s/%2$s", "deny": true}
-            ]}""".formatted(GROUP, DENIED_ARTIFACT);
+               "resource_pattern_type": "prefix", "resource_pattern": "%1$s/%2$s", "deny": true},
+              {"principal": "bob", "operation": "read", "resource_type": "artifact",
+               "resource_pattern_type": "prefix", "resource_pattern": "%1$s/hidden-", "deny": true},
+              {"principal": "bob", "operation": "write", "resource_type": "group",
+               "resource_pattern_type": "prefix", "resource_pattern": "%3$s"},
+              {"principal": "bob", "operation": "write", "resource_type": "artifact",
+               "resource_pattern_type": "prefix", "resource_pattern": "%3$s"},
+              {"principal": "bob", "operation": "write", "resource_type": "artifact",
+               "resource_pattern_type": "exact", "resource_pattern": "%3$s-locked/locked", "deny": true}
+            ]}""".formatted(GROUP, DENIED_ARTIFACT, DELETE_GROUP_PREFIX);
 
     static final Path GRANTS = createGrantsFile();
 
@@ -86,6 +98,8 @@ public class GrantsArtifactScopeTest extends AbstractResourceTestBase {
             map.put("apicurio.auth.resource-based-authorization.enabled", "true");
             map.put("apicurio.auth.resource-based-authorization.grants.path", GRANTS.toString());
             map.put("apicurio.auth.resource-based-authorization.grants.reload-enabled", "false");
+            map.put("apicurio.rest.deletion.group.enabled", "true");
+            map.put("apicurio.rest.deletion.artifact.enabled", "true");
             return map;
         }
     }
@@ -144,5 +158,67 @@ public class GrantsArtifactScopeTest extends AbstractResourceTestBase {
 
     private static String path(String artifactId) {
         return "/registry/v3/groups/" + GROUP + "/artifacts/" + artifactId;
+    }
+
+    private static String createBody(String artifactId, String referenceJson) {
+        return "{\"artifactId\":\"" + artifactId + "\",\"artifactType\":\"JSON\",\"firstVersion\":"
+                + "{\"content\":{\"content\":\"{\\\"type\\\":\\\"object\\\"}\",\"contentType\":\""
+                + ContentTypes.APPLICATION_JSON + "\",\"references\":[" + referenceJson + "]}}}";
+    }
+
+    private static RequestSpecification bob() {
+        return given().auth().preemptive().basic("bob", "bob");
+    }
+
+    @Test
+    public void creatingAnArtifactRequiresWriteOnItsName() {
+        // Group write alone is not enough: a deny on the name must stop creation, or the creator
+        // would own the artifact and bypass the deny for good
+        bob().contentType(CT_JSON).body(createBody(DENIED_ARTIFACT + "-new", ""))
+                .post("/registry/v3/groups/" + GROUP + "/artifacts").then().statusCode(403);
+        given().auth().preemptive().basic("alice", "alice")
+                .get(path(DENIED_ARTIFACT + "-new")).then().statusCode(404);
+        bob().contentType(CT_JSON).header("X-Registry-ArtifactId", DENIED_ARTIFACT + "-v2")
+                .header("X-Registry-ArtifactType", "JSON").body("{\"type\":\"object\"}")
+                .post("/registry/v2/groups/" + GROUP + "/artifacts").then().statusCode(403);
+
+        bob().contentType(CT_JSON).body(createBody("created-by-bob", ""))
+                .post("/registry/v3/groups/" + GROUP + "/artifacts").then().statusCode(200);
+    }
+
+    @Test
+    public void groupDeletesRequireWriteOnEveryArtifact() {
+        String locked = DELETE_GROUP_PREFIX + "-locked";
+        String open = DELETE_GROUP_PREFIX + "-open";
+        clientV3.groups().byGroupId(locked).artifacts().post(TestUtils.clientCreateArtifact("locked",
+                ArtifactType.JSON, "{\"type\":\"object\"}", ContentTypes.APPLICATION_JSON));
+        clientV3.groups().byGroupId(open).artifacts().post(TestUtils.clientCreateArtifact("deletable",
+                ArtifactType.JSON, "{\"type\":\"object\"}", ContentTypes.APPLICATION_JSON));
+
+        bob().delete("/registry/v3/groups/" + locked + "/artifacts").then().statusCode(403);
+        bob().delete("/registry/v3/groups/" + locked).then().statusCode(403);
+        bob().delete("/registry/v2/groups/" + locked + "/artifacts").then().statusCode(403);
+        assertEquals(1, clientV3.groups().byGroupId(locked).artifacts().get().getCount().intValue());
+
+        bob().delete("/registry/v3/groups/" + open + "/artifacts").then().statusCode(204);
+        assertEquals(0, clientV3.groups().byGroupId(open).artifacts().get().getCount().intValue());
+    }
+
+    @Test
+    public void outboundReferenceGraphHidesUnreadableArtifacts() {
+        createAsAdmin("hidden-target");
+        String reference = "{\"groupId\":\"" + GROUP + "\",\"artifactId\":\"hidden-target\","
+                + "\"version\":\"1\",\"name\":\"target.json\"}";
+        given().auth().preemptive().basic("alice", "alice").contentType(CT_JSON)
+                .body(createBody("ref-source", reference))
+                .post("/registry/v3/groups/" + GROUP + "/artifacts").then().statusCode(200);
+        String graph = path("ref-source") + "/versions/1/references/graph?direction=OUTBOUND";
+
+        // bob may read the source, so sees that it references hidden-target, but not its metadata
+        bob().get(graph).then().statusCode(200)
+                .body("nodes.find { it.artifactId == 'hidden-target' }.artifactType", nullValue())
+                .body("nodes.find { it.artifactId == 'hidden-target' }.name", nullValue());
+        given().auth().preemptive().basic("alice", "alice").get(graph).then().statusCode(200)
+                .body("nodes.find { it.artifactId == 'hidden-target' }.artifactType", equalTo("JSON"));
     }
 }

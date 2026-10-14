@@ -69,6 +69,11 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
                         "Content search requires the Elasticsearch search index, which is not "
                         + "available. Enable the Elasticsearch search index to use content search.");
             }
+            if (!searchService.canHandleFilters(filters)) {
+                // The index cannot evaluate them; dropping them would return more than requested
+                throw new ContentSearchNotSupportedException(
+                        "Content and structure search cannot be combined with content hash filters.");
+            }
             try {
                 return searchService.searchVersions(resolveOwnership(filters), orderBy, orderDirection,
                         offset, limit, skipCount);
@@ -88,6 +93,11 @@ public class ElasticsearchSearchDecorator extends RegistryStorageDecoratorBase
                 throw new ContentSearchNotSupportedException(
                         "Content search requires the Elasticsearch search index, which is not "
                         + "available. Enable the Elasticsearch search index to use content search.");
+            }
+            if (!searchService.canHandleFilters(filters)) {
+                // The index cannot evaluate them; dropping them would return more than requested
+                throw new ContentSearchNotSupportedException(
+                        "Content and structure search cannot be combined with content hash filters.");
             }
             try {
                 return searchService.searchArtifacts(resolveOwnership(filters), orderBy, orderDirection,

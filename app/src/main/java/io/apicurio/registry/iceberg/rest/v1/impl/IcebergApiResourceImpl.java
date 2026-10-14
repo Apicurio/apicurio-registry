@@ -375,6 +375,8 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         String groupId = namespaceToGroupId(namespace);
         String tableName = data.getName();
+        // The interceptor checked the namespace; grants must also allow writing this name
+        accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(groupId, tableName));
 
         String tableUuid = UUID.randomUUID().toString();
         String location = data.getLocation();
@@ -770,6 +772,8 @@ public class IcebergApiResourceImpl implements ApisResource {
 
         String groupId = namespaceToGroupId(namespace);
         String viewName = data.getName();
+        // The interceptor checked the namespace; grants must also allow writing this name
+        accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(groupId, viewName));
 
         String viewUuid = UUID.randomUUID().toString();
         String location = data.getLocation();

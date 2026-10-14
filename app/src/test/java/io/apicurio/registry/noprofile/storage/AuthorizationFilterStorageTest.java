@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -65,6 +66,8 @@ public class AuthorizationFilterStorageTest extends AbstractResourceTestBase {
         ARTIFACTS.put(P + "%", List.of("x"));
         ARTIFACTS.put(P + "!", List.of("x"));
         ARTIFACTS.put(OWNED_GROUP, List.of("owned"));
+        // Single mixed-case artifact: case-insensitive databases cannot store case variants
+        ARTIFACTS.put(P + "Case", List.of("Mixed"));
         ARTIFACTS.put(null, List.of(P + "d1"));
     }
 
@@ -225,6 +228,35 @@ public class AuthorizationFilterStorageTest extends AbstractResourceTestBase {
 
         assertArtifactsMatchReference(filter);
         assertEquals(Set.of(key(OWNED_GROUP, "owned")), searchArtifacts(filter));
+    }
+
+    /**
+     * Point access compares names case-sensitively, so search must too, even on databases whose
+     * default collation is case-insensitive (MySQL, SQL Server).
+     */
+    @Test
+    void matchingIsCaseSensitive() {
+        AuthorizationFilter exact = allow(Set.of(P + "Case/Mixed"), Set.of());
+        AuthorizationFilter wrongCaseExact = allow(Set.of(P + "Case/mixed"), Set.of());
+        AuthorizationFilter wrongCasePrefix = allow(Set.of(), Set.of(P + "case/"));
+        AuthorizationFilter wrongCaseDeny = new AuthorizationFilter(false, Set.of(), Set.of(P + "Case/"),
+                Set.of(P + "Case/mixed"), Set.of(), null);
+
+        for (AuthorizationFilter filter : List.of(exact, wrongCaseExact, wrongCasePrefix, wrongCaseDeny)) {
+            assertArtifactsMatchReference(filter);
+        }
+        assertEquals(Set.of(key(P + "Case", "Mixed")), searchArtifacts(exact));
+        assertEquals(Set.of(), searchArtifacts(wrongCaseExact));
+        assertEquals(Set.of(), searchArtifacts(wrongCasePrefix));
+        assertEquals(Set.of(key(P + "Case", "Mixed")), searchArtifacts(wrongCaseDeny));
+    }
+
+    @Test
+    void ownerMatchingIsCaseSensitive() {
+        AuthorizationFilter filter = new AuthorizationFilter(false, Set.of(), Set.of(), Set.of(), Set.of(),
+                OWNER.toUpperCase(Locale.ROOT));
+
+        assertEquals(Set.of(), searchArtifacts(filter));
     }
 
     @Test

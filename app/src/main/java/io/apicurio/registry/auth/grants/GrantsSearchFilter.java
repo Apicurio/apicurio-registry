@@ -123,7 +123,7 @@ public class GrantsSearchFilter {
         if (securityIdentity != null && !securityIdentity.isAnonymous()) {
             return securityIdentity.getRoles();
         }
-        return Set.of();
+        return Set.of(GrantsAccessController.ANONYMOUS_ROLE);
     }
 
     private static ArtifactSearchResultsDto emptyArtifactResults() {

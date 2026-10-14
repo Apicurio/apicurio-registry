@@ -1,0 +1,59 @@
+name: 'Newer Than Published'
+description: 'Whether this commit is newer than the one a published snapshot image was built from'
+
+# Verify publishes snapshot images (latest-snapshot) from push runs on main. A
+# retried run can pass after a newer commit was published, and must not move
+# the tag back to its older commit (#10380, D4). Images carry the commit they
+# were built from in the org.opencontainers.image.revision label, so compare
+# that commit with this one:
+#   ahead or identical -> publish
+#   behind             -> skip
+#   anything else      -> publish: nothing published yet, no label, a label
+#                         naming a commit this repository doesn't have (the
+#                         base image's, on images from before the label), or
+#                         rewritten history. The branch wins.
+#
+# The caller must not run two of these and their pushes at once, or both can
+# pass the check and then overwrite each other: Verify gives each publish job a
+# concurrency group per branch, with queue: max.
+#
+# Checkout is not part of this action: a local composite action is resolved
+# from the workspace, so the repository must already be checked out.
+
+inputs:
+  image:
+    description: 'Published image to compare with, e.g. quay.io/apicurio/apicurio-registry:latest-snapshot. Must be readable without credentials'
+    required: true
+
+outputs:
+  publish:
+    description: "'false' when this commit is older than the published one, else 'true'"
+    value: ${{ steps.compare.outputs.publish }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Compare with the published commit
+      id: compare
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        IMAGE: ${{ inputs.image }}
+        SHA: ${{ github.sha }}
+      run: |
+        published=$(skopeo inspect --override-os linux --override-arch amd64 \
+            --format '{{ index .Labels "org.opencontainers.image.revision" }}' "docker://$IMAGE") || published=""
+        if [ -z "$published" ]; then
+          status="nothing published, or no revision label"
+          publish=true
+        else
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$published...$SHA" --jq .status) \
+              || status="not comparable"
+          case "$status" in
+            ahead|identical) publish=true ;;
+            behind) publish=false ;;
+            *) publish=true ;;
+          esac
+        fi
+        echo "$IMAGE was built from ${published:-?}. This commit, $SHA: $status. Publish: $publish"
+        echo "publish=$publish" >> "$GITHUB_OUTPUT"

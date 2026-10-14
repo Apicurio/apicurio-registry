@@ -133,6 +133,26 @@ everything at the start of that same run. Deciding from live author/review
 facts directly (this design) needs no live re-fetch and no bot-applied label
 at all, so there is nothing left to race.
 
+### Re-runs and snapshot publishing on main
+
+A push run on `main` that fails is to be retried, to tell a flake from a break
+(#10380). Two things keep a retry from interfering with newer commits:
+
+- **Its own concurrency group.** A push run's attempt 2 or later runs in
+  `Verify-<ref>-retry-<sha>` instead of the branch group, so it neither cancels
+  the run of a newer push nor is cancelled by one. PR re-runs stay in the
+  branch group.
+- **Publishing only forward.** Images record the commit they were built from in
+  the `org.opencontainers.image.revision` label. Before publishing,
+  `verify-publish.yaml` and the operator's `operator-publish` compare that
+  commit on `latest-snapshot` with their own (`.github/actions/newer-than-published`)
+  and skip when theirs is older, so a retry that passes late never moves
+  `latest-snapshot` back. Each publish runs one at a time per branch
+  (job-level `concurrency` with `queue: max`), so two runs can't both pass the
+  check and then overwrite each other. `queue: max` matters: with the default,
+  a second waiting run cancels the first. actionlint (v1.7.12) doesn't know
+  `queue` yet and reports it as an error.
+
 ## Unit Test Sharding
 
 The unit tests are split into 7 parallel shards to reduce the critical path
@@ -259,7 +279,7 @@ non-Java changes (docs, UI).
 | `verify-extras.yaml` | Called by verify | 5 parallel jobs: extra tests, UI Playwright tests, legacy V2 compatibility tests, TypeScript SDK tests, example builds | ~13 min |
 | `verify-sdk.yaml` | Called by verify | Go and Python SDK verification | ~2 min |
 | `verify-cli.yaml` | Called by verify | CLI native build (GraalVM) + tests on Linux and macOS. Conditional on `cli/` or `java-sdk/` changes | ~15-25 min |
-| `verify-publish.yaml` | Called by verify | Push Docker images (app, UI, MCP, GitOps) to DockerHub and Quay.io. Main branch only. Uses `reusable-docker-build.yaml` for multi-arch builds | ~30-40 min |
+| `verify-publish.yaml` | Called by verify | Push Docker images (app, UI, MCP, GitOps) to DockerHub and Quay.io. Main branch only, one run at a time, and only a commit newer than the one `latest-snapshot` holds (see [Re-runs and snapshot publishing on main](#re-runs-and-snapshot-publishing-on-main)). Uses `reusable-docker-build.yaml` for multi-arch builds | ~30-40 min |
 
 ### Reading the Scalpel report
 
@@ -512,7 +532,7 @@ and tags starting with `3.`.
 | `update-openapi.yaml` | Push to main (openapi.json changes) | Auto-copies v3 OpenAPI spec to v2 path, commits if changed, then validates via `validate-openapi.yaml` | 10-15 min |
 | `update-website.yaml` | Release event, workflow_dispatch | Updates `latestRelease.json` on apicurio.github.io with release metadata | 5-10 min |
 | `publish-docs.yaml` | Push to main (docs/**), workflow_dispatch | Builds documentation via Antora playbook and publishes to apicurio.github.io | 15-30 min |
-| `operator.yaml` | Push/PR to main (operator/**) | Operator CI: build + push temp images to ttl.sh (8h TTL), 9-group test matrix on Minikube (smoke, kafka, auth, database, feature-a, feature-b, feature-setup, OLM v0, OLM v1) plus a single-JVM "Local Tests" run of the full IT suite against the same Minikube cluster, publish to Quay.io on push only. Cancels in-progress on new push | 45-90 min |
+| `operator.yaml` | Push/PR to main (operator/**) | Operator CI: build + push temp images to ttl.sh (8h TTL), 9-group test matrix on Minikube (smoke, kafka, auth, database, feature-a, feature-b, feature-setup, OLM v0, OLM v1) plus a single-JVM "Local Tests" run of the full IT suite against the same Minikube cluster, publish to Quay.io on push only, and only a commit newer than the one `latest-snapshot` holds. Cancels in-progress on new push | 45-90 min |
 | `image-scan.yaml` | Daily at 06:00 UTC, workflow_dispatch | Trivy vulnerability scan on `latest-snapshot` image (CRITICAL + HIGH severity). Results uploaded to GitHub Security tab as SARIF | 5-10 min |
 
 ## Reusable Workflows

@@ -15,6 +15,9 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
@@ -26,7 +29,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Every method builds the registry state it asserts on, so no execution order is declared and
  * any method can run on its own. The label and the content carry the per-call UUID too, because
  * a label or content search would otherwise also match the artifacts that sibling methods
- * created in the same registry.
+ * created in the same registry. The label, content and stdin searches create a second fixture
+ * as a decoy that must not come back, so they check that the filter narrows the result.
  */
 @QuarkusTest
 @Timeout(120)
@@ -34,7 +38,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     /**
      * Creates a group and an artifact in it, with a label and content unique to the call, and
-     * returns them; the buffer is clean when it returns.
+     * returns them; the output buffer is clean when it returns.
      */
     private Fixture givenArtifact() throws IOException {
         var suffix = UUID.randomUUID().toString();
@@ -44,30 +48,24 @@ public class SearchCommandTest extends AbstractCLITest {
         var content = "{\"type\": \"string\", \"description\": \"" + suffix + "\"}";
 
         executeAndAssertSuccess("group", "create", group);
-        final Path tempFile = Files.createTempFile("search-test", ".json");
-        try {
-            Files.writeString(tempFile, content);
-            executeAndAssertSuccess("artifact", "create", "-g", group,
-                    "--type", "JSON", "--file", tempFile.toString(),
-                    "-l", label, artifactId);
-        } finally {
-            Files.deleteIfExists(tempFile);
-        }
-        out.getBuffer().setLength(0);
-        err.getBuffer().setLength(0);
+        createJsonArtifact(group, artifactId, content, "-l", label);
         return new Fixture(group, artifactId, label, content);
     }
 
     private record Fixture(String group, String artifactId, String label, String content) {
     }
 
-    private void createArtifactInGroup(String group, String content) throws IOException {
+    /** Creates a JSON artifact from the given content; {@code extraArgs} go before the artifact id. */
+    private void createJsonArtifact(String group, String artifactId, String content, String... extraArgs)
+            throws IOException {
         final Path tempFile = Files.createTempFile("search-test", ".json");
         try {
             Files.writeString(tempFile, content);
-            executeAndAssertSuccess("artifact", "create", "-g", group,
-                    "--type", "JSON", "--file", tempFile.toString(),
-                    "search-test-artifact-" + UUID.randomUUID());
+            var args = new ArrayList<>(List.of("artifact", "create", "-g", group,
+                    "--type", "JSON", "--file", tempFile.toString()));
+            args.addAll(List.of(extraArgs));
+            args.add(artifactId);
+            executeAndAssertSuccess(args.toArray(String[]::new));
         } finally {
             Files.deleteIfExists(tempFile);
         }
@@ -86,8 +84,8 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchGroups() throws Exception {
         // an unfiltered listing is the one path that injects the implicit default group, pinned to
-        // the top of the first page, so this checks it without depending on where the fixture sorts
-        givenArtifact();
+        // the top of the first page. The CLI adds it, so no fixture is needed.
+        out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "groups", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
@@ -147,27 +145,26 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     public void testSearchGroupsOrderBy() throws Exception {
-        // two groups that share a label, so one filter finds exactly these two; their ids differ in the a/b segment
+        // two groups that share a label, so one filter finds exactly these two
         var suffix = UUID.randomUUID().toString();
         var label = "order=" + suffix;
-        var first = "search-order-a-" + suffix;
-        var second = "search-order-b-" + suffix;
-        executeAndAssertSuccess("group", "create", "-l", label, first);
-        executeAndAssertSuccess("group", "create", "-l", label, second);
+        var ascending = List.of("search-order-a-" + suffix, "search-order-b-" + suffix);
+        for (var groupId : ascending) {
+            executeAndAssertSuccess("group", "create", "-l", label, groupId);
+        }
+        var descending = new ArrayList<>(ascending);
+        Collections.reverse(descending);
 
-        for (var direction : new String[] {"Asc", "Desc"}) {
+        for (var direction : List.of("Asc", "Desc")) {
             out.getBuffer().setLength(0);
             executeAndAssertSuccess("search", "groups", "--order-by", "GroupId", "--order", direction,
                     "-l", label, "--output-type", "json");
             var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
-            var expected = direction.equals("Asc")
-                    ? new String[] {first, second}
-                    : new String[] {second, first};
             assertThat(results.getGroups())
                     .as(withCliOutput("Order by GroupId " + direction + " should list the two groups in that order"))
                     .extracting(SearchedGroup::getGroupId)
-                    .containsExactly(expected);
+                    .containsExactlyElementsOf(direction.equals("Asc") ? ascending : descending);
         }
     }
 
@@ -414,7 +411,8 @@ public class SearchCommandTest extends AbstractCLITest {
         var f = givenArtifact();
         // The decoy carries the SAME content in a DIFFERENT group, so only the group
         // filter can tell the two artifacts apart
-        createArtifactInGroup("search-test-group-" + UUID.randomUUID(), f.content());
+        createJsonArtifact("search-test-group-" + UUID.randomUUID(), "search-test-artifact-" + UUID.randomUUID(),
+                f.content());
         final Path tempFile = Files.createTempFile("search-content", ".json");
         try {
             Files.writeString(tempFile, f.content());

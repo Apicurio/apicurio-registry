@@ -9,6 +9,7 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
+import io.apicurio.registry.auth.WebhookManagementApiOperation;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
@@ -41,6 +42,10 @@ import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.SnapshotMetaData;
 import io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty;
 import io.apicurio.registry.rest.v3.beans.UpdateRole;
+import io.apicurio.registry.rest.v3.beans.CreateWebhookSubscription;
+import io.apicurio.registry.rest.v3.beans.UpdateWebhookSubscription;
+import io.apicurio.registry.rest.v3.beans.WebhookSubscription;
+import io.apicurio.registry.rest.v3.beans.WebhookSubscriptionSearchResults;
 import io.apicurio.registry.rest.v3.impl.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
@@ -111,6 +116,7 @@ import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PROPERTY_CONFIGU
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ROLE_MAPPING;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE_TYPE;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_SUBSCRIPTION_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_UPDATE_ROLE;
 import static io.apicurio.registry.utils.DtoUtil.appAuthPropertyToRegistry;
 import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
@@ -171,6 +177,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     UsageAggregationJob usageAggregationJob;
+
+    @Inject
+    WebhookSubscriptionOperations webhookSubscriptions;
 
     /**
      * @see io.apicurio.registry.rest.v3.AdminResource#listArtifactTypes()
@@ -485,6 +494,69 @@ public class AdminResourceImpl implements AdminResource {
     @RoleBasedAccessApiOperation
     public void deleteRoleMapping(String principalId) {
         storage.deleteRoleMapping(principalId);
+    }
+
+    /*
+     * Webhook subscriptions. The request body is never extracted into audit metadata: it carries the
+     * endpoint URL and filters, which must not reach the audit log.
+     */
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#listWebhookSubscriptions(BigInteger, BigInteger)
+     */
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @WebhookManagementApiOperation
+    public WebhookSubscriptionSearchResults listWebhookSubscriptions(BigInteger offset, BigInteger limit) {
+        return webhookSubscriptions.list(offset, limit);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#createWebhookSubscription(CreateWebhookSubscription)
+     */
+    @Override
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @WebhookManagementApiOperation
+    public WebhookSubscription createWebhookSubscription(CreateWebhookSubscription data) {
+        return webhookSubscriptions.create(data);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#getWebhookSubscription(String)
+     */
+    @Override
+    @MethodMetadata(extractParameters = {"0", MPK_SUBSCRIPTION_ID})
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @WebhookManagementApiOperation
+    public WebhookSubscription getWebhookSubscription(String subscriptionId) {
+        return webhookSubscriptions.get(subscriptionId);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#updateWebhookSubscription(String, UpdateWebhookSubscription)
+     */
+    @Override
+    @MethodMetadata(extractParameters = {"0", MPK_SUBSCRIPTION_ID})
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @WebhookManagementApiOperation
+    public WebhookSubscription updateWebhookSubscription(String subscriptionId, UpdateWebhookSubscription data) {
+        return webhookSubscriptions.update(subscriptionId, data);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#deleteWebhookSubscription(String, BigInteger)
+     */
+    @Override
+    @MethodMetadata(extractParameters = {"0", MPK_SUBSCRIPTION_ID})
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    @WebhookManagementApiOperation
+    public void deleteWebhookSubscription(String subscriptionId, BigInteger expectedRevision) {
+        webhookSubscriptions.delete(subscriptionId, expectedRevision);
     }
 
     /**

@@ -60,6 +60,16 @@
       "allowedVersions": "3.13.5"
     },
     {
+      "description": "The classifier installs sentence-transformers, whose torch dependency has no Python 3.15 builds yet. Drop this once it does",
+      "matchFileNames": [
+        ".github/actions/setup-classifier/action.yaml"
+      ],
+      "matchDepNames": [
+        "python"
+      ],
+      "allowedVersions": "<3.15"
+    },
+    {
       "groupName": "Dependencies: Maven App: All",
       "matchFileNames": [
         "**/pom.xml"

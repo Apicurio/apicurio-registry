@@ -551,17 +551,3 @@ jobs:
         run: |
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make catalog
-
-  # Slack notification using reusable workflow
-  notify-slack:
-    name: Slack Notification
-    needs: operator-publish
-    if: always() && inputs.publish
-    uses: ./.github/workflows/reusable-notify-slack.yaml
-    with:
-      workflow-name: ${{ github.workflow }}
-      job-name: 'operator-publish'
-      job-status: ${{ needs.operator-publish.result }}
-    secrets:
-      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
-      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

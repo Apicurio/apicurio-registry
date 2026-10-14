@@ -3,6 +3,7 @@ package io.apicurio.registry.cli;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.SearchedGroup;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
@@ -84,13 +85,18 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     public void testSearchGroups() throws Exception {
+        // an unfiltered listing is the one path that injects the implicit default group, pinned to
+        // the top of the first page, so this checks it without depending on where the fixture sorts
         givenArtifact();
         executeAndAssertSuccess("search", "groups", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
         assertThat(results.getGroups())
-                .as(withCliOutput("Search should return at least the test group"))
-                .isNotEmpty();
+                .as(withCliOutput("Unfiltered search should list the implicit default group first"))
+                .isNotEmpty()
+                .extracting(SearchedGroup::getGroupId)
+                .first()
+                .isEqualTo("default");
     }
 
     @Test
@@ -119,7 +125,8 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchGroupsTableOutput() throws Exception {
         var f = givenArtifact();
-        executeAndAssertSuccess("search", "groups");
+        // filtered, so the fixture is the only row and cannot fall off the default 10-row page
+        executeAndAssertSuccess("search", "groups", "-g", f.group());
         assertThat(out.toString())
                 .as(withCliOutput("Table output should contain the header and the group"))
                 .contains("Group ID")
@@ -128,7 +135,7 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     public void testSearchGroupsPagination() throws Exception {
-        givenArtifact();
+        out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "groups", "-p", "1", "-s", "1", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
@@ -140,18 +147,28 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     public void testSearchGroupsOrderBy() throws Exception {
-        var f = givenArtifact();
-        // GroupId sorts deterministically; the other two order-by tests keep CreatedOn,
-        // which same-second fixtures cannot distinguish
-        executeAndAssertSuccess("search", "groups", "--order-by", "GroupId", "--order", "Asc",
-                "--output-type", "json", "-g", f.group());
-        var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
+        // two groups that share a label, so one filter finds exactly these two; their ids differ in the a/b segment
+        var suffix = UUID.randomUUID().toString();
+        var label = "order=" + suffix;
+        var first = "search-order-a-" + suffix;
+        var second = "search-order-b-" + suffix;
+        executeAndAssertSuccess("group", "create", "-l", label, first);
+        executeAndAssertSuccess("group", "create", "-l", label, second);
 
-        assertThat(results.getGroups())
-                .as(withCliOutput("Order by GroupId should return the group sorted"))
-                .extracting(io.apicurio.registry.rest.v3.beans.SearchedGroup::getGroupId)
-                .isSorted()
-                .contains(f.group());
+        for (var direction : new String[] {"Asc", "Desc"}) {
+            out.getBuffer().setLength(0);
+            executeAndAssertSuccess("search", "groups", "--order-by", "GroupId", "--order", direction,
+                    "-l", label, "--output-type", "json");
+            var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
+
+            var expected = direction.equals("Asc")
+                    ? new String[] {first, second}
+                    : new String[] {second, first};
+            assertThat(results.getGroups())
+                    .as(withCliOutput("Order by GroupId " + direction + " should list the two groups in that order"))
+                    .extracting(SearchedGroup::getGroupId)
+                    .containsExactly(expected);
+        }
     }
 
     @Test
@@ -169,7 +186,8 @@ public class SearchCommandTest extends AbstractCLITest {
         executeAndAssertFailure("search", "groups", "--order", "INVALID");
         assertThat(err.toString())
                 .as(withCliOutput("An invalid --order value must be reported"))
-                .contains("--order");
+                .contains("Invalid value for option '--order'")
+                .contains("'INVALID'");
     }
 
     @Test
@@ -211,7 +229,7 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchArtifactsTableOutput() throws Exception {
         var f = givenArtifact();
-        executeAndAssertSuccess("search", "artifacts");
+        executeAndAssertSuccess("search", "artifacts", "-g", f.group(), "-a", f.artifactId());
         assertThat(out.toString())
                 .as(withCliOutput("Table output should contain the header and the artifact"))
                 .contains("Group ID")
@@ -282,7 +300,7 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchVersionsTableOutput() throws Exception {
         var f = givenArtifact();
-        executeAndAssertSuccess("search", "versions");
+        executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId());
         assertThat(out.toString())
                 .as(withCliOutput("Table output should contain the header and the artifact"))
                 .contains("Group ID")

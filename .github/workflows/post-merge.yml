@@ -29,6 +29,7 @@ permissions:
   actions: write   # re-run failed jobs
   contents: read   # compare commits
   issues: write    # tracking issue
+  pull-requests: read  # the PRs suspected of a break, and who merged them
 
 jobs:
   handle:

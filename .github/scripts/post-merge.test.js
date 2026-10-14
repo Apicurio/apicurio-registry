@@ -22,7 +22,14 @@ function httpError(status) {
 
 // attempts: the conclusion of earlier attempts, by `run:attempt`; failure
 // unless given, so attempt 2 of a failed run is a confirmation.
-function makeWorld({ issues = [], labelExists = true, greens = [], jobs = {}, attempts = {}, reRunConflict = false } = {}) {
+// prs: the PR each commit was merged in, by sha, as { number, mergedBy };
+// a commit not listed was pushed directly. prLookupStatus makes the PR lookup
+// fail with that HTTP status. compareTotal overrides how many commits compare
+// reports, for a range wider than HISTORY.
+function makeWorld({
+  issues = [], labelExists = true, greens = [], jobs = {}, attempts = {}, prs = {}, prLookupStatus, compareTotal,
+  reRunConflict = false,
+} = {}) {
   const calls = { reRuns: [], comments: [], createdLabels: [], outputs: {}, logs: [], warnings: [] };
   let labelPresent = labelExists;
   let nextIssue = 500;
@@ -53,7 +60,32 @@ function makeWorld({ issues = [], labelExists = true, greens = [], jobs = {}, at
           const [base, head] = basehead.split('...').map(sha => HISTORY.indexOf(sha));
           if (base < 0 || head < 0) throw httpError(404);
           const status = head > base ? 'ahead' : head < base ? 'behind' : 'identical';
-          return { data: { status } };
+          const commits = HISTORY.slice(base + 1, head + 1).map(sha => ({ sha }));
+          return { data: { status, commits, total_commits: compareTotal ?? commits.length } };
+        },
+        // Listed first: an open PR whose branch has the commit (it merged
+        // main), and one merged into another branch. Neither is the suspect.
+        listPullRequestsAssociatedWithCommit: async ({ commit_sha }) => {
+          if (prLookupStatus) throw httpError(prLookupStatus);
+          return {
+            data: [
+              { number: 9001, merged_at: null, base: { ref: 'main' } },
+              { number: 9002, merged_at: '2026-10-14T00:00:00Z', base: { ref: 'feature' } },
+              ...prs[commit_sha] ? [{ number: prs[commit_sha].number, merged_at: '2026-10-14T00:00:00Z', base: { ref: 'main' } }] : [],
+            ],
+          };
+        },
+      },
+      pulls: {
+        get: async ({ pull_number }) => {
+          const pr = Object.values(prs).find(p => p.number === pull_number);
+          return {
+            data: {
+              number: pr.number,
+              html_url: `https://github.com/${OWNER}/${REPO}/pull/${pr.number}`,
+              merged_by: pr.mergedBy ? { login: pr.mergedBy } : null,
+            },
+          };
         },
       },
       issues: {
@@ -137,7 +169,7 @@ function trackingIssue({ number = 77, branch = 'main', lastRed = C2, since } = {
   };
 }
 
-const NOTHING = { level: '', text: '', link: '' };
+const NOTHING = { level: '', text: '', link: '', mention: '' };
 
 // ---------------------------------------------------------------------------
 // Which runs count
@@ -231,7 +263,9 @@ test('a failed re-run opens the tracking issue and posts to the important channe
 
   assert.equal(out.level, 'important');
   assert.equal(out.text,
-    ':rotating_light: main is broken: Verify failed at c300000, and again when re-run (Unit Tests (3), Integration Tests (h2)). Tracking issue: #500');
+    ':rotating_light: main is broken: Verify failed at c300000, and again when re-run (Unit Tests (3), Integration Tests (h2)). '
+    + `Suspects: https://github.com/Apicurio/apicurio-registry/commit/${C3} pushed directly, `
+    + `https://github.com/Apicurio/apicurio-registry/commit/${C2} pushed directly. Tracking issue: #500`);
   assert.equal(out.link, issue.html_url);
   assert.deepEqual(w.calls.reRuns, []);
 });
@@ -251,17 +285,76 @@ test('a startup failure is confirmed at once, since it cannot be re-run, and say
   assert.match(w.issues[0].body, /^`main` is broken: Verify could not start at \[`c300000`\]\(.*\) \(startup failure\)\.\n/);
   assert.match(w.issues[0].body, /\| Failed jobs \| none, the run did not start \|/);
   assert.equal(out.level, 'important');
-  assert.equal(out.text, ':rotating_light: main is broken: Verify could not start at c300000 (startup failure). Tracking issue: #500');
+  assert.match(out.text, /^:rotating_light: main is broken: Verify could not start at c300000 \(startup failure\)\. Suspects: /);
 
   w.calls.outputs = {};
   assert.deepEqual(await onRun(w, verifyRun({ conclusion: 'startup_failure', head_sha: C4 })), NOTHING);
   assert.match(w.calls.comments[0].body, /^Still failing at \[`c400000`\].*\) could not start\.$/);
 });
 
-test('with no green run on record the issue says so instead of linking the changes', async () => {
-  const w = makeWorld({ greens: [] });
-  await onRun(w, verifyRun({ run_attempt: 2 }));
-  assert.match(w.issues[0].body, /\| Suspects \| no earlier green commit found \|/);
+// ---------------------------------------------------------------------------
+// Suspects
+// ---------------------------------------------------------------------------
+
+test('a single suspect PR is listed on the issue and its merger is mentioned', async () => {
+  const w = makeWorld({ greens: [C2], prs: { [C3]: { number: 103, mergedBy: 'alice' } } });
+  const out = await onRun(w, verifyRun({ run_attempt: 2 }));
+
+  assert.equal(out.mention, 'alice');
+  assert.match(out.text, / Suspects: https:\/\/github\.com\/Apicurio\/apicurio-registry\/pull\/103 merged by alice\. Tracking issue: #500$/);
+  assert.match(w.issues[0].body, /\| Suspect \| Merged by \|\n\|---\|---\|\n\| #103 \| @alice \|\n\n/);
+});
+
+test('with several suspects the merger of the most is mentioned first, a tie going to the newest merge', async () => {
+  const w = makeWorld({
+    greens: [C1],
+    prs: {
+      [C2]: { number: 102, mergedBy: 'dave' },
+      [C3]: { number: 103, mergedBy: 'alice' },
+      [C5]: { number: 105, mergedBy: 'alice' },
+      [C6]: { number: 106, mergedBy: 'carol' },
+    },
+  });
+  const out = await onRun(w, verifyRun({ run_attempt: 2, head_sha: C6 }));
+
+  assert.equal(out.mention, 'alice,carol,dave');
+  const pull = n => `https://github.com/Apicurio/apicurio-registry/pull/${n}`;
+  assert.ok(out.text.includes(`Suspects: ${pull(106)} merged by carol, ${pull(105)} merged by alice, `
+    + `https://github.com/Apicurio/apicurio-registry/commit/${C4} pushed directly, ${pull(103)} merged by alice, ${pull(102)} merged by dave. `));
+  assert.ok(w.issues[0].body.includes([
+    '| #106 | @carol |',
+    '| #105 | @alice |',
+    `| [\`c400000\`](https://github.com/Apicurio/apicurio-registry/commit/${C4}), pushed directly | |`,
+    '| #103 | @alice |',
+    '| #102 | @dave |',
+  ].join('\n')));
+});
+
+test('with no earlier green run the issue says so, and only the failing commit is a suspect', async () => {
+  const w = makeWorld({ greens: [], prs: { [C3]: { number: 103, mergedBy: 'alice' } } });
+  const out = await onRun(w, verifyRun({ run_attempt: 2 }));
+  assert.equal(out.mention, 'alice');
+  assert.match(w.issues[0].body, /\| Changes \| no earlier green commit found \|/);
+  assert.match(w.issues[0].body, /\|---\|---\|\n\| #103 \| @alice \|\n\n/);
+});
+
+test('too many changes since the last green commit name nobody', async () => {
+  const w = makeWorld({ greens: [C1], compareTotal: 101, prs: { [C3]: { number: 103, mergedBy: 'alice' } } });
+  const out = await onRun(w, verifyRun({ run_attempt: 2 }));
+  assert.equal(out.mention, '');
+  assert.match(out.text, /Suspects not named: more than 100 changes since the last green commit\. Tracking issue/);
+  assert.match(w.issues[0].body, /Suspects not named: more than 100 changes since the last green commit\./);
+});
+
+test('a failed suspect lookup still reports the break, naming nobody', async () => {
+  const w = makeWorld({ greens: [C2], prLookupStatus: 403, prs: { [C3]: { number: 103, mergedBy: 'alice' } } });
+  const out = await onRun(w, verifyRun({ run_attempt: 2 }));
+  assert.equal(out.level, 'important');
+  assert.equal(out.mention, '');
+  assert.match(out.text, /Suspects not named: they could not be looked up\. Tracking issue: #500/);
+  assert.equal(w.issues.length, 1);
+  assert.match(w.issues[0].body, /Suspects not named: they could not be looked up\./);
+  assert.deepEqual(w.calls.warnings, ['Could not look up the suspects: HTTP 403']);
 });
 
 test('a confirmed failure older than the newest green commit is stale', async () => {
@@ -308,10 +401,11 @@ test('a result that can\'t be ordered against the tracked failure leaves the iss
 });
 
 test('a confirmed failure that can\'t be ordered against the newest green commit is still reported', async () => {
-  const w = makeWorld({ greens: ['f'.repeat(40)] });
+  const w = makeWorld({ greens: ['f'.repeat(40)], prs: { [C3]: { number: 103, mergedBy: 'alice' } } });
   const out = await onRun(w, verifyRun({ run_attempt: 2 }));
   assert.equal(w.issues.length, 1);
   assert.equal(out.level, 'important');
+  assert.equal(out.mention, 'alice');
 });
 
 test('a tracking issue for another branch, or a labelled issue without state, is not this branch\'s', async () => {

@@ -69,9 +69,8 @@ class OidcFailureCacheTest {
         OidcAuthenticationMechanism oidcMech = mock(OidcAuthenticationMechanism.class);
 
         AuthConfig authConfig = new AuthConfig();
-        String tokenUrl = "http://localhost/realms/test/token";
         authConfig.authServerUrl = "http://localhost/realms/test";
-        authConfig.oidcTokenPath = tokenUrl;
+        authConfig.oidcTokenPath = "http://localhost/realms/test/token";
 
         OidcAuthenticationStrategy strategy = new OidcAuthenticationStrategy(
                 oidcMech, authConfig, null, null,
@@ -114,9 +113,8 @@ class OidcFailureCacheTest {
         OidcAuthenticationMechanism oidcMech = mock(OidcAuthenticationMechanism.class);
 
         AuthConfig authConfig = new AuthConfig();
-        String tokenUrl = "http://localhost/realms/test/token";
         authConfig.authServerUrl = "http://localhost/realms/test";
-        authConfig.oidcTokenPath = tokenUrl;
+        authConfig.oidcTokenPath = "http://localhost/realms/test/token";
 
         OidcAuthenticationStrategy strategy = new OidcAuthenticationStrategy(
                 oidcMech, authConfig, null, null,
@@ -159,9 +157,8 @@ class OidcFailureCacheTest {
                 .thenReturn(Uni.createFrom().item(identity));
 
         AuthConfig authConfig = new AuthConfig();
-        String tokenUrl = "http://localhost/realms/test/token";
         authConfig.authServerUrl = "http://localhost/realms/test";
-        authConfig.oidcTokenPath = tokenUrl;
+        authConfig.oidcTokenPath = "http://localhost/realms/test/token";
 
         OidcAuthenticationStrategy strategy = new OidcAuthenticationStrategy(
                 oidcMech, authConfig, null, null,
@@ -211,9 +208,8 @@ class OidcFailureCacheTest {
         OidcAuthenticationMechanism oidcMech = mock(OidcAuthenticationMechanism.class);
 
         AuthConfig authConfig = new AuthConfig();
-        String tokenUrl = "http://localhost/realms/test/token";
         authConfig.authServerUrl = "http://localhost/realms/test";
-        authConfig.oidcTokenPath = tokenUrl;
+        authConfig.oidcTokenPath = "http://localhost/realms/test/token";
 
         OidcAuthenticationStrategy strategy = new OidcAuthenticationStrategy(
                 oidcMech, authConfig, null, null,
@@ -255,9 +251,8 @@ class OidcFailureCacheTest {
                 .thenReturn(Uni.createFrom().item(identity));
 
         AuthConfig authConfig = new AuthConfig();
-        String tokenUrl = "http://localhost/realms/test/token";
         authConfig.authServerUrl = "http://localhost/realms/test";
-        authConfig.oidcTokenPath = tokenUrl;
+        authConfig.oidcTokenPath = "http://localhost/realms/test/token";
 
         OidcAuthenticationStrategy strategy = new OidcAuthenticationStrategy(
                 oidcMech, authConfig, null, null,

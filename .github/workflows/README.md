@@ -580,7 +580,7 @@ and tags starting with `3.`.
 | Workflow | Used by | Purpose |
 |----------|---------|---------|
 | `reusable-docker-build.yaml` | verify-publish, release-images | Multi-arch Docker build with QEMU + Buildx. Supports optional Maven/npm pre-build steps. Pushes to DockerHub and/or Quay.io. Includes retry logic (3 attempts, 30s wait). Configurable platforms, tags, registries | 30-60 min |
-| `reusable-notify.yaml` | release-*, release, update-website, publish-docs | Final Slack notification of a run, from the results of all its jobs: failure to the important channel mentioning the owner, success to general. See [Notifications](#notifications) |
+| `reusable-notify.yaml` | release-*, release, update-website, publish-docs | Final Slack notification of a run, from the results of all its jobs: failure to the important channel mentioning the owner; success to general only when the caller asks (`release.yaml`). See [Notifications](#notifications) |
 
 ## Notifications
 
@@ -597,10 +597,15 @@ action. A message goes to a channel by whether anyone has to act on it, not by i
 
 | Workflow | Success | Failure |
 |----------|---------|---------|
-| `release.yaml`, `release-artifacts.yaml`, `release-images.yaml`, `release-sdks.yaml`, `release-operator.yaml`, `release-release-notes.yaml`, `update-website.yaml` | general | important |
-| `publish-docs.yaml` | none | important |
+| `release.yaml` | general: the release was created, and the rest is being published | important |
+| `release-artifacts.yaml`, `release-images.yaml`, `release-sdks.yaml`, `release-operator.yaml`, `release-release-notes.yaml`, `update-website.yaml`, `publish-docs.yaml` | none | important |
 | `post-merge.yml` (Verify on `main`) | general when `main` is green again, or a re-run passed (a flake) | important when a re-run confirms `main` is broken |
 | `perf-main.yaml` | none | general |
+
+A release posts one success message, from `release.yaml`. The workflows the release sets off post
+only failures, so after that message, silence means the rest was published. That relies on the
+release being created with a PAT: a release created with `GITHUB_TOKEN` would start none of them,
+and nothing would be reported.
 
 The release, website and docs workflows end with a `notify` job that calls
 `reusable-notify.yaml`. The owner it mentions is whoever started or re-ran the run. Most of these

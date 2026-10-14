@@ -4,6 +4,10 @@ name: Reusable Notify
 # called as their last job with the results of every other job. Policy:
 # "Notifications" in README.md.
 #
+# Success is posted only when the caller asks (notify-success): one message
+# per release, from release.yaml, the workflow a person runs. The workflows
+# the release sets off report only failures, so silence means they succeeded.
+#
 # Callers run this under `!cancelled()`, so a run cancelled by hand says
 # nothing, and a job cancelled in a run that was not cancelled timed out: a
 # failure. A job that already reported its own failure sets the output
@@ -32,7 +36,11 @@ on:
       notify-success:
         description: Post success to the general channel
         type: boolean
-        default: true
+        default: false
+      success-text:
+        description: The success message, instead of "<workflow> finished for <version>"
+        type: string
+        default: ''
     secrets:
       SLACK_USER_MAP:
         required: false
@@ -93,6 +101,6 @@ jobs:
         uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
         with:
           level: general
-          text: ":white_check_mark: ${{ github.workflow }} finished${{ inputs.version && format(' for {0}', inputs.version) || '' }}"
+          text: "${{ inputs.success-text || format(':white_check_mark: {0} finished{1}', github.workflow, inputs.version && format(' for {0}', inputs.version) || '') }}"
           link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           general-webhook: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

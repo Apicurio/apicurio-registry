@@ -426,6 +426,10 @@ jobs:
     with:
       results: ${{ toJSON(needs) }}
       version: ${{ inputs.release-version }}
+      # The release's one success message: the workflows the release sets off
+      # report only their failures.
+      notify-success: true
+      success-text: ":rocket: Apicurio Registry ${{ inputs.release-version }} release created. Maven artifacts, images, SDKs, the operator and the website are being published; a failure there is reported in the team channel."
     secrets:
       SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
       SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}

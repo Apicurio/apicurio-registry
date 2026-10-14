@@ -68,7 +68,7 @@ PRs are classified when they open and when a draft is marked ready for review, m
 
 ### `--output-json`
 
-Writes the scores and decisions as JSON so another tool can consume them rather than scraping the log:
+Writes the scores and decisions as JSON so another tool can consume them rather than scraping the log. In CI, the reviewer assignment step that follows classification in `classify.yml` reads it: area labels drive each maintainer's interest score (see [Reviewer assignment](../../PR_LIFECYCLE.md#reviewer-assignment)). So the labels a PR gets also decide who reviews it. Example output:
 
 ```json
 {

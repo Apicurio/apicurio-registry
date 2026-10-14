@@ -69,6 +69,15 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
     // FAILURE_CACHE_TTL seconds.
     static final Duration FAILURE_CACHE_TTL = Duration.ofSeconds(60);
 
+    sealed interface CredentialState permits TokenState, FailureState {
+    }
+
+    record TokenState(CompletableFuture<WrappedValue<String>> future) implements CredentialState {
+    }
+
+    record FailureState(WrappedValue<RuntimeException> failure) implements CredentialState {
+    }
+
     private final OidcAuthenticationMechanism oidcAuthenticationMechanism;
     private final AuthConfig authConfig;
     private final AuditLogService auditLog;
@@ -77,8 +86,7 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
     private final AppAuthenticationMechanism parent;
 
     // Package-private for test access
-    final ConcurrentHashMap<String, CompletableFuture<WrappedValue<String>>> cachedAccessTokens;
-    final ConcurrentHashMap<String, WrappedValue<RuntimeException>> cachedAuthFailures;
+    final ConcurrentHashMap<String, CredentialState> credentialStates;
     private final String oidcTokenUrl;
 
     /**
@@ -101,8 +109,7 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         this.log = log;
         this.parent = parent;
 
-        this.cachedAccessTokens = new ConcurrentHashMap<>();
-        this.cachedAuthFailures = new ConcurrentHashMap<>();
+        this.credentialStates = new ConcurrentHashMap<>();
 
         String tokenUrl;
         if (authConfig.oidcTokenPath.startsWith("http")) {
@@ -256,141 +263,98 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         String credentialsHash = getCredentialsHash(
                 clientCredentials.getLeft() + clientCredentials.getRight());
 
-        // Atomic read: single get() avoids the containsKey/get TOCTOU
-        WrappedValue<RuntimeException> cachedFailure = cachedAuthFailures.get(credentialsHash);
-        if (cachedFailure != null && !cachedFailure.isExpired()) {
-            throw cachedFailure.getValue();
-        }
-
-        String jwtToken;
-        try {
-            jwtToken = fetchOrJoinToken(credentialsHash, clientCredentials);
-        } catch (RuntimeException ex) {
-            // A creator whose fetch failed with an auth rejection or server error already
-            // recorded that exact exception before it let go of the future, and joiners
-            // rethrow the same instance. The only exception nobody else records is the one a
-            // joiner sees when the creator died on an Error, so write only when this
-            // exception is not the cached one. That also keeps a burst of joiners from
-            // sliding the TTL forward.
-            if (isCacheable(ex)) {
-                WrappedValue<RuntimeException> recorded = cachedAuthFailures.get(credentialsHash);
-                if (recorded == null || recorded.getValue() != ex) {
-                    cacheFailure(credentialsHash, ex);
-                }
-            }
-            throw ex;
-        }
+        String jwtToken = fetchOrJoinToken(credentialsHash, clientCredentials);
 
         context.request().headers().set("Authorization", "Bearer " + jwtToken);
         return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
     }
 
     /**
-     * Fetches a token or joins an in-flight fetch for the same credentials hash.
-     *
-     * <p>Uses a future-valued cache so the ConcurrentHashMap bin monitor is held only
-     * long enough to register or look up a CompletableFuture. The actual blocking I/O
-     * (with @Retry, up to ~4 s) runs outside the lock. Other threads with the same key
-     * join() the future outside the lock; threads with different keys that happen to
-     * hash to the same bin are not blocked.
+     * Selects one state atomically per credential pair. Network I/O and waiting on
+     * the shared future happen outside compute(), keeping its critical section short.
      */
     private String fetchOrJoinToken(String credentialsHash,
             Pair<String, String> clientCredentials) {
-        CompletableFuture<WrappedValue<String>> newFuture = new CompletableFuture<>();
-        CompletableFuture<WrappedValue<String>> future = cachedAccessTokens.compute(
-                credentialsHash, (key, existing) -> reuseOrReplace(key, existing, newFuture));
+        TokenState candidate = new TokenState(new CompletableFuture<>());
+        CredentialState selected = credentialStates.compute(credentialsHash,
+                (key, existing) -> reuseOrReplace(existing, candidate));
 
-        // We are the creator: do the blocking fetch outside the lock
-        if (future == newFuture) {
+        if (selected instanceof FailureState failed) {
+            throw failed.failure().getValue();
+        }
+
+        TokenState tokenState = (TokenState) selected;
+        CompletableFuture<WrappedValue<String>> future = tokenState.future();
+        if (tokenState == candidate) {
             try {
-                WrappedValue<String> result = parent.getAccessToken(
-                        clientCredentials, oidcTokenUrl);
-                future.complete(result);
+                future.complete(parent.getAccessToken(clientCredentials, oidcTokenUrl));
             } catch (RuntimeException ex) {
-                // Keep this order: record the failure, then remove the future, then complete
-                // it. reuseOrReplace lets a request through once the future is gone, so a
-                // failure recorded after the remove leaves a window in which a second fetch
-                // can succeed and then be hidden behind the late failure for the full TTL.
-                // failureIsCachedBeforeTheFailedFutureIsReleased pins this order.
                 if (isCacheable(ex)) {
-                    cacheFailure(credentialsHash, ex);
+                    recordFailure(credentialsHash, tokenState, ex);
+                } else {
+                    // Remove only this fetch's state, never a newer replacement.
+                    credentialStates.compute(credentialsHash,
+                            (key, current) -> current == tokenState ? null : current);
                 }
-                // 2-arg remove: only removes if the value is still OUR future.
-                // A concurrent compute() may have already replaced it.
-                cachedAccessTokens.remove(credentialsHash, future);
                 future.completeExceptionally(ex);
                 throw ex;
             } finally {
-                // The catch above covers RuntimeException only; on an Error the future
-                // would stay in the map uncompleted. reuseOrReplace hands any not-done
-                // future to every later caller, and join() has no timeout, so they would
-                // block forever.
-                //
-                // A finally cannot see the throwable, so the real cause is not attached
-                // here. It is not lost: the creator rethrows it and it propagates with a
-                // full stack trace. Joining threads instead see this OidcAuthException, and
-                // the one that reaches authenticateWithClientCredentials records it there.
-                // With no joiner nothing is cached, and the next request starts a fresh
-                // fetch.
-                //
-                // Note this covers a creator that DIES. A creator wedged inside
-                // getAccessToken never leaves the try block at all, so the join is still
-                // unbounded on that path; bounding it needs a @Timeout on the fetch.
                 if (!future.isDone()) {
-                    cachedAccessTokens.remove(credentialsHash, future);
+                    /**
+                     *  Keep a completed exceptional state temporarily. A joiner can
+                     *  replace THIS state with its failure; a later caller can replace
+                     *  it with a fresh fetch. Neither can overwrite the other's state.
+                     */
                     future.completeExceptionally(new OidcAuthException(
                             "Token fetch thread died without completing the future"));
                 }
             }
         }
 
-        // Join outside the lock (no-op if we are the creator and it succeeded)
         try {
             return future.join().getValue();
         } catch (CompletionException ce) {
             Throwable cause = ce.getCause();
-            if (cause instanceof RuntimeException re) {
-                throw re;
+            RuntimeException failure = cause instanceof RuntimeException re ? re
+                    : new OidcAuthException("Failed to obtain access token", cause);
+            if (isCacheable(failure)) {
+                recordFailure(credentialsHash, tokenState, failure);
             }
-            throw new OidcAuthException("Failed to obtain access token", cause);
+            throw failure;
         }
     }
 
-    /**
-     * Failures worth holding for FAILURE_CACHE_TTL: auth rejections and server errors. They
-     * are cached to avoid hammering the OIDC server while still allowing quick recovery.
-     */
     private static boolean isCacheable(RuntimeException ex) {
         return ex instanceof UnauthorizedException
                 || ex instanceof ForbiddenException
                 || ex instanceof OidcAuthException;
     }
 
-    private void cacheFailure(String credentialsHash, RuntimeException ex) {
-        cachedAuthFailures.put(credentialsHash,
-                new WrappedValue<>(FAILURE_CACHE_TTL, Instant.now(), ex));
+    /**
+     * Publish only if this fetch still owns the entry. Joiners observing an already
+     * recorded failure do nothing, so they cannot restart its TTL. Obsolete joiners
+     * also cannot overwrite a newer fetch, token, or failure.
+     */
+    void recordFailure(String credentialsHash, TokenState owner, RuntimeException failure) {
+        credentialStates.compute(credentialsHash, (key, current) -> current == owner
+                ? new FailureState(new WrappedValue<>(FAILURE_CACHE_TTL, Instant.now(), failure))
+                : current);
     }
 
-    private CompletableFuture<WrappedValue<String>> reuseOrReplace(
-            String key,
-            CompletableFuture<WrappedValue<String>> existing,
-            CompletableFuture<WrappedValue<String>> newFuture) {
-        if (existing != null) {
-            if (!existing.isDone()) {
-                return existing;
+    private CredentialState reuseOrReplace(CredentialState existing, TokenState replacement) {
+        if (existing instanceof TokenState tokenState) {
+            CompletableFuture<WrappedValue<String>> future = tokenState.future();
+            if (!future.isDone()) {
+                return tokenState;
             }
-            if (!existing.isCompletedExceptionally()) {
-                WrappedValue<String> val = existing.join();
-                if (!val.isExpired()) {
-                    return existing;
-                }
+            if (!future.isCompletedExceptionally() && !future.join().isExpired()) {
+                return tokenState;
             }
         }
-        WrappedValue<RuntimeException> failure = cachedAuthFailures.get(key);
-        if (failure != null && !failure.isExpired()) {
-            throw failure.getValue();
+        if (existing instanceof FailureState failureState && !failureState.failure().isExpired()) {
+            return failureState;
         }
-        return newFuture;
+        return replacement;
     }
 
     private String getCredentialsHash(String credentials) {

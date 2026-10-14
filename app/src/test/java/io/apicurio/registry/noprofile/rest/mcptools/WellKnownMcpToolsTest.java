@@ -150,6 +150,35 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testCreateNonMcpToolArtifactDoesNotExtractNameFromContent() throws Exception {
+        // The extract-then-override metadata behavior added for #8622 is scoped to MCP_TOOL
+        // only. Non-MCP_TOOL artifact types must keep v3's existing request-only metadata
+        // behavior: even though this AVRO content has a top-level "name" field, creating the
+        // artifact without an explicit request name must leave artifact metadata name unset,
+        // not populate it from the content.
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.AVRO);
+
+        CreateVersion createVersion = new CreateVersion();
+        VersionContent content = new VersionContent();
+        content.setContent("{\"type\": \"record\", \"name\": \"Test\", \"fields\": []}");
+        content.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(content);
+        createArtifact.setFirstVersion(createVersion);
+
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        ArtifactMetaData metaData = clientV3.groups().byGroupId(groupId).artifacts()
+                .byArtifactId(artifactId).get();
+        Assertions.assertNotNull(metaData);
+        Assertions.assertNull(metaData.getName());
+    }
+
+    @Test
     public void testSearchMcpTools() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String unique = TestUtils.generateArtifactId().replace("-", "");

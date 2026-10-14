@@ -133,10 +133,36 @@ everything at the start of that same run. Deciding from live author/review
 facts directly (this design) needs no live re-fetch and no bot-applied label
 at all, so there is nothing left to race.
 
+### Post-merge verification
+
+`post-merge.yml` (`.github/scripts/post-merge.js`) handles every completed
+Verify push run on `main` (#10380):
+
+| Run | Action | Slack |
+|---|---|---|
+| failed, first attempt (or after an attempt that passed or was cancelled, re-run by hand) | re-runs the failed jobs | none |
+| failed again (or `startup_failure`, which can't be re-run) | opens the tracking issue, labelled `ci/broken`, pinging `@Apicurio/maintainers`; when one is already open, notes the newer failure on it | important, when it opens the issue |
+| passed, while an issue is open | closes the issue | general: green again, and for how long it was broken |
+| passed on a re-run, no issue open | none | general: flaky, naming the jobs that failed first |
+| cancelled or skipped | none | none |
+
+The issue links the changes since the last green commit; nobody is mentioned
+in Slack yet. There is no reminder: the important message stays in the channel,
+and the issue stays open until `main` is green.
+
+A retry can finish after the run of a newer commit, so the handler compares
+commits: a failure older than the newest green commit, or than the failure the
+issue already tracks, is ignored, and so is a pass older than the tracked
+failure. A result that can't be ordered against the tracked failure (after a
+force push) leaves the issue as it is, with a warning. Events are handled one
+at a time (`queue: max`). The tracking state lives in a hidden comment in the
+issue body. A run that keeps failing is re-run only once by the handler;
+re-running it again by hand still counts.
+
 ### Re-runs and snapshot publishing on main
 
-A push run on `main` that fails is to be retried, to tell a flake from a break
-(#10380). Two things keep a retry from interfering with newer commits:
+A push run on `main` that fails is retried, to tell a flake from a break (see
+above). Two things keep a retry from interfering with newer commits:
 
 - **Its own concurrency group.** A push run's attempt 2 or later runs in
   `Verify-<ref>-retry-<sha>` instead of the branch group, so it neither cancels
@@ -532,6 +558,7 @@ and tags starting with `3.`.
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
 | `pr-lifecycle.yml` | PR events, review submissions, comments, workflow_run, every 6 hours | Label-driven PR state machine. States: `ready-for-review` -> `ready-to-merge` (no triage stage — every PR starts at `ready-for-review`). Draft PRs are ignored until marked ready for review. Comment commands: `/reject`, `/merge` (toggles native GitHub auto-merge), `/unstale`, `/retry`. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close; 4/7 for PRs waiting on the author). PRs waiting on a maintainer are exempt from staleness entirely and instead get `lifecycle/review-overdue` at 14 days and a reviewer ping at 30, never a close. Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
+| `post-merge.yml` | Verify completed (push to main) | Re-runs a failed Verify push run once to confirm it, keeps a `ci/broken` tracking issue open while `main` is broken, posts the transitions to Slack. See [Post-merge verification](#post-merge-verification) | <1 min |
 | `classify.yml` | Issue opened/edited, PR opened/ready for review (non-draft), workflow_dispatch | Embedding classifier (`.github/scripts/label-classification`) assigns `area/*` labels to issues and PRs, and an issue type to issues. For PRs, then picks a reviewer (`pr-reviewer-assignment.js`): assigns contributor PRs, posts a suggestion on maintainer PRs, rotates Renovate PRs. Configured by `reviewer_assignment` in `.github/pr-lifecycle.yml`; see [PR_LIFECYCLE.md](../PR_LIFECYCLE.md#reviewer-assignment). `pull_request_target`, but never checks out or runs PR code. Manual runs take `dry_run` to print scores without applying anything | 2-4 min |
 | `update-openapi.yaml` | Push to main (openapi.json changes) | Auto-copies v3 OpenAPI spec to v2 path, commits if changed, then validates via `validate-openapi.yaml` | 10-15 min |
 | `update-website.yaml` | Release event, workflow_dispatch | Updates `latestRelease.json` on apicurio.github.io with release metadata | 5-10 min |
@@ -555,7 +582,7 @@ action. A message goes to a channel by whether anyone has to act on it, not by i
 
 | Level | Channel | When |
 |-------|---------|------|
-| **important** | team channel | Someone must act. Names one owner with a Slack mention (see below). |
+| **important** | team channel | Someone must act. Names one owner with a Slack mention (see below); `post-merge.yml` names none until breaks are attributed to PRs (#10576). |
 | **general** | notification channel | Worth knowing, nothing to do. No mention. |
 | none | — | Routine success. It stays in the GitHub UI. |
 
@@ -563,7 +590,7 @@ action. A message goes to a channel by whether anyone has to act on it, not by i
 |----------|---------|---------|
 | `release.yaml`, `release-artifacts.yaml`, `release-images.yaml`, `release-sdks.yaml`, `release-operator.yaml`, `release-release-notes.yaml`, `update-website.yaml` | general | important |
 | `publish-docs.yaml` | none | important |
-| `verify.yaml` (push) | none | general, until failures are confirmed by a retry and attributed to the PRs that caused them |
+| `post-merge.yml` (Verify on `main`) | general when `main` is green again, or a re-run passed (a flake) | important when a re-run confirms `main` is broken |
 | `perf-main.yaml` | none | general |
 
 The release, website and docs workflows end with a `notify` job that calls

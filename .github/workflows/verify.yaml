@@ -561,32 +561,3 @@ jobs:
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
-
-  # ============================================================================
-  # NOTIFICATIONS
-  #
-  # Interim: a failed push run goes to the general channel, without a mention,
-  # because a single unconfirmed failure has no owner yet. Success says nothing.
-  # !cancelled() rather than always(): when a newer push cancels this run, gate
-  # still runs and fails on the cancelled jobs, and that is not a break.
-  # Operator failures reach gate, so gate and publish cover the whole run.
-  # To be replaced by confirmed, attributed reports (#10380).
-  # ============================================================================
-  notify-slack:
-    name: Slack Notification
-    needs: [gate, publish]
-    if: >-
-      !cancelled()
-      && github.event_name == 'push'
-      && github.repository_owner == 'Apicurio'
-      && contains(needs.*.result, 'failure')
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Notify
-        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
-        with:
-          level: general
-          text: ":x: Verify failed on ${{ github.ref_name }} at ${{ github.sha }}, not yet confirmed by a retry"
-          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          general-webhook: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

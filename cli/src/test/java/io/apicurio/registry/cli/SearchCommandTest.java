@@ -3,7 +3,9 @@ package io.apicurio.registry.cli;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.SearchedArtifact;
 import io.apicurio.registry.rest.v3.beans.SearchedGroup;
+import io.apicurio.registry.rest.v3.beans.SearchedVersion;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
 import io.apicurio.registry.types.VersionState;
 import io.quarkus.test.junit.QuarkusTest;
@@ -28,11 +30,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Tests for the search CLI commands.
  *
- * <p>Methods that read registry data build the state they assert on, so no execution order is
- * declared and any method can run on its own. The label and the content carry the per-call UUID
- * too, because a label or content search would otherwise also match the artifacts that sibling
- * methods created in the same registry. The label, content and stdin searches create a second
- * fixture as a decoy that must not come back, so they check that the filter narrows the result.
+ * <p>No execution order is declared and any method can run on its own. Methods that assert on
+ * registry data build it themselves, with a per-call UUID in every name, label and content so
+ * that sibling methods in the same registry cannot match. A filter test also creates decoys that
+ * the filter must exclude, because with a single fixture a filter that does nothing still passes
+ * when the test runs alone.
  */
 @QuarkusTest
 @Timeout(120)
@@ -90,6 +92,23 @@ public class SearchCommandTest extends AbstractCLITest {
         out.getBuffer().setLength(0);
     }
 
+    /**
+     * Creates two decoys for a fixture: an artifact with the same id in another group, which only a
+     * group filter can exclude, and a second artifact in the same group, which only an artifact
+     * filter can exclude.
+     */
+    private Siblings givenSiblings(Fixture f) throws IOException {
+        var otherGroup = f.group() + "-other";
+        var otherArtifactId = f.artifactId() + "-other";
+        executeAndAssertSuccess("group", "create", otherGroup);
+        createJsonArtifact(otherGroup, f.artifactId(), f.content());
+        createJsonArtifact(f.group(), otherArtifactId, f.content());
+        return new Siblings(otherGroup, otherArtifactId);
+    }
+
+    private record Siblings(String otherGroup, String otherArtifactId) {
+    }
+
     @Test
     public void testSearchHelp() {
         testHelpCommand("search");
@@ -117,14 +136,17 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     public void testSearchGroupsWithFilter() throws Exception {
-        var f = givenArtifact();
-        executeAndAssertSuccess("search", "groups", "-g", f.group(), "--output-type", "json");
+        var group = "search-test-group-" + UUID.randomUUID();
+        executeAndAssertSuccess("group", "create", group);
+        executeAndAssertSuccess("group", "create", group + "-other");
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("search", "groups", "-g", group, "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), GroupSearchResults.class);
 
         assertThat(results.getGroups())
-                .as(withCliOutput("Filtered search should return only the fixture group"))
+                .as(withCliOutput("Filtered search should return only the named group"))
                 .extracting(SearchedGroup::getGroupId)
-                .containsExactly(f.group());
+                .containsExactly(group);
     }
 
     @Test
@@ -140,13 +162,17 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     public void testSearchGroupsTableOutput() throws Exception {
-        var f = givenArtifact();
-        // filtered, so the fixture is the only row and cannot fall off the default 10-row page
-        executeAndAssertSuccess("search", "groups", "-g", f.group());
+        var group = "search-test-group-" + UUID.randomUUID();
+        executeAndAssertSuccess("group", "create", group);
+        executeAndAssertSuccess("group", "create", group + "-other");
+        out.getBuffer().setLength(0);
+        // filtered, so the group is the only row and cannot fall off the default 10-row page
+        executeAndAssertSuccess("search", "groups", "-g", group);
         assertThat(out.toString())
-                .as(withCliOutput("Table output should contain the header and the group"))
+                .as(withCliOutput("Table output should contain the header and only the named group"))
                 .contains("Group ID")
-                .contains(f.group());
+                .contains(group)
+                .doesNotContain(group + "-other");
     }
 
     @Test
@@ -210,6 +236,7 @@ public class SearchCommandTest extends AbstractCLITest {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "--output-type", "json");
         var before = MAPPER.readValue(out.toString(), ArtifactSearchResults.class).getCount();
+        out.getBuffer().setLength(0);
         givenArtifact();
         executeAndAssertSuccess("search", "artifacts", "--output-type", "json");
         var after = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
@@ -222,6 +249,7 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchArtifactsWithFilter() throws Exception {
         var f = givenArtifact();
+        givenSiblings(f);
         executeAndAssertSuccess("search", "artifacts", "-g", f.group(), "-a", f.artifactId(),
                 "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
@@ -229,7 +257,7 @@ public class SearchCommandTest extends AbstractCLITest {
         assertThat(results.getArtifacts())
                 .as(withCliOutput("Filtered search should return only the fixture artifact"))
                 .hasSize(1)
-                .allMatch(a -> f.artifactId().equals(a.getArtifactId()));
+                .allMatch(a -> f.group().equals(a.getGroupId()) && f.artifactId().equals(a.getArtifactId()));
     }
 
     @Test
@@ -247,12 +275,15 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchArtifactsTableOutput() throws Exception {
         var f = givenArtifact();
+        var siblings = givenSiblings(f);
         executeAndAssertSuccess("search", "artifacts", "-g", f.group(), "-a", f.artifactId());
         assertThat(out.toString())
-                .as(withCliOutput("Table output should contain the header and the artifact"))
+                .as(withCliOutput("Table output should contain the header and only the fixture artifact"))
                 .contains("Group ID")
                 .contains("Artifact ID")
-                .contains(f.artifactId());
+                .contains(f.artifactId())
+                .doesNotContain(siblings.otherArtifactId())
+                .doesNotContain(siblings.otherGroup());
     }
 
     @Test
@@ -273,18 +304,20 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchArtifactsOrderBy() throws Exception {
         var f = givenArtifact();
-        var second = f.artifactId() + "-2";
+        // created second but sorting first by id, so only CreatedOn (not the ArtifactId default)
+        // yields the expected order
+        var second = "a-" + f.artifactId();
         createJsonArtifact(f.group(), second, f.content());
 
         for (var direction : List.of("Asc", "Desc")) {
-            executeAndAssertSuccess("search", "artifacts", "-g", f.group(), "--order-by", "ArtifactId",
+            executeAndAssertSuccess("search", "artifacts", "-g", f.group(), "--order-by", "CreatedOn",
                     "--order", direction, "--output-type", "json");
             var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
             out.getBuffer().setLength(0);
 
             assertThat(results.getArtifacts())
-                    .as(withCliOutput("Order by ArtifactId " + direction + " should list the two artifacts in that order"))
-                    .extracting(a -> a.getArtifactId())
+                    .as(withCliOutput("Order by CreatedOn " + direction + " should list the two artifacts in that order"))
+                    .extracting(SearchedArtifact::getArtifactId)
                     .containsExactlyElementsOf(direction.equals("Asc")
                             ? List.of(f.artifactId(), second) : List.of(second, f.artifactId()));
         }
@@ -295,6 +328,7 @@ public class SearchCommandTest extends AbstractCLITest {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "--output-type", "json");
         var before = MAPPER.readValue(out.toString(), VersionSearchResults.class).getCount();
+        out.getBuffer().setLength(0);
         givenArtifact();
         executeAndAssertSuccess("search", "versions", "--output-type", "json");
         var after = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -307,6 +341,7 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchVersionsWithFilter() throws Exception {
         var f = givenArtifact();
+        givenSiblings(f);
         executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId(),
                 "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -314,7 +349,8 @@ public class SearchCommandTest extends AbstractCLITest {
         assertThat(results.getVersions())
                 .as(withCliOutput("Filtered search should return only the fixture version"))
                 .hasSize(1)
-                .allMatch(v -> f.artifactId().equals(v.getArtifactId()) && "1".equals(v.getVersion()));
+                .allMatch(v -> f.group().equals(v.getGroupId()) && f.artifactId().equals(v.getArtifactId())
+                        && "1".equals(v.getVersion()));
     }
 
     @Test
@@ -332,13 +368,16 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchVersionsTableOutput() throws Exception {
         var f = givenArtifact();
+        var siblings = givenSiblings(f);
         executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId());
         assertThat(out.toString())
-                .as(withCliOutput("Table output should contain the header and the artifact"))
+                .as(withCliOutput("Table output should contain the header and only the fixture artifact"))
                 .contains("Group ID")
                 .contains("Artifact ID")
                 .contains("Version")
-                .contains(f.artifactId());
+                .contains(f.artifactId())
+                .doesNotContain(siblings.otherArtifactId())
+                .doesNotContain(siblings.otherGroup());
     }
 
     @Test
@@ -401,24 +440,26 @@ public class SearchCommandTest extends AbstractCLITest {
         }
         assertThat(seen)
                 .as(withCliOutput("The two pages should hold the two different versions"))
-                .containsExactlyInAnyOrder("1", "2");
+                .containsExactly("1", "2");
     }
 
     @Test
     public void testSearchVersionsOrderBy() throws Exception {
         var f = givenArtifact();
-        createVersion(f.group(), f.artifactId(), "2", f.content());
+        // created second but sorting first by version, so only CreatedOn (not the Version default)
+        // yields the expected order
+        createVersion(f.group(), f.artifactId(), "0", f.content());
 
         for (var direction : List.of("Asc", "Desc")) {
             executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId(),
-                    "--order-by", "Version", "--order", direction, "--output-type", "json");
+                    "--order-by", "CreatedOn", "--order", direction, "--output-type", "json");
             var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
             out.getBuffer().setLength(0);
 
             assertThat(results.getVersions())
-                    .as(withCliOutput("Order by Version " + direction + " should list the two versions in that order"))
-                    .extracting(v -> v.getVersion())
-                    .containsExactlyElementsOf(direction.equals("Asc") ? List.of("1", "2") : List.of("2", "1"));
+                    .as(withCliOutput("Order by CreatedOn " + direction + " should list the two versions in that order"))
+                    .extracting(SearchedVersion::getVersion)
+                    .containsExactlyElementsOf(direction.equals("Asc") ? List.of("1", "0") : List.of("0", "1"));
         }
     }
 

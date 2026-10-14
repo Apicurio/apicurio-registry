@@ -9,6 +9,7 @@ import io.apicurio.registry.types.VersionState;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -37,6 +38,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Timeout(120)
 public class SearchCommandTest extends AbstractCLITest {
 
+    @TempDir
+    Path tempDir;
+
     /**
      * Creates a group and an artifact in it, with a label and content unique to the call, and
      * returns them; the output buffer is clean when it returns.
@@ -56,6 +60,11 @@ public class SearchCommandTest extends AbstractCLITest {
     private record Fixture(String group, String artifactId, String label, String content) {
     }
 
+    /** Writes the content to a file that JUnit deletes after the test. */
+    private Path contentFile(String content) throws IOException {
+        return Files.writeString(tempDir.resolve(UUID.randomUUID() + ".json"), content);
+    }
+
     /** Creates a JSON artifact from the given content; {@code extraArgs} go before the artifact id. */
     private void createJsonArtifact(String group, String artifactId, String content, String... extraArgs)
             throws IOException {
@@ -64,31 +73,20 @@ public class SearchCommandTest extends AbstractCLITest {
 
     private void createArtifact(String type, String group, String artifactId, String content,
             String... extraArgs) throws IOException {
-        final Path tempFile = Files.createTempFile("search-test", ".json");
-        try {
-            Files.writeString(tempFile, content);
-            var args = new ArrayList<>(List.of("artifact", "create", "-g", group,
-                    "--type", type, "--file", tempFile.toString()));
-            args.addAll(List.of(extraArgs));
-            args.add(artifactId);
-            executeAndAssertSuccess(args.toArray(String[]::new));
-        } finally {
-            Files.deleteIfExists(tempFile);
-        }
+        var args = new ArrayList<>(List.of("artifact", "create", "-g", group, "--type", type,
+                "--file", contentFile(content).toString()));
+        args.addAll(List.of(extraArgs));
+        args.add(artifactId);
+        executeAndAssertSuccess(args.toArray(String[]::new));
         out.getBuffer().setLength(0);
     }
 
-    /** Adds a version to an existing artifact; the content differs per version so it is never a duplicate. */
-    private void createVersion(String group, String artifactId, String version, String content)
+    /** Adds a version whose content differs from {@code baseContent}, so it is never a duplicate. */
+    private void createVersion(String group, String artifactId, String version, String baseContent)
             throws IOException {
-        final Path tempFile = Files.createTempFile("search-test", ".json");
-        try {
-            Files.writeString(tempFile, content);
-            executeAndAssertSuccess("artifact", "version", "create", "-g", group, "-a", artifactId,
-                    "--file", tempFile.toString(), version);
-        } finally {
-            Files.deleteIfExists(tempFile);
-        }
+        var content = baseContent.replace("}", ", \"version\": \"" + version + "\"}");
+        executeAndAssertSuccess("artifact", "version", "create", "-g", group, "-a", artifactId,
+                "--file", contentFile(content).toString(), version);
         out.getBuffer().setLength(0);
     }
 
@@ -212,7 +210,6 @@ public class SearchCommandTest extends AbstractCLITest {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "--output-type", "json");
         var before = MAPPER.readValue(out.toString(), ArtifactSearchResults.class).getCount();
-        out.getBuffer().setLength(0);
         givenArtifact();
         executeAndAssertSuccess("search", "artifacts", "--output-type", "json");
         var after = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
@@ -298,7 +295,6 @@ public class SearchCommandTest extends AbstractCLITest {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "--output-type", "json");
         var before = MAPPER.readValue(out.toString(), VersionSearchResults.class).getCount();
-        out.getBuffer().setLength(0);
         givenArtifact();
         executeAndAssertSuccess("search", "versions", "--output-type", "json");
         var after = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -372,7 +368,7 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchVersionsByVersion() throws Exception {
         var f = givenArtifact();
-        createVersion(f.group(), f.artifactId(), "2", f.content().replace("}", ", \"v\": 2}"));
+        createVersion(f.group(), f.artifactId(), "2", f.content());
         executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId(),
                 "-v", "2", "--output-type", "json");
         var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -397,7 +393,7 @@ public class SearchCommandTest extends AbstractCLITest {
     @Test
     public void testSearchVersionsOrderBy() throws Exception {
         var f = givenArtifact();
-        createVersion(f.group(), f.artifactId(), "2", f.content().replace("}", ", \"v\": 2}"));
+        createVersion(f.group(), f.artifactId(), "2", f.content());
 
         for (var direction : List.of("Asc", "Desc")) {
             executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId(),
@@ -449,20 +445,14 @@ public class SearchCommandTest extends AbstractCLITest {
     public void testSearchByContent() throws Exception {
         var first = givenArtifact();
         givenArtifact();
-        final Path tempFile = Files.createTempFile("search-content", ".json");
-        try {
-            Files.writeString(tempFile, first.content());
-            executeAndAssertSuccess("search", "content", "--output-type", "json",
-                    "-f", tempFile.toString());
-            ArtifactSearchResults results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
+        executeAndAssertSuccess("search", "content", "--output-type", "json",
+                "-f", contentFile(first.content()).toString());
+        var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
 
-            assertThat(results.getArtifacts())
-                    .as(withCliOutput("Search by content should return only the artifact with that content"))
-                    .hasSize(1)
-                    .allMatch(a -> first.artifactId().equals(a.getArtifactId()));
-        } finally {
-            Files.deleteIfExists(tempFile);
-        }
+        assertThat(results.getArtifacts())
+                .as(withCliOutput("Search by content should return only the artifact with that content"))
+                .hasSize(1)
+                .allMatch(a -> first.artifactId().equals(a.getArtifactId()));
     }
 
     @Test
@@ -470,40 +460,27 @@ public class SearchCommandTest extends AbstractCLITest {
         var f = givenArtifact();
         // The decoy carries the SAME content in a DIFFERENT group, so only the group
         // filter can tell the two artifacts apart
-        createJsonArtifact("search-test-group-" + UUID.randomUUID(), "search-test-artifact-" + UUID.randomUUID(),
-                f.content());
-        final Path tempFile = Files.createTempFile("search-content", ".json");
-        try {
-            Files.writeString(tempFile, f.content());
-            executeAndAssertSuccess("search", "content", "--output-type", "json",
-                    "-f", tempFile.toString(), "-g", f.group());
-            ArtifactSearchResults results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
+        createJsonArtifact(f.group() + "-decoy", f.artifactId() + "-decoy", f.content());
+        executeAndAssertSuccess("search", "content", "--output-type", "json",
+                "-f", contentFile(f.content()).toString(), "-g", f.group());
+        var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
 
-            assertThat(results.getArtifacts())
-                    .as(withCliOutput("Search by content with group filter should return only the group's artifact"))
-                    .hasSize(1)
-                    .allMatch(a -> f.artifactId().equals(a.getArtifactId()));
-        } finally {
-            Files.deleteIfExists(tempFile);
-        }
+        assertThat(results.getArtifacts())
+                .as(withCliOutput("Search by content with group filter should return only the group's artifact"))
+                .hasSize(1)
+                .allMatch(a -> f.artifactId().equals(a.getArtifactId()));
     }
 
     @Test
     public void testSearchByContentNoMatch() throws Exception {
-        final Path tempFile = Files.createTempFile("search-content", ".json");
-        try {
-            Files.writeString(tempFile, "{\"type\": \"nonexistent-content-that-wont-match\"}");
-            out.getBuffer().setLength(0);
-            executeAndAssertSuccess("search", "content", "--output-type", "json",
-                    "-f", tempFile.toString());
-            ArtifactSearchResults results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
+        var file = contentFile("{\"type\": \"nonexistent-content-that-wont-match\"}");
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("search", "content", "--output-type", "json", "-f", file.toString());
+        var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
 
-            assertThat(results.getArtifacts())
-                    .as(withCliOutput("Search by content with no match should return empty"))
-                    .isEmpty();
-        } finally {
-            Files.deleteIfExists(tempFile);
-        }
+        assertThat(results.getArtifacts())
+                .as(withCliOutput("Search by content with no match should return empty"))
+                .isEmpty();
     }
 
     @Test
@@ -536,16 +513,11 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     public void testSearchByContentCanonicalWithoutType() throws Exception {
-        final Path tempFile = Files.createTempFile("search-content", ".json");
-        try {
-            Files.writeString(tempFile, "{\"type\": \"string\"}");
-            err.getBuffer().setLength(0);
-            executeAndAssertFailure("search", "content", "-f", tempFile.toString(), "--canonical");
-            assertThat(err.toString())
-                    .as(withCliOutput("Canonical search without --type must be rejected"))
-                    .contains("--type");
-        } finally {
-            Files.deleteIfExists(tempFile);
-        }
+        var file = contentFile("{\"type\": \"string\"}");
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("search", "content", "-f", file.toString(), "--canonical");
+        assertThat(err.toString())
+                .as(withCliOutput("Canonical search without --type must be rejected"))
+                .contains("--type");
     }
 }

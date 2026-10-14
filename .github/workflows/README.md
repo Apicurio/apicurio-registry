@@ -146,9 +146,17 @@ Verify push run on `main` (#10380):
 | passed on a re-run, no issue open | none | general: flaky, naming the jobs that failed first |
 | cancelled or skipped | none | none |
 
-The issue links the changes since the last green commit; nobody is mentioned
-in Slack yet. There is no reminder: the important message stays in the channel,
-and the issue stays open until `main` is green.
+**Suspects.** The commits since the last green push run (or only the failing
+commit, when there is none) are the suspects. The issue lists the PR each came
+from and who merged it, or that it was pushed directly; the Slack message links
+the same PRs. Slack has one mention slot, so it mentions one merger: whoever
+merged the most suspects, a tie going to the newest merge, skipping anyone
+without a `SLACK_USER_MAP` entry. The other mergers are named in the text.
+Authors are not mentioned; the merger brings them in when needed. Over 100
+commits since the last green one, nobody is named.
+
+There is no reminder: the important message stays in the channel, and the
+issue stays open until `main` is green.
 
 A retry can finish after the run of a newer commit, so the handler compares
 commits: a failure older than the newest green commit, or than the failure the
@@ -582,7 +590,7 @@ action. A message goes to a channel by whether anyone has to act on it, not by i
 
 | Level | Channel | When |
 |-------|---------|------|
-| **important** | team channel | Someone must act. Names one owner with a Slack mention (see below); `post-merge.yml` names none until breaks are attributed to PRs (#10576). |
+| **important** | team channel | Someone must act. Names one owner with a Slack mention (see below). |
 | **general** | notification channel | Worth knowing, nothing to do. No mention. |
 | none | — | Routine success. It stays in the GitHub UI. |
 
@@ -600,6 +608,9 @@ workflow the release triggers runs as `apicurio-ci`. So does `release-operator.y
 `release-images.yaml` dispatches, and `publish-docs.yaml` for the release's version bumps. In
 those cases the owner is whoever ran `release.yaml`, found by its run name,
 `Release <version>`.
+
+For `post-merge.yml`, the owner is a merger of the PRs suspected of breaking
+`main`; see [Post-merge verification](#post-merge-verification).
 
 When `release-post` in `release-operator.yaml` fails in a run started by a person, the message
 goes out before its tmate session starts, and says so: that person can SSH into the runner to

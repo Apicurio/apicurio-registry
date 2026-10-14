@@ -147,7 +147,11 @@ A push run on `main` that fails is to be retried, to tell a flake from a break
   `verify-publish.yaml` and the operator's `operator-publish` compare that
   commit on `latest-snapshot` with their own (`.github/actions/newer-than-published`)
   and skip when theirs is older, so a retry that passes late never moves
-  `latest-snapshot` back. Each publish runs one at a time per branch
+  `latest-snapshot` back. `verify-publish.yaml` checks all six images it
+  publishes, and skips them all if any one holds a newer commit: its jobs run in parallel,
+  so a newer run can have published some and failed on the rest. When an image
+  or the compare API can't be read, the check fails rather than publish. Each
+  publish runs one at a time per branch
   (job-level `concurrency` with `queue: max`), so two runs can't both pass the
   check and then overwrite each other. `queue: max` matters: with the default,
   a second waiting run cancels the first. actionlint (v1.7.12) doesn't know

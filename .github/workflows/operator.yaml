@@ -518,12 +518,14 @@ jobs:
 
       # Publish only a commit newer than the one latest-snapshot was built
       # from; every step below is skipped otherwise. The image name is the
-      # Makefile's IMAGE_REGISTRY/IMAGE_NAME.
+      # Makefile's IMAGE_REGISTRY/IMAGE_NAME. Checking the operator image is
+      # enough: the bundle and catalog are pushed after it, so they can't be
+      # newer.
       - name: Compare with the published commit
         id: guard
         uses: ./.github/actions/newer-than-published
         with:
-          image: quay.io/apicurio/apicurio-registry-3-operator:latest-snapshot
+          images: quay.io/apicurio/apicurio-registry-3-operator:latest-snapshot
 
       - name: Set up JDK 21
         if: steps.guard.outputs.publish == 'true'

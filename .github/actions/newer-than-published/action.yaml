@@ -1,17 +1,13 @@
 name: 'Newer Than Published'
-description: 'Whether this commit is newer than the one a published snapshot image was built from'
+description: 'Whether this commit is newer than the ones published snapshot images were built from'
 
 # Verify publishes snapshot images (latest-snapshot) from push runs on main. A
 # retried run can pass after a newer commit was published, and must not move
-# the tag back to its older commit (#10380, D4). Images carry the commit they
-# were built from in the org.opencontainers.image.revision label, so compare
-# that commit with this one:
-#   ahead or identical -> publish
-#   behind             -> skip
-#   anything else      -> publish: nothing published yet, no label, a label
-#                         naming a commit this repository doesn't have (the
-#                         base image's, on images from before the label), or
-#                         rewritten history. The branch wins.
+# the tags back to its older commit (#10380, D4). Images carry the commit they
+# were built from in the org.opencontainers.image.revision label, and
+# newer-than-published.sh compares that commit with this one. It answers
+# 'false' when this commit is older than any of the images' commits, and fails
+# when it can't tell.
 #
 # The caller must not run two of these and their pushes at once, or both can
 # pass the check and then overwrite each other: Verify gives each publish job a
@@ -21,39 +17,25 @@ description: 'Whether this commit is newer than the one a published snapshot ima
 # from the workspace, so the repository must already be checked out.
 
 inputs:
-  image:
-    description: 'Published image to compare with, e.g. quay.io/apicurio/apicurio-registry:latest-snapshot. Must be readable without credentials'
+  images:
+    description: 'Published images to compare with, one per line, e.g. quay.io/apicurio/apicurio-registry:latest-snapshot. Must be readable without credentials'
     required: true
 
 outputs:
   publish:
-    description: "'false' when this commit is older than the published one, else 'true'"
+    description: "'false' when this commit is older than one of the images' commits, else 'true'"
     value: ${{ steps.compare.outputs.publish }}
 
 runs:
   using: 'composite'
   steps:
-    - name: Compare with the published commit
+    - name: Compare with the published commits
       id: compare
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
-        IMAGE: ${{ inputs.image }}
+        IMAGES: ${{ inputs.images }}
         SHA: ${{ github.sha }}
       run: |
-        published=$(skopeo inspect --override-os linux --override-arch amd64 \
-            --format '{{ index .Labels "org.opencontainers.image.revision" }}' "docker://$IMAGE") || published=""
-        if [ -z "$published" ]; then
-          status="nothing published, or no revision label"
-          publish=true
-        else
-          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$published...$SHA" --jq .status) \
-              || status="not comparable"
-          case "$status" in
-            ahead|identical) publish=true ;;
-            behind) publish=false ;;
-            *) publish=true ;;
-          esac
-        fi
-        echo "$IMAGE was built from ${published:-?}. This commit, $SHA: $status. Publish: $publish"
-        echo "publish=$publish" >> "$GITHUB_OUTPUT"
+        mapfile -t images < <(grep -v '^[[:space:]]*$' <<<"$IMAGES")
+        "$GITHUB_ACTION_PATH/newer-than-published.sh" "${images[@]}"

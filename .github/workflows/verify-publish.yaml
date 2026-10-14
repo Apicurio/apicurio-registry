@@ -28,8 +28,10 @@ permissions:
 
 jobs:
   # A retried Verify run can pass after a newer commit was published: publish
-  # only a commit newer than the one the snapshot images were built from
-  # (#10380). The caller runs this workflow one at a time per branch.
+  # only a commit newer than the ones the snapshot images were built from
+  # (#10380). Every image counts, because the jobs below run in parallel and a
+  # newer run can have published some of them and failed on the rest. The
+  # caller runs this workflow one at a time per branch.
   guard:
     name: Newer Than Published
     runs-on: ubuntu-latest
@@ -42,11 +44,17 @@ jobs:
         with:
           sparse-checkout: .github/actions
 
-      - name: Compare with the published commit
+      - name: Compare with the published commits
         id: guard
         uses: ./.github/actions/newer-than-published
         with:
-          image: quay.io/apicurio/apicurio-registry:${{ inputs.snapshot-tag }}
+          images: |
+            quay.io/apicurio/apicurio-registry:${{ inputs.snapshot-tag }}
+            quay.io/apicurio/apicurio-registry:${{ inputs.snapshot-tag }}-mutable
+            quay.io/apicurio/apicurio-registry-mcp-server:${{ inputs.snapshot-tag }}
+            quay.io/apicurio/apicurio-registry-ui:${{ inputs.snapshot-tag }}
+            quay.io/apicurio/apicurio-registry-gitops-sync:${{ inputs.snapshot-tag }}
+            quay.io/apicurio/apicurio-registry-support-chat:${{ inputs.snapshot-tag }}
 
   publish-app-image:
     name: Publish App Docker Image

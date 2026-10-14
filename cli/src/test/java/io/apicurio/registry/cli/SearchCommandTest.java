@@ -258,7 +258,6 @@ public class SearchCommandTest extends AbstractCLITest {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "artifacts", "--output-type", "json");
         var before = MAPPER.readValue(out.toString(), ArtifactSearchResults.class).getCount();
-        out.getBuffer().setLength(0);
         givenArtifact();
         executeAndAssertSuccess("search", "artifacts", "--output-type", "json");
         var after = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
@@ -333,10 +332,10 @@ public class SearchCommandTest extends AbstractCLITest {
         createJsonArtifact(f.group(), second, f.content());
 
         for (var direction : List.of("Asc", "Desc")) {
+            out.getBuffer().setLength(0);
             executeAndAssertSuccess("search", "artifacts", "-g", f.group(), "--order-by", "CreatedOn",
                     "--order", direction, "--output-type", "json");
             var results = MAPPER.readValue(out.toString(), ArtifactSearchResults.class);
-            out.getBuffer().setLength(0);
 
             assertThat(results.getArtifacts())
                     .as(withCliOutput("Order by CreatedOn " + direction + " should list the two artifacts in that order"))
@@ -351,7 +350,6 @@ public class SearchCommandTest extends AbstractCLITest {
         out.getBuffer().setLength(0);
         executeAndAssertSuccess("search", "versions", "--output-type", "json");
         var before = MAPPER.readValue(out.toString(), VersionSearchResults.class).getCount();
-        out.getBuffer().setLength(0);
         givenArtifact();
         executeAndAssertSuccess("search", "versions", "--output-type", "json");
         var after = MAPPER.readValue(out.toString(), VersionSearchResults.class);
@@ -413,10 +411,10 @@ public class SearchCommandTest extends AbstractCLITest {
         out.getBuffer().setLength(0);
 
         for (var state : List.of(VersionState.DISABLED, VersionState.ENABLED)) {
+            out.getBuffer().setLength(0);
             executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId(),
                     "--state", state.name(), "--output-type", "json");
             var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
-            out.getBuffer().setLength(0);
 
             assertThat(results.getVersions())
                     .as(withCliOutput(state + " filter should return only the version in that state"))
@@ -448,10 +446,10 @@ public class SearchCommandTest extends AbstractCLITest {
 
         var seen = new ArrayList<String>();
         for (var page : List.of("1", "2")) {
+            out.getBuffer().setLength(0);
             executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId(),
                     "-p", page, "-s", "1", "--output-type", "json");
             var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
-            out.getBuffer().setLength(0);
 
             assertThat(results.getCount())
                     .as(withCliOutput("The total must count both versions on page " + page))
@@ -474,10 +472,10 @@ public class SearchCommandTest extends AbstractCLITest {
         createVersion(f.group(), f.artifactId(), "0", f.content());
 
         for (var direction : List.of("Asc", "Desc")) {
+            out.getBuffer().setLength(0);
             executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId(),
                     "--order-by", "CreatedOn", "--order", direction, "--output-type", "json");
             var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
-            out.getBuffer().setLength(0);
 
             assertThat(results.getVersions())
                     .as(withCliOutput("Order by CreatedOn " + direction + " should list the two versions in that order"))

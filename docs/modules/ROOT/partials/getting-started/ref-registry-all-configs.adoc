@@ -1684,7 +1684,7 @@ The following {registry} configuration options are available for each component 
 |`3.0.0`
 |Enabled to show breadcrumbs in the UI
 |`apicurio.ui.features.read-only.enabled`
-|`string`
+|`boolean [dynamic]`
 |`false`
 |`3.0.0`
 |Enabled to set the UI to read-only mode

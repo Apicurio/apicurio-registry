@@ -207,9 +207,13 @@ jobs:
               TAG_ARGS="$TAG_ARGS --tag $tag"
             done
 
+            # The revision label is the commit the image was built from; it
+            # replaces the base image's. Verify's publish guard reads it (#10380).
             docker buildx build \
               --push \
               --file ${{ inputs.dockerfile }} \
               --platform ${{ inputs.platforms }} \
+              --label org.opencontainers.image.revision=${{ github.sha }} \
+              --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
               $TAG_ARGS \
               ${{ inputs.context }}

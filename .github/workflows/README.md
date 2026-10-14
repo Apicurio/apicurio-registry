@@ -133,6 +133,56 @@ everything at the start of that same run. Deciding from live author/review
 facts directly (this design) needs no live re-fetch and no bot-applied label
 at all, so there is nothing left to race.
 
+### Post-merge verification
+
+`post-merge.yml` (`.github/scripts/post-merge.js`) handles every completed
+Verify push run on `main` (#10380):
+
+| Run | Action | Slack |
+|---|---|---|
+| failed, first attempt (or after an attempt that passed or was cancelled, re-run by hand) | re-runs the failed jobs | none |
+| failed again (or `startup_failure`, which can't be re-run) | opens the tracking issue, labelled `ci/broken`, pinging `@Apicurio/maintainers`; when one is already open, notes the newer failure on it | important, when it opens the issue |
+| passed, while an issue is open | closes the issue | general: green again, and for how long it was broken |
+| passed on a re-run, no issue open | none | general: flaky, naming the jobs that failed first |
+| cancelled or skipped | none | none |
+
+The issue links the changes since the last green commit; nobody is mentioned
+in Slack yet. There is no reminder: the important message stays in the channel,
+and the issue stays open until `main` is green.
+
+A retry can finish after the run of a newer commit, so the handler compares
+commits: a failure older than the newest green commit, or than the failure the
+issue already tracks, is ignored, and so is a pass older than the tracked
+failure. A result that can't be ordered against the tracked failure (after a
+force push) leaves the issue as it is, with a warning. Events are handled one
+at a time (`queue: max`). The tracking state lives in a hidden comment in the
+issue body. A run that keeps failing is re-run only once by the handler;
+re-running it again by hand still counts.
+
+### Re-runs and snapshot publishing on main
+
+A push run on `main` that fails is retried, to tell a flake from a break (see
+above). Two things keep a retry from interfering with newer commits:
+
+- **Its own concurrency group.** A push run's attempt 2 or later runs in
+  `Verify-<ref>-retry-<sha>` instead of the branch group, so it neither cancels
+  the run of a newer push nor is cancelled by one. PR re-runs stay in the
+  branch group.
+- **Publishing only forward.** Images record the commit they were built from in
+  the `org.opencontainers.image.revision` label. Before publishing,
+  `verify-publish.yaml` and the operator's `operator-publish` compare that
+  commit on `latest-snapshot` with their own (`.github/actions/newer-than-published`)
+  and skip when theirs is older, so a retry that passes late never moves
+  `latest-snapshot` back. `verify-publish.yaml` checks all six images it
+  publishes, and skips them all if any one holds a newer commit: its jobs run in parallel,
+  so a newer run can have published some and failed on the rest. When an image
+  or the compare API can't be read, the check fails rather than publish. Each
+  publish runs one at a time per branch
+  (job-level `concurrency` with `queue: max`), so two runs can't both pass the
+  check and then overwrite each other. `queue: max` matters: with the default,
+  a second waiting run cancels the first. actionlint (v1.7.12) doesn't know
+  `queue` yet and reports it as an error.
+
 ## Unit Test Sharding
 
 The unit tests are split into 7 parallel shards to reduce the critical path
@@ -259,7 +309,7 @@ non-Java changes (docs, UI).
 | `verify-extras.yaml` | Called by verify | 5 parallel jobs: extra tests, UI Playwright tests, legacy V2 compatibility tests, TypeScript SDK tests, example builds | ~13 min |
 | `verify-sdk.yaml` | Called by verify | Go and Python SDK verification | ~2 min |
 | `verify-cli.yaml` | Called by verify | CLI native build (GraalVM) + tests on Linux and macOS. Conditional on `cli/` or `java-sdk/` changes | ~15-25 min |
-| `verify-publish.yaml` | Called by verify | Push Docker images (app, UI, MCP, GitOps) to DockerHub and Quay.io. Main branch only. Uses `reusable-docker-build.yaml` for multi-arch builds | ~30-40 min |
+| `verify-publish.yaml` | Called by verify | Push Docker images (app, UI, MCP, GitOps) to DockerHub and Quay.io. Main branch only, one run at a time, and only a commit newer than the one `latest-snapshot` holds (see [Re-runs and snapshot publishing on main](#re-runs-and-snapshot-publishing-on-main)). Uses `reusable-docker-build.yaml` for multi-arch builds | ~30-40 min |
 
 ### Reading the Scalpel report
 
@@ -508,11 +558,12 @@ and tags starting with `3.`.
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
 | `pr-lifecycle.yml` | PR events, review submissions, comments, workflow_run, every 6 hours | Label-driven PR state machine. States: `ready-for-review` -> `ready-to-merge` (no triage stage — every PR starts at `ready-for-review`). Draft PRs are ignored until marked ready for review. Comment commands: `/reject`, `/merge` (toggles native GitHub auto-merge), `/unstale`, `/retry`. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close; 4/7 for PRs waiting on the author). PRs waiting on a maintainer are exempt from staleness entirely and instead get `lifecycle/review-overdue` at 14 days and a reviewer ping at 30, never a close. Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
+| `post-merge.yml` | Verify completed (push to main) | Re-runs a failed Verify push run once to confirm it, keeps a `ci/broken` tracking issue open while `main` is broken, posts the transitions to Slack. See [Post-merge verification](#post-merge-verification) | <1 min |
 | `classify.yml` | Issue opened/edited, PR opened/ready for review (non-draft), workflow_dispatch | Embedding classifier (`.github/scripts/label-classification`) assigns `area/*` labels to issues and PRs, and an issue type to issues. For PRs, then picks a reviewer (`pr-reviewer-assignment.js`): assigns contributor PRs, posts a suggestion on maintainer PRs, rotates Renovate PRs. Configured by `reviewer_assignment` in `.github/pr-lifecycle.yml`; see [PR_LIFECYCLE.md](../PR_LIFECYCLE.md#reviewer-assignment). `pull_request_target`, but never checks out or runs PR code. Manual runs take `dry_run` to print scores without applying anything | 2-4 min |
 | `update-openapi.yaml` | Push to main (openapi.json changes) | Auto-copies v3 OpenAPI spec to v2 path, commits if changed, then validates via `validate-openapi.yaml` | 10-15 min |
 | `update-website.yaml` | Release event, workflow_dispatch | Updates `latestRelease.json` on apicurio.github.io with release metadata | 5-10 min |
 | `publish-docs.yaml` | Push to main (docs/**), workflow_dispatch | Builds documentation via Antora playbook and publishes to apicurio.github.io | 15-30 min |
-| `operator.yaml` | Push/PR to main (operator/**) | Operator CI: build + push temp images to ttl.sh (8h TTL), 9-group test matrix on Minikube (smoke, kafka, auth, database, feature-a, feature-b, feature-setup, OLM v0, OLM v1) plus a single-JVM "Local Tests" run of the full IT suite against the same Minikube cluster, publish to Quay.io on push only. Cancels in-progress on new push | 45-90 min |
+| `operator.yaml` | Push/PR to main (operator/**) | Operator CI: build + push temp images to ttl.sh (8h TTL), 9-group test matrix on Minikube (smoke, kafka, auth, database, feature-a, feature-b, feature-setup, OLM v0, OLM v1) plus a single-JVM "Local Tests" run of the full IT suite against the same Minikube cluster, publish to Quay.io on push only, and only a commit newer than the one `latest-snapshot` holds. Cancels in-progress on new push | 45-90 min |
 | `image-scan.yaml` | Daily at 06:00 UTC, workflow_dispatch | Trivy vulnerability scan on `latest-snapshot` image (CRITICAL + HIGH severity). Results uploaded to GitHub Security tab as SARIF | 5-10 min |
 
 ## Reusable Workflows
@@ -531,7 +582,7 @@ action. A message goes to a channel by whether anyone has to act on it, not by i
 
 | Level | Channel | When |
 |-------|---------|------|
-| **important** | team channel | Someone must act. Names one owner with a Slack mention (see below). |
+| **important** | team channel | Someone must act. Names one owner with a Slack mention (see below); `post-merge.yml` names none until breaks are attributed to PRs (#10576). |
 | **general** | notification channel | Worth knowing, nothing to do. No mention. |
 | none | — | Routine success. It stays in the GitHub UI. |
 
@@ -539,7 +590,7 @@ action. A message goes to a channel by whether anyone has to act on it, not by i
 |----------|---------|---------|
 | `release.yaml`, `release-artifacts.yaml`, `release-images.yaml`, `release-sdks.yaml`, `release-operator.yaml`, `release-release-notes.yaml`, `update-website.yaml` | general | important |
 | `publish-docs.yaml` | none | important |
-| `verify.yaml` (push) | none | general, until failures are confirmed by a retry and attributed to the PRs that caused them |
+| `post-merge.yml` (Verify on `main`) | general when `main` is green again, or a re-run passed (a flake) | important when a re-run confirms `main` is broken |
 | `perf-main.yaml` | none | general |
 
 The release, website and docs workflows end with a `notify` job that calls

@@ -51,7 +51,12 @@ on:
   # becomes required.
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # A retry of a push run (attempt 2 or later) gets a group of its own commit,
+  # so it neither cancels the run of a newer push nor is cancelled by one: a
+  # failure on main is retried to tell a flake from a break (#10380), and that
+  # answer must not depend on whether someone merged in the meantime. Retries
+  # of PR runs stay in the branch group, so a push to the PR still cancels them.
+  group: ${{ github.workflow }}-${{ github.ref }}${{ github.event_name == 'push' && github.run_attempt > 1 && format('-retry-{0}', github.sha) || '' }}
   # A push supersedes the suite it interrupts — those results describe a SHA
   # nobody is merging, so cancelling them is right. Pushes are now the only
   # thing that starts a PR run here, so this can be unconditional again. It
@@ -538,6 +543,15 @@ jobs:
       && github.repository_owner == 'Apicurio'
       && needs.build-java.result == 'success'
       && needs.gate.result == 'success'
+    # One publish at a time per branch, so verify-publish.yaml's check against
+    # the published commit and its pushes never interleave with another run's:
+    # a retry has its own run concurrency group and can reach this job while a
+    # newer run does. queue: max keeps every waiting run; with the default
+    # queue of one, a second arrival would cancel the one already waiting.
+    concurrency:
+      group: ${{ github.workflow }}-publish-${{ github.ref }}
+      cancel-in-progress: false
+      queue: max
     uses: ./.github/workflows/verify-publish.yaml
     with:
       image-tag: ${{ github.sha }}
@@ -547,32 +561,3 @@ jobs:
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
-
-  # ============================================================================
-  # NOTIFICATIONS
-  #
-  # Interim: a failed push run goes to the general channel, without a mention,
-  # because a single unconfirmed failure has no owner yet. Success says nothing.
-  # !cancelled() rather than always(): when a newer push cancels this run, gate
-  # still runs and fails on the cancelled jobs, and that is not a break.
-  # Operator failures reach gate, so gate and publish cover the whole run.
-  # To be replaced by confirmed, attributed reports (#10380).
-  # ============================================================================
-  notify-slack:
-    name: Slack Notification
-    needs: [gate, publish]
-    if: >-
-      !cancelled()
-      && github.event_name == 'push'
-      && github.repository_owner == 'Apicurio'
-      && contains(needs.*.result, 'failure')
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Notify
-        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
-        with:
-          level: general
-          text: ":x: Verify failed on ${{ github.ref_name }} at ${{ github.sha }}, not yet confirmed by a retry"
-          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          general-webhook: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

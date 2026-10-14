@@ -100,6 +100,8 @@ public class GrantsArtifactScopeTest extends AbstractResourceTestBase {
             map.put("apicurio.auth.resource-based-authorization.grants.reload-enabled", "false");
             map.put("apicurio.rest.deletion.group.enabled", "true");
             map.put("apicurio.rest.deletion.artifact.enabled", "true");
+            // ccompat schema IDs are global IDs in legacy mode
+            map.put("apicurio.ccompat.legacy-id-mode.enabled", "true");
             return map;
         }
     }
@@ -220,5 +222,26 @@ public class GrantsArtifactScopeTest extends AbstractResourceTestBase {
                 .body("nodes.find { it.artifactId == 'hidden-target' }.name", nullValue());
         given().auth().preemptive().basic("alice", "alice").get(graph).then().statusCode(200)
                 .body("nodes.find { it.artifactId == 'hidden-target' }.artifactType", equalTo("JSON"));
+    }
+
+    private long globalIdOf(String artifactId) {
+        return clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("branch=latest").get().getGlobalId();
+    }
+
+    @Test
+    public void legacySchemaIdIsResolvedAsAGlobalIdForSubjects() {
+        // Same content under two artifacts: one content ID, two global IDs
+        String content = "{\"type\":\"object\",\"title\":\"legacy-shared\"}";
+        for (String artifactId : List.of("legacy-first", "legacy-second", "hidden-legacy")) {
+            clientV3.groups().byGroupId(GROUP).artifacts().post(TestUtils.clientCreateArtifact(artifactId,
+                    ArtifactType.JSON, content, ContentTypes.APPLICATION_JSON));
+        }
+
+        // The global ID names one version, so exactly its subject is returned
+        bob().get("/ccompat/v7/schemas/ids/" + globalIdOf("legacy-second") + "/subjects").then().statusCode(200)
+                .body("$", equalTo(List.of("legacy-second")));
+        // And it is authorized as that artifact, which bob may not read
+        bob().get("/ccompat/v7/schemas/ids/" + globalIdOf("hidden-legacy") + "/subjects").then().statusCode(403);
     }
 }

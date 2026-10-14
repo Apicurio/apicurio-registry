@@ -27,6 +27,7 @@ import java.util.Map;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 
 /**
@@ -155,6 +156,11 @@ public class GrantsInteractionsTest extends AbstractResourceTestBase {
         clientV3.groups().byGroupId(GROUP).artifacts().byArtifactId(artifact).put(md);
 
         as("bob").get(path(artifact)).then().statusCode(403);
+        // Search must agree with point access: the disabled bypass applies there too
+        as("bob").queryParam("groupId", GROUP).queryParam("limit", 1000).get("/registry/v3/search/artifacts")
+                .then().statusCode(200).body("artifacts.artifactId", not(hasItem(artifact)));
+        as("bob").queryParam("groupId", GROUP).queryParam("limit", 1000).get("/registry/v3/search/versions")
+                .then().statusCode(200).body("versions.artifactId", not(hasItem(artifact)));
     }
 
     @Test

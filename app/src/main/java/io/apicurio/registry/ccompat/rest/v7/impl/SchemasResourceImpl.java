@@ -185,9 +185,18 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.ContentId, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.CCompatSchemaId, level = AuthorizedLevel.Read)
     public List<String> getSubjectsBySchemaId(BigInteger id, Boolean deleted) {
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+
+        if (cconfig.legacyIdModeEnabled.get()) {
+            // In legacy ID mode the ID is a global ID: it names exactly one version
+            ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(id.longValue());
+            if (!fdeleted && metaData.getState() == VersionState.DISABLED) {
+                throw new ArtifactNotFoundException("GlobalId: " + id);
+            }
+            return Collections.singletonList(metaData.getArtifactId());
+        }
 
         List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(id.longValue());
         if (versions == null || versions.isEmpty()) {

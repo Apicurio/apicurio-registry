@@ -180,6 +180,11 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
 
         as("bob2").get(artifactPath(TEAM_C, owned)).then().statusCode(200);
         as("bob2").get(artifactPath(TEAM_C, other)).then().statusCode(403);
+        // With the owner bypass on (the default), search shows owned artifacts too
+        as("bob2").queryParam("groupId", TEAM_C).queryParam("limit", 1000).get("/registry/v3/search/artifacts")
+                .then().statusCode(200)
+                .body("artifacts.artifactId", hasItem(owned))
+                .body("artifacts.artifactId", not(hasItem(other)));
         // Owning an artifact also grants access to its content
         as("bob2").get("/registry/v3/ids/contentIds/" + contentIdOf(TEAM_C, owned)).then().statusCode(200);
         as("bob2").get("/registry/v3/ids/contentIds/" + contentIdOf(TEAM_C, other)).then().statusCode(403);

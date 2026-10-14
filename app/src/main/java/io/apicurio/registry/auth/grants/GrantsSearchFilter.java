@@ -29,8 +29,8 @@ import org.slf4j.LoggerFactory;
  * query (rather than after it) keeps pagination and total counts accurate.
  *
  * <p>The filter selects exactly what point access allows: the grants patterns are passed through
- * unchanged, admins and the same bypasses as point access see everything, and owners always see
- * their own resources.</p>
+ * unchanged, admins and the same bypasses as point access see everything, and owners see
+ * their own resources unless the owner bypass is disabled.</p>
  */
 @ApplicationScoped
 public class GrantsSearchFilter {
@@ -49,6 +49,9 @@ public class GrantsSearchFilter {
 
     @Inject
     ResourceAccessGuard guard;
+
+    @Inject
+    GrantsAccessControllerConfig config;
 
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDir, int offset, int limit, boolean skipCount) {
@@ -100,13 +103,15 @@ public class GrantsSearchFilter {
         if (grants.allowsEverything()) {
             return filters;
         }
-        if (grants.allowsNothing() && user == null) {
+        // Owners match in search exactly when they bypass grants in point access
+        String owner = config.isOwnerBypassEnabled() ? user : null;
+        if (grants.allowsNothing() && owner == null) {
             return null;
         }
         Set<SearchFilter> restricted = new HashSet<>(filters);
         restricted.add(SearchFilter.ofAuthorization(new AuthorizationFilter(grants.allowAll(),
                 grants.allowedExact(), grants.allowedPrefix(), grants.deniedExact(),
-                grants.deniedPrefix(), user)));
+                grants.deniedPrefix(), owner)));
         LOG.debug("Search restricted by grants: user={}, type={}, filter={}", user, resourceType, grants);
         return restricted;
     }

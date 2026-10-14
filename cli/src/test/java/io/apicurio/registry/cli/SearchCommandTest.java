@@ -381,13 +381,27 @@ public class SearchCommandTest extends AbstractCLITest {
 
     @Test
     public void testSearchVersionsPagination() throws Exception {
-        givenArtifact();
-        executeAndAssertSuccess("search", "versions", "-p", "1", "-s", "1", "--output-type", "json");
-        var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
+        var f = givenArtifact();
+        createVersion(f.group(), f.artifactId(), "2", f.content());
 
-        assertThat(results.getVersions())
-                .as(withCliOutput("Paginated search should return at most 1 result"))
-                .hasSizeLessThanOrEqualTo(1);
+        var seen = new ArrayList<String>();
+        for (var page : List.of("1", "2")) {
+            executeAndAssertSuccess("search", "versions", "-g", f.group(), "-a", f.artifactId(),
+                    "-p", page, "-s", "1", "--output-type", "json");
+            var results = MAPPER.readValue(out.toString(), VersionSearchResults.class);
+            out.getBuffer().setLength(0);
+
+            assertThat(results.getCount())
+                    .as(withCliOutput("The total must count both versions on page " + page))
+                    .isEqualTo(2);
+            assertThat(results.getVersions())
+                    .as(withCliOutput("Page " + page + " of size 1 should hold exactly one version"))
+                    .hasSize(1);
+            seen.add(results.getVersions().get(0).getVersion());
+        }
+        assertThat(seen)
+                .as(withCliOutput("The two pages should hold the two different versions"))
+                .containsExactlyInAnyOrder("1", "2");
     }
 
     @Test
@@ -460,6 +474,7 @@ public class SearchCommandTest extends AbstractCLITest {
         var f = givenArtifact();
         // The decoy carries the SAME content in a DIFFERENT group, so only the group
         // filter can tell the two artifacts apart
+        executeAndAssertSuccess("group", "create", f.group() + "-decoy");
         createJsonArtifact(f.group() + "-decoy", f.artifactId() + "-decoy", f.content());
         executeAndAssertSuccess("search", "content", "--output-type", "json",
                 "-f", contentFile(f.content()).toString(), "-g", f.group());

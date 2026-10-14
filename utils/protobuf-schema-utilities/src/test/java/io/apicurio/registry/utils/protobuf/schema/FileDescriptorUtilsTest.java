@@ -38,7 +38,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -337,13 +336,22 @@ public class FileDescriptorUtilsTest {
         }
     }
 
-    // Same rule as protoc: drop each underscore and capitalize the letter after it. Kept apart from
-    // FileDescriptorUtils on purpose, so the comparison cannot agree with the code under test by construction.
+    // Same rule as protoc's ToJsonName: drop each underscore and capitalize the letter that follows
+    // it (a run of underscores capitalizes only the next letter). Kept apart from FileDescriptorUtils
+    // on purpose, so the comparison cannot agree with the code under test by construction.
     private static String defaultJsonName(String fieldName) {
-        String[] parts = fieldName.split("_");
-        StringBuilder jsonName = new StringBuilder(parts[0]);
-        for (int i = 1; i < parts.length; i++) {
-            jsonName.append(parts[i].substring(0, 1).toUpperCase(Locale.ROOT)).append(parts[i].substring(1));
+        StringBuilder jsonName = new StringBuilder(fieldName.length());
+        boolean capitalizeNext = false;
+        for (int i = 0; i < fieldName.length(); i++) {
+            char c = fieldName.charAt(i);
+            if (c == '_') {
+                capitalizeNext = true;
+            } else if (capitalizeNext) {
+                jsonName.append(Character.toUpperCase(c));
+                capitalizeNext = false;
+            } else {
+                jsonName.append(c);
+            }
         }
         return jsonName.toString();
     }

@@ -23,10 +23,12 @@ function httpError(status) {
 // attempts: the conclusion of earlier attempts, by `run:attempt`; failure
 // unless given, so attempt 2 of a failed run is a confirmation.
 // prs: the PR each commit was merged in, by sha, as { number, mergedBy };
-// a commit not listed was pushed directly. compareTotal overrides how many
-// commits compare reports, for a range wider than HISTORY.
+// a commit not listed was pushed directly. prLookupStatus makes the PR lookup
+// fail with that HTTP status. compareTotal overrides how many commits compare
+// reports, for a range wider than HISTORY.
 function makeWorld({
-  issues = [], labelExists = true, greens = [], jobs = {}, attempts = {}, prs = {}, compareTotal, reRunConflict = false,
+  issues = [], labelExists = true, greens = [], jobs = {}, attempts = {}, prs = {}, prLookupStatus, compareTotal,
+  reRunConflict = false,
 } = {}) {
   const calls = { reRuns: [], comments: [], createdLabels: [], outputs: {}, logs: [], warnings: [] };
   let labelPresent = labelExists;
@@ -63,13 +65,16 @@ function makeWorld({
         },
         // Listed first: an open PR whose branch has the commit (it merged
         // main), and one merged into another branch. Neither is the suspect.
-        listPullRequestsAssociatedWithCommit: async ({ commit_sha }) => ({
-          data: [
-            { number: 9001, merged_at: null, base: { ref: 'main' } },
-            { number: 9002, merged_at: '2026-10-14T00:00:00Z', base: { ref: 'feature' } },
-            ...prs[commit_sha] ? [{ number: prs[commit_sha].number, merged_at: '2026-10-14T00:00:00Z', base: { ref: 'main' } }] : [],
-          ],
-        }),
+        listPullRequestsAssociatedWithCommit: async ({ commit_sha }) => {
+          if (prLookupStatus) throw httpError(prLookupStatus);
+          return {
+            data: [
+              { number: 9001, merged_at: null, base: { ref: 'main' } },
+              { number: 9002, merged_at: '2026-10-14T00:00:00Z', base: { ref: 'feature' } },
+              ...prs[commit_sha] ? [{ number: prs[commit_sha].number, merged_at: '2026-10-14T00:00:00Z', base: { ref: 'main' } }] : [],
+            ],
+          };
+        },
       },
       pulls: {
         get: async ({ pull_number }) => {
@@ -337,8 +342,19 @@ test('too many changes since the last green commit name nobody', async () => {
   const w = makeWorld({ greens: [C1], compareTotal: 101, prs: { [C3]: { number: 103, mergedBy: 'alice' } } });
   const out = await onRun(w, verifyRun({ run_attempt: 2 }));
   assert.equal(out.mention, '');
-  assert.match(out.text, /Too many changes since the last green commit to name suspects \(over 100\)\./);
-  assert.match(w.issues[0].body, /More than 100 changes since the last green commit; too many to name suspects\./);
+  assert.match(out.text, /Suspects not named: more than 100 changes since the last green commit\. Tracking issue/);
+  assert.match(w.issues[0].body, /Suspects not named: more than 100 changes since the last green commit\./);
+});
+
+test('a failed suspect lookup still reports the break, naming nobody', async () => {
+  const w = makeWorld({ greens: [C2], prLookupStatus: 403, prs: { [C3]: { number: 103, mergedBy: 'alice' } } });
+  const out = await onRun(w, verifyRun({ run_attempt: 2 }));
+  assert.equal(out.level, 'important');
+  assert.equal(out.mention, '');
+  assert.match(out.text, /Suspects not named: they could not be looked up\. Tracking issue: #500/);
+  assert.equal(w.issues.length, 1);
+  assert.match(w.issues[0].body, /Suspects not named: they could not be looked up\./);
+  assert.deepEqual(w.calls.warnings, ['Could not look up the suspects: HTTP 403']);
 });
 
 test('a confirmed failure older than the newest green commit is stale', async () => {

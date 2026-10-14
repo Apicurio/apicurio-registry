@@ -153,7 +153,8 @@ the same PRs. Slack has one mention slot, so it mentions one merger: whoever
 merged the most suspects, a tie going to the newest merge, skipping anyone
 without a `SLACK_USER_MAP` entry. The other mergers are named in the text.
 Authors are not mentioned; the merger brings them in when needed. Over 100
-commits since the last green one, nobody is named.
+commits since the last green one, nobody is named. Nor when the lookup fails:
+the break is then reported without suspects.
 
 There is no reminder: the important message stays in the channel, and the
 issue stays open until `main` is green.

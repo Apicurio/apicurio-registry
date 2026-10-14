@@ -19,7 +19,8 @@
 //
 // A confirmed break names its suspects: the PRs merged since the last green
 // commit. The issue lists them with who merged each; Slack mentions one merger
-// (it has a single mention slot) and names the rest.
+// (it has a single mention slot) and names the rest. A failed lookup names
+// nobody rather than leaving the break unreported.
 //
 // Slack is sent by the workflow, from the outputs this sets: level, text,
 // link and mention. See "Post-merge verification" in
@@ -48,6 +49,11 @@ const MAX_NAMED = 5;
 // Above this many commits since the last green one, nobody is named: the
 // range is too wide to point at anyone. It is also one page of compare.
 const MAX_SUSPECTS = 100;
+// Why nobody is named, in place of the suspects.
+const NOT_NAMED = {
+  tooMany: `more than ${MAX_SUSPECTS} changes since the last green commit`,
+  lookupFailed: 'they could not be looked up',
+};
 
 const STATE_RE = /<!-- post-merge-state (\{.*?\}) -->/;
 
@@ -257,11 +263,11 @@ async function failedJobs(api, run, attempt) {
 
 // The commits that may have broken the branch, newest first, each with its PR
 // (null when pushed directly). Without a green commit to start from, or with
-// one GitHub can't compare, only the failing commit is known. Null when the
-// range is too wide to name anyone (MAX_SUSPECTS).
+// one GitHub can't compare, only the failing commit is known. A NOT_NAMED
+// reason instead when the range is too wide to name anyone (MAX_SUSPECTS).
 async function findSuspects(api, branch, sha, greenSha) {
   const range = greenSha ? await api.commitsBetween(greenSha, sha) : null;
-  if (range && range.total > MAX_SUSPECTS) return null;
+  if (range && range.total > MAX_SUSPECTS) return NOT_NAMED.tooMany;
   const shas = range?.shas.length ? [...range.shas].reverse() : [sha];
   const suspects = [];
   for (const s of shas) {
@@ -289,7 +295,7 @@ function mergersByCount(suspects) {
 // "Suspects: <PR url> merged by alice, ...". Plain URLs, which Slack links:
 // the Workflow Builder webhook shows Slack markup literally.
 function suspectsText(ctx, suspects) {
-  if (!suspects) return `Too many changes since the last green commit to name suspects (over ${MAX_SUSPECTS})`;
+  if (!Array.isArray(suspects)) return `Suspects not named: ${suspects}`;
   const items = suspects.map(({ sha, pr }) => {
     if (!pr) return `${ctx.serverUrl}/${ctx.owner}/${ctx.repo}/commit/${sha} pushed directly`;
     return pr.mergedBy ? `${pr.url} merged by ${pr.mergedBy}` : pr.url;
@@ -298,7 +304,7 @@ function suspectsText(ctx, suspects) {
 }
 
 function suspectsTable(ctx, suspects) {
-  if (!suspects) return [`More than ${MAX_SUSPECTS} changes since the last green commit; too many to name suspects.`];
+  if (!Array.isArray(suspects)) return [`Suspects not named: ${suspects}.`];
   return [
     '| Suspect | Merged by |',
     '|---|---|',
@@ -397,7 +403,12 @@ async function onRed(api, ctx, run, now, log) {
     return null;
   }
 
-  const suspects = await findSuspects(api, branch, sha, greenSha);
+  // Naming suspects must not stop the break from being reported: when a
+  // lookup fails, it goes out without them.
+  const suspects = await findSuspects(api, branch, sha, greenSha).catch(e => {
+    log.warning(`Could not look up the suspects: ${e.message}`);
+    return NOT_NAMED.lookupFailed;
+  });
   const state = { branch, lastRed: sha, since: now.toISOString() };
   const issue = await api.createTrackingIssue(`\`${branch}\` is broken`, issueBody(ctx, run, jobs, greenSha, suspects, state));
   log.info(`Opened #${issue.number}`);
@@ -405,7 +416,7 @@ async function onRed(api, ctx, run, now, log) {
     level: 'important',
     text: `:rotating_light: ${branch} is broken: ${failureText(run, short(sha))}${isStartupFailure(run) ? '' : ` (${jobList(jobs, false)})`}. ${suspectsText(ctx, suspects)}. Tracking issue: #${issue.number}`,
     link: issue.html_url,
-    mention: suspects ? mergersByCount(suspects).join(',') : '',
+    mention: Array.isArray(suspects) ? mergersByCount(suspects).join(',') : '',
   };
 }
 

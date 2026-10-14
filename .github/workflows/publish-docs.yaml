@@ -69,7 +69,6 @@ jobs:
     uses: ./.github/workflows/reusable-notify.yaml
     with:
       results: ${{ toJSON(needs) }}
-      notify-success: false
     secrets:
       SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
       SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}

@@ -384,8 +384,13 @@ public class AdminResourceImpl implements AdminResource {
         } catch (IOException e) {
             throw new BadRequestException("Error importing data: " + e.getMessage(), e);
         } catch (RuntimeException e) {
-            // EntityReader.createEntityIndex() throws a plain RuntimeException when the ZIP
-            // has no manifest entry, or when the manifest entry itself can't be parsed.
+            // EntityReader.createEntityIndex() throws a plain RuntimeException("No manifest
+            // found") when the ZIP has no manifest entry, or wraps the IOException as the
+            // cause when the manifest entry exists but can't be parsed. Distinguish the two
+            // so a corrupt manifest isn't reported as a missing one.
+            if (e.getCause() != null) {
+                throw new BadRequestException("Invalid import file: the Manifest file could not be read", e);
+            }
             throw new BadRequestException("Invalid import file: missing Manifest file", e);
         }
 

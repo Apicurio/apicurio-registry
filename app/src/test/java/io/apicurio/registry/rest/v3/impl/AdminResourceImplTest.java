@@ -129,10 +129,52 @@ class AdminResourceImplTest {
         }
     }
 
+    /**
+     * A manifest entry that exists but can't be parsed must be reported distinctly from a
+     * missing manifest: EntityReader.createEntityIndex() wraps the parse IOException as the
+     * cause of its RuntimeException, so the error must not claim the file is absent.
+     */
+    @Test
+    void testImportData_RejectsMalformedManifestAsBadRequest(@TempDir Path workDir) throws Exception {
+        ImportExportConfigProperties props = new ImportExportConfigProperties();
+        props.workDir = workDir.toString();
+        props.zipMaxEntrySize = 1024;
+        props.zipMaxTotalSize = 1024;
+        props.zipMaxEntryCount = 10;
+
+        AdminResourceImpl resource = new AdminResourceImpl();
+        resource.importExportProps = props;
+
+        ByteArrayInputStream data = new ByteArrayInputStream(zipWithMalformedManifest());
+
+        // When: the manifest entry exists but is not valid JSON
+        BadRequestException exception = assertThrows(BadRequestException.class,
+                () -> resource.importData(null, null, false, data));
+
+        // Then: it is reported as corrupt, not as missing
+        assertEquals("Invalid import file: the Manifest file could not be read", exception.getMessage());
+
+        // And: no "apicurio-import_*" work directory was left behind
+        try (Stream<Path> entries = Files.list(workDir)) {
+            assertTrue(entries.findAny().isEmpty(),
+                    "Expected no leftover temp directories after a malformed-manifest import is rejected");
+        }
+    }
+
     private static byte[] emptyZip() throws IOException {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try (ZipOutputStream zip = new ZipOutputStream(bytes, StandardCharsets.UTF_8)) {
             // No entries: unpacks to an empty directory, so EntityReader finds no manifest.
+        }
+        return bytes.toByteArray();
+    }
+
+    private static byte[] zipWithMalformedManifest() throws IOException {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ZipOutputStream zip = new ZipOutputStream(bytes, StandardCharsets.UTF_8)) {
+            zip.putNextEntry(new ZipEntry("manifest.Manifest.json"));
+            zip.write("{not json".getBytes(StandardCharsets.UTF_8));
+            zip.closeEntry();
         }
         return bytes.toByteArray();
     }

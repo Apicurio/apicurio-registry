@@ -110,7 +110,7 @@ public class GitOpsSmokeTest {
         // --- Load smoke02: Different artifact, no rules ---
         testRepository.load("git/smoke02");
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
-            assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
+            assertEquals(Set.of("person", "user"), withContext(() -> storage.getArtifactIds(10)));
         });
 
         // Global rules cleared
@@ -129,6 +129,9 @@ public class GitOpsSmokeTest {
         assertEquals(JsonObjectMapper.MAPPER.readTree(personContent.bytes()),
                 JsonObjectMapper.MAPPER.readTree(version.getContent().bytes()));
 
+        // Artifact type auto-detected from .avsc extension (no artifactType in YAML)
+        assertEquals("AVRO", storage.getArtifactMetaData("bar", "user").getArtifactType());
+
         // Peers removed (omitted/empty peers list wipes the previously loaded peer)
         assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
 
@@ -136,7 +139,7 @@ public class GitOpsSmokeTest {
         testRepository.load("git/invalid-content-ref");
         await().pollDelay(Duration.ofSeconds(5)).untilAsserted(() -> {
             // Previous data should still be served because the failed load does not cause a swap
-            assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
+            assertEquals(Set.of("person", "user"), withContext(() -> storage.getArtifactIds(10)));
         });
 
         // --- Load data with an invalid peer (reserved id "local") → rejected by PeerValidator,
@@ -160,7 +163,7 @@ public class GitOpsSmokeTest {
         });
 
         // Previous data should still be served because the failed load does not cause a swap
-        assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
+        assertEquals(Set.of("person", "user"), withContext(() -> storage.getArtifactIds(10)));
         assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
 
         // Admin writes against this read-only storage are rejected with a 409-mapped exception

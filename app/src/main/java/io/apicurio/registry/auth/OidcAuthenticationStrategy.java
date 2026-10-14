@@ -34,6 +34,7 @@ import io.quarkus.vertx.http.runtime.security.QuarkusHttpUser;
 import io.smallrye.jwt.auth.principal.DefaultJWTParser;
 import io.smallrye.jwt.auth.principal.ParseException;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.RoutingContext;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -128,16 +129,22 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
             final Pair<String, String> clientCredentials = CredentialsHelper
                     .extractCredentialsFromContext(context);
             if (null != clientCredentials) {
-                try {
-                    return authenticateWithClientCredentials(clientCredentials, context,
-                            identityProviderManager);
-                } catch (OidcAuthException | UnauthorizedException ex) {
-                    log.warn(String.format(
-                            "Exception trying to get an access token with client credentials with client id: %s",
-                            clientCredentials.getLeft()), ex);
-                    return oidcAuthenticationMechanism.authenticate(context,
-                            identityProviderManager);
-                }
+                // The client-credentials path blocks in join() while the token is fetched or
+                // while it waits on an in-flight fetch, and this mechanism runs on the Vert.x
+                // event loop thread. Offload it to the worker pool, as
+                // KubernetesAuthenticationStrategy does, so the event loop is never blocked.
+                return Uni.createFrom().deferred(() -> {
+                    try {
+                        return authenticateWithClientCredentials(clientCredentials, context,
+                                identityProviderManager);
+                    } catch (OidcAuthException | UnauthorizedException ex) {
+                        log.warn(String.format(
+                                "Exception trying to get an access token with client credentials with client id: %s",
+                                clientCredentials.getLeft()), ex);
+                        return oidcAuthenticationMechanism.authenticate(context,
+                                identityProviderManager);
+                    }
+                }).runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
             } else {
                 return customAuthentication(context, identityProviderManager);
             }

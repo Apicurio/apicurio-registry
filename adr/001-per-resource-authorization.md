@@ -382,7 +382,7 @@ the shape of `SearchFilterData`.
 
 ### Neutral
 
-- No UI for grants management (file-based, GitOps-managed)
+- Grants are managed as a file (GitOps or ConfigMap). The file can be shared across systems, so an editing UI belongs in a shared tool such as StreamsHub Console rather than in Registry
 - Grants format is versioned implicitly by the parser, not explicitly in the file
 - The shared `authz` module is in the Registry repo, not a standalone project
 

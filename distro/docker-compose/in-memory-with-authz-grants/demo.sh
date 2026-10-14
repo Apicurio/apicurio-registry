@@ -65,6 +65,11 @@ expect "user reads team-a/user-events (no grant)" 403 -H "Authorization: Bearer 
 expect "admin reads team-b/inventory-schema (admin role)" 200 -H "Authorization: Bearer $ADMIN" "$(art team-b inventory-schema)"
 expect "developer creates group team-c (no group grant)" 403 -X POST -H "Authorization: Bearer $DEV" \
   -H 'Content-Type: application/json' -d '{"groupId": "team-c"}' "$API/registry/v3/groups"
+expect "developer creates team-a/secret-schema (name denied)" 403 -X POST -H "Authorization: Bearer $DEV" \
+  -H 'Content-Type: application/json' \
+  -d '{"artifactId": "secret-schema", "artifactType": "JSON"}' "$API/registry/v3/groups/team-a/artifacts?ifExists=FAIL"
+expect "anonymous reads shared/common-types (\$anonymous grant)" 200 "$(art shared common-types)"
+expect "anonymous reads shared/error-schema (no grant)" 401 "$(art shared error-schema)"
 
 echo "Search filtering:"
 check_search() {

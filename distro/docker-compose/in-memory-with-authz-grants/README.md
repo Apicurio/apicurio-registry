@@ -26,6 +26,7 @@ Passwords equal the user name, except `developer2` (password `developer`).
 | `developer` | sr-developer | Write group `team-a` and `team-a/*` except read-denied `team-a/secret-schema`; read `team-b/public-schema`; read `shared/*` (role grant) |
 | `developer2`| sr-developer | Read `shared/*` only (role grant): same role as `developer`, different access          |
 | `user`      | sr-readonly  | Read `shared/*` (role grant)                                                            |
+| _anonymous_ | none         | Read `shared/common-types` only (`$anonymous` role grant)                               |
 
 ## Run it
 
@@ -65,6 +66,18 @@ TOKEN=$(curl -s -X POST http://localhost:8080/realms/registry/protocol/openid-co
   -d 'grant_type=password&client_id=apicurio-registry&username=developer&password=developer' | jq -r .access_token)
 curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" \
   http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/inventory-schema   # 403
+```
+
+**Creation is checked on the name too** - `developer` can write to group `team-a`, but cannot
+create an artifact named `team-a/secret-schema`, because that name is denied: otherwise creating it
+would make them its owner and bypass the deny.
+
+**Anonymous access is opt-in per resource** - anonymous read access is enabled, but unauthenticated
+callers can read only what grants allow to the `$anonymous` role:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8081/apis/registry/v3/groups/shared/artifacts/common-types  # 200
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8081/apis/registry/v3/groups/shared/artifacts/error-schema  # 401
 ```
 
 **Search and lists** - results are filtered inside the storage query, so counts and pagination are

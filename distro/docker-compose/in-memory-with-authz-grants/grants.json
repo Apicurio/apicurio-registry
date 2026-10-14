@@ -22,6 +22,9 @@
     {"principal_role": "sr-readonly", "operation": "read", "resource_type": "group",
      "resource_pattern_type": "exact", "resource_pattern": "shared"},
     {"principal_role": "sr-readonly", "operation": "read", "resource_type": "artifact",
-     "resource_pattern_type": "prefix", "resource_pattern": "shared/"}
+     "resource_pattern_type": "prefix", "resource_pattern": "shared/"},
+
+    {"principal_role": "$anonymous", "operation": "read", "resource_type": "artifact",
+     "resource_pattern_type": "exact", "resource_pattern": "shared/common-types"}
   ]
 }

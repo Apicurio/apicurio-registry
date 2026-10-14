@@ -39,6 +39,8 @@ services:
       QUARKUS_OIDC_TOKEN_ISSUER: "any"
       # Coarse-grained RBAC from Keycloak roles (grants restrict within what RBAC allows)
       apicurio.auth.role-based-authorization: "true"
+      # Unauthenticated reads are allowed, but only for what grants allow to the "$anonymous" role
+      apicurio.auth.anonymous-read-access.enabled: "true"
       apicurio.auth.resource-based-authorization.enabled: "true"
       apicurio.auth.resource-based-authorization.grants.path: "/opt/apicurio/authz/grants.json"
       apicurio.auth.resource-based-authorization.grants.reload-every: "5s"

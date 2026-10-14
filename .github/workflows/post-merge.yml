@@ -1,20 +1,22 @@
 name: Post-Merge
 
-# Confirms a failed Verify push run on main by re-running its failed jobs once,
-# keeps a tracking issue open while main is broken, and posts the transitions
+# Confirms a failed Verify push run on main or 3.3.x by re-running its failed
+# jobs once, keeps a tracking issue open per branch while it is broken, and
+# posts the transitions
 # to Slack: broken (important), green again and flakes (general). The logic is
 # in .github/scripts/post-merge.js; see "Post-merge verification" in
 # .github/workflows/README.md (#10380).
 #
 # workflow_run runs this file from the default branch, never from a PR, and the
 # script checks the run is a push run of this repository's verify.yaml: the
-# branches filter below also matches a PR whose head branch is called main.
+# branches filter below also matches a PR whose head branch is called main or
+# 3.3.x. Keep the filter in step with BRANCHES in post-merge.js.
 
 on:
   workflow_run:
     workflows: ["Verify"]
     types: [completed]
-    branches: [main]
+    branches: [main, '3.3.x']
 
 # One event at a time, so two completed runs can't both find no issue and open
 # one each. queue: max keeps every waiting event: with the default queue of

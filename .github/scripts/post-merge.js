@@ -29,8 +29,9 @@
 const VERIFY_PATH = '.github/workflows/verify.yaml';
 const VERIFY_WORKFLOW_FILE = 'verify.yaml';
 
-// Branches whose push runs are confirmed and tracked.
-const BRANCHES = ['main'];
+// Branches whose push runs are confirmed and tracked, each with a tracking
+// issue of its own. Keep in step with the branches filter in post-merge.yml.
+const BRANCHES = ['main', '3.3.x'];
 
 const LABEL = 'ci/broken';
 const LABEL_COLOR = 'b60205';

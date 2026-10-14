@@ -175,10 +175,10 @@ const NOTHING = { level: '', text: '', link: '', mention: '' };
 // Which runs count
 // ---------------------------------------------------------------------------
 
-test('ignores runs that are not push runs of this repository\'s Verify on main', async () => {
+test('ignores runs that are not push runs of this repository\'s Verify on a tracked branch', async () => {
   for (const overrides of [
     { event: 'pull_request' },
-    { head_branch: '3.3.x' },
+    { head_branch: '3.2.x' },
     { head_branch: 'feature' },
     { head_repository: { full_name: 'someone/apicurio-registry' } },
     { path: '.github/workflows/my-verify.yaml' },
@@ -415,6 +415,23 @@ test('a tracking issue for another branch, or a labelled issue without state, is
   await onRun(w, verifyRun({ run_attempt: 2 }));
   assert.equal(w.issues.length, 3);
   assert.equal(w.issues[2].number, 500);
+});
+
+test('a confirmed break on 3.3.x gets an issue of its own, and its green run closes only that one', async () => {
+  const main = trackingIssue({ number: 77 });
+  const w = makeWorld({ issues: [main], greens: [C2] });
+  const out = await onRun(w, verifyRun({ head_branch: '3.3.x', run_attempt: 2 }));
+  assert.equal(out.level, 'important');
+  assert.match(out.text, /^:rotating_light: 3\.3\.x is broken/);
+  assert.equal(w.issues.length, 2);
+  assert.equal(w.issues[1].title, '`3.3.x` is broken');
+  assert.deepEqual(postMerge.readState(w.issues[1].body).branch, '3.3.x');
+
+  const green = await onRun(w, verifyRun({ id: 1001, head_branch: '3.3.x', head_sha: C4, conclusion: 'success' }));
+  assert.equal(green.level, 'general');
+  assert.match(green.text, /^:white_check_mark: 3\.3\.x is green again/);
+  assert.equal(w.issues[1].state, 'closed');
+  assert.equal(w.issues[0].state, 'open');
 });
 
 test('more than five failed jobs are summarised', async () => {

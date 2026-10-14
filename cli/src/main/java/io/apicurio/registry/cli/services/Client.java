@@ -69,8 +69,7 @@ public class Client {
                     if (uri.getPath() == null) {
                         uri = uri.resolve("/apis/registry/v3");
                     }
-                    final var options = RegistryClientOptions.create(uri.toString(), vertx);
-                    options.requestTimeout(REGISTRY_CONNECT_TIMEOUT_MILLIS, REGISTRY_READ_IDLE_TIMEOUT_MILLIS);
+                    final var options = newRegistryClientOptions(uri.toString());
                     if (httpLoggingEnabled) {
                         options.enableHttpLogging();
                     }
@@ -84,6 +83,12 @@ public class Client {
             }
             return registryClient;
         }
+    }
+
+    RegistryClientOptions newRegistryClientOptions(final String registryUrl) {
+        final var options = RegistryClientOptions.create(registryUrl, vertx);
+        options.requestTimeout(REGISTRY_CONNECT_TIMEOUT_MILLIS, REGISTRY_READ_IDLE_TIMEOUT_MILLIS);
+        return options;
     }
 
     public HttpClient getHttpClient() {

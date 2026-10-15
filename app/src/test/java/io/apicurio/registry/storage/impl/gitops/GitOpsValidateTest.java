@@ -4,6 +4,7 @@ import io.apicurio.registry.storage.util.GitopsTestProfile;
 import io.apicurio.registry.util.JsonObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,14 +31,11 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 @TestProfile(GitopsTestProfile.class)
 public class GitOpsValidateTest {
 
-    /**
-     * The test repo's configured repoId is not "default" — GitTestRepositoryManager wires
-     * apicurio.gitops.repo.dir to a randomly generated temp directory name, and the
-     * single-repo shorthand in GitOpsConfig derives the repo id from that same dir value.
-     */
-    private static String repoId() {
-        return Path.of(GitTestRepositoryManager.getTestRepository().getGitRepoUrl())
-                .getFileName().toString();
+    @Inject
+    GitOpsConfig gitOpsConfig;
+
+    private String repoId() {
+        return gitOpsConfig.getRepos().get(0).id();
     }
 
     @BeforeEach
@@ -82,6 +80,8 @@ public class GitOpsValidateTest {
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
                 .statusCode(400)
+                .body("status", equalTo(400))
+                .body("name", equalTo("BadRequestException"))
                 .body("detail", containsString("Repository 'does-not-exist' is not configured"))
                 .body("detail", containsString(repoId()));
     }
@@ -97,7 +97,27 @@ public class GitOpsValidateTest {
                 .post("/apis/registry/v3/admin/gitops/validate")
                 .then()
                 .statusCode(400)
-                .body("detail", containsString("is not configured"));
+                .body("status", equalTo(400))
+                .body("name", equalTo("BadRequestException"))
+                .body("detail", containsString("Repository ID is required"))
+                .body("detail", containsString(repoId()));
+    }
+
+    @Test
+    void createValidateTaskRejectsEmptyRepoId() {
+        given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "", "ref": "main"}
+                        """)
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(400)
+                .body("status", equalTo(400))
+                .body("name", equalTo("BadRequestException"))
+                .body("detail", containsString("Repository ID is required"))
+                .body("detail", containsString(repoId()));
     }
 
     @Test

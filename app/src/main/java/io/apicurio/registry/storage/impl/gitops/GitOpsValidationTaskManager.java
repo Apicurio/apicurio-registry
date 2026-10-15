@@ -11,7 +11,6 @@ import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
-import jakarta.ws.rs.BadRequestException;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -109,11 +108,8 @@ public class GitOpsValidationTaskManager {
      *
      * @param request the validation request with repoId and ref
      * @return the created task with its assigned taskId in "pending" state
-     * @throws BadRequestException if the request's repoId does not match a configured repository
      */
     public GitOpsValidateTask createTask(GitOpsValidateRequest request) {
-        validateRepoId(request.getRepoId());
-
         var taskId = ValidationTaskId.random();
         Instant now = Instant.now();
 
@@ -134,20 +130,6 @@ public class GitOpsValidationTaskManager {
                 taskId, taskState.getType(), taskState.getRepoId(), taskState.getRef());
 
         return toDto(taskState);
-    }
-
-    /**
-     * Validates that the requested repoId matches one of the configured repositories.
-     * Rejects with a 400 that lists the known repository IDs so misconfigured CI/CD
-     * callers (typo'd or stale repoId) get an actionable error instead of a silent
-     * mismatch that surfaces later as a confusing validation failure.
-     */
-    private void validateRepoId(String repoId) {
-        var availableIds = gitOpsConfig.getRepos().stream().map(GitRepoConfig::id).toList();
-        if (repoId == null || !availableIds.contains(repoId)) {
-            throw new BadRequestException("Repository '" + repoId + "' is not configured. "
-                    + "Available repositories: " + availableIds);
-        }
     }
 
     /**

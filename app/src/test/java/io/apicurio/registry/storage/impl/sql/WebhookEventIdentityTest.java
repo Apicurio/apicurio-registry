@@ -117,4 +117,48 @@ public class WebhookEventIdentityTest {
                 () -> WebhookEventIdentity.computeHash("https://example.com", null),
                 "null eventId must throw IllegalArgumentException");
     }
+
+    // Malformed-Unicode rejection tests.
+    // String.getBytes(UTF_8) silently maps an unpaired surrogate to U+FFFD (the replacement
+    // character), causing computeHash("source", "\uD800").equals(computeHash("source", "?")).
+    // The strict encoder must reject these inputs rather than silently conflating them.
+
+    @Test
+    void loneHighSurrogateInSourceIsRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> WebhookEventIdentity.computeHash("\uD800", "evt-001"),
+                "lone high surrogate in source must throw IllegalArgumentException");
+    }
+
+    @Test
+    void loneLowSurrogateInSourceIsRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> WebhookEventIdentity.computeHash("\uDC00", "evt-001"),
+                "lone low surrogate in source must throw IllegalArgumentException");
+    }
+
+    @Test
+    void loneHighSurrogateInEventIdIsRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> WebhookEventIdentity.computeHash("https://example.com", "\uD800"),
+                "lone high surrogate in eventId must throw IllegalArgumentException");
+    }
+
+    @Test
+    void loneLowSurrogateInEventIdIsRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> WebhookEventIdentity.computeHash("https://example.com", "\uDC00"),
+                "lone low surrogate in eventId must throw IllegalArgumentException");
+    }
+
+    @Test
+    void validSupplementaryCharactersAreAccepted() {
+        // U+1F600 GRINNING FACE is a valid supplementary character represented in Java as the
+        // surrogate pair \uD83D\uDE00. It is NOT malformed; the encoder must accept it.
+        String hash = WebhookEventIdentity.computeHash("https://example.com/\uD83D\uDE00", "evt-\uD83D\uDE00");
+        assertEquals(64, hash.length());
+        assertTrue(hash.matches("[0-9a-f]{64}"), "Hash must be lowercase hex: " + hash);
+        // Must differ from the plain-ASCII equivalent.
+        assertNotEquals(hash, WebhookEventIdentity.computeHash("https://example.com/?", "evt-?"));
+    }
 }

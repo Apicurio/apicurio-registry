@@ -12,6 +12,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -363,8 +364,8 @@ public class WebhookSchemaMigrationTest {
                 ps.setLong(5, now);
                 SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
                         "FK_whdlogs_1 must reject unknown subscriptionId");
-                assertTrue(ex.getSQLState().startsWith("23"),
-                        "SQL state must be integrity-constraint class 23, was: " + ex.getSQLState());
+                assertEquals("23506", ex.getSQLState(),
+                        "H2 SQL state must be 23506 (referential integrity violated - parent missing), was: " + ex.getSQLState());
             }
         }
     }
@@ -389,8 +390,8 @@ public class WebhookSchemaMigrationTest {
                 ps.setLong(5, now);
                 SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
                         "FK_whdlogs_2 must reject unknown eventRowId");
-                assertTrue(ex.getSQLState().startsWith("23"),
-                        "SQL state must be integrity-constraint class 23, was: " + ex.getSQLState());
+                assertEquals("23506", ex.getSQLState(),
+                        "H2 SQL state must be 23506 (referential integrity violated - parent missing), was: " + ex.getSQLState());
             }
         }
     }
@@ -421,9 +422,40 @@ public class WebhookSchemaMigrationTest {
                 ps.setLong(5, now);
                 SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
                         "CK_whdlogs_1 must reject negative attemptCount");
-                assertTrue(ex.getSQLState().startsWith("23"),
-                        "SQL state must be integrity-constraint class 23, was: " + ex.getSQLState());
+                assertEquals("23513", ex.getSQLState(),
+                        "H2 SQL state must be 23513 (check constraint violated), was: " + ex.getSQLState());
             }
+        }
+    }
+
+    // ------------------------------------------------------------
+    // Constraint invariants — fresh install and post-upgrade parity
+    // ------------------------------------------------------------
+
+    /**
+     * All structural invariants (unique constraints, FK protection, check constraints) must hold
+     * on a fresh install. This is the control: the DDL author wrote the constraints correctly.
+     */
+    @Test
+    void freshInstall_constraintInvariantsHold() throws Exception {
+        try (Connection conn = freshH2()) {
+            executeDdlResource(conn, "h2.ddl");
+            assertConstraintInvariants(conn);
+        }
+    }
+
+    /**
+     * All structural invariants must also hold after upgrading from v110 through v111 to v112.
+     * Ensures the upgrade scripts produce a schema that is structurally equivalent to a fresh
+     * install, not merely one that has the right table names.
+     */
+    @Test
+    void upgrade_constraintInvariantsHoldAfterMigration() throws Exception {
+        try (Connection conn = freshH2()) {
+            executeDdlResource(conn, "pre-peers-schema/h2.ddl");
+            executeDdlResource(conn, "upgrades/111/h2.upgrade.ddl");
+            executeDdlResource(conn, "upgrades/112/h2.upgrade.ddl");
+            assertConstraintInvariants(conn);
         }
     }
 
@@ -431,11 +463,197 @@ public class WebhookSchemaMigrationTest {
     // Helpers
     // ------------------------------------------------------------
 
+    private void assertConstraintInvariants(Connection conn) throws Exception {
+        assertDuplicateIdentityHashRejected(conn);
+        assertDuplicateDeliveryKeyRejected(conn);
+        assertDistinctSourcesSameEventIdAllowed(conn);
+        assertDeleteReferencedEventRejected(conn);
+        assertDeleteReferencedSubscriptionRejected(conn);
+    }
+
+    private void assertDuplicateIdentityHashRejected(Connection conn) throws Exception {
+        String hash = WebhookEventIdentity.computeHash("https://dup-hash.example.com", "dup-hash-evt-" + UUID.randomUUID());
+
+        // Control: first insert must succeed.
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_events (eventRowId, source, eventId, identityHash, eventType, payload, createdOn) "
+                + "VALUES (?, 'https://dup-hash.example.com', 'dup-hash-evt', ?, 'com.example.test', X'41', ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, hash);
+            ps.setLong(3, System.currentTimeMillis());
+            ps.executeUpdate();
+        }
+
+        // Second insert with the same identityHash must be rejected by UQ_whevents_hash.
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_events (eventRowId, source, eventId, identityHash, eventType, payload, createdOn) "
+                + "VALUES (?, 'https://dup-hash.example.com', 'dup-hash-evt-2', ?, 'com.example.test', X'41', ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, hash);
+            ps.setLong(3, System.currentTimeMillis());
+            SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
+                    "Duplicate identityHash must be rejected by UQ_whevents_hash");
+            assertEquals("23505", ex.getSQLState(),
+                    "H2 SQL state must be 23505 (unique constraint violation), was: " + ex.getSQLState());
+        }
+    }
+
+    private void assertDuplicateDeliveryKeyRejected(Connection conn) throws Exception {
+        String subId = UUID.randomUUID().toString();
+        insertSubscription(conn, subId);
+        String eventRowId = UUID.randomUUID().toString();
+        insertEvent(conn, eventRowId);
+
+        long now = System.currentTimeMillis();
+        // Control: first delivery log must succeed.
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_delivery_logs "
+                + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
+                + "VALUES (?, ?, ?, 'PENDING', 0, ?, ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, subId);
+            ps.setString(3, eventRowId);
+            ps.setLong(4, now);
+            ps.setLong(5, now);
+            ps.executeUpdate();
+        }
+
+        // Second insert with the same (subscriptionId, eventRowId) must be rejected by UQ_whdlogs_1.
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_delivery_logs "
+                + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
+                + "VALUES (?, ?, ?, 'PENDING', 0, ?, ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, subId);
+            ps.setString(3, eventRowId);
+            ps.setLong(4, now);
+            ps.setLong(5, now);
+            SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
+                    "Duplicate (subscriptionId, eventRowId) must be rejected by UQ_whdlogs_1");
+            assertEquals("23505", ex.getSQLState(),
+                    "H2 SQL state must be 23505 (unique constraint violation), was: " + ex.getSQLState());
+        }
+    }
+
+    private void assertDistinctSourcesSameEventIdAllowed(Connection conn) throws Exception {
+        // The identityHash incorporates the source, so the same eventId under two different
+        // sources must hash differently and both rows must be accepted.
+        String sharedEventId = "shared-evt-" + UUID.randomUUID();
+        String hashA = WebhookEventIdentity.computeHash("https://source-a.example.com", sharedEventId);
+        String hashB = WebhookEventIdentity.computeHash("https://source-b.example.com", sharedEventId);
+
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_events (eventRowId, source, eventId, identityHash, eventType, payload, createdOn) "
+                + "VALUES (?, ?, ?, ?, 'com.example.test', X'41', ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, "https://source-a.example.com");
+            ps.setString(3, sharedEventId);
+            ps.setString(4, hashA);
+            ps.setLong(5, System.currentTimeMillis());
+            ps.executeUpdate();
+        }
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_events (eventRowId, source, eventId, identityHash, eventType, payload, createdOn) "
+                + "VALUES (?, ?, ?, ?, 'com.example.test', X'41', ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, "https://source-b.example.com");
+            ps.setString(3, sharedEventId);
+            ps.setString(4, hashB);
+            ps.setLong(5, System.currentTimeMillis());
+            ps.executeUpdate();
+        }
+    }
+
+    private void assertDeleteReferencedEventRejected(Connection conn) throws Exception {
+        String subId = UUID.randomUUID().toString();
+        insertSubscription(conn, subId);
+        String eventRowId = UUID.randomUUID().toString();
+        insertEvent(conn, eventRowId);
+
+        long now = System.currentTimeMillis();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_delivery_logs "
+                + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
+                + "VALUES (?, ?, ?, 'PENDING', 0, ?, ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, subId);
+            ps.setString(3, eventRowId);
+            ps.setLong(4, now);
+            ps.setLong(5, now);
+            ps.executeUpdate();
+        }
+
+        // Negative: delete the event while a delivery log references it must be refused.
+        try (PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM webhook_events WHERE eventRowId = ?")) {
+            ps.setString(1, eventRowId);
+            SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
+                    "FK_whdlogs_2 must prevent deleting an event that has delivery logs");
+            assertEquals("23503", ex.getSQLState(),
+                    "H2 SQL state must be 23503 (referential integrity violated - child exists), was: " + ex.getSQLState());
+        }
+
+        // Control: removing the delivery log first allows the event to be deleted.
+        try (PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM webhook_delivery_logs WHERE eventRowId = ?")) {
+            ps.setString(1, eventRowId);
+            ps.executeUpdate();
+        }
+        try (PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM webhook_events WHERE eventRowId = ?")) {
+            ps.setString(1, eventRowId);
+            assertEquals(1, ps.executeUpdate(), "Event must be deletable after its delivery logs are removed");
+        }
+    }
+
+    private void assertDeleteReferencedSubscriptionRejected(Connection conn) throws Exception {
+        String subId = UUID.randomUUID().toString();
+        insertSubscription(conn, subId);
+        String eventRowId = UUID.randomUUID().toString();
+        insertEvent(conn, eventRowId);
+
+        long now = System.currentTimeMillis();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_delivery_logs "
+                + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
+                + "VALUES (?, ?, ?, 'PENDING', 0, ?, ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, subId);
+            ps.setString(3, eventRowId);
+            ps.setLong(4, now);
+            ps.setLong(5, now);
+            ps.executeUpdate();
+        }
+
+        // Negative: delete the subscription while a delivery log references it must be refused.
+        try (PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM webhook_subscriptions WHERE subscriptionId = ?")) {
+            ps.setString(1, subId);
+            SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
+                    "FK_whdlogs_1 must prevent deleting a subscription that has delivery logs");
+            assertEquals("23503", ex.getSQLState(),
+                    "H2 SQL state must be 23503 (referential integrity violated - child exists), was: " + ex.getSQLState());
+        }
+
+        // Control: removing the delivery log first allows the subscription to be deleted.
+        try (PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM webhook_delivery_logs WHERE subscriptionId = ?")) {
+            ps.setString(1, subId);
+            ps.executeUpdate();
+        }
+        try (PreparedStatement ps = conn.prepareStatement(
+                "DELETE FROM webhook_subscriptions WHERE subscriptionId = ?")) {
+            ps.setString(1, subId);
+            assertEquals(1, ps.executeUpdate(), "Subscription must be deletable after its delivery logs are removed");
+        }
+    }
+
     private static final AtomicInteger DB_COUNTER = new AtomicInteger();
 
     private Connection freshH2() throws SQLException {
-        String url = "jdbc:h2:mem:webhook_migration_" + DB_COUNTER.incrementAndGet()
-                + ";DB_CLOSE_DELAY=-1;MODE=LEGACY";
+        // No DB_CLOSE_DELAY: each test holds the connection throughout, so the in-memory
+        // database is released as soon as the connection closes at the end of the try block.
+        String url = "jdbc:h2:mem:webhook_migration_" + DB_COUNTER.incrementAndGet() + ";MODE=LEGACY";
         return DriverManager.getConnection(url, "sa", "");
     }
 
@@ -465,13 +683,13 @@ public class WebhookSchemaMigrationTest {
     }
 
     private void assertTableExists(Connection conn, String tableName) throws SQLException {
-        try (ResultSet rs = conn.getMetaData().getTables(null, null, tableName.toUpperCase(), new String[]{"TABLE"})) {
+        try (ResultSet rs = conn.getMetaData().getTables(null, null, tableName.toUpperCase(Locale.ROOT), new String[]{"TABLE"})) {
             assertTrue(rs.next(), "Table must exist: " + tableName);
         }
     }
 
     private void assertColumnExists(Connection conn, String tableName, String columnName) throws SQLException {
-        try (ResultSet rs = conn.getMetaData().getColumns(null, null, tableName.toUpperCase(), columnName.toUpperCase())) {
+        try (ResultSet rs = conn.getMetaData().getColumns(null, null, tableName.toUpperCase(Locale.ROOT), columnName.toUpperCase(Locale.ROOT))) {
             assertTrue(rs.next(), "Column must exist: " + tableName + "." + columnName);
         }
     }

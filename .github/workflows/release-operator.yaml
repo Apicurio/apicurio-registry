@@ -283,6 +283,15 @@ jobs:
           git clone "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git" registry
           cd registry && git checkout "$RELEASE_VERSION"
 
+      # The release tag may predate operator/scripts (e.g. 3.3.x), so take the
+      # helper scripts from the commit this workflow runs from instead.
+      - name: Checkout workflow helper scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          path: workflow-scripts
+          sparse-checkout: operator/scripts
+          persist-credentials: false
+
       - name: Set up JDK 21
         uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
         with:
@@ -383,7 +392,7 @@ jobs:
 
           # Wait for the pipeline-built bundle, then refresh catalog history in
           # case a preceding catalog submission merged while we were waiting.
-          BUNDLE_IMG=$(bash ../registry/operator/scripts/published-bundle.sh "$PACKAGE_VERSION")
+          BUNDLE_IMG=$(bash ../workflow-scripts/operator/scripts/published-bundle.sh "$PACKAGE_VERSION")
           git fetch origin main
           git checkout -B main origin/main
           git checkout -b "${RELEASE_BRANCH}-catalog"

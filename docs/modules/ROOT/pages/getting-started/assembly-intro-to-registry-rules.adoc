@@ -80,7 +80,7 @@ When a rule is executed, it is provided with the content of the current version 
 [role="_abstract"]
 Administrators can configure {registry} global rules, group-specific rules, and artifact-specific rules. Developers can configure group-specific and artifact-specific rules only.
 
-{registry} evaluates rule precedence separately for each rule type, such as `COMPATIBILITY` or `VALIDITY`. For each rule type, an artifact-specific rule overrides a group-specific rule of the same type, and a group-specific rule overrides a global rule of the same type. If a rule type is not configured at any level, {registry} does not enforce that rule type. Configuring one rule type at a lower level does not disable other rule types that are configured at a higher level.
+{registry} evaluates rule precedence separately for each rule type, such as `COMPATIBILITY` or `VALIDITY`. For each rule type, an artifact-specific rule overrides a group-specific rule of the same type, and a group-specific rule overrides a global rule of the same type. If a rule type is not configured at any level, and no default global rule is set for that type in the application properties, {registry} does not enforce that rule type. Configuring one rule type at a lower level does not disable other rule types that are configured at a higher level.
 
 For example, consider a group with a `COMPATIBILITY` rule set to `BACKWARD`, and an artifact in that group with only a `VALIDITY` rule set to `FULL`:
 

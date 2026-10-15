@@ -8,7 +8,6 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.error.NotFoundException;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.interceptor.InvocationContext;
@@ -38,6 +37,17 @@ public abstract class AbstractAccessController implements IAccessController {
     @Inject
     @Context
     protected HttpServletRequest request;
+
+    @Inject
+    protected AuthorizationLookups lookups;
+
+    /** Without injection (unit tests), lookups go straight to storage. */
+    protected AuthorizationLookups lookups() {
+        if (lookups == null) {
+            lookups = new AuthorizationLookups();
+        }
+        return lookups;
+    }
 
     /**
      * Resolves the resource addressed by the invocation from its {@link AuthorizedStyle} and
@@ -130,16 +140,12 @@ public abstract class AbstractAccessController implements IAccessController {
             return false;
         }
         String caller = securityIdentity.getPrincipal().getName();
-        try {
-            return switch (r.kind()) {
-                case ARTIFACT -> caller.equals(storage.getArtifactMetaData(r.groupId(), r.artifactId())
-                        .getOwner());
-                case GROUP -> caller.equals(storage.getGroupMetaData(r.groupId()).getOwner());
-                case CONTENT -> false;
-            };
-        } catch (NotFoundException e) {
-            return false;
-        }
+        return switch (r.kind()) {
+            case ARTIFACT -> lookups().artifact(storage, r.groupId(), r.artifactId())
+                    .map(a -> caller.equals(a.getOwner())).orElse(false);
+            case GROUP -> lookups().group(storage, r.groupId()).map(g -> caller.equals(g.getOwner())).orElse(false);
+            case CONTENT -> false;
+        };
     }
 
     private Optional<AuthorizedResource> resolveCCompatSubject(String subject) {
@@ -160,12 +166,9 @@ public abstract class AbstractAccessController implements IAccessController {
         if (globalId == null) {
             return Optional.of(unknownId());
         }
-        try {
-            ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(globalId);
-            return Optional.of(AuthorizedResource.artifact(vmd.getGroupId(), vmd.getArtifactId()));
-        } catch (NotFoundException e) {
-            return Optional.of(unknownId());
-        }
+        return Optional.of(lookups().version(storage, globalId)
+                .map(vmd -> AuthorizedResource.artifact(vmd.getGroupId(), vmd.getArtifactId()))
+                .orElse(unknownId()));
     }
 
     /**
@@ -181,13 +184,13 @@ public abstract class AbstractAccessController implements IAccessController {
         if (contentId == null) {
             return Optional.of(unknownId());
         }
-        Set<AuthorizedResource> users = new LinkedHashSet<>();
-        try {
-            for (ArtifactVersionMetaDataDto vmd : storage.getArtifactVersionsByContentId(contentId)) {
-                users.add(AuthorizedResource.artifact(vmd.getGroupId(), vmd.getArtifactId()));
-            }
-        } catch (NotFoundException e) {
+        Optional<List<ArtifactVersionMetaDataDto>> versions = lookups().versionsUsingContent(storage, contentId);
+        if (versions.isEmpty()) {
             return Optional.of(unknownId());
+        }
+        Set<AuthorizedResource> users = new LinkedHashSet<>();
+        for (ArtifactVersionMetaDataDto vmd : versions.get()) {
+            users.add(AuthorizedResource.artifact(vmd.getGroupId(), vmd.getArtifactId()));
         }
         return Optional.of(AuthorizedResource.content(List.copyOf(users)));
     }
@@ -203,27 +206,17 @@ public abstract class AbstractAccessController implements IAccessController {
     }
 
     private boolean verifyGroupOwner(String groupId) {
-        try {
-            GroupMetaDataDto dto = storage.getGroupMetaData(groupId);
-            String owner = dto.getOwner();
-            return owner == null || owner.equals(securityIdentity.getPrincipal().getName());
-        } catch (NotFoundException nfe) {
-            // If the group is not found, then return true and let the operation proceed.
-            return true;
-        }
+        // If the group is not found, then return true and let the operation proceed.
+        return lookups().group(storage, groupId).map(GroupMetaDataDto::getOwner)
+                .map(owner -> owner.equals(securityIdentity.getPrincipal().getName())).orElse(true);
     }
 
     private boolean verifyArtifactOwner(String groupId, String artifactId) {
-        try {
-            ArtifactMetaDataDto dto = storage.getArtifactMetaData(groupId, artifactId);
-            String owner = dto.getOwner();
-            return owner == null || owner.equals(securityIdentity.getPrincipal().getName());
-        } catch (NotFoundException nfe) {
-            // If the artifact is not found, then return true and let the operation proceed
-            // as normal. The result of which will typically be a 404 response, but sometimes
-            // will be some other result (e.g. creating an artifact that doesn't exist)
-            return true;
-        }
+        // If the artifact is not found (or has no owner), then return true and let the operation
+        // proceed as normal. The result of which will typically be a 404 response, but sometimes
+        // will be some other result (e.g. creating an artifact that doesn't exist)
+        return lookups().artifact(storage, groupId, artifactId).map(ArtifactMetaDataDto::getOwner)
+                .map(owner -> owner.equals(securityIdentity.getPrincipal().getName())).orElse(true);
     }
 
     protected String getStringParam(InvocationContext context, int index) {

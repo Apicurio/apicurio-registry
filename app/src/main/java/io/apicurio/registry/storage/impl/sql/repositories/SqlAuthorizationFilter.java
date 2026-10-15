@@ -29,35 +29,52 @@ final class SqlAuthorizationFilter {
     private static final String STORED_DEFAULT_GROUP = normalizeGroupId(null);
     private static final String ESCAPE = " ESCAPE '" + SqlSearchRepository.LIKE_ESCAPE_CHAR + "'";
 
-    /** How to make a column comparison case-sensitive in a SQL dialect. */
-    private record Dialect(String columnPrefix, String columnSuffix, String paramPrefix, String paramSuffix) {
+    /**
+     * How to compare a column case-sensitively in a SQL dialect. MySQL and SQL Server compare the ID
+     * columns case-insensitively, so they need an explicit binary comparison, which cannot use an
+     * index. On those databases, {@code =} and {@code LIKE} also emit the plain comparison: a binary
+     * match is always a case-insensitive match too, so the result is unchanged, but the database can
+     * use the ID indexes to find the candidates. Each method appends the condition and binds its
+     * parameters.
+     */
+    private record Dialect(boolean caseInsensitiveColumns, String columnPrefix, String columnSuffix,
+            String paramPrefix, String paramSuffix) {
 
         static Dialect of(String dbType) {
             return switch (dbType == null ? "" : dbType) {
-                case "mysql" -> new Dialect("CAST(", " AS BINARY)", "CAST(", " AS BINARY)");
-                case "mssql" -> new Dialect("", " COLLATE Latin1_General_100_BIN2", "", "");
-                default -> new Dialect("", "", "", "");
+                case "mysql" -> new Dialect(true, "CAST(", " AS BINARY)", "CAST(", " AS BINARY)");
+                case "mssql" -> new Dialect(true, "", " COLLATE Latin1_General_100_BIN2", "", "");
+                default -> new Dialect(false, "", "", "", "");
             };
         }
 
-        String column(String column) {
-            return columnPrefix + column + columnSuffix;
+        private String binary(String column, String operator, String suffix) {
+            return columnPrefix + column + columnSuffix + operator + paramPrefix + "?" + paramSuffix + suffix;
         }
 
-        String param() {
-            return paramPrefix + "?" + paramSuffix;
+        void equals(StringBuilder sql, List<SqlStatementVariableBinder> binders, String column, String value) {
+            indexable(sql, binders, column + " = ?", binary(column, " = ", ""), value);
         }
 
-        String equals(String column) {
-            return column(column) + " = " + param();
+        void like(StringBuilder sql, List<SqlStatementVariableBinder> binders, String column, String pattern) {
+            indexable(sql, binders, column + " LIKE ?" + ESCAPE, binary(column, " LIKE ", ESCAPE), pattern);
         }
 
-        String notEquals(String column) {
-            return column(column) + " <> " + param();
+        /** Binary only: the case-insensitive {@code <>} would also exclude other spellings. */
+        void notEquals(StringBuilder sql, List<SqlStatementVariableBinder> binders, String column, String value) {
+            sql.append(binary(column, " <> ", ""));
+            bind(binders, value);
         }
 
-        String like(String column) {
-            return column(column) + " LIKE " + param() + ESCAPE;
+        private void indexable(StringBuilder sql, List<SqlStatementVariableBinder> binders, String plain,
+                String binary, String value) {
+            if (caseInsensitiveColumns) {
+                sql.append("(").append(plain).append(" AND ").append(binary).append(")");
+                bind(binders, value);
+            } else {
+                sql.append(binary);
+            }
+            bind(binders, value);
         }
     }
 
@@ -99,16 +116,15 @@ final class SqlAuthorizationFilter {
         appendCondition(where, binders, filter, dialect, ownerColumn, new NameMatcher() {
             @Override
             public void exact(String name, StringBuilder sql, List<SqlStatementVariableBinder> b) {
-                sql.append(dialect.equals(groupColumn));
-                bind(b, normalizeGroupId(name));
+                dialect.equals(sql, b, groupColumn, normalizeGroupId(name));
             }
 
             @Override
             public void prefix(String prefix, StringBuilder sql, List<SqlStatementVariableBinder> b) {
                 appendGroupPrefix(sql, b, dialect, prefix, groupColumn);
                 if (DEFAULT_GROUP.startsWith(prefix)) {
-                    sql.append(" OR ").append(dialect.equals(groupColumn));
-                    bind(b, STORED_DEFAULT_GROUP);
+                    sql.append(" OR ");
+                    dialect.equals(sql, b, groupColumn, STORED_DEFAULT_GROUP);
                 }
             }
         });
@@ -133,8 +149,8 @@ final class SqlAuthorizationFilter {
         appendAnyOf(where, binders, filter.denyExact(), filter.denyPrefix(), matcher);
         where.append("))");
         if (filter.owner() != null) {
-            where.append(" OR ").append(dialect.equals(ownerColumn));
-            bind(binders, filter.owner());
+            where.append(" OR ");
+            dialect.equals(where, binders, ownerColumn, filter.owner());
         }
     }
 
@@ -173,17 +189,15 @@ final class SqlAuthorizationFilter {
             if (clause.groupPrefix()) {
                 appendGroupPrefix(sql, binders, dialect, clause.group(), groupColumn);
             } else {
-                sql.append(dialect.equals(groupColumn));
-                bind(binders, normalizeGroupId(clause.group()));
+                dialect.equals(sql, binders, groupColumn, normalizeGroupId(clause.group()));
             }
             if (clause.artifact() != null) {
                 sql.append(" AND ");
                 if (clause.artifactPrefix()) {
-                    sql.append(dialect.like(artifactColumn));
-                    bind(binders, SqlSearchRepository.escapeLikePattern(clause.artifact()) + "%");
+                    dialect.like(sql, binders, artifactColumn,
+                            SqlSearchRepository.escapeLikePattern(clause.artifact()) + "%");
                 } else {
-                    sql.append(dialect.equals(artifactColumn));
-                    bind(binders, clause.artifact());
+                    dialect.equals(sql, binders, artifactColumn, clause.artifact());
                 }
             }
             sql.append(")");
@@ -194,10 +208,11 @@ final class SqlAuthorizationFilter {
     /** Stored group IDs starting with {@code prefix}, excluding the stored default group. */
     private static void appendGroupPrefix(StringBuilder sql, List<SqlStatementVariableBinder> binders,
             Dialect dialect, String prefix, String groupColumn) {
-        sql.append("(").append(dialect.like(groupColumn)).append(" AND ").append(dialect.notEquals(groupColumn))
-                .append(")");
-        bind(binders, SqlSearchRepository.escapeLikePattern(prefix) + "%");
-        bind(binders, STORED_DEFAULT_GROUP);
+        sql.append("(");
+        dialect.like(sql, binders, groupColumn, SqlSearchRepository.escapeLikePattern(prefix) + "%");
+        sql.append(" AND ");
+        dialect.notEquals(sql, binders, groupColumn, STORED_DEFAULT_GROUP);
+        sql.append(")");
     }
 
     private static void bind(List<SqlStatementVariableBinder> binders, String value) {

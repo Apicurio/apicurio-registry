@@ -329,16 +329,18 @@ Fetch more results than needed, filter by authorization, return the requested pa
 
 ## Known Limitations
 
-### 1. No authorization decision caching
+### 1. No authorization caching across requests
 
-Every request evaluates grants from scratch. The same user accessing the same artifact repeatedly recomputes the same result. GlobalId endpoints add a storage roundtrip (`getArtifactVersionMetaData`) before the grants check, and every artifact or group check adds one more to resolve the stored IDs (see "Grants are evaluated against stored IDs"). Resolving references checks each referenced artifact. High-traffic SerDes clients will feel this.
+Within a request, authorization reads each piece of metadata at most once (`AuthorizationLookups`, request-scoped): owner-only authorization, the owner bypass, the stored-ID check and global/content ID resolution share the lookups. Across requests nothing is cached, so every request reads the metadata it needs (one lookup for globalId endpoints, one per artifact or group checked) and evaluates grants again. Resolving references checks each referenced artifact. High-traffic SerDes clients will feel this.
 
-**Impact:** increased latency on globalId endpoints and on dereferencing. **Mitigation:** add per-user, per-resource cache invalidated on grants reload.
+**Impact:** increased latency on globalId endpoints and on dereferencing. **Mitigation:** a short-lived cache shared across requests, invalidated on grants reload and on ownership/existence changes ([#10600](https://github.com/Apicurio/apicurio-registry/issues/10600)).
 
-### 2. `permissions` field in search results not populated
+### 2. Search results do not report the caller's permissions
 
-The UI cannot show or hide edit/delete actions per artifact. **Mitigation:** batch-evaluate
-permissions for returned results in a follow-up.
+Search results contain only readable resources, but not whether the caller may also write or
+administer them; the API has no field for this. The UI cannot show or hide edit/delete actions per
+artifact. **Mitigation:** a new, batch-evaluated `permissions` field
+([#10599](https://github.com/Apicurio/apicurio-registry/issues/10599)).
 
 ### 3. Group and artifact grants are independent
 
@@ -346,13 +348,17 @@ Artifact access is decided by artifact grants only; group grants do not cascade 
 the group, and a group deny does not hide its artifacts. This keeps point access and search
 consistent, but operators usually need both kinds of grant (documented).
 
-### 4. Case-sensitive search cannot use the ID indexes on MySQL and SQL Server
+### 4. Case-sensitive search on MySQL and SQL Server, and Elasticsearch filter combinations
 
 Point access compares names case-sensitively, so search does too on every variant: MySQL compares
 the ID columns byte-wise (`CAST(... AS BINARY)`, the columns are `ascii_general_ci`) and SQL Server
-uses a binary collation. These comparisons cannot use the ID indexes, so grant-restricted searches
-are slower on those databases. Index-routed (Elasticsearch) searches that combine content or
-structure filters with content-hash filters are rejected with `400` rather than evaluated partially.
+uses a binary collation. A binary comparison cannot use the ID indexes, so each `=` and `LIKE` is
+paired with the plain, index-usable comparison (a binary match is always a case-insensitive match,
+so results are unchanged). On MySQL 8.4 this turns a full scan of the primary key into a range scan
+(50k artifacts: estimated cost 9933 to 17 for a group plus artifact prefix grant). The `<>`
+comparison excluding the default group stays binary only. Remaining limitation: index-routed
+(Elasticsearch) searches that combine content or structure filters with content-hash filters are
+rejected with `400` rather than evaluated partially.
 
 ### 5. Scale ceiling at 500+ grants
 
@@ -364,7 +370,7 @@ With hundreds of grants per user, the search `WHERE` clause becomes large (one `
 
 The JSON format is our own. Cross-system adoption depends on other projects agreeing to use it. The Kroxylicious `Authorizer` interface is pluggable for point-access checks — alternative implementations can be provided — but search pre-filtering currently depends on `GrantsData`, and the grants file format itself is not interchangeable with OPA/Rego, OpenFGA, or Kafka ACLs.
 
-**Impact:** organizational adoption challenge. **Mitigation:** format is intentionally simple (7 fields per grant), readable without tooling, and a JSON Schema can provide validation.
+**Impact:** organizational adoption challenge. **Mitigation:** format is intentionally simple (7 fields per grant), readable without tooling, and a JSON Schema can provide validation ([#10602](https://github.com/Apicurio/apicurio-registry/issues/10602)).
 
 ### 7. RBAC constrains grants
 
@@ -377,7 +383,16 @@ Grants restrict within what RBAC allows — they cannot override RBAC. A `sr-rea
 The Kroxylicious `Authorizer` answers point-access questions only. Search pre-filtering uses
 `GrantsData`, so replacing the grants implementation with another `Authorizer` requires an equivalent
 resource-scope provider. We expect to standardize this upstream as an optional interface returning
-the shape of `SearchFilterData`.
+the shape of `SearchFilterData`
+([#10601](https://github.com/Apicurio/apicurio-registry/issues/10601)).
+
+### 9. Rejected requests can leave extracted schemas behind
+
+Requests rejected by authorization leave no writes behind: references and generated targets are
+authorized before any write hook runs. But embedded schema extraction registers the schemas before
+the parent's rules run, so a request rejected by a rule (or another hook) can leave schema versions
+behind. This predates per-resource authorization
+([#10603](https://github.com/Apicurio/apicurio-registry/issues/10603)).
 
 ## Consequences
 
@@ -408,6 +423,7 @@ the shape of `SearchFilterData`.
 - **Contract:** Kroxylicious Authorizer API (`io.kroxylicious:kroxylicious-authorizer-api` 0.25.0)
 - **Grants implementation:** `authz/` — `GrantsAuthorizer`, `GrantsData`, `Grant`, `SearchFilterData`, `User`, `RolePrincipal`
 - **Registry integration:** `app/.../auth/` — `AbstractAccessController.resolveResource`, `ResourceAccessGuard`,
+  `AuthorizationLookups` (request-scoped metadata lookups),
   `ISearchAuthorizer`; `app/.../auth/grants/` — `GrantsAccessController`, `GrantsSearchFilter`, configuration
 - **Storage:** `AuthorizationFilter` search filter, translated by `SqlAuthorizationFilter` and `ElasticsearchSearchService`
 - **Tests:** `GrantsAuthorizerTest` (evaluation, search/point-access invariant, loading, reload),

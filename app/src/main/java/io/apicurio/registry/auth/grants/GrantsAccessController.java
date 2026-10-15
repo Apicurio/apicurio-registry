@@ -16,10 +16,8 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.storage.RegistryStorage;
-import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.AuthorizationNames;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
-import io.apicurio.registry.storage.error.NotFoundException;
 import io.kroxylicious.authorizer.service.Action;
 import io.kroxylicious.authorizer.service.AuthorizeResult;
 import io.kroxylicious.authorizer.service.Decision;
@@ -136,17 +134,10 @@ public class GrantsAccessController extends AbstractAccessController {
             return resource;
         }
         return switch (resource.kind()) {
-            case ARTIFACT -> {
-                try {
-                    ArtifactMetaDataDto stored = storage.getArtifactMetaData(resource.groupId(),
-                            resource.artifactId());
-                    yield stored == null ? resource
-                            : AuthorizedResource.artifact(stored.getGroupId(), stored.getArtifactId());
-                } catch (NotFoundException e) {
-                    yield AuthorizedResource.artifact(canonicalGroupId(resource.groupId()),
-                            resource.artifactId());
-                }
-            }
+            case ARTIFACT -> lookups().artifact(storage, resource.groupId(), resource.artifactId())
+                    .map(stored -> AuthorizedResource.artifact(stored.getGroupId(), stored.getArtifactId()))
+                    .orElseGet(() -> AuthorizedResource.artifact(canonicalGroupId(resource.groupId()),
+                            resource.artifactId()));
             case GROUP -> AuthorizedResource.group(canonicalGroupId(resource.groupId()));
             case CONTENT -> resource;
         };
@@ -156,12 +147,7 @@ public class GrantsAccessController extends AbstractAccessController {
         if (AuthorizationNames.DEFAULT_GROUP.equals(AuthorizationNames.group(groupId))) {
             return groupId;
         }
-        try {
-            GroupMetaDataDto stored = storage.getGroupMetaData(groupId);
-            return stored == null || stored.getGroupId() == null ? groupId : stored.getGroupId();
-        } catch (NotFoundException e) {
-            return groupId;
-        }
+        return lookups().group(storage, groupId).map(GroupMetaDataDto::getGroupId).orElse(groupId);
     }
 
     /**

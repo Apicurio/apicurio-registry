@@ -118,17 +118,17 @@ export const parseObjectInput = (text: string): { value: any; parseError: boolea
 };
 
 /**
- * Whether the test panel state should be re-initialized. True when the viewed version
- * changed, or when the artifact content transitioned from absent to present (async
- * load after mount). Deliberately NOT true for a mere reference change of already
- * present content, so a parent that fails to memoize props cannot wipe user input.
+ * Value-based key for the template content shown in the test panel. The panel re-initializes
+ * whenever this key (or the version identity) changes, which covers both an async load after
+ * mount and a version switch where the new content arrives after the new version identity.
+ * Because it compares by value, a parent that rebuilds equal template/variables objects on
+ * every render cannot wipe in-progress user input.
  */
-export const shouldResetPanelState = (
-    versionChanged: boolean,
-    contentPresent: boolean,
-    contentWasPresent: boolean
-): boolean => {
-    return versionChanged || (contentPresent && !contentWasPresent);
+export const buildContentKey = (
+    template: string | undefined,
+    variables: Record<string, VariableSchema> | VariableSchema[] | undefined
+): string => {
+    return JSON.stringify([template ?? null, variables ?? null]);
 };
 
 export const coerceEnumValue = (val: string, type: string): any => {

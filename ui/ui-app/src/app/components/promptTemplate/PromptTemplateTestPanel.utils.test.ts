@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+    buildContentKey,
     buildInitialPanelState,
     buildInitialRawTexts,
     buildInitialValues,
@@ -8,8 +9,7 @@ import {
     initialObjectText,
     parseObjectInput,
     renderErrorMessage,
-    shouldAcceptRenderResponse,
-    shouldResetPanelState
+    shouldAcceptRenderResponse
 } from "./PromptTemplateTestPanel.utils";
 
 describe("coerceEnumValue", () => {
@@ -213,22 +213,26 @@ describe("parseObjectInput", () => {
     });
 });
 
-describe("shouldResetPanelState", () => {
-    it("resets when the version identity changes", () => {
-        expect(shouldResetPanelState(true, true, true)).toBe(true);
-        expect(shouldResetPanelState(true, false, false)).toBe(true);
+describe("buildContentKey", () => {
+    it("is equal for structurally equal content held in different object references", () => {
+        const a = buildContentKey("{{cfg}}", { cfg: { type: "object", default: { a: 1 } } });
+        const b = buildContentKey("{{cfg}}", { cfg: { type: "object", default: { a: 1 } } });
+        expect(a).toBe(b);
     });
 
-    it("resets when content transitions from absent to present", () => {
-        expect(shouldResetPanelState(false, true, false)).toBe(true);
+    it("changes when the template text changes", () => {
+        expect(buildContentKey("{{a}}", undefined)).not.toBe(buildContentKey("{{b}}", undefined));
     });
 
-    it("does not reset on a reference change of already-present content", () => {
-        expect(shouldResetPanelState(false, true, true)).toBe(false);
+    it("changes when a variable default changes", () => {
+        const before = buildContentKey("{{cfg}}", { cfg: { type: "object", default: { a: 1 } } });
+        const after = buildContentKey("{{cfg}}", { cfg: { type: "object", default: { a: 2 } } });
+        expect(before).not.toBe(after);
     });
 
-    it("does not reset while content is still absent", () => {
-        expect(shouldResetPanelState(false, false, false)).toBe(false);
+    it("changes when content arrives after being absent", () => {
+        expect(buildContentKey(undefined, undefined)).toBe("[null,null]");
+        expect(buildContentKey("{{a}}", undefined)).toBe("[\"{{a}}\",null]");
     });
 });
 

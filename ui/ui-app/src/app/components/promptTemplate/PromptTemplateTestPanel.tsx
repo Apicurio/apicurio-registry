@@ -71,7 +71,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
         isLoading,
         error,
         setValue,
-        setRawText,
+        setObjectText,
         doRender
     } = usePromptTemplateTestPanelState({
         groupId: props.groupId,
@@ -145,10 +145,7 @@ export const PromptTemplateTestPanel: FunctionComponent<PromptTemplateTestPanelP
                     <>
                         <TextArea
                             value={rawText}
-                            onChange={(_event, val) => {
-                                setRawText(name, val);
-                                setValue(name, parseObjectInput(val).value);
-                            }}
+                            onChange={(_event, val) => setObjectText(name, val)}
                             aria-label={name}
                             rows={3}
                             validated={parseError ? "warning" : "default"}

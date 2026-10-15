@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from "react";
 import { GroupsService } from "@services/useGroupsService.ts";
 import { RenderPromptResponse, RenderPromptValidationError } from "@models/RenderPromptResponse.ts";
 import {
+    buildContentKey,
     buildInitialPanelState,
     buildVersionIdentity,
+    parseObjectInput,
     renderErrorMessage,
     shouldAcceptRenderResponse,
-    shouldResetPanelState
+    TestPanelInitialState
 } from "./PromptTemplateTestPanel.utils";
 import { VariableSchema } from "./promptTemplateVariables";
 
@@ -30,13 +32,15 @@ export type PromptTemplateTestPanelState = {
     isLoading: boolean;
     error: string;
     setValue: (name: string, value: any) => void;
-    setRawText: (name: string, text: string) => void;
+    /** Store the raw text of an object/array field and its parsed value in one update. */
+    setObjectText: (name: string, text: string) => void;
     doRender: () => void;
 };
 
 /**
- * Owns Test Prompt panel state, including version-identity resets and stale Render guards.
- * Reset/race contracts are unit-tested via helpers in PromptTemplateTestPanel.utils.
+ * Owns Test Prompt panel state, including version/content resets and stale Render guards.
+ * Pure helpers are tested in PromptTemplateTestPanel.utils.test.ts; the hook's reset and
+ * race behavior is tested in usePromptTemplateTestPanelState.test.tsx.
  */
 export const usePromptTemplateTestPanelState = (
     args: UsePromptTemplateTestPanelStateArgs
@@ -47,50 +51,55 @@ export const usePromptTemplateTestPanelState = (
     const versionIdentityRef = useRef(versionIdentity);
     const renderRequestIdRef = useRef(0);
 
-    // Whether artifact content had arrived as of the latest reset. Lets the reset effect
-    // distinguish "content just loaded" from "same content, new object reference".
-    const contentWasPresentRef = useRef(args.template !== undefined || args.variables !== undefined);
+    // Latest template/variables, read by the reset effect without depending on object identity.
+    const templateRef = useRef(args.template);
+    templateRef.current = args.template;
+    const variablesRef = useRef(args.variables);
+    variablesRef.current = args.variables;
 
-    const [values, setValues] = useState<Record<string, any>>(
-        () => buildInitialPanelState(args.template, args.variables).values
-    );
-    const [rawTexts, setRawTexts] = useState<Record<string, string>>(
-        () => buildInitialPanelState(args.template, args.variables).rawTexts
+    // Re-initialize when the version identity or the content (by value) changes. Comparing
+    // content by value means an unmemoized parent cannot wipe in-progress input, while content
+    // that arrives after mount, or after a version switch, still resets the form.
+    const resetKey = `${versionIdentity}|${buildContentKey(args.template, args.variables)}`;
+    const resetKeyRef = useRef(resetKey);
+
+    // values and rawTexts live in one state object so they are built in a single pass and
+    // can never drift apart.
+    const [panelState, setPanelState] = useState<TestPanelInitialState>(
+        () => buildInitialPanelState(args.template, args.variables)
     );
     const [renderedOutput, setRenderedOutput] = useState<string>("");
     const [validationErrors, setValidationErrors] = useState<RenderPromptValidationError[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string>("");
 
-    // Reset form values and render results when the viewed version identity changes, or
-    // when the artifact content transitions from absent to present (async load after
-    // mount). Guarded by shouldResetPanelState rather than raw reference equality, so a
-    // caller that fails to memoize template/variables cannot wipe in-progress user input
-    // on an incidental re-render.
     useEffect(() => {
-        const contentPresent = args.template !== undefined || args.variables !== undefined;
-        const versionChanged = versionIdentityRef.current !== versionIdentity;
-        if (!shouldResetPanelState(versionChanged, contentPresent, contentWasPresentRef.current)) {
+        if (resetKeyRef.current === resetKey) {
             return;
         }
-        contentWasPresentRef.current = contentPresent;
+        resetKeyRef.current = resetKey;
         versionIdentityRef.current = versionIdentity;
         renderRequestIdRef.current += 1;
-        const initial = buildInitialPanelState(args.template, args.variables);
-        setValues(initial.values);
-        setRawTexts(initial.rawTexts);
+        setPanelState(buildInitialPanelState(templateRef.current, variablesRef.current));
         setRenderedOutput("");
         setValidationErrors([]);
         setError("");
         setIsLoading(false);
-    }, [versionIdentity, args.template, args.variables]);
+    }, [resetKey]);
+
+    const values = panelState.values;
+    const rawTexts = panelState.rawTexts;
 
     const setValue = (name: string, value: any): void => {
-        setValues(prev => ({ ...prev, [name]: value }));
+        setPanelState(prev => ({ ...prev, values: { ...prev.values, [name]: value } }));
     };
 
-    const setRawText = (name: string, text: string): void => {
-        setRawTexts(prev => ({ ...prev, [name]: text }));
+    const setObjectText = (name: string, text: string): void => {
+        const parsed = parseObjectInput(text).value;
+        setPanelState(prev => ({
+            values: { ...prev.values, [name]: parsed },
+            rawTexts: { ...prev.rawTexts, [name]: text }
+        }));
     };
 
     const doRender = (): void => {
@@ -153,7 +162,7 @@ export const usePromptTemplateTestPanelState = (
         isLoading,
         error,
         setValue,
-        setRawText,
+        setObjectText,
         doRender
     };
 };

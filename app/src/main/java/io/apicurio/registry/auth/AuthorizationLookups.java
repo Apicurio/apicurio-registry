@@ -74,13 +74,11 @@ public class AuthorizationLookups {
             return loader.get();
         }
         Map<K, Optional<V>> map = cache.apply(perRequest);
-        Optional<V> cached = map.get(key);
-        if (cached == null) {
-            // Not computeIfAbsent: the loader may itself run authorization lookups
-            cached = loader.get();
-            map.putIfAbsent(key, cached);
+        if (!map.containsKey(key)) {
+            // Not computeIfAbsent: the storage read must not run while holding a map lock
+            map.putIfAbsent(key, loader.get());
         }
-        return cached;
+        return map.get(key);
     }
 
     private static <V> Optional<V> find(Supplier<V> lookup) {

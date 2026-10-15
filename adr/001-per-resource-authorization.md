@@ -116,7 +116,8 @@ Key interactions:
   evaluating grants; otherwise a case-only change of the ID would address the same resource under a
   name no deny rule matches.
 - **RBAC runs before grants.** Grants restrict within what RBAC allows.
-- **Grants files are validated strictly.** Any invalid grant (both or neither principal field, unknown
+- **Grants files are validated strictly.** `config.admin_roles` must be an array of non-empty
+  strings (a number or boolean must not become a role name). Any invalid grant (both or neither principal field, unknown
   operation or pattern type, non-boolean `deny`) rejects the whole file, since skipping an invalid
   deny rule would fail open.
 - **Deny rules take precedence.** A deny on an operation also denies every operation that implies it:

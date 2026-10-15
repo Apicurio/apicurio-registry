@@ -47,6 +47,29 @@ public class GrantsData {
         return new IllegalArgumentException("Grant at index " + index + " " + problem);
     }
 
+    /**
+     * Admin roles get access to everything, so they are validated as strictly as grants: a value
+     * such as {@code 1} or {@code true} must not become a role name that some principal may hold.
+     */
+    private static Set<String> parseAdminRoles(JsonNode node) {
+        Set<String> adminRoles = new HashSet<>();
+        if (node.isMissingNode() || node.isNull()) {
+            return adminRoles;
+        }
+        if (!node.isArray()) {
+            throw new IllegalArgumentException("'config.admin_roles' must be an array of role names");
+        }
+        for (int i = 0; i < node.size(); i++) {
+            JsonNode role = node.get(i);
+            if (!role.isTextual() || role.asText().isBlank()) {
+                throw new IllegalArgumentException(
+                        "'config.admin_roles' entry at index " + i + " must be a non-empty string");
+            }
+            adminRoles.add(role.asText());
+        }
+        return adminRoles;
+    }
+
     /** @return grants data with no grants and no admin roles (denies everything) */
     public static GrantsData empty() {
         return new GrantsData(Set.of(), List.of());
@@ -86,13 +109,7 @@ public class GrantsData {
         if (!root.path("grants").isArray()) {
             throw new IllegalArgumentException("Grants data must contain a 'grants' array");
         }
-        Set<String> adminRoles = new HashSet<>();
-        JsonNode adminRolesNode = root.path("config").path("admin_roles");
-        if (adminRolesNode.isArray()) {
-            for (JsonNode r : adminRolesNode) {
-                adminRoles.add(r.asText());
-            }
-        }
+        Set<String> adminRoles = parseAdminRoles(root.path("config").path("admin_roles"));
 
         List<Grant> grants = new ArrayList<>();
         JsonNode grantsNode = root.path("grants");

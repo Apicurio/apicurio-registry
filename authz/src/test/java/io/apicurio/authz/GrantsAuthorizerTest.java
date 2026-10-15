@@ -367,6 +367,28 @@ class GrantsAuthorizerTest {
         }
     }
 
+    @Test
+    void invalidAdminRolesRejectTheWholeDocument() {
+        String grant = "{\"principal\": \"u\", \"operation\": \"read\", \"resource_type\": \"artifact\", "
+                + "\"resource_pattern\": \"x/\"}";
+        for (String adminRoles : List.of("[\"sr-admin\", 1]", "[true]", "[\"sr-admin\", null]", "[\" \"]",
+                "[[\"sr-admin\"]]", "\"sr-admin\"", "{\"role\": \"sr-admin\"}")) {
+            String json = "{\"config\": {\"admin_roles\": " + adminRoles + "}, \"grants\": [" + grant + "]}";
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class,
+                    () -> GrantsData.parseStrict(json), adminRoles);
+            assertTrue(e.getMessage().startsWith("'config.admin_roles' "), e.getMessage());
+        }
+
+        // Valid, missing and null admin_roles are accepted; a number never becomes a role name
+        GrantsData data = GrantsData.parseStrict(
+                "{\"config\": {\"admin_roles\": [\"sr-admin\"]}, \"grants\": [" + grant + "]}");
+        assertTrue(data.isAdmin(Set.of("sr-admin")));
+        assertFalse(data.isAdmin(Set.of("1")));
+        assertFalse(GrantsData.parseStrict("{\"grants\": [" + grant + "]}").isAdmin(Set.of("sr-admin")));
+        assertFalse(GrantsData.parseStrict("{\"config\": {\"admin_roles\": null}, \"grants\": []}")
+                .isAdmin(Set.of("null")));
+    }
+
     /**
      * The core search invariant: for every subject, the search patterns select exactly the
      * resources point access allows, including names whose group contains '/', the default group

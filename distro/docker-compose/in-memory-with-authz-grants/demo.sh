@@ -32,9 +32,21 @@ search_ids() {
     | jq -r '[.artifacts[] | "\(.groupId)/\(.artifactId)"] | sort | join(" ")'
 }
 
+# wait_for <name> <url>: polls every 2s, gives up after WAIT_TIMEOUT seconds (default 180)
+wait_for() {
+  local deadline=$((SECONDS + ${WAIT_TIMEOUT:-180}))
+  until curl -sf "$2" > /dev/null; do
+    if [ "$SECONDS" -ge "$deadline" ]; then
+      echo "Timed out waiting for $1 at $2 (is 'docker compose up' running?)" >&2
+      exit 1
+    fi
+    sleep 2
+  done
+}
+
 echo "Waiting for Keycloak and Registry..."
-until curl -sf "$KEYCLOAK/realms/registry" > /dev/null; do sleep 2; done
-until curl -sf "$API/registry/v3/system/info" > /dev/null; do sleep 2; done
+wait_for Keycloak "$KEYCLOAK/realms/registry"
+wait_for Registry "$API/registry/v3/system/info"
 
 ADMIN=$(token admin)
 DEV=$(token developer)

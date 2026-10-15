@@ -106,7 +106,7 @@ The grants file is a JSON object with an optional `config` section and a require
 }
 ----
 
-`config.admin_roles` lists roles whose users have full access to all resources; no grants are evaluated for them. RBAC administrators (the `sr-admin` role, or the role configured as the RBAC admin role) always bypass grants, so `admin_roles` is only needed for additional roles.
+`config.admin_roles` lists roles whose users have full access to all resources; no grants are evaluated for them. RBAC administrators (the `sr-admin` role, or the role configured as the RBAC admin role) always bypass grants, so `admin_roles` is only needed for additional roles. It must be an array of non-empty strings; any other value rejects the file, like an invalid grant.
 
 === Grant fields
 

@@ -110,7 +110,10 @@ Key interactions:
   content with references require `read` on every referenced artifact, transitively; the request
   fails with 403 rather than leaving a reference unresolved, so the response never depends silently
   on the caller. Write hooks that generate artifacts (embedded schemas, OpenAPI agent cards) require
-  `write` on every generated artifact, checked before anything is written.
+  `write` on every generated artifact, plus `write` on the group when it does not exist yet, and
+  embedded schemas also get owner-only authorization (`ResourceAccessGuard.requireGeneratedArtifactWrite`).
+  Submitted references are authorized, for drafts too, before any hook runs, so a request rejected by authorization
+  leaves no hook writes behind.
 - **Grants are evaluated against stored IDs.** MySQL and SQL Server match IDs case-insensitively, so
   `GrantsAccessController` resolves an existing group or artifact to its stored spelling before
   evaluating grants; otherwise a case-only change of the ID would address the same resource under a

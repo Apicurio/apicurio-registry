@@ -3,8 +3,6 @@ package io.apicurio.registry.agents.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.apicurio.registry.auth.AuthorizedLevel;
-import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
@@ -57,12 +55,12 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
     public ContentWrapperDto prepareContent(VersionWriteContext context, TypedContent content) {
         String contentType = content.getContentType();
         // The extracted schemas are written as separate artifacts (created, or given a new version).
-        // Check them all before writing any, so a forbidden target fails the request without side
-        // effects instead of being written on behalf of a caller who may not write it directly.
+        // Check them all before writing any, with every check a direct write would get (owner-only
+        // authorization and grants, and group write for a new one), so a forbidden target fails the
+        // request without side effects instead of being written for a caller who may not write it.
         for (String target : embeddedSchemaArtifactIds(context.getArtifactType(),
                 context.getGa().getRawArtifactId(), content)) {
-            accessGuard.requireGrantsAccess(AuthorizedLevel.Write,
-                    AuthorizedResource.artifact(context.getGa().getRawGroupIdWithNull(), target));
+            accessGuard.requireGeneratedArtifactWrite(context.getGa().getRawGroupIdWithNull(), target, true);
         }
         if (ArtifactType.MODEL_SCHEMA.equals(context.getArtifactType())) {
             return extractModelSchemaEmbeddedSchemas(context.getStorage(), context.getGa().getRawGroupIdWithNull(),

@@ -97,6 +97,33 @@ public class ResourceAccessGuard {
     }
 
     /**
+     * Authorizes a write hook writing an artifact other than the one addressed by the request (e.g.
+     * an extracted schema), before anything is written. The target gets the same checks as a direct
+     * write: a new version of an existing artifact needs write access to that artifact, and creating
+     * it also needs write access to its group, as with any artifact creation.
+     *
+     * @param ownerOnly whether owner-only authorization applies too; false only for hooks that
+     *        themselves skip targets owned by someone else instead of writing them
+     * @throws ForbiddenException if the target, or for a new target its group, may not be written
+     */
+    public void requireGeneratedArtifactWrite(String groupId, String artifactId, boolean ownerOnly) {
+        AuthorizedResource artifact = AuthorizedResource.artifact(groupId, artifactId);
+        AuthorizedResource group = AuthorizedResource.group(groupId);
+        boolean exists = storage.isArtifactExists(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+        if (ownerOnly) {
+            requireAccess(AuthorizedLevel.Write, artifact);
+            if (!exists) {
+                requireAccess(AuthorizedLevel.Write, group);
+            }
+        } else {
+            requireGrantsAccess(AuthorizedLevel.Write, artifact);
+            if (!exists) {
+                requireGrantsAccess(AuthorizedLevel.Write, group);
+            }
+        }
+    }
+
+    /**
      * For endpoints that report on the whole registry (e.g. GitOps status) and cannot be filtered
      * per resource: when per-resource authorization applies, only callers who bypass it (admins)
      * may use them.

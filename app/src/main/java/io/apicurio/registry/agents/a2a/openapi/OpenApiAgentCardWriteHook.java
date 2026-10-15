@@ -1,7 +1,5 @@
 package io.apicurio.registry.agents.a2a.openapi;
 
-import io.apicurio.registry.auth.AuthorizedLevel;
-import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.extensions.ArtifactVersionWriteHook;
@@ -34,10 +32,10 @@ public class OpenApiAgentCardWriteHook implements ArtifactVersionWriteHook {
             return null;
         }
         // The companion is written after the OpenAPI version is published; check it now, so a
-        // forbidden companion fails the request before anything is persisted
-        accessGuard.requireGrantsAccess(AuthorizedLevel.Write,
-                AuthorizedResource.artifact(context.getGa().getRawGroupIdWithNull(),
-                        OpenApiAgentCardService.companionId(context.getGa().getRawArtifactId())));
+        // forbidden companion fails the request before anything is persisted. Owner-only
+        // authorization is left to the service, which skips a companion owned by someone else.
+        accessGuard.requireGeneratedArtifactWrite(context.getGa().getRawGroupIdWithNull(),
+                OpenApiAgentCardService.companionId(context.getGa().getRawArtifactId()), false);
         return () -> openApiAgentCardService.createOrSyncCompanion(context.getStorage(),
                 context.getGa().getRawGroupIdWithNull(), context.getGa().getRawArtifactId(), cardJson,
                 context.getOwner());

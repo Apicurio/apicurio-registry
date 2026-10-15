@@ -388,4 +388,33 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
     private static String serverJson(String name, String version) {
         return "{\"name\":\"" + name + "\",\"version\":\"" + version + "\",\"description\":\"Grants test\"}";
     }
+
+    // ==================== Artifacts written by write hooks ====================
+
+    @Test
+    public void extractedSchemasAreSubjectToOwnerOnlyAuthorization() {
+        String model = "owner-model-" + UUID.randomUUID().toString().substring(0, 8);
+        String schema = model + "-input-schema";
+        String path = "/registry/v3/groups/" + TEAM_A + "/artifacts";
+        // alice owns the schema artifact the model's embedded input schema would be written to
+        as("alice").contentType(CT_JSON).body(Map.of("artifactId", schema, "artifactType", "JSON", "firstVersion",
+                Map.of("content", Map.of("content", "{\"type\":\"string\",\"description\":\"ADMIN\"}",
+                        "contentType", CT_JSON))))
+                .post(path).then().statusCode(200);
+        as("bob1").contentType(CT_JSON).body(Map.of("artifactId", model, "artifactType", "MODEL_SCHEMA",
+                "firstVersion", Map.of("content", Map.of("content", "{\"name\":\"M\"}", "contentType", CT_JSON))))
+                .post(path).then().statusCode(200);
+
+        String withInput = "{\"name\":\"M\",\"input\":{\"type\":\"object\","
+                + "\"properties\":{\"p\":{\"type\":\"integer\",\"description\":\"OWNER-BYPASS\"}}}}";
+        as("bob1").contentType(CT_JSON).body(Map.of("content", Map.of("content", withInput, "contentType", CT_JSON)))
+                .post(path + "/" + schema + "/versions").then().statusCode(403);
+        as("bob1").contentType(CT_JSON).body(Map.of("content", Map.of("content", withInput, "contentType", CT_JSON)))
+                .post(path + "/" + model + "/versions").then().statusCode(403);
+
+        as("alice").get(path + "/" + schema + "/versions").then().statusCode(200).body("count", equalTo(1));
+        as("alice").get(path + "/" + schema + "/versions/branch=latest/content").then().statusCode(200)
+                .body("description", equalTo("ADMIN"));
+        as("alice").get(path + "/" + model + "/versions").then().statusCode(200).body("count", equalTo(1));
+    }
 }

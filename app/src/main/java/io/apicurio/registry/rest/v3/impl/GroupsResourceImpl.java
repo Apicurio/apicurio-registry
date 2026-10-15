@@ -1538,7 +1538,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             String effectiveContentType = contentType;
             List<ArtifactReferenceDto> autoReferences = new ArrayList<>();
             if (content != null) {
-                ContentWrapperDto prepared = prepareContent(writeContext, content, contentType);
+                ContentWrapperDto prepared = prepareContent(writeContext, content, contentType,
+                        toReferenceDtos(references));
                 if (prepared != null) {
                     effectiveContent = prepared.getContent();
                     effectiveContentType = prepared.getContentType();
@@ -1691,7 +1692,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ContentHandle effectiveContent = content;
         String effectiveContentType = ct;
         List<ArtifactReferenceDto> autoReferences = new ArrayList<>();
-        ContentWrapperDto prepared = prepareContent(writeContext, content, ct);
+        ContentWrapperDto prepared = prepareContent(writeContext, content, ct,
+                toReferenceDtos(data.getContent().getReferences()));
         if (prepared != null) {
             effectiveContent = prepared.getContent();
             effectiveContentType = prepared.getContentType();
@@ -1993,7 +1995,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         VersionWriteContext writeContext = new VersionWriteContext(VersionWriteContext.Operation.CREATE_VERSION,
                 storage, new GA(groupId, artifactId), lookupArtifactType(groupId, artifactId),
                 securityIdentity.getPrincipal().getName());
-        ContentWrapperDto prepared = prepareContent(writeContext, content, contentType);
+        ContentWrapperDto prepared = prepareContent(writeContext, content, contentType, references);
         if (prepared != null) {
             content = prepared.getContent();
             contentType = prepared.getContentType();
@@ -2089,13 +2091,28 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
+     * Requires read access to every submitted reference, transitively, as registering content that
+     * references an artifact does; the content is loaded only to follow nested references.
+     */
+    private void authorizeReferences(List<ArtifactReferenceDto> references) {
+        if (references != null && !references.isEmpty() && accessGuard.isEnforced(AuthorizedLevel.Read)) {
+            RegistryContentUtils.recursivelyResolveReferences(references, accessGuard.referenceLoader());
+        }
+    }
+
+    /**
      * Runs the {@link ArtifactVersionWriteHook#prepareContent} stage of every write hook, feeding each
      * hook the output of the previous one.
+     *
+     * <p>Hooks may write other artifacts (e.g. extracted schemas), so the submitted references are
+     * authorized first: a request that will be rejected for referencing an unreadable artifact must
+     * not leave hook writes behind. This applies to drafts too, although they skip the rules.</p>
      *
      * @return the combined rewrite, or {@code null} if no hook changed the content
      */
     private ContentWrapperDto prepareContent(VersionWriteContext context, ContentHandle content,
-            String contentType) {
+            String contentType, List<ArtifactReferenceDto> submittedReferences) {
+        authorizeReferences(submittedReferences);
         ContentWrapperDto result = null;
         for (ArtifactVersionWriteHook hook : writeHooks) {
             ContentHandle currentContent = result != null ? result.getContent() : content;

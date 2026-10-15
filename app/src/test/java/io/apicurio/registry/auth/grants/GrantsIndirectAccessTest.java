@@ -45,6 +45,7 @@ public class GrantsIndirectAccessTest extends AbstractResourceTestBase {
     private static final String LOCKED_GROUP = "lockedgrp";
     private static final String LOCKED_MCP_NAMESPACE = "io.github.lockedgrp";
     private static final String OPEN_MCP_NAMESPACE = "io.github.opengrp";
+    private static final String GENERATED_LOCKED_GROUP = "lockedgen";
 
     private static final String GRANTS_JSON = """
             {"config": {"admin_roles": ["sr-admin"]}, "grants": [
@@ -80,8 +81,13 @@ public class GrantsIndirectAccessTest extends AbstractResourceTestBase {
               {"principal": "bob", "operation": "write", "resource_type": "artifact",
                "resource_pattern_type": "prefix", "resource_pattern": "%5$s/"},
               {"principal": "bob", "operation": "read", "resource_type": "artifact",
-               "resource_pattern_type": "exact", "resource_pattern": "default/ccompat-open-target"}
-            ]}""".formatted(GROUP, ICEBERG_SOURCE, LOCKED_GROUP, LOCKED_MCP_NAMESPACE, OPEN_MCP_NAMESPACE);
+               "resource_pattern_type": "exact", "resource_pattern": "default/ccompat-open-target"},
+              {"principal": "bob", "operation": "write", "resource_type": "artifact",
+               "resource_pattern_type": "prefix", "resource_pattern": "%6$s/"},
+              {"principal": "bob", "operation": "write", "resource_type": "group",
+               "resource_pattern_type": "exact", "resource_pattern": "%6$s", "deny": true}
+            ]}""".formatted(GROUP, ICEBERG_SOURCE, LOCKED_GROUP, LOCKED_MCP_NAMESPACE, OPEN_MCP_NAMESPACE,
+                    GENERATED_LOCKED_GROUP);
 
     static final Path GRANTS = createGrantsFile();
 
@@ -118,6 +124,7 @@ public class GrantsIndirectAccessTest extends AbstractResourceTestBase {
             map.put("apicurio.a2a.openapi-integration.enabled", "true");
             map.put("apicurio.iceberg.enabled", "true");
             map.put("apicurio.mcp-registry.enabled", "true");
+            map.put("apicurio.rest.mutability.artifact-version-content.enabled", "true");
             return map;
         }
     }
@@ -324,6 +331,81 @@ public class GrantsIndirectAccessTest extends AbstractResourceTestBase {
         create(bob(), "free-api", "OPENAPI", OPENAPI, List.of(), 200);
         alice().get(path(GROUP, "free-api-agent-card")).then().statusCode(200)
                 .body("artifactType", equalTo("AGENT_CARD"));
+    }
+
+    private static final String PLAIN_OPENAPI = """
+            {"openapi":"3.0.0","info":{"title":"Api","description":"Grants","version":"1.0.0"},
+            "servers":[{"url":"https://example.com"}],"paths":{}}""";
+
+    private static void addVersion(RequestSpecification as, String group, String artifactId, String content,
+            List<Map<String, Object>> references, boolean draft, int expectedStatus) {
+        as.contentType(CT_JSON).body(Map.of("isDraft", draft, "content", Map.of("content", content,
+                        "contentType", CT_JSON, "references", references)))
+                .post(path(group, artifactId) + "/versions").then().statusCode(expectedStatus);
+    }
+
+    private static void createIn(String group, String artifactId, String type, String content) {
+        alice().contentType(CT_JSON).body(createBody(artifactId, type, content, List.of()))
+                .post("/registry/v3/groups/" + group + "/artifacts").then().statusCode(200);
+    }
+
+    @Test
+    public void generatingANewArtifactRequiresWriteOnItsGroup() {
+        // bob may write every artifact in the locked group, but not the group itself, so he may update
+        // existing artifacts there but not create new ones, including generated ones
+        createIn(GENERATED_LOCKED_GROUP, "model", "MODEL_SCHEMA", "{\"name\": \"Model\"}");
+        createIn(GENERATED_LOCKED_GROUP, "api", "OPENAPI", PLAIN_OPENAPI);
+
+        addVersion(bob(), GENERATED_LOCKED_GROUP, "model", MODEL.formatted("string"), List.of(), false, 403);
+        addVersion(bob(), GENERATED_LOCKED_GROUP, "api", OPENAPI, List.of(), false, 403);
+        alice().get(path(GENERATED_LOCKED_GROUP, "model-input-schema")).then().statusCode(404);
+        alice().get(path(GENERATED_LOCKED_GROUP, "api-agent-card")).then().statusCode(404);
+        assertEquals(1, versionCount(GENERATED_LOCKED_GROUP, "model"));
+        assertEquals(1, versionCount(GENERATED_LOCKED_GROUP, "api"));
+
+        // An update that generates nothing is still allowed
+        addVersion(bob(), GENERATED_LOCKED_GROUP, "model", "{\"name\": \"Renamed\"}", List.of(), false, 200);
+
+        // Where bob may write the group, the same updates generate the artifacts
+        createIn(GROUP, "open-parent-model", "MODEL_SCHEMA", "{\"name\": \"Model\"}");
+        createIn(GROUP, "open-parent-api", "OPENAPI", PLAIN_OPENAPI);
+        addVersion(bob(), GROUP, "open-parent-model", MODEL.formatted("string"), List.of(), false, 200);
+        addVersion(bob(), GROUP, "open-parent-api", OPENAPI, List.of(), false, 200);
+        assertEquals(1, versionCount(GROUP, "open-parent-model-input-schema"));
+        assertEquals(1, versionCount(GROUP, "open-parent-api-agent-card"));
+    }
+
+    @Test
+    public void aRequestRejectedForItsReferencesLeavesNoGeneratedWrites() {
+        create(alice(), "private-atomic-target", "AVRO", PRIVATE_AVRO, List.of(), 200);
+        createIn(GROUP, "atomic-model-input-schema", "JSON", "{\"type\": \"string\"}");
+        List<Map<String, Object>> unreadable = List.of(reference("private-atomic-target", "Secret"));
+
+        for (String type : List.of("integer", "boolean", "number")) {
+            create(bob(), "atomic-model", "MODEL_SCHEMA", MODEL.formatted(type), unreadable, 403);
+        }
+        alice().get(path(GROUP, "atomic-model")).then().statusCode(404);
+        assertEquals(1, versionCount(GROUP, "atomic-model-input-schema"));
+
+        createIn(GROUP, "atomic-parent", "MODEL_SCHEMA", "{\"name\": \"Model\"}");
+        addVersion(bob(), GROUP, "atomic-parent", MODEL.formatted("integer"), unreadable, false, 403);
+        alice().get(path(GROUP, "atomic-parent-input-schema")).then().statusCode(404);
+        assertEquals(1, versionCount(GROUP, "atomic-parent"));
+    }
+
+    @Test
+    public void draftVersionsRequireReadOnTheirReferences() {
+        create(alice(), "private-draft-target", "AVRO", PRIVATE_AVRO, List.of(), 200);
+        create(alice(), "open-draft-target", "AVRO", OPEN_AVRO, List.of(), 200);
+        createIn(GROUP, "draft-parent", "JSON", "{\"type\": \"object\"}");
+
+        addVersion(bob(), GROUP, "draft-parent", "{\"type\": \"object\", \"v\": 2}",
+                List.of(reference("private-draft-target", "Secret")), true, 403);
+        assertEquals(1, versionCount(GROUP, "draft-parent"));
+
+        addVersion(bob(), GROUP, "draft-parent", "{\"type\": \"object\", \"v\": 3}",
+                List.of(reference("open-draft-target", "Open")), true, 200);
+        assertEquals(2, versionCount(GROUP, "draft-parent"));
     }
 
     // ==================== Creation requires write on the group ====================

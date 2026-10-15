@@ -407,7 +407,7 @@ You can use the CLI to create, list, get, update, and delete artifacts in {regis
 $ acr artifact --group my-schemas
 ----
 +
-To browse the artifacts in a selectable table instead of a static list, see Browsing artifacts interactively using the CLI.
+To browse the artifacts in a selectable table instead of a static list, see xref:browsing-artifacts-interactively-using-registry-cli_{context}[].
 . Create a new artifact from a file:
 +
 [source,bash]

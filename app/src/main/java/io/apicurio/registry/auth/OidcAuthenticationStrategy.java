@@ -93,15 +93,15 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
      * Creates a new OIDC authentication strategy.
      *
      * @param oidcAuthenticationMechanism the Quarkus OIDC mechanism to delegate to
-     * @param authConfig authentication configuration
-     * @param auditLog audit logging service
-     * @param webClient HTTP client for token requests
-     * @param log logger
-     * @param parent the parent CDI bean (hosts {@code getAccessToken} for @Retry support)
+     * @param authConfig                  authentication configuration
+     * @param auditLog                    audit logging service
+     * @param webClient                   HTTP client for token requests
+     * @param log                         logger
+     * @param parent                      the parent CDI bean (hosts {@code getAccessToken} for @Retry support)
      */
     public OidcAuthenticationStrategy(OidcAuthenticationMechanism oidcAuthenticationMechanism,
-            AuthConfig authConfig, AuditLogService auditLog, WebClient webClient,
-            Logger log, AppAuthenticationMechanism parent) {
+            AuthConfig authConfig, AuditLogService auditLog, WebClient webClient, Logger log,
+            AppAuthenticationMechanism parent) {
         this.oidcAuthenticationMechanism = oidcAuthenticationMechanism;
         this.authConfig = authConfig;
         this.auditLog = auditLog;
@@ -123,18 +123,16 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         this.oidcTokenUrl = tokenUrl;
     }
 
-    @Override
-    public String name() {
+    @Override public String name() {
         return "oidc";
     }
 
-    @Override
-    public Uni<SecurityIdentity> authenticate(RoutingContext context,
+    @Override public Uni<SecurityIdentity> authenticate(RoutingContext context,
             IdentityProviderManager identityProviderManager) {
         setAuditLogger(context);
         if (authConfig.basicClientCredentialsAuthEnabled.get()) {
-            final Pair<String, String> clientCredentials = CredentialsHelper
-                    .extractCredentialsFromContext(context);
+            final Pair<String, String> clientCredentials = CredentialsHelper.extractCredentialsFromContext(
+                    context);
             if (null != clientCredentials) {
                 // The client-credentials path blocks in join() while the token is fetched or
                 // while it waits on an in-flight fetch, and this mechanism runs on the Vert.x
@@ -148,8 +146,7 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
                         log.warn(String.format(
                                 "Exception trying to get an access token with client credentials with client id: %s",
                                 clientCredentials.getLeft()), ex);
-                        return oidcAuthenticationMechanism.authenticate(context,
-                                identityProviderManager);
+                        return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
                     }
                 }).runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
             } else {
@@ -160,18 +157,15 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         }
     }
 
-    @Override
-    public Uni<ChallengeData> getChallenge(RoutingContext context) {
+    @Override public Uni<ChallengeData> getChallenge(RoutingContext context) {
         return oidcAuthenticationMechanism.getChallenge(context);
     }
 
-    @Override
-    public Set<Class<? extends AuthenticationRequest>> getCredentialTypes() {
+    @Override public Set<Class<? extends AuthenticationRequest>> getCredentialTypes() {
         return oidcAuthenticationMechanism.getCredentialTypes();
     }
 
-    @Override
-    public Uni<HttpCredentialTransport> getCredentialTransport(RoutingContext context) {
+    @Override public Uni<HttpCredentialTransport> getCredentialTransport(RoutingContext context) {
         return oidcAuthenticationMechanism.getCredentialTransport(context);
     }
 
@@ -180,38 +174,30 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         if (authConfig.clientSecret.isEmpty()) {
             return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
         } else {
-            final Pair<String, String> credentialsFromContext = CredentialsHelper
-                    .extractCredentialsFromContext(context);
+            final Pair<String, String> credentialsFromContext = CredentialsHelper.extractCredentialsFromContext(
+                    context);
             if (credentialsFromContext != null) {
-                String jwtToken = obtainAccessTokenPasswordGrant(
-                        credentialsFromContext.getLeft(), credentialsFromContext.getRight());
+                String jwtToken = obtainAccessTokenPasswordGrant(credentialsFromContext.getLeft(),
+                        credentialsFromContext.getRight());
                 if (jwtToken != null) {
                     context.request().headers().set("Authorization", "Bearer " + jwtToken);
-                    return oidcAuthenticationMechanism.authenticate(context,
-                            identityProviderManager);
+                    return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
                 }
             } else {
-                return oidcAuthenticationMechanism.authenticate(context,
-                        identityProviderManager);
+                return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
             }
         }
         return Uni.createFrom().nullItem();
     }
 
     private String obtainAccessTokenPasswordGrant(String username, String password) {
-        MultiMap form = MultiMap.caseInsensitiveMultiMap()
-                .add("grant_type", "password")
+        MultiMap form = MultiMap.caseInsensitiveMultiMap().add("grant_type", "password")
                 .add("client_id", authConfig.clientId)
-                .add("client_secret", authConfig.clientSecret.orElseThrow())
-                .add("username", username)
+                .add("client_secret", authConfig.clientSecret.orElseThrow()).add("username", username)
                 .add("password", password);
 
-        Buffer responseBody = webClient.postAbs(oidcTokenUrl)
-                .sendForm(form)
-                .toCompletionStage()
-                .toCompletableFuture()
-                .join()
-                .bodyAsBuffer();
+        Buffer responseBody = webClient.postAbs(oidcTokenUrl).sendForm(form).toCompletionStage()
+                .toCompletableFuture().join().bodyAsBuffer();
 
         if (responseBody == null) {
             return null;
@@ -221,8 +207,8 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
     }
 
     private void setAuditLogger(RoutingContext context) {
-        BiConsumer<RoutingContext, Throwable> failureHandler = context
-                .get(QuarkusHttpUser.AUTH_FAILURE_HANDLER);
+        BiConsumer<RoutingContext, Throwable> failureHandler = context.get(
+                QuarkusHttpUser.AUTH_FAILURE_HANDLER);
         BiConsumer<RoutingContext, Throwable> auditWrapper = (ctx, ex) -> {
             if (failureHandler != null) {
                 failureHandler.accept(ctx, ex);
@@ -236,18 +222,15 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
                     metadata.put("error_msg", ex.getMessage());
                 }
 
-                auditLog.log(authConfig.auditLogPrefix, "authenticate",
-                        AuditHttpRequestContext.FAILURE, metadata,
-                        new AuditHttpRequestInfo() {
-                            @Override
-                            public String getSourceIp() {
+                auditLog.log(authConfig.auditLogPrefix, "authenticate", AuditHttpRequestContext.FAILURE,
+                        metadata, new AuditHttpRequestInfo() {
+                            @Override public String getSourceIp() {
                                 return ctx.request().remoteAddress().toString();
                             }
 
-                            @Override
-                            public String getForwardedFor() {
-                                return ctx.request().getHeader(
-                                        AuditHttpRequestContext.X_FORWARDED_FOR_HEADER);
+                            @Override public String getForwardedFor() {
+                                return ctx.request()
+                                        .getHeader(AuditHttpRequestContext.X_FORWARDED_FOR_HEADER);
                             }
                         });
             }
@@ -257,9 +240,8 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
     }
 
     // Package-private for test access
-    Uni<SecurityIdentity> authenticateWithClientCredentials(
-            Pair<String, String> clientCredentials, RoutingContext context,
-            IdentityProviderManager identityProviderManager) {
+    Uni<SecurityIdentity> authenticateWithClientCredentials(Pair<String, String> clientCredentials,
+            RoutingContext context, IdentityProviderManager identityProviderManager) {
         String credentialsHash = getCredentialsHash(
                 clientCredentials.getLeft() + clientCredentials.getRight());
 
@@ -273,8 +255,7 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
      * Selects one state atomically per credential pair. Network I/O and waiting on
      * the shared future happen outside compute(), keeping its critical section short.
      */
-    private String fetchOrJoinToken(String credentialsHash,
-            Pair<String, String> clientCredentials) {
+    private String fetchOrJoinToken(String credentialsHash, Pair<String, String> clientCredentials) {
         TokenState candidate = new TokenState(new CompletableFuture<>());
         CredentialState selected = credentialStates.compute(credentialsHash,
                 (key, existing) -> reuseOrReplace(existing, candidate));
@@ -305,8 +286,8 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
                      *  replace THIS state with its failure; a later caller can replace
                      *  it with a fresh fetch. Neither can overwrite the other's state.
                      */
-                    future.completeExceptionally(new OidcAuthException(
-                            "Token fetch thread died without completing the future"));
+                    future.completeExceptionally(
+                            new OidcAuthException("Token fetch thread died without completing the future"));
                 }
             }
         }
@@ -315,8 +296,9 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
             return future.join().getValue();
         } catch (CompletionException ce) {
             Throwable cause = ce.getCause();
-            RuntimeException failure = cause instanceof RuntimeException re ? re
-                    : new OidcAuthException("Failed to obtain access token", cause);
+            RuntimeException failure = cause instanceof RuntimeException re ?
+                    re :
+                    new OidcAuthException("Failed to obtain access token", cause);
             if (isCacheable(failure)) {
                 recordFailure(credentialsHash, tokenState, failure);
             }
@@ -325,8 +307,7 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
     }
 
     private static boolean isCacheable(RuntimeException ex) {
-        return ex instanceof UnauthorizedException
-                || ex instanceof ForbiddenException
+        return ex instanceof UnauthorizedException || ex instanceof ForbiddenException
                 || ex instanceof OidcAuthException;
     }
 
@@ -336,18 +317,17 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
      * also cannot overwrite a newer fetch, token, or failure.
      */
     void recordFailure(String credentialsHash, TokenState owner, RuntimeException failure) {
-        credentialStates.compute(credentialsHash, (key, current) -> current == owner
-                ? new FailureState(new WrappedValue<>(FAILURE_CACHE_TTL, Instant.now(), failure))
-                : current);
+        credentialStates.compute(credentialsHash, (key, current) -> current == owner ?
+                new FailureState(new WrappedValue<>(FAILURE_CACHE_TTL, Instant.now(), failure)) :
+                current);
     }
 
     private CredentialState reuseOrReplace(CredentialState existing, TokenState replacement) {
         if (existing instanceof TokenState tokenState) {
             CompletableFuture<WrappedValue<String>> future = tokenState.future();
-            if (!future.isDone()) {
-                return tokenState;
-            }
-            if (!future.isCompletedExceptionally() && !future.join().isExpired()) {
+
+            // Reuse an ongoing fetch or a successfully completed, unexpired token.
+            if (!future.isDone() || (!future.isCompletedExceptionally() && !future.join().isExpired())) {
                 return tokenState;
             }
         }

@@ -89,6 +89,11 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
 
     private volatile PollingStorageStatus status = PollingStorageStatus.initializing();
 
+    // Tracks whether the current ERROR state was caused by a poll() failure.
+    // Only poll-level errors (transient) should self-clear on the next successful poll.
+    // Load-level errors (bad data) must persist until valid data is loaded.
+    private boolean pollFailed = false;
+
     @Override
     public String storageName() {
         return pollingConfig.getStorageName();
@@ -190,11 +195,12 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                                     storageName(), active == green ? "green" : "blue", state);
                             try {
                                 var pollResult = pollingDataSourceManager.poll();
-                                if (status.getSyncState() == PollingStorageStatus.SyncState.ERROR) {
+                                if (pollFailed && status.getSyncState() == PollingStorageStatus.SyncState.ERROR) {
                                     status = status.toBuilder()
                                             .syncState(PollingStorageStatus.SyncState.IDLE)
                                             .errors(Collections.emptyList())
                                             .build();
+                                    pollFailed = false;
                                 }
                                 if (pollResult.isHasChanges()) {
                                     debouncer.onChange(pollResult);
@@ -205,6 +211,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                                 }
                             } catch (Exception e) {
                                 log.error("{} poll/load failed: {}", storageName(), e.getMessage(), e);
+                                pollFailed = true;
                                 status = status.toBuilder()
                                         .syncState(PollingStorageStatus.SyncState.ERROR)
                                         .errors(List.of(new PollingError(

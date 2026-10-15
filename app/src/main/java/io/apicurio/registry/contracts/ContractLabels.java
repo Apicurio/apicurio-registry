@@ -1,5 +1,7 @@
 package io.apicurio.registry.contracts;
 
+import java.util.Map;
+
 /**
  * Constants for reserved contract.* label keys.
  * These labels are used to store contract metadata in the artifact/version labels.
@@ -50,6 +52,41 @@ public final class ContractLabels {
      */
     public static String key(String contractId, String suffix) {
         return PREFIX + contractId + "." + suffix;
+    }
+
+    /**
+     * Finds the contract ID stored in the given labels, or null if the labels do not
+     * identify a contract. The contract ID is the value of the "contract.{contractId}.id"
+     * label.
+     */
+    public static String findContractId(Map<String, String> labels) {
+        if (labels == null) {
+            return null;
+        }
+        String suffix = "." + SUFFIX_ID;
+        for (Map.Entry<String, String> entry : labels.entrySet()) {
+            String key = entry.getKey();
+            if (key.startsWith(PREFIX) && key.endsWith(suffix)) {
+                int start = PREFIX.length();
+                int end = key.length() - suffix.length();
+                if (end <= start) {
+                    continue;
+                }
+                String middle = key.substring(start, end);
+                if (!middle.contains(".")) {
+                    return entry.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Returns the label prefix to use for the given contract ID, falling back to the
+     * un-namespaced prefix when the contract ID is null.
+     */
+    public static String prefixFor(String contractId) {
+        return contractId != null ? contractPrefix(contractId) : PREFIX;
     }
 
     private ContractLabels() {

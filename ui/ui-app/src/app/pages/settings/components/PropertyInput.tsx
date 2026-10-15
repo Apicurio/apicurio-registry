@@ -68,6 +68,8 @@ export const PropertyInput: FunctionComponent<PropertyInputProps> = (props: Prop
                 <TextInput
                     name={props.name}
                     value={currentValue}
+                    type={props.type === "number" ? "number" : "text"}
+                    min={props.type === "number" ? 0 : undefined}
                     validated={validated()}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyPress}

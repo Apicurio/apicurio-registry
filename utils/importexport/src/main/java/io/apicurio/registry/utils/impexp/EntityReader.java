@@ -130,6 +130,10 @@ public class EntityReader {
         for (File file : allFiles) {
             String path = file.getAbsolutePath();
             EntityType type = parseEntityType(path);
+            if (type == null) {
+                // Not an entity file (no "<name>.<EntityType>.json" pattern) - skip it.
+                continue;
+            }
             EntityInfo entityInfo = new EntityInfo(path, type);
             switch (type) {
                 case Artifact:
@@ -182,7 +186,7 @@ public class EntityReader {
             versions.sort((v1, v2) -> {
                 long v1GlobalId = getArtifactVersionGlobalId(v1);
                 long v2GlobalId = getArtifactVersionGlobalId(v2);
-                return (int) (v1GlobalId - v2GlobalId);
+                return Long.compare(v1GlobalId, v2GlobalId);
             });
         }
 

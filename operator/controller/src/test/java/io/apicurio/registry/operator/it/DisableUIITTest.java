@@ -7,12 +7,14 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import static io.apicurio.registry.operator.Tags.FEATURE;
+import static io.apicurio.registry.operator.Tags.FEATURE_A;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_APP;
 import static io.apicurio.registry.operator.resource.ResourceFactory.COMPONENT_UI;
 import static io.apicurio.registry.operator.utils.K8sCell.k8sCellCreate;
 
 @QuarkusTest
 @Tag(FEATURE)
+@Tag(FEATURE_A)
 public class DisableUIITTest extends ITBase {
 
     @Test

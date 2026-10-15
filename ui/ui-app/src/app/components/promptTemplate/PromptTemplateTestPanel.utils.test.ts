@@ -7,6 +7,7 @@ import {
     coerceEnumValue,
     initialObjectText,
     parseObjectInput,
+    renderErrorMessage,
     shouldAcceptRenderResponse,
     shouldResetPanelState
 } from "./PromptTemplateTestPanel.utils";
@@ -228,5 +229,26 @@ describe("shouldResetPanelState", () => {
 
     it("does not reset while content is still absent", () => {
         expect(shouldResetPanelState(false, false, false)).toBe(false);
+    });
+});
+
+describe("renderErrorMessage", () => {
+    it("prefers the ProblemDetails detail", () => {
+        expect(renderErrorMessage({
+            title: "Bad Request",
+            detail: "Variable 'customerName' is required but was not provided."
+        })).toBe("Variable 'customerName' is required but was not provided.");
+    });
+
+    it("falls back to the ProblemDetails title", () => {
+        expect(renderErrorMessage({ title: "Not Found" })).toBe("Not Found");
+    });
+
+    it("uses the message of a plain error", () => {
+        expect(renderErrorMessage(new Error("Network Error"))).toBe("Network Error");
+    });
+
+    it("uses the generic text when nothing is usable", () => {
+        expect(renderErrorMessage(undefined)).toBe("Error rendering prompt template");
     });
 });

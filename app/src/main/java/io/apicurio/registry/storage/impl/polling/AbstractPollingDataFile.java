@@ -53,6 +53,6 @@ public abstract class AbstractPollingDataFile implements PollingDataFile {
     @Override
     @SuppressWarnings("unchecked")
     public <T> T getEntityUnchecked() {
-        return (T) any.get().getEntity();
+        return (T) any.orElseThrow().getEntity();
     }
 }

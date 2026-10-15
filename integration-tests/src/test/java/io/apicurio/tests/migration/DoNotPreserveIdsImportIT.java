@@ -31,11 +31,13 @@ import java.util.UUID;
 import static io.apicurio.registry.utils.tests.TestUtils.getRegistryV2ApiUrl;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.parallel.Isolated;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(value = DoNotPreserveIdsImportIT.DoNotPreserveIdsInitializer.class, restrictToAnnotatedClass = true)
 @Tag(MIGRATION)
 @Disabled
+@Isolated
 public class DoNotPreserveIdsImportIT extends ApicurioRegistryBaseIT {
     private static final Logger log = LoggerFactory.getLogger(DataMigrationIT.class);
     public static InputStream doNotPreserveIdsImportDataToImport;

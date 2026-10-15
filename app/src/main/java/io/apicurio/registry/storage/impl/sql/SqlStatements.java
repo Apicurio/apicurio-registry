@@ -188,6 +188,10 @@ public interface SqlStatements {
      */
     public String insertContent();
 
+    default String insertContentIfAbsent() {
+        return insertContent();
+    }
+
     /**
      * A statement to update canonicalHash value in a row in the "content" table
      */
@@ -300,6 +304,16 @@ public interface SqlStatements {
     public String selectArtifactLabels();
 
     public String deleteArtifactLabelsByPrefix();
+
+    /**
+     * A statement to delete all rows in the artifact_structured_content table for a given artifact.
+     */
+    public String deleteArtifactStructuredContent();
+
+    /**
+     * A statement to insert a row into the artifact_structured_content table.
+     */
+    public String insertArtifactStructuredContent();
 
     /**
      * A statement to delete version labels matching a key prefix.
@@ -435,6 +449,13 @@ public interface SqlStatements {
      * A statement to select the bytes of a content row by contentId.
      */
     public String selectContentById();
+
+    /**
+     * A statement to select the bytes of a content row by contentId, joined with one artifact version that
+     * references it, so that the artifact type can be returned in the same query. Returns no rows if the
+     * content does not exist or if it is orphaned (not referenced by any artifact version).
+     */
+    public String selectContentAndArtifactTypeById();
 
     /**
      * A statement template for batch loading artifact version metadata. The REFERENCES_CONDITION placeholder
@@ -631,6 +652,26 @@ public interface SqlStatements {
     public String selectRoleMappingCountByPrincipal();
 
     /*
+     * The next few statements support peers
+     */
+
+    public String insertPeer();
+
+    public String deletePeer();
+
+    public String deleteAllPeers();
+
+    public String selectPeerById();
+
+    public String selectPeers();
+
+    public String countPeers();
+
+    public String updatePeer();
+
+    public String selectPeerCountById();
+
+    /*
      * The next few statements support group rule management.
      */
 
@@ -667,6 +708,8 @@ public interface SqlStatements {
     public String deleteConfigProperty();
 
     public String insertConfigProperty();
+
+    public String upsertConfigProperty();
 
     public String deleteAllConfigProperties();
 

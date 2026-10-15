@@ -4,6 +4,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.util.YAMLObjectMapper;
 import io.apicurio.registry.storage.util.KubernetesOpsTestProfile;
 import io.apicurio.registry.types.RuleType;
@@ -12,12 +17,12 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Set;
@@ -27,7 +32,9 @@ import static java.util.Objects.requireNonNull;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(KubernetesOpsTestProfile.class)
@@ -69,6 +76,11 @@ class KubernetesOpsSmokeTest {
 
         // Groups
         assertEquals(Set.of("foo"), Set.copyOf(storage.getGroupIds(10)));
+        var search = storage.searchArtifacts(Set.of(SearchFilter.ofGroupId("foo"),
+                SearchFilter.ofStructure("openapi:operation:listpets")), OrderBy.artifactId,
+                OrderDirection.asc, 0, 10, false);
+        assertEquals(1, search.getCount());
+        assertEquals("petstore", search.getArtifacts().get(0).getArtifactId());
 
         // Artifact rules
         assertEquals(Set.of(RuleType.COMPATIBILITY), Set.copyOf(storage.getArtifactRules("foo", "petstore")));
@@ -77,11 +89,23 @@ class KubernetesOpsSmokeTest {
 
         // Artifact versions
         var version = storage.getArtifactVersionContent("foo", "petstore", "1");
+        assertEquals("1", storage.getBranchTip(new GA("foo", "petstore"), BranchId.LATEST,
+                RegistryStorage.RetrievalBehavior.SKIP_DISABLED_LATEST).getRawVersionId());
         assertNotNull(version.getGlobalId());
         assertNotNull(version.getContentId());
         var content = loadFile("git/smoke01/content/petstore-1.0.0.yaml");
         assertEquals(YAMLObjectMapper.YAML_MAPPER.readTree(content.bytes()),
                 YAMLObjectMapper.YAML_MAPPER.readTree(version.getContent().bytes()));
+
+        // Peers
+        var peers = storage.getPeers();
+        assertEquals(1, peers.size());
+        var peer = peers.get(0);
+        assertEquals("eu-registry", peer.getPeerId());
+        assertEquals("https://registry.eu.example.com", peer.getUrl());
+        assertEquals("EU registry", peer.getName());
+        assertTrue(peer.isEnabled());
+        assertEquals("eu-registry", peer.getCredentialSecretRef());
 
         // Waiting to load smoke02
         configMapStore.load("git/smoke02");
@@ -104,10 +128,48 @@ class KubernetesOpsSmokeTest {
         content = loadFile("git/smoke02/content/Person.json");
         assertEquals(MAPPER.readTree(content.bytes()), MAPPER.readTree(version.getContent().bytes()));
 
+        // Peers removed (omitted/empty peers list wipes the previously loaded peer)
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
+
         // Waiting to load empty
         configMapStore.load("git/empty");
         await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
                 equalTo(Set.of()));
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
+    }
+
+    @Test
+    void peerReloadUpdatesFieldsAndOmittedEnabledDefaultsToTrue() throws Exception {
+        var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
+
+        // Each wait asserts the whole peer from one read, so a snapshot left by an earlier load
+        // cannot satisfy it.
+        configMapStore.load("git/peers-update-1");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var peers = storage.getPeers();
+            assertEquals(1, peers.size());
+            var before = peers.get(0);
+            assertEquals("update-test-peer", before.getPeerId());
+            assertEquals("https://before.example.com", before.getUrl());
+            assertEquals("Before Update", before.getName());
+            assertFalse(before.isEnabled());
+            assertEquals("before-cred", before.getCredentialSecretRef());
+        });
+
+        // Reload the same peer id with different field values and enabled omitted entirely.
+        configMapStore.load("git/peers-update-2");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var peers = storage.getPeers();
+            assertEquals(1, peers.size());
+            var after = peers.get(0);
+            assertEquals("update-test-peer", after.getPeerId());
+            assertEquals("https://after.example.com", after.getUrl());
+            assertEquals("After Update", after.getName());
+            // enabled is omitted in this load; it must default to true fresh, not carry over the
+            // previous load's explicit enabled: false.
+            assertTrue(after.isEnabled());
+            assertEquals("after-cred", after.getCredentialSecretRef());
+        });
     }
 
     @ActivateRequestContext
@@ -119,7 +181,7 @@ class KubernetesOpsSmokeTest {
         try {
             var fullPath = Path.of(
                     requireNonNull(Thread.currentThread().getContextClassLoader().getResource(path)).toURI());
-            return ContentHandle.create(FileUtils.readFileToByteArray(fullPath.toFile()));
+            return ContentHandle.create(Files.readAllBytes(fullPath));
         } catch (IOException | URISyntaxException ex) {
             throw new RuntimeException(ex);
         }

@@ -118,7 +118,11 @@ this as a starting point and see the
 
 Apicurio Registry is a [Cloud Native Computing Foundation](https://cncf.io) Sandbox project.
 
-Join us on the [#apicurio channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+Join us on the [#apicurio-registry channel](https://cloud-native.slack.com/archives/C0BDWTC1DTM) on CNCF Slack.
+
+Mailing lists:
+- Development: [cncf-apicurio-registry-dev@lists.cncf.io](mailto:cncf-apicurio-registry-dev@lists.cncf.io)
+- Security reports: [cncf-apicurio-registry-security@lists.cncf.io](mailto:cncf-apicurio-registry-security@lists.cncf.io) (see [SECURITY.md](SECURITY.md))
 
 We abide by the [CNCF Code of Conduct](CODE_OF_CONDUCT.md).
 

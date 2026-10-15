@@ -22,12 +22,14 @@ import org.junit.jupiter.api.Test;
 import java.net.URI;
 
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
+import org.junit.jupiter.api.parallel.Isolated;
 
 /**
  * Integration tests for proxy configuration with Registry SDK clients.
  * Tests verify that clients can successfully connect through an HTTP proxy.
  */
 @QuarkusIntegrationTest
+@Isolated
 public class ProxyRegistryClientIT extends ApicurioRegistryBaseIT {
 
     private static final int PROXY_PORT = 30002;

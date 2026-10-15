@@ -48,6 +48,7 @@ public class TlsSdkClientJdkAdapterTest extends TlsSdkClientTest {
      */
     @Test
     @Override
+    @SuppressWarnings("removal")
     public void testV2ClientWithJksTrustStore() throws Exception {
         var truststoreUrl = getClass().getClassLoader().getResource("tls/registry-truststore.jks");
         Assertions.assertNotNull(truststoreUrl, "Truststore file not found");
@@ -90,6 +91,7 @@ public class TlsSdkClientJdkAdapterTest extends TlsSdkClientTest {
      */
     @Test
     @Override
+    @SuppressWarnings("removal")
     public void testV2ClientWithPemCertificate() throws Exception {
         var certUrl = getClass().getClassLoader().getResource("tls/registry-cert.pem");
         Assertions.assertNotNull(certUrl, "PEM certificate file not found");
@@ -133,6 +135,7 @@ public class TlsSdkClientJdkAdapterTest extends TlsSdkClientTest {
      */
     @Test
     @Override
+    @SuppressWarnings("removal")
     public void testV2ClientWithPemContent() throws Exception {
         var certUrl = getClass().getClassLoader().getResource("tls/registry-cert.pem");
         Assertions.assertNotNull(certUrl, "PEM certificate file not found");
@@ -198,6 +201,7 @@ public class TlsSdkClientJdkAdapterTest extends TlsSdkClientTest {
      */
     @Test
     @Override
+    @SuppressWarnings("removal")
     public void testV2ClientWithTrustAll() throws Exception {
         io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
                 RegistryClientOptions.create(registryV2ApiUrl)
@@ -260,6 +264,7 @@ public class TlsSdkClientJdkAdapterTest extends TlsSdkClientTest {
      */
     @Test
     @Override
+    @SuppressWarnings("removal")
     public void testV2ClientWithoutSslConfig() {
         io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
                 RegistryClientOptions.create(registryV2ApiUrl)

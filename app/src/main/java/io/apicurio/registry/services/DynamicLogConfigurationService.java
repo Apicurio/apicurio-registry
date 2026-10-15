@@ -15,6 +15,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.logging.Level;
@@ -91,10 +92,10 @@ public class DynamicLogConfigurationService {
             }
 
             // Only update if the level has changed
-            if (!targetLevel.get().equals(currentAppliedLevel)) {
-                applyLogLevel(targetLevel.get());
-                currentAppliedLevel = targetLevel.get();
-                log.info("Applied dynamic log level configuration: {} = {}", APICURIO_LOGGER_NAME, targetLevel.get());
+            if (!targetLevel.orElseThrow().equals(currentAppliedLevel)) {
+                applyLogLevel(targetLevel.orElseThrow());
+                currentAppliedLevel = targetLevel.orElseThrow();
+                log.info("Applied dynamic log level configuration: {} = {}", APICURIO_LOGGER_NAME, targetLevel.orElseThrow());
             }
         } catch (Exception ex) {
             log.error("Exception thrown when applying dynamic log level configuration", ex);
@@ -113,18 +114,34 @@ public class DynamicLogConfigurationService {
     }
 
     /**
+     * Parse log level, mapping standard JBoss/Quarkus logging aliases (DEBUG, TRACE, WARN, ERROR, FATAL)
+     * to standard Java Util Logging (JUL) levels.
+     */
+    static Level parseLogLevel(String logLevel) {
+        Objects.requireNonNull(logLevel, "Log level must not be null");
+        String normalized = logLevel.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "TRACE" -> Level.FINEST;
+            case "DEBUG" -> Level.FINE;
+            case "WARN" -> Level.WARNING;
+            case "ERROR", "FATAL" -> Level.SEVERE;
+            default -> Level.parse(normalized);
+        };
+    }
+
+    /**
      * Applies the specified log level to the Apicurio logger.
      *
-     * @param logLevel the log level to apply (e.g., "DEBUG", "INFO", "WARN", "ERROR")
+     * @param logLevel the log level to apply (e.g., "DEBUG", "INFO", "WARN", "ERROR", "SEVERE", "WARNING")
      */
     private void applyLogLevel(String logLevel) {
         try {
-            Level level = Level.parse(logLevel.toUpperCase(Locale.ROOT));
+            Level level = parseLogLevel(logLevel);
             java.util.logging.Logger logger = java.util.logging.Logger.getLogger(APICURIO_LOGGER_NAME);
             logger.setLevel(level);
             log.debug("Set log level for {} to {}", APICURIO_LOGGER_NAME, logLevel);
         } catch (IllegalArgumentException ex) {
-            log.error("Invalid log level value: {}. Must be one of: TRACE, DEBUG, INFO, WARN, ERROR, OFF, ALL", logLevel, ex);
+            log.error("Invalid log level value: {}. Must be one of: TRACE, DEBUG, INFO, WARN, ERROR, FATAL, SEVERE, WARNING, CONFIG, FINE, FINER, FINEST, OFF, ALL", logLevel, ex);
         }
     }
 }

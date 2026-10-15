@@ -1,0 +1,38 @@
+{
+  "id": "registry",
+  "realm": "registry",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "accessTokenLifespan": 300,
+  "roles": {
+    "realm": [
+      { "name": "sr-admin" },
+      { "name": "sr-developer" },
+      { "name": "sr-readonly" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "registry-api",
+      "enabled": true,
+      "publicClient": false,
+      "protocol": "openid-connect",
+      "clientAuthenticatorType": "client-secret",
+      "secret": "perf-test-secret",
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": ["*"]
+    }
+  ],
+  "users": [
+    {
+      "username": "service-account-registry-api",
+      "enabled": true,
+      "serviceAccountClientId": "registry-api",
+      "realmRoles": ["sr-admin", "offline_access", "uma_authorization"]
+    }
+  ]
+}

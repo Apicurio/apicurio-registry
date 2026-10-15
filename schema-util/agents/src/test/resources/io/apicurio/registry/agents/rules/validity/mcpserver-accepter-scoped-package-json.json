@@ -1,0 +1,6 @@
+{
+  "name": "@example/weather-mcp",
+  "version": "1.2.3",
+  "description": "A weather MCP server",
+  "main": "dist/index.js"
+}

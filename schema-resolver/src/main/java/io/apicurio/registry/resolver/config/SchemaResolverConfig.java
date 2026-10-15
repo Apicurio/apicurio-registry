@@ -195,17 +195,91 @@ public class SchemaResolverConfig extends AbstractConfig {
      * If a schema can not be retrieved from the Registry, serdes may retry a number of times. This
      * configuration option controls the number of retries before failing. Valid values are non-negative
      * integers.
+     * <p>
+     * Controls the <strong>schema-cache</strong> retry layer in {@code ERCache}. Distinct from
+     * {@link #CLIENT_RETRY_MAX_ATTEMPTS}, which configures the underlying HTTP client retry ladder that may
+     * run inside each cache attempt.
+     * <p>
+     * <strong>Outage retries are opt-in.</strong> By default the cache layer only retries HTTP 429. Set
+     * {@link #RETRY_TRANSIENT_ERRORS}{@code =true} (and preferably {@link #RETRY_TOTAL_TIMEOUT_MS}) to also
+     * retry network/outage failures (502/503/504 and connection errors). Raising this count alone does not
+     * cover registry-down. When that opt-in is enabled, the layers multiply: worst-case blocking is roughly
+     * {@code (retry-count + 1) × (full client retry ladder) + (retry-count × retry-backoff-ms)}.
+     * Bound it with {@link #RETRY_TOTAL_TIMEOUT_MS}, and size together with {@link #CLIENT_RETRY_MAX_ATTEMPTS},
+     * especially for Kafka producers ({@code max.block.ms}) and Connect polls.
      */
     public static final String RETRY_COUNT = "apicurio.registry.retry-count";
     public static final long RETRY_COUNT_DEFAULT = 3;
 
     /**
-     * If a schema can not be be retrieved from the Registry, serdes may retry a number of times. This
+     * If a schema can not be retrieved from the Registry, serdes may retry a number of times. This
      * configuration option controls the delay between the retry attempts, in milliseconds. Valid values are
      * non-negative integers.
+     * <p>
+     * Controls the <strong>schema-cache</strong> retry layer in {@code ERCache}. Distinct from
+     * {@link #CLIENT_RETRY_DELAY_MS}, which configures the underlying HTTP client retry ladder that may run
+     * inside each cache attempt. See {@link #RETRY_COUNT} for how the two layers multiply when transient
+     * retries are enabled.
      */
     public static final String RETRY_BACKOFF_MS = "apicurio.registry.retry-backoff-ms";
     public static final long RETRY_BACKOFF_MS_DEFAULT = 300;
+
+    /**
+     * When {@code false} (default), the schema-cache retry layer only retries HTTP 429, matching historical
+     * behavior so existing deployments do not silently gain multiplicative blocking on connection failures.
+     * When {@code true}, also retries typical registry outage signals (502/503/504) and retriable network
+     * failures. See {@link #RETRY_COUNT} and {@link #RETRY_TOTAL_TIMEOUT_MS} for sizing / bounding guidance.
+     */
+    public static final String RETRY_TRANSIENT_ERRORS = "apicurio.registry.retry.transient-errors";
+    public static final boolean RETRY_TRANSIENT_ERRORS_DEFAULT = false;
+
+    /**
+     * Optional wall-clock budget (milliseconds) for a single schema-cache load's retry loop in
+     * {@code ERCache}. Checked before each re-attempt after a retriable failure; it does
+     * <strong>not</strong> interrupt an in-flight cache attempt (that attempt may still run a full
+     * HTTP client retry ladder plus request timeouts). {@code 0} (default) means unlimited.
+     * Strongly recommended when {@link #RETRY_TRANSIENT_ERRORS} is enabled so
+     * {@code Producer.send()} / Connect polls cannot block for
+     * {@code (retry-count + 1) × (client retry ladder)} unboundedly.
+     */
+    public static final String RETRY_TOTAL_TIMEOUT_MS = "apicurio.registry.retry.total-timeout-ms";
+    public static final long RETRY_TOTAL_TIMEOUT_MS_DEFAULT = 0;
+
+    /**
+     * Enable or disable retry for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_ENABLED = "apicurio.registry.client.retry.enabled";
+    public static final boolean CLIENT_RETRY_ENABLED_DEFAULT = true;
+
+    /**
+     * Maximum number of retry attempts for the underlying registry client.
+     * Must be an integer in {@code [1, 1000]}. The upper bound is required so that
+     * {@code AbstractSchemaResolver#estimateClientRetryLadderSleepMs}, which loops up to
+     * {@code max-attempts - 1} times to estimate worst-case blocking for
+     * {@link #RETRY_TRANSIENT_ERRORS}, cannot hang {@code configure()} on a fat-fingered value.
+     */
+    public static final String CLIENT_RETRY_MAX_ATTEMPTS = "apicurio.registry.client.retry.max-attempts";
+    public static final long CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT = 3;
+    /** Inclusive upper bound for {@link #CLIENT_RETRY_MAX_ATTEMPTS}. */
+    public static final long CLIENT_RETRY_MAX_ATTEMPTS_MAX = 1000;
+
+    /**
+     * Initial retry delay in milliseconds for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_DELAY_MS = "apicurio.registry.client.retry.delay-ms";
+    public static final long CLIENT_RETRY_DELAY_MS_DEFAULT = 250;
+
+    /**
+     * Exponential backoff multiplier for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_BACKOFF_MULTIPLIER = "apicurio.registry.client.retry.backoff-multiplier";
+    public static final double CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT = 2.0;
+
+    /**
+     * Maximum retry delay in milliseconds for the underlying registry client.
+     */
+    public static final String CLIENT_RETRY_MAX_DELAY_MS = "apicurio.registry.client.retry.max-delay-ms";
+    public static final long CLIENT_RETRY_MAX_DELAY_MS_DEFAULT = 10000;
 
     /**
      * Used to indicate the serdes to dereference the schema. This is used in two different situation, once
@@ -255,6 +329,47 @@ public class SchemaResolverConfig extends AbstractConfig {
      * </p>
      */
     public static final String TLS_CERTIFICATES = "apicurio.registry.tls.certificates";
+
+    /**
+     * The location of the key store file for TLS/SSL connections (mTLS). Can be a file path or a resource
+     * on the classpath. Required when connecting to a registry over HTTPS with client certificate authentication.
+     */
+    public static final String TLS_KEYSTORE_LOCATION = "apicurio.registry.tls.keystore.location";
+
+    /**
+     * The password for the key store file specified by {@link #TLS_KEYSTORE_LOCATION}.
+     * Required when using JKS or PKCS12 key stores.
+     * <p>
+     * <b>WARNING:</b> Keystore passwords configured here are stored in memory as part of the
+     * configuration object and registry client options. Ensure proper security controls are in place
+     * to protect configuration data from unauthorized access/memory dumps.
+     */
+    public static final String TLS_KEYSTORE_PASSWORD = "apicurio.registry.tls.keystore.password";
+
+    /**
+     * The type of key store. Valid values are "JKS", "PKCS12" (or "P12"), and "PEM". Defaults to "JKS".
+     */
+    public static final String TLS_KEYSTORE_TYPE = "apicurio.registry.tls.keystore.type";
+    public static final String TLS_KEYSTORE_TYPE_DEFAULT = "JKS";
+
+    /**
+     * PEM client certificate configuration for mutual TLS (mTLS). This property accepts either:
+     * <ul>
+     *   <li>PEM certificate file path (e.g., "/path/to/client-cert.pem")</li>
+     *   <li>PEM certificate content as a string (assuming standard "-----BEGIN CERTIFICATE-----" header)</li>
+     * </ul>
+     * Note: This configuration is ignored if {@link #TLS_KEYSTORE_LOCATION} is also set.
+     */
+    public static final String TLS_CLIENT_CERTIFICATE = "apicurio.registry.tls.client-certificate";
+
+    /**
+     * PEM client private key configuration for mutual TLS (mTLS). This property accepts either:
+     * <ul>
+     *   <li>PEM private key file path (e.g., "/path/to/client-key.pem")</li>
+     *   <li>PEM private key content as a string (with "-----BEGIN PRIVATE KEY-----" markers)</li>
+     * </ul>
+     */
+    public static final String TLS_CLIENT_KEY = "apicurio.registry.tls.client-key";
 
     /**
      * If true, disables all SSL/TLS certificate verification. This is insecure and should only be used
@@ -434,6 +549,66 @@ public class SchemaResolverConfig extends AbstractConfig {
         return getDurationNonNegativeMillis(RETRY_BACKOFF_MS);
     }
 
+    public boolean getRetryTransientErrors() {
+        return getBoolean(RETRY_TRANSIENT_ERRORS);
+    }
+
+    public Duration getRetryTotalTimeout() {
+        return getDurationNonNegativeMillis(RETRY_TOTAL_TIMEOUT_MS);
+    }
+
+    public boolean getClientRetryEnabled() {
+        return getBoolean(CLIENT_RETRY_ENABLED);
+    }
+
+    public long getClientRetryMaxAttempts() {
+        // Fail fast with the property name rather than hanging estimateClientRetryLadderSleepMs's loop.
+        long value = getLongNonNegative(CLIENT_RETRY_MAX_ATTEMPTS);
+        if (value < 1 || value > CLIENT_RETRY_MAX_ATTEMPTS_MAX) {
+            throw new IllegalArgumentException("Invalid configuration property value for '"
+                    + CLIENT_RETRY_MAX_ATTEMPTS
+                    + "'. Expected an integer in [1, " + CLIENT_RETRY_MAX_ATTEMPTS_MAX
+                    + "], but got '" + value + "'.");
+        }
+        return value;
+    }
+
+    public long getClientRetryDelayMs() {
+        return getDurationNonNegativeMillis(CLIENT_RETRY_DELAY_MS).toMillis();
+    }
+
+    public double getClientRetryBackoffMultiplier() {
+        Object value = getObject(CLIENT_RETRY_BACKOFF_MULTIPLIER);
+        double multiplier;
+        if (value == null) {
+            multiplier = CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT;
+        } else if (value instanceof Number) {
+            multiplier = ((Number) value).doubleValue();
+        } else if (value instanceof String) {
+            try {
+                multiplier = Double.parseDouble((String) value);
+            } catch (NumberFormatException e) {
+                throw new IllegalArgumentException("Invalid configuration property value for '"
+                        + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
+                        + value + "'.", e);
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid configuration property value for '"
+                    + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a number-like value, but got a '"
+                    + value + "'.");
+        }
+        if (!Double.isFinite(multiplier) || multiplier <= 1.0) {
+            throw new IllegalArgumentException("Invalid configuration property value for '"
+                    + CLIENT_RETRY_BACKOFF_MULTIPLIER + "'. Expected a finite value greater than 1.0, but got '"
+                    + multiplier + "'.");
+        }
+        return multiplier;
+    }
+
+    public long getClientRetryMaxDelayMs() {
+        return getDurationNonNegativeMillis(CLIENT_RETRY_MAX_DELAY_MS).toMillis();
+    }
+
     public String getExplicitArtifactGroupId() {
         return getString(EXPLICIT_ARTIFACT_GROUP_ID);
     }
@@ -472,6 +647,26 @@ public class SchemaResolverConfig extends AbstractConfig {
 
     public String getTlsCertificates() {
         return getString(TLS_CERTIFICATES);
+    }
+
+    public String getTlsKeystoreLocation() {
+        return getString(TLS_KEYSTORE_LOCATION);
+    }
+
+    public String getTlsKeystorePassword() {
+        return getString(TLS_KEYSTORE_PASSWORD);
+    }
+
+    public String getTlsKeystoreType() {
+        return getString(TLS_KEYSTORE_TYPE);
+    }
+
+    public String getTlsClientCertificate() {
+        return getString(TLS_CLIENT_CERTIFICATE);
+    }
+
+    public String getTlsClientKey() {
+        return getString(TLS_CLIENT_KEY);
     }
 
     public boolean getTlsTrustAll() {
@@ -569,8 +764,16 @@ public class SchemaResolverConfig extends AbstractConfig {
             entry(FIND_LATEST_ARTIFACT, FIND_LATEST_ARTIFACT_DEFAULT),
             entry(CHECK_PERIOD_MS, CHECK_PERIOD_MS_DEFAULT), entry(RETRY_COUNT, RETRY_COUNT_DEFAULT),
             entry(RETRY_BACKOFF_MS, RETRY_BACKOFF_MS_DEFAULT),
+            entry(RETRY_TRANSIENT_ERRORS, RETRY_TRANSIENT_ERRORS_DEFAULT),
+            entry(RETRY_TOTAL_TIMEOUT_MS, RETRY_TOTAL_TIMEOUT_MS_DEFAULT),
+            entry(CLIENT_RETRY_ENABLED, CLIENT_RETRY_ENABLED_DEFAULT),
+            entry(CLIENT_RETRY_MAX_ATTEMPTS, CLIENT_RETRY_MAX_ATTEMPTS_DEFAULT),
+            entry(CLIENT_RETRY_DELAY_MS, CLIENT_RETRY_DELAY_MS_DEFAULT),
+            entry(CLIENT_RETRY_BACKOFF_MULTIPLIER, CLIENT_RETRY_BACKOFF_MULTIPLIER_DEFAULT),
+            entry(CLIENT_RETRY_MAX_DELAY_MS, CLIENT_RETRY_MAX_DELAY_MS_DEFAULT),
             entry(DEREFERENCE_SCHEMA, DEREFERENCE_DEFAULT),
             entry(TLS_TRUSTSTORE_TYPE, TLS_TRUSTSTORE_TYPE_DEFAULT),
+            entry(TLS_KEYSTORE_TYPE, TLS_KEYSTORE_TYPE_DEFAULT),
             entry(TLS_TRUST_ALL, TLS_TRUST_ALL_DEFAULT),
             entry(TLS_VERIFY_HOST, TLS_VERIFY_HOST_DEFAULT),
             entry(HTTP_ADAPTER, HTTP_ADAPTER_DEFAULT),

@@ -36,9 +36,11 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.parallel.Isolated;
 
 @Tag(SMOKE)
 @QuarkusIntegrationTest
+@Isolated
 public class SchemasConfluentIT extends ConfluentBaseIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SchemasConfluentIT.class);

@@ -59,6 +59,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         schemaCache.configureLifetime(config.getCheckPeriod());
         schemaCache.configureRetryBackoff(config.getRetryBackoff());
         schemaCache.configureRetryCount(config.getRetryCount());
+        schemaCache.configureRetryTransientErrors(config.getRetryTransientErrors());
+        schemaCache.configureRetryTotalTimeout(config.getRetryTotalTimeout());
+        schemaCache.warnIfRetryBudgetUnbounded(estimateClientRetryLadderSleepMs(config));
         schemaCache.configureCacheLatest(config.getCacheLatest());
         schemaCache.configureFaultTolerantRefresh(config.getFaultTolerantRefresh());
         schemaCache.configureBackgroundRefresh(config.getBackgroundRefresh());
@@ -290,5 +293,65 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
                 .parsedSchema(parsedSchema)
                 .references(references)
                 .build();
+    }
+
+    /**
+     * Lower-bound estimate of sleep time for one HTTP client retry ladder (excludes request latency).
+     * Closed form once the per-step delay hits {@code maxDelayMs}, so a large
+     * {@code max-attempts} cannot hang {@code configure()}.
+     */
+    static long estimateClientRetryLadderSleepMs(SchemaResolverConfig config) {
+        if (!config.getClientRetryEnabled()) {
+            return 0L;
+        }
+        long maxAttempts = config.getClientRetryMaxAttempts();
+        if (maxAttempts <= 1) {
+            return 0L;
+        }
+        long delayMs = config.getClientRetryDelayMs();
+        long maxDelayMs = config.getClientRetryMaxDelayMs();
+        if (delayMs <= 0L || maxDelayMs <= 0L) {
+            return 0L;
+        }
+        double multiplier = config.getClientRetryBackoffMultiplier();
+        long sleeps = maxAttempts - 1;
+        long sleepMs = 0L;
+        long step = delayMs;
+        for (long i = 0; i < sleeps; i++) {
+            long capped = Math.min(step, maxDelayMs);
+            sleepMs = saturatingAdd(sleepMs, capped);
+            if (capped >= maxDelayMs) {
+                long remaining = sleeps - i - 1;
+                if (remaining > 0) {
+                    sleepMs = saturatingAdd(sleepMs, saturatingMul(remaining, maxDelayMs));
+                }
+                break;
+            }
+            double next = step * multiplier;
+            if (!Double.isFinite(next) || next >= maxDelayMs) {
+                step = maxDelayMs;
+            } else {
+                step = Math.max(1L, (long) next);
+            }
+        }
+        return sleepMs;
+    }
+
+    private static long saturatingAdd(long a, long b) {
+        long r = a + b;
+        if (((a ^ r) & (b ^ r)) < 0) {
+            return Long.MAX_VALUE;
+        }
+        return r;
+    }
+
+    private static long saturatingMul(long a, long b) {
+        if (a == 0L || b == 0L) {
+            return 0L;
+        }
+        if (a > Long.MAX_VALUE / b) {
+            return Long.MAX_VALUE;
+        }
+        return a * b;
     }
 }

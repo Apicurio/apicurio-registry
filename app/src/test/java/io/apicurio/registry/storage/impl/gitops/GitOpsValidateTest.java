@@ -7,6 +7,8 @@ import io.quarkus.test.junit.TestProfile;
 import org.eclipse.jgit.api.Git;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,8 +20,10 @@ import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
@@ -160,7 +164,7 @@ public class GitOpsValidateTest {
                     .get("/apis/registry/v3/admin/gitops/validate/" + taskId)
                     .then()
                     .extract().path("state").toString();
-            org.junit.jupiter.api.Assertions.assertNotEquals("pending", state);
+            assertNotEquals("pending", state);
         });
 
         // Simulate the sidecar: create a checkout from the test repo
@@ -213,7 +217,7 @@ public class GitOpsValidateTest {
                     .get("/apis/registry/v3/admin/gitops/validate/" + taskId)
                     .then()
                     .extract().path("state").toString();
-            org.junit.jupiter.api.Assertions.assertNotEquals("pending", state);
+            assertNotEquals("pending", state);
         });
 
         // Simulate the sidecar with invalid data
@@ -228,6 +232,54 @@ public class GitOpsValidateTest {
                     .body("state", equalTo("completed"))
                     .body("result", equalTo("failure"))
                     .body("errors", not(empty()));
+        });
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"../../../../etc", "/etc", "repo/../../etc"})
+    void validationRejectsMaliciousCheckoutPath(String maliciousPath) throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+        testRepository.load("git/smoke01");
+
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            given()
+                    .when()
+                    .get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("IDLE"));
+        });
+
+        final var taskId = given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "default", "ref": "main"}
+                        """)
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(200)
+                .extract().path("taskId").toString();
+
+        await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> {
+            final var state = given()
+                    .when()
+                    .get("/apis/registry/v3/admin/gitops/validate/" + taskId)
+                    .then()
+                    .extract().path("state").toString();
+            assertNotEquals("pending", state);
+        });
+
+        simulateSidecarFetchWithTraversalPath(taskId, maliciousPath);
+
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            given()
+                    .when()
+                    .get("/apis/registry/v3/admin/gitops/validate/" + taskId)
+                    .then()
+                    .statusCode(200)
+                    .body("state", equalTo("failed"))
+                    .body("errors.detail", hasItem("Invalid checkout path"));
         });
     }
 
@@ -254,6 +306,24 @@ public class GitOpsValidateTest {
         request.setStatus(ValidationRequest.Status.builder()
                 .state(SidecarState.FETCHED)
                 .checkoutPath("repo")
+                .completedAt(Instant.now().toString())
+                .build());
+        JsonObjectMapper.MAPPER.writerWithDefaultPrettyPrinter()
+                .writeValue(requestFile.toFile(), request);
+    }
+
+    /**
+     * Simulates a malicious sidecar writing a path-traversal checkoutPath to the request file.
+     */
+    private void simulateSidecarFetchWithTraversalPath(String taskId, String maliciousPath) throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+        final Path validateDir = Path.of(testRepository.getGitRepoUrl()).getParent().resolve("validate");
+
+        final Path requestFile = validateDir.resolve(taskId + ".json");
+        final var request = JsonObjectMapper.MAPPER.readValue(requestFile.toFile(), ValidationRequest.class);
+        request.setStatus(ValidationRequest.Status.builder()
+                .state(SidecarState.FETCHED)
+                .checkoutPath(maliciousPath)
                 .completedAt(Instant.now().toString())
                 .build());
         JsonObjectMapper.MAPPER.writerWithDefaultPrettyPrinter()

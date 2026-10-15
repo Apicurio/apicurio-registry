@@ -58,6 +58,20 @@ Multiple groups can be combined using JUnit 5 tag expressions:
 ./mvnw verify -Pintegration-tests -Dgroups="smoke | auth" -pl integration-tests -am
 ```
 
+## Parallel Execution
+
+Test classes can run concurrently against the deployed registry (methods within a
+class always run sequentially). This is disabled by default and enabled in CI:
+
+```bash
+./mvnw verify -Pintegration-tests -Djunit.jupiter.execution.parallel.enabled=true -pl integration-tests -am
+```
+
+Configuration lives in `src/test/resources/junit-platform.properties`. Test classes
+that mutate registry-global state (global rules, role mappings, the shared Confluent
+subject namespace, pod restarts, timing-sensitive assertions) must be annotated with
+`@Isolated` so they get exclusive access to the registry while they run.
+
 ## Deployment Modes
 
 The integration tests support four ways to run the registry under test:

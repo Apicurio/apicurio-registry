@@ -25,6 +25,8 @@ import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.OutboxEvent;
+import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.dto.PeerSearchResultsDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.ContractRuleSetDto;
@@ -157,6 +159,22 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @throws RegistryStorageException
      */
     ContentWrapperDto getContentById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets some artifact content by the unique contentId, together with the artifact type of one of the
+     * artifact versions that references it. This is a single-query variant of calling
+     * {@link #getContentById(long)} followed by {@link #getArtifactVersionsByContentId(long)} just to
+     * discover the artifact type - useful for read paths (e.g. ccompat's "get schema by id") that only need
+     * the type and not the full version meta-data. Throws {@link ContentNotFoundException} both when the
+     * content does not exist and when the content exists but is orphaned (not referenced by any artifact
+     * version), matching the semantics callers previously implemented by combining the two calls above.
+     *
+     * @param contentId
+     * @throws ContentNotFoundException
+     * @throws RegistryStorageException
+     */
+    ContentWrapperDto getContentAndArtifactTypeById(long contentId)
             throws ContentNotFoundException, RegistryStorageException;
 
     /**
@@ -564,6 +582,36 @@ public interface RegistryStorage extends DynamicConfigStorage {
     }
 
     /**
+     * Updates the contract metadata of an artifact by merging the given reserved contract.*
+     * labels, then fires a contract metadata updated event.
+     *
+     * <p>The prefix and the label map are resolved by the caller rather than derived here, so
+     * that a journal message carries exactly the values that were stored. Replaying such a
+     * message applies the same labels on every node, independent of the code version doing
+     * the replay.
+     */
+    default void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "updateContractMetadata not supported by this storage implementation");
+    }
+
+    /**
+     * Transitions the contract status of an artifact, updating the status label and any
+     * lifecycle date label implied by the target status. Fires a contract status changed
+     * event. The caller is responsible for validating that the transition is legal.
+     *
+     * @param effectiveDate the ISO date recorded on the lifecycle label for the target status.
+     *                      It is resolved by the caller rather than read from the clock here so
+     *                      that replaying a journal message applies the same value on every node.
+     */
+    default void transitionContractStatus(String groupId, String artifactId, String fromStatus,
+            String toStatus, String prefix, String effectiveDate) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "transitionContractStatus not supported by this storage implementation");
+    }
+
+    /**
      * Gets a sorted set of all artifact versions that exist for a given artifact.
      *
      * @param groupId (optional)
@@ -923,6 +971,47 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void deleteRoleMapping(String principalId) throws RegistryStorageException;
 
     /**
+     * Creates a peer registry.
+     *
+     * @param peer
+     */
+    void createPeer(PeerDto peer) throws RegistryStorageException;
+
+    /**
+     * Gets the details of a single peer registry.
+     *
+     * @param peerId
+     */
+    PeerDto getPeer(String peerId) throws RegistryStorageException;
+
+    /**
+     * Gets the list of all the peer registries.
+     */
+    List<PeerDto> getPeers() throws RegistryStorageException;
+
+    /**
+     * Search for peer registries.
+     *
+     * @param offset the number of peers to skip
+     * @param limit the result size limit
+     */
+    PeerSearchResultsDto searchPeers(int offset, int limit) throws RegistryStorageException;
+
+    /**
+     * Updates a single peer registry.
+     *
+     * @param peer
+     */
+    void updatePeer(PeerDto peer) throws RegistryStorageException;
+
+    /**
+     * Deletes a single peer registry.
+     *
+     * @param peerId
+     */
+    void deletePeer(String peerId) throws RegistryStorageException;
+
+    /**
      * Deletes ALL user data. Does not delete global data, such as log configuration.
      */
     void deleteAllUserData();
@@ -1107,6 +1196,12 @@ public interface RegistryStorage extends DynamicConfigStorage {
      * @param newState
      * @param dryRun
      */
+    /** Atomically updates the selected versions and descriptive metadata under a reserved label prefix. */
+    default void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
+        throw new UnsupportedOperationException("Atomic version state updates are not supported");
+    }
+
     void updateArtifactVersionState(String groupId, String artifactId, String version, VersionState newState,
             boolean dryRun);
 
@@ -1162,6 +1257,8 @@ public interface RegistryStorage extends DynamicConfigStorage {
     boolean isGlobalRuleExists(RuleType rule) throws RegistryStorageException;
 
     boolean isRoleMappingExists(String principalId);
+
+    boolean isPeerExists(String peerId);
 
     void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash);
 

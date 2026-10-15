@@ -99,7 +99,9 @@ public class VersionsMCPServer {
             @ToolArg(description = GROUP_ID) String groupId,
             @ToolArg(description = ARTIFACT_ID) String artifactId,
             @ToolArg(description = VERSION_EXPRESSION) String versionExpression,
-            @ToolArg(description = VERSION_STATE) String versionState
+            @ToolArg(
+                    description = VERSION_STATE + " Accepted values (case-insensitive): ENABLED, DISABLED, DEPRECATED, DRAFT."
+            ) String versionState
     ) {
         return handleError(() -> {
             service.updateVersionState(

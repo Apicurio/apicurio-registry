@@ -242,7 +242,7 @@
 
     function formatMd(text) {
         return ('<p>' + text
-            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
             .replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>')
             .replace(/`([^`]+)`/g, '<code>$1</code>')
             .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
@@ -251,8 +251,8 @@
             .replace(/^\* (.+)$/gm, '<li>$1</li>')
             .replace(/^- (.+)$/gm, '<li>$1</li>')
             .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
-            .replace(/\n\n/g, '</p><p>')
-            .replace(/\n/g, '<br>') + '</p>')
-            .replace(/<p><\/p>/g, '');
+            .replaceAll('\n\n', '</p><p>')
+            .replaceAll('\n', '<br>') + '</p>')
+            .replaceAll('<p></p>', '');
     }
 })();

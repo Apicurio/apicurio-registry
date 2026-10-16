@@ -152,8 +152,8 @@ public class SqlSequenceRepository {
 
         Optional<Long> maxId = maxIdTable.map(maxIdTableValue -> {
             if (currentIdSeq.isPresent()) {
-                if (currentIdSeq.get() > maxIdTableValue) {
-                    return currentIdSeq.get();
+                if (currentIdSeq.orElseThrow() > maxIdTableValue) {
+                    return currentIdSeq.orElseThrow();
                 }
             }
             return maxIdTableValue;
@@ -161,7 +161,7 @@ public class SqlSequenceRepository {
 
         if (maxId.isPresent()) {
             log.info("Resetting {} sequence", sequenceName);
-            long id = maxId.get();
+            long id = maxId.orElseThrow();
 
             if (isH2()) {
                 sequenceCounters.get(sequenceName).set(id);

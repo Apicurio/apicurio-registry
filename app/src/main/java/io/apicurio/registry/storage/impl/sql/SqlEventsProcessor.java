@@ -14,7 +14,9 @@ public class SqlEventsProcessor {
     public void processEvent(@Observes SqlOutboxEvent event) {
         if (sqlStore.supportsDatabaseEvents() && sqlStore.isReady()) {
             OutboxEvent outboxEvent = event.getOutboxEvent();
-            sqlStore.createEvent(outboxEvent);
+            if (outboxEvent != null) {
+                sqlStore.createEvent(outboxEvent);
+            }
         }
     }
 }

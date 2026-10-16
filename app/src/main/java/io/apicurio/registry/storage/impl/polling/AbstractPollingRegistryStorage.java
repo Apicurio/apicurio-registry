@@ -273,6 +273,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                 return false;
             }
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         }
     }
@@ -290,6 +291,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                         "Could not acquire read lock to get the active storage within 5 seconds");
             }
         } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
             throw new RegistryStorageException("Could not acquire read lock to get the active storage", ex);
         }
     }
@@ -307,6 +309,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                         "Could not acquire read lock to get the active storage within 5 seconds");
             }
         } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
             throw new RegistryStorageException("Could not acquire read lock to get the active storage", ex);
         }
     }
@@ -603,6 +606,21 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
     }
 
     @Override
+    public PeerDto getPeer(String peerId) {
+        return proxy(storage -> storage.getPeer(peerId));
+    }
+
+    @Override
+    public List<PeerDto> getPeers() {
+        return proxy(RegistryStorage::getPeers);
+    }
+
+    @Override
+    public PeerSearchResultsDto searchPeers(int offset, int limit) throws RegistryStorageException {
+        return proxy(storage -> storage.searchPeers(offset, limit));
+    }
+
+    @Override
     public DynamicConfigPropertyDto getRawConfigProperty(String propertyName) {
         return proxy(storage -> storage.getRawConfigProperty(propertyName));
     }
@@ -635,6 +653,11 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
     @Override
     public boolean isRoleMappingExists(String principalId) {
         return proxy(storage -> storage.isRoleMappingExists(principalId));
+    }
+
+    @Override
+    public boolean isPeerExists(String peerId) {
+        return proxy(storage -> storage.isPeerExists(peerId));
     }
 
     @Override

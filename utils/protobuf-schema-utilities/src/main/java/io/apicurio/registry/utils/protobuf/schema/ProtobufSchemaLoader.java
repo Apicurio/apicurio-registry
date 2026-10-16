@@ -1,6 +1,5 @@
 package io.apicurio.registry.utils.protobuf.schema;
 
-import com.google.common.base.Charsets;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.io.CharStreams;
@@ -77,7 +76,7 @@ public class ProtobufSchemaLoader {
             // Loads the proto file resource files.
             final InputStream inputStream = classLoader.getResourceAsStream(protoPath + proto);
             final String fileContents = CharStreams
-                    .toString(new InputStreamReader(inputStream, Charsets.UTF_8));
+                    .toString(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
             final okio.Path path = okio.Path.get("/" + protoPath + "/" + proto);
             FileHandle fileHandle = inMemoryFileSystem.openReadWrite(path);
             fileHandle.write(0, fileContents.getBytes(StandardCharsets.UTF_8), 0,

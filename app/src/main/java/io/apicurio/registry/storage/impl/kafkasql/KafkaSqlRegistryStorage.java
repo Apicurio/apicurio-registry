@@ -29,6 +29,7 @@ import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.storage.PeerValidator;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
@@ -76,6 +77,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.errors.WakeupException;
 import org.slf4j.Logger;
 
 import java.nio.file.Files;
@@ -87,6 +89,8 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -164,6 +168,10 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     // Reference to the consumer thread for health checks
     private volatile Thread consumerThread = null;
 
+    // How long onDestroy() waits for the consumer thread to exit before interrupting it.
+    // Package-private for testability.
+    long joinTimeoutMillis = 10_000;
+
     @Override
     public String storageName() {
         return "kafkasql";
@@ -215,10 +223,37 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @PreDestroy
     void onDestroy() {
         stopped = true;
-        try {
-            journalConsumer.close();
-        } catch (Exception e) {
-            log.debug("Ignoring journal consumer close error during shutdown: {}", e.getMessage());
+        if (consumerThread != null) {
+            // The consumer thread owns journalConsumer. KafkaConsumer is not thread-safe,
+            // and wakeup() is the only method safe to call from another thread. It causes
+            // poll() to throw WakeupException, and the consumer thread handles that by
+            // exiting its loop and calling close() on its own thread.
+            try {
+                journalConsumer.wakeup();
+            } catch (Exception e) {
+                log.debug("Ignoring journal consumer wakeup error during shutdown: {}", e.getMessage());
+            }
+            try {
+                consumerThread.join(joinTimeoutMillis);
+                if (consumerThread.isAlive()) {
+                    log.warn("Consumer thread did not exit within {} ms of wakeup(), interrupting.",
+                            joinTimeoutMillis);
+                    consumerThread.interrupt();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        } else {
+            // initialize() failed before startConsumerThread(), so no consumer thread exists
+            // to close journalConsumer, and it currently has no CDI disposer either. Quarkus
+            // serializes startup against shutdown, so nothing is polling the consumer here
+            // and close() is safe on this thread. Without it a failed startup leaks the
+            // consumer, and @PreDestroy runs on every test-profile teardown, not just at exit.
+            try {
+                journalConsumer.close();
+            } catch (Exception e) {
+                log.debug("Ignoring journal consumer close error during shutdown: {}", e.getMessage());
+            }
         }
         try {
             snapshotsConsumer.close();
@@ -273,10 +308,22 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                 // Restore database from snapshot
                 try {
                     String path = snapshotFound.value();
-                    if (null != path && !path.isBlank() && Files.exists(Path.of(snapshotFound.value()))) {
-                        log.debug("Snapshot with path {} found.", snapshotFound.value());
+                    if (null == path || path.isBlank()) {
+                        continue;
+                    }
+                    // Defense-in-depth: the path is read off the internal snapshots topic and drives
+                    // an H2 RUNSCRIPT at startup, so a value pointing outside the configured snapshot
+                    // store (absolute, or via "..") must not be used to load/execute an arbitrary
+                    // local SQL script.
+                    if (!isWithinSnapshotStore(configuration.getSnapshotStoreLocation(), path)) {
+                        log.warn("Snapshot with path {} ignored: it is outside the configured snapshot "
+                                + "store location {}.", path, configuration.getSnapshotStoreLocation());
+                        continue;
+                    }
+                    if (Files.exists(Path.of(path))) {
+                        log.debug("Snapshot with path {} found.", path);
                         snapshotRecordKey = snapshotFound.key();
-                        mostRecentSnapshotPath = Path.of(snapshotFound.value());
+                        mostRecentSnapshotPath = Path.of(path);
                     }
                 } catch (IllegalArgumentException ex) {
                     log.warn(
@@ -294,6 +341,25 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         }
 
         return snapshotRecordKey;
+    }
+
+    /**
+     * Checks whether a snapshot path read off the internal {@code snapshots} topic is contained
+     * within the configured snapshot store location ({@code apicurio.storage.snapshot.location}).
+     * Snapshots are written by the registry as {@code <store>/<uuid>.sql.gz}; on restore the value
+     * is used verbatim to drive an H2 {@code RUNSCRIPT}, so this rejects any value that resolves
+     * outside the store (absolute paths, {@code ..} traversal) as defense-in-depth.
+     *
+     * @return {@code true} only if {@code snapshotPath} resolves within {@code snapshotStoreLocation}
+     */
+    static boolean isWithinSnapshotStore(String snapshotStoreLocation, String snapshotPath) {
+        if (snapshotStoreLocation == null || snapshotStoreLocation.isBlank()
+                || snapshotPath == null || snapshotPath.isBlank()) {
+            return false;
+        }
+        Path store = Path.of(snapshotStoreLocation).toAbsolutePath().normalize();
+        Path candidate = Path.of(snapshotPath).toAbsolutePath().normalize();
+        return candidate.startsWith(store);
     }
 
     /**
@@ -360,6 +426,10 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                         }
                     }
                 }
+            } catch (WakeupException e) {
+                // Expected during shutdown: onDestroy() calls consumer.wakeup()
+                // to safely interrupt poll() from the CDI shutdown thread.
+                log.debug("Consumer wakeup received, shutting down.");
             } finally {
                 try {
                     consumer.close();
@@ -472,8 +542,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                 dryRun, owner);
         var uuid = blockOnResult(submitter.submitMessage(message));
 
-        Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createdArtifact = (Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto>) coordinator
-                .waitForResponse(uuid);
+        Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createdArtifact = Objects.requireNonNull(
+                (Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto>) coordinator.waitForResponse(uuid),
+                "Missing KafkaSQL response for createArtifact operation");
 
         if (!dryRun) {
             outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactCreated.of(createdArtifact.getLeft())));
@@ -845,6 +916,23 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
      *      java.lang.String, java.lang.String, io.apicurio.registry.types.VersionState, boolean)
      */
     @Override
+    public void updateArtifactVersionStates(String groupId, String artifactId, List<String> versions,
+            VersionState newState, String labelPrefix, Map<String, String> labels) {
+        Map<String, VersionState> oldStates = new HashMap<>();
+        for (String version : versions) {
+            oldStates.put(version, getArtifactVersionState(groupId, artifactId, version));
+        }
+        var message = new UpdateArtifactVersionStatesMessage(groupId, artifactId, versions, newState,
+                labelPrefix, labels);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+        for (String version : versions) {
+            outboxEvent.fire(KafkaSqlOutboxEvent.of(ArtifactVersionStateChanged.of(groupId, artifactId,
+                    version, oldStates.get(version), newState)));
+        }
+    }
+
+    @Override
     public void updateArtifactVersionState(String groupId, String artifactId, String version,
             VersionState newState, boolean dryRun) {
         // Capture the previous state before submitting the message, since the outbox event carries it.
@@ -1007,6 +1095,39 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     @Override
     public void deleteRoleMapping(String principalId) throws RegistryStorageException {
         var message = new DeleteRoleMapping1Message(principalId);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createPeer(io.apicurio.registry.storage.dto.PeerDto)
+     */
+    @Override
+    public void createPeer(PeerDto peer) throws RegistryStorageException {
+        PeerValidator.validate(peer);
+        var message = new CreatePeer1Message(peer);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updatePeer(io.apicurio.registry.storage.dto.PeerDto)
+     */
+    @Override
+    public void updatePeer(PeerDto peer) throws RegistryStorageException {
+        PeerValidator.validate(peer);
+        var message = new UpdatePeer1Message(peer);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deletePeer(java.lang.String)
+     */
+    @Override
+    public void deletePeer(String peerId) throws RegistryStorageException {
+        PeerValidator.validatePeerId(peerId);
+        var message = new DeletePeer1Message(peerId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
     }

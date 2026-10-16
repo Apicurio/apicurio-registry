@@ -2,9 +2,13 @@ package io.apicurio.registry.storage.impl.readonly;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.common.apps.config.DynamicConfigStorage;
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.Functional.Runnable1Ex;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
@@ -14,16 +18,21 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static io.restassured.RestAssured.given;
 import static java.util.Map.entry;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @QuarkusTest
 @Tag(ApicurioTestTags.SLOW)
-public class ReadOnlyRegistryStorageTest {
+public class ReadOnlyRegistryStorageTest extends AbstractResourceTestBase {
 
     @Inject
     @Current
@@ -67,6 +76,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("createDownload1", new State(true, s -> s.createDownload(null))),
                 entry("createGlobalRule2", new State(true, s -> s.createGlobalRule(null, null))),
                 entry("createGroup1", new State(true, s -> s.createGroup(null))),
+                entry("createPeer1", new State(true, s -> s.createPeer(null))),
                 entry("createRoleMapping3", new State(true, s -> s.createRoleMapping(null, null, null))),
                 entry("deleteAllExpiredDownloads0",
                         new State(true, RegistryStorage::deleteAllExpiredDownloads)),
@@ -86,6 +96,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("deleteGlobalRule1", new State(true, s -> s.deleteGlobalRule(null))),
                 entry("deleteGlobalRules0", new State(true, RegistryStorage::deleteGlobalRules)),
                 entry("deleteGroup1", new State(true, s -> s.deleteGroup(null))),
+                entry("deletePeer1", new State(true, s -> s.deletePeer(null))),
                 entry("deleteRoleMapping1", new State(true, s -> s.deleteRoleMapping(null))),
                 entry("exportData2", new State(false, s -> s.exportData(null, null))),
                 entry("forEachVersion1", new State(false, s -> s.forEachVersion(null))),
@@ -143,6 +154,8 @@ public class ReadOnlyRegistryStorageTest {
                 entry("getInboundArtifactReferences3",
                         new State(false, s -> s.getInboundArtifactReferences(null, null, null))),
                 entry("getLatestVersionTimestamp0", new State(false, RegistryStorage::getLatestVersionTimestamp)),
+                entry("getPeer1", new State(false, s -> s.getPeer(null))),
+                entry("getPeers0", new State(false, RegistryStorage::getPeers)),
                 entry("getRawConfigProperty1", new State(false, s -> s.getRawConfigProperty(null))),
                 entry("getRoleForPrincipal1", new State(false, s -> s.getRoleForPrincipal(null))),
                 entry("getRoleMapping1", new State(false, s -> s.getRoleMapping(null))),
@@ -170,6 +183,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("isContentExists1", new State(false, s -> s.isContentExists(null))),
                 entry("isGlobalRuleExists1", new State(false, s -> s.isGlobalRuleExists(null))),
                 entry("isGroupExists1", new State(false, s -> s.isGroupExists(null))),
+                entry("isPeerExists1", new State(false, s -> s.isPeerExists(null))),
                 entry("isReadOnly0", new State(false, RegistryStorage::isReadOnly)),
                 entry("isReady0", new State(false, RegistryStorage::isReady)),
                 entry("isRoleMappingExists1", new State(false, s -> s.isRoleMappingExists(null))),
@@ -183,6 +197,7 @@ public class ReadOnlyRegistryStorageTest {
                 entry("resetGlobalId0", new State(true, RegistryStorage::resetGlobalId)),
                 entry("searchArtifacts6", new State(false, s -> s.searchArtifacts(null, null, null, 0, 0, false))),
                 entry("searchGroups5", new State(false, s -> s.searchGroups(null, null, null, null, null))),
+                entry("searchPeers2", new State(false, s -> s.searchPeers(0, 20))),
                 entry("searchRoleMappings2", new State(false, s -> s.searchRoleMappings(0, 20))),
                 entry("searchVersions6", new State(false, s -> s.searchVersions(null, null, null, 0, 0, false))),
                 entry("setConfigProperty1", new State(true, s -> {
@@ -206,9 +221,12 @@ public class ReadOnlyRegistryStorageTest {
                         new State(true, s -> s.updateContentCanonicalHash(null, 0, null))),
                 entry("updateGlobalRule2", new State(true, s -> s.updateGlobalRule(null, null))),
                 entry("updateGroupMetaData2", new State(true, s -> s.updateGroupMetaData(null, null))),
+                entry("updatePeer1", new State(true, s -> s.updatePeer(null))),
                 entry("updateRoleMapping2", new State(true, s -> s.updateRoleMapping(null, null))),
                 entry("updateArtifactVersionState5",
                         new State(true, s -> s.updateArtifactVersionState(null, null, null, null, false))),
+                entry("updateArtifactVersionStates6",
+                        new State(true, s -> s.updateArtifactVersionStates(null, null, null, null, null, null))),
 
                 entry("getGroupRules1", new State(false, s -> s.getGroupRules(null))),
                 entry("getGroupRule2", new State(false, s -> s.getGroupRule(null, null))),
@@ -238,8 +256,13 @@ public class ReadOnlyRegistryStorageTest {
                 entry("createSnapshot1", new State(true, s -> s.createSnapshot(null))),
                 entry("upgradeData3", new State(true, s -> s.upgradeData(null, false, false))),
                 entry("createEvent1", new State(true, s -> s.createEvent(null))),
-                entry("supportsDatabaseEvents0", new State(true, s -> s.createEvent(null))),
-                entry("getContentByReference1", new State(true, s -> s.getContentByReference(null))),
+                entry("supportsDatabaseEvents0", new State(false, RegistryStorage::supportsDatabaseEvents)),
+                entry("getContentByReference1", new State(false, s -> s.getContentByReference(null))),
+                // recordUsageEvent/deleteOldUsageEvents write but are deliberately State(false):
+                // recordUsageEvent is fired by UsageTelemetryFilter as a side effect of serving a
+                // schema fetch (see adr/0003-usage-telemetry.md), so guarding it would break reads
+                // in read-only mode; deleteOldUsageEvents is retention cleanup run by the internal
+                // scheduled UsageAggregationJob, not a client-initiated write.
                 entry("recordUsageEvent1", new State(false, s -> s.recordUsageEvent(null))),
                 entry("deleteOldUsageEvents1", new State(false, s -> s.deleteOldUsageEvents(0))),
                 entry("getArtifactUsageMetrics2",
@@ -285,6 +308,42 @@ public class ReadOnlyRegistryStorageTest {
         dto.setValue("false");
         storage.setConfigProperty(dto);
         notEnabled();
+    }
+
+    /**
+     * Reproduces https://github.com/Apicurio/apicurio-registry/issues/9591 end-to-end via the
+     * REST API: a dereferenced GET must succeed while storage read-only mode is enabled, since
+     * it is a pure read and not a write.
+     */
+    @Test
+    void dereferencedGetAllowedInReadOnlyMode() throws Exception {
+        String referencedTypeContent = resourceToString("/io/apicurio/registry/noprofile/rest/avro-referenced-type.json");
+        String withReferenceContent = resourceToString("/io/apicurio/registry/noprofile/rest/avro-with-reference.json");
+
+        createArtifact("dereferencedGetAllowedInReadOnlyMode/Address", ArtifactType.AVRO,
+                referencedTypeContent, ContentTypes.APPLICATION_JSON);
+
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("com.example.common.Address").groupId("default")
+                .artifactId("dereferencedGetAllowedInReadOnlyMode/Address").version("1").build());
+        createArtifactWithReferences("default", "dereferencedGetAllowedInReadOnlyMode/Person",
+                ArtifactType.AVRO, withReferenceContent, ContentTypes.APPLICATION_JSON, refs);
+
+        var dto = new DynamicConfigPropertyDto();
+        dto.setName("apicurio.storage.read-only.enabled");
+        dto.setValue("true");
+        storage.setConfigProperty(dto);
+        try {
+            given().when().pathParam("groupId", "default")
+                    .pathParam("artifactId", "dereferencedGetAllowedInReadOnlyMode/Person")
+                    .pathParam("version", "1").queryParam("references", "DEREFERENCE")
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{version}/content")
+                    .then().statusCode(200).body(containsString("zipCode"))
+                    .body(not(containsString("com.example.common.Address")));
+        } finally {
+            dto.setValue("false");
+            storage.setConfigProperty(dto);
+        }
     }
 
     private void notEnabled() {

@@ -11,7 +11,7 @@ import io.apitomy.datamodels.models.asyncapi.AsyncApiMessage;
 import io.apitomy.datamodels.models.asyncapi.AsyncApiMultiFormatSchema;
 import io.apitomy.datamodels.models.asyncapi.v2x.AsyncApi2xMessage;
 import io.apitomy.datamodels.models.asyncapi.v3x.AsyncApi3xMessage;
-import io.apitomy.datamodels.models.union.MultiFormatSchemaSchemaUnion;
+import io.apitomy.datamodels.models.asyncapi.MultiFormatSchemaSchemaUnion;
 import io.apitomy.datamodels.models.visitors.AllNodeVisitor;
 import io.apitomy.datamodels.util.ModelTypeUtil;
 import io.apicurio.registry.content.TypedContent;

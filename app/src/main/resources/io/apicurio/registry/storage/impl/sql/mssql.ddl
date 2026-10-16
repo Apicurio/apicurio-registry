@@ -4,7 +4,7 @@
 
 CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL, propValue NVARCHAR(255));
 ALTER TABLE apicurio ADD PRIMARY KEY (propName);
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 109);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 111);
 
 CREATE TABLE sequences (seqName NVARCHAR(32) NOT NULL, seqValue BIGINT NOT NULL);
 ALTER TABLE sequences ADD PRIMARY KEY (seqName);
@@ -15,6 +15,10 @@ CREATE INDEX IDX_config_1 ON config(modifiedOn);
 
 CREATE TABLE acls (principalId NVARCHAR(256) NOT NULL, role NVARCHAR(32) NOT NULL, principalName NVARCHAR(256));
 ALTER TABLE acls ADD PRIMARY KEY (principalId);
+
+CREATE TABLE peers (peerId NVARCHAR(256) NOT NULL, url NVARCHAR(1024) NOT NULL, name NVARCHAR(512), description NVARCHAR(1024), enabled BIT NOT NULL DEFAULT 1, credentialSecretRef NVARCHAR(256));
+ALTER TABLE peers ADD PRIMARY KEY (peerId);
+CREATE INDEX IDX_peers_1 ON peers(enabled);
 
 CREATE TABLE downloads (downloadId NVARCHAR(128) NOT NULL, expires BIGINT NOT NULL, context NVARCHAR(1024));
 ALTER TABLE downloads ADD PRIMARY KEY (downloadId);
@@ -59,6 +63,11 @@ ALTER TABLE artifact_labels ADD PRIMARY KEY (groupId, artifactId, labelKey);
 ALTER TABLE artifact_labels ADD CONSTRAINT FK_alabels_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
 CREATE INDEX IDX_alabels_1 ON artifact_labels(labelKey);
 CREATE INDEX IDX_alabels_2 ON artifact_labels(labelValue);
+
+CREATE TABLE artifact_structured_content (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, elementType NVARCHAR(64) NOT NULL, elementValue NVARCHAR(256) NOT NULL);
+ALTER TABLE artifact_structured_content ADD PRIMARY KEY (groupId, artifactId, elementType, elementValue);
+ALTER TABLE artifact_structured_content ADD CONSTRAINT FK_asc_1 FOREIGN KEY (groupId, artifactId) REFERENCES artifacts(groupId, artifactId) ON DELETE CASCADE;
+CREATE INDEX IDX_asc_1 ON artifact_structured_content(elementType, elementValue);
 
 CREATE TABLE artifact_rules (groupId NVARCHAR(512) NOT NULL, artifactId NVARCHAR(512) NOT NULL, type NVARCHAR(32) NOT NULL, configuration NVARCHAR(1024) NOT NULL);
 ALTER TABLE artifact_rules ADD PRIMARY KEY (groupId, artifactId, type);

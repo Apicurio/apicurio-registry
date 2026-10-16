@@ -67,13 +67,46 @@ kubectl -n default patch apicurioregistry3 perf-test --type='json' -p="[
 kubectl -n default rollout status deployment/perf-test-app-deployment --timeout=3m
 
 REGISTRY_URL="http://${MINIKUBE_IP}:${APP_NODEPORT}/apis/registry/v3"
+TOKEN_URL="${KEYCLOAK_EXTERNAL_URL}/protocol/openid-connect/token"
+
+# kubectl reporting the rollout as complete only means the new pod passed its readiness probe -
+# not that DNS/service resolution, the JVM's JIT/class-loading warm-up, or (under contention right
+# after deploy.sh just started the entire topology - Kafka/Keycloak/Toxiproxy/app all at once) the
+# node's CPU scheduling have caught up. Requests sent in that gap can fail with 401 even though
+# both the token and the registry's authServerUrl config are already correct - this is a
+# readiness/warm-up race, not a reconciliation bug: manually re-tested the exact same
+# CR-patch-to-working-token round trip below in isolation (not immediately after a fresh
+# deploy.sh) and it consistently completed in under 2 seconds. Poll with one real authenticated
+# request until it actually succeeds, instead of assuming rollout status alone means "ready to
+# authenticate", with a generous bound to cover cold-start contention right after deploy.sh.
+echo "Waiting for the registry to accept tokens from the new authServerUrl..."
+READY=""
+for i in $(seq 1 90); do
+  TOKEN="$(curl -sf -X POST "$TOKEN_URL" \
+    -H 'Content-Type: application/x-www-form-urlencoded' \
+    -d 'grant_type=client_credentials&client_id=registry-api&client_secret=perf-test-secret' \
+    | sed -n 's/.*"access_token"\s*:\s*"\([^"]*\)".*/\1/p')" || true
+  if [ -n "$TOKEN" ]; then
+    STATUS="$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer ${TOKEN}" \
+      "${REGISTRY_URL}/groups/perf-test-seed/artifacts?limit=1")" || true
+    if [ "$STATUS" != "401" ]; then
+      READY="1"
+      break
+    fi
+  fi
+  sleep 2
+done
+if [ -z "$READY" ]; then
+  echo "WARNING: registry still returning 401 for the new authServerUrl after 180s - proceeding" \
+    "anyway, but seeding/the load run will likely fail authentication." >&2
+fi
 
 echo "Running the load generator externally: PERF_USERS=${PERF_USERS} PERF_DURATION_SECONDS=${PERF_DURATION_SECONDS} PERF_WRITE_RATIO=${PERF_WRITE_RATIO}"
 echo "  REGISTRY_URL=${REGISTRY_URL}"
-echo "  AUTH_TOKEN_ENDPOINT=${KEYCLOAK_EXTERNAL_URL}/protocol/openid-connect/token"
+echo "  AUTH_TOKEN_ENDPOINT=${TOKEN_URL}"
 
 REGISTRY_URL="$REGISTRY_URL" \
-AUTH_TOKEN_ENDPOINT="${KEYCLOAK_EXTERNAL_URL}/protocol/openid-connect/token" \
+AUTH_TOKEN_ENDPOINT="${TOKEN_URL}" \
 AUTH_CLIENT_ID="registry-api" \
 AUTH_CLIENT_SECRET="perf-test-secret" \
 PERF_USERS="$PERF_USERS" \

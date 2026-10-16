@@ -40,7 +40,7 @@ public class TagExtractorFactoryTest {
 
         Optional<TagExtractor> match = factory.getExtractor("AVRO");
         assertTrue(match.isPresent());
-        assertSame(extractor, match.get());
+        assertSame(extractor, match.orElseThrow());
     }
 
     @Test

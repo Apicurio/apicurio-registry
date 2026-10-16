@@ -17,6 +17,7 @@ import io.apicurio.registry.rest.v2.beans.RuleViolationCause;
 import io.apicurio.registry.rest.v2.beans.RuleViolationError;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.storage.error.AlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
@@ -55,6 +56,8 @@ public class CCompatExceptionMapperService {
         map.put(RuleViolationException.class, ErrorCode.INVALID_COMPATIBILITY_LEVEL.value());
         map.put(VersionNotFoundException.class, ErrorCode.VERSION_NOT_FOUND.value());
         map.put(UnprocessableEntityException.class, ErrorCode.INVALID_SCHEMA.value());
+        // Thrown by a compatibility checker for a schema it can't process; registration lets it through.
+        map.put(UnprocessableSchemaException.class, ErrorCode.INVALID_SCHEMA.value());
         map.put(ConflictException.class, HTTP_CONFLICT);
         map.put(SubjectNotSoftDeletedException.class, ErrorCode.SUBJECT_NOT_SOFT_DELETED.value());
         map.put(SchemaNotSoftDeletedException.class, ErrorCode.SCHEMA_VERSION_NOT_SOFT_DELETED.value());

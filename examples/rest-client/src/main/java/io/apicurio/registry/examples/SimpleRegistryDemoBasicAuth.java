@@ -37,6 +37,7 @@ public class SimpleRegistryDemoBasicAuth {
 
             RegistryDemoUtil.getSchemaFromRegistry(client, artifactId);
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         } finally {
             // If we do not provide our own instance of Vertx, then we must close the

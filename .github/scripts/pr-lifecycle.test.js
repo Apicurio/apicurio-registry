@@ -927,6 +927,23 @@ test('review relay: a fork PR (no pull_requests in the event) is found by its he
   assert.deepEqual(await relay(w, { pullRequests: [] }), [7]);
 });
 
+test('review relay: a fork PR past the first page of open PRs is found by its head commit', async () => {
+  // As GitHub sends it: a pull_request_review run reports the base repository
+  // as head_repository, so the head-branch lookup asks for Apicurio:feature-x
+  // and misses the fork's contributor:feature-x. Only the scan of every open
+  // PR finds it, here on its second page (#10605).
+  const w = rerunWorld({ runs: [skippedRun()], jobs: skippedJobs });
+  const forkPr = (await w.github.rest.pulls.get()).data;
+  w.github.rest.pulls.list = async ({ head }) => ({ data: head === 'contributor:feature-x' ? [forkPr] : [] });
+  const firstPage = Array.from({ length: 100 }, (_, i) => ({ number: 1000 + i, head: { sha: `other${i}` } }));
+  w.github.paginate = async (fn, params) => {
+    assert.equal(fn, w.github.rest.pulls.list);
+    assert.equal(params.head, undefined, 'the scan is not filtered by head branch');
+    return [...firstPage, forkPr];
+  };
+  assert.deepEqual(await relay(w, { pullRequests: [] }), [7]);
+});
+
 test('review relay: a review of a commit that is no longer the head does nothing', async () => {
   const w = rerunWorld({ headSha: 'newer0000000000', runs: [skippedRun()], jobs: skippedJobs });
   assert.deepEqual(await relay(w), []);

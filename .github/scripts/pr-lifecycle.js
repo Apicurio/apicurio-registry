@@ -589,10 +589,13 @@ async function resolveRunPrs(github, owner, repo, workflowRun, core) {
   });
   prRefs = prs.filter(p => p.head.sha === workflowRun.head_sha);
   if (!prRefs.length) {
-    // Last resort: scan all open PRs by head SHA (covers edge cases where
-    // the head-branch filter above misses, e.g. a stale/renamed branch).
-    const { data: openPrs } = await github.rest.pulls.list({
-      owner, repo, state: 'open', per_page: 50,
+    // Last resort: scan every open PR by head SHA. The head-branch filter
+    // above misses a stale/renamed branch, and always misses a fork PR on a
+    // Review Relay run: for pull_request_review, head_repository is the base
+    // repository, not the fork. Every page, or a fork PR older than the
+    // newest page of open PRs is never found (#10605).
+    const openPrs = await github.paginate(github.rest.pulls.list, {
+      owner, repo, state: 'open', per_page: 100,
     });
     prRefs = openPrs.filter(p => p.head.sha === workflowRun.head_sha);
   }

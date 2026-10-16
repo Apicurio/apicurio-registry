@@ -65,6 +65,10 @@ const LABEL_DEFS = {
 
 const BOT_LOGIN = 'github-actions[bot]';
 
+// GitHub App accounts (Copilot's reviewer, Renovate, ...) leave reviews and
+// can be requested as reviewers, but they are not people a ping can reach.
+const isBotLogin = login => login.endsWith('[bot]');
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -841,7 +845,7 @@ async function checkAndTransitionToReady(api, pr, core, reviews) {
     const requestedLogins = (pr.requested_reviewers || []).map(r => r.login);
     const allReviewers = [...new Set([...reviewerLogins, ...requestedLogins])];
     const mentions = allReviewers
-      .filter(login => login !== pr.user.login)
+      .filter(login => login !== pr.user.login && !isBotLogin(login))
       .map(login => `@${login}`)
       .join(' ');
     const mentionSuffix = mentions ? ` ${mentions}` : '';
@@ -1994,7 +1998,7 @@ async function handleReviewOverdue(github, api, config, core, owner, repo, pr, n
   const responsible = [...new Set([
     ...(pr.assignees || []).map(a => a.login),
     ...(pr.requested_reviewers || []).map(r => r.login),
-  ])].filter(login => login !== pr.user.login);
+  ])].filter(login => login !== pr.user.login && !isBotLogin(login));
   const mentions = responsible.length
     ? `\n\ncc ${responsible.map(login => `@${login}`).join(' ')}`
     : '';

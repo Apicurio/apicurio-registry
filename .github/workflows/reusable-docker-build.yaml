@@ -192,13 +192,13 @@ jobs:
           echo "tags=$TAGS" >> $GITHUB_OUTPUT
 
       - name: Build and Push Multi-arch Image
-        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        uses: Apitomy/apitomy-github-actions/retry@e10e64b8a9ca86982f45a1ea512847219ae2605e # v1.0.1
         env:
           DOCKER_TAGS: ${{ steps.tags.outputs.tags }}
         with:
-          timeout_minutes: 45
-          max_attempts: 3
-          retry_wait_seconds: 30
+          timeout-minutes: 45
+          max-attempts: 3
+          initial-delay: 30
           command: |
             # Convert comma-separated tags to --tag arguments
             TAG_ARGS=""

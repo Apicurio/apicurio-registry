@@ -33,7 +33,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.core.Context;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.slf4j.Logger;
 
 import java.io.InputStream;
 import java.math.BigInteger;
@@ -49,9 +48,6 @@ public class SearchResourceImpl implements SearchResource {
 
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     private static final String CANONICAL_QUERY_PARAM_ERROR_MESSAGE = "When setting 'canonical' to 'true', the 'artifactType' query parameter is also required.";
-
-    @Inject
-    Logger log;
 
     @Inject
     @Current
@@ -205,15 +201,23 @@ public class SearchResourceImpl implements SearchResource {
         return groupId;
     }
 
+    /**
+     * Canonicalize the given content.
+     * <p>
+     * This is invoked directly against client-supplied content and artifact type, so a
+     * canonicalization failure here means the request content could not be canonicalized for the
+     * given artifact type - a client error, not a server error.
+     *
+     * @throws BadRequestException if the content could not be canonicalized for the given artifact
+     *         type.
+     */
     protected TypedContent canonicalizeContent(String artifactType, TypedContent content) {
         try {
             ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
             ContentCanonicalizer canonicalizer = provider.getContentCanonicalizer();
-            TypedContent canonicalContent = canonicalizer.canonicalize(content, Collections.emptyMap());
-            return canonicalContent;
+            return canonicalizer.canonicalize(content, Collections.emptyMap());
         } catch (Exception e) {
-            log.debug("Failed to canonicalize content of type: {}", artifactType);
-            return content;
+            throw new BadRequestException("Failed to canonicalize content of type: " + artifactType, e);
         }
     }
 }

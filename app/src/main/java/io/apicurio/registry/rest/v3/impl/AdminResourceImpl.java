@@ -59,8 +59,10 @@ import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
+import io.apicurio.registry.storage.impl.gitops.GitOpsConfig;
 import io.apicurio.registry.storage.impl.gitops.GitOpsRegistryStorage;
 import io.apicurio.registry.storage.impl.gitops.GitOpsValidationTaskManager;
+import io.apicurio.registry.storage.impl.gitops.GitRepoConfig;
 import io.apicurio.registry.storage.impl.polling.PollingStorageStatus;
 import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
 import io.apicurio.registry.types.RuleType;
@@ -157,6 +159,9 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     Instance<GitOpsValidationTaskManager> validationTaskManager;
+
+    @Inject
+    GitOpsConfig gitOpsConfig;
 
     @Context
     HttpServletRequest request;
@@ -652,7 +657,26 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public GitOpsValidateTask createGitOpsValidateTask(GitOpsValidateRequest data) {
         requireGitOpsStorage();
+        validateRepoId(data.getRepoId());
         return requireValidationTaskManager().createTask(data);
+    }
+
+    /**
+     * Validates that the requested repoId matches one of the configured repositories.
+     * Rejects with a 400 that lists the known repository IDs so misconfigured CI/CD
+     * callers (typo'd or stale repoId) get an actionable error instead of a silent
+     * mismatch that surfaces later as a confusing validation failure.
+     */
+    private void validateRepoId(String repoId) {
+        var availableIds = gitOpsConfig.getRepos().stream().map(GitRepoConfig::id).toList();
+        if (repoId == null || repoId.isEmpty()) {
+            throw new BadRequestException(
+                    "Repository ID is required. Available repositories: " + availableIds);
+        }
+        if (!availableIds.contains(repoId)) {
+            throw new BadRequestException("Repository '" + repoId + "' is not configured. "
+                    + "Available repositories: " + availableIds);
+        }
     }
 
     @Override

@@ -215,7 +215,7 @@ public class PromptRenderingService {
     private Object convertDefaultValue(JsonNode defaultNode, String declaredType) {
         Object value = MAPPER.convertValue(defaultNode, Object.class);
         if (TYPE_INTEGER.equals(declaredType) && value instanceof Double doubleValue
-                && doubleValue == Math.rint(doubleValue) && !doubleValue.isInfinite()
+                && doubleValue == Math.rint(doubleValue)
                 && doubleValue >= Long.MIN_VALUE && doubleValue < LONG_RANGE_UPPER_BOUND_EXCLUSIVE) {
             return doubleValue.longValue();
         }

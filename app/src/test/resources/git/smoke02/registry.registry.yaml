@@ -2,3 +2,4 @@ $type: registry-v0
 registryId: test
 globalRules: []
 properties: []
+peers: []

@@ -239,16 +239,18 @@ jobs:
         run: |
           gh workflow run release-operator.yaml --repo "$GITHUB_REPOSITORY" -f tag="$RELEASE_VERSION"
 
-  # Slack notification using reusable workflow
-  notify-slack:
-    name: Slack Notification
-    needs: release-images
-    if: always()
-    uses: ./.github/workflows/reusable-notify-slack.yaml
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
+    needs: [release-images]
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
     with:
-      workflow-name: ${{ github.workflow }}
-      job-name: 'release-images'
-      job-status: ${{ needs.release-images.result }}
+      results: ${{ toJSON(needs) }}
+      version: ${{ github.event.release.tag_name || inputs.tag }}
     secrets:
-      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
-      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+      SLACK_GENERAL_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

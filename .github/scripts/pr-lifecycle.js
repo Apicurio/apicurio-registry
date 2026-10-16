@@ -1589,13 +1589,20 @@ async function handleTestResult({ github, context, core }) {
   }
 }
 
+// The keys the decide job writes to verify-decisions.json and
+// verify-changes.json (verify-decide.yaml, "Save decision summary"). A file
+// with any other key is rejected, so a key added there must be added here,
+// or no summary is posted at all. pr-lifecycle.test.js checks the two match.
+const DECISION_KEYS = new Set([
+  'lifecycle-ready', 'run-build', 'run-unit-tests', 'run-scalpel-report',
+  'run-integration', 'run-extras', 'run-sdk', 'run-cli',
+  'run-operator', 'run-console-plugin', 'run-go-sdk-freshness', 'scalpel-enabled',
+]);
+const CHANGES_KEYS = new Set([
+  'java', 'ui', 'integration', 'sdk', 'cli', 'go-sdk-gen', 'operator', 'console-plugin', 'ci',
+]);
+
 async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, core) {
-  const DECISION_KEYS = new Set([
-    'lifecycle-ready', 'run-build', 'run-unit-tests',
-    'run-integration', 'run-extras', 'run-sdk', 'run-cli',
-    'run-operator', 'run-go-sdk-freshness',
-  ]);
-  const CHANGES_KEYS = new Set(['java', 'ui', 'integration', 'sdk', 'cli', 'operator', 'go-sdk-gen', 'ci']);
   const ALLOWED_VALUES = new Set(['true', 'false', 'skip']);
   const EXPECTED_FILES = new Set(['verify-decisions.json', 'verify-changes.json']);
   const MAX_ARTIFACT_BYTES = 10240;
@@ -1697,11 +1704,13 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
       // than composing as "Build / ...".
       ['Build', 'run-build', 'Build '],
       ['Unit Tests', 'run-unit-tests', 'Unit Tests /'],
+      ['Scalpel Report', 'run-scalpel-report', 'Scalpel Report'],
       ['Integration Tests', 'run-integration', 'Integration Tests /'],
       ['Extra Tests', 'run-extras', 'Extra Tests /'],
       ['SDK Verification', 'run-sdk', 'SDK Verification /'],
       ['CLI Verification', 'run-cli', 'CLI Verification'],
       ['Operator Tests', 'run-operator', 'Operator Tests /'],
+      ['Console Plugin', 'run-console-plugin', 'Console Plugin /'],
     ];
 
     const rows = phases.map(([label, key, jobPrefix]) =>
@@ -2193,4 +2202,6 @@ module.exports = {
   reconcile,
   LABELS,
   FULL_SUITE_WORKFLOWS,
+  DECISION_KEYS,
+  CHANGES_KEYS,
 };

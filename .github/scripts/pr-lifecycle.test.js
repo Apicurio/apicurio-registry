@@ -1521,3 +1521,17 @@ test('review overdue: a young maintainer-blocked PR is left entirely alone', asy
     assert.equal(w.calls.comments.length, 0);
   });
 });
+
+// The decision summary rejects an artifact with any key it doesn't know, so a
+// key added to verify-decide.yaml without adding it to pr-lifecycle.js silently
+// stops the summary from being posted (#9758 did that for four keys).
+test('decision summary: accepted keys match what verify-decide.yaml writes', () => {
+  const workflow = fs.readFileSync(path.join(__dirname, '..', 'workflows', 'verify-decide.yaml'), 'utf8');
+  const keysWritten = file => {
+    const block = workflow.match(new RegExp(`cat > /tmp/${file} << 'ARTIFACT_EOF'\\n([\\s\\S]*?)\\n\\s*ARTIFACT_EOF`));
+    assert.ok(block, `verify-decide.yaml no longer writes /tmp/${file}`);
+    return [...block[1].matchAll(/"([\w-]+)":/g)].map(m => m[1]).sort();
+  };
+  assert.deepEqual(keysWritten('verify-decisions.json'), [...lifecycle.DECISION_KEYS].sort());
+  assert.deepEqual(keysWritten('verify-changes.json'), [...lifecycle.CHANGES_KEYS].sort());
+});

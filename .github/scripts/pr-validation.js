@@ -370,9 +370,10 @@ const MILESTONE_NOTE = 'Setting a milestone requires triage permission, so **a m
  */
 function checkUpgradeScripts(pr, files) {
   const maintenance = pr.base.ref !== UPGRADE_SEQUENCE_BRANCH;
-  // previous_filename: a script renamed out of upgrades/ is a change to it too.
-  const inUpgrades = f => [f.filename, f.previous_filename].some(n => n && n.startsWith(UPGRADES_DIR));
-  const touched = files.filter(f => inUpgrades(f) || f.filename === DB_VERSION_FILE);
+  // previous_filename: a file renamed away is a change to it too.
+  const paths = f => [f.filename, f.previous_filename].filter(Boolean);
+  const inUpgrades = f => paths(f).some(n => n.startsWith(UPGRADES_DIR));
+  const touched = files.filter(f => inUpgrades(f) || paths(f).includes(DB_VERSION_FILE));
   if (touched.length === 0) {
     return null;
   }

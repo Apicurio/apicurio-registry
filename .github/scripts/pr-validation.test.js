@@ -1018,6 +1018,13 @@ test('checkUpgradeScripts(): on a maintenance branch, db-version is frozen too',
   assert.match(item.detail, /- `db-version` \(modified\)/);
 });
 
+test('checkUpgradeScripts(): on a maintenance branch, renaming db-version away fails too', () => {
+  const files = [{ filename: `${SQL_DIR}db-version.old`, previous_filename: `${SQL_DIR}db-version`, status: 'renamed' }];
+  const item = checkUpgradeScripts(onBranch('3.3.x'), files);
+  assert.equal(item.status, 'action-needed');
+  assert.match(item.detail, /- `db-version` \(renamed\)/);
+});
+
 test('checkUpgradeScripts(): the maintainer label accepts the change, on any branch', () => {
   const approved = [{ name: 'db-upgrade/change-approved' }];
   for (const ref of ['main', '3.3.x']) {

@@ -183,7 +183,6 @@ jobs:
           timeout-minutes: 45
           max-attempts: 3
           initial-delay: 30
-          backoff-multiplier: 1
           command: |
             docker buildx build \
               --push \

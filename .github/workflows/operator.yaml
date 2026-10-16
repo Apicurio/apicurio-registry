@@ -406,7 +406,8 @@ jobs:
       # Pending until the setup timeout). Pull once up front with retries; with
       # driver=none the kubelet shares the host docker image store, so pods using
       # these (non-:latest) images get IfNotPresent semantics and never pull during
-      # tests. A pull already done is a no-op on retry.
+      # tests. A stalled attempt is killed after 3 minutes and retried (normal pulls of
+      # both images take under 70s). A pull already done is a no-op on retry.
       - name: Pre-pull OLM bundle and catalog images
         uses: Apitomy/apitomy-github-actions/retry@e10e64b8a9ca86982f45a1ea512847219ae2605e # v1.0.1
         with:
@@ -415,7 +416,7 @@ jobs:
             docker pull "$CATALOG_IMAGE"
           max-attempts: 3
           initial-delay: 5
-          backoff-multiplier: 1
+          timeout-minutes: 3
 
       # -Dtest.operator.timeout.long=600: extend default Awaitility timeout from 420s (7 min)
       #   to 600s (10 min) for slow Kafka/OLM startups on shared runners. This is read by

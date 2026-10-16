@@ -580,7 +580,7 @@ and tags starting with `3.`.
 
 | Workflow | Used by | Purpose |
 |----------|---------|---------|
-| `reusable-docker-build.yaml` | verify-publish, release-images | Multi-arch Docker build with QEMU + Buildx. Supports optional Maven/npm pre-build steps. Pushes to DockerHub and/or Quay.io. Includes retry logic (3 attempts, 30s wait). Configurable platforms, tags, registries | 30-60 min |
+| `reusable-docker-build.yaml` | verify-publish, release-images | Multi-arch Docker build with QEMU + Buildx. Supports optional Maven/npm pre-build steps. Pushes to DockerHub and/or Quay.io. Includes retry logic (3 attempts with 30s then 60s backoff, 45 min timeout per attempt). Configurable platforms, tags, registries | 30-60 min |
 | `reusable-notify.yaml` | release-*, release, update-website, publish-docs | Final Slack notification of a run, from the results of all its jobs: failure to the important channel mentioning the owner; success to general only when the caller asks (`release.yaml`). See [Notifications](#notifications) |
 
 ## Notifications

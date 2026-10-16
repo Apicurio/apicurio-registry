@@ -770,6 +770,41 @@ public class DraftContentTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testFinalizeCompatibleDraftWithCompatibilityRule() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.AVRO,
+                AVRO_CONTENT_V1, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setVersion("1.0");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
+
+        String compatibleContent = AVRO_CONTENT_V1.replace(
+                "{ \"name\" : \"LastName\" , \"type\" : \"string\" }",
+                "{ \"name\" : \"MiddleName\" , \"type\" : \"string\", \"default\" : \"\" },\n"
+                        + "                  { \"name\" : \"LastName\" , \"type\" : \"string\" }");
+        CreateVersion createVersion = TestUtils.clientCreateVersion(compatibleContent,
+                ContentTypes.APPLICATION_JSON);
+        createVersion.setVersion("2.0");
+        createVersion.setIsDraft(true);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().post(createVersion);
+
+        WrappedVersionState newState = new WrappedVersionState();
+        newState.setState(VersionState.ENABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("2.0").state().put(newState);
+
+        VersionMetaData v2 = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId)
+                .versions().byVersionExpression("2.0").get();
+        Assertions.assertEquals(VersionState.ENABLED, v2.getState());
+    }
+
+    @Test
     public void testNewVersionCheckedAgainstPublishedBaselineNotDraft() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();

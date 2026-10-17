@@ -901,9 +901,10 @@ public class PromptRenderingServiceTest {
         RenderPromptResponse response = renderingService.render(
                 content, variables, "default", "triple-brace", "1.0");
 
-        // Inner {{name}} is substituted; outer braces remain literal.
+        // A triple-brace run is not a placeholder, so it is left untouched
+        // rather than half-rendered to "Hello {Alice}!".
         Assertions.assertTrue(response.getValidationErrors().isEmpty());
-        Assertions.assertEquals("Hello {Alice}!", response.getRendered());
+        Assertions.assertEquals("Hello {{{name}}}!", response.getRendered());
     }
 
     @Test

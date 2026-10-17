@@ -673,4 +673,70 @@ public class FileDescriptorUtilsTest {
                 metadata.getMessageType().findFieldByName("value").getMessageType().getFullName());
         assertTrue(descriptor.findFieldByName("labels").isMapField());
     }
+
+    /**
+     * A dependency reachable through two import paths is resolved once and then reused. When it is
+     * reused, its own imports must still be handed to the file that imports it, otherwise Wire cannot
+     * load that file: main -> a -> b -> c resolves b, then main -> d -> b reuses b without c and
+     * fails with "unable to find test/transitive/c.proto".
+     */
+    @Test
+    public void testParseProtoFileWithDependencyReachableThroughTwoImportPaths() throws Exception {
+        String c = """
+                syntax = "proto3";
+                package test.transitive;
+                message C {
+                  enum Reason {
+                    UNKNOWN = 0;
+                  }
+                }
+                """;
+        String b = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/c.proto";
+                message B {
+                  C.Reason reason = 1;
+                }
+                """;
+        String a = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/b.proto";
+                message A {
+                  B b = 1;
+                }
+                """;
+        String d = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/b.proto";
+                message D {
+                  B b = 1;
+                }
+                """;
+        String main = """
+                syntax = "proto3";
+                package test.transitive;
+                import "test/transitive/a.proto";
+                import "test/transitive/d.proto";
+                message Main {
+                  A a = 1;
+                  D d = 2;
+                }
+                """;
+        Set<FileDescriptorUtils.ProtobufSchemaContent> deps = Set.of(
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/a.proto", a),
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/b.proto", b),
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/c.proto", c),
+                FileDescriptorUtils.ProtobufSchemaContent.of("test/transitive/d.proto", d));
+
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.parseProtoFileWithDependencies(
+                FileDescriptorUtils.ProtobufSchemaContent.of("main.proto", main), deps, null, true, true);
+
+        Descriptors.Descriptor reason = fd.findMessageTypeByName("Main").findFieldByName("d")
+                .getMessageType().findFieldByName("b").getMessageType().findFieldByName("reason")
+                .getEnumType().getContainingType();
+        assertEquals("test.transitive.C", reason.getFullName());
+    }
 }

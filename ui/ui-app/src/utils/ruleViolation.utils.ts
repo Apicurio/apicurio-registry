@@ -176,11 +176,15 @@ export const groupCausesByLocation = (causes: ViolationCause[]): ViolationGroup[
 };
 
 /**
- * The existing version the causes were compared against, when the server reports one. Non-transitive
- * levels compare against a single version, so the first one found is the one to show.
+ * The existing version the causes were compared against, when the server reports exactly one. Non-transitive
+ * levels always compare against the latest version. Transitive levels can report several (#10467), and then
+ * no single version can be put next to the submitted content.
  */
 export const comparedVersionOf = (causes: ViolationCause[]): string | undefined => {
     // A version on a location in a referenced artifact is that artifact's version, not this one's.
-    return causes.find(cause => cause.existing?.version !== undefined && cause.existing.reference === undefined)
-        ?.existing?.version;
+    const versions: Set<string> = new Set(causes
+        .filter(cause => cause.existing?.reference === undefined)
+        .map(cause => cause.existing?.version)
+        .filter((version): version is string => version !== undefined));
+    return versions.size === 1 ? [...versions][0] : undefined;
 };

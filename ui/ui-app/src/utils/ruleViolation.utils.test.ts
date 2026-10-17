@@ -168,7 +168,7 @@ describe("groupCausesByLocation", () => {
 });
 
 describe("comparedVersionOf", () => {
-    it("returns the first existing.version reported", () => {
+    it("returns the reported version, skipping causes without one", () => {
         expect(comparedVersionOf([cause("a"), cause("b", { existing: { version: "3" } })])).toBe("3");
     });
 
@@ -181,6 +181,20 @@ describe("comparedVersionOf", () => {
 
     it("is undefined when the only version is a referenced artifact's", () => {
         expect(comparedVersionOf([cause("a", { existing: { reference: "common.json", version: "7" } })])).toBeUndefined();
+    });
+
+    it("is undefined when the causes were found against different versions, as transitive levels report", () => {
+        expect(comparedVersionOf([
+            cause("a", { existing: { pointer: "/p", version: "1" } }),
+            cause("b", { existing: { pointer: "/q", version: "3" } })
+        ])).toBeUndefined();
+    });
+
+    it("returns the version when every cause names the same one", () => {
+        expect(comparedVersionOf([
+            cause("a", { existing: { pointer: "/p", version: "3" } }),
+            cause("b", { existing: { pointer: "/q", version: "3" } })
+        ])).toBe("3");
     });
 
     it("is undefined when no cause names the version", () => {

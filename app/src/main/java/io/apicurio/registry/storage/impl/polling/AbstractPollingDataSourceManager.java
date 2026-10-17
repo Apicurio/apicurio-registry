@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.impl.polling;
 
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.content.util.ContentTypeUtil;
@@ -18,6 +19,7 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.PeerDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
@@ -37,6 +39,7 @@ import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -58,6 +61,19 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
     RulesService rulesService;
 
     private PollingStorageConfig pollingConfig;
+
+    // Maps unambiguous file extensions to artifact types. Extensions like .xml are
+    // intentionally excluded because they could be WSDL, XSD, or plain XML — those
+    // use content-based detection via detectContentType() + determineArtifactType().
+    private static final Map<String, String> ARTIFACT_TYPE_BY_EXTENSION = Map.ofEntries(
+            Map.entry(".avsc", ArtifactType.AVRO),
+            Map.entry(".proto", ArtifactType.PROTOBUF),
+            Map.entry(".graphql", ArtifactType.GRAPHQL),
+            Map.entry(".gql", ArtifactType.GRAPHQL),
+            Map.entry(".wsdl", ArtifactType.WSDL),
+            Map.entry(".xsd", ArtifactType.XSD),
+            Map.entry(".thrift", ArtifactType.THRIFT)
+    );
 
     /**
      * This method MUST be called from the subclass.
@@ -245,17 +261,28 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                 return;
             }
 
+            // Preserve the original YAML-specified type so each version independently
+            // resolves its own content type. The artifact-level type is set from the
+            // first successfully resolved version when the YAML doesn't specify one.
+            final String yamlArtifactType = artifact.getArtifactType();
+
             List<String> publishedVersions = new ArrayList<>();
             for (int i = 0; i < versions.size(); i++) {
                 Version version = versions.get(i);
                 try {
-                    // Load content: supports direct path (content) and optional metadata (contentMetadata)
-                    Long contentId = processVersionContent(state, artifactFile, version,
-                            artifact.getArtifactType());
-                    if (contentId == null) {
+                    final VersionContentResult result = processVersionContent(state, artifactFile, version,
+                            yamlArtifactType);
+                    if (result == null) {
                         state.recordError(artifactFile, "Could not import content for artifact version %s.",
                                 artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion());
                         continue;
+                    }
+
+                    // When artifactType is not specified in the YAML, use the type resolved
+                    // from the first version's content detection. This also propagates to
+                    // PollingDataValidator which reads artifact.getArtifactType().
+                    if (artifact.getArtifactType() == null) {
+                        artifact.setArtifactType(result.resolvedArtifactType());
                     }
 
                     if (!artifactImported) {
@@ -296,7 +323,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                     e.description = version.getDescription();
                     e.labels = version.getLabels();
                     e.owner = version.getOwner();
-                    e.contentId = contentId;
+                    e.contentId = result.contentId();
                     e.createdOn = TimestampParser.parse(version.getCreatedOn(), state.getCommitTime());
                     e.modifiedOn = TimestampParser.parse(version.getModifiedOn(), state.getCommitTime());
 
@@ -407,6 +434,8 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
         }
     }
 
+    private record VersionContentResult(long contentId, String resolvedArtifactType) {}
+
     /**
      * Processes content for a version. Supports two modes:
      * <ul>
@@ -417,10 +446,10 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
      *     contentId, and optional references.</li>
      * </ul>
      *
-     * @return the contentId, or null on failure
+     * @return the content result with contentId and resolved artifact type, or null on failure
      */
-    private Long processVersionContent(ProcessingState state, PollingDataFile artifactFile, Version version,
-                                       String artifactType) {
+    private VersionContentResult processVersionContent(ProcessingState state, PollingDataFile artifactFile,
+                                                       Version version, String artifactType) {
         String contentPath = version.getContent();
         String contentMetadataPath = version.getContentMetadata();
 
@@ -429,21 +458,9 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             return null;
         }
 
-        // If contentMetadata is specified, load the Content entity for references and explicit contentId
-        Content contentMetadata = null;
-        if (contentMetadataPath != null && !contentMetadataPath.isBlank()) {
-            var metadataFile = findFileByPathRef(state, artifactFile, contentMetadataPath);
-            if (metadataFile == null) {
-                state.recordError(artifactFile, "Could not find content metadata file at path %s",
-                        Path.of(artifactFile.getPath()).resolveSibling(contentMetadataPath).normalize());
-                return null;
-            }
-            if (!metadataFile.isType(Type.CONTENT)) {
-                state.recordError(metadataFile, "Not a valid content metadata definition (expected $type: content-v0)");
-                return null;
-            }
-            contentMetadata = metadataFile.getEntityUnchecked();
-            metadataFile.setProcessed(true);
+        final Content contentMetadata = loadContentMetadata(state, artifactFile, contentMetadataPath);
+        if (contentMetadataPath != null && !contentMetadataPath.isBlank() && contentMetadata == null) {
+            return null;
         }
 
         // Load the actual content file
@@ -472,8 +489,12 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             }
             var typedContent = TypedContent.create(data, contentType);
 
-            // Determine artifact type from content if not specified
-            String resolvedArtifactType = utils.determineArtifactType(typedContent, artifactType);
+            // When no explicit artifact type is given, use the file extension as a hint
+            // for unambiguous types (.avsc→AVRO, .proto→PROTOBUF, etc.).
+            // Ambiguous extensions (.json, .yaml, .yml) fall through to content-based detection.
+            final String artifactTypeHint = artifactType != null
+                    ? artifactType : detectArtifactTypeFromExtension(dataFile.getPath());
+            final String resolvedArtifactType = utils.determineArtifactType(typedContent, artifactTypeHint);
 
             // Calculate content hash for deduplication
             String contentHash = utils.getContentHash(typedContent, null);
@@ -482,17 +503,11 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             Long existingContentId = state.getContentHashToId().get(contentHash);
             if (existingContentId != null) {
                 dataFile.setProcessed(true);
-                return existingContentId;
+                return new VersionContentResult(existingContentId, resolvedArtifactType);
             }
 
-            // Determine contentId: explicit from metadata > deterministic from hash > error
-            long contentId;
-            if (contentMetadata != null && contentMetadata.getContentId() != null) {
-                contentId = contentMetadata.getContentId();
-            } else if (pollingConfig.isDeterministicIdGenerationEnabled()) {
-                contentId = DeterministicIdGenerator.contentId(data);
-            } else {
-                state.recordError(dataFile, "contentId is required (deterministic ID generation is disabled)");
+            final Long contentId = resolveContentId(state, dataFile, contentMetadata, data);
+            if (contentId == null) {
                 return null;
             }
 
@@ -503,29 +518,64 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             e.canonicalHash = utils.getCanonicalContentHash(typedContent, resolvedArtifactType, null, null);
             e.artifactType = resolvedArtifactType;
             e.contentType = contentType;
-
-            if (contentMetadata != null && contentMetadata.getReferences() != null
-                    && !contentMetadata.getReferences().isEmpty()) {
-                List<ArtifactReferenceDto> refs = contentMetadata.getReferences().stream()
-                        .map(ref -> ArtifactReferenceDto.builder()
-                                .groupId(ref.getGroupId())
-                                .artifactId(ref.getArtifactId())
-                                .version(ref.getVersion())
-                                .name(ref.getName())
-                                .build())
-                        .collect(Collectors.toList());
-                e.serializedReferences = RegistryContentUtils.serializeReferences(refs);
-            }
+            e.serializedReferences = serializeReferences(contentMetadata);
 
             log.trace("Importing content from {}",dataFile.getPath());
             state.getStorage().importContent(e);
             state.getContentHashToId().put(contentHash, contentId);
             dataFile.setProcessed(true);
-            return contentId;
+            return new VersionContentResult(contentId, resolvedArtifactType);
         } catch (Exception ex) {
             state.recordError(dataFile, "Could not import content: %s", ex.getMessage());
             return null;
         }
+    }
+
+    private Long resolveContentId(ProcessingState state, PollingDataFile dataFile,
+                                  Content contentMetadata, ContentHandle data) {
+        if (contentMetadata != null && contentMetadata.getContentId() != null) {
+            return contentMetadata.getContentId();
+        } else if (pollingConfig.isDeterministicIdGenerationEnabled()) {
+            return DeterministicIdGenerator.contentId(data);
+        } else {
+            state.recordError(dataFile, "contentId is required (deterministic ID generation is disabled)");
+            return null;
+        }
+    }
+
+    private String serializeReferences(Content contentMetadata) {
+        if (contentMetadata == null || contentMetadata.getReferences() == null
+                || contentMetadata.getReferences().isEmpty()) {
+            return null;
+        }
+        final List<ArtifactReferenceDto> refs = contentMetadata.getReferences().stream()
+                .map(ref -> ArtifactReferenceDto.builder()
+                        .groupId(ref.getGroupId())
+                        .artifactId(ref.getArtifactId())
+                        .version(ref.getVersion())
+                        .name(ref.getName())
+                        .build())
+                .collect(Collectors.toList());
+        return RegistryContentUtils.serializeReferences(refs);
+    }
+
+    private Content loadContentMetadata(ProcessingState state, PollingDataFile artifactFile,
+                                        String contentMetadataPath) {
+        if (contentMetadataPath == null || contentMetadataPath.isBlank()) {
+            return null;
+        }
+        final var metadataFile = findFileByPathRef(state, artifactFile, contentMetadataPath);
+        if (metadataFile == null) {
+            state.recordError(artifactFile, "Could not find content metadata file at path %s",
+                    Path.of(artifactFile.getPath()).resolveSibling(contentMetadataPath).normalize());
+            return null;
+        }
+        if (!metadataFile.isType(Type.CONTENT)) {
+            state.recordError(metadataFile, "Not a valid content metadata definition (expected $type: content-v0)");
+            return null;
+        }
+        metadataFile.setProcessed(true);
+        return metadataFile.getEntityUnchecked();
     }
 
     private PollingDataFile findFileByPathRef(ProcessingState state, PollingDataFile base, String ref) {
@@ -541,7 +591,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
      * @return the detected content type, or defaultType if no match
      */
     protected static String detectContentType(String path, String defaultType) {
-        String lowerPath = path.toLowerCase();
+        final String lowerPath = path.toLowerCase(Locale.ROOT);
         if (lowerPath.endsWith(".yaml") || lowerPath.endsWith(".yml")) {
             return ContentTypes.APPLICATION_YAML;
         } else if (lowerPath.endsWith(".xml") || lowerPath.endsWith(".wsdl")
@@ -549,12 +599,21 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             return ContentTypes.APPLICATION_XML;
         } else if (lowerPath.endsWith(".proto")) {
             return ContentTypes.APPLICATION_PROTOBUF;
-        } else if (lowerPath.endsWith(".graphql")) {
+        } else if (lowerPath.endsWith(".graphql") || lowerPath.endsWith(".gql")) {
             return ContentTypes.APPLICATION_GRAPHQL;
         } else if (lowerPath.endsWith(".thrift")) {
             return ContentTypes.APPLICATION_THRIFT;
         }
         return defaultType;
+    }
+
+    protected static String detectArtifactTypeFromExtension(String path) {
+        final String lowerPath = path.toLowerCase(Locale.ROOT);
+        final int dotIndex = lowerPath.lastIndexOf('.');
+        if (dotIndex >= 0) {
+            return ARTIFACT_TYPE_BY_EXTENSION.get(lowerPath.substring(dotIndex));
+        }
+        return null;
     }
 
     /**

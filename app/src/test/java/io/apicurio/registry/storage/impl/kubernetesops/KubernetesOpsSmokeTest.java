@@ -110,7 +110,7 @@ class KubernetesOpsSmokeTest {
         // Waiting to load smoke02
         configMapStore.load("git/smoke02");
         await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
-                equalTo(Set.of("person")));
+                equalTo(Set.of("person", "user")));
 
         // Global rules
         assertEquals(Set.of(), Set.copyOf(storage.getGlobalRules()));

@@ -1535,3 +1535,23 @@ test('decision summary: accepted keys match what verify-decide.yaml writes', () 
   assert.deepEqual(keysWritten('verify-decisions.json'), [...lifecycle.DECISION_KEYS].sort());
   assert.deepEqual(keysWritten('verify-changes.json'), [...lifecycle.CHANGES_KEYS].sort());
 });
+
+// Scalpel Report runs only when Decide sets both run-scalpel-report and
+// scalpel-enabled (verify.yaml). With ci/disable-scalpel the job is skipped on
+// purpose, so its row must read as not planned, not as an incomplete run.
+const scalpelRow = (decisions, jobs) =>
+  lifecycle.decisionSummaryRows(decisions, jobs).find(r => r.startsWith('| Scalpel Report |'));
+
+test('decision summary: Scalpel Report disabled by scalpel-enabled shows as not planned', () => {
+  const jobs = [{ name: 'Scalpel Report', conclusion: 'skipped' }];
+  assert.equal(scalpelRow({ 'run-scalpel-report': 'true', 'scalpel-enabled': 'false' }, jobs),
+    '| Scalpel Report | ➖ |');
+});
+
+test('decision summary: Scalpel Report planned and enabled shows its job result', () => {
+  const decisions = { 'run-scalpel-report': 'true', 'scalpel-enabled': 'true' };
+  assert.equal(scalpelRow(decisions, [{ name: 'Scalpel Report', conclusion: 'success' }]),
+    '| Scalpel Report | 🟢 |');
+  assert.equal(scalpelRow(decisions, [{ name: 'Scalpel Report', conclusion: 'skipped' }]),
+    '| Scalpel Report | 🟡 |');
+});

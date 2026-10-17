@@ -1602,6 +1602,50 @@ const CHANGES_KEYS = new Set([
   'java', 'ui', 'integration', 'sdk', 'cli', 'go-sdk-gen', 'operator', 'console-plugin', 'ci',
 ]);
 
+// One summary row per Verify phase: [label, decision key, job name prefix,
+// extra decision keys]. A phase counts as planned only when its key and every
+// extra key are 'true', matching the job's `if:` in verify.yaml. Otherwise a
+// job that was skipped on purpose shows as 🟡 instead of ➖.
+const SUMMARY_PHASES = [
+  ['Lint and Validate', 'lifecycle-ready', 'Lint and Validate'],
+  // build-java/build-ui are inlined directly in verify.yaml (not a
+  // reusable "Build" caller job), so they are named "Build Java
+  // Application (no tests)" / "Build UI Application" directly rather
+  // than composing as "Build / ...".
+  ['Build', 'run-build', 'Build '],
+  ['Unit Tests', 'run-unit-tests', 'Unit Tests /'],
+  ['Scalpel Report', 'run-scalpel-report', 'Scalpel Report', ['scalpel-enabled']],
+  ['Integration Tests', 'run-integration', 'Integration Tests /'],
+  ['Extra Tests', 'run-extras', 'Extra Tests /'],
+  ['SDK Verification', 'run-sdk', 'SDK Verification /'],
+  ['CLI Verification', 'run-cli', 'CLI Verification'],
+  ['Operator Tests', 'run-operator', 'Operator Tests /'],
+  ['Console Plugin', 'run-console-plugin', 'Console Plugin /'],
+];
+
+function decisionSummaryRows(decisions, jobs) {
+  const jobResult = (namePrefix) => {
+    const matching = jobs.filter(j => j.name.startsWith(namePrefix));
+    if (!matching.length) return 'skipped';
+    if (matching.some(j => j.conclusion === 'failure')) return 'failure';
+    if (matching.every(j => j.conclusion === 'skipped')) return 'skipped';
+    if (matching.every(j => j.conclusion === 'success' || j.conclusion === 'skipped')) return 'success';
+    return 'mixed';
+  };
+
+  const icon = (planned, result) => {
+    if (!planned) return '➖';
+    if (result === 'success') return '🟢';
+    if (result === 'failure') return '🔴';
+    return '🟡';
+  };
+
+  return SUMMARY_PHASES.map(([label, key, jobPrefix, extraKeys = []]) => {
+    const planned = [key, ...extraKeys].every(k => decisions[k] === 'true');
+    return `| ${label} | ${icon(planned, jobResult(jobPrefix))} |`;
+  });
+}
+
 async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, core) {
   const ALLOWED_VALUES = new Set(['true', 'false', 'skip']);
   const EXPECTED_FILES = new Set(['verify-decisions.json', 'verify-changes.json']);
@@ -1678,44 +1722,9 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
       owner, repo, run_id: workflowRun.id, per_page: 100,
     });
 
-    const jobResult = (namePrefix) => {
-      const matching = jobs.filter(j => j.name.startsWith(namePrefix));
-      if (!matching.length) return 'skipped';
-      if (matching.some(j => j.conclusion === 'failure')) return 'failure';
-      if (matching.every(j => j.conclusion === 'skipped')) return 'skipped';
-      if (matching.every(j => j.conclusion === 'success' || j.conclusion === 'skipped')) return 'success';
-      return 'mixed';
-    };
-
-    const icon = (planned, result) => {
-      if (planned !== 'true') return '➖';
-      if (result === 'success') return '🟢';
-      if (result === 'failure') return '🔴';
-      return '🟡';
-    };
-
     const conclusion = workflowRun.conclusion === 'success' ? '✅ passed' : '❌ failed';
 
-    const phases = [
-      ['Lint and Validate', 'lifecycle-ready', 'Lint and Validate'],
-      // build-java/build-ui are inlined directly in verify.yaml (not a
-      // reusable "Build" caller job), so they are named "Build Java
-      // Application (no tests)" / "Build UI Application" directly rather
-      // than composing as "Build / ...".
-      ['Build', 'run-build', 'Build '],
-      ['Unit Tests', 'run-unit-tests', 'Unit Tests /'],
-      ['Scalpel Report', 'run-scalpel-report', 'Scalpel Report'],
-      ['Integration Tests', 'run-integration', 'Integration Tests /'],
-      ['Extra Tests', 'run-extras', 'Extra Tests /'],
-      ['SDK Verification', 'run-sdk', 'SDK Verification /'],
-      ['CLI Verification', 'run-cli', 'CLI Verification'],
-      ['Operator Tests', 'run-operator', 'Operator Tests /'],
-      ['Console Plugin', 'run-console-plugin', 'Console Plugin /'],
-    ];
-
-    const rows = phases.map(([label, key, jobPrefix]) =>
-      `| ${label} | ${icon(decisions[key], jobResult(jobPrefix))} |`
-    );
+    const rows = decisionSummaryRows(decisions, jobs);
 
     const bodyParts = [
       '<!-- verify-decide-summary -->',
@@ -2204,4 +2213,5 @@ module.exports = {
   FULL_SUITE_WORKFLOWS,
   DECISION_KEYS,
   CHANGES_KEYS,
+  decisionSummaryRows,
 };

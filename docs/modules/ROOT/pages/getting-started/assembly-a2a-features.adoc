@@ -326,6 +326,8 @@ Visibility labels control which Agent Cards appear in `/.well-known/agents` sear
 
 NOTE: When no authentication mechanism is configured (OIDC, basic, proxy header, Kubernetes, or form), {registry} skips visibility filtering and all agents are visible to all users.
 
+NOTE: This visibility model applies only to Agent Cards. MCP tool definitions are not subject to `apicurio.agent.visibility` or `apicurio.a2a.default-visibility`; see xref:getting-started/assembly-mcp-tool-features.adoc#mcp-tool-visibility_{context}[MCP tool visibility] for details.
+
 // ref-a2a-agent-card-artifact-type
 [id="a2a-agent-card-artifact-type_{context}"]
 == Agent Card artifact type

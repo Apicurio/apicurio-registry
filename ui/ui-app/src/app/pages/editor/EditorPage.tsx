@@ -43,6 +43,7 @@ import { TextEditor } from "@editors/TextEditor.tsx";
 import { ProtoEditor } from "@editors/ProtoEditor.tsx";
 import { OpenApiEditor } from "@editors/OpenApiEditor.tsx";
 import { AsyncApiEditor } from "@editors/AsyncApiEditor.tsx";
+import { PromptTemplateEditor } from "@editors/PromptTemplateEditor.tsx";
 import { ArtifactTypes } from "@services/useArtifactTypesService.ts";
 import { useLoggerService } from "@services/useLoggerService.ts";
 import { serializeEditorDraftContent } from "./editorDraftSnapshot.ts";
@@ -443,6 +444,10 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         <AsyncApiEditor key={`asyncapi-${snapshotKey}-${iframeEditorKey}`} content={draftContent} onChange={onEditorChange}/>
     );
 
+    const promptTemplateEditor: React.ReactElement = (
+        <PromptTemplateEditor content={draftContent} onChange={onEditorChange}/>
+    );
+
     const editor = (): React.ReactElement => {
         if (isDraftLoaded && draft.isDraft === false) {
             logger.warn("Artifact version is not a draft.");
@@ -458,6 +463,9 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         } else if (draft?.type === ArtifactTypes.PROTOBUF) {
             logger.info("Draft is of type PROTOBUF");
             return protoEditor;
+        } else if (draft?.type === ArtifactTypes.PROMPT_TEMPLATE) {
+            logger.info("Draft is of type PROMPT_TEMPLATE");
+            return promptTemplateEditor;
         }
 
         // TODO create different text editors depending on the content type?  Or assume

@@ -145,11 +145,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
     public String insertVersion(boolean firstVersion) {
         // TODO: Use COALESCE to unify into a single query.
         String query;
+        // NOTE: The caller's artifact row lock, or its uncommitted artifact insert, serializes both
+        // branches, and UQ_versions_3 (groupId, artifactId, versionOrder) rejects a duplicate
+        // versionOrder if it does not.
         if (firstVersion) {
             query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
                     + " VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         } else {
-            // NOTE: Duplicated value of versionOrder is prevented by UQ_versions_2 constraint.
             query = "INSERT INTO versions (globalId, groupId, artifactId, version, versionSortKey, versionOrder, state, name, description, owner, createdOn, modifiedBy, modifiedOn, labels, contentId)"
                     + " VALUES (?, ?, ?, ?, ?, (SELECT maxVer FROM (SELECT MAX(versionOrder) + 1 AS maxVer FROM versions WHERE groupId = ? AND artifactId = ?) temp), ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         }

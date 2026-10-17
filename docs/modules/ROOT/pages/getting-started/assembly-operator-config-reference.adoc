@@ -16,7 +16,7 @@ custom resource.
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The `ApicurioRegistry3` custom resource defines the desired state of a {registry} instance. The resource is
+The `ApicurioRegistry3` custom resource defines the desired state of an instance of {registry}. The resource is
 organized into two main sections under `spec`:
 
 [source,yaml,subs="attributes"]

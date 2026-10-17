@@ -327,7 +327,7 @@ For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoin
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-When an artifact version is added to a {registry} artifact, a set of metadata properties is created and stored along with the artifact version content. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact version is created.
+When an artifact version is added to an artifact in {registry}, a set of metadata properties is created and stored along with the artifact version content. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact version is created.
 
 .{registry} system-generated metadata
 [.table-expandable,width="100%",cols="1,1,2",options="header"]

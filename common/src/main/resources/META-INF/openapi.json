@@ -6923,6 +6923,10 @@
           "name": {
             "description": "The name of the error (typically a server exception class name).",
             "type": "string"
+          },
+          "ruleViolation": {
+            "description": "Rule violation details when the error is caused by a rule violation.",
+            "$ref": "#/components/schemas/RuleViolationDetails"
           }
         },
         "example": {
@@ -7025,6 +7029,20 @@
         "example": {
           "description": "External documentation URL is not valid (it must be formatted as a URL).",
           "context": "/info/externalDocs[url]"
+        }
+      },
+      "RuleViolationDetails": {
+        "title": "Rule Violation Details",
+        "description": "Details of rule violations when the problem is caused by a rule violation.",
+        "type": "object",
+        "properties": {
+          "causes": {
+            "description": "List of rule violation causes.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleViolationCause"
+            }
+          }
         }
       },
       "IfArtifactExists": {
@@ -7679,13 +7697,11 @@
         "type": "object",
         "allOf": [
           {
-            "required": [
-              "causes"
-            ],
             "type": "object",
             "properties": {
               "causes": {
-                "description": "List of rule violation causes.",
+                "deprecated": true,
+                "description": "List of rule violation causes. Deprecated: use ruleViolation.causes instead.",
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/RuleViolationCause"

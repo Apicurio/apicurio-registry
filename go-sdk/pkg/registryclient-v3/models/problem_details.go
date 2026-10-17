@@ -19,6 +19,8 @@ type ProblemDetails struct {
 	instance *string
 	// The name of the error (typically a server exception class name).
 	name *string
+	// Details of rule violations when the problem is caused by a rule violation.
+	ruleViolation RuleViolationDetailsable
 	// The HTTP status code.
 	status *int32
 	// A short, human-readable summary of the problem type.
@@ -94,6 +96,16 @@ func (m *ProblemDetails) GetFieldDeserializers() map[string]func(i878a80d2330e89
 		}
 		return nil
 	}
+	res["ruleViolation"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetObjectValue(CreateRuleViolationDetailsFromDiscriminatorValue)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetRuleViolation(val.(RuleViolationDetailsable))
+		}
+		return nil
+	}
 	res["status"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetInt32Value()
 		if err != nil {
@@ -139,6 +151,12 @@ func (m *ProblemDetails) GetName() *string {
 	return m.name
 }
 
+// GetRuleViolation gets the ruleViolation property value. Details of rule violations when the problem is caused by a rule violation.
+// returns a RuleViolationDetailsable when successful
+func (m *ProblemDetails) GetRuleViolation() RuleViolationDetailsable {
+	return m.ruleViolation
+}
+
 // GetStatus gets the status property value. The HTTP status code.
 // returns a *int32 when successful
 func (m *ProblemDetails) GetStatus() *int32 {
@@ -173,6 +191,12 @@ func (m *ProblemDetails) Serialize(writer i878a80d2330e89d26896388a3f487eef27b0a
 	}
 	{
 		err := writer.WriteStringValue("name", m.GetName())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteObjectValue("ruleViolation", m.GetRuleViolation())
 		if err != nil {
 			return err
 		}
@@ -224,6 +248,11 @@ func (m *ProblemDetails) SetName(value *string) {
 	m.name = value
 }
 
+// SetRuleViolation sets the ruleViolation property value. Details of rule violations when the problem is caused by a rule violation.
+func (m *ProblemDetails) SetRuleViolation(value RuleViolationDetailsable) {
+	m.ruleViolation = value
+}
+
 // SetStatus sets the status property value. The HTTP status code.
 func (m *ProblemDetails) SetStatus(value *int32) {
 	m.status = value
@@ -245,12 +274,14 @@ type ProblemDetailsable interface {
 	GetDetail() *string
 	GetInstance() *string
 	GetName() *string
+	GetRuleViolation() RuleViolationDetailsable
 	GetStatus() *int32
 	GetTitle() *string
 	GetTypeEscaped() *string
 	SetDetail(value *string)
 	SetInstance(value *string)
 	SetName(value *string)
+	SetRuleViolation(value RuleViolationDetailsable)
 	SetStatus(value *int32)
 	SetTitle(value *string)
 	SetTypeEscaped(value *string)

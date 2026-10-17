@@ -11,6 +11,16 @@ public class ContentTypes {
     public static final String APPLICATION_THRIFT = "application/x-thrift";
     public static final String APPLICATION_EMPTY = "application/vnd.apicurio.empty";
 
+    // AsyncAPI 3.0 Multi-Format Schema Object "schemaFormat" values, as registered by the specification
+    public static final String ASYNCAPI_SCHEMA_FORMAT_AVRO_PREFIX = "application/vnd.apache.avro";
+    public static final String ASYNCAPI_SCHEMA_FORMAT_AVRO = ASYNCAPI_SCHEMA_FORMAT_AVRO_PREFIX
+            + "+json;version=1.9.0";
+    public static final String ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_PREFIX = "application/vnd.google.protobuf";
+    public static final String ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_2 = ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_PREFIX
+            + ";version=2";
+    public static final String ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_3 = ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_PREFIX
+            + ";version=3";
+
     public static boolean isEmptyContentType(String contentType) {
         return APPLICATION_EMPTY.equals(contentType);
     }

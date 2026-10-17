@@ -6,14 +6,19 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apitomy.datamodels.Library;
 import io.apitomy.datamodels.models.Document;
 import io.apitomy.datamodels.models.Node;
+import io.apitomy.datamodels.models.asyncapi.AsyncApiMultiFormatSchema;
 import io.apitomy.datamodels.refs.LocalReferenceResolver;
 import io.apitomy.datamodels.refs.ResolvedReference;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.content.util.ContentTypeUtil;
+import io.apicurio.registry.types.ContentTypes;
 
 import java.io.IOException;
+import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class RegistryReferenceResolver extends LocalReferenceResolver {
 
@@ -28,6 +33,15 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
         PROTOBUF,
         OTHER
     }
+
+    private static final Pattern PROTO_COMMENT_PATTERN = Pattern
+            .compile("//[^\\n]*|/\\*.*?\\*/", Pattern.DOTALL);
+
+    private static final Pattern PROTO_SYNTAX_PATTERN = Pattern
+            .compile("\\bsyntax\\s*=\\s*[\"']proto([23])[\"']");
+
+    private static final Pattern PROTO_EDITION_PATTERN = Pattern
+            .compile("\\bedition\\s*=\\s*[\"'][^\"']*[\"']");
 
     private final Map<String, TypedContent> resolvedReferences;
 
@@ -49,8 +63,8 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
     private ReferencedContentType detectContentType(TypedContent resolvedRefContent) {
         String contentType = resolvedRefContent.getContentType();
 
-        // Check for Protobuf first (text-based)
-        if (contentType != null && (contentType.contains("protobuf") || contentType.contains("proto"))) {
+        // Check for Protobuf first (text-based). The content type may be a media type or an artifact type name.
+        if (contentType != null && contentType.toLowerCase(Locale.ROOT).contains("proto")) {
             return ReferencedContentType.PROTOBUF;
         }
 
@@ -150,14 +164,14 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
                         // For Avro, return as JSON with appropriate media type
                         // The dereferencer will wrap it in a Multi-Format Schema Object
                         JsonNode avroNode = ContentTypeUtil.parseJsonOrYaml(resolvedRefContent);
-                        return ResolvedReference.fromJson(avroNode,
-                                "application/vnd.apache.avro+json");
+                        return ResolvedReference.fromJson(avroNode, avroSchemaFormat(from));
 
                     case PROTOBUF:
                         // For Protobuf, return as text with appropriate media type
                         // The dereferencer will wrap it in a Multi-Format Schema Object
                         String protoContent = resolvedRefContent.getContent().content();
-                        return ResolvedReference.fromText(protoContent, "application/x-protobuf");
+                        return ResolvedReference.fromText(protoContent,
+                                protobufSchemaFormat(from, protoContent));
 
                     case OTHER:
                         // For Other, return as text with no media type
@@ -171,6 +185,74 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Determines the schemaFormat to use for a referenced Avro schema.
+     *
+     * @param from the node containing the unresolved reference
+     */
+    private static String avroSchemaFormat(Node from) {
+        // Keep the version the document already declares rather than rewriting it
+        String declared = declaredSchemaFormat(from);
+        if (declared != null && declared.startsWith(ContentTypes.ASYNCAPI_SCHEMA_FORMAT_AVRO_PREFIX)) {
+            return declared;
+        }
+        return ContentTypes.ASYNCAPI_SCHEMA_FORMAT_AVRO;
+    }
+
+    /**
+     * Determines the schemaFormat to use for a referenced Protobuf schema.
+     *
+     * @param from the node containing the unresolved reference
+     * @param protoContent the referenced Protobuf schema
+     */
+    private static String protobufSchemaFormat(Node from, String protoContent) {
+        // Keep the version the document already declares rather than rewriting it
+        String declared = declaredSchemaFormat(from);
+        if (declared != null
+                && declared.startsWith(ContentTypes.ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_PREFIX)) {
+            return declared;
+        }
+        return detectProtobufSchemaFormat(protoContent);
+    }
+
+    /**
+     * Detects the Protobuf schemaFormat from the schema's syntax statement.
+     *
+     * @param protoContent the Protobuf schema
+     */
+    private static String detectProtobufSchemaFormat(String protoContent) {
+        // Strip comments first so a commented-out syntax statement is not matched
+        String stripped = PROTO_COMMENT_PATTERN.matcher(protoContent).replaceAll(" ");
+        // AsyncAPI registers nothing newer than proto3, so editions map to it
+        if (PROTO_EDITION_PATTERN.matcher(stripped).find()) {
+            return ContentTypes.ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_3;
+        }
+        Matcher syntaxMatcher = PROTO_SYNTAX_PATTERN.matcher(stripped);
+        if (syntaxMatcher.find() && "3".equals(syntaxMatcher.group(1))) {
+            return ContentTypes.ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_3;
+        }
+        // No syntax statement means proto2 (the Protobuf language default)
+        return ContentTypes.ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_2;
+    }
+
+    /**
+     * Returns the schemaFormat declared on the Multi-Format Schema Object containing the reference,
+     * or null if there is none.
+     *
+     * @param from the node containing the unresolved reference
+     */
+    private static String declaredSchemaFormat(Node from) {
+        // The $ref may be on the Multi-Format Schema Object itself or on its "schema" property
+        Node node = from;
+        for (int depth = 0; node != null && depth < 2; depth++) {
+            if (node instanceof AsyncApiMultiFormatSchema) {
+                return ((AsyncApiMultiFormatSchema) node).getSchemaFormat();
+            }
+            node = node.parent();
+        }
+        return null;
     }
 
 }

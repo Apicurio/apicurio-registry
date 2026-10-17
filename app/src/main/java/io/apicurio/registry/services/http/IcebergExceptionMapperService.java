@@ -17,6 +17,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -75,6 +76,12 @@ public class IcebergExceptionMapperService implements ExceptionMapperService {
             metricsService.recordCommitConflict("table");
             return buildErrorResponse(409, "CommitFailedException",
                     "Version already exists: " + ((VersionAlreadyExistsException) t).getVersion());
+        }
+
+        // Keep a deliberate 4xx (or other status) rather than falling through to 500.
+        if (t instanceof WebApplicationException wae) {
+            return buildErrorResponse(wae.getResponse().getStatus(), t.getClass().getSimpleName(),
+                    t.getMessage());
         }
 
         // Default to internal server error

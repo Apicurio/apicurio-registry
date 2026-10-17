@@ -1663,19 +1663,23 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
 
     @Test
     public void testPromoteDraftVersionDefaultAndNonDefaultGroup() throws Exception {
+        doTestPromoteDraftVersion(null);
+        doTestPromoteDraftVersion(GROUP_ID);
+    }
+
+    private void doTestPromoteDraftVersion(String groupId) throws Exception {
         var content = ContentHandle.create(OPENAPI_CONTENT);
         var contentWrapper = ContentWrapperDto.builder()
                 .contentType(ContentTypes.APPLICATION_JSON)
                 .content(content)
                 .build();
 
-        // 1. Default group test
-        String artifactIdDefault = "test-promote-draft-default-" + System.currentTimeMillis();
-        GA gaDefault = new GA(null, artifactIdDefault);
+        String artifactId = "test-promote-draft-" + (groupId == null ? "default" : "custom") + "-" + System.currentTimeMillis();
+        GA ga = new GA(groupId, artifactId);
         try {
-            var dtoDefault = storage().createArtifact(
-                    null,
-                    artifactIdDefault,
+            var dto = storage().createArtifact(
+                    groupId,
+                    artifactId,
                     ArtifactType.OPENAPI,
                     null,
                     "1.0.0",
@@ -1687,73 +1691,28 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
                     null
             ).getValue();
 
-            Assertions.assertNotNull(dtoDefault);
-            Assertions.assertEquals(VersionState.DRAFT, dtoDefault.getState());
+            Assertions.assertNotNull(dto);
+            Assertions.assertEquals(VersionState.DRAFT, dto.getState());
 
             // Assert the version is on 'drafts' branch
-            var draftsDefault = storage().getBranchVersions(gaDefault, BranchId.DRAFTS, 0, 10);
-            Assertions.assertEquals(1, draftsDefault.getCount());
-            Assertions.assertEquals(dtoDefault.getVersion(), draftsDefault.getVersions().get(0).getVersion());
+            var drafts = storage().getBranchVersions(ga, BranchId.DRAFTS, 0, 10);
+            Assertions.assertEquals(1, drafts.getCount());
+            Assertions.assertEquals(dto.getVersion(), drafts.getVersions().get(0).getVersion());
 
             // Transition it to ENABLED
-            storage().updateArtifactVersionState(null, artifactIdDefault, dtoDefault.getVersion(), VersionState.ENABLED, false);
+            storage().updateArtifactVersionState(groupId, artifactId, dto.getVersion(), VersionState.ENABLED, false);
 
             // Assert it is no longer on 'drafts' and is on 'latest'
-            var draftsDefaultAfter = storage().getBranchVersions(gaDefault, BranchId.DRAFTS, 0, 10);
-            Assertions.assertEquals(0, draftsDefaultAfter.getCount());
-            Assertions.assertTrue(draftsDefaultAfter.getVersions().isEmpty());
+            var draftsAfter = storage().getBranchVersions(ga, BranchId.DRAFTS, 0, 10);
+            Assertions.assertEquals(0, draftsAfter.getCount());
+            Assertions.assertTrue(draftsAfter.getVersions().isEmpty());
 
-            var latestDefault = storage().getBranchVersions(gaDefault, BranchId.LATEST, 0, 10);
-            Assertions.assertEquals(1, latestDefault.getCount());
-            Assertions.assertEquals(dtoDefault.getVersion(), latestDefault.getVersions().get(0).getVersion());
+            var latest = storage().getBranchVersions(ga, BranchId.LATEST, 0, 10);
+            Assertions.assertEquals(1, latest.getCount());
+            Assertions.assertEquals(dto.getVersion(), latest.getVersions().get(0).getVersion());
         } finally {
             try {
-                storage().deleteArtifact(null, artifactIdDefault);
-            } catch (Exception ignored) {
-            }
-        }
-
-        // 2. Non-default group test (verify no regression)
-        String customGroupId = GROUP_ID;
-        String artifactIdCustom = "test-promote-draft-custom-" + System.currentTimeMillis();
-        GA gaCustom = new GA(customGroupId, artifactIdCustom);
-        try {
-            var dtoCustom = storage().createArtifact(
-                    customGroupId,
-                    artifactIdCustom,
-                    ArtifactType.OPENAPI,
-                    null,
-                    "1.0.0",
-                    contentWrapper,
-                    null,
-                    Collections.emptyList(),
-                    true, // versionIsDraft
-                    false,
-                    null
-            ).getValue();
-
-            Assertions.assertNotNull(dtoCustom);
-            Assertions.assertEquals(VersionState.DRAFT, dtoCustom.getState());
-
-            // Assert the version is on 'drafts' branch
-            var draftsCustom = storage().getBranchVersions(gaCustom, BranchId.DRAFTS, 0, 10);
-            Assertions.assertEquals(1, draftsCustom.getCount());
-            Assertions.assertEquals(dtoCustom.getVersion(), draftsCustom.getVersions().get(0).getVersion());
-
-            // Transition it to ENABLED
-            storage().updateArtifactVersionState(customGroupId, artifactIdCustom, dtoCustom.getVersion(), VersionState.ENABLED, false);
-
-            // Assert it is no longer on 'drafts' and is on 'latest'
-            var draftsCustomAfter = storage().getBranchVersions(gaCustom, BranchId.DRAFTS, 0, 10);
-            Assertions.assertEquals(0, draftsCustomAfter.getCount());
-            Assertions.assertTrue(draftsCustomAfter.getVersions().isEmpty());
-
-            var latestCustom = storage().getBranchVersions(gaCustom, BranchId.LATEST, 0, 10);
-            Assertions.assertEquals(1, latestCustom.getCount());
-            Assertions.assertEquals(dtoCustom.getVersion(), latestCustom.getVersions().get(0).getVersion());
-        } finally {
-            try {
-                storage().deleteArtifact(customGroupId, artifactIdCustom);
+                storage().deleteArtifact(groupId, artifactId);
             } catch (Exception ignored) {
             }
         }

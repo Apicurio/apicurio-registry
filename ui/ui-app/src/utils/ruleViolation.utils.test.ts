@@ -64,11 +64,11 @@ describe("isRuleViolation", () => {
     it("recognises the 3.5 shape, with causes only under ruleViolation and no exception name", () => {
         expect(isRuleViolation({
             additionalData: { ruleViolation: { causes: [{ description: "d", context: "/c" }] } }
-        } as RuleViolationProblemDetails)).toBe(true);
+        } as unknown as RuleViolationProblemDetails)).toBe(true);
     });
 
     it("is false without causes, so the modal keeps showing the detail text", () => {
-        expect(isRuleViolation({ nameEscaped: "RuleViolationException", causes: [] } as RuleViolationProblemDetails))
+        expect(isRuleViolation({ nameEscaped: "RuleViolationException", causes: [] } as unknown as RuleViolationProblemDetails))
             .toBe(false);
     });
 

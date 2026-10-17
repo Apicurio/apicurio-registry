@@ -3,10 +3,13 @@ package io.apicurio.registry.mcp.servers;
 import io.apicurio.registry.mcp.RegistryService;
 import io.apicurio.registry.rest.client.models.SearchedVersion;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.client.models.VersionState;
 import io.quarkiverse.mcp.server.Tool;
 import io.quarkiverse.mcp.server.ToolArg;
+import io.quarkiverse.mcp.server.ToolCallException;
 import jakarta.inject.Inject;
 
+import java.util.Arrays;
 import java.util.List;
 
 import static io.apicurio.registry.mcp.Descriptions.ARTIFACT_ID;
@@ -166,6 +169,18 @@ public class VersionsMCPServer {
         );
     }
 
+    private VersionState validateVersionState(String versionState) {
+        if (versionState == null) {
+            return null;
+        }
+        return Arrays.stream(VersionState.values())
+                .filter(v -> v.name().equalsIgnoreCase(versionState.trim()))
+                .findFirst()
+                .orElseThrow(() -> new ToolCallException(
+                        "Invalid versionState: '" + versionState + "'. Accepted values (case-insensitive): "
+                                + Arrays.toString(VersionState.values())));
+    }
+
     @Tool(description = """
             Search for artifact version in the Apicurio Registry server. \
             Returns metadata of the versions that fit the search criteria.""")
@@ -180,6 +195,7 @@ public class VersionsMCPServer {
             @ToolArg(description = ORDER) String order,
             @ToolArg(description = VERSION_ORDER_BY) String versionOrderBy
     ) {
+        VersionState state = validateVersionState(versionState);
         return handleError(() -> service.searchVersions(
                 groupId,
                 artifactId,
@@ -189,7 +205,7 @@ public class VersionsMCPServer {
                 jsonLabels,
                 order,
                 versionOrderBy,
-                versionState != null ? java.util.Arrays.stream(io.apicurio.registry.rest.client.models.VersionState.values()).filter(v -> v.name().equalsIgnoreCase(versionState)).findFirst().orElse(null) : null
+                state
         ));
     }
 }

@@ -22,7 +22,7 @@ You can use the following reference information to configure {registry}.
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following {registry} configuration options are available for each component category:
+You can configure {registry} by setting properties that are grouped by component category. Each property lists its name, type, default value, the version it is available from, and a description.
 
 
 .a2a configuration options

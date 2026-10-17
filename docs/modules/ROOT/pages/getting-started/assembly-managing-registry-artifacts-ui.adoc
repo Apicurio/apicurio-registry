@@ -364,7 +364,9 @@ You can also add zero or more labels (name + value) for categorizing and searchi
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can use the {registry} web console to delete groups, artifacts, and artifact versions stored in {registry}. You can delete an entire group, which removes all artifacts in that group. Deleting an artifact removes every version of that artifact. You can also delete a specific artifact version.
+You can use the {registry} web console to delete groups, artifacts, and artifact versions stored in {registry}.
+
+You can delete an entire group, which removes all artifacts in that group. Deleting an artifact removes every version of that artifact. You can also delete a specific artifact version.
 
 IMPORTANT: The {registry} web console disables deletion of groups, artifacts, and artifact versions by default. You must enable deletion in the {registry} web console *Settings* before you can delete groups, artifacts, or artifact versions.
 
@@ -482,7 +484,9 @@ WARNING: Deleting an artifact version is permanent and cannot be undone. If you 
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can use the {registry} web console to configure optional rules to prevent invalid or incompatible content from being added to {registry}. All configured artifact-specific, group-specific, or global rules must pass before {registry} accepts a new artifact version. Artifact-specific rules override group-specific rules, which in turn override global rules.
+You can use the {registry} web console to configure optional rules to prevent invalid or incompatible content from being added to {registry}.
+
+All configured artifact-specific, group-specific, or global rules must pass before {registry} accepts a new artifact version. Artifact-specific rules override group-specific rules, which in turn override global rules.
 
 .Prerequisites
 

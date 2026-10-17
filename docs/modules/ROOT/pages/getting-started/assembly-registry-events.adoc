@@ -180,9 +180,9 @@ Additional fields vary by event type:
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-The event system uses CDI (Contexts and Dependency Injection) events internally to decouple the storage layer from event delivery. When a storage operation modifies state, it fires a CDI event. A storage-specific event processor observes the CDI event and routes it to the appropriate delivery mechanism.
+The event system uses CDI (Contexts and Dependency Injection) events internally to decouple the storage layer from event delivery. When a storage operation modifies state, it fires a CDI event.
 
-The following diagram shows the event flow from a storage operation to external consumers:
+A storage-specific event processor observes the CDI event and routes it to the appropriate delivery mechanism. The following diagram shows the event flow from a storage operation to external consumers:
 
 ----
 Storage operation (for example, createArtifact)
@@ -365,7 +365,7 @@ The events topic is configured with the following defaults:
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following table lists configuration properties related to the {registry} event system.
+You configure the {registry} event system with properties that set the Kafka events topic name and, for KafkaSQL storage only, the replication factor, cleanup policy, and retention time of that topic.
 
 .Event configuration properties
 [cols="2,1,2",options="header"]

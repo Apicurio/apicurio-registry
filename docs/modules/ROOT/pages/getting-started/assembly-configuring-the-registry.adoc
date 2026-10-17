@@ -251,7 +251,7 @@ $ acr server-config reset apicurio.log.level
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following properties control how {registry} publishes distribution statistics for its REST request timer metrics. Change the distribution type when your monitoring system computes percentiles poorly from histogram buckets, for example, Datadog.
+You can control how {registry} publishes distribution statistics for its REST request timer metrics. Change the distribution type when your monitoring system computes percentiles poorly from histogram buckets, for example, Datadog.
 
 .REST metrics distribution properties
 [.table-expandable,width="100%",cols="4,3,4",options="header"]

@@ -29,6 +29,9 @@
 ** xref:getting-started/assembly-managing-registry-artifacts-api.adoc[]
 ** xref:getting-started/assembly-managing-registry-artifacts-cli.adoc[]
 ** xref:getting-started/assembly-using-the-registry-client.adoc[]
+ifndef::service-registry-downstream[]
+** xref:getting-started/assembly-using-schema-validation-library.adoc[]
+endif::[]
 ** xref:getting-started/assembly-managing-registry-artifacts-maven.adoc[]
 * Apache Flink integration
 ** xref:getting-started/assembly-using-flink-catalog.adoc[]

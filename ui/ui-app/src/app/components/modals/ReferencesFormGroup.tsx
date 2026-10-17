@@ -1,8 +1,14 @@
-import React, { FunctionComponent } from "react";
+import React, { FunctionComponent, useEffect, useState } from "react";
 import "./ReferencesFormGroup.css";
 import { Button, FormGroup, Grid, GridItem, Spinner, TextInput } from "@patternfly/react-core";
 import { MinusCircleIcon, PlusCircleIcon, SearchIcon } from "@patternfly/react-icons";
 import { ArtifactReference } from "@sdk/lib/generated-client/models";
+import { SelectTypeaheadCreatable } from "./TypeAheadComponent";
+import { FilterBy, useSearchService } from "@services/useSearchService";
+import { SortOrder } from "@models/SortOrder";
+import { GroupsSortBy } from "@models/GroupsSortBy";
+import { VersionsSortBy } from "@models/VersionsSortBy";
+import { ArtifactsSortBy } from "@models/ArtifactsSortBy";
 
 export type ArtifactReferenceFormItem = {
     groupId: string;
@@ -66,6 +72,97 @@ export const ReferencesFormGroup: FunctionComponent<ReferencesFormGroupProps> = 
     { references, onChange, onDetect, isDetecting }: ReferencesFormGroupProps
 ) => {
 
+    /**
+     * Searches for groups using @param searchTerm 
+     * @returns an array of groupIds
+     */
+    const searchService = useSearchService();
+    const [groupSearchTerm, setGroupSearchTerm] = useState<string>();
+    const [artifactSearchTerm, setArtifactSearchTerm] = useState<string>();
+    const [versionSearchTerm, setVersionSearchTerm] = useState<string>();
+    const [groupOptions, setGroupOptions] = useState<string[]>([]);
+    const [artifactOptions, setArtifactOptions] = useState<string[]>([]);
+    const [versionOptions, setVersionOptions] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+
+
+    function useDebouncedSearch(searchTerm: string | undefined, fetchFn: (term: string | undefined) => Promise<void>, delay = 300) {
+        useEffect(() => {
+            const timeoutId = setTimeout(() => {
+                fetchFn(searchTerm);
+            }, delay);
+
+            return () => clearTimeout(timeoutId);
+        }, [searchTerm, delay]);
+    }
+
+
+    useDebouncedSearch(groupSearchTerm, async (term) => {
+        setIsLoading(true)
+        try {
+            const filters = term
+                ? [{ by: FilterBy.groupId, value: term }]
+                : [];
+
+            const searchResults = await searchService.searchGroups(filters, GroupsSortBy.groupId,
+                SortOrder.asc,
+                { page: 1, pageSize: 10 })
+
+            const groupIds = (searchResults.groups ?? []).map((group) => group.groupId)
+                .filter((id): id is string => typeof id === 'string');
+            setGroupOptions(groupIds);
+        } catch (error) {
+            console.error("Failed to fetch groups", error);
+        } finally {
+            setIsLoading(false)
+            console.log("Finished searching Groups")
+        }
+    });
+
+    useDebouncedSearch(artifactSearchTerm, async (term) => {
+        setIsLoading(true)
+        try {
+            const filters = term
+                ? [{ by: FilterBy.artifactId, value: term }]
+                : [];
+
+            const searchResults = await searchService.searchArtifacts(filters, ArtifactsSortBy.artifactId,
+                SortOrder.asc,
+                { page: 1, pageSize: 10 })
+
+            const artifacts = (searchResults.artifacts ?? []).map((artifact) => artifact.artifactId)
+                .filter((id): id is string => typeof id === 'string');
+            setArtifactOptions(artifacts);
+        } catch (error) {
+            console.error("Failed to fetch artifacts", error);
+        } finally {
+            setIsLoading(false)
+            console.log("Finished searching artifacts")
+        }
+    });
+
+    useDebouncedSearch(versionSearchTerm, async (term) => {
+        setIsLoading(true)
+        try {
+            const filters = term
+                ? [{ by: FilterBy.version, value: term }]
+                : [];
+
+            const searchResults = await searchService.searchVersions(filters, VersionsSortBy.version,
+                SortOrder.asc,
+                { page: 1, pageSize: 10 })
+
+            const versions = (searchResults.versions ?? []).map((version) => version.version)
+                .filter((id): id is string => typeof id === 'string');
+            setVersionOptions(versions);
+        } catch (error) {
+            console.error("Failed to fetch Versions", error);
+        } finally {
+            setIsLoading(false)
+            console.log("Finished searching Versions")
+        }
+    });
+
     const addReference = (): void => {
         const newRefs: ArtifactReferenceFormItem[] = [...references, {
             groupId: "",
@@ -109,59 +206,62 @@ export const ReferencesFormGroup: FunctionComponent<ReferencesFormGroupProps> = 
                                     />
                                 </FormGroup>
                             </GridItem>
-                            <GridItem span={3}>
+                            <GridItem span={4}>
                                 <FormGroup
                                     fieldId={`form-ref-group-${idx}`}
-                                    label={idx === 0 ? "Group Id" : ""}
+                                    label={idx === 0 ? "Group I" : ""}
                                 >
-                                    <TextInput
-                                        type="text"
+                                    <SelectTypeaheadCreatable
                                         id={`form-ref-group-${idx}`}
                                         data-testid={`references-form-group-id-${idx}`}
-                                        name={`form-ref-group-${idx}`}
+                                        name=""
+                                        autoCompleteResults={groupOptions}
+                                        onTextInputChanged={(value: string) => setGroupSearchTerm(value)}
                                         value={ref.groupId}
                                         validated={validateRefField(ref.groupId)}
-                                        onChange={(_event, newVal) => {
-                                            ref.groupId = newVal;
+                                        onSelectOption={(selectedValue: string) => {
+                                            ref.groupId = selectedValue;
                                             onChange([...references]);
                                         }}
                                     />
                                 </FormGroup>
                             </GridItem>
-                            <GridItem span={3}>
+                            <GridItem span={4}>
                                 <FormGroup
                                     fieldId={`form-ref-artifact-${idx}`}
                                     label={idx === 0 ? "Artifact Id" : ""}
                                 >
-                                    <TextInput
-                                        type="text"
+                                    <SelectTypeaheadCreatable
                                         id={`form-ref-artifact-${idx}`}
                                         data-testid={`references-form-artifact-id-${idx}`}
                                         name={`form-ref-artifact-${idx}`}
+                                        autoCompleteResults={artifactOptions}
+                                        onTextInputChanged={(value: string) => setArtifactSearchTerm(value)}
                                         value={ref.artifactId}
                                         validated={validateRefField(ref.artifactId)}
-                                        onChange={(_event, newVal) => {
-                                            ref.artifactId = newVal;
+                                        onSelectOption={(selectedValue: string) => {
+                                            ref.artifactId = selectedValue;
                                             onChange([...references]);
                                         }}
                                     />
                                 </FormGroup>
                             </GridItem>
-                            <GridItem span={2}>
+                            <GridItem span={4}>
                                 <FormGroup
                                     fieldId={`form-ref-version-${idx}`}
                                     label={idx === 0 ? "Version" : ""}
                                 >
                                     <div className="ref-field-group">
-                                        <TextInput
-                                            type="text"
+                                        <SelectTypeaheadCreatable
                                             id={`form-ref-version-${idx}`}
                                             data-testid={`references-form-version-${idx}`}
                                             name={`form-ref-version-${idx}`}
+                                            autoCompleteResults={versionOptions}
+                                            onTextInputChanged={(value: string) => setVersionSearchTerm(value)}
                                             value={ref.version}
                                             validated={validateRefField(ref.version)}
-                                            onChange={(_event, newVal) => {
-                                                ref.version = newVal;
+                                            onSelectOption={(selectedValue: string) => {
+                                                ref.version = selectedValue;
                                                 onChange([...references]);
                                             }}
                                         />
@@ -209,3 +309,8 @@ export const ReferencesFormGroup: FunctionComponent<ReferencesFormGroupProps> = 
         </React.Fragment>
     );
 };
+
+
+
+
+

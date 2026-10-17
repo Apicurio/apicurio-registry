@@ -13,7 +13,7 @@ import {
     SearchPageToolbar,
     toPageError, SearchGroupList, SearchVersionList
 } from "@app/pages";
-import { CreateArtifactModal, RootPageHeader } from "@app/components";
+import { CreateArtifactModal, InvalidContentModal, RootPageHeader } from "@app/components";
 import { If, ListWithToolbar } from "@apitomy/common-ui-components";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 import { Paging } from "@models/Paging.ts";
@@ -29,10 +29,12 @@ import {
     GroupSortByObject, SearchedGroup, SearchedVersion,
     VersionSearchResults,
     VersionSortBy,
-    VersionSortByObject
+    VersionSortByObject,
+    RuleViolationProblemDetails
 } from "@sdk/lib/generated-client/models";
 import { SortOrder } from "@models/SortOrder.ts";
 import { useAppNavigation } from "@services/useAppNavigation.ts";
+import { isRuleViolation, SubmittedContent, toSubmittedContent } from "@utils/ruleViolation.utils.ts";
 
 const EMPTY_RESULTS: ArtifactSearchResults = {
     artifacts: [],
@@ -88,6 +90,8 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
     const [results, setResults] = useState<ArtifactSearchResults | GroupSearchResults | VersionSearchResults>(EMPTY_RESULTS);
     const [isCreateArtifactModalOpen, setIsCreateArtifactModalOpen] = useState<boolean>(false);
+    const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [invalidContent, setInvalidContent] = useState<SubmittedContent>();
 
     const searchSvc = useSearchService();
     const appNav = useAppNavigation();
@@ -102,7 +106,14 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
                 appNav.navigateTo(`/explore/${gid}/${aid}`);
             })
             .catch((error) => {
-                setPageError(toPageError(error, "Error creating artifact."));
+                // Only rule violations go to the dialog; anything else (an existing artifact, a bad id)
+                // keeps the page error these pages have always shown.
+                if (isRuleViolation(error)) {
+                    setInvalidContentError(error);
+                    setInvalidContent(toSubmittedContent(data.firstVersion?.content));
+                } else {
+                    setPageError(toPageError(error, "Error creating artifact."));
+                }
             });
     };
 
@@ -321,6 +332,15 @@ export const SearchPage: FunctionComponent<PageProperties> = () => {
                 onClose={() => setIsCreateArtifactModalOpen(false)}
                 onCreate={doCreateArtifact}
             />
+            <InvalidContentModal
+                error={invalidContentError}
+                content={invalidContent?.content}
+                contentType={invalidContent?.contentType}
+                isOpen={invalidContentError !== undefined}
+                onClose={() => {
+                    setInvalidContentError(undefined);
+                    setInvalidContent(undefined);
+                }} />
         </PageErrorHandler>
     );
 

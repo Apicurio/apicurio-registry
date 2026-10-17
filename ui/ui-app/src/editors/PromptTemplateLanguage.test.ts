@@ -261,7 +261,7 @@ variables:
     it("handles literal block scalar with trailing whitespace after header", () => {
         // Trailing spaces/tabs after '|' must not prevent entering block-scalar state.
         // Note: the trailing spaces are significant — they caused a NO MATCH before the fix.
-        const input = `template: |   \n  # This is prompt content\n  Don't forget {{name}}\nvariables:\n  name:\n    type: string`;
+        const input = "template: |   \n  # This is prompt content\n  Don't forget {{name}}\nvariables:\n  name:\n    type: string";
 
         const tokens = tokenizeWithMonaco(input);
         const significant = tokens.filter(t => t.token !== "white");
@@ -288,7 +288,7 @@ variables:
     });
 
     it("handles folded block scalar with trailing whitespace after header", () => {
-        const input = `template: >    \n  This is folded prompt content.\nvariables:\n  name:\n    type: string`;
+        const input = "template: >    \n  This is folded prompt content.\nvariables:\n  name:\n    type: string";
 
         const tokens = tokenizeWithMonaco(input);
         const significant = tokens.filter(t => t.token !== "white");
@@ -309,7 +309,7 @@ variables:
     });
 
     it("handles explicit indentation indicator |2 with prompt content and variables", () => {
-        const input = `template: |2\n  Hello {{name}}, welcome.\nvariables:\n  name:\n    type: string`;
+        const input = "template: |2\n  Hello {{name}}, welcome.\nvariables:\n  name:\n    type: string";
 
         const tokens = tokenizeWithMonaco(input);
         const significant = tokens.filter(t => t.token !== "white");
@@ -328,7 +328,7 @@ variables:
     });
 
     it("handles explicit indentation indicator >2 with folded content", () => {
-        const input = `template: >2\n  Folded content with {{item}}.\nvariables:\n  item:\n    type: string`;
+        const input = "template: >2\n  Folded content with {{item}}.\nvariables:\n  item:\n    type: string";
 
         const tokens = tokenizeWithMonaco(input);
         const significant = tokens.filter(t => t.token !== "white");
@@ -348,28 +348,28 @@ variables:
 
     it("handles indentation-with-chomping indicators |2-, >2+, |-2, >+2", () => {
         // |2- (indent then chomp)
-        const input1 = `template: |2-\n  Content {{a}}\nvariables:\n  a:\n    type: string`;
+        const input1 = "template: |2-\n  Content {{a}}\nvariables:\n  a:\n    type: string";
         const tokens1 = tokenizeWithMonaco(input1).filter(t => t.token !== "white");
         expect(tokens1[2]).toEqual({ token: "operator", text: "|2-" });
         expect(tokens1.find(t => t.text === "{{a}}")?.token).toBe("variable");
         expect(tokens1.find(t => t.text === "variables")?.token).toBe("type.identifier");
 
         // >2+ (indent then keep)
-        const input2 = `template: >2+\n  Content {{b}}\nvariables:\n  b:\n    type: string`;
+        const input2 = "template: >2+\n  Content {{b}}\nvariables:\n  b:\n    type: string";
         const tokens2 = tokenizeWithMonaco(input2).filter(t => t.token !== "white");
         expect(tokens2[2]).toEqual({ token: "operator", text: ">2+" });
         expect(tokens2.find(t => t.text === "{{b}}")?.token).toBe("variable");
         expect(tokens2.find(t => t.text === "variables")?.token).toBe("type.identifier");
 
         // |-2 (chomp then indent)
-        const input3 = `template: |-2\n  Content {{c}}\nvariables:\n  c:\n    type: string`;
+        const input3 = "template: |-2\n  Content {{c}}\nvariables:\n  c:\n    type: string";
         const tokens3 = tokenizeWithMonaco(input3).filter(t => t.token !== "white");
         expect(tokens3[2]).toEqual({ token: "operator", text: "|-2" });
         expect(tokens3.find(t => t.text === "{{c}}")?.token).toBe("variable");
         expect(tokens3.find(t => t.text === "variables")?.token).toBe("type.identifier");
 
         // >+2 (keep then indent)
-        const input4 = `template: >+2\n  Content {{d}}\nvariables:\n  d:\n    type: string`;
+        const input4 = "template: >+2\n  Content {{d}}\nvariables:\n  d:\n    type: string";
         const tokens4 = tokenizeWithMonaco(input4).filter(t => t.token !== "white");
         expect(tokens4[2]).toEqual({ token: "operator", text: ">+2" });
         expect(tokens4.find(t => t.text === "{{d}}")?.token).toBe("variable");
@@ -377,7 +377,7 @@ variables:
     });
 
     it("handles explicit indentation indicator with trailing whitespace and comment", () => {
-        const input = `template: |2  # indented literal\n  Hello {{name}}\nvariables:\n  name:\n    type: string`;
+        const input = "template: |2  # indented literal\n  Hello {{name}}\nvariables:\n  name:\n    type: string";
 
         const tokens = tokenizeWithMonaco(input);
         const significant = tokens.filter(t => t.token !== "white");

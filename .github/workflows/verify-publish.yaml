@@ -178,11 +178,11 @@ jobs:
         run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
       - name: Build and Push Image
-        uses: nick-fields/retry@ad984534de44a9489a53aefd81eb77f87c70dc60 # v4.0.0
+        uses: Apitomy/apitomy-github-actions/retry@e10e64b8a9ca86982f45a1ea512847219ae2605e # v1.0.1
         with:
-          timeout_minutes: 45
-          max_attempts: 3
-          retry_wait_seconds: 30
+          timeout-minutes: 45
+          max-attempts: 3
+          initial-delay: 30
           command: |
             docker buildx build \
               --push \

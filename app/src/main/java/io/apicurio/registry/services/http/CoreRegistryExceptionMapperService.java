@@ -90,7 +90,11 @@ public class CoreRegistryExceptionMapperService {
             RuleViolationDetails rvd = new RuleViolationDetails();
             rvd.setCauses(restCauses);
             rvpd.setRuleViolation(rvd);
-            rvpd.setType("ruleViolation");
+            // Note: type is intentionally left unset here.
+            // Choosing stable type URI values (e.g. urn:apicurio:error:rule-violation) is a
+            // separate sub-task tracked in #10488. Setting a value now would give clients
+            // something to depend on before that is decided. The presence of the ruleViolation
+            // extension field is sufficient for clients to identify a rule violation.
             details = rvpd;
         } else {
             details = new ProblemDetails();

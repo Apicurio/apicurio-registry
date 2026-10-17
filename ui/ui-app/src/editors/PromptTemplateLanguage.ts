@@ -11,7 +11,7 @@ export const promptTemplateMonarchTokensProvider = {
             { include: "@whitespace" },
 
             // YAML block scalars (| and >)
-            [/[|>](?:[+-]?[1-9]?|[1-9]?[+-]?)(?:\s*#.*)?$/, "operator", "@blockScalarStart"],
+            [/[|>](?:[+-]?[1-9]?|[1-9]?[+-]?)\s*(?:#.*)?$/, "operator", "@blockScalarStart"],
 
             // YAML-style keys
             [/[\w.-]+(?=\s*:)/, "type.identifier"],

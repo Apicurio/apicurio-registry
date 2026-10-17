@@ -40,10 +40,9 @@ export type InvalidContentModalProps = {
 export const InvalidContentModal: FunctionComponent<InvalidContentModalProps> = (props: InvalidContentModalProps) => {
     const groups: GroupsService = useGroupsService();
 
-    const loadComparedContent = props.artifactId === undefined ? undefined : (version: string): Promise<string> => {
-        const groupId: string | null = (props.groupId === "default" || props.groupId === undefined) ? null : props.groupId;
-        return groups.getArtifactVersionContent(groupId, props.artifactId as string, version);
-    };
+    const artifactId: string | undefined = props.artifactId;
+    const loadComparedContent = artifactId === undefined ? undefined : (version: string): Promise<string> =>
+        groups.getArtifactVersionContent(props.groupId ?? null, artifactId, version);
 
     const errorDetail = (): React.ReactElement => {
         if (props.error) {

@@ -1550,7 +1550,7 @@ public class FileDescriptorUtils {
         List<Object> values = new ArrayList<>();
         int start = range.getStart();
         int end = range.getEnd();
-        values.add(start == end - 1 ? start : new IntRange(start, end - 1));
+        values.add(start == end ? start : new IntRange(start, end));
         return new ReservedElement(DEFAULT_LOCATION, "", values);
     }
 

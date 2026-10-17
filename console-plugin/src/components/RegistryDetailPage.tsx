@@ -122,7 +122,7 @@ const LabelsDisplay: React.FC<{ labels?: Record<string, string> }> = ({
 
 const RegistryDetailPage: React.FC = () => {
   const { t } = useTranslation("plugin__apicurio-registry");
-  const { name, ns: namespace } = useParams();
+  const { name, ns: namespace } = useParams<{ name?: string; ns?: string }>();
   const [activeTab, setActiveTab] = useState<string | number>("overview");
 
   const [registry, loaded] = useK8sWatchResource<ApicurioRegistry3>({
@@ -149,7 +149,7 @@ const RegistryDetailPage: React.FC = () => {
 
   return (
     <>
-      <PageSection variant="light" padding={{ default: "noPadding" }}>
+      <PageSection variant="default" padding={{ default: "noPadding" }}>
         <div style={{ padding: "1rem 1.5rem 0" }}>
           <Title headingLevel="h1">
             {registry.metadata.name}{" "}

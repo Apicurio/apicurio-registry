@@ -140,7 +140,11 @@ const RegistryListPage: React.FC<{ namespace: string }> = ({ namespace }) => {
     filters
   );
 
-  const [activeColumns] = useActiveColumns({ columns });
+  const [activeColumns] = useActiveColumns({
+    columns,
+    showNamespaceOverride: false,
+    columnManagementID: ApicurioRegistry3Model.kind,
+  });
 
   return (
     <>

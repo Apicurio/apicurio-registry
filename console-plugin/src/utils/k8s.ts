@@ -198,14 +198,20 @@ export function isAuthEnabled(registry: ApicurioRegistry3): boolean {
   return registry.spec?.app?.auth?.enabled === true;
 }
 
+function normalizeUrl(host?: string): string | null {
+  if (!host) return null;
+  if (host.startsWith("http://") || host.startsWith("https://")) {
+    return host;
+  }
+  return `https://${host}`;
+}
+
 export function getAppUrl(registry: ApicurioRegistry3): string | null {
-  const host = registry.spec?.app?.ingress?.host;
-  return host ? `https://${host}` : null;
+  return normalizeUrl(registry.spec?.app?.ingress?.host);
 }
 
 export function getUiUrl(registry: ApicurioRegistry3): string | null {
-  const host = registry.spec?.ui?.ingress?.host;
-  return host ? `https://${host}` : null;
+  return normalizeUrl(registry.spec?.ui?.ingress?.host);
 }
 
 export function isReady(registry: ApicurioRegistry3): boolean {

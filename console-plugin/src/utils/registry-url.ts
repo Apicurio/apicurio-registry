@@ -1,14 +1,21 @@
 import { ApicurioRegistry3 } from "./k8s";
 
+function normalizeHostUrl(host: string): string {
+  if (host.startsWith("http://") || host.startsWith("https://")) {
+    return host;
+  }
+  return `https://${host}`;
+}
+
 export function getRegistryUIUrl(registry: ApicurioRegistry3): string | null {
   const uiHost = registry.spec?.ui?.ingress?.host;
   if (uiHost) {
-    return `https://${uiHost}`;
+    return normalizeHostUrl(uiHost);
   }
 
   const appHost = registry.spec?.app?.ingress?.host;
   if (appHost) {
-    return `https://${appHost}`;
+    return normalizeHostUrl(appHost);
   }
 
   return null;

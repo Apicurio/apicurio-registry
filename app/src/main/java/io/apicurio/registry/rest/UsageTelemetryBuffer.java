@@ -68,7 +68,7 @@ public class UsageTelemetryBuffer {
         }
         List<SchemaUsageEventDto> batch = new ArrayList<>();
         SchemaUsageEventDto event;
-        while ((event = buffer.poll()) != null && batch.size() < MAX_BUFFER_SIZE * 2) {
+        while (batch.size() < MAX_BUFFER_SIZE * 2 && (event = buffer.poll()) != null) {
             batch.add(event);
         }
         if (!batch.isEmpty()) {

@@ -181,6 +181,17 @@ test("Compatibility report - testing content from the version page shows the cau
     await expectReportWithSubmittedContent(page);
 });
 
+test("Compatibility report - a version that passes the rules still opens the new version, with no report", async ({ page }) => {
+    await mockRegistry(page, {
+        groupId: "default", artifactId: "test-artifact", artifactType: "AVRO", version: "1", state: "ENABLED", globalId: 1, contentId: 1
+    }, 200);
+
+    await submitNewVersion(page);
+
+    await expect(page).toHaveURL(/\/explore\/default\/test-artifact\/versions\/1$/);
+    await expect(page.getByTestId("compatibility-report")).toHaveCount(0);
+});
+
 test("Compatibility report - an error that is not a rule violation still shows the page error", async ({ page }) => {
     await mockRegistry(page, {
         status: 409,

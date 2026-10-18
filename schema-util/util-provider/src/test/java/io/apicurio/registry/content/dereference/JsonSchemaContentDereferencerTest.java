@@ -1,11 +1,12 @@
 package io.apicurio.registry.content.dereference;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.json.content.dereference.JsonSchemaDereferencer;
 import io.apicurio.registry.json.content.refs.JsonSchemaReferenceFinder;
-import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
@@ -34,6 +35,129 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
         Assertions.assertTrue(externalReferences
                 .contains(new JsonPointerExternalReference("https://www.example.org/schemas/ssn.json")));
     }
+
+    @Test
+    public void testResolveRelativeReferenceAgainstRootId() {
+        String schema = """
+                {
+                  "$id": "https://example.com/schemas/customer/",
+                  "properties": {
+                    "address": {
+                      "$ref": "address.json#/definitions/Address"
+                    }
+                  }
+                }
+                """;
+
+        TypedContent content = TypedContent.create(
+                ContentHandle.create(schema),
+                ContentTypes.APPLICATION_JSON);
+
+        ReferenceFinder finder = new JsonSchemaReferenceFinder();
+        Set<ExternalReference> references = finder.findExternalReferences(content);
+
+        Assertions.assertEquals(1, references.size());
+
+        ExternalReference reference = references.iterator().next();
+        Assertions.assertEquals(
+                "https://example.com/schemas/customer/address.json",
+                reference.getResource());
+        Assertions.assertEquals(
+                "#/definitions/Address",
+                reference.getComponent());
+    }
+
+    @Test
+    public void testResolveRelativeReferenceAgainstNestedId() {
+        String schema = """
+                {
+                  "$id": "https://example.com/schemas/",
+                  "properties": {
+                    "customer": {
+                      "$id": "customer/",
+                      "properties": {
+                        "address": {
+                          "$ref": "address.json#/definitions/Address"
+                        }
+                      }
+                    }
+                  }
+                }
+                """;
+
+        TypedContent content = TypedContent.create(
+                ContentHandle.create(schema),
+                ContentTypes.APPLICATION_JSON);
+
+        ReferenceFinder finder = new JsonSchemaReferenceFinder();
+        Set<ExternalReference> references = finder.findExternalReferences(content);
+
+        Assertions.assertEquals(1, references.size());
+
+        ExternalReference reference = references.iterator().next();
+        Assertions.assertEquals(
+                "https://example.com/schemas/customer/address.json",
+                reference.getResource());
+        Assertions.assertEquals(
+                "#/definitions/Address",
+                reference.getComponent());
+    }
+
+    @Test
+    public void testPreserveRelativeReferenceWithoutId() {
+        String schema = """
+            {
+              "properties": {
+                "address": {
+                  "$ref": "address.json#/definitions/Address"
+                }
+              }
+            }
+        """;
+
+        TypedContent content = TypedContent.create(
+            ContentHandle.create(schema),
+            ContentTypes.APPLICATION_JSON);
+
+        ReferenceFinder finder = new JsonSchemaReferenceFinder();
+        Set<ExternalReference> references = finder.findExternalReferences(content);
+
+        Assertions.assertEquals(
+            Set.of(new JsonPointerExternalReference("address.json#/definitions/Address")),
+            references);
+    }
+
+    @Test
+    public void testResolveRelativeReferenceAgainstDraft4Id() {
+        String schema = """
+            {
+              "$schema": "http://json-schema.org/draft-04/schema#",
+              "id": "https://example.com/schemas/customer/",
+              "properties": {
+                "address": {
+                  "$ref": "address.json#/definitions/Address"
+                }
+              }
+            }
+            """;
+
+        TypedContent content = TypedContent.create(
+            ContentHandle.create(schema),
+            ContentTypes.APPLICATION_JSON);
+
+        ReferenceFinder finder = new JsonSchemaReferenceFinder();
+        Set<ExternalReference> references = finder.findExternalReferences(content);
+
+        Assertions.assertEquals(1, references.size());
+
+        ExternalReference reference = references.iterator().next();
+        Assertions.assertEquals(
+            "https://example.com/schemas/customer/address.json",
+            reference.getResource());
+        Assertions.assertEquals(
+            "#/definitions/Address",
+            reference.getComponent());
+   }
 
     @Test
     public void testDereferenceObjectLevel() throws Exception {

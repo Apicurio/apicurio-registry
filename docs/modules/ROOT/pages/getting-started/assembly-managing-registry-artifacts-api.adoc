@@ -476,7 +476,8 @@ $ curl --fail-with-body \
 +
 This operation supports only `PROTOBUF` artifacts.
 For another artifact type, the server returns HTTP `400`.
-The export fails if a registered reference cannot be resolved.
+The registry resolves registered references while it streams the ZIP response.
+If a reference cannot be resolved, the download ends early with a truncated or invalid archive rather than an error status, so verify that the archive extracts cleanly.
 . Extract the archive:
 +
 [source,bash]
@@ -709,7 +710,7 @@ The `serializedReferences` field contains a JSON-encoded string, not a JSON arra
 Each reference includes `name`, `groupId`, `artifactId`, and `version`.
 For content without references, omit this field or use `null`.
 
-For content with references, supply a `canonicalHash` that matches the registry's canonicalization and reference serialization. Do not rely on automatic canonicalization when the referenced versions exist only in the archive: the importer processes content before versions and resolves references from the target registry. A registry export includes the stored canonical hashes.
+For content with references, always supply a `canonicalHash` that matches the registry's canonicalization and reference serialization. Do not rely on the automatic computation: the importer computes the hash from the canonical content bytes only, without appending the serialized references, so the computed value never matches the hash that the registry computes when it registers content with references. A registry export includes the stored canonical hashes.
 
 An import preserves IDs by default.
 The archive must use consistent content IDs, global IDs, and artifact coordinates across related entries, even when the import generates new IDs.

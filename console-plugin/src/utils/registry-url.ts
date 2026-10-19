@@ -1,31 +1,46 @@
-import type { ApicurioRegistry3 } from "./k8s";
+import type { ApicurioRegistry3, IngressSpec, TLSSpec } from "./k8s";
 
-export function normalizeHostUrl(host?: string | null): string | null {
+export function isTlsEnabled(ingress?: IngressSpec, tls?: TLSSpec): boolean {
+  if (ingress?.tlsSecretName || ingress?.tlsTermination) {
+    return true;
+  }
+  if (tls?.insecureRequests === "disabled" || tls?.insecureRequests === "redirect") {
+    return true;
+  }
+  return false;
+}
+
+export function normalizeHostUrl(
+  rawHost?: string | null,
+  options?: { isTls?: boolean }
+): string | null {
+  if (!rawHost) {
+    return null;
+  }
+  const host = rawHost.trim();
   if (!host) {
     return null;
   }
-  const trimmed = host.trim();
-  if (!trimmed) {
-    return null;
+  if (/^https?:\/\//i.test(host)) {
+    return host;
   }
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    return trimmed;
-  }
-  return `https://${trimmed}`;
+  const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
+  const useTls = options?.isTls ?? (!isLocal);
+  const scheme = useTls ? "https" : "http";
+  return `${scheme}://${host}`;
 }
 
 export function getRegistryUIUrl(registry: ApicurioRegistry3): string | null {
-  const uiHost = registry.spec?.ui?.ingress?.host;
-  if (uiHost) {
-    return normalizeHostUrl(uiHost);
+  const ui = registry.spec?.ui;
+  const app = registry.spec?.app;
+  const uiTls = isTlsEnabled(ui?.ingress, app?.tls);
+  const uiUrl = normalizeHostUrl(ui?.ingress?.host, { isTls: uiTls });
+  if (uiUrl) {
+    return uiUrl;
   }
 
-  const appHost = registry.spec?.app?.ingress?.host;
-  if (appHost) {
-    return normalizeHostUrl(appHost);
-  }
-
-  return null;
+  const appTls = isTlsEnabled(app?.ingress, app?.tls);
+  return normalizeHostUrl(app?.ingress?.host, { isTls: appTls });
 }
 
 export function getEmbeddedUIUrl(registry: ApicurioRegistry3): string | null {
@@ -34,7 +49,11 @@ export function getEmbeddedUIUrl(registry: ApicurioRegistry3): string | null {
     return null;
   }
 
-  const url = new URL(baseUrl);
-  url.searchParams.set("masthead", "false");
-  return url.toString();
+  try {
+    const url = new URL(baseUrl);
+    url.searchParams.set("masthead", "false");
+    return url.toString();
+  } catch {
+    return null;
+  }
 }

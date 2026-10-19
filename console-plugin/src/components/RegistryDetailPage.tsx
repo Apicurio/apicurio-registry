@@ -149,7 +149,7 @@ const RegistryDetailPage: React.FC = () => {
 
   return (
     <>
-      <PageSection variant="default" padding={{ default: "noPadding" }}>
+      <PageSection padding={{ default: "noPadding" }}>
         <div style={{ padding: "1rem 1.5rem 0" }}>
           <Title headingLevel="h1">
             {registry.metadata.name}{" "}

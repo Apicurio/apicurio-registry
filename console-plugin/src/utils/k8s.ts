@@ -200,16 +200,13 @@ export function isAuthEnabled(registry: ApicurioRegistry3): boolean {
 }
 
 export function getAppUrl(registry: ApicurioRegistry3): string | null {
-  const app = registry.spec?.app;
-  const tls = isTlsEnabled(app?.ingress, app?.tls);
-  return normalizeHostUrl(app?.ingress?.host, { isTls: tls });
+  const ingress = registry.spec?.app?.ingress;
+  return normalizeHostUrl(ingress?.host, { isTls: isTlsEnabled(ingress) });
 }
 
 export function getUiUrl(registry: ApicurioRegistry3): string | null {
-  const ui = registry.spec?.ui;
-  const app = registry.spec?.app;
-  const tls = isTlsEnabled(ui?.ingress, app?.tls);
-  return normalizeHostUrl(ui?.ingress?.host, { isTls: tls });
+  const ingress = registry.spec?.ui?.ingress;
+  return normalizeHostUrl(ingress?.host, { isTls: isTlsEnabled(ingress) });
 }
 
 export function isReady(registry: ApicurioRegistry3): boolean {

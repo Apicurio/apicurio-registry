@@ -10,7 +10,7 @@
     "dev": "webpack serve",
     "start": "npm run dev",
     "start-console": "./start-console.sh",
-    "test": "node --test --experimental-strip-types 'src/**/*.test.ts'",
+    "test": "node -r ts-node/register --test 'src/**/*.test.ts'",
     "lint": "eslint src/ --ext .ts,.tsx",
     "lint:fix": "eslint src/ --ext .ts,.tsx --fix",
     "i18n": "i18next 'src/**/*.{js,jsx,ts,tsx}' [-oc] -c i18next-parser.config.js"

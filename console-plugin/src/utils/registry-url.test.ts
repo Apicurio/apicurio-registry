@@ -32,13 +32,13 @@ test("normalizeHostUrl respects isTls option", () => {
   assert.equal(normalizeHostUrl("localhost:8080", { isTls: true }), "https://localhost:8080");
 });
 
-test("isTlsEnabled detects ingress and app TLS settings", () => {
-  assert.equal(isTlsEnabled(undefined, undefined), false);
-  assert.equal(isTlsEnabled({ tlsSecretName: "my-tls-secret" }, undefined), true);
-  assert.equal(isTlsEnabled({ tlsTermination: "edge" }, undefined), true);
-  assert.equal(isTlsEnabled(undefined, { insecureRequests: "disabled" }), true);
-  assert.equal(isTlsEnabled(undefined, { insecureRequests: "redirect" }), true);
-  assert.equal(isTlsEnabled(undefined, { insecureRequests: "enabled" }), false);
+test("isTlsEnabled detects ingress TLS settings", () => {
+  assert.equal(isTlsEnabled(undefined), false);
+  assert.equal(isTlsEnabled({ host: "example.com" }), false);
+  assert.equal(isTlsEnabled({ tlsSecretName: "my-tls-secret" }), true);
+  assert.equal(isTlsEnabled({ tlsTermination: "edge" }), true);
+  assert.equal(isTlsEnabled({ tlsTermination: "passthrough" }), true);
+  assert.equal(isTlsEnabled({ tlsTermination: "reencrypt" }), true);
 });
 
 test("getRegistryUIUrl prefers UI ingress and falls back to app ingress", () => {

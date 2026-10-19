@@ -27,6 +27,10 @@ jobs:
         working-directory: console-plugin
         run: npm install --legacy-peer-deps
 
+      - name: Test frontend
+        working-directory: console-plugin
+        run: npm test
+
       - name: Build frontend
         working-directory: console-plugin
         run: npm run build

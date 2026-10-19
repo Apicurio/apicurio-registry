@@ -1,13 +1,7 @@
-import type { ApicurioRegistry3, IngressSpec, TLSSpec } from "./k8s";
+import type { ApicurioRegistry3, IngressSpec } from "./k8s";
 
-export function isTlsEnabled(ingress?: IngressSpec, tls?: TLSSpec): boolean {
-  if (ingress?.tlsSecretName || ingress?.tlsTermination) {
-    return true;
-  }
-  if (tls?.insecureRequests === "disabled" || tls?.insecureRequests === "redirect") {
-    return true;
-  }
-  return false;
+export function isTlsEnabled(ingress?: IngressSpec): boolean {
+  return Boolean(ingress?.tlsSecretName || ingress?.tlsTermination);
 }
 
 export function normalizeHostUrl(
@@ -24,23 +18,19 @@ export function normalizeHostUrl(
   if (/^https?:\/\//i.test(host)) {
     return host;
   }
-  const isLocal = host.startsWith("localhost") || host.startsWith("127.0.0.1");
-  const useTls = options?.isTls ?? (!isLocal);
-  const scheme = useTls ? "https" : "http";
+  const scheme = options?.isTls ? "https" : "http";
   return `${scheme}://${host}`;
 }
 
 export function getRegistryUIUrl(registry: ApicurioRegistry3): string | null {
-  const ui = registry.spec?.ui;
-  const app = registry.spec?.app;
-  const uiTls = isTlsEnabled(ui?.ingress, app?.tls);
-  const uiUrl = normalizeHostUrl(ui?.ingress?.host, { isTls: uiTls });
+  const uiIngress = registry.spec?.ui?.ingress;
+  const uiUrl = normalizeHostUrl(uiIngress?.host, { isTls: isTlsEnabled(uiIngress) });
   if (uiUrl) {
     return uiUrl;
   }
 
-  const appTls = isTlsEnabled(app?.ingress, app?.tls);
-  return normalizeHostUrl(app?.ingress?.host, { isTls: appTls });
+  const appIngress = registry.spec?.app?.ingress;
+  return normalizeHostUrl(appIngress?.host, { isTls: isTlsEnabled(appIngress) });
 }
 
 export function getEmbeddedUIUrl(registry: ApicurioRegistry3): string | null {

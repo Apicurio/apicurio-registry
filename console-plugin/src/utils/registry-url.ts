@@ -1,10 +1,17 @@
-import { ApicurioRegistry3 } from "./k8s";
+import type { ApicurioRegistry3 } from "./k8s";
 
-function normalizeHostUrl(host: string): string {
-  if (host.startsWith("http://") || host.startsWith("https://")) {
-    return host;
+export function normalizeHostUrl(host?: string | null): string | null {
+  if (!host) {
+    return null;
   }
-  return `https://${host}`;
+  const trimmed = host.trim();
+  if (!trimmed) {
+    return null;
+  }
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return trimmed;
+  }
+  return `https://${trimmed}`;
 }
 
 export function getRegistryUIUrl(registry: ApicurioRegistry3): string | null {

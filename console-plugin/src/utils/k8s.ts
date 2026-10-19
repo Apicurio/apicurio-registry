@@ -1,4 +1,5 @@
 import { K8sModel } from "@openshift-console/dynamic-plugin-sdk";
+import { normalizeHostUrl } from "./registry-url";
 
 export const ApicurioRegistry3Model: K8sModel = {
   apiGroup: "registry.apicur.io",
@@ -198,20 +199,12 @@ export function isAuthEnabled(registry: ApicurioRegistry3): boolean {
   return registry.spec?.app?.auth?.enabled === true;
 }
 
-function normalizeUrl(host?: string): string | null {
-  if (!host) return null;
-  if (host.startsWith("http://") || host.startsWith("https://")) {
-    return host;
-  }
-  return `https://${host}`;
-}
-
 export function getAppUrl(registry: ApicurioRegistry3): string | null {
-  return normalizeUrl(registry.spec?.app?.ingress?.host);
+  return normalizeHostUrl(registry.spec?.app?.ingress?.host);
 }
 
 export function getUiUrl(registry: ApicurioRegistry3): string | null {
-  return normalizeUrl(registry.spec?.ui?.ingress?.host);
+  return normalizeHostUrl(registry.spec?.ui?.ingress?.host);
 }
 
 export function isReady(registry: ApicurioRegistry3): boolean {

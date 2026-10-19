@@ -291,6 +291,96 @@ public class AsyncApiContentDereferencerTest extends ArtifactUtilProviderTestBas
     }
 
     /**
+     * Test dereferencing an AsyncAPI 3.0 document whose payload declares a versionless Avro schemaFormat.
+     * The versionless value is not parseable, so both the inlined schema and the payload wrapper should
+     * carry the registered, versioned Avro schemaFormat.
+     */
+    @Test
+    public void testDereferenceAsyncApi30ToAvroNormalizesVersionlessSchemaFormat() throws Exception {
+        ContentHandle content = resourceToContentHandle("asyncapi30-to-deref-avro-versionless-payload.json");
+        Map<String, TypedContent> resolvedReferences = Map.of("http://schemas.example.org/user-event.avsc",
+                TypedContent.create(resourceToContentHandle("user-event.avsc"), ContentTypes.APPLICATION_JSON));
+        TypedContent modifiedContent = new AsyncApiDereferencer()
+                .dereference(TypedContent.create(content, ContentTypes.APPLICATION_JSON), resolvedReferences);
+
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
+                schemaFormatOf(modifiedContent, "UserEvent"));
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
+                payloadSchemaFormatOf(modifiedContent, "UserEventMessage"));
+    }
+
+    /**
+     * Test dereferencing an AsyncAPI 3.0 document whose payload declares a versionless Protobuf
+     * schemaFormat. The version should be inferred from the schema and applied to both the inlined schema
+     * and the payload wrapper.
+     */
+    @Test
+    public void testDereferenceAsyncApi30ToProtobufNormalizesVersionlessSchemaFormat() throws Exception {
+        ContentHandle content = resourceToContentHandle(
+                "asyncapi30-to-deref-protobuf-versionless-format.json");
+        Map<String, TypedContent> resolvedReferences = Map
+                .of("http://schemas.example.org/user-profile.proto", TypedContent
+                        .create(resourceToContentHandle("user-profile.proto"), "application/x-protobuf"));
+        TypedContent modifiedContent = new AsyncApiDereferencer()
+                .dereference(TypedContent.create(content, ContentTypes.APPLICATION_JSON), resolvedReferences);
+
+        Assertions.assertEquals("application/vnd.google.protobuf;version=3",
+                schemaFormatOf(modifiedContent, "UserProfile"));
+        Assertions.assertEquals("application/vnd.google.protobuf;version=3",
+                payloadSchemaFormatOf(modifiedContent, "ProfileUpdateMessage"));
+    }
+
+    /**
+     * Test that an edition-like string literal in a proto2 schema does not change the detected version.
+     * Only the file's leading syntax/edition declaration determines the version.
+     */
+    @Test
+    public void testDereferenceAsyncApi30ToProtobufIgnoresEditionInStringLiteral() throws Exception {
+        Assertions.assertEquals("application/vnd.google.protobuf;version=2",
+                dereferenceLegacyRecord("proto2-with-edition-string.proto"));
+    }
+
+    /**
+     * Test that a syntax-like string literal in a schema with no syntax statement does not change the
+     * detected version. Without a leading declaration the schema is proto2.
+     */
+    @Test
+    public void testDereferenceAsyncApi30ToProtobufIgnoresSyntaxInStringLiteral() throws Exception {
+        Assertions.assertEquals("application/vnd.google.protobuf;version=2",
+                dereferenceLegacyRecord("proto-no-syntax-with-syntax-string.proto"));
+    }
+
+    /**
+     * Dereferences the legacy-record AsyncAPI fixture against the given Protobuf resource and returns the
+     * schemaFormat of the inlined schema.
+     *
+     * @param protoResource the Protobuf resource to resolve the reference to
+     */
+    private String dereferenceLegacyRecord(String protoResource) throws Exception {
+        ContentHandle content = resourceToContentHandle("asyncapi30-to-deref-protobuf-legacy.json");
+        Map<String, TypedContent> resolvedReferences = Map
+                .of("http://schemas.example.org/legacy-record.proto", TypedContent
+                        .create(resourceToContentHandle(protoResource), "application/x-protobuf"));
+        TypedContent modifiedContent = new AsyncApiDereferencer()
+                .dereference(TypedContent.create(content, ContentTypes.APPLICATION_JSON), resolvedReferences);
+        return schemaFormatOf(modifiedContent, "LegacyRecord");
+    }
+
+    /**
+     * Returns the schemaFormat of a message payload under components/messages.
+     *
+     * @param content the dereferenced content
+     * @param messageName the message name
+     */
+    private String payloadSchemaFormatOf(TypedContent content, String messageName) throws Exception {
+        JsonNode document = ContentTypeUtil.parseJsonOrYaml(content);
+        JsonNode schemaFormat = document.path("components").path("messages").path(messageName)
+                .path("payload").get("schemaFormat");
+        Assertions.assertNotNull(schemaFormat, "No schemaFormat on the payload of " + messageName);
+        return schemaFormat.asText();
+    }
+
+    /**
      * Returns the schemaFormat of an inlined schema under components/schemas.
      *
      * @param content the dereferenced content

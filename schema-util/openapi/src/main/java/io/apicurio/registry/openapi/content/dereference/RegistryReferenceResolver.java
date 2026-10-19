@@ -12,7 +12,6 @@ import io.apitomy.datamodels.refs.ResolvedReference;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.content.util.ContentTypeUtil;
-import io.apicurio.registry.types.ContentTypes;
 
 import java.io.IOException;
 import java.util.Locale;
@@ -34,14 +33,34 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
         OTHER
     }
 
-    private static final Pattern PROTO_COMMENT_PATTERN = Pattern
-            .compile("//[^\\n]*|/\\*.*?\\*/", Pattern.DOTALL);
+    // AsyncAPI 3.0 Multi-Format Schema Object "schemaFormat" values, as registered by the specification
+    static final String SCHEMA_FORMAT_AVRO = "application/vnd.apache.avro+json;version=1.9.0";
+    static final String SCHEMA_FORMAT_PROTOBUF_2 = "application/vnd.google.protobuf;version=2";
+    static final String SCHEMA_FORMAT_PROTOBUF_3 = "application/vnd.google.protobuf;version=3";
 
-    private static final Pattern PROTO_SYNTAX_PATTERN = Pattern
-            .compile("\\bsyntax\\s*=\\s*[\"']proto([23])[\"']");
+    // Registered Avro media types (any serialization), carrying a non-empty version parameter
+    private static final Pattern VERSIONED_AVRO_FORMAT = Pattern.compile(
+            "application/vnd\\.apache\\.avro(\\+json|\\+yaml)?\\s*;\\s*version\\s*=\\s*[^;\\s]+\\s*",
+            Pattern.CASE_INSENSITIVE);
 
-    private static final Pattern PROTO_EDITION_PATTERN = Pattern
-            .compile("\\bedition\\s*=\\s*[\"'][^\"']*[\"']");
+    // Registered Protobuf media type, carrying a non-empty version parameter
+    private static final Pattern VERSIONED_PROTOBUF_FORMAT = Pattern.compile(
+            "application/vnd\\.google\\.protobuf\\s*;\\s*version\\s*=\\s*[^;\\s]+\\s*",
+            Pattern.CASE_INSENSITIVE);
+
+    // Versionless media types of each family, which the AsyncAPI parsers reject
+    private static final Pattern AVRO_FAMILY = Pattern
+            .compile("application/vnd\\.apache\\.avro(\\+json|\\+yaml)?\\s*", Pattern.CASE_INSENSITIVE);
+    private static final Pattern PROTOBUF_FAMILY = Pattern
+            .compile("application/vnd\\.google\\.protobuf\\s*", Pattern.CASE_INSENSITIVE);
+
+    // Whitespace and comments that may precede the file's syntax/edition declaration
+    private static final Pattern PROTO_LEADING_TRIVIA = Pattern
+            .compile("(?:\\s+|//[^\\n]*|/\\*.*?\\*/)*", Pattern.DOTALL);
+
+    // The syntax or edition declaration, which must be the first statement of a .proto file
+    private static final Pattern PROTO_DECLARATION = Pattern
+            .compile("(?:syntax\\s*=\\s*[\"']proto([23])[\"']|edition\\s*=\\s*[\"'][^\"']*[\"'])\\s*;");
 
     private final Map<String, TypedContent> resolvedReferences;
 
@@ -188,67 +207,93 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
     }
 
     /**
-     * Determines the schemaFormat to use for a referenced Avro schema.
+     * Determines the schemaFormat to use for a referenced Avro schema. A versioned Avro format declared by
+     * the document is kept; anything else (no declaration, a versionless Avro format, or a format from
+     * another family) is replaced by the registered default.
      *
      * @param from the node containing the unresolved reference
+     * @return the schemaFormat for the inlined Avro schema
      */
-    private static String avroSchemaFormat(Node from) {
-        // Keep the version the document already declares rather than rewriting it
-        String declared = declaredSchemaFormat(from);
-        if (declared != null && declared.startsWith(ContentTypes.ASYNCAPI_SCHEMA_FORMAT_AVRO_PREFIX)) {
+    static String avroSchemaFormat(Node from) {
+        AsyncApiMultiFormatSchema wrapper = enclosingMultiFormatSchema(from);
+        String declared = wrapper != null ? wrapper.getSchemaFormat() : null;
+        if (declared != null && VERSIONED_AVRO_FORMAT.matcher(declared).matches()) {
             return declared;
         }
-        return ContentTypes.ASYNCAPI_SCHEMA_FORMAT_AVRO;
+        normalizeVersionlessDeclaration(wrapper, AVRO_FAMILY, SCHEMA_FORMAT_AVRO);
+        return SCHEMA_FORMAT_AVRO;
     }
 
     /**
-     * Determines the schemaFormat to use for a referenced Protobuf schema.
+     * Determines the schemaFormat to use for a referenced Protobuf schema. A versioned Protobuf format
+     * declared by the document is kept; otherwise the version is inferred from the schema itself.
      *
      * @param from the node containing the unresolved reference
      * @param protoContent the referenced Protobuf schema
+     * @return the schemaFormat for the inlined Protobuf schema
      */
-    private static String protobufSchemaFormat(Node from, String protoContent) {
-        // Keep the version the document already declares rather than rewriting it
-        String declared = declaredSchemaFormat(from);
-        if (declared != null
-                && declared.startsWith(ContentTypes.ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_PREFIX)) {
+    static String protobufSchemaFormat(Node from, String protoContent) {
+        AsyncApiMultiFormatSchema wrapper = enclosingMultiFormatSchema(from);
+        String declared = wrapper != null ? wrapper.getSchemaFormat() : null;
+        if (declared != null && VERSIONED_PROTOBUF_FORMAT.matcher(declared).matches()) {
             return declared;
         }
-        return detectProtobufSchemaFormat(protoContent);
+        String detected = detectProtobufSchemaFormat(protoContent);
+        normalizeVersionlessDeclaration(wrapper, PROTOBUF_FAMILY, detected);
+        return detected;
     }
 
     /**
-     * Detects the Protobuf schemaFormat from the schema's syntax statement.
+     * Replaces a versionless schemaFormat of the expected format family on the referencing wrapper with the
+     * resolved, versioned value, so the wrapper and the inlined schema agree and both are parseable. A
+     * format from a different family is left untouched, since it states something about the document that
+     * the registry cannot safely reinterpret.
+     *
+     * @param wrapper the Multi-Format Schema Object holding the reference, or null
+     * @param family the versionless media type family to normalize (e.g. Avro)
+     * @param resolved the versioned schemaFormat to use instead
+     */
+    private static void normalizeVersionlessDeclaration(AsyncApiMultiFormatSchema wrapper, Pattern family,
+            String resolved) {
+        if (wrapper != null && wrapper.getSchemaFormat() != null
+                && family.matcher(wrapper.getSchemaFormat()).matches()) {
+            wrapper.setSchemaFormat(resolved);
+        }
+    }
+
+    /**
+     * Detects the Protobuf schemaFormat from the file's syntax or edition declaration. Only the first
+     * statement of the file (after leading whitespace and comments) is considered, since that is the only
+     * place the declaration may appear; this avoids matching similar text in comments or string literals.
+     * A file with no declaration is proto2 (the language default). Editions map to proto3, the newest
+     * version AsyncAPI registers.
      *
      * @param protoContent the Protobuf schema
+     * @return the schemaFormat matching the schema's language version
      */
-    private static String detectProtobufSchemaFormat(String protoContent) {
-        // Strip comments first so a commented-out syntax statement is not matched
-        String stripped = PROTO_COMMENT_PATTERN.matcher(protoContent).replaceAll(" ");
-        // AsyncAPI registers nothing newer than proto3, so editions map to it
-        if (PROTO_EDITION_PATTERN.matcher(stripped).find()) {
-            return ContentTypes.ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_3;
+    static String detectProtobufSchemaFormat(String protoContent) {
+        Matcher trivia = PROTO_LEADING_TRIVIA.matcher(protoContent);
+        int start = trivia.lookingAt() ? trivia.end() : 0;
+        Matcher declaration = PROTO_DECLARATION.matcher(protoContent).region(start, protoContent.length());
+        if (!declaration.lookingAt()) {
+            return SCHEMA_FORMAT_PROTOBUF_2;
         }
-        Matcher syntaxMatcher = PROTO_SYNTAX_PATTERN.matcher(stripped);
-        if (syntaxMatcher.find() && "3".equals(syntaxMatcher.group(1))) {
-            return ContentTypes.ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_3;
-        }
-        // No syntax statement means proto2 (the Protobuf language default)
-        return ContentTypes.ASYNCAPI_SCHEMA_FORMAT_PROTOBUF_2;
+        // group(1) is null for an edition declaration
+        return "2".equals(declaration.group(1)) ? SCHEMA_FORMAT_PROTOBUF_2 : SCHEMA_FORMAT_PROTOBUF_3;
     }
 
     /**
-     * Returns the schemaFormat declared on the Multi-Format Schema Object containing the reference,
-     * or null if there is none.
+     * Returns the Multi-Format Schema Object containing the reference, or null if there is none.
      *
      * @param from the node containing the unresolved reference
+     * @return the enclosing Multi-Format Schema Object, or null
      */
-    private static String declaredSchemaFormat(Node from) {
+    private static AsyncApiMultiFormatSchema enclosingMultiFormatSchema(Node from) {
         // The $ref may be on the Multi-Format Schema Object itself or on its "schema" property
         Node node = from;
         for (int depth = 0; node != null && depth < 2; depth++) {
             if (node instanceof AsyncApiMultiFormatSchema) {
-                return ((AsyncApiMultiFormatSchema) node).getSchemaFormat();
+                return (AsyncApiMultiFormatSchema) node;
             }
             node = node.parent();
         }

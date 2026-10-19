@@ -40,7 +40,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.hamcrest.Matchers;
 import org.jose4j.base64url.Base64;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledOnOs;
 import org.junit.jupiter.api.condition.OS;
@@ -2222,7 +2221,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
      * AsyncAPI Avro schema parser registers only versioned media types, so a versionless value is
      * rejected as an unknown schema format.
      */
-    @Disabled("Blocked: DEREFERENCE drops Avro/Protobuf references since #10063")
     @Test
     public void testDereferenceAsyncApiAvroSchemaFormat() throws Exception {
         String groupId = TestUtils.generateGroupId();
@@ -2246,7 +2244,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
      * own Avro version must not be silently rewritten to a different one, and the payload and the
      * wrapper must agree.
      */
-    @Disabled("Blocked: DEREFERENCE drops Avro/Protobuf references since #10063")
     @Test
     public void testDereferenceAsyncApiAvroKeepsDeclaredSchemaFormat() throws Exception {
         String groupId = TestUtils.generateGroupId();
@@ -2269,7 +2266,6 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
      * Protobuf media type registered by AsyncAPI 3.0.0, with the version taken from the referenced
      * schema's syntax statement.
      */
-    @Disabled("Blocked: DEREFERENCE drops Avro/Protobuf references since #10063")
     @Test
     public void testDereferenceAsyncApiProtobufSchemaFormat() throws Exception {
         String groupId = TestUtils.generateGroupId();

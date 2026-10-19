@@ -245,5 +245,5 @@ For KafkaSQL deployments, back up both the Kafka topic data and the SQL snapshot
 ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
-* xref:registry-migration_{context}[Migrating from {registry} {registry-v2} to {registry} 3.x]
+* xref:getting-started/assembly-migrating-registry-v2-v3.adoc[Migrating from {registry} {registry-v2} to {registry} 3.x]
 endif::[]

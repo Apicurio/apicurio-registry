@@ -144,7 +144,9 @@ mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
 
 [role="_additional-resources"]
 .Additional resources
-* link:assembly-deploying-registry-operator.html#enabling-version-mutability_{context}[Artifact version mutability configuration]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-deploying-registry-operator.adoc#enabling-version-mutability_{context}[Artifact version mutability configuration]
+endif::[]
 * link:https://maven.apache.org/index.html[Apache Maven documentation]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry demonstration examples]
 

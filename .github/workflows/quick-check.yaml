@@ -15,7 +15,8 @@ name: Quick Check
 #
 # lifecycle/tested is driven by this workflow's completion (see
 # pr-lifecycle.js's FAST_GATE_WORKFLOW); lifecycle/full-verified is driven by
-# verify.yaml's Verification Gate.
+# verify.yaml's Verify Result job (also the source of the Verification Gate
+# status, the required check).
 
 on:
   pull_request:
@@ -133,7 +134,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: '24.20.0'
+          node-version: '24.21.0'
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
 

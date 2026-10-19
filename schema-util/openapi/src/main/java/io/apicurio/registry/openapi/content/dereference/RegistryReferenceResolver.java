@@ -33,27 +33,6 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
         OTHER
     }
 
-    // AsyncAPI 3.0 Multi-Format Schema Object "schemaFormat" values, as registered by the specification
-    static final String SCHEMA_FORMAT_AVRO = "application/vnd.apache.avro+json;version=1.9.0";
-    static final String SCHEMA_FORMAT_PROTOBUF_2 = "application/vnd.google.protobuf;version=2";
-    static final String SCHEMA_FORMAT_PROTOBUF_3 = "application/vnd.google.protobuf;version=3";
-
-    // Registered Avro media types (any serialization), carrying a non-empty version parameter
-    private static final Pattern VERSIONED_AVRO_FORMAT = Pattern.compile(
-            "application/vnd\\.apache\\.avro(\\+json|\\+yaml)?\\s*;\\s*version\\s*=\\s*[^;\\s]+\\s*",
-            Pattern.CASE_INSENSITIVE);
-
-    // Registered Protobuf media type, carrying a non-empty version parameter
-    private static final Pattern VERSIONED_PROTOBUF_FORMAT = Pattern.compile(
-            "application/vnd\\.google\\.protobuf\\s*;\\s*version\\s*=\\s*[^;\\s]+\\s*",
-            Pattern.CASE_INSENSITIVE);
-
-    // Versionless media types of each family, which the AsyncAPI parsers reject
-    private static final Pattern AVRO_FAMILY = Pattern
-            .compile("application/vnd\\.apache\\.avro(\\+json|\\+yaml)?\\s*", Pattern.CASE_INSENSITIVE);
-    private static final Pattern PROTOBUF_FAMILY = Pattern
-            .compile("application/vnd\\.google\\.protobuf\\s*", Pattern.CASE_INSENSITIVE);
-
     // Whitespace and comments that may precede the file's syntax/edition declaration
     private static final Pattern PROTO_LEADING_TRIVIA = Pattern
             .compile("(?:\\s+|//[^\\n]*|/\\*.*?\\*/)*", Pattern.DOTALL);
@@ -209,19 +188,15 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
     /**
      * Determines the schemaFormat to use for a referenced Avro schema. A versioned Avro format declared by
      * the document is kept; anything else (no declaration, a versionless Avro format, or a format from
-     * another family) is replaced by the registered default.
+     * another family) is replaced by the registered default. Versionless declarations on the referencing
+     * wrappers are fixed up after dereferencing by {@link AsyncApiSchemaFormats#normalizeVersionless}.
      *
      * @param from the node containing the unresolved reference
      * @return the schemaFormat for the inlined Avro schema
      */
     static String avroSchemaFormat(Node from) {
-        AsyncApiMultiFormatSchema wrapper = enclosingMultiFormatSchema(from);
-        String declared = wrapper != null ? wrapper.getSchemaFormat() : null;
-        if (declared != null && VERSIONED_AVRO_FORMAT.matcher(declared).matches()) {
-            return declared;
-        }
-        normalizeVersionlessDeclaration(wrapper, AVRO_FAMILY, SCHEMA_FORMAT_AVRO);
-        return SCHEMA_FORMAT_AVRO;
+        String declared = declaredSchemaFormat(from);
+        return AsyncApiSchemaFormats.isVersionedAvro(declared) ? declared : AsyncApiSchemaFormats.AVRO;
     }
 
     /**
@@ -233,32 +208,9 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
      * @return the schemaFormat for the inlined Protobuf schema
      */
     static String protobufSchemaFormat(Node from, String protoContent) {
-        AsyncApiMultiFormatSchema wrapper = enclosingMultiFormatSchema(from);
-        String declared = wrapper != null ? wrapper.getSchemaFormat() : null;
-        if (declared != null && VERSIONED_PROTOBUF_FORMAT.matcher(declared).matches()) {
-            return declared;
-        }
-        String detected = detectProtobufSchemaFormat(protoContent);
-        normalizeVersionlessDeclaration(wrapper, PROTOBUF_FAMILY, detected);
-        return detected;
-    }
-
-    /**
-     * Replaces a versionless schemaFormat of the expected format family on the referencing wrapper with the
-     * resolved, versioned value, so the wrapper and the inlined schema agree and both are parseable. A
-     * format from a different family is left untouched, since it states something about the document that
-     * the registry cannot safely reinterpret.
-     *
-     * @param wrapper the Multi-Format Schema Object holding the reference, or null
-     * @param family the versionless media type family to normalize (e.g. Avro)
-     * @param resolved the versioned schemaFormat to use instead
-     */
-    private static void normalizeVersionlessDeclaration(AsyncApiMultiFormatSchema wrapper, Pattern family,
-            String resolved) {
-        if (wrapper != null && wrapper.getSchemaFormat() != null
-                && family.matcher(wrapper.getSchemaFormat()).matches()) {
-            wrapper.setSchemaFormat(resolved);
-        }
+        String declared = declaredSchemaFormat(from);
+        return AsyncApiSchemaFormats.isVersionedProtobuf(declared) ? declared
+                : detectProtobufSchemaFormat(protoContent);
     }
 
     /**
@@ -276,24 +228,26 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
         int start = trivia.lookingAt() ? trivia.end() : 0;
         Matcher declaration = PROTO_DECLARATION.matcher(protoContent).region(start, protoContent.length());
         if (!declaration.lookingAt()) {
-            return SCHEMA_FORMAT_PROTOBUF_2;
+            return AsyncApiSchemaFormats.PROTOBUF_2;
         }
         // group(1) is null for an edition declaration
-        return "2".equals(declaration.group(1)) ? SCHEMA_FORMAT_PROTOBUF_2 : SCHEMA_FORMAT_PROTOBUF_3;
+        return "2".equals(declaration.group(1)) ? AsyncApiSchemaFormats.PROTOBUF_2
+                : AsyncApiSchemaFormats.PROTOBUF_3;
     }
 
     /**
-     * Returns the Multi-Format Schema Object containing the reference, or null if there is none.
+     * Returns the schemaFormat declared on the Multi-Format Schema Object containing the reference, or
+     * null if there is none.
      *
      * @param from the node containing the unresolved reference
-     * @return the enclosing Multi-Format Schema Object, or null
+     * @return the declared schemaFormat, or null
      */
-    private static AsyncApiMultiFormatSchema enclosingMultiFormatSchema(Node from) {
+    private static String declaredSchemaFormat(Node from) {
         // The $ref may be on the Multi-Format Schema Object itself or on its "schema" property
         Node node = from;
         for (int depth = 0; node != null && depth < 2; depth++) {
             if (node instanceof AsyncApiMultiFormatSchema) {
-                return (AsyncApiMultiFormatSchema) node;
+                return ((AsyncApiMultiFormatSchema) node).getSchemaFormat();
             }
             node = node.parent();
         }

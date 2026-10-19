@@ -331,6 +331,27 @@ public class AsyncApiContentDereferencerTest extends ArtifactUtilProviderTestBas
     }
 
     /**
+     * Test dereferencing an AsyncAPI 3.0 document where several messages share one Avro reference. The
+     * reference is only resolved once, so a later wrapper declaring a versionless Avro schemaFormat must
+     * still be normalized, while a wrapper declaring a format from another family is left untouched.
+     */
+    @Test
+    public void testDereferenceAsyncApi30ToAvroNormalizesSharedReference() throws Exception {
+        ContentHandle content = resourceToContentHandle("asyncapi30-to-deref-avro-shared-ref.json");
+        Map<String, TypedContent> resolvedReferences = Map.of("http://schemas.example.org/user-event.avsc",
+                TypedContent.create(resourceToContentHandle("user-event.avsc"), ContentTypes.APPLICATION_JSON));
+        TypedContent modifiedContent = new AsyncApiDereferencer()
+                .dereference(TypedContent.create(content, ContentTypes.APPLICATION_JSON), resolvedReferences);
+
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
+                schemaFormatOf(modifiedContent, "UserEvent"));
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
+                payloadSchemaFormatOf(modifiedContent, "UserEventVersionlessMessage"));
+        Assertions.assertEquals("application/schema+json;version=draft-07",
+                payloadSchemaFormatOf(modifiedContent, "UserEventForeignMessage"));
+    }
+
+    /**
      * Test that an edition-like string literal in a proto2 schema does not change the detected version.
      * Only the file's leading syntax/edition declaration determines the version.
      */

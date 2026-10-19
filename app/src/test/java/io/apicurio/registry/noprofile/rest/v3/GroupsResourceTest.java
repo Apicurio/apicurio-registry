@@ -2262,6 +2262,43 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     /**
+     * Test that dereferencing an AsyncAPI 3.0 document works when the referenced Avro schema itself
+     * references another Avro schema. Avro content cannot have its references rewritten, which must not
+     * cause the nested schema to be dropped from the dereferenced document.
+     */
+    @Test
+    public void testDereferenceAsyncApiNestedAvroReference() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String addressSchema = """
+                {"type": "record", "name": "Address", "namespace": "io.example",
+                 "fields": [{"name": "street", "type": "string"}]}
+                """;
+        String customerSchema = """
+                {"type": "record", "name": "ShoppingCartCreated", "namespace": "io.example",
+                 "fields": [{"name": "address", "type": "io.example.Address"}]}
+                """;
+        createArtifact(groupId, "nestedAvro/Address", ArtifactType.AVRO, addressSchema,
+                ContentTypes.APPLICATION_JSON);
+        createArtifactWithReferences(groupId, "nestedAvro/ShoppingCartCreated", ArtifactType.AVRO,
+                customerSchema, ContentTypes.APPLICATION_JSON,
+                Collections.singletonList(ArtifactReference.builder().name("io.example.Address")
+                        .groupId(groupId).artifactId("nestedAvro/Address").version("1").build()));
+        createArtifactWithReferences(groupId, "nestedAvro/ShoppingCartAPI", ArtifactType.ASYNCAPI,
+                resourceToString("asyncapi-shopping-cart-no-schema-format.yml"), ContentTypes.APPLICATION_YAML,
+                Collections.singletonList(ArtifactReference.builder().name("./avro/ShoppingCartCreated.avsc")
+                        .groupId(groupId).artifactId("nestedAvro/ShoppingCartCreated").version("1").build()));
+
+        JsonNode dereferenced = getDereferencedContent(groupId, "nestedAvro/ShoppingCartAPI");
+
+        JsonNode wrapper = multiFormatSchemaOf(dereferenced, "ShoppingCartCreated");
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
+                wrapper.get("schemaFormat").asText());
+        Assertions.assertEquals("ShoppingCartCreated", wrapper.get("schema").get("name").asText());
+        Assertions.assertEquals("io.example.Address",
+                wrapper.get("schema").get("fields").get(0).get("type").asText());
+    }
+
+    /**
      * Test that dereferencing an AsyncAPI 3.0 document that references a Protobuf schema emits the
      * Protobuf media type registered by AsyncAPI 3.0.0, with the version taken from the referenced
      * schema's syntax statement.

@@ -26,6 +26,13 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
             RegistryReferenceResolver resolver = new RegistryReferenceResolver(resolvedReferences);
             Document dereferencedDoc = Library.dereferenceDocument(doc, resolver, false);
 
+            // An inlined schema may be shared by several wrappers, but the resolver only sees the first one.
+            // Make every wrapper pointing at an inlined Avro/Protobuf schema carry a versioned schemaFormat.
+            ObjectNode dereferencedNode = Library.writeDocument(dereferencedDoc);
+            if (AsyncApiSchemaFormats.normalizeVersionless(dereferencedNode)) {
+                dereferencedDoc = Library.readDocument(dereferencedNode);
+            }
+
             // Preserve the original content format (YAML or JSON)
             String dereferencedContent = writeDocumentPreservingFormat(dereferencedDoc, content.getContentType());
             return TypedContent.create(ContentHandle.create(dereferencedContent), content.getContentType());

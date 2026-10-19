@@ -51,7 +51,12 @@ on:
   # becomes required.
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # A retry of a push run (attempt 2 or later) gets a group of its own commit,
+  # so it neither cancels the run of a newer push nor is cancelled by one: a
+  # failure on main is retried to tell a flake from a break (#10380), and that
+  # answer must not depend on whether someone merged in the meantime. Retries
+  # of PR runs stay in the branch group, so a push to the PR still cancels them.
+  group: ${{ github.workflow }}-${{ github.ref }}${{ github.event_name == 'push' && github.run_attempt > 1 && format('-retry-{0}', github.sha) || '' }}
   # A push supersedes the suite it interrupts — those results describe a SHA
   # nobody is merging, so cancelling them is right. Pushes are now the only
   # thing that starts a PR run here, so this can be unconditional again. It
@@ -89,17 +94,24 @@ jobs:
       - name: Verify unit test shard partition
         run: python3 .github/scripts/verify-test-shards.py
 
-      # The scalpel summary contract is merge-blocking, so its suite runs in
-      # the Gate too: it pins the extension version's report schema and the
-      # buildAllIfNoChanges setting the summary's projections stand on, and
-      # scripts-tests.yaml alone would leave a red suite non-blocking.
-      # jq is preinstalled on ubuntu-latest, the same assumption that
-      # workflow makes.
+      # The scalpel summary suite runs in the Gate because scripts-tests.yaml
+      # alone would leave a red suite non-blocking. It pins the extension
+      # version's report schema and the buildAllIfNoChanges setting the
+      # summary's projections stand on, and checks that every Scalpel run
+      # gets the base branch from Decide.
+      # jq is preinstalled on ubuntu-latest, the same assumption
+      # scripts-tests.yaml makes.
       - name: Test scalpel summary script
         run: bash .github/scripts/scalpel-summary.test.sh
 
-      - name: Test CI recovery paths
-        run: python3 -m unittest discover -s .github/scripts -p 'test_ci_reliability.py' -v
+      # Discovers the test_*.py files sitting directly in .github/scripts rather
+      # than naming one of them. A test that CI does not run stops nothing:
+      # test_parse_flaky_tests.py sat in the tree unreferenced under the old
+      # single-file pattern. label-classification/ has no __init__.py, so
+      # discover does not descend into it; scripts-tests.yaml runs those tests,
+      # which need dependencies this job does not install.
+      - name: Test CI helper scripts
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py' -v
 
       - name: Test operator catalog automation
         run: |
@@ -107,7 +119,7 @@ jobs:
             https://github.com/mikefarah/yq/releases/download/v4.27.5/yq_linux_amd64 \
             --output "$RUNNER_TEMP/catalog-yq"
           chmod +x "$RUNNER_TEMP/catalog-yq"
-          YQ="$RUNNER_TEMP/catalog-yq" python3 -m unittest discover -s operator/scripts -p 'test_catalog_automation.py' -v
+          YQ="$RUNNER_TEMP/catalog-yq" python3 -m unittest discover -s operator/scripts -p 'test_*.py' -v
 
       # Orchestrator scripts run with repo write permissions under
       # pull_request_target — their logic must be tested before merge.
@@ -198,7 +210,7 @@ jobs:
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: build-artifacts-${{ github.sha }}
           path: |
@@ -230,7 +242,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '24.21.0'
           cache: 'npm'
@@ -291,6 +303,7 @@ jobs:
     with:
       image-tag: ${{ github.sha }}
       scalpel-enabled: ${{ needs.decide.outputs.scalpel-enabled }}
+      scalpel-base-branch: ${{ needs.decide.outputs.scalpel-base-branch }}
 
   # Scalpel Report (affected-module detection, data collection only).
   # Not in the Gate: a failure here never blocks a PR.
@@ -310,7 +323,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          # Full history: Scalpel diffs against the base branch (GITHUB_BASE_REF)
+          # Full history: Scalpel diffs against the base branch
           fetch-depth: 0
 
       - name: Set up JDK 21
@@ -323,10 +336,13 @@ jobs:
         uses: ./.github/actions/setup-maven-cache
 
       - name: Generate Scalpel report
+        env:
+          SCALPEL_BASE_BRANCH: ${{ needs.decide.outputs.scalpel-base-branch }}
         run: |
           # Scalpel writes the report at session start, before validate has
           # necessarily created target/ on the root aggregator. Keep this.
           mkdir -p target
+          [ -n "$SCALPEL_BASE_BRANCH" ] || echo "::warning::No scalpel-base-branch from Decide, so Scalpel runs without scalpel.baseBranch"
           # CLI flags win over .mvn/maven.config (scalpel.enabled=false there).
           # reportFile restates the documented default so the upload path
           # below cannot drift if upstream changes it.
@@ -335,6 +351,7 @@ jobs:
             -s ${{ github.workspace }}/.github/ci-settings.xml \
             -Dscalpel.enabled=true \
             -Dscalpel.mode=report \
+            ${SCALPEL_BASE_BRANCH:+"-Dscalpel.baseBranch=$SCALPEL_BASE_BRANCH"} \
             -Dscalpel.reportFile=target/scalpel-report.json \
             -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
             -Dmaven.wagon.http.retryHandler.count=5
@@ -363,7 +380,7 @@ jobs:
       # writes the report at session start, so it survives a later failure.
       - name: Upload Scalpel report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: scalpel-report-pr${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
           path: |
@@ -380,6 +397,14 @@ jobs:
     with:
       image-tag: ${{ github.sha }}
 
+  ard-conformance:
+    name: ARD Conformance
+    needs: [decide, build-java]
+    if: needs.decide.outputs.run-ard-conformance == 'true'
+    uses: ./.github/workflows/verify-ard-conformance.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
   go-sdk-freshness:
     name: Go SDK Freshness
     runs-on: ubuntu-latest
@@ -393,7 +418,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.27.1'
+          go-version: '1.27.2'
 
       - name: Regenerate Go SDK
         run: |
@@ -477,7 +502,7 @@ jobs:
           || needs.decide.result != 'success'
           || needs.decide.outputs.lifecycle-ready == 'true')
     needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
-            cli-verify, go-sdk-freshness, sdk, console-plugin,
+            cli-verify, ard-conformance, go-sdk-freshness, sdk, console-plugin,
             integration-tests, extras, operator]
     runs-on: ubuntu-latest
     timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min
@@ -518,6 +543,15 @@ jobs:
       && github.repository_owner == 'Apicurio'
       && needs.build-java.result == 'success'
       && needs.gate.result == 'success'
+    # One publish at a time per branch, so verify-publish.yaml's check against
+    # the published commit and its pushes never interleave with another run's:
+    # a retry has its own run concurrency group and can reach this job while a
+    # newer run does. queue: max keeps every waiting run; with the default
+    # queue of one, a second arrival would cancel the one already waiting.
+    concurrency:
+      group: ${{ github.workflow }}-publish-${{ github.ref }}
+      cancel-in-progress: false
+      queue: max
     uses: ./.github/workflows/verify-publish.yaml
     with:
       image-tag: ${{ github.sha }}
@@ -527,19 +561,3 @@ jobs:
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
-
-  # ============================================================================
-  # NOTIFICATIONS
-  # ============================================================================
-  notify-slack:
-    name: Slack Notification
-    needs: [gate, publish, operator]
-    if: github.event_name == 'push' && github.repository_owner == 'Apicurio' && always()
-    uses: ./.github/workflows/reusable-notify-slack.yaml
-    with:
-      workflow-name: ${{ github.workflow }}
-      job-name: 'verification'
-      job-status: ${{ (needs.gate.result == 'failure' || needs.publish.result == 'failure' || needs.operator.result == 'failure') && 'failure' || 'success' }}
-    secrets:
-      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
-      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

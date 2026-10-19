@@ -14,6 +14,7 @@ const {
   checkIssueLink,
   checkDcoSignOff,
   checkMilestone,
+  checkUpgradeScripts,
 } = require('./pr-validation.js');
 
 const OWNER = 'Apicurio';
@@ -244,8 +245,9 @@ function createFakeGithub({ commitsByPr = {}, openPrs = [], filesByPr = {},
           calls.listParams.push({ base });
           return { data: withDefaultBase(openPrs).filter(p => base === undefined || p.base.ref === base) };
         },
+        // A plain name is a modified file; pass { filename, status } to choose.
         listFiles: async ({ pull_number }) => (
-          { data: (filesByPr[pull_number] || []).map(filename => ({ filename })) }
+          { data: (filesByPr[pull_number] || []).map(f => (typeof f === 'string' ? { filename: f, status: 'modified' } : f)) }
         ),
       },
       actions: {
@@ -950,3 +952,118 @@ test('revalidateForIssue(): a milestone change on a PR (also an issues event) is
   assert.deepEqual(calls.reRuns, []);
 });
 
+
+// ---------------------------------------------------------------------------
+// checkUpgradeScripts(): changes to the SQL upgrade scripts (#10141).
+// ---------------------------------------------------------------------------
+
+const SQL_DIR = 'app/src/main/resources/io/apicurio/registry/storage/impl/sql/';
+const added = name => ({ filename: SQL_DIR + name, status: 'added' });
+const modified = name => ({ filename: SQL_DIR + name, status: 'modified' });
+const onBranch = (ref, labels = []) => ({ base: { ref }, labels });
+
+test('checkUpgradeScripts(): not listed when the PR touches neither the scripts nor db-version', () => {
+  const files = [{ filename: 'a.js', status: 'modified' }, modified('h2.ddl')];
+  assert.equal(checkUpgradeScripts(onBranch('main'), files), null);
+  assert.equal(checkUpgradeScripts(onBranch('3.3.x'), files), null);
+});
+
+test('checkUpgradeScripts(): on main, adding a version passes', () => {
+  const files = ['h2', 'mssql', 'mysql', 'postgresql'].map(d => added(`upgrades/112/${d}.upgrade.ddl`))
+    .concat([modified('db-version'), modified('h2.ddl')]);
+  const item = checkUpgradeScripts(onBranch('main'), files);
+  assert.equal(item.status, 'passed');
+  assert.equal(item.summary, 'only new upgrade scripts are added');
+});
+
+test('checkUpgradeScripts(): on main, changing an existing script needs the author to renumber', () => {
+  const files = [modified('upgrades/112/h2.upgrade.ddl'), modified('db-version')];
+  const item = checkUpgradeScripts(onBranch('main'), files);
+  assert.equal(item.status, 'action-needed');
+  assert.equal(item.audience, 'author');
+  assert.equal(item.summary, '1 existing upgrade file(s) changed');
+  assert.match(item.detail, /- `upgrades\/112\/h2\.upgrade\.ddl` \(modified\)/);
+  assert.doesNotMatch(item.detail, /db-version` \(/);
+  assert.match(item.detail, /move your upgrade to the next free number/);
+});
+
+test('checkUpgradeScripts(): on main, removed and renamed scripts are changes too', () => {
+  const files = [
+    { filename: `${SQL_DIR}upgrades/110/h2.upgrade.ddl`, status: 'removed' },
+    { filename: `${SQL_DIR}upgrades/113/mysql.upgrade.ddl`, status: 'renamed' },
+  ];
+  const item = checkUpgradeScripts(onBranch('main'), files);
+  assert.equal(item.summary, '2 existing upgrade file(s) changed');
+  assert.match(item.detail, /`upgrades\/110\/h2\.upgrade\.ddl` \(removed\)/);
+  assert.match(item.detail, /`upgrades\/113\/mysql\.upgrade\.ddl` \(renamed\)/);
+});
+
+test('checkUpgradeScripts(): on main, a script renamed out of upgrades/ is caught by its old name', () => {
+  const files = [{ filename: 'old/h2.upgrade.ddl', previous_filename: `${SQL_DIR}upgrades/111/h2.upgrade.ddl`, status: 'renamed' }];
+  const item = checkUpgradeScripts(onBranch('main'), files);
+  assert.equal(item.status, 'action-needed');
+  assert.match(item.detail, /- `upgrades\/111\/h2\.upgrade\.ddl` \(renamed\)/);
+});
+
+test('checkUpgradeScripts(): on a maintenance branch, even an added script fails', () => {
+  const item = checkUpgradeScripts(onBranch('3.3.x'), [added('upgrades/110/h2.upgrade.ddl')]);
+  assert.equal(item.status, 'action-needed');
+  assert.match(item.detail, /`3\.3\.x` is a maintenance branch/);
+  assert.match(item.detail, /- `upgrades\/110\/h2\.upgrade\.ddl` \(added\)/);
+});
+
+test('checkUpgradeScripts(): on a maintenance branch, db-version is frozen too', () => {
+  const item = checkUpgradeScripts(onBranch('3.3.x'), [modified('db-version')]);
+  assert.equal(item.status, 'action-needed');
+  assert.match(item.detail, /- `db-version` \(modified\)/);
+});
+
+test('checkUpgradeScripts(): on a maintenance branch, renaming db-version away fails too', () => {
+  const files = [{ filename: `${SQL_DIR}db-version.old`, previous_filename: `${SQL_DIR}db-version`, status: 'renamed' }];
+  const item = checkUpgradeScripts(onBranch('3.3.x'), files);
+  assert.equal(item.status, 'action-needed');
+  assert.match(item.detail, /- `db-version` \(renamed\)/);
+});
+
+test('checkUpgradeScripts(): the maintainer label accepts the change, on any branch', () => {
+  const approved = [{ name: 'db-upgrade/change-approved' }];
+  for (const ref of ['main', '3.3.x']) {
+    const item = checkUpgradeScripts(onBranch(ref, approved), [modified('upgrades/112/h2.upgrade.ddl')]);
+    assert.equal(item.status, 'passed', ref);
+    assert.match(item.summary, /accepted by a maintainer \(`db-upgrade\/change-approved`\)/);
+  }
+});
+
+test('validate(): changing an existing upgrade script fails the check and explains the override', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = { number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    filesByPr: { 1: [modified('upgrades/112/postgresql.upgrade.ddl')] },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), 'PR validation failed: Database upgrade scripts');
+  assert.deepEqual(calls.addedLabels, [{ issue_number: 1, labels: [VALIDATION_FAILED_LABEL] }]);
+  const body = calls.createdComments[0].body;
+  assert.match(body, /- ❌ \*\*Database upgrade scripts:\*\* 1 existing upgrade file\(s\) changed/);
+  assert.match(body, /`upgrades\/112\/postgresql\.upgrade\.ddl` \(modified\)/);
+  assert.match(body, /adding the `db-upgrade\/change-approved` label and commenting `\/retry`/);
+});
+
+test('validate(): a PR that does not touch the upgrade scripts does not list the check', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = { number: 1, user: { login: 'contributor' }, body: 'Closes #42', labels: [], draft: false };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'fix: a')] },
+    filesByPr: { 1: ['a.js'] },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), null);
+  assert.doesNotMatch(calls.createdComments[0].body, /Database upgrade scripts/);
+});

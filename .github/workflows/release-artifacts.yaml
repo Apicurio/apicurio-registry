@@ -174,7 +174,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24.21.0
 
@@ -279,16 +279,18 @@ jobs:
           git pull origin main
           git push
 
-  # Consolidated Slack Notification (using reusable workflow)
-  notify-slack:
-    name: Slack Notification
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
     needs: [prepare, release-maven, release-sboms, release-site]
-    if: always()
-    uses: ./.github/workflows/reusable-notify-slack.yaml
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
     with:
-      workflow-name: ${{ github.workflow }}
-      job-name: 'artifact-releases'
-      job-status: ${{ (needs.release-maven.result == 'failure' || needs.release-sboms.result == 'failure' || needs.release-site.result == 'failure') && 'failure' || 'success' }}
+      results: ${{ toJSON(needs) }}
+      version: ${{ github.event.release.tag_name || inputs.tag }}
     secrets:
-      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
-      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+      SLACK_GENERAL_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

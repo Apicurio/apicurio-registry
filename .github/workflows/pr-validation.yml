@@ -1,6 +1,7 @@
 name: PR Validation
 
-# Validates submission quality (issue link, DCO sign-off, milestone) and flags
+# Validates submission quality (issue link, DCO sign-off, milestone, unchanged
+# database upgrade scripts) and flags
 # duplicate PRs. Independent of the lifecycle state machine: this runs on every
 # PR regardless of lifecycle state.
 #
@@ -52,7 +53,7 @@ jobs:
         with:
           ref: ${{ github.event.repository.default_branch }}
 
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24.21.0
 

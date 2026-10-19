@@ -1,4 +1,7 @@
 name: Release Workflow
+# Found by this name to learn who ran the release: the workflows it triggers
+# run as apicurio-ci (reusable-notify.yaml).
+run-name: Release ${{ inputs.release-version }}
 on:
   workflow_dispatch:
     inputs:
@@ -9,9 +12,6 @@ on:
         description: Branch to release from (main for minor releases, X.Y.x for patches)
         required: true
         default: main
-      notice:
-        type: boolean
-        description: I will notify jsenko if the operator release workflow fails!
 
 permissions:
   contents: read
@@ -24,13 +24,6 @@ jobs:
     outputs:
       release-sha: ${{ steps.release-commit.outputs.sha }}
     steps:
-
-      - name: Check
-        run: |
-          if [ "${{ inputs.notice }}" != "true" ]; then
-            echo "Error: You must check the notice checkbox to proceed with the release!"
-            exit 1
-          fi
 
       - name: Calculate Versions
         run: |
@@ -54,7 +47,7 @@ jobs:
           distribution: 'temurin'
 
       - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24.21.0
 
@@ -146,15 +139,6 @@ jobs:
           git push
           echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Slack Notification (Error)
-        if: failure()
-        run: |
-          MESSAGE="'${{ github.workflow }}/release-prepare' job FAILED!"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
-
   # Phase 2a: Build the registry app (Maven).
   # Runs in parallel with UI and CLI builds.
   release-build-app:
@@ -188,7 +172,7 @@ jobs:
             -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Upload Release Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: release-artifacts
           path: |
@@ -212,7 +196,7 @@ jobs:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24.21.0
 
@@ -252,7 +236,7 @@ jobs:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up GraalVM
-        uses: graalvm/setup-graalvm@0426e2e191540e8514dff98dc52a5f5146a2a276 # v1
+        uses: graalvm/setup-graalvm@27b360dbb857524eaf0b4c4cef364d38e5b4f173 # v1
         with:
           java-version: '23'
           distribution: 'graalvm-community'
@@ -277,7 +261,7 @@ jobs:
             -Dmaven.wagon.http.retryHandler.count=5
 
       - name: Upload CLI ZIP
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: cli-${{ matrix.os-name }}
           path: cli/target/apicurio-registry-cli-${{ github.event.inputs.release-version }}-*.zip
@@ -293,13 +277,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Release Artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: release-artifacts
           path: artifacts/
 
       - name: Download CLI ZIPs
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           pattern: cli-*
           path: cli-zips/
@@ -344,7 +328,7 @@ jobs:
           echo "NEXT_VERSION=${NEXT_VERSION}" >> $GITHUB_ENV
 
       - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24.21.0
 
@@ -431,20 +415,22 @@ jobs:
           git commit -m "Automated update to next Snapshot Version: ${{ env.SNAPSHOT_VERSION }}"
           git push
 
-      - name: Slack Notification (Always)
-        if: always()
-        run: |
-          MESSAGE="'${{ github.workflow }}' completed with status: ${{ job.status }}"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
-
-      - name: Slack Notification (Error)
-        if: failure()
-        run: |
-          MESSAGE="'${{ github.workflow }}' FAILED!"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
+    needs: [release-prepare, release-build-app, release-build-ui, release-build-cli, release-publish]
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
+    with:
+      results: ${{ toJSON(needs) }}
+      version: ${{ inputs.release-version }}
+      # The release's one success message: the workflows the release sets off
+      # report only their failures.
+      notify-success: true
+      success-text: ":rocket: Apicurio Registry ${{ inputs.release-version }} release created. Maven artifacts, images, SDKs, the operator and the website are being published; a failure there is reported in the team channel."
+    secrets:
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+      SLACK_GENERAL_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

@@ -1,7 +1,10 @@
 package io.apicurio.registry.agents.rules.validity;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.apicurio.registry.agents.content.McpServerContentAccepter;
 import io.apicurio.registry.agents.content.McpToolContentAccepter;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.agents.content.extract.McpServerContentExtractor;
@@ -11,6 +14,7 @@ import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -194,6 +198,24 @@ public class McpServerContentValidatorTest extends ArtifactUtilProviderTestBase 
         Assertions.assertTrue(containsElement(elements, "transport", "streamable-http"));
         Assertions.assertTrue(
                 containsElement(elements, "remote", "https://weather.example.com/mcp"));
+    }
+
+    /**
+     * The pinned schema declares {@code websiteUrl} with {@code format: uri}, which is asserted, so a
+     * value that isn't an absolute URI is rejected at that property.
+     */
+    @Test
+    public void testWebsiteUrlMustBeAUri() throws Exception {
+        var document = (ObjectNode) new ObjectMapper()
+                .readTree(resourceToTypedContentHandle("mcpserver-valid.json").getContent().content());
+        document.put("websiteUrl", "not a uri");
+        TypedContent content = TypedContent.create(ContentHandle.create(document.toString()),
+                ContentTypes.APPLICATION_JSON);
+
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class,
+                () -> new McpServerContentValidator().validate(ValidityLevel.FULL, content, Collections.emptyMap()));
+        Assertions.assertTrue(error.getCauses().stream().anyMatch(v -> "/websiteUrl".equals(v.getContext())),
+                () -> "Expected a violation at /websiteUrl, got: " + error.getCauses());
     }
 
     private boolean containsElement(List<StructuredElement> elements, String kind, String name) {

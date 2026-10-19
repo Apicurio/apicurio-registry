@@ -7,6 +7,7 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.networknt.schema.JsonSchema;
@@ -22,6 +23,7 @@ import java.io.InputStream;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -83,12 +85,14 @@ public class McpServerContentValidator implements ContentValidator {
         return message.startsWith(prefix) ? message.substring(prefix.length()) : message;
     }
 
+    /** server.json has no reference fields, so there is nothing in the content that must be mapped. */
     @Override
     public void validateReferences(TypedContent content, List<ArtifactReference> references) {
-        if (references != null && !references.isEmpty()) {
-            throw new RuleViolationException("MCP server definitions do not support references",
-                    RuleType.INTEGRITY, "NONE", Set.of(new RuleViolation(
-                            "References are not supported for MCP server definitions", "")));
-        }
+    }
+
+    /** A server references the tools it provides. */
+    @Override
+    public Optional<Set<String>> getAllowedReferenceTargetTypes() {
+        return Optional.of(Set.of(ArtifactType.MCP_TOOL));
     }
 }

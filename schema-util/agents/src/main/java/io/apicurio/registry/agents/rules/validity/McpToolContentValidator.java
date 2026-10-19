@@ -16,6 +16,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -219,5 +220,11 @@ public class McpToolContentValidator implements ContentValidator {
                     RuleType.INTEGRITY, "NONE", Collections.singleton(new RuleViolation(
                             "References are not supported for MCP tool definitions", "")));
         }
+    }
+
+    /** Tools don't reference other artifacts. */
+    @Override
+    public Optional<Set<String>> getAllowedReferenceTargetTypes() {
+        return Optional.of(Set.of());
     }
 }

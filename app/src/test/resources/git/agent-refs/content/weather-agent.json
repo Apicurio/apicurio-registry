@@ -1,0 +1,14 @@
+{
+  "name": "WeatherAgent",
+  "description": "Answers weather questions",
+  "version": "1.0.0",
+  "supportedInterfaces": [
+    { "url": "https://example.com/agent", "protocolBinding": "JSONRPC", "protocolVersion": "1.0" }
+  ],
+  "capabilities": {},
+  "skills": [
+    { "id": "weather", "name": "Weather", "description": "Weather forecasts", "tags": ["weather"] }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"]
+}

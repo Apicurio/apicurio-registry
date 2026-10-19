@@ -112,7 +112,7 @@ services:
         condition: service_healthy
 ----
 +
-Replace `VERSION` with the container image version. The example pairs Elasticsearch 9.2.3 with the 9.2.3 Java client in the {registry} 3.4 build. For another {registry} release, select an Elasticsearch version compatible with its Java client. This local example uses in-memory registry storage and disables Elasticsearch authentication. It is intended for evaluation; it does not preserve registry data when you recreate the container.
+Replace `VERSION` with the container image version. The {registry} 3.4 build includes the Elasticsearch 9.2.3 Java client and supports Elasticsearch 9.x servers; use a server version that is the same as or newer than the client within the 9.x series. For another {registry} release, select an Elasticsearch version compatible with its Java client. This local example uses in-memory registry storage and disables Elasticsearch authentication. It is intended for evaluation; it does not preserve registry data when you recreate the container.
 . Start the services:
 +
 [source,bash]
@@ -258,7 +258,8 @@ The request returns versions that satisfy all of the filters. You can also set `
 * Check the `versions` array and `count` in the response. An empty `versions` array means that no indexed versions match the filters on the requested page.
 
 .Troubleshooting
-* If the response states that content search requires an Elasticsearch search index, check that indexing is enabled and that startup indexing has finished.
+* If the response error message is `Content search requires the search index, which is not enabled.`, the search index feature is not enabled. Enable and configure the index as described in this chapter.
+* If the response error message is `Content search requires the Elasticsearch search index, which is not available.`, the index is enabled but startup indexing has not finished. Allow startup indexing to complete and repeat the search.
 * If a recent change is missing from the results, allow time for the asynchronous index update and repeat the search. Check the application logs if the results remain incomplete.
 
 

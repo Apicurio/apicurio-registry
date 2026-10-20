@@ -32,15 +32,14 @@ export const InvalidContentModal: FunctionComponent<InvalidContentModalProps> = 
 
     const errorDetail = (): React.ReactElement => {
         if (props.error) {
-            const anyError = props.error as any;
-            const causes = (anyError?.ruleViolation?.causes && anyError.ruleViolation.causes.length > 0)
-                ? anyError.ruleViolation.causes
+            const causes = (props.error.ruleViolation?.causes && props.error.ruleViolation.causes.length > 0)
+                ? props.error.ruleViolation.causes
                 : props.error.causes;
             if (causes != null && causes.length > 0) {
                 return (
                     <DataList aria-label="Error causes" className="error-causes" >
                         {
-                            causes.map( (cause: any, idx: number) =>
+                            causes.map( (cause, idx) =>
                                 <DataListItemRow key={""+idx} className="error-causes-item">
                                     <DataListItemCells
                                         dataListCells={[

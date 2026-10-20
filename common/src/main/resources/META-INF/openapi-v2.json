@@ -4323,6 +4323,9 @@
         "type": "object",
         "allOf": [
           {
+            "required": [
+              "causes"
+            ],
             "type": "object",
             "properties": {
               "causes": {

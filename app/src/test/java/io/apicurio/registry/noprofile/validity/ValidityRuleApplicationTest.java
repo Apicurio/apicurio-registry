@@ -198,7 +198,58 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
                 "Causes must not be null on draft finalize rule violation");
         Assertions.assertFalse(error.getRuleViolation().getCauses().isEmpty(),
                 "Causes must be populated on draft finalize rule violation");
+        Assertions.assertTrue(
+                error.getRuleViolation().getCauses().stream().anyMatch(c -> c.getContext() != null && c.getContext().contains("paths")),
+                "Expected causes to include context referring to /paths"
+        );
         Assertions.assertEquals(400, error.getStatus());
+    }
+
+    @Test
+    public void testCreateArtifactRuleViolationExposesBothTopLevelAndNestedCauses() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.VALIDITY);
+        createRule.setConfig(ValidityLevel.FULL.name());
+        clientV3.groups().byGroupId(groupId).rules().post(createRule);
+
+        String invalidOpenApi = """
+                {
+                    "openapi": "3.0.2",
+                    "info": {
+                        "title": "Test API"
+                    }
+                }
+                """;
+
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(
+                artifactId, ArtifactType.OPENAPI, invalidOpenApi, ContentTypes.APPLICATION_JSON);
+
+        var error = Assertions.assertThrows(
+                io.apicurio.registry.rest.client.models.RuleViolationProblemDetails.class,
+                () -> clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact)
+        );
+
+        Assertions.assertEquals(400, error.getStatus());
+        // Verify deprecated top-level causes is populated
+        Assertions.assertNotNull(error.getCauses());
+        Assertions.assertFalse(error.getCauses().isEmpty());
+        // Verify new ruleViolation.causes is populated
+        Assertions.assertNotNull(error.getRuleViolation());
+        Assertions.assertNotNull(error.getRuleViolation().getCauses());
+        // Verify backward-compatibility: both cause lists are equal
+        Assertions.assertEquals(error.getCauses().size(), error.getRuleViolation().getCauses().size());
+        for (int i = 0; i < error.getCauses().size(); i++) {
+            Assertions.assertEquals(error.getCauses().get(i).getContext(), error.getRuleViolation().getCauses().get(i).getContext());
+            Assertions.assertEquals(error.getCauses().get(i).getDescription(), error.getRuleViolation().getCauses().get(i).getDescription());
+        }
+        // Assert specific cause context
+        Assertions.assertTrue(
+                error.getRuleViolation().getCauses().stream().anyMatch(c -> c.getContext() != null && c.getContext().contains("paths")),
+                "Expected causes to include context referring to /paths"
+        );
     }
 
 }

@@ -72,6 +72,10 @@ public class LegacyErrorCodesModeTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(error.getRuleViolation());
         Assertions.assertNotNull(error.getRuleViolation().getCauses());
         Assertions.assertFalse(error.getRuleViolation().getCauses().isEmpty());
+        Assertions.assertTrue(
+                error.getRuleViolation().getCauses().stream().anyMatch(c -> c.getContext() != null && c.getContext().contains("paths")),
+                "Expected causes to include context referring to /paths"
+        );
     }
 
     @Test
@@ -82,23 +86,23 @@ public class LegacyErrorCodesModeTest extends AbstractResourceTestBase {
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.VALIDITY);
         createRule.setConfig(ValidityLevel.FULL.name());
-        clientV3.admin().rules().post(createRule);
+        clientV3.groups().byGroupId(groupId).rules().post(createRule);
 
-        try {
-            CreateArtifact createArtifact = TestUtils.clientCreateArtifact(
-                    artifactId, ArtifactType.OPENAPI, INVALID_OPENAPI, ContentTypes.APPLICATION_JSON);
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(
+                artifactId, ArtifactType.OPENAPI, INVALID_OPENAPI, ContentTypes.APPLICATION_JSON);
 
-            ProblemDetails error = Assertions.assertThrows(
-                    ProblemDetails.class,
-                    () -> clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact)
-            );
+        ProblemDetails error = Assertions.assertThrows(
+                ProblemDetails.class,
+                () -> clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact)
+        );
 
-            Assertions.assertEquals(409, error.getStatus());
-            Assertions.assertNotNull(error.getRuleViolation());
-            Assertions.assertNotNull(error.getRuleViolation().getCauses());
-            Assertions.assertFalse(error.getRuleViolation().getCauses().isEmpty());
-        } finally {
-            clientV3.admin().rules().byRuleType(RuleType.VALIDITY.name()).delete();
-        }
+        Assertions.assertEquals(409, error.getStatus());
+        Assertions.assertNotNull(error.getRuleViolation());
+        Assertions.assertNotNull(error.getRuleViolation().getCauses());
+        Assertions.assertFalse(error.getRuleViolation().getCauses().isEmpty());
+        Assertions.assertTrue(
+                error.getRuleViolation().getCauses().stream().anyMatch(c -> c.getContext() != null && c.getContext().contains("paths")),
+                "Expected causes to include context referring to /paths"
+        );
     }
 }

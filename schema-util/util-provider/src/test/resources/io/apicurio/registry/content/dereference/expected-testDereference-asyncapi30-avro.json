@@ -18,7 +18,7 @@
     "components": {
         "schemas": {
             "UserEvent": {
-                "schemaFormat": "application/vnd.apache.avro+json",
+                "schemaFormat": "application/vnd.apache.avro+json;version=1.9.0",
                 "schema": {
                     "type": "record",
                     "name": "UserEvent",

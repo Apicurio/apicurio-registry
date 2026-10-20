@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
 import "./CompatibilityReport.css";
 import {
     Button,
@@ -10,10 +10,13 @@ import {
     Title
 } from "@patternfly/react-core";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
+import type { editor } from "monaco-editor";
+import type { Monaco } from "@monaco-editor/react";
 import { RegistryCodeEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
 import { DiffView } from "@app/components/common/DiffView.tsx";
 import { draftContentToLanguage } from "@utils/content.utils.ts";
 import { newLoaderGuard } from "@utils/loader.utils.ts";
+import { buildContentMarkers, ContentIssue, ContentMarker } from "@utils/marker.utils.ts";
 import {
     comparedVersionOf,
     groupCausesByLocation,
@@ -41,6 +44,31 @@ const DIRECTION_LABELS: Record<string, string> = {
     FORWARD: "Breaks forward compatibility",
     BOTH: "Breaks backward and forward compatibility"
 };
+
+const MARKER_OWNER: string = "apicurio-compatibility-report";
+
+/**
+ * Where a cause is in the submitted content: `proposed.pointer`, or `context` when the server sends no
+ * location. A location in a referenced artifact is not in the submitted document, so it gets no highlight.
+ */
+const proposedIssueOf = (cause: ViolationCause): ContentIssue | undefined => {
+    if (cause.proposed?.reference !== undefined) {
+        return undefined;
+    }
+    const pointer: string | undefined = cause.proposed?.pointer ?? cause.context;
+    return pointer === undefined ? undefined : { pointer, message: cause.description };
+};
+
+/** Where a cause is in the compared version, when the server reports it and it is not in a referenced artifact. */
+const existingIssueOf = (cause: ViolationCause): ContentIssue | undefined => {
+    if (cause.existing?.pointer === undefined || cause.existing.reference !== undefined) {
+        return undefined;
+    }
+    return { pointer: cause.existing.pointer, message: cause.description };
+};
+
+const issuesOf = (causes: ViolationCause[], issueOf: (cause: ViolationCause) => ContentIssue | undefined): ContentIssue[] =>
+    causes.map(issueOf).filter((issue): issue is ContentIssue => issue !== undefined);
 
 const EDITOR_LINE_HEIGHT = 19;
 const EDITOR_MAX_HEIGHT = 300;
@@ -77,7 +105,44 @@ export const CompatibilityReport: FunctionComponent<CompatibilityReportProps> = 
         return () => guard.cancel();
     }, [isComparing, comparedVersion]);
 
+    const proposedMarkers: ContentMarker[] = useMemo(() => props.content === undefined ? [] :
+        buildContentMarkers(props.content, issuesOf(props.causes, proposedIssueOf)).markers, [props.content, props.causes]);
+    const existingMarkers: ContentMarker[] = useMemo(() => comparedContent === undefined ? [] :
+        buildContentMarkers(comparedContent, issuesOf(props.causes, existingIssueOf)).markers, [comparedContent, props.causes]);
+    // Where each group's location is in the submitted content, so its title can scroll there.
+    const groupMarkers: (ContentMarker | undefined)[] = useMemo(() => groups.map(group => {
+        const issue: ContentIssue | undefined = proposedIssueOf(group.causes[0]);
+        return props.content === undefined || issue === undefined ? undefined :
+            buildContentMarkers(props.content, [issue]).markers[0];
+    }), [props.content, props.causes]);
+
+    const [codeEditor, setCodeEditor] = useState<editor.IStandaloneCodeEditor>();
+    const monacoRef = useRef<Monaco | undefined>(undefined);
+    const [revealInComparison, setRevealInComparison] = useState<ContentMarker>();
+
+    useEffect(() => {
+        const model: editor.ITextModel | null | undefined = codeEditor?.getModel();
+        const monaco: Monaco | undefined = monacoRef.current;
+        if (!model || !monaco) {
+            return;
+        }
+        monaco.editor.setModelMarkers(model, MARKER_OWNER, proposedMarkers.map(marker => ({
+            ...marker,
+            severity: monaco.MarkerSeverity.Error
+        })));
+    }, [codeEditor, proposedMarkers]);
+
     const isShowingComparison: boolean = isComparing && comparedContent !== undefined;
+
+    const revealLocation = (marker: ContentMarker): void => {
+        if (isShowingComparison) {
+            // A new object each time, so a second click on the same location scrolls again.
+            setRevealInComparison({ ...marker });
+        } else {
+            codeEditor?.revealRangeInCenter(marker);
+            codeEditor?.setSelection(marker);
+        }
+    };
     const isLoadingComparison: boolean = isComparing && comparedContent === undefined && compareError === undefined;
 
     const toggleComparison = (): void => {
@@ -110,7 +175,12 @@ export const CompatibilityReport: FunctionComponent<CompatibilityReportProps> = 
                                 </DataListCell>,
                                 <DataListCell key="main content">
                                     <div className="error-causes-item-title">
-                                        {group.location !== undefined ? <b>{locationTitle(group.location)}</b> : group.causes[0].description}
+                                        {group.location === undefined ? group.causes[0].description : groupMarkers[idx] !== undefined ? (
+                                            <Button variant="link" isInline={true} data-testid="compatibility-report-location"
+                                                onClick={() => revealLocation(groupMarkers[idx] as ContentMarker)}>
+                                                <b>{locationTitle(group.location)}</b>
+                                            </Button>
+                                        ) : <b>{locationTitle(group.location)}</b>}
                                     </div>
                                     {group.reference !== undefined && (
                                         <div className="compatibility-report-reference">
@@ -150,6 +220,9 @@ export const CompatibilityReport: FunctionComponent<CompatibilityReportProps> = 
                             modified={props.content}
                             modifiedLabel="Submitted"
                             height={editorHeight(comparedContent, props.content)}
+                            originalMarkers={existingMarkers}
+                            modifiedMarkers={proposedMarkers}
+                            revealModified={revealInComparison}
                         />
                     ) : (
                         <RegistryCodeEditor
@@ -157,8 +230,14 @@ export const CompatibilityReport: FunctionComponent<CompatibilityReportProps> = 
                             height={editorHeight(props.content)}
                             language={language}
                             value={props.content}
+                            onMount={(mountedEditor, monaco) => {
+                                monacoRef.current = monaco;
+                                setCodeEditor(mountedEditor);
+                            }}
                             options={{
                                 readOnly: true,
+                                // Monaco hides markers in read-only editors unless told otherwise.
+                                renderValidationDecorations: "on",
                                 automaticLayout: true,
                                 minimap: { enabled: false },
                                 wordWrap: "on"

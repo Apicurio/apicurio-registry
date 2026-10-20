@@ -174,6 +174,26 @@ test("Compatibility report - a rejected new version lists the causes and shows t
     expect((await diffEditor.boundingBox())?.height).toBe(38);
 });
 
+test("Compatibility report - each cause is highlighted in the submitted content and, when comparing, in both versions", async ({ page }) => {
+    await mockRegistry(page, {
+        status: 400,
+        title: "Incompatible artifact: test-artifact [AVRO]",
+        ruleViolation: { ruleType: "COMPATIBILITY", causes: CAUSES },
+        causes: CAUSES
+    });
+
+    await submitNewVersion(page);
+
+    // Monaco draws an error marker as a squiggly decoration under the range.
+    const content = page.getByTestId("compatibility-report-content");
+    await expect(content.locator(".squiggly-error").first()).toBeVisible();
+
+    await page.getByTestId("compatibility-report-compare").click();
+    await expect(content).toContainText("Submitted content compared with version 1");
+    await expect(content.locator(".editor.original .squiggly-error").first()).toBeVisible();
+    await expect(content.locator(".editor.modified .squiggly-error").first()).toBeVisible();
+});
+
 test("Compatibility report - testing content from the version page shows the causes and the tested content", async ({ page }) => {
     await mockRegistry(page, ARTIFACT_VIOLATION);
 

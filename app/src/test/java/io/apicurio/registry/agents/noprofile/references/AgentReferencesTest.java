@@ -139,9 +139,8 @@ public class AgentReferencesTest extends AbstractResourceTestBase {
                 ref("tool", "get_weather"), ref("agent", "agent"));
         assertRejected("other-agent", ArtifactType.AGENT_CARD, AGENT.formatted("Other"), "schema",
                 ref("schema", "schema"));
-        // Under FULL, the MCP tool validator rejects the reference first, without naming it.
-        assertRejected("other-tool", ArtifactType.MCP_TOOL, TOOL.formatted("other"),
-                level == IntegrityLevel.FULL ? "" : "get_weather", ref("tool", "get_weather"));
+        assertRejected("other-tool", ArtifactType.MCP_TOOL, TOOL.formatted("other"), "get_weather",
+                ref("tool", "get_weather"));
     }
 
     @Test

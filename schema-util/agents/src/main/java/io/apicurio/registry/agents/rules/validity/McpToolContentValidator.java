@@ -216,9 +216,13 @@ public class McpToolContentValidator implements ContentValidator {
             throws RuleViolationException {
         // MCP tool definitions don't support references
         if (references != null && !references.isEmpty()) {
+            Set<RuleViolation> violations = new HashSet<>();
+            for (ArtifactReference reference : references) {
+                violations.add(new RuleViolation("References are not supported for MCP tool definitions",
+                        reference.getName()));
+            }
             throw new RuleViolationException("MCP tool definitions do not support references",
-                    RuleType.INTEGRITY, "NONE", Collections.singleton(new RuleViolation(
-                            "References are not supported for MCP tool definitions", "")));
+                    RuleType.INTEGRITY, "NONE", violations);
         }
     }
 

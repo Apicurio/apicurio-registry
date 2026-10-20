@@ -12,8 +12,9 @@ import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
-import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -120,15 +121,20 @@ public class IntegrityRuleExecutor implements RuleExecutor {
         RegistryStorage storageToUse = resolveStorage(context);
         Set<RuleViolation> causes = new HashSet<>();
         for (ArtifactReference ref : references) {
-            ContentWrapperDto target = storageToUse.getContentByReference(ArtifactReferenceDto.builder()
-                    .groupId(ref.getGroupId()).artifactId(ref.getArtifactId()).version(ref.getVersion())
-                    .name(ref.getName()).build());
-            if (target != null && !allowedTypes.get().contains(target.getArtifactType())) {
+            String targetType;
+            try {
+                targetType = storageToUse.getArtifactVersionMetaData(ref.getGroupId(), ref.getArtifactId(),
+                        ref.getVersion()).getArtifactType();
+            } catch (ArtifactNotFoundException | VersionNotFoundException e) {
+                // A missing target is reported by the existence check.
+                continue;
+            }
+            if (!allowedTypes.get().contains(targetType)) {
                 RuleViolation violation = new RuleViolation();
                 violation.setContext(ref.getName());
                 violation.setDescription(String.format(
                         "Referenced artifact (%s/%s @ %s) is of type %s, which %s artifacts cannot reference.",
-                        ref.getGroupId(), ref.getArtifactId(), ref.getVersion(), target.getArtifactType(),
+                        ref.getGroupId(), ref.getArtifactId(), ref.getVersion(), targetType,
                         context.getArtifactType()));
                 causes.add(violation);
             }

@@ -16,8 +16,6 @@ import io.apicurio.registry.content.util.ContentTypeUtil;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class RegistryReferenceResolver extends LocalReferenceResolver {
 
@@ -32,14 +30,6 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
         PROTOBUF,
         OTHER
     }
-
-    // Whitespace and comments that may precede the file's syntax/edition declaration
-    private static final Pattern PROTO_LEADING_TRIVIA = Pattern
-            .compile("(?:\\s+|//[^\\n]*|/\\*.*?\\*/)*", Pattern.DOTALL);
-
-    // The syntax or edition declaration, which must be the first statement of a .proto file
-    private static final Pattern PROTO_DECLARATION = Pattern
-            .compile("(?:syntax\\s*=\\s*[\"']proto([23])[\"']|edition\\s*=\\s*[\"'][^\"']*[\"'])\\s*;");
 
     private final Map<String, TypedContent> resolvedReferences;
 
@@ -162,14 +152,15 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
                         // For Avro, return as JSON with appropriate media type
                         // The dereferencer will wrap it in a Multi-Format Schema Object
                         JsonNode avroNode = ContentTypeUtil.parseJsonOrYaml(resolvedRefContent);
-                        return ResolvedReference.fromJson(avroNode, avroSchemaFormat(from));
+                        return ResolvedReference.fromJson(avroNode,
+                                AsyncApiSchemaFormats.forAvro(declaredSchemaFormat(from)));
 
                     case PROTOBUF:
                         // For Protobuf, return as text with appropriate media type
                         // The dereferencer will wrap it in a Multi-Format Schema Object
                         String protoContent = resolvedRefContent.getContent().content();
                         return ResolvedReference.fromText(protoContent,
-                                protobufSchemaFormat(from, protoContent));
+                                AsyncApiSchemaFormats.forProtobuf(declaredSchemaFormat(from), protoContent));
 
                     case OTHER:
                         // For Other, return as text with no media type
@@ -186,58 +177,10 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
     }
 
     /**
-     * Determines the schemaFormat to use for a referenced Avro schema. A versioned Avro format declared by
-     * the document is kept; anything else (no declaration, a versionless Avro format, or a format from
-     * another family) is replaced by the registered default. Versionless declarations on the referencing
-     * wrappers are fixed up after dereferencing by {@link AsyncApiSchemaFormats#normalizeVersionless}.
-     *
-     * @param from the node containing the unresolved reference
-     * @return the schemaFormat for the inlined Avro schema
-     */
-    static String avroSchemaFormat(Node from) {
-        String declared = declaredSchemaFormat(from);
-        return AsyncApiSchemaFormats.isVersionedAvro(declared) ? declared : AsyncApiSchemaFormats.AVRO;
-    }
-
-    /**
-     * Determines the schemaFormat to use for a referenced Protobuf schema. A versioned Protobuf format
-     * declared by the document is kept; otherwise the version is inferred from the schema itself.
-     *
-     * @param from the node containing the unresolved reference
-     * @param protoContent the referenced Protobuf schema
-     * @return the schemaFormat for the inlined Protobuf schema
-     */
-    static String protobufSchemaFormat(Node from, String protoContent) {
-        String declared = declaredSchemaFormat(from);
-        return AsyncApiSchemaFormats.isVersionedProtobuf(declared) ? declared
-                : detectProtobufSchemaFormat(protoContent);
-    }
-
-    /**
-     * Detects the Protobuf schemaFormat from the file's syntax or edition declaration. Only the first
-     * statement of the file (after leading whitespace and comments) is considered, since that is the only
-     * place the declaration may appear; this avoids matching similar text in comments or string literals.
-     * A file with no declaration is proto2 (the language default). Editions map to proto3, the newest
-     * version AsyncAPI registers.
-     *
-     * @param protoContent the Protobuf schema
-     * @return the schemaFormat matching the schema's language version
-     */
-    static String detectProtobufSchemaFormat(String protoContent) {
-        Matcher trivia = PROTO_LEADING_TRIVIA.matcher(protoContent);
-        int start = trivia.lookingAt() ? trivia.end() : 0;
-        Matcher declaration = PROTO_DECLARATION.matcher(protoContent).region(start, protoContent.length());
-        if (!declaration.lookingAt()) {
-            return AsyncApiSchemaFormats.PROTOBUF_2;
-        }
-        // group(1) is null for an edition declaration
-        return "2".equals(declaration.group(1)) ? AsyncApiSchemaFormats.PROTOBUF_2
-                : AsyncApiSchemaFormats.PROTOBUF_3;
-    }
-
-    /**
      * Returns the schemaFormat declared on the Multi-Format Schema Object containing the reference, or
-     * null if there is none.
+     * null if there is none. A versioned declaration of the matching family is kept on the inlined schema;
+     * versionless declarations on referencing wrappers are fixed up after dereferencing by
+     * {@link AsyncApiSchemaFormats#normalizeVersionless}.
      *
      * @param from the node containing the unresolved reference
      * @return the declared schemaFormat, or null
@@ -246,8 +189,8 @@ public class RegistryReferenceResolver extends LocalReferenceResolver {
         // The $ref may be on the Multi-Format Schema Object itself or on its "schema" property
         Node node = from;
         for (int depth = 0; node != null && depth < 2; depth++) {
-            if (node instanceof AsyncApiMultiFormatSchema) {
-                return ((AsyncApiMultiFormatSchema) node).getSchemaFormat();
+            if (node instanceof AsyncApiMultiFormatSchema multiFormatSchema) {
+                return multiFormatSchema.getSchemaFormat();
             }
             node = node.parent();
         }

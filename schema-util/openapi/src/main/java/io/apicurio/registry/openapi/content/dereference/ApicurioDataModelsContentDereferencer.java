@@ -7,6 +7,7 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apitomy.datamodels.Library;
 import io.apitomy.datamodels.TraverserDirection;
 import io.apitomy.datamodels.models.Document;
+import io.apitomy.datamodels.util.ModelTypeUtil;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
@@ -24,6 +25,10 @@ public class ApicurioDataModelsContentDereferencer implements ContentDereference
             JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
             Document doc = Library.readDocument((ObjectNode) node);
             RegistryReferenceResolver resolver = new RegistryReferenceResolver(resolvedReferences);
+            if (ModelTypeUtil.isAsyncApi2Model(doc)) {
+                // 2.x message payloads are raw JSON that the library does not dereference
+                Library.visitTree(doc, new AsyncApi2PayloadInliner(resolver), TraverserDirection.down);
+            }
             Document dereferencedDoc = Library.dereferenceDocument(doc, resolver, false);
 
             // An inlined schema may be shared by several wrappers, but the resolver only sees the first one.

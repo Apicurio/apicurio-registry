@@ -2262,6 +2262,23 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     /**
+     * Test that dereferencing an AsyncAPI 2.6 document inlines a referenced Avro schema into the message
+     * payload and gives the message the versioned Avro schemaFormat. AsyncAPI 2.x has no Multi-Format
+     * Schema Object, so the message's schemaFormat is what tells parsers the payload is Avro.
+     */
+    @Test
+    public void testDereferenceAsyncApi26AvroPayload() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        JsonNode dereferenced = dereferenceAsyncApiWithAvroReference(groupId, "asyncapi26-shopping-cart.yml");
+
+        JsonNode message = dereferenced.path("components").path("messages").path("ShoppingCartCreatedMessage");
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
+                message.path("schemaFormat").asText());
+        Assertions.assertEquals("record", message.path("payload").path("type").asText());
+        Assertions.assertEquals("ShoppingCartCreated", message.path("payload").path("name").asText());
+    }
+
+    /**
      * Test that dereferencing an AsyncAPI 3.0 document works when the referenced Avro schema itself
      * references another Avro schema. Avro content cannot have its references rewritten, which must not
      * cause the nested schema to be dropped from the dereferenced document.

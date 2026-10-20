@@ -54,7 +54,7 @@ import static org.mockito.Mockito.when;
  */
 class OidcFailureCacheTest {
 
-    @Test void forbiddenResponseIsCachedAndRethrownWithoutSecondFetch() throws Exception {
+    @Test void forbiddenResponseIsCachedAndRethrownWithoutSecondFetch() {
         AtomicInteger fetchCount = new AtomicInteger(0);
 
         AppAuthenticationMechanism mockParent = mock(AppAuthenticationMechanism.class);

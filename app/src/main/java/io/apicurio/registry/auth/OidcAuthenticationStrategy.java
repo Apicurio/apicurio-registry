@@ -251,10 +251,6 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         return oidcAuthenticationMechanism.authenticate(context, identityProviderManager);
     }
 
-    /**
-     * Selects one state atomically per credential pair. Network I/O and waiting on
-     * the shared future happen outside compute(), keeping its critical section short.
-     */
     private String fetchOrJoinToken(String credentialsHash, Pair<String, String> clientCredentials) {
         TokenState candidate = new TokenState(new CompletableFuture<>());
         CredentialState selected = credentialStates.compute(credentialsHash,
@@ -265,33 +261,13 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
         }
 
         TokenState tokenState = (TokenState) selected;
-        CompletableFuture<WrappedValue<String>> future = tokenState.future();
+
+        // Only the caller whose candidate was selected performs the fetch.
         if (tokenState == candidate) {
-            try {
-                future.complete(parent.getAccessToken(clientCredentials, oidcTokenUrl));
-            } catch (RuntimeException ex) {
-                if (isCacheable(ex)) {
-                    recordFailure(credentialsHash, tokenState, ex);
-                } else {
-                    // Remove only this fetch's state, never a newer replacement.
-                    credentialStates.compute(credentialsHash,
-                            (key, current) -> current == tokenState ? null : current);
-                }
-                future.completeExceptionally(ex);
-                throw ex;
-            } finally {
-                if (!future.isDone()) {
-                    /**
-                     *  Keep a completed exceptional state temporarily. A joiner can
-                     *  replace THIS state with its failure; a later caller can replace
-                     *  it with a fresh fetch. Neither can overwrite the other's state.
-                     */
-                    future.completeExceptionally(
-                            new OidcAuthException("Token fetch thread died without completing the future"));
-                }
-            }
+            fetchAndCompleteToken(credentialsHash, clientCredentials, tokenState);
         }
 
+        CompletableFuture<WrappedValue<String>> future = tokenState.future();
         try {
             return future.join().getValue();
         } catch (CompletionException ce) {
@@ -303,6 +279,37 @@ public class OidcAuthenticationStrategy implements AuthenticationStrategy {
                 recordFailure(credentialsHash, tokenState, failure);
             }
             throw failure;
+        }
+    }
+
+    /**
+     * Performs the creator's fetch and settles its shared future.
+     * Cacheable failures are published before waiting callers are released.
+     */
+    private void fetchAndCompleteToken(String credentialsHash, Pair<String, String> clientCredentials,
+            TokenState tokenState) {
+        CompletableFuture<WrappedValue<String>> future = tokenState.future();
+
+        try {
+            future.complete(parent.getAccessToken(clientCredentials, oidcTokenUrl));
+        } catch (RuntimeException ex) {
+            if (isCacheable(ex)) {
+                recordFailure(credentialsHash, tokenState, ex);
+            } else {
+                // Remove only this fetch's state, never a newer replacement.
+                credentialStates.compute(credentialsHash,
+                        (key, current) -> current == tokenState ? null : current);
+            }
+
+            future.completeExceptionally(ex);
+            throw ex;
+        } finally {
+            if (!future.isDone()) {
+                // Release waiters if an Error escapes the fetch. Keep the failed state
+                // replaceable, with its identity available to guard delayed callers.
+                future.completeExceptionally(
+                        new OidcAuthException("Token fetch thread died without completing the future"));
+            }
         }
     }
 

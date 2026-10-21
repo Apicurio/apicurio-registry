@@ -95,7 +95,7 @@ class OidcFailureCacheTest {
                 "Second call should NOT trigger a fetch; the cached failure should be returned");
     }
 
-    @Test void oidcAuthExceptionIsCachedAndRethrownWithoutSecondFetch() throws Exception {
+    @Test void oidcAuthExceptionIsCachedAndRethrownWithoutSecondFetch() {
         AtomicInteger fetchCount = new AtomicInteger(0);
 
         AppAuthenticationMechanism mockParent = mock(AppAuthenticationMechanism.class);
@@ -132,7 +132,7 @@ class OidcFailureCacheTest {
                 "Second call should NOT trigger a fetch; the cached failure should be returned");
     }
 
-    @Test void expiredFailureCacheAllowsRetryAndRecovery() throws Exception {
+    @Test void expiredFailureCacheAllowsRetryAndRecovery() {
         AtomicInteger fetchCount = new AtomicInteger(0);
 
         AppAuthenticationMechanism mockParent = mock(AppAuthenticationMechanism.class);
@@ -313,15 +313,20 @@ class OidcFailureCacheTest {
         });
         Pair<String, String> credentials = Pair.of("gap-client", "gap-secret");
         IdentityProviderManager manager = mock(IdentityProviderManager.class);
+
+        RoutingContext firstContext = createMockRoutingContext();
         OidcAuthException first = assertThrows(OidcAuthException.class,
-                () -> strategy.authenticateWithClientCredentials(credentials, createMockRoutingContext(),
-                        manager));
+                () -> strategy.authenticateWithClientCredentials(credentials, firstContext, manager));
+
         OidcAuthenticationStrategy.FailureState failed = assertInstanceOf(
                 OidcAuthenticationStrategy.FailureState.class, stateAtCompletion.get());
         assertSame(first, failed.failure().getValue());
-        assertSame(first, assertThrows(OidcAuthException.class,
-                () -> strategy.authenticateWithClientCredentials(credentials, createMockRoutingContext(),
-                        manager)));
+
+        RoutingContext secondContext = createMockRoutingContext();
+        OidcAuthException second = assertThrows(OidcAuthException.class,
+                () -> strategy.authenticateWithClientCredentials(credentials, secondContext, manager));
+
+        assertSame(first, second);
         assertEquals(1, fetchCount.get());
     }
 
@@ -330,7 +335,7 @@ class OidcFailureCacheTest {
      * outage of another kind, not a verdict on the credentials. It must propagate and leave
      * the failure cache empty, so the next caller gets a fresh fetch.
      */
-    @Test void unexpectedRuntimeExceptionIsNotCached() throws Exception {
+    @Test void unexpectedRuntimeExceptionIsNotCached() {
         AtomicInteger fetchCount = new AtomicInteger(0);
         AppAuthenticationMechanism mockParent = mock(AppAuthenticationMechanism.class);
         when(mockParent.getAccessToken(any(Pair.class), anyString())).thenAnswer(invocation -> {
@@ -347,10 +352,12 @@ class OidcFailureCacheTest {
 
         Pair<String, String> credentials = Pair.of("odd-client", "odd-secret");
         IdentityProviderManager idpManager = mock(IdentityProviderManager.class);
+
         for (int attempt = 1; attempt <= 2; attempt++) {
+            RoutingContext context = createMockRoutingContext();
+
             assertThrows(IllegalStateException.class,
-                    () -> strategy.authenticateWithClientCredentials(credentials, createMockRoutingContext(),
-                            idpManager));
+                    () -> strategy.authenticateWithClientCredentials(credentials, context, idpManager));
         }
 
         assertEquals(2, fetchCount.get(), "Nothing was cached, so each call should fetch");
@@ -371,12 +378,13 @@ class OidcFailureCacheTest {
         Pair<String, String> credentials = Pair.of("rejected-client", "rejected-secret");
         IdentityProviderManager idpManager = mock(IdentityProviderManager.class);
 
+        RoutingContext firstContext = createMockRoutingContext();
         UnauthorizedException first = assertThrows(UnauthorizedException.class,
-                () -> strategy.authenticateWithClientCredentials(credentials, createMockRoutingContext(),
-                        idpManager));
+                () -> strategy.authenticateWithClientCredentials(credentials, firstContext, idpManager));
+
+        RoutingContext secondContext = createMockRoutingContext();
         UnauthorizedException second = assertThrows(UnauthorizedException.class,
-                () -> strategy.authenticateWithClientCredentials(credentials, createMockRoutingContext(),
-                        idpManager));
+                () -> strategy.authenticateWithClientCredentials(credentials, secondContext, idpManager));
 
         assertEquals(1, fetchCount.get(), "The second call should get the cached 401");
         assertSame(first, second, "The cached failure should be rethrown as is");
@@ -570,9 +578,11 @@ class OidcFailureCacheTest {
 
             if (cacheable) {
                 // A later caller receives the cached failure without another fetch.
+                RoutingContext laterContext = createMockRoutingContext();
+
                 assertSame(failure, assertThrows(OidcAuthException.class,
-                        () -> strategy.authenticateWithClientCredentials(credentials,
-                                createMockRoutingContext(), manager)));
+                        () -> strategy.authenticateWithClientCredentials(credentials, laterContext,
+                                manager)));
 
                 assertEquals(1, fetchCount.get(), "A cached failure must prevent another fetch");
             } else {

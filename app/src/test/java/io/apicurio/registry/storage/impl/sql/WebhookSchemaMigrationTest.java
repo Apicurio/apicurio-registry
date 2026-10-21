@@ -1,17 +1,23 @@
 
-
 package io.apicurio.registry.storage.impl.sql;
 
+import org.h2.api.ErrorCode;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,7 +41,7 @@ public class WebhookSchemaMigrationTest {
     @Test
     void freshInstall_allWebhookTablesExist() throws Exception {
         try (Connection conn = freshH2()) {
-            executeDdlResource(conn, "h2.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseInitialization());
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
@@ -45,7 +51,7 @@ public class WebhookSchemaMigrationTest {
     @Test
     void freshInstall_dbVersionIs112() throws Exception {
         try (Connection conn = freshH2()) {
-            executeDdlResource(conn, "h2.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseInitialization());
             assertDbVersion(conn, VERSION_AFTER);
         }
     }
@@ -53,7 +59,7 @@ public class WebhookSchemaMigrationTest {
     @Test
     void freshInstall_subscriptionsColumnsExist() throws Exception {
         try (Connection conn = freshH2()) {
-            executeDdlResource(conn, "h2.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseInitialization());
             assertColumnExists(conn, "webhook_subscriptions", "subscriptionId");
             assertColumnExists(conn, "webhook_subscriptions", "ownerId");
             assertColumnExists(conn, "webhook_subscriptions", "endpointUrl");
@@ -68,7 +74,7 @@ public class WebhookSchemaMigrationTest {
     @Test
     void freshInstall_eventsColumnsExist() throws Exception {
         try (Connection conn = freshH2()) {
-            executeDdlResource(conn, "h2.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseInitialization());
             assertColumnExists(conn, "webhook_events", "eventRowId");
             assertColumnExists(conn, "webhook_events", "source");
             assertColumnExists(conn, "webhook_events", "eventId");
@@ -82,7 +88,7 @@ public class WebhookSchemaMigrationTest {
     @Test
     void freshInstall_deliveryLogsColumnsExist() throws Exception {
         try (Connection conn = freshH2()) {
-            executeDdlResource(conn, "h2.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseInitialization());
             assertColumnExists(conn, "webhook_delivery_logs", "deliveryId");
             assertColumnExists(conn, "webhook_delivery_logs", "subscriptionId");
             assertColumnExists(conn, "webhook_delivery_logs", "eventRowId");
@@ -118,9 +124,9 @@ public class WebhookSchemaMigrationTest {
             }
 
             // Apply the full upgrade chain: 110 → 111 (peers) → 112 (webhooks).
-            executeDdlResource(conn, "upgrades/111/h2.upgrade.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseUpgrade(110, 111));
             assertDbVersion(conn, VERSION_PEERS);
-            executeDdlResource(conn, "upgrades/112/h2.upgrade.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseUpgrade(111, 112));
 
             // All three webhook tables must now exist.
             assertTableExists(conn, "webhook_subscriptions");
@@ -156,7 +162,7 @@ public class WebhookSchemaMigrationTest {
         try (Connection conn = freshH2()) {
             // Build a genuine v111 state: apply the pinned v110 baseline then the peers migration.
             executeDdlResource(conn, "pre-peers-schema/h2.ddl");
-            executeDdlResource(conn, "upgrades/111/h2.upgrade.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseUpgrade(110, 111));
             assertDbVersion(conn, VERSION_PEERS);
             assertTableExists(conn, "peers");
 
@@ -172,7 +178,7 @@ public class WebhookSchemaMigrationTest {
             }
 
             // Apply the 112 (webhooks) upgrade.
-            executeDdlResource(conn, "upgrades/112/h2.upgrade.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseUpgrade(111, 112));
             assertDbVersion(conn, VERSION_AFTER);
 
             // The peers table must still exist after the 112 upgrade.
@@ -207,7 +213,7 @@ public class WebhookSchemaMigrationTest {
         try (Connection conn = freshH2()) {
             // Start from v111 (peers already applied).
             executeDdlResource(conn, "pre-peers-schema/h2.ddl");
-            executeDdlResource(conn, "upgrades/111/h2.upgrade.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseUpgrade(110, 111));
             assertDbVersion(conn, VERSION_PEERS);
 
             // Simulate partial failure during 112: webhook_subscriptions was committed but the
@@ -237,7 +243,7 @@ public class WebhookSchemaMigrationTest {
             assertDbVersion(conn, VERSION_PEERS);
 
             // Retry: the full 112 upgrade script must succeed without "table already exists" errors.
-            executeDdlResource(conn, "upgrades/112/h2.upgrade.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseUpgrade(111, 112));
 
             // All three webhook tables must now exist and the version must be 112.
             assertTableExists(conn, "webhook_subscriptions");
@@ -254,7 +260,7 @@ public class WebhookSchemaMigrationTest {
     @Test
     void payloadRoundTrip_includesNullBytesAndHighBytes() throws Exception {
         try (Connection conn = freshH2()) {
-            executeDdlResource(conn, "h2.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseInitialization());
 
             String subId = UUID.randomUUID().toString();
             insertSubscription(conn, subId);
@@ -294,7 +300,7 @@ public class WebhookSchemaMigrationTest {
     @Test
     void payloadRoundTrip_validCloudEventJson() throws Exception {
         try (Connection conn = freshH2()) {
-            executeDdlResource(conn, "h2.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseInitialization());
 
             String subId = UUID.randomUUID().toString();
             insertSubscription(conn, subId);
@@ -341,13 +347,13 @@ public class WebhookSchemaMigrationTest {
     }
 
     // ------------------------------------------------------------
-    // Foreign-key enforcement
+    // Foreign-key enforcement — standalone tests
     // ------------------------------------------------------------
 
     @Test
     void fkWhdlogs1_rejectsUnknownSubscriptionId() throws Exception {
         try (Connection conn = freshH2()) {
-            executeDdlResource(conn, "h2.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseInitialization());
 
             String eventRowId = UUID.randomUUID().toString();
             insertEvent(conn, eventRowId);
@@ -364,8 +370,9 @@ public class WebhookSchemaMigrationTest {
                 ps.setLong(5, now);
                 SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
                         "FK_whdlogs_1 must reject unknown subscriptionId");
-                assertEquals("23506", ex.getSQLState(),
-                        "H2 SQL state must be 23506 (referential integrity violated - parent missing), was: " + ex.getSQLState());
+                assertH2IntegrityError(ex,
+                        ErrorCode.REFERENTIAL_INTEGRITY_VIOLATED_PARENT_MISSING_1,
+                        "FK_whdlogs_1");
             }
         }
     }
@@ -373,7 +380,7 @@ public class WebhookSchemaMigrationTest {
     @Test
     void fkWhdlogs2_rejectsUnknownEventRowId() throws Exception {
         try (Connection conn = freshH2()) {
-            executeDdlResource(conn, "h2.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseInitialization());
 
             String subId = UUID.randomUUID().toString();
             insertSubscription(conn, subId);
@@ -390,20 +397,21 @@ public class WebhookSchemaMigrationTest {
                 ps.setLong(5, now);
                 SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
                         "FK_whdlogs_2 must reject unknown eventRowId");
-                assertEquals("23506", ex.getSQLState(),
-                        "H2 SQL state must be 23506 (referential integrity violated - parent missing), was: " + ex.getSQLState());
+                assertH2IntegrityError(ex,
+                        ErrorCode.REFERENTIAL_INTEGRITY_VIOLATED_PARENT_MISSING_1,
+                        "FK_whdlogs_2");
             }
         }
     }
 
     // ------------------------------------------------------------
-    // Check constraint
+    // Check constraint — standalone test
     // ------------------------------------------------------------
 
     @Test
     void checkConstraint_rejectsNegativeAttemptCount() throws Exception {
         try (Connection conn = freshH2()) {
-            executeDdlResource(conn, "h2.ddl");
+            applyStatements(conn, new H2SqlStatements().databaseInitialization());
 
             String subId = UUID.randomUUID().toString();
             insertSubscription(conn, subId);
@@ -422,40 +430,57 @@ public class WebhookSchemaMigrationTest {
                 ps.setLong(5, now);
                 SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
                         "CK_whdlogs_1 must reject negative attemptCount");
-                assertEquals("23513", ex.getSQLState(),
-                        "H2 SQL state must be 23513 (check constraint violated), was: " + ex.getSQLState());
+                assertH2IntegrityError(ex,
+                        ErrorCode.CHECK_CONSTRAINT_VIOLATED_1,
+                        "CK_whdlogs_1");
             }
         }
     }
 
     // ------------------------------------------------------------
-    // Constraint invariants — fresh install and post-upgrade parity
+    // Parameterized constraint-invariants test (fresh AND upgraded)
     // ------------------------------------------------------------
 
     /**
      * All structural invariants (unique constraints, FK protection, check constraints) must hold
-     * on a fresh install. This is the control: the DDL author wrote the constraints correctly.
+     * on both a fresh install and a fully upgraded database.
+     *
+     * <p>"fresh" = full version-112 initialization DDL on an empty DB.</p>
+     * <p>"upgraded" = real v110 schema + v111 upgrade + seed rows + v112 upgrade, with
+     * verification that seeded rows are preserved and db_version = 112.</p>
      */
-    @Test
-    void freshInstall_constraintInvariantsHold() throws Exception {
-        try (Connection conn = freshH2()) {
-            executeDdlResource(conn, "h2.ddl");
+    @ParameterizedTest(name = "constraintInvariants on {0} database")
+    @ValueSource(strings = {"fresh", "upgraded"})
+    void constraintInvariants_onFreshAndUpgraded(String scenario) throws Exception {
+        try (Connection conn = openScenarioH2(scenario)) {
             assertConstraintInvariants(conn);
         }
     }
 
+    // ------------------------------------------------------------
+    // Schema-parity test (fresh vs upgraded H2)
+    // ------------------------------------------------------------
+
     /**
-     * All structural invariants must also hold after upgrading from v110 through v111 to v112.
-     * Ensures the upgrade scripts produce a schema that is structurally equivalent to a fresh
-     * install, not merely one that has the right table names.
+     * Normalized schema metadata (columns, primary keys, foreign keys, unique constraints,
+     * check constraints, indexes) must be identical between a fresh install and an upgraded DB.
+     *
+     * <p>Auto-generated names ignored: primary-key constraint names, because the webhook DDL
+     * does not assign explicit names to primary-key constraints and H2 auto-generates them
+     * (e.g. {@code CONSTRAINT_5}).  All other constraint and index names are explicit and
+     * therefore comparable.</p>
      */
     @Test
-    void upgrade_constraintInvariantsHoldAfterMigration() throws Exception {
-        try (Connection conn = freshH2()) {
-            executeDdlResource(conn, "pre-peers-schema/h2.ddl");
-            executeDdlResource(conn, "upgrades/111/h2.upgrade.ddl");
-            executeDdlResource(conn, "upgrades/112/h2.upgrade.ddl");
-            assertConstraintInvariants(conn);
+    void h2SchemaParity_freshMatchesUpgraded() throws Exception {
+        try (Connection fresh = openScenarioH2("fresh");
+             Connection upgraded = openScenarioH2("upgraded")) {
+            for (String table : List.of("webhook_subscriptions", "webhook_events", "webhook_delivery_logs")) {
+                List<String> freshMeta = collectH2SchemaMeta(fresh, table);
+                List<String> upgradedMeta = collectH2SchemaMeta(upgraded, table);
+                assertEquals(freshMeta, upgradedMeta,
+                        "Schema parity failed for table " + table
+                        + ". Fresh: " + freshMeta + " Upgraded: " + upgradedMeta);
+            }
         }
     }
 
@@ -463,12 +488,35 @@ public class WebhookSchemaMigrationTest {
     // Helpers
     // ------------------------------------------------------------
 
+    /**
+     * Asserts the exact H2 error code (via {@link ErrorCode} constants) and that the error
+     * message contains the expected constraint name (compared case-insensitively via
+     * {@link Locale#ROOT}).
+     */
+    private static void assertH2IntegrityError(SQLException ex, int expectedCode, String expectedConstraint) {
+        assertEquals(expectedCode, ex.getErrorCode(),
+                "Expected H2 error code " + expectedCode + " but got " + ex.getErrorCode()
+                + " (SQL state " + ex.getSQLState() + "). Message: " + ex.getMessage());
+        assertTrue(ex.getMessage().toUpperCase(Locale.ROOT)
+                        .contains(expectedConstraint.toUpperCase(Locale.ROOT)),
+                "Expected constraint name '" + expectedConstraint + "' in error message: "
+                + ex.getMessage());
+    }
+
     private void assertConstraintInvariants(Connection conn) throws Exception {
+        // 1. Duplicate identityHash rejected; control: different hash inserts fine.
         assertDuplicateIdentityHashRejected(conn);
+        // 2. Duplicate (subscriptionId, eventRowId) rejected; control: different pair inserts fine.
         assertDuplicateDeliveryKeyRejected(conn);
+        // 3. Same eventId, two different sources → both inserts succeed.
         assertDistinctSourcesSameEventIdAllowed(conn);
+        // 4 & 5. Delete referenced event / subscription rejected; unreferenced deletion succeeds.
         assertDeleteReferencedEventRejected(conn);
         assertDeleteReferencedSubscriptionRejected(conn);
+        // 6. Negative attemptCount rejected; zero (boundary) is accepted.
+        assertNegativeAttemptCountRejected(conn);
+        // 7. Missing parent on insert rejected for both FK_whdlogs_1 and FK_whdlogs_2.
+        assertParentMissingOnInsertRejected(conn);
     }
 
     private void assertDuplicateIdentityHashRejected(Connection conn) throws Exception {
@@ -484,7 +532,7 @@ public class WebhookSchemaMigrationTest {
             ps.executeUpdate();
         }
 
-        // Second insert with the same identityHash must be rejected by UQ_whevents_hash.
+        // Second insert with the same identityHash must be rejected by UQ_whevents_1.
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO webhook_events (eventRowId, source, eventId, identityHash, eventType, payload, createdOn) "
                 + "VALUES (?, 'https://dup-hash.example.com', 'dup-hash-evt-2', ?, 'com.example.test', X'41', ?)")) {
@@ -492,9 +540,8 @@ public class WebhookSchemaMigrationTest {
             ps.setString(2, hash);
             ps.setLong(3, System.currentTimeMillis());
             SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
-                    "Duplicate identityHash must be rejected by UQ_whevents_hash");
-            assertEquals("23505", ex.getSQLState(),
-                    "H2 SQL state must be 23505 (unique constraint violation), was: " + ex.getSQLState());
+                    "Duplicate identityHash must be rejected by UQ_whevents_1");
+            assertH2IntegrityError(ex, ErrorCode.DUPLICATE_KEY_1, "UQ_whevents_1");
         }
     }
 
@@ -530,8 +577,7 @@ public class WebhookSchemaMigrationTest {
             ps.setLong(5, now);
             SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
                     "Duplicate (subscriptionId, eventRowId) must be rejected by UQ_whdlogs_1");
-            assertEquals("23505", ex.getSQLState(),
-                    "H2 SQL state must be 23505 (unique constraint violation), was: " + ex.getSQLState());
+            assertH2IntegrityError(ex, ErrorCode.DUPLICATE_KEY_1, "UQ_whdlogs_1");
         }
     }
 
@@ -589,8 +635,9 @@ public class WebhookSchemaMigrationTest {
             ps.setString(1, eventRowId);
             SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
                     "FK_whdlogs_2 must prevent deleting an event that has delivery logs");
-            assertEquals("23503", ex.getSQLState(),
-                    "H2 SQL state must be 23503 (referential integrity violated - child exists), was: " + ex.getSQLState());
+            assertH2IntegrityError(ex,
+                    ErrorCode.REFERENTIAL_INTEGRITY_VIOLATED_CHILD_EXISTS_1,
+                    "FK_whdlogs_2");
         }
 
         // Control: removing the delivery log first allows the event to be deleted.
@@ -631,8 +678,9 @@ public class WebhookSchemaMigrationTest {
             ps.setString(1, subId);
             SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
                     "FK_whdlogs_1 must prevent deleting a subscription that has delivery logs");
-            assertEquals("23503", ex.getSQLState(),
-                    "H2 SQL state must be 23503 (referential integrity violated - child exists), was: " + ex.getSQLState());
+            assertH2IntegrityError(ex,
+                    ErrorCode.REFERENTIAL_INTEGRITY_VIOLATED_CHILD_EXISTS_1,
+                    "FK_whdlogs_1");
         }
 
         // Control: removing the delivery log first allows the subscription to be deleted.
@@ -648,7 +696,274 @@ public class WebhookSchemaMigrationTest {
         }
     }
 
+    private void assertNegativeAttemptCountRejected(Connection conn) throws Exception {
+        // Control: zero attemptCount (boundary value) must be accepted.
+        String subId0 = UUID.randomUUID().toString();
+        insertSubscription(conn, subId0);
+        String eventRowId0 = UUID.randomUUID().toString();
+        insertEvent(conn, eventRowId0);
+        long now = System.currentTimeMillis();
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_delivery_logs "
+                + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
+                + "VALUES (?, ?, ?, 'PENDING', 0, ?, ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, subId0);
+            ps.setString(3, eventRowId0);
+            ps.setLong(4, now);
+            ps.setLong(5, now);
+            ps.executeUpdate(); // must not throw
+        }
+
+        // Negative: attemptCount = -1 must be rejected by CK_whdlogs_1.
+        String subIdNeg = UUID.randomUUID().toString();
+        insertSubscription(conn, subIdNeg);
+        String eventRowIdNeg = UUID.randomUUID().toString();
+        insertEvent(conn, eventRowIdNeg);
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_delivery_logs "
+                + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
+                + "VALUES (?, ?, ?, 'PENDING', -1, ?, ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, subIdNeg);
+            ps.setString(3, eventRowIdNeg);
+            ps.setLong(4, now);
+            ps.setLong(5, now);
+            SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
+                    "CK_whdlogs_1 must reject negative attemptCount");
+            assertH2IntegrityError(ex, ErrorCode.CHECK_CONSTRAINT_VIOLATED_1, "CK_whdlogs_1");
+        }
+    }
+
+    private void assertParentMissingOnInsertRejected(Connection conn) throws Exception {
+        long now = System.currentTimeMillis();
+
+        // FK_whdlogs_1: insert delivery log with unknown subscriptionId.
+        String eventRowIdForFk1 = UUID.randomUUID().toString();
+        insertEvent(conn, eventRowIdForFk1);
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_delivery_logs "
+                + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
+                + "VALUES (?, ?, ?, 'PENDING', 0, ?, ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, UUID.randomUUID().toString()); // random UUID — no matching subscription
+            ps.setString(3, eventRowIdForFk1);
+            ps.setLong(4, now);
+            ps.setLong(5, now);
+            SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
+                    "FK_whdlogs_1 must reject delivery log with unknown subscriptionId");
+            assertH2IntegrityError(ex,
+                    ErrorCode.REFERENTIAL_INTEGRITY_VIOLATED_PARENT_MISSING_1,
+                    "FK_whdlogs_1");
+        }
+
+        // Control: delivery log referencing an existing subscription inserts fine.
+        String subIdCtrl = UUID.randomUUID().toString();
+        insertSubscription(conn, subIdCtrl);
+        String eventRowIdCtrl = UUID.randomUUID().toString();
+        insertEvent(conn, eventRowIdCtrl);
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_delivery_logs "
+                + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
+                + "VALUES (?, ?, ?, 'PENDING', 0, ?, ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, subIdCtrl);
+            ps.setString(3, eventRowIdCtrl);
+            ps.setLong(4, now);
+            ps.setLong(5, now);
+            ps.executeUpdate(); // must not throw
+        }
+
+        // FK_whdlogs_2: insert delivery log with unknown eventRowId.
+        String subIdForFk2 = UUID.randomUUID().toString();
+        insertSubscription(conn, subIdForFk2);
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_delivery_logs "
+                + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
+                + "VALUES (?, ?, ?, 'PENDING', 0, ?, ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, subIdForFk2);
+            ps.setString(3, UUID.randomUUID().toString()); // random UUID — no matching event
+            ps.setLong(4, now);
+            ps.setLong(5, now);
+            SQLException ex = assertThrows(SQLException.class, ps::executeUpdate,
+                    "FK_whdlogs_2 must reject delivery log with unknown eventRowId");
+            assertH2IntegrityError(ex,
+                    ErrorCode.REFERENTIAL_INTEGRITY_VIOLATED_PARENT_MISSING_1,
+                    "FK_whdlogs_2");
+        }
+    }
+
+    /**
+     * Opens an H2 in-memory connection pre-populated according to the given scenario.
+     *
+     * <ul>
+     *   <li>{@code "fresh"} – applies the full v112 initialization DDL to an empty DB.</li>
+     *   <li>{@code "upgraded"} – applies the pinned v110 baseline, seeds representative rows
+     *       (an extra {@code apicurio} property and a {@code global_rules} row), runs the full
+     *       v110→v111→v112 upgrade chain, and verifies the seeded rows are preserved and
+     *       {@code db_version = 112}.</li>
+     * </ul>
+     */
+    private Connection openScenarioH2(String scenario) throws Exception {
+        Connection conn = freshH2();
+        if ("fresh".equals(scenario)) {
+            applyStatements(conn, new H2SqlStatements().databaseInitialization());
+        } else {
+            // Load v110 baseline via test resource (no production path exists for this pinned schema).
+            executeDdlResource(conn, "pre-peers-schema/h2.ddl");
+            // Seed rows that must survive the upgrade.
+            try (Statement st = conn.createStatement()) {
+                st.execute("INSERT INTO apicurio (propName, propValue) VALUES ('scenario_key', 'scenario_value')");
+                st.execute("INSERT INTO global_rules (type, configuration) VALUES ('VALIDITY', 'FULL')");
+            }
+            // Apply upgrades via the production DdlParser path (not a manual split).
+            applyStatements(conn, new H2SqlStatements().databaseUpgrade(110, 112));
+            assertDbVersion(conn, VERSION_AFTER);
+            // Verify seeded rows survived.
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT propValue FROM apicurio WHERE propName = 'scenario_key'")) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "Seeded apicurio property must survive upgrade");
+                    assertEquals("scenario_value", rs.getString(1));
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT configuration FROM global_rules WHERE type = 'VALIDITY'")) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "Seeded global_rules row must survive upgrade");
+                    assertEquals("FULL", rs.getString(1));
+                }
+            }
+        }
+        return conn;
+    }
+
+    /**
+     * Collects normalized schema descriptors for the given table.  The result is a sorted list
+     * of strings, one per schema element.  Descriptors use uppercase names via
+     * {@link Locale#ROOT} so that comparisons are locale-neutral.
+     *
+     * <p>Auto-generated names ignored: primary-key constraint names (H2 generates them when the
+     * DDL does not assign one; e.g. {@code CONSTRAINT_5}).  All other names — unique constraints
+     * ({@code UQ_*}), foreign keys ({@code FK_*}), check constraints ({@code CK_*}), and
+     * indexes ({@code IDX_*}) — are explicit and therefore included.</p>
+     */
+    private List<String> collectH2SchemaMeta(Connection conn, String table) throws SQLException {
+        List<String> descriptors = new ArrayList<>();
+        String t = table.toUpperCase(Locale.ROOT);
+        DatabaseMetaData meta = conn.getMetaData();
+
+        // Columns: name, type, size, nullable, default.
+        try (ResultSet rs = meta.getColumns(null, null, t, null)) {
+            while (rs.next()) {
+                descriptors.add("COL:"
+                        + rs.getString("COLUMN_NAME").toUpperCase(Locale.ROOT) + ":"
+                        + rs.getString("TYPE_NAME").toUpperCase(Locale.ROOT) + ":"
+                        + rs.getInt("COLUMN_SIZE") + ":"
+                        + rs.getInt("NULLABLE") + ":"
+                        + normalizeDefault(rs.getString("COLUMN_DEF")));
+            }
+        }
+
+        // Primary-key columns (ordinal only; constraint name is auto-generated by H2).
+        try (ResultSet rs = meta.getPrimaryKeys(null, null, t)) {
+            while (rs.next()) {
+                descriptors.add("PK_COL:"
+                        + rs.getString("COLUMN_NAME").toUpperCase(Locale.ROOT) + ":"
+                        + rs.getInt("KEY_SEQ"));
+            }
+        }
+
+        // Foreign-key constraints: FK name, FK column, referenced table, referenced column,
+        // and delete rule.
+        try (ResultSet rs = meta.getImportedKeys(null, null, t)) {
+            while (rs.next()) {
+                descriptors.add("FK:"
+                        + rs.getString("FK_NAME").toUpperCase(Locale.ROOT) + ":"
+                        + rs.getString("FKCOLUMN_NAME").toUpperCase(Locale.ROOT) + ":"
+                        + rs.getString("PKTABLE_NAME").toUpperCase(Locale.ROOT) + ":"
+                        + rs.getString("PKCOLUMN_NAME").toUpperCase(Locale.ROOT) + ":"
+                        + rs.getInt("DELETE_RULE"));
+            }
+        }
+
+        // Unique constraints (backing indexes for CONSTRAINT ... UNIQUE).
+        try (ResultSet rs = meta.getIndexInfo(null, null, t, true, false)) {
+            while (rs.next()) {
+                String idxName = rs.getString("INDEX_NAME");
+                int ordinal = rs.getInt("ORDINAL_POSITION");
+                if (idxName == null || ordinal == 0) {
+                    continue; // statistics row
+                }
+                // Skip auto-generated PK backing indexes (share H2's auto-generated PK name).
+                if (idxName.toUpperCase(Locale.ROOT).startsWith("PRIMARY_KEY_")
+                        || idxName.toUpperCase(Locale.ROOT).startsWith("CONSTRAINT_")) {
+                    continue;
+                }
+                descriptors.add("UQ:"
+                        + idxName.toUpperCase(Locale.ROOT) + ":"
+                        + rs.getString("COLUMN_NAME").toUpperCase(Locale.ROOT));
+            }
+        }
+
+        // Non-unique indexes (IDX_* only).
+        try (ResultSet rs = meta.getIndexInfo(null, null, t, false, false)) {
+            while (rs.next()) {
+                String idxName = rs.getString("INDEX_NAME");
+                int ordinal = rs.getInt("ORDINAL_POSITION");
+                if (idxName == null || ordinal == 0) {
+                    continue;
+                }
+                String idxNameUpper = idxName.toUpperCase(Locale.ROOT);
+                if (!idxNameUpper.startsWith("IDX_")) {
+                    continue;
+                }
+                if (!rs.getBoolean("NON_UNIQUE")) {
+                    continue; // already captured as UQ above
+                }
+                descriptors.add("IDX:"
+                        + idxNameUpper + ":"
+                        + rs.getString("COLUMN_NAME").toUpperCase(Locale.ROOT));
+            }
+        }
+
+        // Check constraints (CK_* only — filters out H2's auto-generated NOT NULL checks).
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS "
+                + "WHERE UPPER(TABLE_NAME) = ? AND CONSTRAINT_TYPE = 'CHECK' "
+                + "ORDER BY CONSTRAINT_NAME")) {
+            ps.setString(1, t);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String name = rs.getString(1).toUpperCase(Locale.ROOT);
+                    if (name.startsWith("CK_")) {
+                        descriptors.add("CK:" + name);
+                    }
+                }
+            }
+        }
+
+        Collections.sort(descriptors);
+        return descriptors;
+    }
+
+    private static String normalizeDefault(String def) {
+        if (def == null) {
+            return "null";
+        }
+        return def.trim().toUpperCase(Locale.ROOT);
+    }
+
     private static final AtomicInteger DB_COUNTER = new AtomicInteger();
+
+    private static void applyStatements(Connection conn, List<String> statements) throws SQLException {
+        for (String sql : statements) {
+            try (Statement st = conn.createStatement()) {
+                st.execute(sql);
+            }
+        }
+    }
 
     private Connection freshH2() throws SQLException {
         // No DB_CLOSE_DELAY: each test holds the connection throughout, so the in-memory

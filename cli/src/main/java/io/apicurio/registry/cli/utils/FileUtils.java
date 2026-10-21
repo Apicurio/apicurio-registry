@@ -4,6 +4,7 @@ import io.apicurio.registry.cli.common.CliException;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.zip.ZipEntry;
@@ -44,23 +45,21 @@ public final class FileUtils {
 
     public static void createLink(Path linkPath, Path targetPath) {
         try {
-            if (Files.exists(linkPath)) {
-                if (Files.isSymbolicLink(linkPath)) {
-                    Path existingTarget = Files.readSymbolicLink(linkPath);
-                    if (existingTarget.equals(targetPath)) {
-                        log.debugf("Symbolic link already exists: %s -> %s", linkPath, targetPath);
-                    } else {
-                        Files.delete(linkPath);
-                        log.debugf("Deleted existing symbolic link: %s", linkPath);
-                    }
-                } else {
+            if (Files.exists(linkPath, LinkOption.NOFOLLOW_LINKS)) {
+                if (!Files.isSymbolicLink(linkPath)) {
                     throw new CliException("File exists and is not a symbolic link: " + linkPath,
                             APPLICATION_ERROR_RETURN_CODE);
                 }
-            } else {
-                Files.createSymbolicLink(linkPath, targetPath);
-                log.debugf("Created symbolic link: %s -> %s", linkPath, targetPath);
+                Path existingTarget = Files.readSymbolicLink(linkPath);
+                if (existingTarget.equals(targetPath)) {
+                    log.debugf("Symbolic link already exists: %s -> %s", linkPath, targetPath);
+                    return;
+                }
+                Files.delete(linkPath);
+                log.debugf("Deleted existing symbolic link: %s", linkPath);
             }
+            Files.createSymbolicLink(linkPath, targetPath);
+            log.debugf("Created symbolic link: %s -> %s", linkPath, targetPath);
         } catch (IOException ex) {
             throw new CliException("Failed to create symbolic link: " + linkPath, ex,
                     APPLICATION_ERROR_RETURN_CODE);

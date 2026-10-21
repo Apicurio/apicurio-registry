@@ -2,15 +2,44 @@ import type { Monaco } from "@monaco-editor/react";
 
 export const PROMPT_TEMPLATE_LANGUAGE_ID = "prompt-template";
 
+// Explicit indentation indicators (1-9) in YAML block scalars take precedence
+// over indentation inferred from the first content line. The required content
+// indentation is parent indentation ($1) plus N spaces.
+const explicitBlockScalarRules = [1, 2, 3, 4, 5, 6, 7, 8, 9].flatMap((n) => {
+    const spaces = " ".repeat(n);
+    const indicatorPattern = `(?:[+-]?${n}|${n}[+-]?)`;
+    return [
+        // Key with block scalar: e.g. `template: |2`
+        [
+            new RegExp(`^(\\s*)([\\w.-]+|"[^"]*"|'[^']*')(:)(\\s*)([|>]${indicatorPattern}\\s*(?:#.*)?)$`),
+            ["white", "type.identifier", "delimiter", "white", { token: "operator", next: `@blockScalarBody.$1${spaces}` }]
+        ],
+        // Sequence item: e.g. `- |2`
+        [
+            new RegExp(`^(\\s*)(-)(\\s*)([|>]${indicatorPattern}\\s*(?:#.*)?)$`),
+            ["white", "operator", "white", { token: "operator", next: `@blockScalarBody.$1${spaces}` }]
+        ],
+        // Standalone block scalar: e.g. `|2`
+        [
+            new RegExp(`^(\\s*)([|>]${indicatorPattern}\\s*(?:#.*)?)$`),
+            ["white", { token: "operator", next: `@blockScalarBody.$1${spaces}` }]
+        ]
+    ];
+});
+
 export const promptTemplateMonarchTokensProvider = {
     tokenizer: {
         root: [
+            // Explicit YAML indentation indicator block scalars (|2, >2, etc.)
+            // must match at pos === 0 before whitespace consumes leading parent indentation.
+            ...explicitBlockScalarRules,
+
             // Keep template expressions inside comments unhighlighted.
             [/#.*$/, "comment"],
             { include: "@template" },
             { include: "@whitespace" },
 
-            // YAML block scalars (| and >)
+            // YAML block scalars with inferred indentation (| and >)
             [/[|>](?:[+-]?[1-9]?|[1-9]?[+-]?)\s*(?:#.*)?$/, "operator", "@blockScalarStart"],
 
             // YAML-style keys

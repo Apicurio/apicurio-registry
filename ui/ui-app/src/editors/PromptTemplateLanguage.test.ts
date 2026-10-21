@@ -327,6 +327,79 @@ variables:
         expect(variablesKey?.token).toBe("type.identifier");
     });
 
+    it("honors explicit indentation indicator |2 when first line is more indented than indicator", () => {
+        const input = `template: |2
+    indented first line
+  # Hello {{name}}
+  Don't forget {{name}}
+variables:
+  name:
+    type: string`;
+
+        const tokens = tokenizeWithMonaco(input);
+        const significant = tokens.filter(t => t.token !== "white");
+
+        // template: |2
+        expect(significant[0]).toEqual({ token: "type.identifier", text: "template" });
+        expect(significant[1]).toEqual({ token: "delimiter", text: ":" });
+        expect(significant[2]).toEqual({ token: "operator", text: "|2" });
+
+        // First content line inside block scalar
+        const indentedLine = significant.find(t => t.text.includes("indented first line"));
+        expect(indentedLine).toBeDefined();
+        expect(indentedLine?.token).toBe("string");
+
+        // Second content line with # must be treated as prompt text (string), NOT comment
+        const hashLine = significant.find(t => t.text.includes("# Hello"));
+        expect(hashLine).toBeDefined();
+        expect(hashLine?.token).toBe("string");
+
+        // Variables on both subsequent lines must be tokenized as variables
+        const nameVars = significant.filter(t => t.text === "{{name}}");
+        expect(nameVars).toHaveLength(2);
+        expect(nameVars.every(v => v.token === "variable")).toBe(true);
+
+        // Third content line with apostrophe Don't must be string, not opening a quote string
+        const dontLine = significant.find(t => t.text.includes("Don't forget"));
+        expect(dontLine).toBeDefined();
+        expect(dontLine?.token).toBe("string");
+
+        // variables: must be properly tokenized at document root level
+        const variablesKey = significant.find(t => t.text === "variables");
+        expect(variablesKey).toBeDefined();
+        expect(variablesKey?.token).toBe("type.identifier");
+
+        const nameKey = significant.find(t => t.text === "name");
+        expect(nameKey).toBeDefined();
+        expect(nameKey?.token).toBe("type.identifier");
+    });
+
+    it("honors explicit indentation indicator relative to parent indentation when nested in map", () => {
+        const input = `prompt:
+  template: |2
+      indented first line
+    # Hello {{name}}
+    Don't forget {{name}}
+  variables:
+    name:
+      type: string`;
+
+        const tokens = tokenizeWithMonaco(input);
+        const significant = tokens.filter(t => t.token !== "white");
+
+        const hashLine = significant.find(t => t.text.includes("# Hello"));
+        expect(hashLine).toBeDefined();
+        expect(hashLine?.token).toBe("string");
+
+        const nameVars = significant.filter(t => t.text === "{{name}}");
+        expect(nameVars).toHaveLength(2);
+        expect(nameVars.every(v => v.token === "variable")).toBe(true);
+
+        const variablesKey = significant.find(t => t.text === "variables");
+        expect(variablesKey).toBeDefined();
+        expect(variablesKey?.token).toBe("type.identifier");
+    });
+
     it("handles explicit indentation indicator >2 with folded content", () => {
         const input = "template: >2\n  Folded content with {{item}}.\nvariables:\n  item:\n    type: string";
 
@@ -346,7 +419,7 @@ variables:
         expect(variablesKey?.token).toBe("type.identifier");
     });
 
-    it("handles indentation-with-chomping indicators |2-, >2+, |-2, >+2", () => {
+    it("handles indentation-with-chomping indicators |2-, >2+, |-2, >+2, >2-", () => {
         // |2- (indent then chomp)
         const input1 = "template: |2-\n  Content {{a}}\nvariables:\n  a:\n    type: string";
         const tokens1 = tokenizeWithMonaco(input1).filter(t => t.token !== "white");
@@ -374,6 +447,13 @@ variables:
         expect(tokens4[2]).toEqual({ token: "operator", text: ">+2" });
         expect(tokens4.find(t => t.text === "{{d}}")?.token).toBe("variable");
         expect(tokens4.find(t => t.text === "variables")?.token).toBe("type.identifier");
+
+        // >2- (folded indent then chomp)
+        const input5 = "template: >2-\n  Content {{e}}\nvariables:\n  e:\n    type: string";
+        const tokens5 = tokenizeWithMonaco(input5).filter(t => t.token !== "white");
+        expect(tokens5[2]).toEqual({ token: "operator", text: ">2-" });
+        expect(tokens5.find(t => t.text === "{{e}}")?.token).toBe("variable");
+        expect(tokens5.find(t => t.text === "variables")?.token).toBe("type.identifier");
     });
 
     it("handles explicit indentation indicator with trailing whitespace and comment", () => {

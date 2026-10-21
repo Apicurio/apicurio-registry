@@ -10,17 +10,25 @@ name: Performance Tests (main)
 #     approximate a managed/remote DB rather than a same-node connection)
 #   - kafkasql: KafkaSQL storage, Kafka behind Toxiproxy with the same injected latency profile
 #
-# Deliberately scoped to push-to-main only (not PRs): standing up this topology (cluster, operator
-# install, Keycloak, Kafka, sustained load run) is too slow/expensive to run per-PR, and the goal
-# here is trend/regression detection over time, not gating individual changes.
+# Runs nightly against main, and on demand. Standing up this topology (cluster, operator install,
+# Keycloak, Kafka, sustained load run) is too slow and expensive to run per PR or per push, and
+# the goal is trend and regression detection over time, not gating individual changes. One run per
+# push used to mean dozens a day, each able to post a failure to Slack (#10380).
 #
-# Regressions are surfaced via the job summary and a Slack notification, not as a hard failure of
-# this workflow, unless the load itself fails outright (Gatling assertion / excessive Kafka
-# produce failures) - see perf-tests/scripts/check-thresholds.py for the rationale.
+# Regressions are surfaced in the job summary, not as a hard failure of this workflow, unless the
+# load itself fails outright (Gatling assertion / excessive Kafka produce failures) - see
+# perf-tests/scripts/check-thresholds.py for the rationale. A failed run is posted to the general
+# Slack channel.
 
 on:
-  push:
-    branches: [main]
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+# A manual run supersedes one in progress, so two never compete for runners.
+concurrency:
+  group: perf-main
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -163,7 +171,7 @@ jobs:
 
       - name: Upload performance test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: perf-test-results-${{ matrix.storage }}-${{ github.sha }}
           path: /tmp/perf-results
@@ -293,7 +301,7 @@ jobs:
 
       - name: Upload external validation results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: perf-test-external-results-${{ matrix.storage }}-${{ github.sha }}
           path: /tmp/external-load-results
@@ -303,9 +311,13 @@ jobs:
     name: Notify on failure
     needs: perf-test
     if: failure()
-    uses: ./.github/workflows/reusable-notify-slack.yaml
-    with:
-      workflow-name: "Performance Tests (main)"
-      job-name: "perf-test"
-      job-status: "failure"
-    secrets: inherit
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Notify
+        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
+        with:
+          level: general
+          text: ":warning: Performance Tests (main) failed at ${{ github.sha }}"
+          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          general-webhook: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

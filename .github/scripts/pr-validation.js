@@ -10,6 +10,8 @@
 //   - DCO sign-off (author): every non-merge commit carries a Signed-off-by trailer
 //   - milestone (maintainer): the PR and every open issue it closes carry an
 //     open milestone
+//   - database upgrade scripts (author): on main, upgrade scripts are only
+//     added, never changed; on a maintenance branch they don't change at all
 //
 // Advisory only (reported, never blocking):
 //   - duplicate PRs, matched by linked issue or by overlapping files
@@ -68,6 +70,20 @@ const VALIDATED_BASE_BRANCHES = ['main', '3.3.x'];
 // A validation run normally takes well under a minute.
 const IN_PROGRESS_POLL_MS = 10 * 1000;
 const IN_PROGRESS_DEADLINE_MS = 3 * 60 * 1000;
+
+// The SQL schema's versioned upgrade scripts, and the file holding the version
+// the schema is at. See checkUpgradeScripts.
+const SQL_RESOURCES_DIR = 'app/src/main/resources/io/apicurio/registry/storage/impl/sql/';
+const UPGRADES_DIR = `${SQL_RESOURCES_DIR}upgrades/`;
+const DB_VERSION_FILE = `${SQL_RESOURCES_DIR}db-version`;
+
+// The only branch whose upgrade sequence grows. Every other validated base
+// branch is a maintenance branch, whose sequence is frozen.
+const UPGRADE_SEQUENCE_BRANCH = 'main';
+
+// Lets a maintainer accept a change to an existing upgrade script, e.g. a fix
+// to one that has not been released yet. Applied by hand, followed by /retry.
+const UPGRADE_CHANGE_APPROVED_LABEL = 'db-upgrade/change-approved';
 
 // Comparing files against every open PR costs one API call per PR. Above this
 // many open PRs we skip file-based duplicate detection rather than burn the
@@ -331,7 +347,70 @@ const MILESTONE_NOTE = 'Setting a milestone requires triage permission, so **a m
   + 'do this**. There is no action for the PR author here. The milestone '
   + 'determines which release notes this work appears in.';
 
-async function findDuplicates(github, owner, repo, pr, linkedIssues, config, core) {
+/**
+ * Checks a PR's changes to the SQL upgrade scripts (#10141). `files` are the
+ * PR's files as pulls.listFiles returns them, with their status against the
+ * merge base. Returns null when the PR touches neither the scripts nor
+ * db-version, so the check is only listed where it applies.
+ *
+ * A database records the version it was upgraded to and never runs that
+ * version's script again. So a change to a script that has already run is
+ * silently skipped by every deployment that ran it. The usual way to get one
+ * is resolving the add/add conflict between two PRs that both claimed the next
+ * number by putting both changes into one script, instead of renumbering.
+ *
+ * - On main, upgrade scripts may only be added.
+ * - On a maintenance branch, nothing under upgrades/ may change, and neither
+ *   may db-version. Its sequence is frozen once main moves past it: taking a
+ *   later upgrade would mean also taking every one main added before it, in
+ *   order, and a number of its own would be skipped by the upgrade to the
+ *   next minor release.
+ *
+ * A maintainer can accept a change with UPGRADE_CHANGE_APPROVED_LABEL.
+ */
+function checkUpgradeScripts(pr, files) {
+  const maintenance = pr.base.ref !== UPGRADE_SEQUENCE_BRANCH;
+  // previous_filename: a file renamed away is a change to it too.
+  const paths = f => [f.filename, f.previous_filename].filter(Boolean);
+  const inUpgrades = f => paths(f).some(n => n.startsWith(UPGRADES_DIR));
+  const touched = files.filter(f => inUpgrades(f) || paths(f).includes(DB_VERSION_FILE));
+  if (touched.length === 0) {
+    return null;
+  }
+
+  const offending = touched.filter(f => maintenance || (inUpgrades(f) && f.status !== 'added'));
+  const item = (status, summary, detail) => (
+    { name: 'Database upgrade scripts', label: 'Database upgrade scripts', audience: AUTHOR, status, summary, detail }
+  );
+
+  if (offending.length === 0) {
+    return item(PASSED, 'only new upgrade scripts are added');
+  }
+  if ((pr.labels || []).some(l => l.name === UPGRADE_CHANGE_APPROVED_LABEL)) {
+    return item(PASSED, `changes to existing upgrade scripts accepted by a maintainer (\`${UPGRADE_CHANGE_APPROVED_LABEL}\`)`);
+  }
+
+  const shortName = n => (n.startsWith(SQL_RESOURCES_DIR) ? n.slice(SQL_RESOURCES_DIR.length) : n);
+  const list = offending.map(f => `- \`${shortName(f.previous_filename || f.filename)}\` (${f.status})`).join('\n');
+  const detail = maintenance
+    ? `\`${pr.base.ref}\` is a maintenance branch, so its database upgrade sequence is frozen:\n\n${list}\n\n`
+      + 'A new upgrade here would be skipped, or would collide, when deployments upgrade to the next minor '
+      + 'release. Backport the code change without the upgrade script, and put any data repair in the next '
+      + `upgrade script on \`${UPGRADE_SEQUENCE_BRANCH}\`.`
+    : `Existing upgrade scripts are changed:\n\n${list}\n\n`
+      + 'A database that already ran a script never runs it again, so these changes would be skipped by every '
+      + 'deployment at that version. If another PR took the number you used, move your upgrade to the next free '
+      + 'number instead: the `upgrades/<N>` directory, the `UPDATE apicurio SET propValue = <N>` line in each '
+      + 'script, `db-version`, and the `db_version` insert in the four base DDLs. See #10141.';
+  return item(ACTION_NEEDED, `${offending.length} existing upgrade file(s) changed`, detail);
+}
+
+// Shown once under the author section when an upgrade script change was flagged.
+const UPGRADE_SCRIPTS_NOTE = 'If the change is intentional, for example a fix to an upgrade script that has not '
+  + `been released yet, a maintainer can accept it by adding the \`${UPGRADE_CHANGE_APPROVED_LABEL}\` label `
+  + 'and commenting `/retry`.';
+
+async function findDuplicates(github, owner, repo, pr, linkedIssues, config, core, prFiles) {
   const openPrs = await github.paginate(github.rest.pulls.list, {
     owner, repo, state: 'open', base: pr.base.ref, per_page: 100,
   });
@@ -352,9 +431,7 @@ async function findDuplicates(github, owner, repo, pr, linkedIssues, config, cor
     core.info(`Skipping file-based duplicate detection: ${others.length} open PRs `
       + `exceeds the ${MAX_PRS_FOR_FILE_COMPARISON} threshold`);
   } else {
-    const ourFiles = new Set((await github.paginate(github.rest.pulls.listFiles, {
-      owner, repo, pull_number: pr.number, per_page: 100,
-    })).map(f => f.filename));
+    const ourFiles = new Set(prFiles.map(f => f.filename));
 
     const alreadyReported = new Set(byIssue.map(d => d.pr.number));
     for (const other of others) {
@@ -392,6 +469,9 @@ function buildComment(pr, items, duplicates) {
       }
     }
     lines.push('');
+    if (audience === AUTHOR && owned.some(i => i.name === 'Database upgrade scripts' && isBlocking(i))) {
+      lines.push(UPGRADE_SCRIPTS_NOTE, '');
+    }
     if (audience === MAINTAINER && owned.some(i => i.name === 'Milestone' && i.status === WAITING)) {
       lines.push(MILESTONE_NOTE, '');
     }
@@ -516,18 +596,23 @@ async function validate({ github, context, core }) {
     owner, repo, pull_number: pr.number, per_page: 100,
   });
 
+  const files = await github.paginate(github.rest.pulls.listFiles, {
+    owner, repo, pull_number: pr.number, per_page: 100,
+  });
+
   const linkedIssues = extractLinkedIssues(pr.body, owner, repo);
   const issues = await fetchLinkedIssues(github, owner, repo, linkedIssues, core);
   const items = [
     checkIssueLink(linkedIssues),
     checkDcoSignOff(commits),
+    checkUpgradeScripts(pr, files),
     ...checkMilestone(pr, issues),
-  ];
+  ].filter(Boolean);
   const violations = items.filter(isBlocking);
 
   let duplicates = { byIssue: [], byFile: [] };
   try {
-    duplicates = await findDuplicates(github, owner, repo, pr, linkedIssues, config, core);
+    duplicates = await findDuplicates(github, owner, repo, pr, linkedIssues, config, core, files);
   } catch (e) {
     core.warning(`Duplicate detection failed, continuing without it: ${e.message}`);
   }
@@ -617,4 +702,5 @@ module.exports = {
   checkIssueLink,
   checkDcoSignOff,
   checkMilestone,
+  checkUpgradeScripts,
 };

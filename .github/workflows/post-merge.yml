@@ -1,20 +1,22 @@
 name: Post-Merge
 
-# Confirms a failed Verify push run on main by re-running its failed jobs once,
-# keeps a tracking issue open while main is broken, and posts the transitions
+# Confirms a failed Verify push run on main or 3.3.x by re-running its failed
+# jobs once, keeps a tracking issue open per branch while it is broken, and
+# posts the transitions
 # to Slack: broken (important), green again and flakes (general). The logic is
 # in .github/scripts/post-merge.js; see "Post-merge verification" in
 # .github/workflows/README.md (#10380).
 #
 # workflow_run runs this file from the default branch, never from a PR, and the
 # script checks the run is a push run of this repository's verify.yaml: the
-# branches filter below also matches a PR whose head branch is called main.
+# branches filter below also matches a PR whose head branch is called main or
+# 3.3.x. Keep the filter in step with BRANCHES in post-merge.js.
 
 on:
   workflow_run:
     workflows: ["Verify"]
     types: [completed]
-    branches: [main]
+    branches: [main, '3.3.x']
 
 # One event at a time, so two completed runs can't both find no issue and open
 # one each. queue: max keeps every waiting event: with the default queue of
@@ -29,6 +31,7 @@ permissions:
   actions: write   # re-run failed jobs
   contents: read   # compare commits
   issues: write    # tracking issue
+  pull-requests: read  # the PRs suspected of a break, and who merged them
 
 jobs:
   handle:
@@ -50,8 +53,7 @@ jobs:
             const handler = require('./.github/scripts/post-merge.js');
             await handler.handle({ github, context, core });
 
-      # Slack: see "Notifications" in .github/workflows/README.md. No mention
-      # (nor user-map) yet: a break has no owner until #10576 attributes it.
+      # Slack: see "Notifications" in .github/workflows/README.md.
       - name: Notify
         if: steps.handle.outputs.level != ''
         uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
@@ -59,5 +61,7 @@ jobs:
           level: ${{ steps.handle.outputs.level }}
           text: ${{ steps.handle.outputs.text }}
           link: ${{ steps.handle.outputs.link }}
+          mention: ${{ steps.handle.outputs.mention }}
+          user-map: ${{ secrets.SLACK_USER_MAP }}
           important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
           general-webhook: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

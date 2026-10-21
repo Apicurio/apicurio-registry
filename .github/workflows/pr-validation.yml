@@ -1,6 +1,7 @@
 name: PR Validation
 
-# Validates submission quality (issue link, DCO sign-off, milestone) and flags
+# Validates submission quality (issue link, DCO sign-off, milestone, unchanged
+# database upgrade scripts) and flags
 # duplicate PRs. Independent of the lifecycle state machine: this runs on every
 # PR regardless of lifecycle state.
 #

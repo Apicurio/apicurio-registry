@@ -136,7 +136,8 @@ at all, so there is nothing left to race.
 ### Post-merge verification
 
 `post-merge.yml` (`.github/scripts/post-merge.js`) handles every completed
-Verify push run on `main` (#10380):
+Verify push run on `main` and `3.3.x` (#10380), each branch with a tracking
+issue of its own:
 
 | Run | Action | Slack |
 |---|---|---|
@@ -146,9 +147,18 @@ Verify push run on `main` (#10380):
 | passed on a re-run, no issue open | none | general: flaky, naming the jobs that failed first |
 | cancelled or skipped | none | none |
 
-The issue links the changes since the last green commit; nobody is mentioned
-in Slack yet. There is no reminder: the important message stays in the channel,
-and the issue stays open until `main` is green.
+**Suspects.** The commits since the last green push run (or only the failing
+commit, when there is none) are the suspects. The issue lists the PR each came
+from and who merged it, or that it was pushed directly; the Slack message links
+the same PRs. Slack has one mention slot, so it mentions one merger: whoever
+merged the most suspects, a tie going to the newest merge, skipping anyone
+without a `SLACK_USER_MAP` entry. The other mergers are named in the text.
+Authors are not mentioned; the merger brings them in when needed. Over 100
+commits since the last green one, nobody is named. Nor when the lookup fails:
+the break is then reported without suspects.
+
+There is no reminder: the important message stays in the channel, and the
+issue stays open until `main` is green.
 
 A retry can finish after the run of a newer commit, so the handler compares
 commits: a failure older than the newest green commit, or than the failure the
@@ -535,7 +545,7 @@ re-measure rather than trusting it indefinitely.
 |----------|---------|---------|----------|
 | `validate-docs.yaml` | PR (docs/**), workflow_call | Runs `docs-playbook/_build-all.sh` to validate documentation builds | ~10 min |
 | `validate-openapi.yaml` | PR (openapi.json), workflow_call | Lints OpenAPI spec with `@rhoas/spectral-ruleset` | ~5 min |
-| `pr-validation.yml` | `pull_request_target` opened/reopened/synchronize/edited/milestoned/demilestoned; `issues` milestoned/demilestoned/closed/reopened | Checks the PR body links an issue (closing keywords in code spans/blocks don't count), every commit is DCO signed, and the PR plus every *open* issue it closes carries an open milestone (a closed issue's milestone records when it shipped, so it isn't checked); flags possible duplicate PRs by linked issue or overlapping files. The comment groups failures by who can fix them (author / maintainer). Independent of the lifecycle: a red check never blocks a merge, and PRs are not auto-closed. Uses `pull_request_target` (write token) instead of `pull_request` so it can comment/label on fork PRs; it never checks out the PR head, only the base branch and PR metadata via the API. The milestone activity types matter because setting a milestone is the only way to clear that check; for a linked issue's milestone (or the issue closing/reopening), the `revalidate` job re-runs the validation of each open PR closing it (the PR's check belongs to its own run). The `validate` job checks out the default branch's current head, so a re-run runs today's validator rather than the one from when the PR last changed. `/retry` also re-runs a failed validation run | <1 min |
+| `pr-validation.yml` | `pull_request_target` opened/reopened/synchronize/edited/milestoned/demilestoned; `issues` milestoned/demilestoned/closed/reopened | Checks the PR body links an issue (closing keywords in code spans/blocks don't count), every commit is DCO signed, and the PR plus every *open* issue it closes carries an open milestone (a closed issue's milestone records when it shipped, so it isn't checked); that existing SQL upgrade scripts are never changed (on `main` they may only be added; on a maintenance branch nothing under `upgrades/`, nor `db-version`, may change; a maintainer can accept a change with the `db-upgrade/change-approved` label and `/retry`, see #10141); flags possible duplicate PRs by linked issue or overlapping files. The comment groups failures by who can fix them (author / maintainer). Independent of the lifecycle: a red check never blocks a merge, and PRs are not auto-closed. Uses `pull_request_target` (write token) instead of `pull_request` so it can comment/label on fork PRs; it never checks out the PR head, only the base branch and PR metadata via the API. The milestone activity types matter because setting a milestone is the only way to clear that check; for a linked issue's milestone (or the issue closing/reopening), the `revalidate` job re-runs the validation of each open PR closing it (the PR's check belongs to its own run). The `validate` job checks out the default branch's current head, so a re-run runs today's validator rather than the one from when the PR last changed. `/retry` also re-runs a failed validation run | <1 min |
 
 ## Release Workflows
 
@@ -558,7 +568,7 @@ and tags starting with `3.`.
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
 | `pr-lifecycle.yml` | PR events, review submissions, comments, workflow_run, every 6 hours | Label-driven PR state machine. States: `ready-for-review` -> `ready-to-merge` (no triage stage — every PR starts at `ready-for-review`). Draft PRs are ignored until marked ready for review. Comment commands: `/reject`, `/merge` (toggles native GitHub auto-merge), `/unstale`, `/retry`. Reconciler runs after each event and on cron to fix inconsistent state. Stale detection (7-day warning, 14-day auto-close; 4/7 for PRs waiting on the author). PRs waiting on a maintainer are exempt from staleness entirely and instead get `lifecycle/review-overdue` at 14 days and a reviewer ping at 30, never a close. Label protection (reverts unauthorized changes). Failure notification posts a warning comment when any lifecycle job fails. | 2-5 min per event |
-| `post-merge.yml` | Verify completed (push to main) | Re-runs a failed Verify push run once to confirm it, keeps a `ci/broken` tracking issue open while `main` is broken, posts the transitions to Slack. See [Post-merge verification](#post-merge-verification) | <1 min |
+| `post-merge.yml` | Verify completed (push to main or 3.3.x) | Re-runs a failed Verify push run once to confirm it, keeps a `ci/broken` tracking issue open per branch while it is broken, posts the transitions to Slack. See [Post-merge verification](#post-merge-verification) | <1 min |
 | `classify.yml` | Issue opened/edited, PR opened/ready for review (non-draft), workflow_dispatch | Embedding classifier (`.github/scripts/label-classification`) assigns `area/*` labels to issues and PRs, and an issue type to issues. For PRs, then picks a reviewer (`pr-reviewer-assignment.js`): assigns contributor PRs, posts a suggestion on maintainer PRs, rotates Renovate PRs. Configured by `reviewer_assignment` in `.github/pr-lifecycle.yml`; see [PR_LIFECYCLE.md](../PR_LIFECYCLE.md#reviewer-assignment). `pull_request_target`, but never checks out or runs PR code. Manual runs take `dry_run` to print scores without applying anything | 2-4 min |
 | `update-openapi.yaml` | Push to main (openapi.json changes) | Auto-copies v3 OpenAPI spec to v2 path, commits if changed, then validates via `validate-openapi.yaml` | 10-15 min |
 | `update-website.yaml` | Release event, workflow_dispatch | Updates `latestRelease.json` on apicurio.github.io with release metadata | 5-10 min |
@@ -570,8 +580,8 @@ and tags starting with `3.`.
 
 | Workflow | Used by | Purpose |
 |----------|---------|---------|
-| `reusable-docker-build.yaml` | verify-publish, release-images | Multi-arch Docker build with QEMU + Buildx. Supports optional Maven/npm pre-build steps. Pushes to DockerHub and/or Quay.io. Includes retry logic (3 attempts, 30s wait). Configurable platforms, tags, registries | 30-60 min |
-| `reusable-notify.yaml` | release-*, release, update-website, publish-docs | Final Slack notification of a run, from the results of all its jobs: failure to the important channel mentioning the owner, success to general. See [Notifications](#notifications) |
+| `reusable-docker-build.yaml` | verify-publish, release-images | Multi-arch Docker build with QEMU + Buildx. Supports optional Maven/npm pre-build steps. Pushes to DockerHub and/or Quay.io. Includes retry logic (3 attempts with 30s then 60s backoff, 45 min timeout per attempt). Configurable platforms, tags, registries | 30-60 min |
+| `reusable-notify.yaml` | release-*, release, update-website, publish-docs | Final Slack notification of a run, from the results of all its jobs: failure to the important channel mentioning the owner; success to general only when the caller asks (`release.yaml`). See [Notifications](#notifications) |
 
 ## Notifications
 
@@ -582,16 +592,21 @@ action. A message goes to a channel by whether anyone has to act on it, not by i
 
 | Level | Channel | When |
 |-------|---------|------|
-| **important** | team channel | Someone must act. Names one owner with a Slack mention (see below); `post-merge.yml` names none until breaks are attributed to PRs (#10576). |
+| **important** | team channel | Someone must act. Names one owner with a Slack mention (see below). |
 | **general** | notification channel | Worth knowing, nothing to do. No mention. |
 | none | — | Routine success. It stays in the GitHub UI. |
 
 | Workflow | Success | Failure |
 |----------|---------|---------|
-| `release.yaml`, `release-artifacts.yaml`, `release-images.yaml`, `release-sdks.yaml`, `release-operator.yaml`, `release-release-notes.yaml`, `update-website.yaml` | general | important |
-| `publish-docs.yaml` | none | important |
+| `release.yaml` | general: the release was created, and the rest is being published | important |
+| `release-artifacts.yaml`, `release-images.yaml`, `release-sdks.yaml`, `release-operator.yaml`, `release-release-notes.yaml`, `update-website.yaml`, `publish-docs.yaml` | none | important |
 | `post-merge.yml` (Verify on `main`) | general when `main` is green again, or a re-run passed (a flake) | important when a re-run confirms `main` is broken |
 | `perf-main.yaml` | none | general |
+
+A release posts one success message, from `release.yaml`. The workflows the release sets off post
+only failures, so after that message, silence means the rest was published. That relies on the
+release being created with a PAT: a release created with `GITHUB_TOKEN` would start none of them,
+and nothing would be reported.
 
 The release, website and docs workflows end with a `notify` job that calls
 `reusable-notify.yaml`. The owner it mentions is whoever started or re-ran the run. Most of these
@@ -600,6 +615,9 @@ workflow the release triggers runs as `apicurio-ci`. So does `release-operator.y
 `release-images.yaml` dispatches, and `publish-docs.yaml` for the release's version bumps. In
 those cases the owner is whoever ran `release.yaml`, found by its run name,
 `Release <version>`.
+
+For `post-merge.yml`, the owner is a merger of the PRs suspected of breaking
+`main`; see [Post-merge verification](#post-merge-verification).
 
 When `release-post` in `release-operator.yaml` fails in a run started by a person, the message
 goes out before its tmate session starts, and says so: that person can SSH into the runner to

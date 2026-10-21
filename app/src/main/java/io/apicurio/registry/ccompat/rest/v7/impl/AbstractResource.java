@@ -330,7 +330,7 @@ public abstract class AbstractResource {
     }
 
     protected boolean areAllSchemasDisabled(List<Long> globalIds) {
-        return globalIds.stream().anyMatch(globalId -> {
+        return globalIds.stream().allMatch(globalId -> {
             VersionState state = storage.getArtifactVersionMetaData(globalId).getState();
             return state.equals(VersionState.DISABLED);
         });

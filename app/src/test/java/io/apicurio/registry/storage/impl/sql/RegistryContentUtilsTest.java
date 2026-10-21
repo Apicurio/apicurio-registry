@@ -16,6 +16,12 @@
 
 package io.apicurio.registry.storage.impl.sql;
 
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -47,5 +53,26 @@ public class RegistryContentUtilsTest {
         expected.put("two", "2");
         expected.put("three", "3");
         Assertions.assertEquals(expected, actual);
+    }
+
+    /**
+     * Verifies that resolved references keep the content type of the referenced content (for example
+     * application/yaml) rather than its artifact type (regression test for #10428).
+     */
+    @Test
+    void testRecursivelyResolveReferencesUsesContentType() {
+        ContentWrapperDto yamlReference = ContentWrapperDto.builder()
+                .content(ContentHandle.create("openapi: 3.0.3\ninfo:\n  title: Common API\n  version: 1.0.0\npaths: {}\n"))
+                .contentType(ContentTypes.APPLICATION_YAML).artifactType(ArtifactType.OPENAPI)
+                .references(Collections.emptyList()).build();
+        ArtifactReferenceDto reference = ArtifactReferenceDto.builder().groupId("default")
+                .artifactId("common-api").version("1").name("common-api.yaml").build();
+
+        Map<String, TypedContent> resolved = RegistryContentUtils
+                .recursivelyResolveReferences(List.of(reference), ref -> yamlReference);
+
+        Assertions.assertEquals(1, resolved.size());
+        Assertions.assertEquals(ContentTypes.APPLICATION_YAML,
+                resolved.get("common-api.yaml").getContentType());
     }
 }

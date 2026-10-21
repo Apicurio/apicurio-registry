@@ -106,22 +106,22 @@ The following {registry} configuration options are available for each component 
 |`apicurio.ai-catalog.enabled`
 |`boolean`
 |`false`
-|`3.3.2`
+|`3.3.3`
 |Enable the AI Catalog well-known discovery endpoint _(experimental)_
 |`apicurio.ai-catalog.host-name`
 |`string`
 |`Apicurio Registry`
-|`3.3.2`
+|`3.3.3`
 |Display name for this registry instance, reported as the AI Catalog host
 |`apicurio.ai-catalog.publisher-domain`
 |`optional<string>`
 |
-|`3.3.2`
+|`3.3.3`
 |The publisher domain segment used when building 'urn:air:' identifiers for AI Catalog entries. When not configured, the domain is derived from the incoming request's host and port.
 |`apicurio.ai-catalog.spec-version`
 |`string`
 |`1.0`
-|`3.3.2`
+|`3.3.3`
 |The AI Catalog specification version reported in the catalog document
 |===
 
@@ -173,12 +173,12 @@ The following {registry} configuration options are available for each component 
 |`apicurio.ard.enabled`
 |`boolean`
 |`false`
-|`3.3.2`
+|`3.3.3`
 |Enable the ARD (Agentic Resource Discovery) well-known API endpoints _(experimental)_
 |`apicurio.ard.federation.default`
 |`string`
 |`none`
-|`3.3.2`
+|`3.3.3`
 |Default ARD federation mode advertised by this registry. Only 'none' (no federation) is currently implemented.
 |===
 
@@ -499,6 +499,32 @@ The following {registry} configuration options are available for each component 
 |`30`
 |`2.1.2.Final`
 |Download link expiry
+|===
+
+== federation
+.federation configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.federation.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Enable federation with peer registries, including the peer management API _(experimental)_
+|`apicurio.federation.peer.insecure-http.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Allow peer registry URLs that use plain HTTP instead of HTTPS. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively
+|`apicurio.federation.peer.loopback.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively
 |===
 
 == gitops
@@ -1659,7 +1685,7 @@ The following {registry} configuration options are available for each component 
 |`3.0.0`
 |Enabled to show breadcrumbs in the UI
 |`apicurio.ui.features.read-only.enabled`
-|`string`
+|`boolean [dynamic]`
 |`false`
 |`3.0.0`
 |Enabled to set the UI to read-only mode

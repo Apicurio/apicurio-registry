@@ -100,7 +100,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          python-version: '3.14.8'
+          python-version: '3.15.0'
 
       - name: Install Poetry
         uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
@@ -158,7 +158,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.27.1'
+          go-version: '1.27.2'
           cache: false
 
       - name: Release Go SDK
@@ -169,31 +169,16 @@ jobs:
           git push origin "v${{ needs.prepare.outputs.release-version }}"
           git push origin "go-sdk/v${{ needs.prepare.outputs.release-version }}"
 
-          # Retry up to 5 times with increasing sleep intervals.
-          MAX_RETRIES=5
-          RETRY_COUNT=0
-          SUCCESS=false
-
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            echo "Attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES..."
-            if GOPROXY=proxy.golang.org go list -m "github.com/apicurio/apicurio-registry/go-sdk/v3@v${{ needs.prepare.outputs.release-version }}"; then
-              SUCCESS=true
-              echo "Successfully verified Go module."
-              break
-            else
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                SLEEP_TIME=$((RETRY_COUNT * 10))
-                echo "Failed. Retrying in $SLEEP_TIME seconds..."
-                sleep $SLEEP_TIME
-              fi
-            fi
-          done
-
-          if [ "$SUCCESS" = false ]; then
-            echo "ERROR: Failed to verify Go module after $MAX_RETRIES attempts."
-            exit 1
-          fi
+      # The Go module proxy can take a while to index a freshly pushed tag.
+      - name: Verify Go SDK is available on the module proxy
+        uses: Apitomy/apitomy-github-actions/retry@e10e64b8a9ca86982f45a1ea512847219ae2605e # v1.0.1
+        env:
+          GOPROXY: proxy.golang.org
+        with:
+          working-directory: registry
+          command: go list -m "github.com/apicurio/apicurio-registry/go-sdk/v3@v${{ needs.prepare.outputs.release-version }}"
+          max-attempts: 5
+          initial-delay: 10
 
       - name: Notify on completion
         if: always()
@@ -236,7 +221,7 @@ jobs:
           fi
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 24.21.0
           registry-url: 'https://registry.npmjs.org'
@@ -261,16 +246,18 @@ jobs:
           MESSAGE="TypeScript SDK release for ${{ needs.prepare.outputs.release-version }} completed with status: ${{ job.status }}"
           echo "$MESSAGE"
 
-  # Consolidated Slack Notification (using reusable workflow)
-  notify-slack:
-    name: Slack Notification
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
     needs: [prepare, release-python-sdk, release-go-sdk, release-typescript-sdk]
-    if: always()
-    uses: ./.github/workflows/reusable-notify-slack.yaml
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
     with:
-      workflow-name: ${{ github.workflow }}
-      job-name: 'sdk-releases'
-      job-status: ${{ (needs.release-python-sdk.result == 'failure' || needs.release-go-sdk.result == 'failure' || needs.release-typescript-sdk.result == 'failure') && 'failure' || 'success' }}
+      results: ${{ toJSON(needs) }}
+      version: ${{ github.event.release.tag_name || inputs.tag }}
     secrets:
-      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
-      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+      SLACK_GENERAL_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

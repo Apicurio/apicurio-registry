@@ -1,0 +1,27 @@
+{
+    "asyncapi": "3.0.0",
+    "info": {
+        "title": "Settings Service API",
+        "version": "1.0.0",
+        "description": "API for settings updates with proto2 schemas"
+    },
+    "channels": {
+        "settingsUpdates": {
+            "address": "settings/updates",
+            "messages": {
+                "settingsUpdateMessage": {
+                    "$ref": "#/components/messages/SettingsUpdateMessage"
+                }
+            }
+        }
+    },
+    "components": {
+        "messages": {
+            "SettingsUpdateMessage": {
+                "payload": {
+                    "$ref": "http://schemas.example.org/user-settings.proto"
+                }
+            }
+        }
+    }
+}

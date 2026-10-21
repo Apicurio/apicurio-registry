@@ -246,6 +246,31 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.1.0.Final`
 |Artifact group owner-only authorization
+|`apicurio.auth.resource-based-authorization.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Enable per-resource (fine-grained) authorization of groups and artifacts, evaluated from a grants file. Requires authentication.
+|`apicurio.auth.resource-based-authorization.grants.path`
+|`optional<string>`
+|
+|`3.4.0`
+|Path to the JSON grants file. Required when per-resource authorization is enabled; startup fails if it is missing or invalid.
+|`apicurio.auth.resource-based-authorization.grants.reload-enabled`
+|`boolean`
+|`true`
+|`3.4.0`
+|Enable periodic hot-reload of the grants file. Set to 'false' to disable polling for changes.
+|`apicurio.auth.resource-based-authorization.grants.reload-every`
+|`string`
+|`5s`
+|`3.4.0`
+|Interval for checking grants file changes. Must be a valid duration (e.g. '5s', '1m'). Use apicurio.auth.resource-based-authorization.grants.reload-enabled to disable hot-reload.
+|`apicurio.auth.resource-based-authorization.owner-bypass.enabled`
+|`boolean`
+|`true`
+|`3.4.0`
+|Let the recorded owner of an artifact or group access it regardless of grants. Set to 'false' to make grants the only per-resource authority.
 |`apicurio.auth.role-based-authorization`
 |`boolean`
 |`false`

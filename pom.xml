@@ -92,6 +92,7 @@
     <module>utils/importexport</module>
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
+    <module>authz</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
     <module>schema-util/agents</module>
@@ -368,6 +369,9 @@
 
     <!-- CEL (Common Expression Language) -->
     <cel-standalone.version>0.6.0</cel-standalone.version>
+
+    <!-- Kroxylicious Authorizer API (shared authorization contract) -->
+    <kroxylicious.version>0.25.0</kroxylicious.version>
   </properties>
 
   <dependencyManagement>
@@ -387,6 +391,12 @@
         <groupId>org.jline</groupId>
         <artifactId>jline-terminal-jansi</artifactId>
         <version>${jline.version}</version>
+      </dependency>
+      <!-- Kroxylicious Authorizer API -->
+      <dependency>
+        <groupId>io.kroxylicious</groupId>
+        <artifactId>kroxylicious-authorizer-api</artifactId>
+        <version>${kroxylicious.version}</version>
       </dependency>
 
       <!-- This project -->

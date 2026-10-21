@@ -35,14 +35,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * not running, or the image cannot be pulled, all tests in this class are skipped via
  * {@link Testcontainers#disabledWithoutDocker()}.</p>
  *
- * <p><b>Partial-failure claim (inspection-only):</b> SQL Server DDL statements execute
- * inside implicit transactions when run individually.  The upgrade script for SQL Server
- * does <em>not</em> use {@code IF NOT EXISTS} guards (unlike H2 and MySQL), so a partial
- * failure would leave some tables created but without a version marker.  The production
- * upgrader wraps each version step in a JDBC transaction — on failure the transaction is
- * rolled back and the version remains at 111.  This is verified by code inspection of
- * {@code AbstractSqlRegistryStorage.upgradeDatabaseRaw()}.  A full end-to-end rollback
- * test is out of scope for a schema migration test.</p>
+ * <p>The 112 upgrade script is retry-safe: every {@code CREATE TABLE} is guarded by
+ * {@code IF OBJECT_ID IS NULL} and every {@code CREATE INDEX} is guarded by a
+ * {@code sys.indexes} lookup, so a partial failure followed by a retry succeeds
+ * without "object already exists" errors.  This is exercised by
+ * {@link #upgrade_partialApplication_isRetryable()}.</p>
  */
 @Testcontainers(disabledWithoutDocker = true)
 class WebhookSchemaMssqlMigrationTest {
@@ -135,6 +132,64 @@ class WebhookSchemaMssqlMigrationTest {
                     assertEquals("extra_value", rs.getString(1));
                 }
             }
+        }
+    }
+
+    // ------------------------------------------------------------
+    // Partial-upgrade retry test
+    // ------------------------------------------------------------
+
+    /**
+     * Simulates a partial failure during the 112 (webhook) upgrade: {@code webhook_subscriptions}
+     * was created but the process died before {@code webhook_events}, {@code webhook_delivery_logs},
+     * and the version marker were written, leaving {@code db_version} at 111.  On the next start
+     * the upgrade runner re-runs the 112 script; every {@code CREATE TABLE} is guarded by
+     * {@code IF OBJECT_ID IS NULL} and every {@code CREATE INDEX} by a {@code sys.indexes} lookup,
+     * so the retry succeeds without "object already exists" errors.
+     */
+    @Test
+    void upgrade_partialApplication_isRetryable() throws Exception {
+        try (Connection conn = openConnection()) {
+            // Minimal v111 state.
+            try (Statement st = conn.createStatement()) {
+                st.execute("CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL PRIMARY KEY, propValue NVARCHAR(512))");
+                st.execute("INSERT INTO apicurio VALUES ('db_version', '111')");
+            }
+            assertDbVersion(conn, 111);
+
+            // Simulate partial failure: webhook_subscriptions was committed but the script
+            // died before webhook_events, webhook_delivery_logs, and the version marker ran.
+            try (Statement st = conn.createStatement()) {
+                st.execute(
+                        "CREATE TABLE webhook_subscriptions ("
+                        + "subscriptionId     NVARCHAR(36)   NOT NULL,"
+                        + "name               NVARCHAR(512),"
+                        + "ownerId            NVARCHAR(256)  NOT NULL,"
+                        + "endpointUrl        NVARCHAR(2048) NOT NULL,"
+                        + "eventTypes         NVARCHAR(MAX)  NOT NULL,"
+                        + "groupFilter        NVARCHAR(512),"
+                        + "artifactIdFilter   NVARCHAR(512),"
+                        + "artifactTypeFilter NVARCHAR(32),"
+                        + "enabled            BIT            NOT NULL,"
+                        + "deletedOn          BIGINT,"
+                        + "revision           BIGINT         NOT NULL,"
+                        + "signingSecretRef   NVARCHAR(512),"
+                        + "createdOn          BIGINT         NOT NULL,"
+                        + "modifiedOn         BIGINT         NOT NULL,"
+                        + "PRIMARY KEY (subscriptionId)"
+                        + ")");
+            }
+            // Version is still 111: the marker had not been written yet (it is last in the script).
+            assertDbVersion(conn, 111);
+
+            // Retry: the full 112 upgrade script must succeed without errors.
+            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(111, 112));
+
+            // All three webhook tables must now exist and the version must be 112.
+            assertTableExists(conn, "webhook_subscriptions");
+            assertTableExists(conn, "webhook_events");
+            assertTableExists(conn, "webhook_delivery_logs");
+            assertDbVersion(conn, 112);
         }
     }
 

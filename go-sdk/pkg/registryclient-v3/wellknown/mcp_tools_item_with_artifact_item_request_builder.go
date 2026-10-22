@@ -29,6 +29,18 @@ type McpToolsItemWithArtifactItemRequestBuilderGetRequestConfiguration struct {
 	QueryParameters *McpToolsItemWithArtifactItemRequestBuilderGetQueryParameters
 }
 
+// Compatibility get MCP tool compatibility.
+// returns a *McpToolsItemItemCompatibilityRequestBuilder when successful
+func (m *McpToolsItemWithArtifactItemRequestBuilder) Compatibility() *McpToolsItemItemCompatibilityRequestBuilder {
+	return NewMcpToolsItemItemCompatibilityRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
+// Compatible find compatible MCP tools.
+// returns a *McpToolsItemItemCompatibleRequestBuilder when successful
+func (m *McpToolsItemWithArtifactItemRequestBuilder) Compatible() *McpToolsItemItemCompatibleRequestBuilder {
+	return NewMcpToolsItemItemCompatibleRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // NewMcpToolsItemWithArtifactItemRequestBuilderInternal instantiates a new McpToolsItemWithArtifactItemRequestBuilder and sets the default values.
 func NewMcpToolsItemWithArtifactItemRequestBuilderInternal(pathParameters map[string]string, requestAdapter i2ae4187f7daee263371cb1c977df639813ab50ffa529013b7437480d1ec0158f.RequestAdapter) *McpToolsItemWithArtifactItemRequestBuilder {
 	m := &McpToolsItemWithArtifactItemRequestBuilder{

@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: apicurio-registry-memory
+  name: apicurio-registry-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apicurio-registry-memory
+  template:
+    metadata:
+      labels:
+        app: apicurio-registry-memory
+    spec:
+      containers:
+        - env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: QUARKUS_OIDC_TENANT_ENABLED
+              value: "true"
+            - name: QUARKUS_OIDC_CLIENT_ID
+              value: "registry-api"
+            - name: APICURIO_UI_AUTH_OIDC_CLIENT_ID
+              value: apicurio-registry
+            - name: QUARKUS_OIDC_AUTH_SERVER_URL
+              value: "http://keycloak-service:8090/realms/registry"
+            - name: QUARKUS_OIDC_TLS_VERIFICATION
+              value: none
+            - name: QUARKUS_OIDC_TOKEN_PATH
+              value: "http://keycloak-service:8090/realms/registry/protocol/openid-connect/token"
+            - name: APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_ENABLED
+              value: "true"
+            - name: APICURIO_AUTH_ROLE_BASED_AUTHORIZATION
+              value: "true"
+            - name: APICURIO_AUTH_ROLE_SOURCE
+              value: "token"
+            - name: APICURIO_AUTH_OWNER_ONLY_AUTHORIZATION
+              value: "true"
+            - name: APICURIO_AUTH_ADMIN_OVERRIDE_ENABLED
+              value: "true"
+            - name: APICURIO_REST_DELETION_ARTIFACT_ENABLED
+              value: "true"
+            - name: APICURIO_REST_DELETION_ARTIFACTVERSION_ENABLED
+              value: "true"
+            - name: APICURIO_REST_DELETION_GROUP_ENABLED
+              value: "true"
+          image: registry-image
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/live
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          name: apicurio-registry-memory
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+            - containerPort: 9000
+              name: management
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/ready
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: apicurio-registry-memory
+  name: apicurio-registry-service
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 32586
+    - name: management
+      protocol: TCP
+      port: 9000
+      targetPort: 9000
+  selector:
+    app: apicurio-registry-memory
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

@@ -1,0 +1,53 @@
+version: '3.8'
+
+volumes:
+  mysql_data:
+    driver: local
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: apicurio-registry-mysqlnoauth_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_USER: mysqluser
+      MYSQL_PASSWORD: mysqlpass
+      MYSQL_DATABASE: registrydb
+    volumes:
+      - mysql_data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "mysqluser", "-pmysqlpass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    container_name: apicurio-registry-mysqlnoauth_api
+    environment:
+      # Database configuration
+      APICURIO_DATASOURCE_URL: 'jdbc:mysql://mysql:3306/registrydb'
+      APICURIO_DATASOURCE_USERNAME: mysqluser
+      APICURIO_DATASOURCE_PASSWORD: mysqlpass
+      APICURIO_STORAGE_KIND: "sql"
+      APICURIO_STORAGE_SQL_KIND: "mysql"
+      # API configuration (same as in-memory-no-auth)
+      apicurio.rest.deletion.group.enabled: "true"
+      apicurio.rest.deletion.artifact.enabled: "true"
+      apicurio.rest.deletion.artifact-version.enabled: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  apicurio-registry-ui:
+    image: apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: apicurio-registry-mysqlnoauth_ui
+    ports:
+      - "8888:8080"
+    depends_on:
+      - apicurio-registry

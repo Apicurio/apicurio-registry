@@ -1,0 +1,20 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: apicurio-registry-operator-catalog
+  namespace: ${PLACEHOLDER_CATALOG_NAMESPACE}
+  labels:
+    app: apicurio-registry-operator-catalog
+    app.kubernetes.io/name: apicurio-registry-operator-catalog
+    app.kubernetes.io/version: ${PLACEHOLDER_VERSION}
+    app.kubernetes.io/component: operator
+    app.kubernetes.io/part-of: apicurio-registry
+spec:
+  sourceType: grpc
+  displayName: Apicurio Registry Catalog
+  publisher: Apicurio
+  image: ${PLACEHOLDER_CATALOG_IMAGE}
+  # No updateStrategy / registryPoll: the test catalog image is unique per run
+  # (ttl.sh per-SHA tag), so polling never picks up anything new — it only makes
+  # OLM recreate the catalog pod every interval, and package-server can serve
+  # stale or partial PackageManifest data while the pod flaps.

@@ -1,0 +1,389 @@
+package io.apicurio.registry.noprofile.rest.v3;
+
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
+import io.apicurio.registry.rest.v3.beans.EditableArtifactMetaData;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+
+@QuarkusTest
+public class SearchArtifactsTest extends AbstractResourceTestBase {
+
+    @Test
+    public void testSearchArtifactsByGroup() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = UUID.randomUUID().toString();
+
+        // Create 5 artifacts in the UUID group
+        for (int idx = 0; idx < 5; idx++) {
+            String title = "Empty API " + idx;
+            String artifactId = "Empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON, (ca) -> {
+                        ca.getFirstVersion().setName(title);
+                    });
+        }
+        // Create 3 artifacts in some other group
+        for (int idx = 0; idx < 5; idx++) {
+            String artifactId = "Empty-" + idx;
+            this.createArtifact("SearchResourceTest", artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
+        }
+
+        given().when().queryParam("groupId", group).get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(5)).body("artifacts[0].groupId", equalTo(group));
+    }
+
+    @Test
+    public void testSearchArtifactsByName() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String name = UUID.randomUUID().toString();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Two with the UUID name
+        for (int idx = 0; idx < 2; idx++) {
+            String artifactId = "Empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", name), ContentTypes.APPLICATION_JSON, (ca) -> {
+                        ca.setName(name);
+                    });
+        }
+        // Three with a different name
+        for (int idx = 2; idx < 5; idx++) {
+            String artifactId = "Empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
+        }
+
+        given().when().queryParam("name", name).get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(2));
+    }
+
+    @Test
+    public void testSearchArtifactsByDescription() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String description = "The description is " + UUID.randomUUID().toString();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Two with the UUID description
+        for (int idx = 0; idx < 2; idx++) {
+            String artifactId = "Empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("An example API design using OpenAPI.", description),
+                    ContentTypes.APPLICATION_JSON, (ca) -> {
+                        ca.setDescription(description);
+                    });
+        }
+        // Three with the default description
+        for (int idx = 2; idx < 5; idx++) {
+            String artifactId = "Empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI, artifactContent,
+                    ContentTypes.APPLICATION_JSON);
+        }
+
+        given().when().queryParam("description", description).get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(2));
+    }
+
+    @Test
+    public void testSearchArtifactsByLabels() throws Exception {
+        String group = TestUtils.generateGroupId();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Create 5 artifacts with various labels
+        for (int idx = 0; idx < 5; idx++) {
+            String title = "Empty API " + idx;
+            String artifactId = "Empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
+
+            Map<String, String> labels = new HashMap<>();
+            labels.put("all-key", "all-value");
+            labels.put("key-" + idx, "value-" + idx);
+            labels.put("another-key-" + idx, "another-value-" + idx);
+            labels.put("a-key-" + idx, "lorem ipsum");
+            labels.put("extra-key-" + (idx % 2), "lorem ipsum");
+
+            // Update the artifact meta-data
+            EditableArtifactMetaData metaData = new EditableArtifactMetaData();
+            metaData.setName(title);
+            metaData.setDescription("Some description of an API");
+            metaData.setLabels(labels);
+            given().when().contentType(CT_JSON).pathParam("groupId", group)
+                    .pathParam("artifactId", artifactId).body(metaData)
+                    .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
+        }
+
+        given().when().queryParam("labels", "all-key:all-value").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(5));
+
+        given().when().queryParam("labels", "key-1:value-1").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1));
+
+        given().when().queryParam("labels", "key-1:value-1")
+                .queryParam("labels", "another-key-1:another-value-1").get("/registry/v3/search/artifacts")
+                .then().statusCode(200).body("count", equalTo(1));
+
+        given().when().queryParam("labels", "key-1:value-1").queryParam("labels", "key-2:value-2")
+                .get("/registry/v3/search/artifacts").then().statusCode(200).body("count", equalTo(0));
+        given().when().queryParam("labels", "key-1:value-1:").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(0));
+        given().when().queryParam("labels", "key-1:").get("/registry/v3/search/artifacts").then()
+                .statusCode(200);
+        given().when().queryParam("labels", ":value-1").get("/registry/v3/search/artifacts").then()
+                .statusCode(400);
+        given().when().queryParam("labels", "all-key").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(5));
+        given().when().queryParam("labels", "a-key-1").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1));
+        given().when().queryParam("labels", "extra-key-0").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(3));
+        given().when().queryParam("labels", "extra-key-2").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(0));
+        given().when().queryParam("labels", ":all-key").get("/registry/v3/search/artifacts").then()
+                .statusCode(400);
+        given().when().queryParam("labels", "all-key:").get("/registry/v3/search/artifacts").then()
+                .statusCode(200);
+
+        // Test that search results contain the labels
+        ArtifactSearchResults results = clientV3.search().artifacts().get(conf -> {
+            conf.queryParameters.groupId = group;
+            conf.queryParameters.labels = new String[] { "key-1:value-1" };
+        });
+        Assertions.assertNotNull(results);
+        Assertions.assertEquals(1, results.getArtifacts().size());
+        Assertions.assertNotNull(results.getArtifacts().get(0).getLabels());
+        Assertions.assertEquals(
+                Map.of("key-1", "value-1", "another-key-1", "another-value-1", "all-key", "all-value",
+                        "a-key-1", "lorem ipsum", "extra-key-1", "lorem ipsum"),
+                results.getArtifacts().get(0).getLabels().getAdditionalData());
+    }
+
+    @Test
+    public void testSearchArtifactsByLabelsNamespaceAndColonInValue() throws Exception {
+        String group = TestUtils.generateGroupId();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        // Artifact 1: Namespaced label key (env:tag = production)
+        String artifactId1 = "Artifact-Namespace";
+        this.createArtifact(group, artifactId1, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        EditableArtifactMetaData metaData1 = new EditableArtifactMetaData();
+        metaData1.setLabels(Map.of("env:tag", "production"));
+        given().when().contentType(CT_JSON).pathParam("groupId", group)
+                .pathParam("artifactId", artifactId1).body(metaData1)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
+
+        // Artifact 2: Colon in label value (color = red:dark)
+        String artifactId2 = "Artifact-ColonInValue";
+        this.createArtifact(group, artifactId2, ArtifactType.OPENAPI, artifactContent, ContentTypes.APPLICATION_JSON);
+        EditableArtifactMetaData metaData2 = new EditableArtifactMetaData();
+        metaData2.setLabels(Map.of("color", "red:dark"));
+        given().when().contentType(CT_JSON).pathParam("groupId", group)
+                .pathParam("artifactId", artifactId2).body(metaData2)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
+
+        // --- 1. Namespace Key Regression Checks ---
+
+        // Query "env:tag:" (trailing colon) -> matches key "env:tag" with any value
+        given().when().queryParam("labels", "env:tag:").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId1));
+
+        // Query "env:tag:production" -> matches key "env:tag" and value "production"
+        given().when().queryParam("labels", "env:tag:production").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId1));
+
+        // --- 2. Colon-in-Value Behavior Tradeoff Check ---
+
+        // Querying "color:red:dark" splits via lastIndexOf(":") into key="color:red", value="dark".
+        // Since Artifact 2 has key="color" and value="red:dark", it does NOT match key="color:red".
+        given().when().queryParam("labels", "color:red:dark").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(0));
+
+        // Querying key-only "color" matches Artifact 2
+        given().when().queryParam("labels", "color").get("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(1)).body("artifacts[0].artifactId", equalTo(artifactId2));
+    }
+
+    @Test
+    public void testSearchArtifactsOrderBy() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        for (int idx = 0; idx < 5; idx++) {
+            String artifactId = "Empty-" + idx;
+            String name = "empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", name), ContentTypes.APPLICATION_JSON, (ca) -> {
+                        ca.setName(name);
+                        ca.getFirstVersion().setName(name);
+                    });
+        }
+
+        given().when().queryParam("orderby", "name").queryParam("order", "asc").queryParam("groupId", group)
+                .get("/registry/v3/search/artifacts").then().statusCode(200).body("count", equalTo(5))
+                .body("artifacts[0].name", equalTo("empty-0"));
+
+        given().when().queryParam("orderby", "name").queryParam("order", "desc").queryParam("groupId", group)
+                .get("/registry/v3/search/artifacts").then().statusCode(200).body("count", equalTo(5))
+                .body("artifacts[0].name", equalTo("empty-4"));
+
+        given().when().queryParam("orderby", "createdOn").queryParam("order", "asc")
+                .queryParam("groupId", group).get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(5)).body("artifacts[0].name", equalTo("empty-0"));
+
+        given().when().queryParam("orderby", "createdOn").queryParam("order", "desc")
+                .queryParam("groupId", group).get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(5)).body("artifacts[0].name", equalTo("empty-4"));
+    }
+
+    @Test
+    public void testSearchArtifactsLimitAndOffset() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        for (int idx = 0; idx < 20; idx++) {
+            String artifactId = "Empty-" + idx;
+            String name = "empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", name), ContentTypes.APPLICATION_JSON, (ca) -> {
+                        ca.setName(name);
+                        ca.getFirstVersion().setName(name);
+                    });
+        }
+
+        given().when().queryParam("orderby", "createdOn").queryParam("order", "asc").queryParam("limit", 5)
+                .queryParam("groupId", group).get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(20)).body("artifacts.size()", equalTo(5))
+                .body("artifacts[0].name", equalTo("empty-0"));
+
+        given().when().queryParam("orderby", "createdOn").queryParam("order", "asc").queryParam("limit", 15)
+                .queryParam("groupId", group).get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(20)).body("artifacts.size()", equalTo(15))
+                .body("artifacts[0].name", equalTo("empty-0"));
+
+        given().when().queryParam("orderby", "createdOn").queryParam("order", "asc").queryParam("limit", 5)
+                .queryParam("offset", 10).queryParam("groupId", group).get("/registry/v3/search/artifacts")
+                .then().statusCode(200).body("count", equalTo(20)).body("artifacts.size()", equalTo(5))
+                .body("artifacts[0].name", equalTo("empty-10"));
+
+    }
+
+    @Test
+    public void testSearchArtifactsByContent() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = "testSearchByContent";
+        String searchByContent = artifactContent.replaceAll("Empty API", "testSearchByContent-empty-api-2");
+        String searchByCanonicalContent = searchByContent.replaceAll("\\{", "   {\n");
+
+        // Create 5 artifacts in the UUID group
+        for (int idx = 0; idx < 5; idx++) {
+            String title = "testSearchByContent-empty-api-" + idx;
+            String artifactId = "Empty-1-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
+
+            artifactId = "Empty-2-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
+        }
+
+        given().when().body(searchByContent).post("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(2));
+
+        // Searching by content that is not the same should yield 0 results.
+        given().when().body(searchByCanonicalContent).post("/registry/v3/search/artifacts").then()
+                .statusCode(200).body("count", equalTo(0));
+    }
+
+    @Test
+    public void testSearchArtifactsByCanonicalContent() throws Exception {
+        String artifactContent = resourceToString("openapi-empty.json");
+        String group = "testSearchByCanonicalContent";
+        String searchByContent = artifactContent
+                .replaceAll("Empty API", "testSearchByCanonicalContent-empty-api-2")
+                .replaceAll("\\{", "   {\n");
+
+        System.out.println(searchByContent);
+
+        // Create 5 artifacts in the UUID group
+        for (int idx = 0; idx < 5; idx++) {
+            String title = "testSearchByCanonicalContent-empty-api-" + idx;
+            String artifactId = "Empty-1-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
+
+            artifactId = "Empty-2-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", title), ContentTypes.APPLICATION_JSON);
+        }
+
+        given().when().queryParam("canonical", "true").queryParam("artifactType", ArtifactType.OPENAPI)
+                .body(searchByContent).post("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(2));
+    }
+
+    @Test
+    public void testSearchArtifactsLimitAndOffsetEdgeCases() throws Exception {
+        String group = UUID.randomUUID().toString();
+        String artifactContent = resourceToString("openapi-empty.json");
+
+        for (int idx = 0; idx < 3; idx++) {
+            String artifactId = "Empty-" + idx;
+            String name = "empty-" + idx;
+            this.createArtifact(group, artifactId, ArtifactType.OPENAPI,
+                    artifactContent.replaceAll("Empty API", name), ContentTypes.APPLICATION_JSON, (ca) -> {
+                        ca.setName(name);
+                        ca.getFirstVersion().setName(name);
+                    });
+        }
+
+        // A negative limit is normalized to 1, not passed to storage as an invalid query (#8611).
+        given().when().queryParam("groupId", group).queryParam("limit", -1)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(1));
+
+        // A negative offset is normalized to 0, returning the full result set.
+        given().when().queryParam("groupId", group).queryParam("offset", -1)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
+
+        // limit=0 keeps its current semantics (empty page); only negative values are normalized.
+        given().when().queryParam("groupId", group).queryParam("limit", 0)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(0));
+
+        // Boundary values: offset=0 and limit=1 are valid and behave normally.
+        given().when().queryParam("groupId", group).queryParam("offset", 0)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
+        given().when().queryParam("groupId", group).queryParam("limit", 1)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(1));
+
+        // Both parameters invalid at once: offset -> 0, limit -> 1.
+        given().when().queryParam("groupId", group).queryParam("offset", -1).queryParam("limit", -1)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(1));
+
+        // Oversized values are capped (offset at Integer.MAX_VALUE, limit at MAX_LIMIT) instead of
+        // wrapping to a negative int, which would have produced a 500.
+        given().when().queryParam("groupId", group).queryParam("offset", 2147483648L)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(0));
+        given().when().queryParam("groupId", group).queryParam("limit", 2147483648L)
+                .get("/registry/v3/search/artifacts").then().statusCode(200)
+                .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
+    }
+
+}

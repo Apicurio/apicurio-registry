@@ -1,0 +1,113 @@
+// Standard document attributes to be used in the documentation
+//
+// The following are shared by all documents
+
+//:toc:
+//:toclevels: 4
+//:numbered:
+
+// Branding - toggle upstream/downstream content "on/off"
+
+// The following attributes conditionalize content from the Apicurio Registry project:
+// * Upstream-only content tagged with ifdef::apicurio-registry[]...endif::[]
+// * Downstream-only content tagged with ifdef::rh-service-registry[]...endif::[]
+// Untagged content is common
+
+// Upstream condition by default, switch on/off downstream-only
+//:service-registry-downstream:
+
+// upstream
+ifndef::service-registry-downstream[]
+:apicurio-registry:
+:registry: Apicurio Registry
+:registry-name-full: Apicurio Registry
+:registry-version: 3.3
+:registry-release: 3.3.0
+:registry-docker-version: latest-release
+:registry-v2: 2.6.3
+:operator-version: 1.1.0-v2.4.12.final
+:kafka-streams: Strimzi
+:registry-kafka-version: 3.5
+:keycloak: Keycloak
+:keycloak-version: 18.0
+:kubernetes: Kubernetes
+:kubernetes-with-article: a Kubernetes
+:kubernetes-client: kubectl
+:kubernetes-namespace: namespace
+endif::[]
+
+// downstream
+ifdef::service-registry-downstream[]
+:rh-service-registry:
+:org-name: Red Hat
+:prodnamefull: {org-name} Integration
+:registry-name-full: Red Hat build of Apicurio Registry
+:registry: Apicurio Registry
+:registry-version: 3.3
+:registry-release: 3.3.0-redhat-00001
+:operator-version: 1.2.0.redhat.x
+:kafka-streams: AMQ Streams
+:registry-streams-version: 2.6
+:keycloak: {org-name} build of Keycloak
+:keycloak-version: 7.6
+:sso-token-url: \https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token
+:kubernetes: OpenShift
+:kubernetes-with-article: an OpenShift
+:kubernetes-client: oc
+:kubernetes-namespace: project
+
+endif::[]
+
+//common
+:context: registry
+:version: 2024.Q2
+:attachmentsdir: files
+:registry-ocp-version: 4.14
+:registry-db-version: 15
+:registry-url: \http://MY_REGISTRY_UI_URL/
+:operator: {registry} Operator
+:operator-full: {registry-name-full} Operator
+// Both upstream version and the tag name that can be used in GitHub links.
+:upstream-version-tag: 3.3.0
+
+// Naming conventions for repeated phrases
+:registry-app: {registry} backend (REST API) component
+:registry-ui: {registry} web console component
+
+//integration products
+:amq-version: 2.5
+:productpkg: red_hat_integration
+
+// Characters
+:copy: ©
+:infin: ∞
+:mdash: —
+:nbsp:
+:ndash: –
+:reg: ®
+:trade: ™
+
+//Include attributes for external linking
+include::attributes-links.adoc[]
+
+// Download URLs
+:download-url-registry-container-catalog: https://catalog.redhat.com/software/containers/search
+:download-url-registry-distribution: https://access.redhat.com/jbossnetwork/restricted/listSoftware.html?downloadType=distributions&product=red.hat.integration 
+
+
+// internal links
+:registry-overview: xref:intro-to-the-registry_{context}[]
+:registry-rules: xref:intro-to-registry-rules_{context}[] 
+:registry-artifact-reference: xref:registry-artifact-reference_{context}[]
+:registry-rule-reference: xref:registry-rule-reference_{context}[]
+:registry-config-reference: xref:registry-config-reference_{context}[]
+:installing-the-registry-openshift: xref:installing-registry-ocp_{context}[]
+:installing-the-registry-storage-openshift: xref:installing-registry-storage_{context}[]
+:managing-registry-artifacts-ui: xref:managing-registry-artifacts-ui_{context}[]
+:managing-registry-artifacts-api: xref:managing-registry-artifacts-api_{context}[]
+:managing-registry-artifacts-maven: xref:managing-registry-artifacts-maven_{context}[]
+:rest-client: xref:using-the-registry-sdk_{context}[]
+:kafka-client-serdes: xref:using-kafka-client-serdes_{context}[]
+:registry-client-serdes-config: xref:configuring-kafka-client-serdes_{context}[]
+:registry-rest-api: link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+

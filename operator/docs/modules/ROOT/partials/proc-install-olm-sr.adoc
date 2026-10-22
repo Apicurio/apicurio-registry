@@ -1,0 +1,55 @@
+[id=install-registry-operator-olm]
+= Installing {operator} using Operator Lifecycle Manager
+
+The recommended way to install {operator} is to use the link:{LinkOLMDocs}[{NameOLMDocs}] (OLM), which can automatically manage the Operator deployment and upgrades.
+
+{operator} is released to the link:{LinkOperatorHub}[{NameOperatorHub}], so if your cluster has the OLM and OperatorHub installed, the cluster administrator can use the OpenShift web console to deploy the {operator}:
+
+image::operator-hub-search-sr.png[]
+
+.Prerequisites
+* You must have cluster administrator access to an OpenShift cluster.
+
+.Procedure
+. In the OpenShift Container Platform web console, log in using an account with cluster administrator privileges.
+
+. Create a new OpenShift project:
+
+.. In the left navigation menu, click *Home* > *Project* > *Create Project*.
+.. Enter a project name, for example, `my-project`, and click *Create*.
+
+. In the left navigation menu, click *Operators* > *OperatorHub*.
+
+ifdef::apicurio-registry[]
+. In the *Filter by keyword* text box, enter `registry` to find the *{operator}*.
+endif::[]
+ifdef::service-registry[]
+. In the *Filter by keyword* text box, enter `registry` to find the *Red Hat Integration - {operator}*.
+endif::[]
+. Read the information about the Operator, and click *Install*.
+This displays the *Create Operator Subscription* page.
+
+. Select your subscription settings, for example:
+** *Installation Mode* > *A specific namespace on the cluster* > *my-project*
+ifdef::service-registry[]
+* *Update Channel*: Select one of the following:
+*** *3.0.x*: Includes patch updates only, such as 3.0.1 and 3.0.2. For example, an installation on 3.0.x automatically ignores 3.1.x.
+*** *3.x*: Includes all minor and patch updates, such as 3.1.0 and 3.0.1. For example, an installation on 3.0.x automatically upgrades to 3.1.x. 
+endif::[]
+ifdef::apicurio-registry[]
+** *Update Channel* > *3.x*
+endif::[]
+ifdef::service-registry[]
+** *Approval Strategy* > *Manual*
+endif::[]
+ifdef::apicurio-registry[]
+** *Approval Strategy* > *Automatic*
+endif::[]
+
+. Click *Subscribe*.
+This displays the *Operators* > *Installed Operators* page.
+
+. Wait a few moments until the *Status* for the {operator} displays *Succeeded* and the subscription is *Up to Date*.
+
+.Additional resources
+* link:https://docs.openshift.com/container-platform/4.6/operators/olm-adding-operators-to-cluster.html[Adding Operators to an OpenShift cluster]

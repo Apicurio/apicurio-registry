@@ -1,0 +1,81 @@
+{
+  "type": "record",
+  "name": "Order",
+  "namespace": "io.apicurio.registry.examples.kafka.order",
+  "doc": "Represents a customer order with items and pricing information",
+  "fields": [
+    {
+      "name": "orderId",
+      "type": "string",
+      "doc": "Unique identifier for the order"
+    },
+    {
+      "name": "customerId",
+      "type": "string",
+      "doc": "Unique identifier for the customer"
+    },
+    {
+      "name": "customerName",
+      "type": "string",
+      "doc": "Full name of the customer"
+    },
+    {
+      "name": "customerEmail",
+      "type": "string",
+      "doc": "Email address of the customer"
+    },
+    {
+      "name": "orderTimestamp",
+      "type": "long",
+      "doc": "Timestamp when the order was created (milliseconds since epoch)"
+    },
+    {
+      "name": "items",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "OrderItem",
+          "fields": [
+            {
+              "name": "itemId",
+              "type": "string",
+              "doc": "Unique identifier for the product"
+            },
+            {
+              "name": "itemName",
+              "type": "string",
+              "doc": "Name of the product"
+            },
+            {
+              "name": "quantity",
+              "type": "int",
+              "doc": "Quantity ordered"
+            },
+            {
+              "name": "unitPrice",
+              "type": "double",
+              "doc": "Price per unit"
+            }
+          ]
+        }
+      },
+      "doc": "List of items in the order"
+    },
+    {
+      "name": "totalAmount",
+      "type": "double",
+      "doc": "Total amount for the order"
+    },
+    {
+      "name": "status",
+      "type": {
+        "type": "enum",
+        "name": "OrderStatus",
+        "symbols": ["PENDING", "PROCESSING", "COMPLETED", "CANCELLED"]
+      },
+      "doc": "Current status of the order",
+      "default": "PENDING"
+    }
+  ]
+}

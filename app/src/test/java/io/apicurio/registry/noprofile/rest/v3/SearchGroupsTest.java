@@ -1,0 +1,304 @@
+package io.apicurio.registry.noprofile.rest.v3;
+
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.CreateGroup;
+import io.apicurio.registry.rest.client.models.GroupSearchResults;
+import io.apicurio.registry.rest.client.models.Labels;
+import io.quarkus.test.junit.QuarkusTest;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.util.Map;
+import java.util.UUID;
+
+import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+
+@QuarkusTest
+public class SearchGroupsTest extends AbstractResourceTestBase {
+
+    @Test
+    public void testSearchGroupsByName() throws Exception {
+        String groupId = "testSearchGroupsByName";
+        // Create 5 groups
+        for (int idx = 0; idx < 5; idx++) {
+            CreateGroup createGroup = new CreateGroup();
+            createGroup.setGroupId(groupId + idx);
+            clientV3.groups().post(createGroup);
+        }
+
+        GroupSearchResults results = clientV3.search().groups().get(request -> {
+            request.queryParameters.groupId = groupId + "1";
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.groupId = "testSearchGroupsByName3";
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByName3", results.getGroups().get(0).getGroupId());
+    }
+
+    @Test
+    public void testSearchGroupsByDescription() throws Exception {
+        String groupId = "testSearchGroupsByDescription";
+        // Create 5 groups
+        for (int idx = 0; idx < 5; idx++) {
+            String description = "Description of group number " + idx;
+            CreateGroup createGroup = new CreateGroup();
+            createGroup.setGroupId(groupId + idx);
+            createGroup.setDescription(description);
+            clientV3.groups().post(createGroup);
+        }
+
+        GroupSearchResults results = clientV3.search().groups().get(request -> {
+            request.queryParameters.groupId = groupId + "1";
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.description = "Description of group number 3";
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByDescription3", results.getGroups().get(0).getGroupId());
+        Assertions.assertEquals("Description of group number 3", results.getGroups().get(0).getDescription());
+    }
+
+    @Test
+    public void testSearchGroupsByLabels() throws Exception {
+        String groupId = "testSearchGroupsByLabels";
+        // Create 5 groups
+        for (int idx = 0; idx < 5; idx++) {
+            Labels labels = new Labels();
+            labels.setAdditionalData(
+                    Map.of("byLabels", "byLabels-value-" + idx, "byLabels-" + idx, "byLabels-value-" + idx));
+
+            CreateGroup createGroup = new CreateGroup();
+            createGroup.setGroupId(groupId + idx);
+            createGroup.setLabels(labels);
+            clientV3.groups().post(createGroup);
+        }
+
+        GroupSearchResults results = clientV3.search().groups().get(request -> {
+            request.queryParameters.groupId = groupId + "1";
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        // Note: ensure that labels are returned in the search results
+        Assertions.assertNotNull(results.getGroups().get(0).getLabels());
+        Assertions.assertEquals(Map.of("byLabels", "byLabels-value-1", "byLabels-1", "byLabels-value-1"),
+                results.getGroups().get(0).getLabels().getAdditionalData());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "byLabels" };
+        });
+        Assertions.assertEquals(5, results.getGroups().size());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "byLabels-3" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "byLabels:byLabels-value-3" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "byLabels-3" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "byLabels-3:byLabels-value-3" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
+
+        // Test trailing colon label queries
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "byLabels:" };
+        });
+        Assertions.assertEquals(5, results.getGroups().size());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "byLabels-3:" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByLabels3", results.getGroups().get(0).getGroupId());
+
+        // Test namespace colon label queries (e.g. "env:tag:") to protect against regression
+        Labels nsLabels = new Labels();
+        nsLabels.setAdditionalData(Map.of("env:tag", "production"));
+        CreateGroup nsGroup = new CreateGroup();
+        nsGroup.setGroupId("testSearchGroupsByNsLabel");
+        nsGroup.setLabels(nsLabels);
+        clientV3.groups().post(nsGroup);
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "env:tag:" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByNsLabel", results.getGroups().get(0).getGroupId());
+
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "env:tag:production" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size());
+        Assertions.assertEquals("testSearchGroupsByNsLabel", results.getGroups().get(0).getGroupId());
+    }
+
+    @Test
+    public void testSearchGroupsByLabelsColonInValue() throws Exception {
+        // Group 1: Namespaced label key (scope:tier = primary) — uses a distinct key to avoid
+        // polluting the global env:tag:production search in testSearchGroupsByLabels
+        Labels nsLabels = new Labels();
+        nsLabels.setAdditionalData(Map.of("scope:tier", "primary"));
+        CreateGroup nsGroup = new CreateGroup();
+        nsGroup.setGroupId("testSearchGroupsNsLabel-" + UUID.randomUUID());
+        nsGroup.setLabels(nsLabels);
+        clientV3.groups().post(nsGroup);
+
+        // Group 2: Colon in label value (color = red:dark)
+        Labels colonLabels = new Labels();
+        colonLabels.setAdditionalData(Map.of("color", "red:dark"));
+        CreateGroup colonGroup = new CreateGroup();
+        String colonGroupId = "testSearchGroupsColonValue-" + UUID.randomUUID();
+        colonGroup.setGroupId(colonGroupId);
+        colonGroup.setLabels(colonLabels);
+        clientV3.groups().post(colonGroup);
+
+        // Querying "color:red:dark" splits via lastIndexOf(":") into key="color:red", value="dark".
+        // Since Group 2 has key="color" and value="red:dark", it does NOT match key="color:red".
+        GroupSearchResults results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "color:red:dark" };
+        });
+        Assertions.assertEquals(0, results.getGroups().stream()
+                .filter(g -> g.getGroupId().equals(colonGroupId)).count());
+
+        // Querying key-only "color" matches Group 2
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "color" };
+        });
+        Assertions.assertTrue(results.getGroups().stream()
+                .anyMatch(g -> g.getGroupId().equals(colonGroupId)));
+    }
+
+    @Test
+    public void testSearchGroupsByGroupIdWildcard() throws Exception {
+        String prefix = "WildcardGroupSearch_" + UUID.randomUUID().toString().substring(0, 8);
+
+        for (int idx = 0; idx < 3; idx++) {
+            CreateGroup createGroup = new CreateGroup();
+            createGroup.setGroupId(prefix + "_group_" + idx);
+            clientV3.groups().post(createGroup);
+        }
+
+        // Prefix wildcard
+        GroupSearchResults results = clientV3.search().groups().get(request -> {
+            request.queryParameters.groupId = prefix + "*";
+        });
+        Assertions.assertEquals(3, results.getGroups().size(),
+                "Wildcard groupId prefix should return all 3 groups");
+
+        // Substring wildcard
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.groupId = "*" + prefix + "*";
+        });
+        Assertions.assertEquals(3, results.getGroups().size(),
+                "Wildcard substring should return all 3 groups");
+
+        // Exact match
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.groupId = prefix + "_group_1";
+        });
+        Assertions.assertEquals(1, results.getGroups().size(),
+                "Exact match should return 1 group");
+    }
+
+    @Test
+    public void testSearchGroupsByLabelWildcard() throws Exception {
+        String prefix = "WildcardLabelGroup_" + UUID.randomUUID().toString().substring(0, 8);
+
+        for (int idx = 0; idx < 3; idx++) {
+            Labels labels = new Labels();
+            labels.setAdditionalData(
+                    Map.of("env.tier-" + idx, "value-" + idx, "common", "shared"));
+            CreateGroup createGroup = new CreateGroup();
+            createGroup.setGroupId(prefix + "_" + idx);
+            createGroup.setLabels(labels);
+            clientV3.groups().post(createGroup);
+        }
+
+        // Wildcard on label key
+        GroupSearchResults results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "env.*" };
+        });
+        Assertions.assertEquals(3, results.getGroups().size(),
+                "Wildcard label key 'env.*' should match all 3 groups");
+
+        // Wildcard on label value
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "common:sha*" };
+        });
+        Assertions.assertEquals(3, results.getGroups().size(),
+                "Wildcard label value 'common:sha*' should match all 3 groups");
+
+        // Exact label key still works
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "env.tier-1" };
+        });
+        Assertions.assertEquals(1, results.getGroups().size(),
+                "Exact label key should return 1 group");
+    }
+
+    @Test
+    public void testSearchGroupsNegativeLimitAndOffset() throws Exception {
+        String prefix = "NegativeParams_" + UUID.randomUUID().toString().substring(0, 8);
+        for (int idx = 0; idx < 3; idx++) {
+            CreateGroup createGroup = new CreateGroup();
+            createGroup.setGroupId(prefix + "_" + idx);
+            clientV3.groups().post(createGroup);
+        }
+
+        // A negative limit is normalized to 1, not passed to storage as an invalid query (#8611).
+        given().when().queryParam("groupId", prefix + "*").queryParam("limit", -1)
+                .get("/registry/v3/search/groups").then().statusCode(200)
+                .body("count", equalTo(3)).body("groups.size()", equalTo(1));
+
+        // A negative offset is normalized to 0, returning the full result set.
+        given().when().queryParam("groupId", prefix + "*").queryParam("offset", -1)
+                .get("/registry/v3/search/groups").then().statusCode(200)
+                .body("count", equalTo(3)).body("groups.size()", equalTo(3));
+    }
+
+    @Test
+    public void testSearchGroupsByLabelTrailingDelimiter() throws Exception {
+        String groupId = "testSearchGroupsByLabelTrailingDelimiter";
+        for (int idx = 0; idx < 3; idx++) {
+            Labels labels = new Labels();
+            labels.setAdditionalData(Map.of("trailing", "trailing-value-" + idx));
+            CreateGroup createGroup = new CreateGroup();
+            createGroup.setGroupId(groupId + idx);
+            createGroup.setLabels(labels);
+            clientV3.groups().post(createGroup);
+        }
+
+        // A label filter with a trailing ':' (no value) must match the key with any value.
+        // This exercises the branch that was previously unreachable dead code (see #8734).
+        GroupSearchResults results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "trailing:" };
+        });
+        Assertions.assertEquals(3, results.getGroups().size(),
+                "Trailing-colon label filter should match all 3 groups by key");
+
+        // A label filter with no ':' at all must also match the key directly.
+        results = clientV3.search().groups().get(request -> {
+            request.queryParameters.labels = new String[] { "trailing" };
+        });
+        Assertions.assertEquals(3, results.getGroups().size(),
+                "Key-only label filter should match all 3 groups by key");
+    }
+}

@@ -1,0 +1,155 @@
+{
+  "tests": [
+    {
+      "description": "Null test.",
+      "schema": {
+      },
+      "expected": {
+        "draft-04": true,
+        "draft-06": true,
+        "draft-07": true,
+        "draft-2020": true
+      }
+    },
+    {
+      "description": "Invalid keyword type. Must be a string or an array.",
+      "schema": {
+        "type": {
+          "foo": "bar"
+        }
+      },
+      "expected": {
+        "draft-04": false,
+        "draft-06": false,
+        "draft-07": false,
+        "draft-2020": false
+      }
+    },
+    {
+      "description": "Unknown property. Note: I've removed unevaluated property check in this PR.",
+      "schema": {
+        "type": "string",
+        "max": 42
+      },
+      "expected": {
+        "draft-04": true,
+        "draft-06": true,
+        "draft-07": true,
+        "draft-2020": true
+      }
+    },
+    {
+      "description": "Nested unknown property. Note: I've removed unevaluated property check in this PR.",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "foo": {
+            "type": "string"
+          },
+          "bar": {
+            "type": "integer",
+            "max": 42
+          }
+        }
+      },
+      "expected": {
+        "draft-04": true,
+        "draft-06": true,
+        "draft-07": true,
+        "draft-2020": true
+      }
+    },
+    {
+      "description": "The items and additionalItems keywords have been replaced by prefixItems and items in v2020. Must be an array.",
+      "schema": {
+        "prefixItems": {
+          "foo": "bar"
+        }
+      },
+      "expected": {
+        "draft-04": true,
+        "draft-06": true,
+        "draft-07": true,
+        "draft-2020": false
+      }
+    },
+    {
+      "description": "$dynamicAnchor has been introduced in v2020. Must be a string with pattern '^[A-Za-z_][-A-Za-z0-9._]*$'. Note: This should fail for v2020, but the library accepts it. Same for https://www.jsonschemavalidator.net.",
+      "schema": {
+        "$dynamicAnchor": ""
+      },
+      "expected": {
+        "draft-04": true,
+        "draft-06": true,
+        "draft-07": true,
+        "draft-2020": true
+      }
+    },
+    {
+      "description": "deprecated has been introduced in v2020. Must be a boolean.",
+      "schema": {
+        "deprecated": {
+          "foo": "bar"
+        }
+      },
+      "expected": {
+        "draft-04": true,
+        "draft-06": true,
+        "draft-07": true,
+        "draft-2020": false
+      }
+    },
+    {
+      "description": "readOnly has been introduced in v7. Must be a boolean.",
+      "schema": {
+        "readOnly": {
+          "foo": "bar"
+        }
+      },
+      "expected": {
+        "draft-04": true,
+        "draft-06": true,
+        "draft-07": false,
+        "draft-2020": false
+      }
+    },
+    {
+      "description": "readOnly has been introduced in v7. Must be a boolean.",
+      "schema": {
+        "readOnly": {
+          "foo": "bar"
+        }
+      },
+      "expected": {
+        "draft-04": true,
+        "draft-06": true,
+        "draft-07": false,
+        "draft-2020": false
+      }
+    },
+    {
+      "description": "1: Changed exclusiveMinimum/Maximum from boolean to number in v6.",
+      "schema": {
+        "exclusiveMinimum": true
+      },
+      "expected": {
+        "draft-04": true,
+        "draft-06": false,
+        "draft-07": false,
+        "draft-2020": false
+      }
+    },
+    {
+      "description": "2: Changed exclusiveMinimum/Maximum from boolean to number in v6.",
+      "schema": {
+        "exclusiveMinimum": 42
+      },
+      "expected": {
+        "draft-04": false,
+        "draft-06": true,
+        "draft-07": true,
+        "draft-2020": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,183 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="custom-artifact-types_{context}"]
+= Configuring custom artifact types
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+In addition to the built-in artifact types, {registry} can be configured at deployment time with custom artifact types. The behavior of a custom type (content detection, validation, compatibility checking, canonicalization, dereferencing) is provided either by webhooks or by Java classes. This chapter describes the configuration file and how to add Java providers to the container image without rebuilding {registry}.
+
+// ref-custom-artifact-types-config
+[id="custom-artifact-types-config_{context}"]
+== Artifact type configuration file
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The list of artifact types supported by a {registry} instance is read from a JSON file at startup. The file is configured with the `apicurio.artifact-types.config-file` property (environment variable `APICURIO_ARTIFACT_TYPES_CONFIG_FILE`). When the file does not exist, only the built-in artifact types are available.
+
+.Example configuration file
+[source,json]
+----
+{
+  "includeStandardArtifactTypes": true,
+  "artifactTypes": [
+    {
+      "artifactType": "MARKDOWN",
+      "name": "Markdown",
+      "description": "Markdown documents with a level-1 title and level-2 sections.",
+      "contentTypes": ["text/markdown", "text/plain"],
+      "contentAccepter": {
+        "type": "java",
+        "classname": "io.apicurio.registry.examples.customtypes.MarkdownContentAccepter"
+      },
+      "contentValidator": {
+        "type": "java",
+        "classname": "io.apicurio.registry.examples.customtypes.MarkdownContentValidator"
+      },
+      "compatibilityChecker": {
+        "type": "webhook",
+        "url": "https://markdown-service.example.com/compatibility",
+        "headers": { "Authorization": "Bearer YOUR_SECRET_TOKEN" }
+      }
+    }
+  ]
+}
+----
+
+.Top-level properties
+[cols="1,3"]
+|===
+|Property |Description
+
+|`includeStandardArtifactTypes`
+|Whether the built-in artifact types (AVRO, JSON, OPENAPI, ...) remain available. When `false`, only the types listed in `artifactTypes` are supported.
+
+|`artifactTypes`
+|The list of custom artifact types.
+|===
+
+.Artifact type properties
+[cols="1,3"]
+|===
+|Property |Description
+
+|`artifactType`
+|The identifier of the type, used in the REST API and the UI (for example `MARKDOWN`). Must be unique.
+
+|`name`, `description`
+|Display name and description of the type.
+
+|`contentTypes`
+|The content types (media types) accepted for this artifact type.
+
+|`contentAccepter`
+|Provider that decides whether a piece of content belongs to this type. Used to detect the artifact type when a client does not specify one.
+
+|`contentValidator`
+|Provider that backs the `VALIDITY` rule (`SYNTAX_ONLY` and `FULL` levels).
+
+|`compatibilityChecker`
+|Provider that backs the `COMPATIBILITY` rule (`BACKWARD`, `FORWARD`, `FULL` and their transitive variants).
+
+|`contentCanonicalizer`
+|Provider that produces the canonical form of the content, used to recognize equivalent content (for example canonical search and de-duplication).
+
+|`contentDereferencer`
+|Provider that inlines or rewrites references to other artifacts when content is retrieved with `references=DEREFERENCE` or `references=REWRITE`.
+
+|`referenceFinder`
+|Provider that finds external references in the content. Used by the Maven plug-in to register references automatically.
+|===
+
+Every provider property is optional. When a provider is not configured, the corresponding feature is a no-op for the type (for example, the artifact type is never auto-detected and every content is considered valid and compatible).
+
+.Provider types
+[cols="1,3"]
+|===
+|Provider |Description
+
+|`{"type": "java", "classname": "..."}`
+|A Java class implementing the corresponding interface of the `io.apicurio:apicurio-registry-schema-util-common` module (`io.apicurio.registry.content.ContentAccepter`, `io.apicurio.registry.rules.validity.ContentValidator`, `io.apicurio.registry.rules.compatibility.CompatibilityChecker`, `io.apicurio.registry.content.canon.ContentCanonicalizer`, `io.apicurio.registry.content.dereference.ContentDereferencer`, `io.apicurio.registry.content.refs.ReferenceFinder`). The class must have a public no-argument constructor and must be available on the class path of {registry}, see xref:custom-artifact-types-mutable-image_{context}[].
+
+|`{"type": "webhook", "url": "...", "headers": {...}}`
+|An HTTP endpoint that {registry} calls with a JSON request describing the operation (content, resolved references, rule level) and that returns a JSON response. The optional `headers` are sent with every request, for example for authentication. Webhooks work with the standard container image but add a network round trip to every operation.
+|===
+
+// proc-custom-artifact-types-mutable-image
+[id="custom-artifact-types-mutable-image_{context}"]
+== Adding Java providers with the mutable container image
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+The standard {registry} container image is a Quarkus _fast-jar_: its class path is indexed when the image is built, so a jar copied into the image is not visible to the application. Every release is therefore also published as a `VERSION-mutable` image, a Quarkus _mutable-jar_ that can be _re-augmented_ to include additional jars. Build a derived image that copies your provider jar into the providers directory and runs the re-augmentation once, at image build time.
+
+.Prerequisites
+
+* A jar containing your provider classes, compiled against the `io.apicurio:apicurio-registry-schema-util-common` module of the same {registry} minor version. The jar must not bundle the {registry} or Quarkus classes; other dependencies must either be already present in the image or be copied into the providers directory as well.
+* An artifact type configuration file, see xref:custom-artifact-types-config_{context}[].
+
+.Procedure
+
+. Create a `Dockerfile` that derives from the mutable image:
++
+[source,dockerfile,subs="attributes+"]
+----
+FROM apicurio/apicurio-registry:{registry-docker-version}-mutable
+
+COPY --chown=1001:0 my-artifact-type.jar /deployments/quarkus-app/providers/
+COPY --chown=1001:0 artifact-types.json /deployments/artifact-types.json
+
+RUN /deployments/build.sh --prune
+
+ENV APICURIO_ARTIFACT_TYPES_CONFIG_FILE=/deployments/artifact-types.json
+----
++
+`/deployments/build.sh` re-augments the application with the jars found in `/deployments/quarkus-app/providers` and adds only the regenerated class-path index (a few MB) to the derived image. The `--prune` option removes the `lib/deployment` directory (the Quarkus deployment jars) from the file system of the derived image afterwards; omit it if you want to re-augment the derived image again later.
+
+. Build and run the image:
++
+[source,bash]
+----
+$ docker build -t my-registry .
+$ docker run -it -p 8080:8080 my-registry
+----
+
+. Verify that the custom type is available:
++
+[source,bash]
+----
+$ curl http://localhost:8080/apis/registry/v3/admin/config/artifactTypes
+----
+
+Re-augmentation takes about ten seconds and requires roughly 1 GB of memory during the image build (tune it with the `JAVA_OPTS_APPEND` environment variable). It must be repeated, by rebuilding the derived image, whenever the provider jars change. The startup time and runtime behavior of {registry} are not affected.
+
+.Trade-offs
+[cols="1,1,1"]
+|===
+| |Standard image |`-mutable` image
+
+|Packaging
+|Quarkus fast-jar (`/deployments`)
+|Quarkus mutable-jar (`/deployments/quarkus-app`)
+
+|Size
+|Reference
+|About 47 MB (150 jars) of additional files in `lib/deployment` (roughly 100 MB of image size with the current image layering). A derived image adds only a few MB; `build.sh --prune` removes the deployment jars from the file system but, as with any container image, does not shrink the layers inherited from the base image.
+
+|Java providers
+|Not supported (use webhooks)
+|Supported through `/deployments/build.sh`
+
+|Runtime behavior
+|Reference
+|Identical
+|===
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/custom-artifact-types[Custom artifact types example] (a complete `MARKDOWN` artifact type with Java providers)
+* link:https://quarkus.io/guides/reaugmentation[Quarkus re-augmentation guide]
+* xref:assembly-artifact-reference.adoc[]

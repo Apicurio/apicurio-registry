@@ -1,0 +1,523 @@
+package io.apicurio.tests.converters;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.resolver.client.RegistryClientFacade;
+import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.serde.BaseSerde;
+import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
+import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
+import io.apicurio.registry.serde.avro.AvroSerdeConfig;
+import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
+import io.apicurio.registry.serde.avro.strategy.TopicRecordIdStrategy;
+import io.apicurio.registry.serde.config.SerdeConfig;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.converter.AvroConverter;
+import io.apicurio.registry.utils.converter.ExtJsonConverter;
+import io.apicurio.registry.utils.converter.SerdeBasedConverter;
+import io.apicurio.registry.utils.converter.avro.AvroData;
+import io.apicurio.registry.utils.converter.json.CompactFormatStrategy;
+import io.apicurio.registry.utils.converter.json.FormatStrategy;
+import io.apicurio.registry.utils.converter.json.PrettyFormatStrategy;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.apicurio.tests.ApicurioRegistryBaseIT;
+import io.apicurio.tests.utils.AvroGenericRecordSchemaFactory;
+import static io.apicurio.deployment.Constants.*;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericData.Record;
+import org.apache.kafka.connect.data.SchemaAndValue;
+import org.apache.kafka.connect.data.Struct;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+import static org.apache.kafka.connect.data.Schema.INT32_SCHEMA;
+import static org.apache.kafka.connect.data.SchemaBuilder.OPTIONAL_INT64_SCHEMA;
+import static org.apache.kafka.connect.data.SchemaBuilder.STRING_SCHEMA;
+import static org.apache.kafka.connect.data.SchemaBuilder.bytes;
+import static org.apache.kafka.connect.data.SchemaBuilder.int16;
+import static org.apache.kafka.connect.data.SchemaBuilder.string;
+import static org.apache.kafka.connect.data.SchemaBuilder.struct;
+
+@Tag(SERDES)
+@Tag(ACCEPTANCE)
+@QuarkusIntegrationTest
+public class RegistryConverterIT extends ApicurioRegistryBaseIT {
+
+    @Test
+    public void testConfiguration() throws Exception {
+        String groupId = "ns_" + TestUtils.generateGroupId().replace("-", "_");
+        String topic = "topic-" + TestUtils.generateArtifactId().replace("-", "_");
+        String recordName = "myrecord4";
+        AvroGenericRecordSchemaFactory schemaFactory = new AvroGenericRecordSchemaFactory(groupId, recordName,
+                List.of("bar"));
+        Schema schema = schemaFactory.generateSchema();
+
+        createArtifact(groupId, topic + "-" + recordName, ArtifactType.AVRO, schema.toString(),
+                ContentTypes.APPLICATION_JSON, null, null);
+
+        Record record = new Record(schema);
+        record.put("bar", "somebar");
+
+        Map<String, Object> config = new HashMap<>();
+        config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
+        config.put(SerdeBasedConverter.REGISTRY_CONVERTER_SERIALIZER_PARAM,
+                AvroKafkaSerializer.class.getName());
+        config.put(SerdeBasedConverter.REGISTRY_CONVERTER_DESERIALIZER_PARAM,
+                AvroKafkaDeserializer.class.getName());
+        config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
+        config.put(AvroSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
+
+        try (SerdeBasedConverter<Void, Record> converter = new SerdeBasedConverter<>()) {
+            byte[] bytes;
+            converter.configure(config, true);
+            bytes = converter.fromConnectData(topic, null, record);
+            record = (Record) converter.toConnectData(topic, bytes).value();
+            Assertions.assertEquals("somebar", record.get("bar").toString());
+        }
+
+    }
+
+    @Test
+    public void testAvroIntDefaultValue() throws Exception {
+        String expectedSchema = "{\n" + "  \"type\" : \"record\",\n" + "  \"name\" : \"ConnectDefault\",\n"
+                + "  \"namespace\" : \"io.confluent.connect.avro\",\n" + "  \"fields\" : [ {\n"
+                + "    \"name\" : \"int16Test\",\n" + "    \"type\" : [ {\n" + "      \"type\" : \"int\",\n"
+                + "      \"connect.doc\" : \"int16test field\",\n" + "      \"connect.default\" : 2,\n"
+                + "      \"connect.type\" : \"int16\"\n" + "    }, \"null\" ],\n" + "    \"default\" : 2\n"
+                + "  } ]\n" + "}";
+
+        try (AvroConverter<Record> converter = new AvroConverter<>()) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            converter.configure(config, false);
+
+            org.apache.kafka.connect.data.Schema sc = struct().field("int16Test",
+                    int16().optional().defaultValue((short) 2).doc("int16test field").build());
+            Struct struct = new Struct(sc);
+            struct.put("int16Test", (short) 3);
+
+            String subject = "subj_" + TestUtils.generateArtifactId().replace("-", "_");
+
+            byte[] bytes = converter.fromConnectData(subject, sc, struct);
+
+            // some impl details ...
+            TestUtils.waitForSchema(contentId -> {
+                try {
+                    return registryClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
+
+            Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
+            Assertions.assertEquals((short) 3, ir.get("int16Test"));
+
+            AvroData avroData = new AvroData(10);
+            Assertions.assertEquals(expectedSchema, avroData.fromConnectSchema(ir.schema()).toString(true));
+        }
+    }
+
+    @Test
+    public void testAvroConverterDebeziumLogicalTypes() throws Exception {
+        try (AvroConverter<Record> converter = new AvroConverter<>()) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            converter.configure(config, false);
+
+            org.apache.kafka.connect.data.Schema dateSchema = org.apache.kafka.connect.data.SchemaBuilder
+                    .int32().name("io.debezium.time.Date").version(1).build();
+
+            org.apache.kafka.connect.data.Schema sc = struct()
+                    .name("dbserver1.inventory.orders.Value")
+                    .field("order_number", INT32_SCHEMA)
+                    .field("order_date", dateSchema)
+                    .field("customer_id", INT32_SCHEMA)
+                    .field("quantity", INT32_SCHEMA)
+                    .field("price", org.apache.kafka.connect.data.Schema.FLOAT64_SCHEMA)
+                    .build();
+
+            Struct struct = new Struct(sc);
+            struct.put("order_number", 10045);
+            struct.put("order_date", 19443);
+            struct.put("customer_id", 1001);
+            struct.put("quantity", 5);
+            struct.put("price", 29.99);
+
+            String subject = "subj_" + TestUtils.generateArtifactId().replace("-", "_");
+
+            byte[] bytes = converter.fromConnectData(subject, sc, struct);
+
+            TestUtils.waitForSchema(contentId -> {
+                try {
+                    return registryClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
+
+            Struct result = (Struct) converter.toConnectData(subject, bytes).value();
+
+            Assertions.assertNotNull(result, "Deserialized struct must not be null");
+            Assertions.assertEquals(10045, result.get("order_number"));
+            Assertions.assertEquals(19443, result.get("order_date"),
+                    "order_date with connect.name=io.debezium.time.Date must not be null");
+            Assertions.assertEquals(1001, result.get("customer_id"));
+            Assertions.assertEquals(5, result.get("quantity"));
+            Assertions.assertEquals(29.99, result.get("price"));
+
+            Assertions.assertEquals("io.debezium.time.Date",
+                    result.schema().field("order_date").schema().name(),
+                    "Connect schema must preserve connect.name after registry round-trip");
+        }
+    }
+
+    @Test
+    public void testAvroBytesDefaultValue() throws Exception {
+        String expectedSchema = "{\n" + "  \"type\" : \"record\",\n" + "  \"name\" : \"ConnectDefault\",\n"
+                + "  \"namespace\" : \"io.confluent.connect.avro\",\n" + "  \"fields\" : [ {\n"
+                + "    \"name\" : \"bytesTest\",\n" + "    \"type\" : [ {\n" + "      \"type\" : \"bytes\",\n"
+                + "      \"connect.parameters\" : {\n" + "        \"lenght\" : \"10\"\n" + "      },\n"
+                + "      \"connect.default\" : \"test\"\n" + "    }, \"null\" ],\n"
+                + "    \"default\" : \"test\"\n" + "  } ]\n" + "}";
+
+        try (AvroConverter<Record> converter = new AvroConverter<>()) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            converter.configure(config, false);
+
+            org.apache.kafka.connect.data.Schema sc = struct().field("bytesTest",
+                    bytes().optional().parameters(Map.of("lenght", "10"))
+                            .defaultValue("test".getBytes()).build());
+            Struct struct = new Struct(sc);
+
+            struct.put("bytesTest", "testingBytes".getBytes());
+
+            String subject = "subj_" + TestUtils.generateArtifactId().replace("-", "_");
+
+            byte[] bytes = converter.fromConnectData(subject, sc, struct);
+
+            // some impl details ...
+            TestUtils.waitForSchema(contentId -> {
+                try {
+                    return registryClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
+            Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
+            AvroData avroData = new AvroData(10);
+            Assertions.assertEquals(expectedSchema, avroData.fromConnectSchema(ir.schema()).toString(true));
+        }
+
+    }
+
+    @Test
+    public void testAvro() throws Exception {
+        try (AvroConverter<Record> converter = new AvroConverter<>()) {
+
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            converter.configure(config, false);
+
+            org.apache.kafka.connect.data.Schema sc = struct()
+                    .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA).build();
+            Struct struct = new Struct(sc);
+            struct.put("bar", "somebar");
+
+            String subject = "subj_" + TestUtils.generateArtifactId().replace("-", "_");
+
+            byte[] bytes = converter.fromConnectData(subject, sc, struct);
+
+            // some impl details ...
+            TestUtils.waitForSchema(contentId -> {
+                try {
+                    return registryClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
+
+            Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
+    }
+
+    @Test
+    public void testPrettyJson() throws Exception {
+        testJson(createRegistryClient(vertx), new PrettyFormatStrategy(), input -> {
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode root = mapper.readTree(input);
+                return root.get("schemaId").asInt();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        });
+    }
+
+    @Test
+    public void testConnectStruct() throws Exception {
+        try (ExtJsonConverter converter = new ExtJsonConverter()) {
+
+            converter.setFormatStrategy(new CompactFormatStrategy());
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            converter.configure(config, false);
+
+            org.apache.kafka.connect.data.Schema envelopeSchema = buildEnvelopeSchema();
+
+            // Create a Struct object for the Envelope
+            Struct envelopeStruct = new Struct(envelopeSchema);
+
+            // Set values for the fields in the Envelope
+            envelopeStruct.put("before", buildValueStruct());
+            envelopeStruct.put("after", buildValueStruct());
+            envelopeStruct.put("source", buildSourceStruct());
+            envelopeStruct.put("op", "insert");
+            envelopeStruct.put("ts_ms", 1638362438000L); // Replace with the actual timestamp
+            envelopeStruct.put("transaction", buildTransactionStruct());
+
+            String subject = "subj_" + TestUtils.generateArtifactId().replace("-", "_");
+
+            byte[] bytes = converter.fromConnectData(subject, envelopeSchema, envelopeStruct);
+
+            // some impl details ...
+            TestUtils.waitForSchema(contentId -> {
+                try {
+                    return registryClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes);
+
+            Struct ir = (Struct) converter.toConnectData(subject, bytes).value();
+            Assertions.assertEquals(envelopeStruct, ir);
+        }
+    }
+
+    private static org.apache.kafka.connect.data.Schema buildEnvelopeSchema() {
+        // Define the Envelope schema
+        return struct().name("dbserver1.public.aviation.Envelope").version(1)
+                .field("before", buildValueSchema()).field("after", buildValueSchema())
+                .field("source", buildSourceSchema()).field("op", STRING_SCHEMA)
+                .field("ts_ms", OPTIONAL_INT64_SCHEMA)
+                .field("transaction", buildTransactionSchema()).build();
+    }
+
+    private static org.apache.kafka.connect.data.Schema buildValueSchema() {
+        // Define the Value schema
+        return struct().name("dbserver1.public.aviation.Value").version(1)
+                .field("id", INT32_SCHEMA).build();
+    }
+
+    private static Struct buildValueStruct() {
+        // Create a Struct object for the Value
+        Struct valueStruct = new Struct(buildValueSchema());
+
+        // Set value for the "id" field
+        valueStruct.put("id", 123); // Replace with the actual ID value
+
+        return valueStruct;
+    }
+
+    private static org.apache.kafka.connect.data.Schema buildSourceSchema() {
+        // Define the Source schema
+        return struct().name("io.debezium.connector.postgresql.Source").version(1)
+                .field("id", STRING_SCHEMA).field("version", STRING_SCHEMA)
+                .build();
+    }
+
+    private static Struct buildSourceStruct() {
+        // Create a Struct object for the Source
+        Struct sourceStruct = new Struct(buildSourceSchema());
+
+        // Set values for the fields in the Source
+        sourceStruct.put("id", "source_id");
+        sourceStruct.put("version", "1.0");
+
+        return sourceStruct;
+    }
+
+    private static org.apache.kafka.connect.data.Schema buildTransactionSchema() {
+        // Define the Transaction schema
+        return struct().name("event.block").version(1).field("id", STRING_SCHEMA)
+                .build();
+    }
+
+    private static Struct buildTransactionStruct() {
+        // Create a Struct object for the Transaction
+        Struct transactionStruct = new Struct(buildTransactionSchema());
+
+        // Set value for the "id" field in Transaction
+        transactionStruct.put("id", "transaction_id");
+
+        return transactionStruct;
+    }
+
+    @Test
+    public void testCompactJson() throws Exception {
+        testJson(createRegistryClient(vertx), new CompactFormatStrategy(), input -> {
+            ByteBuffer buffer = BaseSerde.getByteBuffer(input);
+            return buffer.getInt();
+        });
+    }
+
+    private void testJson(RegistryClient restClient, FormatStrategy formatStrategy,
+                          Function<byte[], Integer> fn) throws Exception {
+        RegistryClientFacade clientFacade = new RegistryClientFacadeImpl(restClient);
+        try (ExtJsonConverter converter = new ExtJsonConverter(clientFacade)) {
+            converter.setFormatStrategy(formatStrategy);
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.AUTO_REGISTER_ARTIFACT, "true");
+            converter.configure(config, false);
+
+            org.apache.kafka.connect.data.Schema sc = struct()
+                    .field("bar", org.apache.kafka.connect.data.Schema.STRING_SCHEMA).build();
+            Struct struct = new Struct(sc);
+            struct.put("bar", "somebar");
+
+            byte[] bytes = converter.fromConnectData("extjson", sc, struct);
+
+            // some impl details ...
+            TestUtils.waitForSchemaCustom(contentId -> {
+                try {
+                    return restClient.ids().contentIds().byContentId(contentId.longValue()).get()
+                            .readAllBytes().length > 0;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }, bytes, fn);
+
+            // noinspection rawtypes
+            Struct ir = (Struct) converter.toConnectData("extjson", bytes).value();
+            Assertions.assertEquals("somebar", ir.get("bar").toString());
+        }
+    }
+
+    @Test
+    public void testJsonConverterNullPayload() throws Exception {
+        RegistryClientFacade clientFacade = new RegistryClientFacadeImpl(registryClient);
+        try (ExtJsonConverter converter = new ExtJsonConverter(clientFacade)) {
+            Map<String, Object> config = new HashMap<>();
+            config.put(SerdeConfig.REGISTRY_URL, getRegistryV3ApiUrl());
+            converter.configure(config, false);
+
+            SchemaAndValue result = converter.toConnectData("test-topic", null);
+
+            Assertions.assertNotNull(result, "Result should not be null");
+            Assertions.assertSame(SchemaAndValue.NULL, result, "Should return SchemaAndValue.NULL for null input");
+        }
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked", "resource"})
+    public void testDebeziumEventSerialization() {
+
+        final Map<String, Object> properties = new HashMap<>();
+        properties.put("schemas.enable", true);
+        properties.put("schemas.cache.size", 100);
+        properties.put("apicurio.registry.url", getRegistryV3ApiUrl());
+        properties.put("apicurio.registry.auto-register", true);
+        properties.put("apicurio.registry.find-latest", true);
+        properties.put("apicurio.registry.check-period-ms", 1000);
+
+        AvroConverter keyConverter = new AvroConverter();
+        keyConverter.configure(properties, true);
+
+        AvroConverter valueConverter = new AvroConverter();
+        valueConverter.configure(properties, false);
+
+        var keySchema = struct()
+                .name("CUSTOMERS.Key")
+                .required()
+                .field("id", INT32_SCHEMA)
+                .build();
+
+        var valueSchema = struct()
+                .name("CUSTOMERS.Value")
+                .optional()
+                .field("id", INT32_SCHEMA)
+                .field("CUSTOMER_TYPE",
+                        string()
+                                .name("io.debezium.data.Enum")
+                                .version(1)
+                                .required()
+                                .defaultValue("b2c")
+                                .build()
+                )
+                .build();
+
+        var envelopeSchema = struct()
+                .name("CUSTOMERS.Envelope")
+                .version(2)
+                .required()
+                .field("before", valueSchema)
+                .field("after", valueSchema)
+                .build();
+
+        Struct key = new Struct(keySchema).put("id", 1);
+
+        Struct afterValue = new Struct(valueSchema)
+                .put("id", 1)
+                .put("CUSTOMER_TYPE", "b2b");
+
+        Struct envelopeValue = new Struct(envelopeSchema)
+                .put("before", null)
+                .put("after", afterValue);
+
+        keyConverter.fromConnectData("CUSTOMERS", key.schema(), key);
+        valueConverter.fromConnectData("CUSTOMERS", envelopeValue.schema(), envelopeValue);
+
+        // ---
+
+        valueSchema = struct()
+                .name("CUSTOMERS.Value")
+                .optional()
+                .field("id", INT32_SCHEMA)
+                .field("CUSTOMER_TYPE", INT32_SCHEMA); // Is now an integer and should result in a new schema version.
+
+        envelopeSchema = struct()
+                .name("CUSTOMERS.Envelope")
+                .version(2)
+                .required()
+                .field("before", valueSchema)
+                .field("after", valueSchema)
+                .build();
+
+        afterValue = new Struct(valueSchema)
+                .put("id", 1)
+                .put("CUSTOMER_TYPE", 456);
+
+        envelopeValue = new Struct(envelopeSchema)
+                .put("before", null)
+                .put("after", afterValue);
+
+        keyConverter.fromConnectData("CUSTOMERS", key.schema(), key);
+        valueConverter.fromConnectData("CUSTOMERS", envelopeValue.schema(), envelopeValue);
+    }
+}

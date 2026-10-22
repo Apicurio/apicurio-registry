@@ -1,0 +1,25 @@
+package io.apicurio.registry.storage.impl.polling.model.v0;
+
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.experimental.SuperBuilder;
+
+import java.util.List;
+
+@SuperBuilder
+@NoArgsConstructor
+@Setter
+@Getter
+@EqualsAndHashCode(callSuper = true)
+@ToString(callSuper = true)
+public class Registry extends HasSchema {
+
+    private String registryId;
+
+    private List<Rule> globalRules;
+
+    private List<ConfigurationProperty> properties;
+}

@@ -1,0 +1,6 @@
+$type: content-v0
+references:
+  - groupId: testgroup
+    artifactId: does-not-exist
+    version: "1"
+    name: missing-ref

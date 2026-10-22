@@ -1,0 +1,12 @@
+{
+     "type": "record",
+     "namespace": "com.example.search",
+     "name": "SearchResult",
+     "fields": [
+        {"name": "type", "type": "com.example.search.SearchResultType"},
+        {"name": "keyWord",  "type": "string"},
+        {"name": "searchEngine", "type": "string"},
+        {"name": "position", "type": "int"},
+        {"name": "userAction", "type": "com.example.actions.UserAction"}
+    ]
+}

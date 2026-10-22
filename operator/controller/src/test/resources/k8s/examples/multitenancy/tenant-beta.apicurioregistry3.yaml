@@ -1,0 +1,15 @@
+# Pattern B: Namespace per Tenant - Tenant Beta
+# Uses different replica count to demonstrate independent configuration.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: tenant-beta
+spec:
+  app:
+    replicas: 2
+    ingress:
+      host: tenant-beta-app.apps.cluster.example
+  ui:
+    replicas: 1
+    ingress:
+      host: tenant-beta-ui.apps.cluster.example

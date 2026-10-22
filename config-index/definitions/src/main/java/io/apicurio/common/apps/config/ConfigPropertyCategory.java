@@ -1,0 +1,48 @@
+package io.apicurio.common.apps.config;
+
+public enum ConfigPropertyCategory {
+
+    CATEGORY_A2A("a2a"),
+    CATEGORY_AICATALOG("aicatalog"),
+    CATEGORY_API("api"),
+    CATEGORY_ARD("ard"),
+    CATEGORY_AUTH("auth"),
+    CATEGORY_CACHE("cache"),
+    CATEGORY_CCOMPAT("ccompat"),
+    CATEGORY_CONTRACTS("contracts"),
+    CATEGORY_DOWNLOAD("download"),
+    CATEGORY_GITOPS("gitops"),
+    CATEGORY_HEALTH("health"), // TODO: Merge with CATEGORY_OBSERVABILITY.
+    /**
+     * Properties that belong to this category will not show up in the documentation.
+     */
+    CATEGORY_HIDDEN("hidden"),
+    CATEGORY_HTTP("http"),
+    CATEGORY_ICEBERG("iceberg"),
+    CATEGORY_IMPORT("import"),
+    CATEGORY_KUBERNETESOPS("kubernetesops"),
+    CATEGORY_LIMITS("limits"),
+    CATEGORY_LOG("log"),
+    CATEGORY_MCP("mcp"),
+    CATEGORY_OBSERVABILITY("observability"),
+    CATEGORY_REDIRECTS("redirects"),
+    CATEGORY_REST("rest"),
+    CATEGORY_SEMVER("semver"),
+    CATEGORY_STORAGE("storage"),
+    CATEGORY_SYSTEM("system"),
+    CATEGORY_TYPES("types"),
+    CATEGORY_USAGE("usage"),
+    CATEGORY_SEARCH("search"),
+    CATEGORY_UI("ui");
+
+    private final String value;
+
+    ConfigPropertyCategory(String value) {
+        this.value = value;
+    }
+
+    @SuppressWarnings("unused")
+    public String getRawValue() {
+        return value;
+    }
+}

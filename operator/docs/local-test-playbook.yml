@@ -1,0 +1,27 @@
+site:
+  title: Apicurio Registry Operator PREVIEW
+  url: https://www.apicur.io/registry/docs
+  start_page: apicurio-registry-operator::index.adoc
+content:
+  edit_url: https://github.com/Apicurio/apicurio-registry/tree/main/docs
+  sources:
+    - url: ../../
+      branches: HEAD
+      start_path: operator/docs
+
+ui:
+  bundle:
+    url: https://raw.githubusercontent.com/Apicurio/apicurio-docs-ui/main/dist/ui-bundle.zip
+    snapshot: true
+
+runtime:
+  cache_dir: ./target/antora-cache
+
+output:
+  dir: ./target/dist
+
+asciidoc:
+  attributes:
+    plantuml-server-url: https://www.plantuml.com/plantuml
+    plantuml-fetch-diagram: true
+    mod-loc: partial$

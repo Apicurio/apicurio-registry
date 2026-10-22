@@ -1,0 +1,62 @@
+syntax = "proto2";
+
+package io.apicurio.registry.utils.protobuf.schema.syntax2.jsonname;
+
+message Address {
+  required string _street = 1 [json_name = "Street"]; // json_name is set as default
+
+  optional int32 zip = 2 [deprecated = true];
+
+  optional string city = 3 [default = "Seattle"];
+
+  enum Type {
+    OFFICE = 0;
+    APARTMENT = 1;
+    HOUSE = 2;
+  }
+
+  map<int32, int32> rentPerYear = 4;
+
+  map<string, Type> addressType = 9;
+
+  message ContactPersons {
+    required string name = 1;
+    optional int32 phone = 2;
+  }
+
+  map<string, ContactPersons> pastOwners = 12;
+
+  oneof test_oneof {
+    string state = 5 [json_name = "state"]; // json_name is set as default
+    string _country = 7 [json_name = "MyCountry"]; // json_name is set differently than default
+  }
+
+  repeated int32 samples = 6 [packed=true];
+
+  map<string, string> pastAddresses = 8;
+}
+
+message Customer {
+  required string name = 1 [json_name = "name"]; // json_name is set as default
+
+  optional int32 my_int = 3;
+
+  optional int32 my_second_int = 4 [json_name = "mySecondInt"]; // json_name is set as default
+
+  message Nesting1 {
+
+    message Order { }
+    message Nesting2 {
+      required int32 nested_int = 1 [json_name = "NESTED"];
+
+      //Resolves to Address
+      required Address a = 2;
+
+      optional string nested_string = 3 [json_name = "nestedString"];
+    }
+  }
+
+  reserved 2, 15, 10 to 11, 800 to 899;
+
+  extensions 100 to 199, 1000 to max;
+}

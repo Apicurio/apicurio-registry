@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "TestMessageWithRef",
+  "namespace": "io.apicurio.schema.validation.avro",
+  "fields": [
+    {
+      "name": "message",
+      "type": "string"
+    },
+    {
+      "name": "address",
+      "type": "io.apicurio.schema.validation.avro.Address"
+    }
+  ]
+}

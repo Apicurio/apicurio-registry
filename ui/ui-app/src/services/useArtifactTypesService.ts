@@ -1,0 +1,278 @@
+import { useMemo, useRef } from "react";
+import { AdminService, useAdminService } from "@services/useAdminService.ts";
+
+export interface ArtifactTypeInfo {
+    id: string;
+    label: string;
+}
+
+export class ArtifactTypes {
+    public static AVRO = "AVRO";
+    public static PROTOBUF = "PROTOBUF";
+    public static JSON = "JSON";
+    public static OPENAPI = "OPENAPI";
+    public static ASYNCAPI = "ASYNCAPI";
+    public static GRAPHQL = "GRAPHQL";
+    public static KCONNECT = "KCONNECT";
+    public static WSDL = "WSDL";
+    public static XSD = "XSD";
+    public static XML = "XML";
+    public static THRIFT = "THRIFT";
+    public static AGENT_CARD = "AGENT_CARD";
+    public static MCP_TOOL = "MCP_TOOL";
+    public static ICEBERG_TABLE = "ICEBERG_TABLE";
+    public static ICEBERG_VIEW = "ICEBERG_VIEW";
+    public static OPENRPC = "OPENRPC";
+    public static ODCS_CONTRACT = "ODCS_CONTRACT";
+    public static MODEL_SCHEMA = "MODEL_SCHEMA";
+    public static PROMPT_TEMPLATE = "PROMPT_TEMPLATE";
+
+    public static getTitle(type: string): string {
+        let title: string = type;
+        switch (type) {
+            case "AVRO":
+                title = "Avro Schema";
+                break;
+            case "PROTOBUF":
+                title = "Protobuf Schema";
+                break;
+            case "JSON":
+                title = "JSON Schema";
+                break;
+            case "OPENAPI":
+                title = "OpenAPI Definition";
+                break;
+            case "ASYNCAPI":
+                title = "AsyncAPI Definition";
+                break;
+            case "GRAPHQL":
+                title = "GraphQL Definition";
+                break;
+            case "KCONNECT":
+                title = "Kafka Connect Schema";
+                break;
+            case "WSDL":
+                title = "WSDL";
+                break;
+            case "XSD":
+                title = "XML Schema";
+                break;
+            case "XML":
+                title = "XML";
+                break;
+            case "THRIFT":
+                title = "Thrift IDL";
+                break;
+            case "AGENT_CARD":
+                title = "A2A Agent Card";
+                break;
+            case "MCP_TOOL":
+                title = "MCP Tool Definition";
+                break;
+            case "ICEBERG_TABLE":
+                title = "Iceberg Table";
+                break;
+            case "ICEBERG_VIEW":
+                title = "Iceberg View";
+                break;
+            case "OPENRPC":
+                title = "OpenRPC Definition";
+                break;
+            case "ODCS_CONTRACT":
+                title = "ODCS Contract";
+                break;
+            case "MODEL_SCHEMA":
+                title = "AI Model Schema";
+                break;
+            case "PROMPT_TEMPLATE":
+                title = "Prompt Template";
+                break;
+        }
+        return title;
+    }
+
+    public static getLabel(type: string): string {
+        let title: string = type;
+        switch (type) {
+            case "AVRO":
+                title = "Avro Schema";
+                break;
+            case "PROTOBUF":
+                title = "Protocol Buffer Schema";
+                break;
+            case "JSON":
+                title = "JSON Schema";
+                break;
+            case "OPENAPI":
+                title = "OpenAPI";
+                break;
+            case "ASYNCAPI":
+                title = "AsyncAPI";
+                break;
+            case "GRAPHQL":
+                title = "GraphQL";
+                break;
+            case "KCONNECT":
+                title = "Kafka Connect Schema";
+                break;
+            case "WSDL":
+                title = "WSDL";
+                break;
+            case "XSD":
+                title = "XML Schema";
+                break;
+            case "XML":
+                title = "XML";
+                break;
+            case "THRIFT":
+                title = "Thrift";
+                break;
+            case "AGENT_CARD":
+                title = "Agent Card";
+                break;
+            case "MCP_TOOL":
+                title = "MCP Tool";
+                break;
+            case "ICEBERG_TABLE":
+                title = "Iceberg Table";
+                break;
+            case "ICEBERG_VIEW":
+                title = "Iceberg View";
+                break;
+            case "OPENRPC":
+                title = "OpenRPC";
+                break;
+            case "ODCS_CONTRACT":
+                title = "ODCS Contract";
+                break;
+            case "MODEL_SCHEMA":
+                title = "Model Schema";
+                break;
+            case "PROMPT_TEMPLATE":
+                title = "Prompt Template";
+                break;
+        }
+        return title;
+    }
+
+    // All artifact types the UI knows about. Used as a fallback when the backend
+    // list of types can't be fetched. Keep in sync with the constants above so that
+    // new types don't silently drop out of the Create Artifact dropdown on API failure.
+    public static all(): string[] {
+        return [
+            ArtifactTypes.AVRO, ArtifactTypes.PROTOBUF, ArtifactTypes.JSON,
+            ArtifactTypes.OPENAPI, ArtifactTypes.ASYNCAPI, ArtifactTypes.GRAPHQL,
+            ArtifactTypes.KCONNECT, ArtifactTypes.WSDL, ArtifactTypes.XSD,
+            ArtifactTypes.XML, ArtifactTypes.THRIFT, ArtifactTypes.AGENT_CARD,
+            ArtifactTypes.MCP_TOOL, ArtifactTypes.MODEL_SCHEMA, ArtifactTypes.PROMPT_TEMPLATE
+        ];
+    }
+
+    public static getClassNames(type: string): string {
+        let classes: string = "artifact-type-icon";
+        switch (type) {
+            case "AVRO":
+                classes += " avro-icon24";
+                break;
+            case "PROTOBUF":
+                classes += " protobuf-icon24";
+                break;
+            case "JSON":
+                classes += " json-icon24";
+                break;
+            case "OPENAPI":
+                classes += " oai-icon24";
+                break;
+            case "ASYNCAPI":
+                classes += " aai-icon24";
+                break;
+            case "GRAPHQL":
+                classes += " graphql-icon24";
+                break;
+            case "KCONNECT":
+                classes += " kconnect-icon24";
+                break;
+            case "WSDL":
+                classes += " xml-icon24";
+                break;
+            case "XSD":
+                classes += " xml-icon24";
+                break;
+            case "XML":
+                classes += " xml-icon24";
+                break;
+            case "THRIFT":
+                classes += " thrift-icon24";
+                break;
+            case "AGENT_CARD":
+                classes += " agentcard-icon24";
+                break;
+            case "MCP_TOOL":
+                classes += " mcp-tool-icon24";
+                break;
+            case "ICEBERG_TABLE":
+                classes += " iceberg-table-icon24";
+                break;
+            case "ICEBERG_VIEW":
+                classes += " iceberg-view-icon24";
+                break;
+            case "OPENRPC":
+                classes += " openrpc-icon24";
+                break;
+            case "ODCS_CONTRACT":
+                classes += " odcs-contract-icon24";
+                break;
+            case "MODEL_SCHEMA":
+                classes += " modelschema-icon24";
+                break;
+            case "PROMPT_TEMPLATE":
+                classes += " prompttemplate-icon24";
+                break;
+            default:
+                classes += " questionmark-icon24";
+                break;
+        }
+        return classes;
+    }
+
+}
+
+let ALL_TYPES: string[] | undefined = undefined;
+
+const allTypes = async (admin: AdminService): Promise<string[]> => {
+    if (ALL_TYPES === undefined) {
+        try {
+            ALL_TYPES = (await admin.getArtifactTypes()).map(t => t.name!);
+        } catch {
+            ALL_TYPES = ArtifactTypes.all();
+        }
+    }
+    return Promise.resolve(ALL_TYPES);
+};
+
+const allTypesWithLabels = async (admin: AdminService): Promise<ArtifactTypeInfo[]> => {
+    return allTypes(admin).then(types => {
+        return types.map(t => { return { id: t, label: ArtifactTypes.getLabel(t) }; });
+    });
+};
+
+
+export interface ArtifactTypesService {
+    allTypes(): Promise<string[]>;
+    allTypesWithLabels(): Promise<ArtifactTypeInfo[]>;
+}
+
+export const useArtifactTypesService: () => ArtifactTypesService = (): ArtifactTypesService => {
+    const admin: AdminService = useAdminService();
+    const adminRef = useRef(admin);
+    adminRef.current = admin;
+
+    return useMemo(() => ({
+        allTypes(): Promise<string[]> {
+            return allTypes(adminRef.current);
+        },
+        allTypesWithLabels(): Promise<ArtifactTypeInfo[]> {
+            return allTypesWithLabels(adminRef.current);
+        }
+    }), []);
+};

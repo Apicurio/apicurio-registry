@@ -1,0 +1,99 @@
+syntax = "proto3";
+package io.apicurio.registry.utils.protobuf.schema.syntax3.references;
+
+option java_package = "io.apicurio.registry.utils.protobuf.schema.syntax3.references";
+import "google/protobuf/timestamp.proto";
+
+message Customer {
+  string name = 1;
+  message Address {}
+  message Nesting1 {
+    message Nesting2 {
+        //Explicit reference to Customer.Address
+        Customer.Address add = 1;
+    }
+  }
+  //This should resolve to Customer.Address
+  Address address = 3;
+  //This should resolve to parent level AddressType
+  AddressType addressType = 4;
+}
+
+message Address {
+  enum AddressType {
+      RESIDENTIAL = 0;
+      COMMERCIAL = 1;
+  }
+
+  string street = 1 [json_name = "Address_Street"];
+
+  int32 zip = 2 [deprecated = true];
+
+  string city = 3;
+
+  repeated int32 samples = 6 [packed=true];
+
+  //Reference by relative complete path
+  io.apicurio.registry.utils.protobuf.schema.syntax3.references.AddressType addressType = 9;
+  .google.protobuf.Timestamp time_name1 = 10;
+  google.protobuf.Timestamp time_name2 = 11;
+
+  //Reference by .complete path
+  .io.apicurio.registry.utils.protobuf.schema.syntax3.references.AddressType completeAddressType = 12;
+
+  message Nesting1 {
+
+    message Customer { }
+    message Nesting2 {
+      //Resolves to Address.Nesting1.Customer
+      Customer foo = 1;
+
+      //Resolves to Address
+      Address a = 2;
+
+      //Resolves to Address.AddressType
+      AddressType b = 3;
+
+      //Explicit reference to AnotherType
+      AnotherType.Address aa = 4;
+    }
+  }
+}
+
+enum AddressType {
+    RESIDENTIAL = 0;
+    COMMERCIAL = 1;
+}
+
+message AnotherType {
+    message Address {}
+}
+
+service OriginalService {
+  rpc Foo(Customer) returns(Address);
+}
+
+service DeprecatedService {
+  rpc Foo(Customer) returns(Address);
+  option deprecated = true;
+}
+
+service DeprecatedMethod {
+  rpc Foo(Customer) returns(Address) {
+    option deprecated = true;
+  }
+}
+
+message Feature {
+  string name = 1;
+  string location = 2;
+}
+
+service RouteStreamingService {
+  rpc RequestRPC(stream Customer) returns(Address);
+  rpc ResponseRPC(Customer) returns(stream Address);
+  rpc RouteRPC(stream Customer) returns(stream Address);
+  rpc DeprecatedRPC(stream Customer) returns(stream Address) {
+    option deprecated = true;
+  }
+}

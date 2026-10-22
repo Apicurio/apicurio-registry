@@ -1,0 +1,15 @@
+{
+  "$id": "https://example.com/my-schema",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "location": {
+      "$ref": "simple-address.json"
+    }
+  }
+}

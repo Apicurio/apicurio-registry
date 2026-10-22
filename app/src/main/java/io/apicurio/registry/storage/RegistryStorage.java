@@ -1,0 +1,1360 @@
+package io.apicurio.registry.storage;
+
+import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
+import io.apicurio.common.apps.config.DynamicConfigStorage;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchMetaDataDto;
+import io.apicurio.registry.storage.dto.BranchSearchResultsDto;
+import io.apicurio.registry.storage.dto.CommentDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.DownloadContextDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableBranchMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.OutboxEvent;
+import io.apicurio.registry.storage.dto.RoleMappingDto;
+import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
+import io.apicurio.registry.storage.dto.ContractRuleSetDto;
+import io.apicurio.registry.storage.dto.ContractAuditEntryDto;
+import io.apicurio.registry.storage.dto.ContractRuleWithCoordinatesDto;
+import io.apicurio.registry.storage.dto.RuleConfigurationDto;
+import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
+import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
+import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
+import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionContentDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.CommitFailedException;
+import io.apicurio.registry.storage.error.ContentNotFoundException;
+import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
+import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
+import io.apicurio.registry.storage.error.RuleNotFoundException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.utils.impexp.Entity;
+import io.apicurio.registry.utils.impexp.EntityInputStream;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.utils.impexp.v3.CommentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContentEntity;
+import io.apicurio.registry.utils.impexp.v3.ContractRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupEntity;
+import io.apicurio.registry.utils.impexp.v3.GroupRuleEntity;
+import org.apache.commons.lang3.tuple.Pair;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+/**
+ * The artifactStore layer for the registry.
+ */
+public interface RegistryStorage extends DynamicConfigStorage {
+
+    /**
+     * The storage name
+     */
+    String storageName();
+
+    /**
+     * Performs the required operations for initializing the Registry storage
+     */
+    void initialize();
+
+    /**
+     * Is the storage initialized and ready to be used? This state SHOULD NOT change again during operation,
+     * and is used for K8s readiness probes, among other things. This operation should be fast.
+     *
+     * @return true if yes, false if no
+     */
+    boolean isReady();
+
+    /**
+     * Is the storage ready AND alive, meaning able to be used? This state MAY change multiple times during
+     * operation, and is used for K8s liveness probes, among other things. This operation should be fast.
+     *
+     * @return true if yes, false if no
+     */
+    boolean isAlive();
+
+    /**
+     * Is the registry storage set to read-only mode?
+     */
+    boolean isReadOnly();
+
+    /**
+     * Returns true if the storage is empty (and ready for data to be imported).
+     */
+    boolean isEmpty();
+
+    /**
+     * Create a new artifact in the storage, with or without an initial/first version. Throws an exception if
+     * the artifact already exists. The first version information can be null, in which case an empty artifact
+     * (no versions) is created. Returns the metadata of the newly created artifact and (optionally) the
+     * metadata of the first version.
+     */
+    Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> createArtifact(String groupId, String artifactId,
+            String artifactType, EditableArtifactMetaDataDto artifactMetaData, String version,
+            ContentWrapperDto versionContent, EditableVersionMetaDataDto versionMetaData,
+            List<String> versionBranches, boolean versionIsDraft, boolean dryRun, String owner)
+            throws ArtifactAlreadyExistsException, RegistryStorageException;
+
+    /**
+     * Deletes an artifact by its group and unique id. Returns list of artifact versions.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    List<String> deleteArtifact(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Deletes all artifacts in the given group. DOES NOT delete the group.
+     *
+     * @param groupId (optional)
+     * @throws RegistryStorageException
+     */
+    void deleteArtifacts(String groupId) throws RegistryStorageException;
+
+    /**
+     * Gets some artifact content by the unique contentId. This method of getting content from storage does
+     * not allow extra meta-data to be returned, because the contentId only points to a piece of content/data
+     * - it is divorced from any artifact version.
+     *
+     * @param contentId
+     * @throws ContentNotFoundException
+     * @throws RegistryStorageException
+     */
+    ContentWrapperDto getContentById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets some artifact content by the unique contentId, together with the artifact type of one of the
+     * artifact versions that references it. This is a single-query variant of calling
+     * {@link #getContentById(long)} followed by {@link #getArtifactVersionsByContentId(long)} just to
+     * discover the artifact type - useful for read paths (e.g. ccompat's "get schema by id") that only need
+     * the type and not the full version meta-data. Throws {@link ContentNotFoundException} both when the
+     * content does not exist and when the content exists but is orphaned (not referenced by any artifact
+     * version), matching the semantics callers previously implemented by combining the two calls above.
+     *
+     * @param contentId
+     * @throws ContentNotFoundException
+     * @throws RegistryStorageException
+     */
+    ContentWrapperDto getContentAndArtifactTypeById(long contentId)
+            throws ContentNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets some artifact content by the SHA-256 hash of that content. This method of getting content from
+     * storage does not allow extra meta-data to be returned, because the content hash only points to a piece
+     * of content/data - it is divorced from any artifact version.
+     *
+     * @param contentHash
+     * @throws ContentNotFoundException
+     * @throws RegistryStorageException
+     */
+    ContentWrapperDto getContentByHash(String contentHash)
+            throws ContentNotFoundException, RegistryStorageException;
+
+    /**
+     * Get a list of all artifact versions that refer to the same content.
+     *
+     * @param contentId
+     */
+    List<ArtifactVersionMetaDataDto> getArtifactVersionsByContentId(long contentId);
+
+    /**
+     * Get all content IDs for every (non-DISABLED) version of an artifact.
+     *
+     * @param groupId
+     * @param artifactId
+     */
+    List<Long> getEnabledArtifactContentIds(String groupId, String artifactId);
+
+    /**
+     * Creates a new version of an artifact. Returns a map of meta-data generated by the artifactStore layer,
+     * such as the generated, globally unique globalId of the new version. Note: the artifactType is passed in
+     * because it is needed when generating canonical content hashes.
+     *
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param artifactType
+     * @param content
+     * @param metaData
+     * @param branches
+     * @param isDraft
+     * @param dryRun
+     */
+    ArtifactVersionMetaDataDto createArtifactVersion(String groupId, String artifactId, String version,
+            String artifactType, ContentWrapperDto content, EditableVersionMetaDataDto metaData,
+            List<String> branches, boolean isDraft, boolean dryRun, String owner)
+            throws ArtifactNotFoundException, VersionAlreadyExistsException, RegistryStorageException;
+
+    /**
+     * Creates a new artifact version only if the current latest versionOrder matches the expected base
+     * version order. Used for atomic commit operations where concurrent writes must be detected and rejected.
+     *
+     * <p>When {@code artifactMetaData} is non-null, the artifact-level metadata (labels, etc.) is updated
+     * atomically within the same transaction as the version creation. This avoids a separate update call
+     * that could fail independently, leaving the artifact in an inconsistent state.
+     *
+     * <p><b>KafkaSQL note:</b> In KafkaSQL deployments, this operation is serialized through a Kafka
+     * journal topic. If the SQL-level check fails (e.g., due to a concurrent commit), the Kafka message
+     * remains in the journal but is effectively a no-op: during replay, it will fail again with the same
+     * {@code CommitFailedException} and be silently discarded (no waiting HTTP thread). This is safe and
+     * by design.
+     *
+     * @param artifactMetaData optional artifact-level metadata to update atomically with the version
+     *                         creation; may be {@code null} if no artifact metadata update is needed
+     * @throws CommitFailedException if the current versionOrder does not match expectedBaseVersionOrder
+     */
+    ArtifactVersionMetaDataDto createArtifactVersionIfLatest(String groupId, String artifactId,
+            String version, String artifactType, ContentWrapperDto content,
+            EditableVersionMetaDataDto metaData, List<String> branches, boolean isDraft, String owner,
+            int expectedBaseVersionOrder, EditableArtifactMetaDataDto artifactMetaData)
+            throws ArtifactNotFoundException, VersionAlreadyExistsException, CommitFailedException,
+            RegistryStorageException;
+
+    /**
+     * Get all artifact ids. --- Note: This should only be used in older APIs such as the registry V1 REST API
+     * and the Confluent API ---
+     *
+     * @param limit the limit of artifacts
+     * @return all artifact ids
+     */
+    Set<String> getArtifactIds(Integer limit);
+
+    /**
+     * Search artifacts by given criteria
+     *
+     * @param filters the set of filters to apply when searching
+     * @param orderBy the field to order by
+     * @param orderDirection the direction to order the results
+     * @param offset the number of artifacts to skip
+     * @param limit the result size limit
+     * @param skipCount whether to skip the total count query
+     */
+    ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount);
+
+    /**
+     * Get metadata for an artifact using GA information.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    ArtifactMetaDataDto getArtifactMetaData(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the metadata of the version that matches content.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param canonical
+     * @param content
+     * @param artifactReferences
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId,
+            boolean canonical, TypedContent content, List<ArtifactReferenceDto> artifactReferences)
+            throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Updates the stored meta-data for an artifact by group and ID. Only the client-editable meta-data can be
+     * updated. Client editable meta-data includes e.g. name and description
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param metaData
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    void updateArtifactMetaData(String groupId, String artifactId, EditableArtifactMetaDataDto metaData)
+            throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Get all rules configured for a group.
+     *
+     * @param groupId
+     * @throws GroupNotFoundException
+     * @throws RegistryStorageException
+     */
+    List<RuleType> getGroupRules(String groupId) throws GroupNotFoundException, RegistryStorageException;
+
+    /**
+     * Create/configure a rule for a group.
+     *
+     * @param groupId
+     * @param rule
+     * @param config
+     * @throws GroupNotFoundException
+     * @throws RuleAlreadyExistsException
+     * @throws RegistryStorageException
+     */
+    void createGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws GroupNotFoundException, RuleAlreadyExistsException, RegistryStorageException;
+
+    /**
+     * Delete all rules configured for a group.
+     *
+     * @param groupId
+     * @throws GroupNotFoundException
+     * @throws RegistryStorageException
+     */
+    void deleteGroupRules(String groupId) throws GroupNotFoundException, RegistryStorageException;
+
+    /**
+     * Update the configuration for a specific rule in a group.
+     *
+     * @param groupId
+     * @param rule
+     * @param config
+     * @throws GroupNotFoundException
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    void updateGroupRule(String groupId, RuleType rule, RuleConfigurationDto config)
+            throws GroupNotFoundException, RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Delete (unconfigure) a single rule for a group.
+     *
+     * @param groupId
+     * @param rule
+     * @throws GroupNotFoundException
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    void deleteGroupRule(String groupId, RuleType rule)
+            throws GroupNotFoundException, RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the current configuration of a single rule in the group.
+     *
+     * @param groupId
+     * @param rule
+     * @throws GroupNotFoundException
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    RuleConfigurationDto getGroupRule(String groupId, RuleType rule)
+            throws GroupNotFoundException, RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets a list of rules configured for a specific Artifact (by group and ID). This will return only the
+     * names of the rules.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    List<RuleType> getArtifactRules(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Creates an artifact rule for a specific Artifact. If the named rule already exists for the artifact,
+     * then this should fail.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param rule
+     * @param config
+     * @throws ArtifactNotFoundException
+     * @throws RuleAlreadyExistsException
+     * @throws RegistryStorageException
+     */
+    void createArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
+            throws ArtifactNotFoundException, RuleAlreadyExistsException, RegistryStorageException;
+
+    /**
+     * Deletes all rules stored/configured for the artifact.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    void deleteArtifactRules(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets all of the information for a single rule configured on a given artifact.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param rule
+     * @throws ArtifactNotFoundException
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    RuleConfigurationDto getArtifactRule(String groupId, String artifactId, RuleType rule)
+            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Updates the configuration information for a single rule on a given artifact.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param rule
+     * @param config
+     * @throws ArtifactNotFoundException
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    void updateArtifactRule(String groupId, String artifactId, RuleType rule, RuleConfigurationDto config)
+            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Deletes a single stored/configured rule for a given artifact.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param rule
+     * @throws ArtifactNotFoundException
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    void deleteArtifactRule(String groupId, String artifactId, RuleType rule)
+            throws ArtifactNotFoundException, RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the contract ruleset for an artifact (artifact-level rules that apply to all versions).
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @throws RegistryStorageException
+     */
+    ContractRuleSetDto getArtifactContractRuleset(String groupId, String artifactId)
+            throws RegistryStorageException;
+
+    /**
+     * Creates or replaces the contract ruleset for an artifact (artifact-level).
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param ruleset
+     * @throws RegistryStorageException
+     */
+    void setArtifactContractRuleset(String groupId, String artifactId, ContractRuleSetDto ruleset)
+            throws RegistryStorageException;
+
+    /**
+     * Deletes the contract ruleset for an artifact (artifact-level).
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @throws RegistryStorageException
+     */
+    void deleteArtifactContractRuleset(String groupId, String artifactId) throws RegistryStorageException;
+
+    /**
+     * Gets the contract ruleset for a specific artifact version.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    ContractRuleSetDto getVersionContractRuleset(String groupId, String artifactId, String version)
+            throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Creates or replaces the contract ruleset for a specific artifact version.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @param ruleset
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    void setVersionContractRuleset(String groupId, String artifactId, String version,
+            ContractRuleSetDto ruleset) throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Deletes the contract ruleset for a specific artifact version.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    void deleteVersionContractRuleset(String groupId, String artifactId, String version)
+            throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets all contract rules across all artifacts that contain the specified tag.
+     *
+     * @param tag the tag to search for
+     * @return list of matching contract rules with their artifact coordinates
+     * @throws RegistryStorageException
+     */
+    List<ContractRuleWithCoordinatesDto> getContractRulesByTag(String tag)
+            throws RegistryStorageException;
+
+    /**
+     * Gets the global contract ruleset (applies to all artifacts).
+     */
+    ContractRuleSetDto getGlobalContractRuleset() throws RegistryStorageException;
+
+    /**
+     * Sets the global contract ruleset.
+     */
+    void setGlobalContractRuleset(ContractRuleSetDto ruleset) throws RegistryStorageException;
+
+    /**
+     * Deletes the global contract ruleset.
+     */
+    void deleteGlobalContractRuleset() throws RegistryStorageException;
+
+    /**
+     * Inserts a contract audit log entry.
+     */
+    void insertContractAuditEntry(ContractAuditEntryDto entry)
+            throws RegistryStorageException;
+
+    /**
+     * Gets a paginated contract audit log for a specific artifact.
+     */
+    List<ContractAuditEntryDto> getContractAuditLog(String groupId, String artifactId,
+            int offset, int limit) throws RegistryStorageException;
+
+    /**
+     * Atomically merges labels into an artifact: deletes all labels matching the prefix,
+     * then inserts the provided labels. Other labels are untouched. Safe for concurrent use
+     * across replicas because it never reads-then-writes the full label set.
+     */
+    default void mergeArtifactLabels(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "mergeArtifactLabels not supported by this storage implementation");
+    }
+
+    /**
+     * Atomically merges labels into an artifact version: deletes all labels matching the
+     * prefix, then inserts the provided labels.
+     */
+    default void mergeVersionLabels(String groupId, String artifactId, String version,
+            String prefix, Map<String, String> labels) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "mergeVersionLabels not supported by this storage implementation");
+    }
+
+    /**
+     * Updates the contract metadata of an artifact by merging the given reserved contract.*
+     * labels, then fires a contract metadata updated event.
+     *
+     * <p>The prefix and the label map are resolved by the caller rather than derived here, so
+     * that a journal message carries exactly the values that were stored. Replaying such a
+     * message applies the same labels on every node, independent of the code version doing
+     * the replay.
+     */
+    default void updateContractMetadata(String groupId, String artifactId, String prefix,
+            Map<String, String> labels) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "updateContractMetadata not supported by this storage implementation");
+    }
+
+    /**
+     * Transitions the contract status of an artifact, updating the status label and any
+     * lifecycle date label implied by the target status. Fires a contract status changed
+     * event. The caller is responsible for validating that the transition is legal.
+     *
+     * @param effectiveDate the ISO date recorded on the lifecycle label for the target status.
+     *                      It is resolved by the caller rather than read from the clock here so
+     *                      that replaying a journal message applies the same value on every node.
+     */
+    default void transitionContractStatus(String groupId, String artifactId, String fromStatus,
+            String toStatus, String prefix, String effectiveDate) throws RegistryStorageException {
+        throw new RegistryStorageException(
+                "transitionContractStatus not supported by this storage implementation");
+    }
+
+    /**
+     * Gets a sorted set of all artifact versions that exist for a given artifact.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    List<String> getArtifactVersions(String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets a sorted set of all artifact versions that exist for a given artifact.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    List<String> getArtifactVersions(String groupId, String artifactId, Set<VersionState> filterBy)
+            throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Fetch the versions of the given artifact
+     *
+     * @param filters the search filters
+     * @param limit the result size limit
+     * @param offset the number of versions to skip
+     * @return the artifact versions, limited
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, int offset, int limit, boolean skipCount)
+            throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the stored artifact content for the artifact version with the given unique global ID.
+     *
+     * @param globalId
+     * @throws ArtifactNotFoundException
+     * @throws RegistryStorageException
+     */
+    StoredArtifactVersionDto getArtifactVersionContent(long globalId)
+            throws ArtifactNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the stored value for a single version of a given artifact.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @throws ArtifactNotFoundException
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId, String version)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Updates the content of a specific artifact version. This is only applicable for versions in the DRAFT
+     * status.
+     *
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param artifactType
+     * @param content
+     * @throws ArtifactNotFoundException
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    void updateArtifactVersionContent(String groupId, String artifactId, String version, String artifactType,
+            ContentWrapperDto content)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Deletes a single version of a given artifact.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @throws ArtifactNotFoundException
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    void deleteArtifactVersion(String groupId, String artifactId, String version)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the stored meta-data for a single version of an artifact. This will return all meta-data for the
+     * version, including any user edited meta-data along with anything generated by the artifactStore.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @throws ArtifactNotFoundException
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId, String version)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the stored meta-data for a single version of an artifact. This will return all meta-data for the
+     * version, including any user edited meta-data along with anything generated by the artifactStore.
+     *
+     * @param globalId
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets the stored meta-data for a single version of an artifact, looked up by its versionOrder (the
+     * ccompat integer sequence number) rather than the version string.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param versionOrder
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId, String artifactId,
+            int versionOrder) throws VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Updates the user-editable meta-data for a single version of a given artifact. Only the client-editable
+     * meta-data can be updated. Client editable meta-data includes e.g. name and description.
+     *
+     * @param groupId (optional)
+     * @param artifactId
+     * @param version
+     * @param metaData
+     * @throws ArtifactNotFoundException
+     * @throws VersionNotFoundException
+     * @throws RegistryStorageException
+     */
+    void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
+            EditableVersionMetaDataDto metaData)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException;
+
+    /**
+     * Gets a list of all global rule names.
+     *
+     * @throws RegistryStorageException
+     */
+    List<RuleType> getGlobalRules() throws RegistryStorageException;
+
+    /**
+     * Creates a single global rule. Duplicates (by name) are not allowed. Stores the rule name and
+     * configuration.
+     *
+     * @param rule
+     * @param config
+     * @throws RuleAlreadyExistsException
+     * @throws RegistryStorageException
+     */
+    void createGlobalRule(RuleType rule, RuleConfigurationDto config)
+            throws RuleAlreadyExistsException, RegistryStorageException;
+
+    /**
+     * Deletes all of the globally configured rules.
+     *
+     * @throws RegistryStorageException
+     */
+    void deleteGlobalRules() throws RegistryStorageException;
+
+    /**
+     * Gets all information about a single global rule.
+     *
+     * @param rule
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    RuleConfigurationDto getGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Updates the configuration settings for a single global rule.
+     *
+     * @param rule
+     * @param config
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    void updateGlobalRule(RuleType rule, RuleConfigurationDto config)
+            throws RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Deletes a single global rule.
+     *
+     * @param rule
+     * @throws RuleNotFoundException
+     * @throws RegistryStorageException
+     */
+    void deleteGlobalRule(RuleType rule) throws RuleNotFoundException, RegistryStorageException;
+
+    /**
+     * Creates a new empty group and stores it's metadata. When creating an artifact the group is
+     * automatically created in it does not exist.
+     *
+     * @param group
+     * @throws GroupAlreadyExistsException
+     * @throws RegistryStorageException
+     */
+    void createGroup(GroupMetaDataDto group) throws GroupAlreadyExistsException, RegistryStorageException;
+
+    /**
+     * Deletes a group identified by the given groupId and DELETES ALL resources related to this group
+     *
+     * @param groupId (optional)
+     * @throws GroupNotFoundException
+     * @throws RegistryStorageException
+     */
+    void deleteGroup(String groupId) throws GroupNotFoundException, RegistryStorageException;
+
+    /**
+     * Updates the metadata for a group.
+     * 
+     * @param groupId
+     * @param dto
+     */
+    void updateGroupMetaData(String groupId, EditableGroupMetaDataDto dto);
+
+    /**
+     * Get all groupIds
+     *
+     * @param limit
+     * @throws RegistryStorageException
+     */
+    List<String> getGroupIds(Integer limit) throws RegistryStorageException;
+
+    /**
+     * Get the metadata information for a group identified by the given groupId
+     *
+     * @param groupId (optional)
+     */
+    GroupMetaDataDto getGroupMetaData(String groupId) throws GroupNotFoundException, RegistryStorageException;
+
+    /**
+     * Called to export all data in the registry. Caller provides a handle to handle the data/entities. This
+     * should be used to stream the data from the storage to some output source (e.g. a HTTP response). It is
+     * important that the full dataset is *not* kept in memory.
+     *
+     * @param groupId if non-null, only data belonging to this group will be exported (global rules excluded)
+     * @param handler
+     * @throws RegistryStorageException
+     */
+    void exportData(String groupId, Function<Entity, Void> handler) throws RegistryStorageException;
+
+    /**
+     * Called to import previously exported data into the registry.
+     *
+     * @param entities
+     * @param preserveGlobalId Preserve global ids. If false, global ids will be set to next id in global id
+     *            sequence.
+     * @param preserveContentId Preserve content id. If false, content ids will be set to the next ids in the
+     *            content id sequence. Content-Version mapping will be preserved.
+     * @throws RegistryStorageException
+     */
+    void importData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId)
+            throws RegistryStorageException;
+
+    /**
+     * Called to upgrade and import previously exported data into the registry. It upgrades the data structure
+     * from v2 to v3 and imports the data into Registry.
+     *
+     * @param entities
+     * @param preserveGlobalId Preserve global ids. If false, global ids will be set to next id in global id
+     *            sequence.
+     * @param preserveContentId Preserve content id. If false, content ids will be set to the next ids in the
+     *            content id sequence. Content-Version mapping will be preserved.
+     * @throws RegistryStorageException
+     */
+    void upgradeData(EntityInputStream entities, boolean preserveGlobalId, boolean preserveContentId);
+
+    /**
+     * Counts the total number of artifacts in the registry.
+     *
+     * @return artifacts count
+     * @throws RegistryStorageException
+     */
+    long countArtifacts() throws RegistryStorageException;
+
+    /**
+     * Counts the number of versions for one artifact.
+     *
+     * @throws RegistryStorageException
+     */
+    long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException;
+
+    /**
+     * Counts the number of active (not disabled) versions of an artifact.
+     * 
+     * @param groupId
+     * @param artifactId
+     */
+    long countActiveArtifactVersions(String groupId, String artifactId) throws RegistryStorageException;
+
+    /**
+     * Counts the total number of versions for all artifacts
+     *
+     * @throws RegistryStorageException
+     */
+    long countTotalArtifactVersions() throws RegistryStorageException;
+
+    /**
+     * Creates a role mapping for a user.
+     *
+     * @param principalId
+     * @param role
+     * @param principalName
+     */
+    void createRoleMapping(String principalId, String role, String principalName)
+            throws RegistryStorageException;
+
+    /**
+     * Gets the list of all the role mappings in the registry.
+     */
+    List<RoleMappingDto> getRoleMappings() throws RegistryStorageException;
+
+    /**
+     * Search for role mappings.
+     * 
+     * @param offset the number of artifacts to skip
+     * @param limit the result size limit
+     */
+    RoleMappingSearchResultsDto searchRoleMappings(int offset, int limit) throws RegistryStorageException;
+
+    /**
+     * Gets the details of a single role mapping.
+     *
+     * @param principalId
+     */
+    RoleMappingDto getRoleMapping(String principalId) throws RegistryStorageException;
+
+    /**
+     * Gets the role for a single user. This returns null if there is no role mapped for the given principal.
+     *
+     * @param principalId
+     */
+    String getRoleForPrincipal(String principalId) throws RegistryStorageException;
+
+    /**
+     * Updates a single role mapping.
+     *
+     * @param principalId
+     * @param role
+     */
+    void updateRoleMapping(String principalId, String role) throws RegistryStorageException;
+
+    /**
+     * Deletes a single role mapping.
+     *
+     * @param principalId
+     */
+    void deleteRoleMapping(String principalId) throws RegistryStorageException;
+
+    /**
+     * Deletes ALL user data. Does not delete global data, such as log configuration.
+     */
+    void deleteAllUserData();
+
+    /**
+     * Called to create a single-use download "link". This can then be consumed using "consumeDownload()".
+     * Used to support browser flows for features like /admin/export.
+     *
+     * @param context
+     * @throws RegistryStorageException
+     */
+    String createDownload(DownloadContextDto context) throws RegistryStorageException;
+
+    /**
+     * Called to consume a download from the DB (single-use) and return its context info.
+     *
+     * @param downloadId
+     */
+    DownloadContextDto consumeDownload(String downloadId) throws RegistryStorageException;
+
+    /**
+     * Called to delete any expired rows in the downloads table. This is basically cleaning up any single-use
+     * download links that were never "clicked".
+     *
+     * @throws RegistryStorageException
+     */
+    void deleteAllExpiredDownloads() throws RegistryStorageException;
+
+    /**
+     * Called to delete all orphaned content rows - content that is not referenced by any artifact version.
+     * This is a background cleanup operation typically run by a scheduled job.
+     *
+     * @throws RegistryStorageException
+     */
+    void deleteAllOrphanedContent() throws RegistryStorageException;
+
+    /**
+     * Gets the raw value of a property, bypassing any caching that might be enabled.
+     *
+     * @param propertyName the name of a property
+     * @return the raw value
+     */
+    DynamicConfigPropertyDto getRawConfigProperty(String propertyName);
+
+    /**
+     * Gets a list of properties with stale state. This would inform a caching layer that the cache should be
+     * invalidated.
+     *
+     * @param since instant representing the last time this check was done (has anything changed since)
+     * @return a list of stale configs
+     */
+    List<DynamicConfigPropertyDto> getStaleConfigProperties(Instant since);
+
+    ContentWrapperDto getContentByReference(ArtifactReferenceDto reference);
+
+    /**
+     * Quickly checks for the existence of a given artifact.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @return true if an artifact exists with the coordinates passed as parameters
+     * @throws RegistryStorageException
+     */
+    boolean isArtifactExists(String groupId, String artifactId) throws RegistryStorageException;
+
+    /**
+     * Quickly checks for the existence of a given group.
+     * 
+     * @param groupId
+     * @return true if a group exists with the id passed as parameter
+     * @throws RegistryStorageException
+     */
+    boolean isGroupExists(String groupId) throws RegistryStorageException;
+
+    /**
+     * Gets a list of content IDs that have at least one reference to the given artifact version.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @return list of content ids of schemas that references artifact
+     */
+    List<Long> getContentIdsReferencingArtifactVersion(String groupId, String artifactId, String version);
+
+    /**
+     * Gets a list of global IDs that have at least one reference to the given artifact version.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @return list of global ids of schemas that references artifact
+     */
+    List<Long> getGlobalIdsReferencingArtifactVersion(String groupId, String artifactId, String version);
+
+    /**
+     * Gets a list of global IDs that have at least one reference to any version of the given artifact.
+     * @param groupId
+     * @param artifactId
+     * @return list of global IDs of artifact verions that reference any version of the artifact
+     */
+    List<Long> getGlobalIdsReferencingArtifact(String groupId, String artifactId);
+
+    /**
+     * Gets a list of inbound references for a given artifact version.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @return the list of inbound references to the given artifact version
+     */
+    List<ArtifactReferenceDto> getInboundArtifactReferences(String groupId, String artifactId,
+            String version);
+
+    /**
+     * Quickly checks for the existence of a specific artifact version.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @return true if an artifact version exists with the coordinates passed as parameters
+     * @throws RegistryStorageException
+     */
+    boolean isArtifactVersionExists(String groupId, String artifactId, String version)
+            throws RegistryStorageException;
+
+    /**
+     * Search groups by given criteria
+     *
+     * @param filters the set of filters to apply when searching
+     * @param orderBy the field to order by
+     * @param orderDirection the direction to order the results
+     * @param offset the number of artifacts to skip
+     * @param limit the result size limit
+     */
+    GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy,
+            OrderDirection orderDirection, Integer offset, Integer limit);
+
+    /**
+     * Creates a new comment for an artifact version.
+     *
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param value
+     */
+    CommentDto createArtifactVersionComment(String groupId, String artifactId, String version, String value);
+
+    /**
+     * Deletes a single comment for an artifact version.
+     *
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param commentId
+     */
+    void deleteArtifactVersionComment(String groupId, String artifactId, String version, String commentId);
+
+    /**
+     * Returns all comments for the given artifact version.
+     *
+     * @param groupId
+     * @param artifactId
+     * @param version
+     */
+    List<CommentDto> getArtifactVersionComments(String groupId, String artifactId, String version);
+
+    /**
+     * Returns the current state of the artifact version.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @return
+     */
+    VersionState getArtifactVersionState(String groupId, String artifactId, String version);
+
+    /**
+     * Updates the state of the given artifact version.
+     * 
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param newState
+     * @param dryRun
+     */
+    void updateArtifactVersionState(String groupId, String artifactId, String version, VersionState newState,
+            boolean dryRun);
+
+    /**
+     * Updates a single comment.
+     *
+     * @param groupId
+     * @param artifactId
+     * @param version
+     * @param commentId
+     * @param value
+     */
+    void updateArtifactVersionComment(String groupId, String artifactId, String version, String commentId,
+            String value);
+
+    void resetGlobalId();
+
+    void resetContentId();
+
+    void resetCommentId();
+
+    long nextContentId();
+
+    long nextGlobalId();
+
+    long nextCommentId();
+
+    void importComment(CommentEntity entity);
+
+    void importGroup(GroupEntity entity);
+
+    void importGroupRule(GroupRuleEntity entity);
+
+    void importGlobalRule(GlobalRuleEntity entity);
+
+    void importContent(ContentEntity entity);
+
+    void importArtifact(ArtifactEntity entity);
+
+    void importArtifactVersion(ArtifactVersionEntity entity);
+
+    void importArtifactRule(ArtifactRuleEntity entity);
+
+    void importContractRule(ContractRuleEntity entity);
+
+    void importBranch(BranchEntity entity);
+
+    boolean isContentExists(String contentHash) throws RegistryStorageException;
+
+    boolean isArtifactRuleExists(String groupId, String artifactId, RuleType rule)
+            throws RegistryStorageException;
+
+    boolean isGlobalRuleExists(RuleType rule) throws RegistryStorageException;
+
+    boolean isRoleMappingExists(String principalId);
+
+    void updateContentCanonicalHash(String newCanonicalHash, long contentId, String contentHash);
+
+    Optional<Long> contentIdFromHash(String contentHash);
+
+    BranchSearchResultsDto getBranches(GA ga, int offset, int limit);
+
+    BranchMetaDataDto createBranch(GA ga, BranchId branchId, String description, List<String> versions);
+
+    BranchMetaDataDto getBranchMetaData(GA ga, BranchId branchId);
+
+    void updateBranchMetaData(GA ga, BranchId branchId, EditableBranchMetaDataDto dto);
+
+    void deleteBranch(GA ga, BranchId branchId);
+
+    GAV getBranchTip(GA ga, BranchId branchId, Set<VersionState> filterBy);
+
+    VersionSearchResultsDto getBranchVersions(GA ga, BranchId branchId, int offset, int limit);
+
+    void replaceBranchVersions(GA ga, BranchId branchId, List<VersionId> versions);
+
+    void appendVersionToBranch(GA ga, BranchId branchId, VersionId version);
+
+    /**
+     * Triggers a snapshot creation of the internal database.
+     *
+     * @throws RegistryStorageException
+     */
+    String triggerSnapshotCreation() throws RegistryStorageException;
+
+    /**
+     * Creates the snapshot of the internal database based on configuration.
+     *
+     * @param snapshotLocation
+     * @throws RegistryStorageException
+     */
+    String createSnapshot(String snapshotLocation) throws RegistryStorageException;
+
+    /**
+     * Creates a new event row in the outbox table.
+     *
+     * @throws RegistryStorageException
+     */
+    String createEvent(OutboxEvent event);
+
+    /**
+     * true if the underlying Registry storage supports emitting events to the database.
+     *
+     * @throws RegistryStorageException
+     */
+    boolean supportsDatabaseEvents();
+
+    /**
+     * Records a single schema usage event.
+     */
+    void recordUsageEvent(SchemaUsageEventDto event);
+
+    /**
+     * Deletes usage events older than the given cutoff timestamp.
+     */
+    void deleteOldUsageEvents(long cutoffTimestamp);
+
+    /**
+     * Returns per-version usage metrics for the given artifact.
+     */
+    List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId);
+
+    /**
+     * Returns global Active/Stale/Dead counts across all tracked schema versions.
+     */
+    UsageSummaryCountsDto getUsageSummaryCounts(long nowMs, long activeMs, long staleMs);
+
+    /**
+     * Returns per-consumer, per-version usage data for building a heatmap.
+     */
+    List<ConsumerVersionEntryDto> getConsumerVersionHeatmap(String groupId, String artifactId);
+
+    /**
+     * Returns list of consumers actively using a specific version, for deprecation readiness.
+     */
+    List<DeprecationReadinessDto> getDeprecationReadiness(String groupId, String artifactId, String version);
+
+    /**
+     * Get all versions modified (created or updated) since the given timestamp. Used by
+     * search index implementations.
+     *
+     * @param sinceTimestamp Timestamp in milliseconds since epoch
+     * @return List of version metadata for changed versions
+     */
+    List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp);
+
+    /**
+     * Count versions modified (created or updated) since the given timestamp. Used to cheaply
+     * determine whether to do an incremental update or a full rebuild of the search index.
+     *
+     * @param sinceTimestamp Timestamp in milliseconds since epoch
+     * @return count of modified versions
+     */
+    long countVersionsModifiedSince(long sinceTimestamp);
+
+    /**
+     * Get the timestamp of the most recently modified version. Used by search index
+     * implementations.
+     *
+     * @return Timestamp in milliseconds, or 0 if no versions exist
+     */
+    long getLatestVersionTimestamp();
+
+    /**
+     * Get all version globalIds. Used by search index implementations for reconciliation to
+     * detect deleted versions.
+     *
+     * @return List of all globalIds
+     */
+    List<Long> getAllVersionGlobalIds();
+
+    /**
+     * Streams all versions with their content. Used by the startup reindexer to populate the
+     * search index from scratch. The consumer is called once per version, with e.g. the
+     * JDBC cursor kept open for the duration.
+     *
+     * @param consumer receives each version's metadata and content
+     */
+    void forEachVersion(Consumer<VersionContentDto> consumer);
+
+    /**
+     * Streams versions modified since the given timestamp, with their content. Used for
+     * incremental search index updates to avoid N+1 content fetches.
+     *
+     * @param sinceTimestamp only include versions with modifiedOn >= this value (millis since epoch)
+     * @param consumer receives each version's metadata and content
+     */
+    void forEachVersion(long sinceTimestamp, Consumer<VersionContentDto> consumer);
+
+    /**
+     * Legacy code: we used to have an enum that drove how to retrieve versions. This has since been converted
+     * to a filtered set of states. For now, this class replicates the names of the old enum values, aiding in
+     * converting existing code with fewer changes.
+     */
+    class RetrievalBehavior {
+        public static final Set<VersionState> SKIP_DISABLED_LATEST = Set.of(VersionState.ENABLED,
+                VersionState.DEPRECATED, VersionState.DRAFT);
+        public static final Set<VersionState> ALL_STATES = Set.of(); // Note: empty set means just include
+                                                                     // everything (no filtering)
+        public static final Set<VersionState> ACTIVE_STATES = Set.of(VersionState.ENABLED,
+                VersionState.DEPRECATED);
+        public static final Set<VersionState> NON_DRAFT_STATES = Set.of(VersionState.ENABLED,
+                VersionState.DEPRECATED, VersionState.DISABLED);
+    }
+}

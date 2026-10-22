@@ -1,0 +1,304 @@
+import React, { FunctionComponent, useEffect, useState } from "react";
+import { Comment, NewComment, VersionMetaData } from "@sdk/lib/generated-client/models";
+import {
+    Button,
+    DataList,
+    DataListAction,
+    DataListCell,
+    DataListContent,
+    DataListItem,
+    DataListItemCells,
+    DataListItemRow,
+    DataListToggle,
+    EmptyState,
+    EmptyStateActions,
+    EmptyStateBody,
+    EmptyStateFooter,
+    EmptyStateVariant,
+    SearchInput,
+    Toolbar,
+    ToolbarContent,
+    ToolbarItem,
+    Alert,
+    AlertActionCloseButton
+} from "@patternfly/react-core";
+import { FromNow, ListWithToolbar, ObjectDropdown, PleaseWaitModal } from "@apitomy/common-ui-components";
+import { ConfirmDeleteModal, CreateCommentModal, EditCommentModal, IfAuth, IfFeature } from "@app/components";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+
+
+export type VersionCommentsProps = {
+    version: VersionMetaData;
+}
+
+export const VersionComments: FunctionComponent<VersionCommentsProps> = (props: VersionCommentsProps) => {
+    const [collapsed, setCollapsed] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [comments, setComments] = useState<Comment[]>([]);
+    const [filteredComments, setFilteredComments] = useState<Comment[]>([]);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
+    const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
+    const [commentToEdit, setCommentToEdit] = useState<Comment>();
+    const [commentToDelete, setCommentToDelete] = useState<Comment>();
+    const [filter, setFilter] = useState("");
+    const [actionError, setActionError] = useState<string | undefined>();
+
+    const groups: GroupsService = useGroupsService();
+
+    const toggle = (commentId: string) => {
+        if (collapsed.includes(commentId)) {
+            setCollapsed(collapsed.filter(item => item !== commentId));
+        } else {
+            setCollapsed([commentId, ...collapsed]);
+        }
+    };
+
+    const onEditComment = (comment: Comment): void => {
+        setCommentToEdit(comment);
+        setIsEditModalOpen(true);
+    };
+
+    const onDeleteComment = (comment: Comment): void => {
+        setCommentToDelete(comment);
+        setIsDeleteModalOpen(true);
+    };
+
+    const addComment = (newComment: NewComment): void => {
+        setActionError(undefined);
+        setIsCreateModalOpen(false);
+        setIsPleaseWaitModalOpen(true);
+        setPleaseWaitMessage("Adding comment, please wait.");
+        groups.createArtifactVersionComment(props.version.groupId || "default", props.version.artifactId!, props.version.version!, newComment)
+            .then(comment => {
+                setComments([comment, ...comments]);
+                setIsPleaseWaitModalOpen(false);
+            })
+            .catch((error: any) => {
+                setActionError(error?.message || "Error adding comment. Please try again.");
+                setIsPleaseWaitModalOpen(false);
+            });
+    };
+
+    const editComment = (commentId: string, newComment: NewComment): void => {
+        setActionError(undefined);
+        setIsEditModalOpen(false);
+        setIsPleaseWaitModalOpen(true);
+        setPleaseWaitMessage("Updating comment, please wait.");
+        groups.updateArtifactVersionComment(props.version.groupId || "default", props.version.artifactId!, props.version.version!, commentId, newComment)
+            .then(() => {
+                setComments(comments.map(c => {
+                    return c.commentId === commentId ? { ...c, value: newComment.value } : c;
+                }));
+                setIsPleaseWaitModalOpen(false);
+            })
+            .catch((error: any) => {
+                setActionError(error?.message || "Error updating comment. Please try again.");
+                setIsPleaseWaitModalOpen(false);
+            });
+    };
+
+    const deleteComment = (): void => {
+        setActionError(undefined);
+        setIsDeleteModalOpen(false);
+        setIsPleaseWaitModalOpen(true);
+        setPleaseWaitMessage("Deleting comment, please wait.");
+
+        const commentId: string = commentToDelete?.commentId || "";
+        groups.deleteArtifactVersionComment(props.version.groupId || "default", props.version.artifactId!, props.version.version!, commentId)
+            .then(() => {
+                setComments(comments.filter(c => c.commentId !== commentId));
+                setIsPleaseWaitModalOpen(false);
+            })
+            .catch((error: any) => {
+                setActionError(error?.message || "Error deleting comment. Please try again.");
+                setIsPleaseWaitModalOpen(false);
+            });
+    };
+
+    useEffect(() => {
+        setActionError(undefined);
+        setIsLoading(true);
+        groups.getArtifactVersionComments(props.version.groupId || "default", props.version.artifactId!, props.version.version!)
+            .then(comments => {
+                setComments(comments);
+                setIsLoading(false);
+            })
+            .catch((error: any) => {
+                setActionError(error?.message || "Error fetching comments. Please refresh the page.");
+                setIsLoading(false);
+            });
+    }, []);
+
+    useEffect(() => {
+        setFilteredComments(comments.filter(comment => {
+            return comment.value?.toLowerCase().indexOf(filter.toLowerCase()) !== -1;
+        }));
+    }, [comments, filter]);
+
+    const toolbar = (
+        <Toolbar id="toolbar-items-example" style={{ padding: "15px" }}>
+            <ToolbarContent>
+                <ToolbarItem>
+                    <SearchInput aria-label="Search comments" placeholder="Filter comments" onChange={(evt, filter) => setFilter(filter)} />
+                </ToolbarItem>
+                <ToolbarItem variant="separator" />
+                <ToolbarItem>
+                    <IfFeature feature="readOnly" isNot={true}>
+                        <Button variant="secondary" onClick={() => setIsCreateModalOpen(true)}>Add comment</Button>
+                    </IfFeature>
+                </ToolbarItem>
+            </ToolbarContent>
+        </Toolbar>
+    );
+
+    const emptyState = (
+        <EmptyState  headingLevel="h4"   titleText="No comments found" variant={EmptyStateVariant.xs}>
+            <EmptyStateBody>
+                There are no comments yet created for this artifact version.
+            </EmptyStateBody>
+            <EmptyStateFooter>
+                <EmptyStateActions>
+                    <IfFeature feature="readOnly" isNot={true}>
+                        <Button variant="secondary" onClick={() => { setIsCreateModalOpen(true); }}>Add comment</Button>
+                    </IfFeature>
+                </EmptyStateActions>
+            </EmptyStateFooter>
+        </EmptyState>
+    );
+
+    const filteredEmptyState = (
+        <EmptyState  headingLevel="h4"   titleText="No comments found" variant={EmptyStateVariant.xs}>
+            <EmptyStateBody>
+                There are no comments that match the filter criteria.
+            </EmptyStateBody>
+        </EmptyState>
+    );
+
+    return (
+        <div className="comments">
+            {actionError && (
+                <Alert
+                    variant="danger"
+                    title={actionError}
+                    actionClose={<AlertActionCloseButton onClose={() => setActionError(undefined)} />}
+                    isInline
+                    style={{ marginBottom: "15px" }}
+                />
+            )}
+            <ListWithToolbar
+                toolbar={toolbar}
+                emptyState={emptyState}
+                filteredEmptyState={filteredEmptyState}
+                alwaysShowToolbar={false}
+                isLoading={isLoading}
+                isError={false}
+                isFiltered={filter.trim().length > 0}
+                isEmpty={filteredComments.length === 0}
+            >
+                <DataList aria-label="Compact data list example" isCompact>
+                    {
+                        filteredComments.map( (comment, /* idx */) =>
+                            <DataListItem key={comment.commentId!} aria-labelledby={`${comment.commentId}-compact`} isExpanded={!collapsed.includes(comment.commentId!)}>
+                                <DataListItemRow>
+                                    <DataListToggle
+                                        onClick={() => toggle(comment.commentId!)}
+                                        isExpanded={!collapsed.includes(comment.commentId!)}
+                                        id={`${comment.commentId}-toggle`}
+                                        aria-controls={`${comment.commentId}-expand`}
+                                        style={{ marginRight: "3px" }}
+                                    />
+                                    <DataListItemCells
+                                        dataListCells={[
+                                            <DataListCell key="primary content">
+                                                <span id={`${comment.commentId}-compact`}>
+                                                    <span><b>{comment.owner || "Anonymous"}</b></span>
+                                                    <span> added a comment </span>
+                                                    <span>
+                                                        <em><FromNow date={comment.createdOn} /></em>
+                                                    </span>
+                                                </span>
+                                            </DataListCell>
+                                        ]}
+                                    />
+                                    <DataListAction
+                                        aria-labelledby="ex-item1 ex-action1"
+                                        id="ex-action1"
+                                        aria-label="Actions"
+                                        
+                                    >
+                                        <IfFeature feature="readOnly" isNot={true}>
+                                            <IfAuth isOwner={true} owner={comment.owner}>
+                                                <ObjectDropdown
+                                                    items={[
+                                                        {
+                                                            label: "Edit",
+                                                            testId: `${comment.commentId}-actions-edit`,
+                                                            onClick: () => onEditComment(comment)
+                                                        },
+                                                        {
+                                                            isSeparator: true
+                                                        },
+                                                        {
+                                                            label: "Delete",
+                                                            testId: `${comment.commentId}-actions-delete`,
+                                                            onClick: () => onDeleteComment(comment)
+                                                        }
+                                                    ]}
+                                                    isKebab={true}
+                                                    label="Actions"
+                                                    itemToString={item => item.label}
+                                                    itemToTestId={item => item.testId}
+                                                    itemIsDivider={item => item.isSeparator}
+                                                    onSelect={item => item.onClick()}
+                                                    testId={`${comment.commentId}-actions`}
+                                                    popperProps={{
+                                                        position: "right"
+                                                    }}
+                                                />
+                                            </IfAuth>
+                                        </IfFeature>
+                                    </DataListAction>
+                                </DataListItemRow>
+                                <DataListContent
+                                    aria-label={`Comment content for ${comment.commentId}`}
+                                    id={`${comment.commentId}-expand`}
+                                    isHidden={collapsed.includes(comment.commentId!)}
+                                    hasNoPadding
+                                >
+                                    <div style={{ paddingLeft: "15px", marginBottom: "0px", marginTop: "-6px" }}>
+                                        {comment.value}
+                                    </div>
+                                </DataListContent>
+                            </DataListItem>
+                        )
+                    }
+                </DataList>
+            </ListWithToolbar>
+            <CreateCommentModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onCreateComment={addComment}
+            />
+            <EditCommentModal
+                isOpen={isEditModalOpen}
+                comment={commentToEdit!}
+                onClose={() => setIsEditModalOpen(false)}
+                onEditComment={editComment}
+            />
+            <ConfirmDeleteModal
+                title="Delete comment?"
+                message="Do you really want to delete this comment?  This operation cannot be undone."
+                isOpen={isDeleteModalOpen}
+                onDelete={deleteComment}
+                onClose={() => setIsDeleteModalOpen(false)}
+            />
+            <PleaseWaitModal
+                message={pleaseWaitMessage}
+                isOpen={isPleaseWaitModalOpen}
+            />
+        </div>
+    );
+};

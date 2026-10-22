@@ -1,0 +1,93 @@
+name: Publish Documentation
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - 'docs/**'
+    branches: [main, '3.3.x']
+
+permissions:
+  contents: read
+
+# Each run rebuilds every branch in the Antora playbook and replaces the whole
+# documentation directory in the website repository, so two runs publishing at
+# the same time overwrite each other. Serialize them instead.
+concurrency:
+  group: publish-docs
+  cancel-in-progress: false
+
+jobs:
+  publish-docs:
+    if: github.repository_owner == 'Apicurio'
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Apicurio Website Checkout
+        run: |
+          mkdir website
+          cd website
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio.github.io.git"
+          git fetch
+          git checkout main
+          git branch --set-upstream-to=origin/main
+          git pull
+
+      - name: Apicurio Registry Checkout
+        run: |
+          mkdir registry
+          cd registry
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git"
+          git fetch
+          git checkout ${{ github.ref_name }}
+          git branch --set-upstream-to=origin/${{ github.ref_name }}
+          git pull
+
+      - name: Generate Documentation
+        run: |
+          cd registry/docs-playbook
+          ./_build-all.sh
+
+      - name: Copy Documentation to Website
+        run: |
+          rm -rf website/registry/docs
+          cp -rf registry/docs-playbook/target/dist website/registry/docs
+
+      - name: Commit Documentation to Website
+        run: |
+          cd website
+          git add .
+          git commit -m "Automated Publishing of Documentation for Apicurio Registry"
+
+      # Other Apicurio projects publish into this repository too, so the push can
+      # still lose a race even with the concurrency group above. Each attempt
+      # rebases onto whatever landed first, so a rejected push can succeed on a
+      # retry. Committing stays outside the retry: it must happen exactly once.
+      - name: Push Documentation to Website
+        uses: Apitomy/apitomy-github-actions/retry@e10e64b8a9ca86982f45a1ea512847219ae2605e # v1.0.1
+        with:
+          working-directory: website
+          max-attempts: 5
+          initial-delay: 5
+          command: |
+            git pull --rebase origin main
+            git push
+
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
+    needs: [publish-docs]
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
+    with:
+      results: ${{ toJSON(needs) }}
+    secrets:
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}

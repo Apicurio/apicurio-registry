@@ -1,0 +1,1 @@
+../../../../../../../../../common/src/main/java/io/apicurio/registry/utils/Cell.java

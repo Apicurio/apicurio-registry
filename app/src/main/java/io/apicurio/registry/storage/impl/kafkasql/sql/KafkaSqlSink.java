@@ -1,0 +1,94 @@
+package io.apicurio.registry.storage.impl.kafkasql.sql;
+
+import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessage;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlMessageKey;
+import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlRegistryStorage;
+import io.apicurio.registry.storage.impl.sql.SqlRegistryStorage;
+import io.apicurio.registry.types.RegistryException;
+import io.quarkus.arc.lookup.LookupIfProperty;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.control.ActivateRequestContext;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.common.header.Header;
+import org.slf4j.Logger;
+
+import java.util.Optional;
+import java.util.UUID;
+
+import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.REQUEST_ID_HEADER;
+
+@ApplicationScoped
+@Logged
+@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
+public class KafkaSqlSink {
+
+    @Inject
+    Logger log;
+
+    @Inject
+    Instance<KafkaSqlCoordinator> coordinator;
+
+    @Inject
+    SqlRegistryStorage sqlStore;
+
+    /**
+     * Called by the {@link KafkaSqlRegistryStorage} main Kafka consumer loop to process a single message in
+     * the topic. Each message represents some attempt to modify the registry data. So each message much be
+     * consumed and applied to the in-memory SQL data store.
+     * <p>
+     * This method extracts the UUID from the message headers, delegates the message processing to
+     * <code>doProcessMessage()</code>, and handles any exceptions that might occur. Finally it will report
+     * the result to any local threads that may be waiting (via the coordinator).
+     *
+     * @param record
+     */
+    @ActivateRequestContext
+    public void processMessage(ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record) {
+        UUID requestId = extractUuid(record);
+        log.debug("Processing Kafka message with UUID: {}", requestId);
+
+        try {
+            Object result = doProcessMessage(record);
+            log.trace("Processed message key: {} value: {} result: {}", record.key().getMessageType(),
+                    record.value() != null ? record.value().toString() : "",
+                    result != null ? result.toString() : "");
+            log.debug("Kafka message successfully processed. Notifying listeners of response.");
+            coordinator.get().notifyResponse(requestId, result);
+        } catch (RuntimeException e) {
+            // Pass RuntimeException (including RegistryException) directly without wrapping
+            // to preserve the original exception type for proper handling by exception mappers.
+            log.debug("Runtime exception detected: {}", e.getMessage());
+            coordinator.get().notifyResponse(requestId, e);
+        } catch (Throwable e) {
+            // Wrap checked exceptions and Errors in RegistryException
+            log.debug("Unexpected exception detected: {}", e.getMessage());
+            coordinator.get().notifyResponse(requestId, new RegistryException(e));
+        }
+    }
+
+    /**
+     * Extracts the UUID from the message. The UUID should be found in a message header.
+     *
+     * @param record
+     */
+    private UUID extractUuid(ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record) {
+        return Optional.ofNullable(record.headers().headers(REQUEST_ID_HEADER)).map(Iterable::iterator).map(it -> {
+            return it.hasNext() ? it.next() : null;
+        }).map(Header::value).map(String::new).map(UUID::fromString).orElse(null);
+    }
+
+    /**
+     * Process the message and return a result. This method may also throw an exception if something goes
+     * wrong.
+     *
+     * @param record
+     */
+    private Object doProcessMessage(ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record) {
+        KafkaSqlMessage value = record.value();
+        return value.dispatchTo(sqlStore);
+    }
+}

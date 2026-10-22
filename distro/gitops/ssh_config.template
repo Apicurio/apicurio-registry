@@ -1,0 +1,4 @@
+Host *
+    StrictHostKeyChecking {{STRICT_HOST_KEY_CHECKING}}
+    UserKnownHostsFile {{SSH_DIR}}/known_hosts
+    IdentitiesOnly yes

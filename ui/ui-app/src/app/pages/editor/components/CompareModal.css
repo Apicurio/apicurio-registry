@@ -1,0 +1,15 @@
+#compare-modal {
+    position: fixed;
+    bottom: 32px;
+    top: 32px;
+}
+
+#compare-modal .compare-modal-content {
+    position: absolute;
+    top: 64px;
+    bottom: 24px;
+    left: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+}

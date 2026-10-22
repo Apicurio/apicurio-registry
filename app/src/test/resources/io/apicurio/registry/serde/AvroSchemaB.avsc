@@ -1,0 +1,58 @@
+{
+  "namespace": "com.kubetrade.schema.trade",
+  "type": "record",
+  "name": "AvroSchemaB",
+  "fields": [
+    {
+      "name": "unionTest",
+      "type": [
+        {
+          "namespace": "com.kubetrade.schema.trade",
+          "type": "record",
+          "name": "AvroSchemaF",
+          "fields": [
+            {
+              "name": "symbol",
+              "type": "string"
+            },
+            {
+              "name": "payload",
+              "type": "string"
+            }
+          ]
+        },
+        "null"
+      ]
+    },
+    {
+      "name": "mapTest",
+      "type": {
+        "type": "map",
+        "values": "com.kubetrade.schema.trade.AvroSchemaF"
+      }
+    },
+    {
+      "name": "arrayTest",
+      "type": {
+        "type": "array",
+        "items": "com.kubetrade.schema.trade.AvroSchemaF"
+      }
+    },
+    {
+      "name": "schemaA",
+      "type": "com.kubetrade.schema.trade.AvroSchemaA"
+    },
+    {
+      "name": "schemaA2",
+      "type": "com.kubetrade.schema.trade.AvroSchemaA"
+    },
+    {
+      "name": "schemaC",
+      "type": "com.kubetrade.schema.trade.AvroSchemaC"
+    },
+    {
+      "name": "key",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "namespace": "com.kubetrade.schema.trade",
+  "type": "record",
+  "name": "TradeRawArray",
+  "fields": [
+    {
+      "name": "tradeKeyList",
+      "type": {
+        "type": "array",
+        "items": {
+          "name": "tradeKey",
+          "type": "com.kubetrade.schema.trade.TradeKey"
+        }
+      }
+    },
+    {
+      "name": "symbol",
+      "type": "string"
+    },
+    {
+      "name": "payload",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+{
+  "template": "namespace java com.example\n\nstruct Example {\n  1: required string name\n}\n"
+}

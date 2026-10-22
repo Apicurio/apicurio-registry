@@ -1,0 +1,186 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apicur.io/schemas/prompt-template/v1",
+  "title": "Apicurio Prompt Template",
+  "description": "Schema for PROMPT_TEMPLATE artifacts in Apicurio Registry. Defines prompt templates with variable substitution for LLM interactions.",
+  "type": "object",
+  "required": ["templateId", "template"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to this JSON Schema for IDE autocompletion",
+      "const": "https://apicur.io/schemas/prompt-template/v1"
+    },
+    "templateId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the prompt template"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name for the prompt template"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of what this prompt template does"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version of the prompt template"
+    },
+    "template": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The prompt template text with {{variable}} placeholders for substitution"
+    },
+    "variables": {
+      "type": "object",
+      "description": "Schema definitions for template variables",
+      "additionalProperties": {
+        "$ref": "#/$defs/variableSchema"
+      }
+    },
+    "outputSchema": {
+      "type": "object",
+      "description": "JSON Schema defining the expected output structure from the LLM"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata for the prompt template",
+      "properties": {
+        "author": {
+          "type": "string",
+          "description": "Author or team that created this template"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Creation date in ISO 8601 format"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Tags for categorization and search"
+        },
+        "recommendedModels": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of recommended LLM models for this template"
+        },
+        "useCases": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Example use cases for this template"
+        }
+      },
+      "additionalProperties": true
+    },
+    "mcp": {
+      "$ref": "#/$defs/mcpExtension",
+      "description": "Optional MCP (Model Context Protocol) extension for runtime serving via MCP servers"
+    }
+  },
+  "$defs": {
+    "variableSchema": {
+      "type": "object",
+      "description": "Schema definition for a template variable",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "number", "boolean", "array", "object"],
+          "description": "Data type of the variable"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this variable must be provided when rendering"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the variable"
+        },
+        "default": {
+          "description": "Default value if not provided"
+        },
+        "enum": {
+          "type": "array",
+          "description": "List of allowed values for this variable"
+        },
+        "minimum": {
+          "type": "number",
+          "description": "Minimum value for numeric types"
+        },
+        "maximum": {
+          "type": "number",
+          "description": "Maximum value for numeric types"
+        },
+        "$ref": {
+          "type": "string",
+          "description": "Reference to an external schema definition"
+        }
+      },
+      "additionalProperties": true
+    },
+    "mcpExtension": {
+      "type": "object",
+      "description": "MCP (Model Context Protocol) extension for exposing this template as an MCP prompt",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to expose this template via MCP prompts/list and prompts/get"
+        },
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z_][a-z0-9_]*$",
+          "description": "MCP prompt name (lowercase with underscores). Defaults to templateId if not specified."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description shown in MCP prompts/list. Defaults to template description if not specified."
+        },
+        "arguments": {
+          "type": "array",
+          "description": "Explicit MCP arguments. If not specified, auto-derived from variables.",
+          "items": {
+            "type": "object",
+            "required": ["name"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Argument name"
+              },
+              "description": {
+                "type": "string",
+                "description": "Argument description"
+              },
+              "required": {
+                "type": "boolean",
+                "description": "Whether the argument is required"
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "$schema": "https://apicur.io/schemas/prompt-template/v1",
+      "templateId": "sentiment-analysis",
+      "name": "Sentiment Analysis Prompt",
+      "template": "Analyze the sentiment of the following text: {{message}}",
+      "variables": {
+        "message": {
+          "type": "string",
+          "required": true,
+          "description": "The text to analyze"
+        }
+      },
+      "mcp": {
+        "enabled": true,
+        "name": "analyze_sentiment"
+      }
+    }
+  ]
+}

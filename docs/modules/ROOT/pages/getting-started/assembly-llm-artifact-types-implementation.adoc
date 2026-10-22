@@ -1,0 +1,810 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+:dp-support-scope: link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope]
+[id="assembly-llm-artifact-types-implementation_{context}"]
+= LLM artifact types implementation guide
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+{registry} includes built-in AI/ML artifact types (MODEL_SCHEMA and PROMPT_TEMPLATE). You can learn about the architecture, JSON Schema backing, MCP integration, and implementation details for these types.
+
+ifdef::service-registry-downstream[]
+WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
+endif::[]
+
+// ref-llm-artifact-types-architecture
+[id="llm-artifact-types-architecture_{context}"]
+== Architecture overview
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The LLM artifact types are first-class Java artifact types in {registry}. They follow the same pattern as other built-in types such as Avro, JSON Schema, and Agent Card.
+
+The LLM artifact types form a native Java artifact type system consisting of the following components:
+
+.Architecture components
+[%header,cols="2,4"]
+|===
+|Component
+|Description
+
+|Java implementation
+|Source files in `schema-util/common/src/main/java/io/apicurio/registry/`, including accepters, validators, compatibility checkers, reference finders, dereferencers, content extractors, and canonicalizers for each type.
+
+|Provider wiring
+|`ModelSchemaArtifactTypeUtilProvider` and `PromptTemplateArtifactTypeUtilProvider` in `schema-util/util-provider/` wire each type's implementations together and register them as standard artifact types.
+
+|Prompt rendering service
+|Java service (`PromptRenderingService`) for server-side template rendering of PROMPT_TEMPLATE artifacts.
+|===
+
+Each artifact type includes the following handler functions (as Java classes in `schema-util/common/`):
+
+.Artifact type handler functions
+[%header,cols="2,4"]
+|===
+|Function
+|Purpose
+
+|`acceptsContent()`
+|Checks whether content matches this artifact type based on structure and content type.
+
+|`validate()`
+|Validates content structure, required fields, and constraint violations.
+
+|`testCompatibility()`
+|Checks backward compatibility between existing and proposed versions.
+
+|`canonicalize()`
+|Normalizes content for consistent hashing and comparison.
+
+|`findExternalReferences()`
+|Identifies `$ref` references to external schemas.
+
+|`dereference()`
+|Resolves `$ref` references by substituting actual content.
+
+|`rewriteReferences()`
+|Rewrites `$ref` paths to use registry URLs.
+
+|`validateReferences()`
+|Verifies that all references are properly mapped.
+|===
+
+// ref-llm-artifact-types-json-schema-backing
+[id="llm-artifact-types-json-schema-backing_{context}"]
+== JSON Schema backing and industry standards
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The PROMPT_TEMPLATE and MODEL_SCHEMA artifact types in {registry} have formal JSON Schemas, aligned with industry standards for interoperability.
+
+You can find the JSON Schemas in `app/src/main/resources/schemas/`:
+
+.JSON Schema files
+[%header,cols="2,3"]
+|===
+|File
+|Description
+
+|`prompt-template-v1.schema.json`
+|Schema for PROMPT_TEMPLATE artifacts, aligned with Microsoft Prompty
+
+|`model-schema-v1.schema.json`
+|Schema for MODEL_SCHEMA artifacts, aligned with Google Model Card Toolkit
+|===
+
+// ref-llm-artifact-types-prompt-template-schema-alignment
+[id="llm-artifact-types-prompt-template-schema-alignment_{context}"]
+== PROMPT_TEMPLATE schema alignment with Prompty
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The PROMPT_TEMPLATE schema is aligned with the Microsoft Prompty specification for interoperability with the Azure AI ecosystem.
+
+.Prompty field mappings
+[%header,cols="2,2,3"]
+|===
+|Apicurio field
+|Prompty field
+|Notes
+
+|`templateId`
+|`name`
+|Primary identifier
+
+|`variables`
+|`inputs`
+|Both names supported
+
+|`outputSchema`
+|`outputs`
+|Both names supported
+
+|`template`
+|Body content
+|{{variable}} syntax
+
+|`model`
+|`model`
+|Model configuration
+
+|`authors`
+|`authors`
+|Contributors list
+
+|`tags`
+|`tags`
+|Categorization
+|===
+
+.PROMPT_TEMPLATE with Prompty-aligned fields
+[source,yaml]
+----
+templateId: sentiment-analysis
+name: Sentiment Analysis Prompt
+version: "1.0.0"
+description: Analyzes customer sentiment
+
+# Prompty-aligned fields
+authors:
+  - Apicurio Team
+tags:
+  - sentiment
+  - nlp
+
+templateFormat: mustache  # or jinja2, handlebars
+
+# Model configuration (Prompty-aligned)
+model:
+  api: chat
+  parameters:
+    temperature: 0.3
+    max_tokens: 500
+
+template: |
+  Analyze the sentiment of: {{customerMessage}}
+
+variables:
+  customerMessage:
+    type: string
+    required: true
+----
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://prompty.ai/specification/page/[Microsoft Prompty Specification]
+
+// ref-llm-artifact-types-model-schema-alignment
+[id="llm-artifact-types-model-schema-alignment_{context}"]
+== MODEL_SCHEMA schema alignment with Model Card Toolkit
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The MODEL_SCHEMA is aligned with the Google Model Card Toolkit for governance and compliance use cases.
+
+.Model Card field mappings
+[%header,cols="2,2,3"]
+|===
+|Apicurio field
+|Model Card field
+|Notes
+
+|`modelId`
+|`model_details.name`
+|Model identifier
+
+|`provider`
+|`model_details.owners`
+|Model provider
+
+|`version`
+|`model_details.version`
+|Version info
+
+|`input`
+|`model_parameters.input_format`
+|I/O schema
+
+|`output`
+|`model_parameters.output_format`
+|I/O schema
+
+|`modelDetails`
+|`model_details`
+|Full metadata
+
+|`quantitativeAnalysis`
+|`quantitative_analysis`
+|Metrics
+
+|`considerations`
+|`considerations`
+|Ethics, limitations
+|===
+
+.MODEL_SCHEMA with Model Card-aligned sections
+[source,json]
+----
+{
+  "modelId": "claude-3-opus",
+  "provider": "anthropic",
+  "version": "2024-02",
+  "input": { "type": "object" },
+  "output": { "type": "object" },
+  "modelDetails": {
+    "name": "Claude 3 Opus",
+    "overview": "Advanced multimodal AI assistant",
+    "owners": [{"name": "Anthropic"}],
+    "licenses": [{"identifier": "Proprietary"}]
+  },
+  "considerations": {
+    "users": ["Developers", "Enterprises"],
+    "limitations": ["May produce inaccurate information"],
+    "ethicalConsiderations": [
+      {"name": "Bias", "mitigationStrategy": "Regular auditing"}
+    ]
+  }
+}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://github.com/tensorflow/model-card-toolkit[Google Model Card Toolkit]
+
+// ref-llm-artifact-types-mcp-integration
+[id="llm-artifact-types-mcp-integration_{context}"]
+== MCP (Model Context Protocol) integration
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+{registry} supports the Model Context Protocol (MCP) and makes PROMPT_TEMPLATE artifacts available as MCP prompts. AI agents can discover and use prompt templates through MCP.
+
+Prompt templates can include an `mcp` section to enable MCP protocol integration:
+
+[source,yaml]
+----
+templateId: support-chat
+name: Support Chat Prompt
+template: |
+  Answer the question: {{question}}
+
+variables:
+  question:
+    type: string
+    required: true
+
+# MCP integration
+mcp:
+  enabled: true
+  name: support-chat
+  description: Answer customer support questions
+  arguments:
+    - name: question
+      description: The customer question
+      required: true
+----
+
+.MCP configuration fields
+[%header,cols="2,1,4"]
+|===
+|Field
+|Required
+|Description
+
+|`enabled`
+|No
+|Set to `true` to make this prompt available through MCP (default: false)
+
+|`name`
+|No
+|MCP prompt name (defaults to `templateId`)
+
+|`description`
+|No
+|MCP prompt description (defaults to template description)
+
+|`arguments`
+|No
+|MCP arguments (auto-derived from `variables` if not specified)
+|===
+
+The `mcp/` module contains an MCP Server for registry prompts:
+
+.MCP server components
+[%header,cols="2,4"]
+|===
+|Component
+|Description
+
+|`PromptTemplateMCPServer.java`
+|MCP Server that makes prompt templates available as MCP prompts
+
+|`PromptTemplateConverter.java`
+|Parses and renders prompt templates
+|===
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://modelcontextprotocol.io/[Model Context Protocol (MCP)]
+
+// ref-llm-artifact-types-mcp-tools-and-prompts
+[id="llm-artifact-types-mcp-tools-and-prompts_{context}"]
+== MCP tools and prompts
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The MCP Server exposes the following tools and prompts for working with prompt templates through the MCP protocol.
+
+.MCP tools
+[%header,cols="2,4"]
+|===
+|Tool
+|Description
+
+|`list_mcp_prompts`
+|List all MCP-enabled prompt templates in the registry
+
+|`get_mcp_prompt`
+|Get and render an MCP-enabled prompt with arguments
+
+|`render_prompt_template`
+|Render any prompt template (MCP-enabled or not)
+|===
+
+.MCP prompts
+[%header,cols="2,4"]
+|===
+|Prompt
+|Description
+
+|`render_registry_prompt`
+|Interactive prompt for rendering templates from the registry
+|===
+
+// ref-llm-artifact-types-mcp-server-usage
+[id="llm-artifact-types-mcp-server-usage_{context}"]
+== MCP server usage
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+You can run the MCP Server to make {registry} prompt templates available to AI agents through the MCP protocol.
+
+To run the MCP Server:
+
+[source,bash]
+----
+cd mcp
+../mvnw quarkus:dev
+----
+
+The MCP Server communicates with the registry and makes prompts available through the MCP protocol. AI agents such as Claude and ChatGPT can discover and use registry-stored prompts.
+
+.MCP architecture data flow
+[cols="1,3",options="header"]
+|===
+|Layer
+|Description
+
+|{registry} (PROMPT_TEMPLATE artifacts)
+|Stores prompt templates with `mcp.enabled: true` in the MCP configuration section.
+
+|MCP server module
+a|Connects {registry} to AI agents by using the MCP protocol. Provides the following tools:
+
+* `list_mcp_prompts()`: lists MCP-enabled templates
+* `get_mcp_prompt()`: renders a template with arguments
+* `render_prompt_template()`: renders any template
+
+|AI agent or LLM (such as Claude or ChatGPT)
+a|Communicates with the MCP server by using the MCP protocol:
+
+* `prompts/list`: discovers available prompts
+* `prompts/get`: retrieves prompt content with arguments
+|===
+
+// ref-llm-artifact-types-prompt-template-implementation
+[id="llm-artifact-types-prompt-template-implementation_{context}"]
+== PROMPT_TEMPLATE implementation details
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The PROMPT_TEMPLATE artifact type is wired in `schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/StandardArtifactTypeProviderRegistry.java`, with validators, extractors, and compatibility checkers in `schema-util/common/`.
+
+.PROMPT_TEMPLATE schema interface (Prompty-aligned)
+[source,typescript]
+----
+interface PromptTemplate {
+    $schema?: string;           // Schema URL for identification
+    templateId: string;         // Required: unique identifier
+    name?: string;              // Human-readable name
+    description?: string;       // Template description
+    version?: string;           // Semantic version
+    template: string;           // Required: template text with {{variable}} placeholders
+
+    // Prompty-aligned fields
+    authors?: string[];         // Contributors list
+    tags?: string[];            // Categorization tags
+    templateFormat?: string;    // 'mustache' | 'jinja2' | 'handlebars'
+    model?: ModelConfiguration; // Model configuration
+
+    // Input/output definitions (Prompty: inputs/outputs)
+    variables?: Record<string, VariableSchema>;  // Variable definitions
+    inputs?: Record<string, VariableSchema>;     // Alias for variables (Prompty)
+    outputSchema?: Record<string, unknown>;      // Expected output structure
+    outputs?: Record<string, unknown>;           // Alias for outputSchema (Prompty)
+
+    // Extensions
+    metadata?: Record<string, unknown>;          // Custom metadata
+    mcp?: MCPConfiguration;                      // MCP integration
+}
+
+interface VariableSchema {
+    type?: string;              // string, integer, number, boolean, array, object
+    required?: boolean;         // Whether variable is required
+    default?: unknown;          // Default value
+    description?: string;       // Variable description
+    enum?: unknown[];           // Allowed values
+    minimum?: number;           // Minimum value for numeric types
+    maximum?: number;           // Maximum value for numeric types
+    $ref?: string;              // Reference to external schema
+}
+
+interface ModelConfiguration {
+    api?: string;               // 'chat' | 'completion'
+    configuration?: {
+        type?: string;          // Provider type
+        azure_deployment?: string;
+        azure_endpoint?: string;
+    };
+    parameters?: {
+        temperature?: number;
+        max_tokens?: number;
+        top_p?: number;
+    };
+    response?: string;          // 'first' | 'all'
+}
+
+interface MCPConfiguration {
+    enabled?: boolean;          // Expose via MCP protocol
+    name?: string;              // MCP prompt name
+    description?: string;       // MCP prompt description
+    arguments?: MCPArgument[];  // MCP arguments
+}
+----
+
+The `acceptsContent()` function detects PROMPT_TEMPLATE content by checking the following criteria:
+
+* Content type is `application/json`, `application/x-yaml`, or `text/x-prompt-template`.
+* Schema identifier: the `$schema` field contains `prompt-template`.
+* Required fields: both `templateId` and `template` fields are present.
+
+The `validate()` function checks the following rules:
+
+* `templateId` must be a non-empty string.
+* `template` must be a non-empty string.
+* All `{{variable}}` placeholders in the template must have corresponding definitions in `variables`.
+* Variable types must be valid: `string`, `integer`, `number`, `boolean`, `array`, `object`.
+* Numeric constraints (`minimum`, `maximum`) must be numbers.
+* Enum values must be arrays.
+
+.PROMPT_TEMPLATE backward compatibility
+[%header,cols="3,1,3"]
+|===
+|Change type
+|Allowed
+|Reason
+
+|Add new optional variable
+|Yes
+|Existing consumers can ignore new variables
+
+|Remove unused variable (not in template)
+|Yes
+|No impact on template rendering
+
+|Remove used variable (in template)
+|No
+|Breaks template rendering
+
+|Change variable type
+|No
+|Existing variable values might become invalid
+
+|Make optional variable required
+|No
+|Existing consumers might not provide the value
+
+|Narrow enum values (remove options)
+|No
+|Existing valid values might become invalid
+
+|Change template text (same variables)
+|Yes
+|Variable contract remains intact
+
+|Remove output schema property
+|No
+|Consumers might depend on removed properties
+|===
+
+The system extracts variables from template text by using the regex pattern `\{\{(\w+)\}\}`:
+
+[source,typescript]
+----
+function extractTemplateVariables(template: string): string[] {
+    const regex = /\{\{(\w+)\}\}/g;
+    const variables: string[] = [];
+    let match;
+    while ((match = regex.exec(template)) !== null) {
+        if (!variables.includes(match[1])) {
+            variables.push(match[1]);
+        }
+    }
+    return variables;
+}
+----
+
+The canonicalization process converts PROMPT_TEMPLATE content to YAML format with the following characteristics:
+
+* Recursively sorted object keys
+* Preserved multiline template strings
+* Consistent quoting style
+
+// ref-llm-artifact-types-model-schema-implementation
+[id="llm-artifact-types-model-schema-implementation_{context}"]
+== MODEL_SCHEMA implementation details
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The MODEL_SCHEMA artifact type is wired in `schema-util/util-provider/src/main/java/io/apicurio/registry/types/provider/StandardArtifactTypeProviderRegistry.java`, with validators, extractors, and compatibility checkers in `schema-util/common/`.
+
+.MODEL_SCHEMA schema interface (Model Card Toolkit-aligned)
+[source,typescript]
+----
+interface ModelSchema {
+    $schema?: string;                           // Schema URL for identification
+    modelId: string;                            // Required: unique model identifier
+    provider?: string;                          // Provider name (OpenAI, Anthropic, etc.)
+    version?: string;                           // Model version
+    input?: Record<string, unknown>;            // Input schema (JSON Schema format)
+    output?: Record<string, unknown>;           // Output schema (JSON Schema format)
+    metadata?: Record<string, unknown>;         // Custom metadata (capabilities, etc.)
+    definitions?: Record<string, unknown>;      // Reusable schema definitions
+
+    // Model Card Toolkit-aligned sections
+    modelDetails?: ModelDetails;                // Comprehensive model metadata
+    modelParameters?: ModelParameters;          // Architecture and data info
+    quantitativeAnalysis?: QuantitativeAnalysis; // Performance metrics
+    considerations?: Considerations;            // Ethics, limitations, users
+
+    // MLflow compatibility
+    signature?: MLflowSignature;                // MLflow model signature
+}
+
+interface ModelDetails {
+    name?: string;
+    overview?: string;
+    owners?: Array<{name: string; contact?: string}>;
+    version?: {name: string; date?: string};
+    licenses?: Array<{identifier?: string; custom_text?: string}>;
+    references?: Array<{reference: string}>;
+    citations?: Array<{style?: string; citation: string}>;
+    regulatoryRequirements?: string[];
+}
+
+interface Considerations {
+    users?: string[];
+    useCases?: string[];
+    limitations?: string[];
+    tradeoffs?: string[];
+    ethicalConsiderations?: Array<{name: string; mitigationStrategy?: string}>;
+    fairnessConsiderations?: Array<{name: string; mitigationStrategy?: string}>;
+}
+----
+
+The `acceptsContent()` function detects MODEL_SCHEMA content by checking the following criteria:
+
+* Content type is `application/json` or `application/x-yaml`.
+* Schema identifier: the `$schema` field contains `model-schema`.
+* Required fields: `modelId` and at least one of `input` or `output` are present.
+
+The `validate()` function checks the following rules:
+
+* `modelId` must be a non-empty string.
+* At least one of `input` or `output` must be defined.
+* `input` and `output` must be objects (JSON Schema format).
+* `metadata` must be an object if provided.
+
+.MODEL_SCHEMA backward compatibility
+[%header,cols="3,1,3"]
+|===
+|Change type
+|Allowed
+|Reason
+
+|Add optional input property
+|Yes
+|Existing consumers can ignore new fields
+
+|Add required input property
+|No
+|Existing consumers do not provide new required fields
+
+|Remove input property
+|No
+|Consumers might still send removed properties
+
+|Change input property type
+|No
+|Existing data might become invalid
+
+|Add output property
+|Yes
+|Consumers can ignore new fields in response
+
+|Remove output property
+|No
+|Consumers might depend on removed properties
+
+|Change output property type
+|No
+|Consumer parsing might break
+
+|Remove input schema entirely
+|No
+|Contract changes fundamentally
+
+|Remove output schema entirely
+|No
+|Contract changes fundamentally
+|===
+
+The canonicalization process converts MODEL_SCHEMA content to JSON format with the following characteristics:
+
+* Recursively sorted object keys
+* Consistent indentation (2 spaces)
+* No trailing whitespace
+
+// ref-llm-artifact-types-prompt-rendering-service
+[id="llm-artifact-types-prompt-rendering-service_{context}"]
+== Prompt rendering service
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+{registry} includes a server-side prompt rendering service for PROMPT_TEMPLATE artifacts.
+
+.REST API endpoint
+[source,text]
+----
+POST /apis/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/render
+----
+
+.Request body
+[source,json]
+----
+{
+  "variables": {
+    "variableName": "value",
+    "anotherVariable": 123
+  }
+}
+----
+
+.Response body
+[source,json]
+----
+{
+  "rendered": "The fully rendered template with substituted values",
+  "groupId": "default",
+  "artifactId": "my-prompt",
+  "version": "1.0",
+  "validationErrors": []
+}
+----
+
+The `PromptRenderingService` class (`app/src/main/java/io/apicurio/registry/services/PromptRenderingService.java`) includes the following features:
+
+.Rendering service features
+[%header,cols="2,4"]
+|===
+|Feature
+|Description
+
+|Content parsing
+|Parses YAML or JSON prompt templates
+
+|Variable substitution
+|Replaces `{{variable}}` placeholders with provided values
+
+|Type validation
+|Validates that variable values match their defined types
+
+|Required field checking
+|Reports missing required variables as validation errors
+
+|Enum validation
+|Checks that values are within allowed enum options
+
+|Range validation
+|Validates numeric values against minimum/maximum constraints
+|===
+
+A variable placeholder is a word-character name with optional surrounding whitespace, so `{{name}}` and `{{ name }}` both resolve to the variable `name`. The render endpoint does not resolve a name that contains any other character, for example `{{user.name}}` or `{{my-var}}`, and leaves it in the rendered output as literal text. Earlier versions of the render endpoint resolved such names. The MCP prompt converter also resolved a placeholder such as `{{user.name}}` when you supplied an argument of the same name. Both now use the same grammar as the prompt template validity rule.
+
+When validation fails, the response includes validation errors:
+
+[source,json]
+----
+{
+  "rendered": "Template with {{missing}} placeholder intact",
+  "groupId": "default",
+  "artifactId": "my-prompt",
+  "version": "1.0",
+  "validationErrors": [
+    {
+      "variableName": "missing",
+      "message": "Required variable is missing"
+    },
+    {
+      "variableName": "count",
+      "message": "Value 200 is greater than maximum 100"
+    }
+  ]
+}
+----
+
+// ref-llm-artifact-types-customization
+[id="llm-artifact-types-customization_{context}"]
+== LLM artifact type customization
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+You can modify the built-in LLM artifact types or use them as templates for custom types.
+
+.Source files
+[%header,cols="2,4"]
+|===
+|File
+|Purpose
+
+|`schema-util/common/.../content/ModelSchemaContentAccepter.java`
+|MODEL_SCHEMA content type detection
+
+|`schema-util/common/.../rules/validity/ModelSchemaContentValidator.java`
+|MODEL_SCHEMA validation
+
+|`schema-util/common/.../rules/compatibility/ModelSchemaCompatibilityChecker.java`
+|MODEL_SCHEMA backward compatibility checking
+
+|`schema-util/common/.../content/PromptTemplateContentAccepter.java`
+|PROMPT_TEMPLATE content type detection
+
+|`schema-util/common/.../rules/validity/PromptTemplateContentValidator.java`
+|PROMPT_TEMPLATE validation (including template variable cross-checking)
+
+|`schema-util/common/.../rules/compatibility/PromptTemplateCompatibilityChecker.java`
+|PROMPT_TEMPLATE backward compatibility checking
+
+|`schema-util/util-provider/.../StandardArtifactTypeProviderRegistry.java`
+|MODEL_SCHEMA and PROMPT_TEMPLATE provider wiring (along with all other built-in types)
+|===
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-artifact-reference.adoc[{registry} artifact reference]
+* link:https://prompty.ai/specification/page/[Microsoft Prompty Specification]
+* link:https://github.com/tensorflow/model-card-toolkit[Google Model Card Toolkit]
+* link:https://modelcontextprotocol.io/specification/2025-06-18/server/prompts[MCP Prompts Specification]

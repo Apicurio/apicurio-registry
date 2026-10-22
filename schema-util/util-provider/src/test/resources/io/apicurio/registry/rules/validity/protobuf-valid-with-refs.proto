@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package example;
+
+import "message2.proto";
+import public "message3.proto";
+
+message Message1 {
+  Message2 field1 = 1;
+  Message3 field2 = 2;
+}

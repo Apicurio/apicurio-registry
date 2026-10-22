@@ -1,0 +1,57 @@
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://example.com/stockquote.wsdl" xmlns:xsd1="http://example.com/stockquote.xsd" name="StockQuote" targetNamespace="http://example.com/stockquote.wsdl">
+
+    <types>
+       <schema xmlns="http://www.w3.org/2000/10/XMLSchema" targetNamespace="http://example.com/stockquote.xsd">
+           <element name="TradePriceRequest">
+              <complexType>
+                  <all>
+                      <element name="tickerSymbol" type="string"></element>
+                  </all>
+              </complexType>
+           </element>
+           <element name="TradePrice">
+              <complexType>
+                  <all>
+                      <element name="price" type="float"></element>
+                  </all>
+              </complexType>
+           </element>
+       </schema>
+    </types>
+
+    <message name="GetLastTradePriceInput">
+        <part element="xsd1:TradePriceRequest" name="body"></part>
+    </message>
+
+    <message name="GetLastTradePriceOutput">
+        <part element="xsd1:TradePrice" name="body"></part>
+    </message>
+
+    <portType name="StockQuotePortType">
+        <operation name="GetLastTradePrice">
+           <input message="tns:GetLastTradePriceInput"></input>
+           <output message="tns:GetLastTradePriceOutput"></output>
+        </operation>
+    </portType>
+
+    <binding name="StockQuoteSoapBinding" type="tns:StockQuotePortType">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"></soap:binding>
+        <operation name="GetLastTradePrice">
+           <soap:operation soapAction="http://example.com/GetLastTradePrice"></soap:operation>
+           <input>
+               <soap:body use="literal"></soap:body>
+           </input>
+           <output>
+               <soap:body use="literal"></soap:body>
+           </output>
+        </operation>
+    </binding>
+
+    <service name="StockQuoteService">
+        <documentation>My first service</documentation>
+        <port binding="tns:StockQuoteBinding" name="StockQuotePort">
+           <soap:address location="http://example.com/stockquote"></soap:address>
+        </port>
+    </service>
+
+</definitions>

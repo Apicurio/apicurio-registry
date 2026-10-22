@@ -1,0 +1,408 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+// assembly-installing-the-registry-docker
+[id="installing-the-registry-docker_{context}"]
+= Installing {registry} using Docker
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+Install and run {registry} using Docker with your choice of embedded H2, PostgreSQL, or Apache Kafka storage.
+
+== Prerequisites
+
+* {registry-overview}
+
+NOTE: You can install more than one replica of {registry} depending on your environment. The number of replicas depends on your storage option, for example, your Kafka or database cluster configuration, and on the number and type of artifacts stored in {registry}.
+
+[role="_additional-resources"]
+.Additional resources
+* https://github.com/Apicurio/apicurio-registry[Apicurio Registry source repository]
+
+//INCLUDES
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+// proc-installing-registry-h2-storage
+[id="installing-registry-h2-storage_{context}"]
+== Installing {registry} with default configuration (embedded H2 database)
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can install and run {registry} with the default storage configuration from a container image. When you do not configure storage explicitly, the registry uses SQL storage with an embedded H2 database.
+
+NOTE: The default embedded H2 configuration is suitable for development and testing only. The registry stores all data in memory and loses it when you restart the container. For production, configure PostgreSQL or Kafka storage.
+
+.Prerequisites
+
+* Docker is installed and the Docker daemon is running.
+* You can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
+
+.Procedure
+
+. Get the {registry} container image:
++
+[source,bash]
+----
+$ docker pull apicurio/apicurio-registry:VERSION
+----
++
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry/tags.
+
+. Run the container image:
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 apicurio/apicurio-registry:VERSION
+----
++
+NOTE: All storage variants of {registry} 3.x now share the same container image of `apicurio/apicurio-registry`. This is in contrast to the separate container images used by {registry} 2.x. Choosing a storage variant is now a matter of configuring the single backend/server container image.
++
+NOTE: Every release is also published as `apicurio/apicurio-registry:VERSION-mutable`, a variant that can be extended with Java providers for custom artifact types without rebuilding {registry}. See xref:assembly-custom-artifact-types.adoc[].
+
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create an Avro schema artifact for a share price application in the registry:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-type: application/json; artifactType=AVRO" -H "X-Registry-ArtifactId: share-price" --data '{"type":"record","name":"price","namespace":"com.example","fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}' http://localhost:8080/apis/registry/v3/groups/my-group/artifacts
+----
+
+. Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
++
+[source,bash]
+----
+{"name":"price","createdBy":"","createdOn":"2021-03-19T17:48:17+0000","modifiedOn":"2021-03-19T17:48:17+0000","id":"share-price","version":1,"type":"AVRO","globalId":12,"state":"ENABLED","groupId":"my-group","contentId":12}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[]
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+// proc-installing-registry-sql-storage
+[id="installing-registry-sql-storage_{context}"]
+== Installing {registry} with SQL database storage
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+Install and run {registry} with storage in a PostgreSQL database from a container image. This storage option is suitable for production environments.
+
+.Prerequisites
+
+* Docker is installed and the Docker daemon is running.
+* You can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
+* A PostgreSQL database server is installed and running. For example:
++
+[source,bash]
+----
+$ postgres -D /usr/local/pgsql/data
+----
++
+For more details, see https://www.postgresql.org/docs/12/server-start.html
+
+.Procedure
+. Get the {registry} container image:
++
+[source,bash]
+----
+$ docker pull apicurio/apicurio-registry:VERSION
+----
++
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry/tags.
+
+. Run the container image and specify the following environment variables for your PostgreSQL system:
++
+** `APICURIO_STORAGE_KIND` - The storage variant. Set this to `sql`.
+** `APICURIO_STORAGE_SQL_KIND` - The type of SQL database to use. Set this to `postgresql`.
+** `APICURIO_DATASOURCE_URL` - The database connection URL.
+** `APICURIO_DATASOURCE_USERNAME`, `APICURIO_DATASOURCE_PASSWORD` - The credentials for the PostgreSQL server.
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 \
+-e "APICURIO_STORAGE_KIND=sql" \
+-e "APICURIO_STORAGE_SQL_KIND=postgresql" \
+-e "APICURIO_DATASOURCE_URL=jdbc:postgresql://postgres/apicurio-registry" \
+-e "APICURIO_DATASOURCE_USERNAME=apicurio-registry" \
+-e "APICURIO_DATASOURCE_PASSWORD=password" \
+apicurio/apicurio-registry:VERSION
+----
+
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create an Avro schema artifact for a share price application in the registry:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-type: application/json" --data '{"artifactId":"share-price","artifactType":"AVRO","name":"Share Price","labels":{"environment":"DEV","category":"finance"},"firstVersion":{"version":"1.0.0","content":{"content":"{\"type\":\"record\",\"name\":\"price\",\"namespace\":\"com.example\",\"fields\":[{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"price\",\"type\":\"string\"}]}","contentType":"application/json"}}}' http://localhost:8080/apis/registry/v3/groups/my-group/artifacts
+----
+. Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
++
+[source,bash]
+----
+{"artifact":{"name":"Share Price","owner":"","createdOn":"2024-09-26T16:26:03Z","modifiedBy":"","modifiedOn":"2024-09-26T16:26:03Z","artifactType":"AVRO","labels":{"environment":"DEV","category":"finance"},"groupId":"my-group","artifactId":"share-price"},"version":{"version":"1.0.0","owner":"","createdOn":"2024-09-26T16:26:03Z","artifactType":"AVRO","globalId":1,"state":"ENABLED","groupId":"my-group","contentId":1,"artifactId":"share-price"}}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[]
+* link:https://www.postgresql.org/docs/12/index.html[PostgreSQL documentation]
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+// con-installing-registry-file-based-secrets
+[id="installing-registry-file-based-secrets_{context}"]
+== File-based secrets for database credentials
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+{registry} supports file-based secrets, a generic `_FILE` suffix pattern that lets you provide credentials, such as database passwords, from files instead of environment variables. This approach is more secure than passing credentials directly as environment variables.
+
+Instead of passing credentials and secrets as environment variables (which can be exposed in process lists and container
+inspection), you can use file-based secrets. {registry} supports a generic `_FILE` suffix pattern that works with
+any configuration property.
+
+Quarkus automatically converts environment variables to configuration properties. For example,
+`APICURIO_DATASOURCE_PASSWORD_FILE` becomes the property `apicurio.datasource.password.file`. The
+FileBasedSecretsInterceptor reads the file path from these properties and loads the actual values from the files.
+
+To use file-based secrets for any configuration property, take any environment variable name (for example, `APICURIO_DATASOURCE_PASSWORD`), add the `_FILE` suffix (for example, `APICURIO_DATASOURCE_PASSWORD_FILE`), and set the value to a file path containing the secret. {registry} reads the file contents and uses them as the actual property value.
+
+This works for *any* configuration property, not only the credential variables listed in the following reference.
+
+When a `_FILE` variant is set, the registry reads the value from the specified file instead of using the direct
+environment variable. Configuration precedence: System properties (400) > File-based secrets (350) > Environment
+variables (300) > `application.properties` (250).
+
+**File format**
+
+Secret files must contain only the credential value in plain text (UTF-8 encoding). Leading and trailing whitespace
+is automatically trimmed. For example:
+
+[source,text]
+----
+mypassword
+----
+
+**Security considerations**
+
+* Ensure that secret files have restrictive permissions (for example, `chmod 600`)
+* Never commit secret files to version control (add them to `.gitignore`)
+* The registry logs a warning if secret files are world-readable
+* If a `_FILE` variable is set but the file does not exist or is not readable, the registry fails to start with a
+  clear error message
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://docs.docker.com/compose/how-tos/use-secrets/[Docker Compose secrets documentation]
+* xref:installing-registry-file-based-secrets-reference_{context}[]
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+// ref-installing-registry-file-based-secrets
+[id="installing-registry-file-based-secrets-reference_{context}"]
+== Common file-based credential variables
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Reference list of the environment variables and configuration properties that support the file-based secrets `_FILE` suffix pattern in {registry}, grouped by credential type.
+
+The following list shows commonly used file-based credential environment variables and their corresponding properties:
+
+Database credentials::
+* `APICURIO_DATASOURCE_USERNAME_FILE` (property: `apicurio.datasource.username.file`)
+* `APICURIO_DATASOURCE_PASSWORD_FILE` (property: `apicurio.datasource.password.file`)
+* `APICURIO_DATASOURCE_BLUE_USERNAME_FILE` (property: `apicurio.datasource.blue.username.file`)
+* `APICURIO_DATASOURCE_BLUE_PASSWORD_FILE` (property: `apicurio.datasource.blue.password.file`)
+* `APICURIO_DATASOURCE_GREEN_USERNAME_FILE` (property: `apicurio.datasource.green.username.file`)
+* `APICURIO_DATASOURCE_GREEN_PASSWORD_FILE` (property: `apicurio.datasource.green.password.file`)
+
+OAuth/OIDC credentials::
+* `QUARKUS_OIDC_CLIENT_SECRET_FILE` (property: `quarkus.oidc.client-secret.file`)
+* `APICURIO_UI_AUTH_OIDC_CLIENT_SECRET_FILE` (property: `apicurio.ui.auth.oidc.client-secret.file`)
+
+Kafka SASL credentials::
+* `APICURIO_KAFKASQL_SECURITY_SASL_CLIENT_ID_FILE` (property: `apicurio.kafkasql.security.sasl.client-id.file`)
+* `APICURIO_KAFKASQL_SECURITY_SASL_CLIENT_SECRET_FILE` (property: `apicurio.kafkasql.security.sasl.client-secret.file`)
+
+Kafka SSL/TLS passwords::
+* `APICURIO_KAFKASQL_SECURITY_SSL_TRUSTSTORE_PASSWORD_FILE` (property:
+  `apicurio.kafkasql.security.ssl.truststore.password.file`)
+* `APICURIO_KAFKASQL_SECURITY_SSL_KEYSTORE_PASSWORD_FILE` (property:
+  `apicurio.kafkasql.security.ssl.keystore.password.file`)
+* `APICURIO_KAFKASQL_SECURITY_SSL_KEY_PASSWORD_FILE` (property: `apicurio.kafkasql.security.ssl.key.password.file`)
+
+Any other property::
+The `_FILE` suffix works with any configuration property. Add `_FILE` to any environment variable name and set
+the value to a file path.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:installing-registry-file-based-secrets_{context}[]
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+// proc-installing-registry-sql-storage-secrets
+[id="installing-registry-sql-storage-secrets_{context}"]
+== Using file-based secrets for database credentials
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+Use file-based secrets for database credentials with {registry} when you use Docker Compose.
+This approach follows Docker's recommended secret management practices. It is more secure than passing credentials as
+environment variables.
+
+.Prerequisites
+
+* Docker and Docker Compose are installed.
+* A database server is installed and running (PostgreSQL, MySQL, or Microsoft SQL Server).
+
+.Procedure
+
+. Create a directory for your secret files:
++
+[source,bash]
+----
+$ mkdir -p secrets
+----
+
+. Create files containing your database credentials:
++
+[source,bash]
+----
+$ echo "pguser" > secrets/db_user.txt
+$ echo "pgpass" > secrets/db_password.txt
+----
+
+. Set restrictive permissions on the secret files:
++
+[source,bash]
+----
+$ chmod 600 secrets/*.txt
+----
+
+. Create a `docker-compose.yml` file that uses Docker Compose secrets:
++
+[source,yaml]
+----
+version: '3.8'
+
+secrets:
+  registry_db_user:
+    file: ./secrets/db_user.txt
+  registry_db_password:
+    file: ./secrets/db_password.txt
+
+services:
+  apicurio-registry:
+    image: apicurio/apicurio-registry:VERSION
+    environment:
+      APICURIO_STORAGE_KIND: "sql"
+      APICURIO_STORAGE_SQL_KIND: "postgresql"
+      APICURIO_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/registrydb"
+      APICURIO_DATASOURCE_USERNAME_FILE: /run/secrets/registry_db_user
+      APICURIO_DATASOURCE_PASSWORD_FILE: /run/secrets/registry_db_password
+    secrets:
+      - registry_db_user
+      - registry_db_password
+    ports:
+      - "8080:8080"
+----
+
+. Start the services:
++
+[source,bash]
+----
+$ docker compose up -d
+----
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/distro/docker-compose/pg-secrets[PostgreSQL with file-based secrets example]
+* xref:installing-registry-file-based-secrets_{context}[]
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_installing-the-registry.adoc
+
+// proc-installing-registry-kafka-storage
+[id="installing-registry-kafka-storage_{context}"]
+== Installing {registry} with Apache Kafka storage
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can install and run {registry} with Kafka storage from a container image. The `kafkasql` storage option uses Kafka as the primary data store. It uses an embedded H2 database as a local SQL store that the registry rebuilds from the Kafka journal on each startup. This storage option is suitable for production environments.
+
+.Prerequisites
+
+* Docker is installed and the Docker daemon is running.
+* You can connect to the container repository: https://hub.docker.com/r/apicurio/apicurio-registry.
+* `KAFKA_HOME` is set to the location of your Kafka-based system.
+* Kafka broker is running. For example:
++
+[source,bash]
+----
+$KAFKA_HOME/bin/zookeeper-server-start.sh $KAFKA_HOME/config/zookeeper.properties &
+$KAFKA_HOME/bin/kafka-server-start.sh $KAFKA_HOME/config/server.properties &
+----
++
+For more details, see https://kafka.apache.org/quickstart.
+
+.Procedure
+. Get the {registry} container image:
++
+[source,bash]
+----
+$ docker pull apicurio/apicurio-registry:VERSION
+----
++
+`VERSION` is the {registry} release version, for example, `{registry-docker-version}`. For more details, see https://hub.docker.com/r/apicurio/apicurio-registry/tags.
+
+. Run the container image and specify the following environment variables for your Kafka system:
++
+** `APICURIO_STORAGE_KIND` - Set this to `kafkasql`.
+** `APICURIO_KAFKASQL_BOOTSTRAP_SERVERS` - The address or addresses of your Kafka brokers.
++
+For example:
++
+[source,bash]
+----
+$ docker run -it -p 8080:8080 -e "APICURIO_STORAGE_KIND=kafkasql" -e "APICURIO_KAFKASQL_BOOTSTRAP_SERVERS=kafka:9092" apicurio/apicurio-registry:latest
+----
+
+. Send a test request using the {registry} REST API. For example, enter the following `curl` command to create an Avro schema artifact for a share price application in the registry:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-type: application/json" --data '{"artifactId":"share-price","artifactType":"AVRO","name":"Share Price","labels":{"environment":"DEV","category":"finance"},"firstVersion":{"version":"1.0.0","content":{"content":"{\"type\":\"record\",\"name\":\"price\",\"namespace\":\"com.example\",\"fields\":[{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"price\",\"type\":\"string\"}]}","contentType":"application/json"}}}' http://localhost:8080/apis/registry/v3/groups/my-group/artifacts
+----
+. Verify that the response includes the expected JSON body to confirm that the Avro schema artifact was created in the registry. For example:
++
+[source,bash]
+----
+{"artifact":{"name":"Share Price","owner":"","createdOn":"2024-09-26T16:26:03Z","modifiedBy":"","modifiedOn":"2024-09-26T16:26:03Z","artifactType":"AVRO","labels":{"environment":"DEV","category":"finance"},"groupId":"my-group","artifactId":"share-price"},"version":{"version":"1.0.0","owner":"","createdOn":"2024-09-26T16:26:03Z","artifactType":"AVRO","globalId":1,"state":"ENABLED","groupId":"my-group","contentId":1,"artifactId":"share-price"}}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples[]
+* https://kafka.apache.org/documentation/[Apache Kafka documentation]

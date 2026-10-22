@@ -1,0 +1,64 @@
+# GitOps Local Volume Example
+#
+# Loads registry data from a ConfigMap without requiring a remote Git repository.
+# An init container creates a local Git repository from the ConfigMap data.
+# The sidecar container starts but idles (no repos configured).
+#
+# This example is self-contained and works without internet access.
+# Also used by the GitOps operator integration test.
+#
+# Steps:
+#   1. Deploy the test data ConfigMap:
+#      kubectl apply -f gitops-test-data.configmap.yaml
+#
+#   2. Deploy this CR:
+#      kubectl apply -f example-local-volume.yaml
+#
+#   3. Verify:
+#      kubectl port-forward svc/gitops-local-volume-app-service 8080:8080
+#      curl http://localhost:8080/apis/registry/v3/groups
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: gitops-local-volume
+spec:
+  app:
+    storage:
+      type: gitops
+      gitops:
+        registryId: prod
+    podTemplateSpec:
+      spec:
+        initContainers:
+          - name: git-init
+            image: alpine/git:latest
+            command: ["sh", "-c"]
+            args:
+              - |
+                mkdir -p /repos/default/content
+                # ConfigMap keys use '---' as path separator (e.g., content---greeting.avsc)
+                for f in /data/*; do
+                  name=$(basename "$f")
+                  target=$(echo "$name" | sed 's/---/\//g')
+                  mkdir -p "/repos/default/$(dirname "$target")"
+                  cp "$f" "/repos/default/$target"
+                done
+                cd /repos/default
+                git init
+                git add -A
+                git -c user.name=init -c user.email=init@test commit -m "init"
+            volumeMounts:
+              - name: gitops-repos
+                mountPath: /repos
+              - name: test-data
+                mountPath: /data
+                readOnly: true
+        volumes:
+          - name: test-data
+            configMap:
+              name: gitops-test-data
+    ingress:
+      host: gitops-local-volume-app.apps.cluster.example
+  ui:
+    ingress:
+      host: gitops-local-volume-ui.apps.cluster.example

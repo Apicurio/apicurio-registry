@@ -1,0 +1,26 @@
+[id="registry-operator-quickstart"]
+= {operator} quickstart
+
+You can quickly deploy the {operator} on the command line, without the Operator Lifecycle Manager, by executing a single command.
+
+ifdef::apicurio-registry-operator-dev[]
+NOTE: This procedure deploys the latest {operator} development version. To deploy a version that has already been released, see install files in https://github.com/Apicurio/apicurio-registry-operator/tree/main/install[{operator} GitHub repository].
+endif::[]
+
+.Procedure
+. Choose the `$NAMESPACE` to use:
++
+[source,bash]
+----
+export NAMESPACE="default"
+----
+
+. Get the installation file and apply it to your cluster:
++
+[source,bash,subs="attributes"]
+----
+curl -sSL "https://raw.githubusercontent.com/Apicurio/apicurio-registry-operator/{operator-version-latest-release-tag}/install/install.yaml" |
+sed "s/apicurio-registry-operator-namespace/$NAMESPACE/g" | kubectl apply -f - -n $NAMESPACE
+----
++
+NOTE: To deploy an older release of {operator}, follow the documentation for that version. If you are deploying on OpenShift, use the `oc` command with the same arguments.

@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apicurio-registry-operator
+  namespace: ${PLACEHOLDER_NAMESPACE}
+spec:
+  replicas: 1
+  template:
+    spec:
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: apicurio-registry-operator
+          image: PLACEHOLDER_IMAGE
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: APICURIO_OPERATOR_WATCHED_NAMESPACES
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['olm.targetNamespaces']
+            - name: QUARKUS_PROFILE
+              value: prod
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          startupProbe:
+            httpGet:
+              path: /q/health/started
+              port: 8080
+            # Give the operator more time on slower clusters.
+            # 20 + (14-1)*5 = 85s, plus 5s period buffer = 90s
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 14
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8080
+            # 0 + (3-1)*10 = 20s
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: 8080
+            # 0 + (3-1)*10 = 20s
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 3
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          resources: # TODO
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 200m
+              memory: 500Mi
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 100Mi
+      serviceAccountName: apicurio-registry-operator

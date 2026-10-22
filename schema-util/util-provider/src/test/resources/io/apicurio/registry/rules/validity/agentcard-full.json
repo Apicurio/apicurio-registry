@@ -1,0 +1,26 @@
+{
+  "name": "CompleteAgent",
+  "description": "A fully-featured agent card with all fields",
+  "version": "2.0.0",
+  "protocolVersion": "1.0",
+  "supportedInterfaces": [
+    { "url": "https://complete.example.com/jsonrpc", "protocolBinding": "jsonrpc", "protocolVersion": "1.0" },
+    { "url": "https://complete.example.com/rest", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+  ],
+  "provider": { "organization": "Complete Corp", "url": "https://complete.example.com" },
+  "capabilities": { "streaming": true, "pushNotifications": true, "extendedAgentCard": false, "extensions": [{"uri": "https://example.com/ext/custom", "description": "Custom extension", "required": false}] },
+  "skills": [
+    { "id": "process", "name": "Data Processing", "description": "Process data streams", "tags": ["data", "processing"], "examples": ["Process CSV data"], "inputModes": ["text", "application/json"], "outputModes": ["text"] }
+  ],
+  "defaultInputModes": ["text", "application/json"],
+  "defaultOutputModes": ["text"],
+  "securitySchemes": {
+    "bearer": { "type": "httpAuth", "scheme": "Bearer", "bearerFormat": "JWT" },
+    "apikey": { "type": "apiKey", "name": "X-API-Key", "location": "header" }
+  },
+  "securityRequirements": [
+    { "bearer": ["read", "write"] }
+  ],
+  "iconUrl": "https://complete.example.com/icon.png",
+  "documentationUrl": "https://docs.complete.example.com"
+}

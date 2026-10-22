@@ -1,0 +1,236 @@
+package io.apicurio.registry.json.rules.compatibility.jsonschema.diff;
+
+import io.apicurio.registry.json.rules.compatibility.jsonschema.JsonSchemaWrapperVisitor;
+import io.apicurio.registry.json.rules.compatibility.jsonschema.wrapper.CombinedSchemaWrapper;
+import io.apicurio.registry.json.rules.compatibility.jsonschema.wrapper.ObjectSchemaWrapper;
+import io.apicurio.registry.json.rules.compatibility.jsonschema.wrapper.SchemaWrapper;
+import org.everit.json.schema.CombinedSchema;
+import org.everit.json.schema.ObjectSchema;
+import org.everit.json.schema.Schema;
+import org.everit.json.schema.StringSchema;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType.*;
+import static io.apicurio.registry.json.rules.compatibility.jsonschema.wrapper.WrapUtil.wrap;
+import static java.util.stream.Collectors.toMap;
+
+public class ObjectSchemaDiffVisitor extends JsonSchemaWrapperVisitor {
+
+    private final DiffContext ctx;
+    private final ObjectSchema original;
+    private ObjectSchemaWrapper schema;
+
+    public ObjectSchemaDiffVisitor(DiffContext ctx, ObjectSchema original) {
+        this.ctx = ctx;
+        this.original = original;
+    }
+
+    @Override
+    public void visitObjectSchema(ObjectSchemaWrapper objectSchema) {
+        ctx.log("Visiting " + objectSchema + " at " + objectSchema.getWrapped().getLocation());
+        this.schema = objectSchema;
+        super.visitObjectSchema(objectSchema);
+    }
+
+    @Override
+    public void visitRequiredPropertyName(String requiredPropName) {
+        // this is solved on the higher level
+        super.visitRequiredPropertyName(requiredPropName);
+    }
+
+    @Override
+    public void visitRequiredProperties(List<String> requiredProperties) {
+        DiffUtil.diffSetChanged(ctx.sub("required"), new HashSet<>(original.getRequiredProperties()),
+                new HashSet<>(requiredProperties), OBJECT_TYPE_REQUIRED_PROPERTIES_ADDED,
+                OBJECT_TYPE_REQUIRED_PROPERTIES_REMOVED, OBJECT_TYPE_REQUIRED_PROPERTIES_CHANGED,
+                OBJECT_TYPE_REQUIRED_PROPERTIES_MEMBER_ADDED, OBJECT_TYPE_REQUIRED_PROPERTIES_MEMBER_REMOVED);
+        super.visitRequiredProperties(requiredProperties);
+    }
+
+    @Override
+    public void visitPropertyNameSchema(SchemaWrapper propertyNameSchema) {
+        DiffContext subCtx = ctx.sub("properties");
+        if (DiffUtil.diffSubschemaAddedRemoved(subCtx, original.getPropertyNameSchema(), propertyNameSchema,
+                OBJECT_TYPE_PROPERTY_SCHEMA_ADDED, OBJECT_TYPE_PROPERTY_SCHEMA_REMOVED)) {
+            propertyNameSchema.accept(new SchemaDiffVisitor(subCtx, original.getPropertyNameSchema()));
+        }
+        super.visitPropertyNameSchema(propertyNameSchema);
+    }
+
+    @Override
+    public void visitMinProperties(Integer minProperties) {
+        DiffUtil.diffInteger(ctx.sub("minProperties"), original.getMinProperties(), minProperties,
+                OBJECT_TYPE_MIN_PROPERTIES_ADDED, OBJECT_TYPE_MIN_PROPERTIES_REMOVED,
+                OBJECT_TYPE_MIN_PROPERTIES_INCREASED, OBJECT_TYPE_MIN_PROPERTIES_DECREASED);
+        super.visitMinProperties(minProperties);
+    }
+
+    @Override
+    public void visitMaxProperties(Integer maxProperties) {
+        DiffUtil.diffInteger(ctx.sub("maxProperties"), original.getMaxProperties(), maxProperties,
+                OBJECT_TYPE_MAX_PROPERTIES_ADDED, OBJECT_TYPE_MAX_PROPERTIES_REMOVED,
+                OBJECT_TYPE_MAX_PROPERTIES_INCREASED, OBJECT_TYPE_MAX_PROPERTIES_DECREASED);
+        super.visitMaxProperties(maxProperties);
+    }
+
+    @Override
+    public void visitAllPropertyDependencies(Map<String, Set<String>> propertyDependencies) {
+        DiffUtil.diffSetChanged(ctx.sub("dependencies"), new HashSet<>(original.getPropertyDependencies().keySet()),
+                new HashSet<>(propertyDependencies.keySet()), OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_ADDED,
+                OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_REMOVED,
+                OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_CHANGED,
+                OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_MEMBER_ADDED,
+                OBJECT_TYPE_PROPERTY_DEPENDENCIES_KEYS_MEMBER_REMOVED);
+        super.visitAllPropertyDependencies(propertyDependencies);
+    }
+
+    @Override
+    public void visitPropertyDependencies(String ifPresent, Set<String> allMustBePresent) {
+        if (original.getPropertyDependencies().containsKey(ifPresent)) {
+            DiffUtil.diffSetChanged(ctx.sub("dependencies/" + ifPresent),
+                    original.getPropertyDependencies().get(ifPresent), allMustBePresent, UNDEFINED_UNUSED,
+                    UNDEFINED_UNUSED, OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_CHANGED,
+                    OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_ADDED,
+                    OBJECT_TYPE_PROPERTY_DEPENDENCIES_VALUE_MEMBER_REMOVED);
+        }
+        super.visitPropertyDependencies(ifPresent, allMustBePresent);
+    }
+
+    @Override
+    public void visitAdditionalProperties(boolean permitsAdditionalProperties) {
+        if (DiffUtil.diffBooleanTransition(ctx.sub("additionalProperties"), original.permitsAdditionalProperties(),
+                permitsAdditionalProperties, true, OBJECT_TYPE_ADDITIONAL_PROPERTIES_FALSE_TO_TRUE,
+                OBJECT_TYPE_ADDITIONAL_PROPERTIES_TRUE_TO_FALSE,
+                OBJECT_TYPE_ADDITIONAL_PROPERTIES_BOOLEAN_UNCHANGED)) {
+
+            if (permitsAdditionalProperties) {
+                Schema updatedAdditionalProperties = schema.getSchemaOfAdditionalProperties() == null ? null
+                    : schema.getSchemaOfAdditionalProperties().getWrapped();
+                DiffUtil.diffSchemaOrTrue(ctx.sub("schemaOfAdditionalItems"),
+                        original.getSchemaOfAdditionalProperties(), updatedAdditionalProperties,
+                        OBJECT_TYPE_ADDITIONAL_PROPERTIES_SCHEMA_UNCHANGED,
+                        OBJECT_TYPE_ADDITIONAL_PROPERTIES_EXTENDED,
+                        OBJECT_TYPE_ADDITIONAL_PROPERTIES_NARROWED,
+                        OBJECT_TYPE_ADDITIONAL_PROPERTIES_SCHEMA_CHANGED);
+            }
+        }
+        super.visitAdditionalProperties(permitsAdditionalProperties);
+    }
+
+    @Override
+    public void visitSchemaOfAdditionalProperties(SchemaWrapper schemaOfAdditionalProperties) {
+        // This is also handled by visitAdditionalProperties
+        super.visitSchemaOfAdditionalProperties(schemaOfAdditionalProperties);
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    public void visitPatternProperties(Map<Pattern, SchemaWrapper> patternProperties) {
+        DiffUtil.diffSetChanged(ctx.sub("patternProperties"),
+                original.getPatternProperties().keySet().stream().map(Pattern::toString)
+                        .collect(Collectors.toSet()),
+                patternProperties.keySet().stream().map(Pattern::toString).collect(Collectors.toSet()),
+                OBJECT_TYPE_PATTERN_PROPERTY_KEYS_ADDED, OBJECT_TYPE_PATTERN_PROPERTY_KEYS_REMOVED,
+                OBJECT_TYPE_PATTERN_PROPERTY_KEYS_CHANGED, OBJECT_TYPE_PATTERN_PROPERTY_KEYS_MEMBER_ADDED,
+                OBJECT_TYPE_PATTERN_PROPERTY_KEYS_MEMBER_REMOVED);
+        super.visitPatternProperties(patternProperties);
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    public void visitPatternPropertySchema(Pattern propertyNamePattern, SchemaWrapper schema) {
+        final Map<String, Schema> stringifiedOriginal = original.getPatternProperties().entrySet().stream()
+                .collect(toMap(e -> e.getKey().toString(), Entry::getValue)); // TODO maybe add a wrapper
+                                                                              // class for Pattern
+
+        if (stringifiedOriginal.containsKey(propertyNamePattern.toString())) {
+            schema.accept(new SchemaDiffVisitor(ctx.sub("patternProperties/" + propertyNamePattern),
+                    stringifiedOriginal.get(propertyNamePattern.toString())));
+        }
+        super.visitPatternPropertySchema(propertyNamePattern, schema);
+    }
+
+    @Override
+    public void visitSchemaDependencies(Map<String, SchemaWrapper> schemaDependencies) {
+        DiffUtil.diffSetChanged(ctx.sub("dependencies"), new HashSet<>(original.getSchemaDependencies().keySet()),
+                new HashSet<>(schemaDependencies.keySet()), OBJECT_TYPE_SCHEMA_DEPENDENCIES_ADDED,
+                OBJECT_TYPE_SCHEMA_DEPENDENCIES_REMOVED, OBJECT_TYPE_SCHEMA_DEPENDENCIES_CHANGED,
+                OBJECT_TYPE_SCHEMA_DEPENDENCIES_MEMBER_ADDED, OBJECT_TYPE_SCHEMA_DEPENDENCIES_MEMBER_REMOVED);
+        super.visitSchemaDependencies(schemaDependencies);
+    }
+
+    @Override
+    public void visitSchemaDependency(String propName, SchemaWrapper schema) {
+        if (original.getSchemaDependencies().containsKey(propName)) {
+            schema.accept(new SchemaDiffVisitor(ctx.sub("dependencies/" + propName),
+                    original.getSchemaDependencies().get(propName))); // TODO null/invalid schema
+        }
+        super.visitSchemaDependency(propName, schema);
+    }
+
+    @Override
+    public void visitPropertySchemas(Map<String, SchemaWrapper> propertySchemas) {
+        @SuppressWarnings("serial")
+        Set<String> allPropertySchemaNames = new HashSet<String>() {
+            {
+                addAll(original.getPropertySchemas().keySet());
+                addAll(schema.getPropertySchemas().keySet());
+            }
+        };
+
+        List<SchemaWrapper> addedPropertySchemas = new ArrayList<>();
+        List<SchemaWrapper> removedPropertySchemas = new ArrayList<>();
+        for (String propertySchemaName : allPropertySchemaNames) {
+            boolean existInOriginal = original.getPropertySchemas().containsKey(propertySchemaName);
+            boolean existInUpdated = propertySchemas.containsKey(propertySchemaName);
+            if (!existInOriginal && existInUpdated) {
+                // adding properties
+                addedPropertySchemas.add(propertySchemas.get(propertySchemaName));
+            } else if (existInOriginal && !existInUpdated) {
+                // removing properties
+                removedPropertySchemas.add(wrap(original.getPropertySchemas().get(propertySchemaName)));
+            } else if (existInOriginal && existInUpdated) {
+                visitPropertySchema(propertySchemaName, propertySchemas.get(propertySchemaName));
+            }
+        }
+        if (!addedPropertySchemas.isEmpty()) {
+            DiffUtil.diffSubSchemasAdded(ctx.sub("propertySchemasAdded"), addedPropertySchemas,
+                    original.permitsAdditionalProperties(), wrap(original.getSchemaOfAdditionalProperties()),
+                    schema.permitsAdditionalProperties(), OBJECT_TYPE_PROPERTY_SCHEMAS_EXTENDED,
+                    OBJECT_TYPE_PROPERTY_SCHEMAS_NARROWED, OBJECT_TYPE_PROPERTY_SCHEMAS_CHANGED);
+        }
+        if (!removedPropertySchemas.isEmpty()) {
+            DiffUtil.diffSubSchemasRemoved(ctx.sub("propertySchemasRemoved"), removedPropertySchemas,
+                    schema.permitsAdditionalProperties(), schema.getSchemaOfAdditionalProperties(),
+                    original.permitsAdditionalProperties(), OBJECT_TYPE_PROPERTY_SCHEMAS_NARROWED,
+                    OBJECT_TYPE_PROPERTY_SCHEMAS_NARROWED_COMPATIBLE_WITH_ADDITIONAL_PROPERTIES,
+                    OBJECT_TYPE_PROPERTY_SCHEMAS_EXTENDED, OBJECT_TYPE_PROPERTY_SCHEMAS_CHANGED);
+        }
+        super.visitPropertySchemas(propertySchemas);
+    }
+
+    @Override
+    public void visitPropertySchema(String propertyName, SchemaWrapper schema) {
+        if (original.getPropertySchemas().containsKey(propertyName)) {
+            Schema originalPropertySchema = original.getPropertySchemas().get(propertyName);
+            if (originalPropertySchema instanceof StringSchema && schema instanceof CombinedSchemaWrapper) {
+                originalPropertySchema = CombinedSchema.builder().criterion(CombinedSchema.ANY_CRITERION)
+                        .subschema(originalPropertySchema).build();
+            }
+
+            schema.accept(
+                    new SchemaDiffVisitor(ctx.sub("properties/" + propertyName), originalPropertySchema)); // TODO
+                                                                                                           // null/invalid
+                                                                                                           // schema
+        }
+        super.visitPropertySchema(propertyName, schema);
+    }
+}

@@ -1,0 +1,249 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="versioning-support-policy_{context}"]
+= Versioning and support policy
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+{registry} follows a defined versioning scheme and support policy, offers multiple release channels, and supports upgrading between versions with guidance for handling rollbacks.
+
+
+[id="versioning-scheme_{context}"]
+== Version numbering scheme
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+{registry} follows https://semver.org/[Semantic Versioning] with a clear distinction between minor and patch releases.
+
+[cols="1,2,2", options="header"]
+|===
+| Release type
+| Contents
+| Example
+
+| *Minor* (for example, 3.3.0 to 3.4.0)
+| New features, enhancements, and bug fixes
+| Scheduled development milestones
+
+| *Patch* (for example, 3.3.0 to 3.3.1)
+| CVE and security fixes only
+| Dependency upgrades, security patches
+|===
+
+Patch releases do not contain new features or bug fixes.
+They are limited to changes that address known security vulnerabilities.
+
+
+[id="support-window_{context}"]
+== Support window
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+{registry} maintains the two most recent minor versions with security patches.
+
+When a new minor version is released, the oldest supported minor version reaches end-of-life and no longer receives updates.
+
+The following example illustrates how the support window moves forward as new minor versions are released. Version numbers after the current release are illustrative, not announcements.
+
+.Example support timeline
+[cols="1,1,1", options="header"]
+|===
+| Event
+| Supported versions
+| End-of-life
+
+| 3.3.0 released
+| 3.3.x, 3.2.x
+| 3.1.x and older
+
+| Next minor release (a future 3.4.0)
+| 3.4.x, 3.3.x
+| 3.2.x and older
+|===
+
+
+[id="release-channels_{context}"]
+== Release channels
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+{registry} provides multiple release channels so that you can choose the update cadence that suits your deployment.
+
+Choose the channel type that matches how you deploy {registry}: container images or the {operator}.
+
+
+[id="docker-image-tags_{context}"]
+== Docker image tags
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+{registry} container images use several tag conventions that determine how frequently your deployment receives updates.
+
+[cols="1,3", options="header"]
+|===
+| Tag
+| Description
+
+| `3.3.0`
+| Pinned to an exact release. Never changes.
+
+| `3.3`
+| Floating tag that always points to the latest patch in the 3.3.x series (for example, 3.3.0, then 3.3.1, then 3.3.2).
+
+| `latest` / `latest-release`
+| Always points to the most recent stable release across all minor versions.
+
+| `latest-snapshot`
+| Most recent build from the `main` branch. Unstable and not recommended for production.
+|===
+
+Use the minor-series floating tag (for example, `3.3`) to automatically receive security patches without upgrading to a new minor version.
+
+
+[id="olm-channels_{context}"]
+== OLM channels (Kubernetes operator)
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+If you deploy {registry} by using the {operator}, each minor version has its own OLM channel.
+
+[cols="1,3", options="header"]
+|===
+| Channel
+| Description
+
+| `3.3.x`
+| Receives only patch updates within the 3.3 minor version.
+
+| `3.x`
+| Rolling channel that always tracks the latest minor version.
+|===
+
+Subscribe to a minor-version channel (for example, `3.3.x`) for stability, or to the `3.x` rolling channel to always receive the latest features.
+
+
+[id="upgrading-registry_{context}"]
+== Upgrade overview
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+{registry} supports forward upgrades.
+Database schema migrations run automatically on startup and do not require manual intervention.
+
+[IMPORTANT]
+====
+Always back up your database before upgrading to a new minor version.
+====
+
+[role="_additional-resources"]
+.Additional resources
+* xref:backup-before-upgrade_{context}[]
+
+
+[id="patch-upgrades_{context}"]
+== Performing patch upgrades
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can apply a patch upgrade (for example, 3.3.0 to 3.3.1) at any time. Patch releases contain only CVE fixes and do not introduce behavioral changes.
+
+.Procedure
+. Back up your database.
+. Replace the {registry} container image with the new patch version or use the minor-series floating tag.
+. Start {registry}. Any required schema migrations run automatically.
+
+
+[id="minor-upgrades_{context}"]
+== Performing minor upgrades
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can upgrade to a new minor version (for example, from 3.3.x to the next minor release) to receive new features, enhancements, and bug fixes.
+
+.Procedure
+. Review the release notes for the target version to understand new features and any behavioral changes.
+. Back up your database.
+. Replace the {registry} container image with the new minor version.
+. Start {registry}. Database schema migrations run automatically.
+. Verify that your client applications work correctly with the new version.
+
+
+[id="skipping-minor-versions_{context}"]
+== Upgrades across multiple minor versions
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+You can upgrade across multiple minor versions in one step (for example, from 3.2.x directly to a later minor version). Database migrations are cumulative, and {registry} applies them in order on startup.
+
+Review the release notes for all intermediate versions to understand the full set of changes.
+
+
+[id="downgrades-and-rollbacks_{context}"]
+== Downgrades and rollbacks
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+{registry} does not support downgrades.
+
+Database schema migrations are forward-only and irreversible.
+Starting an older version of {registry} against a database that has been migrated to a newer schema version fails.
+
+If you deploy {registry} by using the {operator}, switching to an older OLM channel is also not supported.
+
+
+[id="handling-failed-upgrade_{context}"]
+== Handling a failed upgrade
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+If an upgrade introduces issues, restore your {registry} deployment from the database backup taken before the upgrade.
+
+.Procedure
+. Stop {registry}.
+. Restore the database from the backup taken before the upgrade.
+. Deploy the previous version of {registry}.
+. Investigate the issue before attempting the upgrade again.
++
+[IMPORTANT]
+====
+Do not attempt to manually revert database schema changes.
+====
+
+
+[id="backup-before-upgrade_{context}"]
+== Backing up before an upgrade
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+Before any minor version upgrade, create a backup of your {registry} database.
+
+.Procedure
+. For PostgreSQL deployments, create a database dump:
++
+[source,bash]
+----
+pg_dump -h <host> -U <username> -d <database> -F c -f registry-backup-$(date +%Y%m%d).dump
+----
++
+For KafkaSQL deployments, back up both the Kafka topic data and the SQL snapshot database.
+. Store the backup in a secure location.
+. Verify that the backup can be restored before proceeding with the upgrade.
+
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:registry-migration_{context}[Migrating from {registry} {registry-v2} to {registry} 3.x]
+endif::[]

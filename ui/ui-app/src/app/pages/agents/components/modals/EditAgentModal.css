@@ -1,0 +1,9 @@
+.edit-agent-modal .agent-card-editor {
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.edit-agent-modal .agent-card-editor .pf-v6-c-card__header {
+    display: none;
+}

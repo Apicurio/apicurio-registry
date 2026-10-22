@@ -1,0 +1,882 @@
+package io.apicurio.registry.storage.impl.sql;
+
+import java.util.List;
+
+/**
+ * Returns SQL statements used by the JDB artifactStore implementation. There are different implementations of
+ * this interface depending on the database being used.
+ */
+public interface SqlStatements {
+
+    String COMPRESSED_SNAPSHOT_EXTENSION = ".sql.gz";
+
+    /**
+     * Gets the database type associated with these statements.
+     */
+    public String dbType();
+
+    /**
+     * Returns true if the given exception represents a primary key violation.
+     */
+    public boolean isPrimaryKeyViolation(Exception error);
+
+    /**
+     * Returns true if the given exception represents a foreign key violation.
+     */
+    public boolean isForeignKeyViolation(Exception error);
+
+    /**
+     * A statement that returns 'true' if the database has already been initialized.
+     */
+    public String isDatabaseInitialized();
+
+    /**
+     * A statement that returns 'true' if the database (with schema) has already been initialized.
+     */
+    public String isDatabaseSchemaInitialized();
+
+    /**
+     * A sequence of statements needed to initialize the database.
+     */
+    public List<String> databaseInitialization();
+
+    /**
+     * A sequence of statements needed to upgrade the DB from one version to another.
+     */
+    public List<String> databaseUpgrade(int fromVersion, int toVersion);
+
+    /**
+     * A statement that returns the current DB version (pulled from the "apicurio" attribute table).
+     */
+    public String getDatabaseVersion();
+
+    /**
+     * A statement used to insert a row into the globalrules table.
+     */
+    public String insertGlobalRule();
+
+    /**
+     * A statement used to select all global rules.
+     */
+    public String selectGlobalRules();
+
+    /**
+     * A statement used to select a single global rule by its type/id.
+     */
+    public String selectGlobalRuleByType();
+
+    /**
+     * A statement used to delete a row from the globalrules table.
+     */
+    public String deleteGlobalRule();
+
+    /**
+     * A statement used to delete all rows in the globalrules table.
+     */
+    public String deleteGlobalRules();
+
+    /**
+     * A statement used to update information about a global rule.
+     */
+    public String updateGlobalRule();
+
+    /**
+     * A statement used to insert a row in the artifacts table.
+     */
+    public String insertArtifact();
+
+    /**
+     * A statement used to update the 'version' column of the 'versions' table by globalId. The value of the
+     * "versionOrder" column is copied into the "version" column.
+     */
+    public String autoUpdateVersionForGlobalId();
+
+    /**
+     * A statement used to insert a row in the versions table.
+     */
+    public String insertVersion(boolean firstVersion);
+
+    /**
+     * A statement used when updating artifact version content. Updates the versions table with a new
+     * contentId, modifiedBy, and modifiedOn.
+     */
+    public String updateArtifactVersionContent();
+
+    /**
+     * A statement used to select a single row in the versions table by globalId.
+     */
+    public String selectArtifactVersionMetaDataByGlobalId();
+
+    /**
+     * A statement used to select a single row in the versions by artifactId and content hash.
+     */
+    public String selectArtifactVersionMetaDataByContentHash();
+
+    /**
+     * A statement used to select a single row in the versions by artifactId and content id.
+     */
+    public String selectArtifactVersionMetaDataByContentId();
+
+    /**
+     * A statement used to select a single row in the versions by artifactId and canonical content hash.
+     */
+    public String selectArtifactVersionMetaDataByCanonicalHash();
+
+    /**
+     * A statement to select the content of an artifact version from the versions table by globalId.
+     */
+    public String selectArtifactVersionContentByGlobalId();
+
+    /**
+     * A statement used to select all version numbers (only) for a given artifactId.
+     */
+    public String selectArtifactVersions();
+
+    /**
+     * A statement used to select non-disabled version numbers (only) for a given artifactId.
+     */
+    public String selectArtifactVersionsFilteredByState();
+
+    /**
+     * A statement used to select all versions for a given artifactId.
+     */
+    public String selectAllArtifactVersions();
+
+    /**
+     * A statement used to count the total # of artifacts.
+     */
+    public String selectAllArtifactCount();
+
+    /**
+     * A statement used to count the total # of versions for an artifact.
+     */
+    public String selectAllArtifactVersionsCount();
+
+    /**
+     * A statement used to count the total # of non-disabled versions for an artifact.
+     */
+    public String selectActiveArtifactVersionsCount();
+
+    /**
+     * A statement used to count the total # of versions for all artifact.
+     */
+    public String selectTotalArtifactVersionsCount();
+
+    /**
+     * A statement used to select artifact version metadata by artifactId and version.
+     */
+    public String selectArtifactVersionMetaData();
+
+    /**
+     * A statement used to select artifact version metadata by artifactId and versionOrder.
+     */
+    public String selectArtifactVersionMetaDataByVersionOrder();
+
+    /**
+     * A statement to select the content of an artifact version from the versions table by artifactId +
+     * version.
+     */
+    public String selectArtifactVersionContent();
+
+    /**
+     * A statement to select the content ids of an artifact for all versions.
+     */
+    public String selectArtifactContentIds();
+
+    /**
+     * A statement to insert a row in the "content" table.
+     */
+    public String insertContent();
+
+    /**
+     * A statement to update canonicalHash value in a row in the "content" table
+     */
+    public String updateContentCanonicalHash();
+
+    /**
+     * A statement to get a single artifact (latest version) meta-data by artifactId.
+     */
+    public String selectArtifactMetaData();
+
+    /**
+     * A statement to select the contentId of a row in the content table by hash value.
+     */
+    public String selectContentIdByHash();
+
+    /**
+     * A statement used to select artifact rules by artifactId.
+     */
+    public String selectArtifactRules();
+
+    /**
+     * A statement to insert a row into the 'rules' table (artifact rule).
+     */
+    public String insertArtifactRule();
+
+    /**
+     * A statement to get a single artifact rule from the 'rules' table by artifactId and rule type.
+     */
+    public String selectArtifactRuleByType();
+
+    /**
+     * A statement to update a single artifact rule.
+     */
+    public String updateArtifactRule();
+
+    /**
+     * A statement to update a single artifact name.
+     */
+    public String updateArtifactName();
+
+    /**
+     * A statement to update a single artifact description.
+     */
+    public String updateArtifactDescription();
+
+    /**
+     * A statement to update the modified by and modified on for an artifact.
+     */
+    public String updateArtifactModifiedByOn();
+
+    /**
+     * A statement to update the modified by and modified on for an artifact version.
+     */
+    public String updateArtifactVersionModifiedByOn();
+
+    /**
+     * A statement to update a single artifact owner.
+     */
+    public String updateArtifactOwner();
+
+    /**
+     * A statement to update a single artifact labels.
+     */
+    public String updateArtifactLabels();
+
+    /**
+     * A statement to delete a single artifact rule.
+     */
+    public String deleteArtifactRule();
+
+    /**
+     * A statement to delete all rules for a single artifact.
+     */
+    public String deleteArtifactRules();
+
+    /**
+     * A statement to delete all rules for all artifacts.
+     */
+    public String deleteAllArtifactRules();
+
+    /*
+     * Statements to update the meta-data of a specific artifact version.
+     */
+
+    public String updateArtifactVersionNameByGAV();
+
+    public String updateArtifactVersionDescriptionByGAV();
+
+    public String updateArtifactVersionLabelsByGAV();
+
+    public String updateArtifactVersionOwnerByGAV();
+
+    public String updateArtifactVersionStateByGAV();
+
+    public String updateVersionSortKey();
+
+    /**
+     * A statement to delete all rows in the group_labels table for a given group.
+     */
+    public String deleteGroupLabelsByGroupId();
+
+    /**
+     * A statement to delete all rows in the artifact_labels table for a given artifact.
+     */
+    public String deleteArtifactLabels();
+
+    /**
+     * A statement to delete artifact labels matching a key prefix.
+     */
+    public String selectArtifactLabels();
+
+    public String deleteArtifactLabelsByPrefix();
+
+    /**
+     * A statement to delete version labels matching a key prefix.
+     */
+    public String deleteVersionLabelsByPrefix();
+
+    /**
+     * A statement to delete the labels for a single artifact version.
+     */
+    public String deleteVersionLabelsByGAV();
+
+    /**
+     * A statement to delete all labels for a single artifact version by globalId
+     */
+    public String deleteVersionLabelsByGlobalId();
+
+    /**
+     * A statement to delete all labels for all versions for all artifacts
+     */
+    public String deleteVersionLabelsByAll();
+
+    /**
+     * A statement to delete all comments for all versions for all artifacts
+     */
+    public String deleteAllVersionComments();
+
+    /**
+     * A statement to delete all versions for all artifacts.
+     */
+    public String deleteAllVersions();
+
+    /**
+     * A statement to delete a single row from the artifacts table by artifactId.
+     */
+    public String deleteArtifact();
+
+    /**
+     * A statement to delete a all artifacts from the artifacts table by groupId.
+     */
+    public String deleteArtifactsByGroupId();
+
+    /**
+     * A statement to delete a all artifact rules by groupId.
+     */
+    public String deleteArtifactRulesByGroupId();
+
+    /**
+     * A statement to delete a all artifacts.
+     */
+    public String deleteAllArtifacts();
+
+    /**
+     * A statement to get all artifacts IDs.
+     */
+    public String selectArtifactIds();
+
+    /**
+     * A statement to update the state of an artifact version (by globalId);
+     */
+    public String updateArtifactVersionState();
+
+    /**
+     * A statement to delete a single artifact version.
+     */
+    public String deleteVersion();
+
+    /**
+     * A statement to insert a row in the "group_labels" table.
+     */
+    public String insertGroupLabel();
+
+    /**
+     * A statement to insert a row in the "artifact_labels" table.
+     */
+    public String insertArtifactLabel();
+
+    /**
+     * A statement to insert a row in the "version_labels" table.
+     */
+    public String insertVersionLabel();
+
+    /**
+     * A statement to insert a row in the "references" table.
+     */
+    public String insertContentReference();
+
+    /**
+     * A statement to select ids of content referencing artifact
+     */
+    public String selectContentIdsReferencingArtifactBy();
+
+    /**
+     * A statement to select global ids of artifact versions with content referencing an artifact version
+     */
+    public String selectGlobalIdsReferencingArtifactVersionBy();
+
+    /**
+     * A statement to select global ids of artifact versions with content referencing an artifact
+     */
+    public String selectGlobalIdsReferencingArtifactBy();
+
+    /**
+     * A statement to select GAV info of artifact versions with content referencing an artifact
+     */
+    public String selectInboundContentReferencesByGAV();
+
+    /**
+     * A statement to select the number of artifacts with a given artifactId (should be 0 or 1).
+     */
+    public String selectArtifactCountById();
+
+    /**
+     * A statement to select the number of groups with a given groupId (should be 0 or 1).
+     */
+    public String selectGroupCountById();
+
+    /**
+     * A statement to select the number of content rows for a given content hash.
+     */
+    public String selectContentCountByHash();
+
+    /**
+     * A statement to select the number of artifact rule rows for a given rule type.
+     */
+    public String selectArtifactRuleCountByType();
+
+    /**
+     * A statement to select the number of global rule rows for a given rule type.
+     */
+    public String selectGlobalRuleCountByType();
+
+    /**
+     * A statement to select the bytes of a content row by contentId.
+     */
+    public String selectContentById();
+
+    /**
+     * A statement to select the bytes of a content row by contentId, joined with one artifact version that
+     * references it, so that the artifact type can be returned in the same query. Returns no rows if the
+     * content does not exist or if it is orphaned (not referenced by any artifact version).
+     */
+    public String selectContentAndArtifactTypeById();
+
+    /**
+     * A statement template for batch loading artifact version metadata. The REFERENCES_CONDITION placeholder
+     * is replaced at runtime with OR conditions for each reference.
+     */
+    public String selectArtifactVersionMetaDataBatch();
+
+    /**
+     * A statement template for batch loading content by multiple IDs. The (?) placeholder is replaced with
+     * actual IN clause values at runtime.
+     */
+    public String selectContentByIdBatch();
+
+    /**
+     * A statement to select the bytes of a content row by contentHash
+     */
+    public String selectContentByContentHash();
+
+    /**
+     * A statement to delete content that is no longer being referenced by an artifact version.
+     */
+    public String deleteAllOrphanedContent();
+
+    /**
+     * A statement to delete all content
+     */
+    public String deleteAllContent();
+
+    /**
+     * A statement used to insert a row into the groups table.
+     */
+    public String insertGroup();
+
+    /**
+     * A statement used to update a group description.
+     */
+    public String updateGroupDescription();
+
+    /**
+     * A statement used to update a group owner.
+     */
+    public String updateGroupOwner();
+
+    /**
+     * A statement used to update a group labels.
+     */
+    public String updateGroupLabels();
+
+    /**
+     * A statement used to update the modified by and modified on for a group.
+     */
+    public String updateGroupModifiedByOn();
+
+    /**
+     * A statement used to delete a row from the groups table.
+     */
+    public String deleteGroup();
+
+    /**
+     * A statement used to delete all rows from the groups table.
+     */
+    public String deleteAllGroups();
+
+    /**
+     * A statement used to select all rows from groups table.
+     */
+    public String selectGroups();
+
+    /**
+     * A statement used to select a single group in groups table by groupId.
+     */
+    public String selectGroupByGroupId();
+
+    /**
+     * A statement used to select the state of a version.
+     */
+    public String selectArtifactVersionState();
+
+    /**
+     * A statement used to select the state of a version.
+     */
+    public String selectArtifactVersionStateForUpdate();
+
+    /**
+     * A statement used to select the max versionOrder for an artifact with row-level locking. Used for atomic
+     * conditional version creation.
+     */
+    public String selectMaxVersionOrderForUpdate();
+
+    /*
+     * The next few statements support globalId and contentId management.
+     */
+
+    public String getNextSequenceValue();
+
+    public String selectCurrentSequenceValue();
+
+    public String resetSequenceValue();
+
+    public String insertSequenceValue();
+
+    /*
+     * The next few statements support exporting data from the DB.
+     */
+
+    public String exportContent();
+
+    public String exportGlobalRules();
+
+    public String exportGroups();
+
+    public String exportGroupRules();
+
+    public String exportArtifactRules();
+
+    public String exportVersionComments();
+
+    public String exportArtifacts();
+
+    public String exportArtifactVersions();
+
+    public String exportBranches();
+
+    /*
+     * The next few statements support exporting data from a single group.
+     */
+
+    public String exportContentByGroup();
+
+    public String exportGroupsByGroupId();
+
+    public String exportGroupRulesByGroupId();
+
+    public String exportArtifactsByGroupId();
+
+    public String exportArtifactVersionsByGroupId();
+
+    public String exportVersionCommentsByGroupId();
+
+    public String exportBranchesByGroupId();
+
+    public String exportArtifactRulesByGroupId();
+
+    /*
+     * The next few statements support importing data into the DB.
+     */
+
+    public String importContent();
+
+    public String importGlobalRule();
+
+    public String importGroup();
+
+    public String importBranch();
+
+    public String importGroupRule();
+
+    public String importArtifactRule();
+
+    public String importArtifactVersion();
+
+    public String selectMaxContentId();
+
+    public String selectMaxGlobalId();
+
+    public String selectMaxVersionCommentId();
+
+    public String selectContentExists();
+
+    public String selectGlobalIdExists();
+
+    public String selectAllContentCount();
+
+    /*
+     * The next few statements support role mappings
+     */
+
+    public String insertRoleMapping();
+
+    public String deleteRoleMapping();
+
+    public String deleteAllRoleMappings();
+
+    public String selectRoleMappingByPrincipalId();
+
+    public String selectRoleByPrincipalId();
+
+    public String selectRoleMappings();
+
+    public String countRoleMappings();
+
+    public String updateRoleMapping();
+
+    public String selectRoleMappingCountByPrincipal();
+
+    /*
+     * The next few statements support group rule management.
+     */
+
+    public String selectGroupRules();
+
+    public String deleteGroupRules();
+
+    public String insertGroupRule();
+
+    public String selectGroupRuleByType();
+
+    public String updateGroupRule();
+
+    public String deleteGroupRule();
+
+    /*
+     * The next few statements support downloads.
+     */
+
+    public String insertDownload();
+
+    public String selectDownloadContext();
+
+    public String deleteDownload();
+
+    public String deleteExpiredDownloads();
+
+    /*
+     * The next few statements support config properties.
+     */
+
+    public String selectConfigProperties();
+
+    public String deleteConfigProperty();
+
+    public String insertConfigProperty();
+
+    public String upsertConfigProperty();
+
+    public String deleteAllConfigProperties();
+
+    public String selectConfigPropertyByName();
+
+    public String selectStaleConfigProperties();
+
+    public String deleteAllContentReferences();
+
+    public String deleteOrphanedContentReferences();
+
+    /*
+     * The next statements relate to comments.
+     */
+
+    public String insertVersionComment();
+
+    public String selectVersionComments();
+
+    public String deleteVersionComment();
+
+    public String updateVersionComment();
+
+    // ========== Branches ==========
+
+    public String selectGAVByGlobalId();
+
+    public String insertBranch();
+
+    public String upsertBranch();
+
+    public String updateBranch();
+
+    public String selectBranch();
+
+    public String selectBranchVersionNumbers();
+
+    public String selectBranchTip();
+
+    public String selectBranchTipFilteredByState();
+
+    public String updateBranchModifiedTime();
+
+    public String insertBranchVersion();
+
+    public String appendBranchVersion();
+
+    public String deleteBranchVersions();
+
+    public String deleteBranch();
+
+    public String deleteAllBranchVersions();
+
+    public String deleteAllBranches();
+
+    public String deleteVersionFromBranch();
+
+    // ========== Snapshots ==========
+
+    public String createDataSnapshot();
+
+    /**
+     * Returns the SQL statement to create a data snapshot at the given location, optionally
+     * applying compression based on the file extension.
+     */
+    default String createDataSnapshot(String location) {
+        return createDataSnapshot();
+    }
+
+    public String restoreFromSnapshot();
+
+    /**
+     * Returns the SQL statement to restore from a snapshot at the given location, optionally
+     * applying decompression based on the file extension.
+     */
+    default String restoreFromSnapshot(String location) {
+        return restoreFromSnapshot();
+    }
+
+    // ========== Events ==========
+
+    public String createOutboxEvent();
+
+    public String deleteOutboxEvent();
+
+    // ========== Usage Telemetry ==========
+
+    public String insertSchemaUsage();
+
+    public String selectArtifactUsageMetrics();
+
+    public String selectUsageSummaryCounts();
+
+    public String deleteOldSchemaUsageEvents();
+
+    public String selectConsumerVersionHeatmap();
+
+    public String selectDeprecationReadiness();
+
+    String selectCountTableTemplate(String countBy, String tableName, String alias, String whereClause);
+
+    String selectTableTemplate(String columns, String tableName, String alias, String whereClause,
+            String orderBy);
+
+    // ========== Database Initialization Locks ==========
+
+    /**
+     * Acquires a database-level lock for initialization and upgrade operations.
+     * This lock prevents race conditions when multiple application instances
+     * attempt to initialize or upgrade the database simultaneously.
+     *
+     * @return SQL statement to acquire the initialization lock
+     */
+    public String acquireInitLock();
+
+    /**
+     * Releases the database initialization lock acquired by acquireInitLock().
+     *
+     * @return SQL statement to release the initialization lock
+     */
+    public String releaseInitLock();
+
+    /**
+     * Returns a SQL statement to select all version metadata for versions modified since a given timestamp.
+     * Used by the asynchronous search index updater to poll for changes.
+     *
+     * @return SQL query with one timestamp parameter
+     */
+    public String selectVersionsModifiedSince();
+
+    /**
+     * Returns a SQL statement to count versions modified since a given timestamp. Used to cheaply
+     * determine whether an incremental or full rebuild is needed.
+     *
+     * @return SQL query with one timestamp parameter
+     */
+    String countVersionsModifiedSince();
+
+    /**
+     * Returns a SQL statement to select the timestamp of the most recently modified version.
+     * Used by the asynchronous search index updater to determine the starting point for polling.
+     *
+     * @return SQL query returning a single timestamp value
+     */
+    public String selectLatestVersionTimestamp();
+
+    /**
+     * Returns a SQL statement to select all version globalIds. Used by the asynchronous search index
+     * updater for periodic reconciliation to detect deleted versions.
+     *
+     * @return SQL query returning globalId values
+     */
+    public String selectAllVersionGlobalIds();
+
+    /**
+     * A SQL statement to select all versions with their artifact type and content, used for
+     * streaming startup reindex.
+     */
+    String selectAllVersionsWithContent();
+
+    /**
+     * A SQL statement to select versions modified since a given timestamp with their artifact type
+     * and content. Used for streaming incremental search index updates.
+     */
+    String selectVersionsWithContentModifiedSince();
+
+    // ========== Contract Rules ==========
+
+    String selectContractRulesByArtifact();
+
+    String selectContractRulesByGlobalId();
+
+    String insertContractRule();
+
+    String deleteContractRulesByArtifact();
+
+    String deleteContractRulesByGlobalId();
+
+    String deleteAllContractRules();
+
+    String exportContractRules();
+
+    String exportContractRulesByGroupId();
+
+    String importContractRule();
+
+    String selectContractRulesByTag();
+
+    String updateVersionLabels();
+
+    String selectVersionLabels();
+
+    String selectGlobalContractRules();
+
+    String deleteGlobalContractRules();
+
+    String insertContractAuditEntry();
+
+    String selectContractAuditLog();
+
+    String selectContractAuditLogCount();
+
+    String deleteAllContractAuditEntries();
+}

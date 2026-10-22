@@ -1,0 +1,65 @@
+name: Update Website
+on:
+  workflow_dispatch: {}
+  release:
+    types: [released]
+
+permissions:
+  contents: read
+
+jobs:
+  update-website:
+    if: github.repository_owner == 'Apicurio' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, '3.'))
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Apicurio Website Checkout
+        run: |
+          mkdir website
+          cd website
+          git init
+          git config --global user.name "apicurio-ci"
+          git config --global user.email "apicurio.ci@gmail.com"
+          git remote add origin "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio.github.io.git"
+          git fetch
+          git checkout main
+          git branch --set-upstream-to=origin/main
+          git pull
+
+      - name: Fetch required Details
+        run: echo "RELEASE_VERSION=$(curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest | jq '.name' | sed 's/"//g')" >> $GITHUB_ENV
+
+      - name: Updating Project Website for Release ${{ env.RELEASE_VERSION }}
+        run: |
+          cd website
+          echo "********** Replacing Existing Latest Release JSON File **********"
+          cd _data/registry
+          rm latestRelease.json
+          touch latestRelease.json && curl https://api.github.com/repos/apicurio/apicurio-registry/releases/latest > latestRelease.json
+
+          echo "********** Saving a copy in the archive **********"
+          cp latestRelease.json releases/${RELEASE_VERSION}.json
+
+      - name: Commit Project Website Changes
+        run: |
+          cd website
+          git add .
+          git commit -m "Automated Update For Apicurio Registry Release Version: ${{ env.RELEASE_VERSION }}"
+          git pull origin main
+          git push
+
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
+    needs: [update-website]
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
+    with:
+      results: ${{ toJSON(needs) }}
+      version: ${{ github.event.release.tag_name }}
+    secrets:
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+      SLACK_GENERAL_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

@@ -1,0 +1,29 @@
+[
+  {
+    "name": "java.io.Console",
+    "methods": [
+      {
+        "name": "isTerminal",
+        "parameterTypes": []
+      }
+    ]
+  },
+  {
+    "name": "io.apicurio.registry.cli.config.ConfigModel",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.apicurio.registry.cli.config.ConfigModel$Context",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  },
+  {
+    "name": "io.apicurio.registry.cli.VersionCommand$VersionOutput",
+    "allDeclaredConstructors": true,
+    "allDeclaredFields": true,
+    "allDeclaredMethods": true
+  }
+]

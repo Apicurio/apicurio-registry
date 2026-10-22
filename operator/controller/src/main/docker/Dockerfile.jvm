@@ -1,0 +1,15 @@
+FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:6e2216b796e97edb7145d55300b0251c15834f45c21004824976a3024a1f7a2b
+
+ENV APP_URL="quarkus-app" \
+    JAVA_OPTIONS="-Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+
+ADD "$APP_URL" /deployments
+
+USER root
+
+# Set appropriate permissions and ownership
+RUN chmod -R "ug=rwx" /deployments \
+    && chown -R 1001:0 /deployments
+
+# Set user for running the container, according to OpenShift best practices
+USER 1001

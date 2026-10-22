@@ -1,0 +1,19 @@
+include::partial$shared/all-attributes.adoc[]
+
+[id="registry-configuration-reference"]
+= {operator} configuration reference
+
+This chapter provides detailed information on the custom resource used to configure the {operator} to deploy {registry}:
+
+* xref:apicurio-registry-custom-resource[]
+* xref:spec[]
+* xref:status[]
+* xref:managed-resources[]
+* xref:registry-labels[]
+
+// INCLUDES
+include::partial$ref-registry-cr.adoc[leveloffset=+1]
+include::partial$ref-registry-cr-spec.adoc[leveloffset=+1]
+include::partial$ref-registry-cr-status.adoc[leveloffset=+1]
+include::partial$ref-registry-managed-resources.adoc[leveloffset=+1]
+include::partial$ref-registry-labels.adoc[leveloffset=+1]

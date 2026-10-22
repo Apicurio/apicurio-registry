@@ -1,0 +1,12 @@
+plugin:
+  name: apicurio-registry-console-plugin
+  image: quay.io/apicurio/apicurio-registry-console-plugin:latest
+  replicas: 1
+  port: 9443
+  resources:
+    requests:
+      cpu: 10m
+      memory: 50Mi
+    limits:
+      cpu: 100m
+      memory: 128Mi

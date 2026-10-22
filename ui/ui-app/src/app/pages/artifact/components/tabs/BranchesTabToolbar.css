@@ -1,0 +1,18 @@
+.branches-toolbar {
+    padding-top: 15px;
+    padding-left: 15px;
+    padding-right: 24px;
+}
+
+.branches-toolbar > div {
+    width: 100%;
+}
+
+.branches-toolbar .filter-types-toggle span.pf-v6-c-menu-toggle__text {
+    width: 125px;
+    text-align: left;
+}
+
+#branches-toolbar-1 .tbi-filter-type {
+    margin-right: 0;
+}

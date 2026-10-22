@@ -1,0 +1,15 @@
+{
+  "namespace": "io.apicurio.registry.examples",
+  "type": "record",
+  "name": "Greeting",
+  "fields": [
+    {
+      "name": "message",
+      "type": "string"
+    },
+    {
+      "name": "timestamp",
+      "type": "long"
+    }
+  ]
+}

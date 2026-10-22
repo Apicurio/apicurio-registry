@@ -1,0 +1,129 @@
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
+import { getRegistryClient } from "@utils/rest.utils.ts";
+import { AuthService, useAuth } from "@apitomy/common-ui-components";
+import { Paging } from "@models/Paging.ts";
+import {
+    ArtifactSearchResults,
+    ArtifactSortBy,
+    GroupSearchResults,
+    GroupSortBy,
+    SortOrder,
+    VersionSearchResults,
+    VersionSortBy
+} from "@sdk/lib/generated-client/models";
+
+export enum FilterBy {
+    name = "name", description = "description", labels = "labels", groupId = "groupId", artifactId = "artifactId",
+    globalId = "globalId", contentId = "contentId", version = "version", artifactType = "artifactType", state = "state",
+    content = "content", structure = "structure"
+}
+
+export interface SearchFilter {
+    by: FilterBy;
+    value: string;
+}
+
+const VERSION_STATES: string[] = [
+    "ENABLED", "DISABLED", "DEPRECATED", "DRAFT"
+];
+
+const searchGroups = async (config: ConfigService, auth: AuthService, filters: SearchFilter[], sortBy: GroupSortBy, sortOrder: SortOrder, paging: Paging): Promise<GroupSearchResults> => {
+    console.debug("[SearchService] Searching groups: ", filters, paging);
+    const start: number = (paging.page - 1) * paging.pageSize;
+    const queryParams: any = {
+        limit: paging.pageSize,
+        offset: start,
+        order: sortOrder,
+        orderby: sortBy
+    };
+    filters.forEach(filter => {
+        if (filter.value) {
+            queryParams[filter.by] = filter.value;
+        }
+    });
+
+    return getRegistryClient(config, auth).search.groups.get({
+        queryParameters: queryParams
+    }).then(v => v!);
+};
+
+const searchArtifacts = async (config: ConfigService, auth: AuthService, filters: SearchFilter[], sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults> => {
+    console.debug("[SearchService] Searching artifacts: ", filters, sortBy, sortOrder, paging);
+    const start: number = (paging.page - 1) * paging.pageSize;
+    const queryParams: any = {
+        limit: paging.pageSize,
+        offset: start,
+        order: sortOrder,
+        orderby: sortBy
+    };
+    filters?.forEach(filter => {
+        if (filter.by === FilterBy.globalId || filter.by === FilterBy.contentId) {
+            queryParams[filter.by] = Number(filter.value);
+        } else {
+            queryParams[filter.by] = filter.value;
+        }
+    });
+
+    return getRegistryClient(config, auth).search.artifacts.get({
+        queryParameters: queryParams
+    }).then(v => v!);
+};
+
+const searchVersions = async (config: ConfigService, auth: AuthService, filters: SearchFilter[], sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults> => {
+    console.debug("[SearchService] Searching versions: ", filters, sortBy, sortOrder, paging);
+    const start: number = (paging.page - 1) * paging.pageSize;
+    const queryParams: any = {
+        limit: paging.pageSize,
+        offset: start,
+        order: sortOrder,
+        orderby: sortBy
+    };
+
+    // users can type whatever they want when filtering by state, but if they don't enter a valid
+    // state name, the REST call will fail.  So make sure to coerce the filter value to something valid.
+    filters?.forEach(filter => {
+        if (filter.by === FilterBy.globalId || filter.by === FilterBy.contentId) {
+            queryParams[filter.by] = Number(filter.value);
+        } else if (filter.by === FilterBy.state) {
+            queryParams[filter.by] = filter.value.toUpperCase();
+        } else {
+            queryParams[filter.by] = filter.value;
+        }
+    });
+
+    if (queryParams["state"]) {
+        const value: string = queryParams["state"];
+        if (!VERSION_STATES.includes(value)) {
+            queryParams["state"] = "DISABLED";
+        }
+    }
+
+    return getRegistryClient(config, auth).search.versions.get({
+        queryParameters: queryParams
+    }).then(v => v!);
+};
+
+
+export interface SearchService {
+    searchGroups(filters: SearchFilter[], sortBy: GroupSortBy, sortOrder: SortOrder, paging: Paging): Promise<GroupSearchResults>;
+    searchArtifacts(filters: SearchFilter[], sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults>;
+    searchVersions(filters: SearchFilter[], sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<VersionSearchResults>;
+}
+
+
+export const useSearchService: () => SearchService = (): SearchService => {
+    const config: ConfigService = useConfigService();
+    const auth = useAuth();
+
+    return {
+        searchGroups(filters: SearchFilter[], sortBy: GroupSortBy, sortOrder: SortOrder, paging: Paging): Promise<GroupSearchResults> {
+            return searchGroups(config, auth, filters, sortBy, sortOrder, paging);
+        },
+        searchArtifacts(filters: SearchFilter[], sortBy: ArtifactSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults> {
+            return searchArtifacts(config, auth, filters, sortBy, sortOrder, paging);
+        },
+        searchVersions(filters: SearchFilter[], sortBy: VersionSortBy, sortOrder: SortOrder, paging: Paging): Promise<ArtifactSearchResults> {
+            return searchVersions(config, auth, filters, sortBy, sortOrder, paging);
+        },
+    };
+};

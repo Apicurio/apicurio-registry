@@ -1,0 +1,6 @@
+{
+  "name": "simple_tool",
+  "inputSchema": {
+    "type": "object"
+  }
+}

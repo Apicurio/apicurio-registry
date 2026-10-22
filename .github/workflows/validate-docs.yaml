@@ -1,0 +1,27 @@
+name: Validate Docs & Playbook
+on:
+  workflow_call: { }
+  pull_request:
+    branches: [main, '3.3.x']
+    paths:
+      - 'docs/**'
+      - 'docs-playbook/**'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Docs
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - name: Generate Documentation
+        run: |
+          cd docs-playbook
+          ./_build-all.sh

@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: postgresql-debezium
+  name: postgresql-debezium
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgresql-debezium
+  template:
+    metadata:
+      labels:
+        app: postgresql-debezium
+    spec:
+      containers:
+        - name: postgresql-debezium
+          image: quay.io/debezium/postgres:15
+          args:
+            - "-c"
+            - "max_wal_senders=20"
+            - "-c"
+            - "max_replication_slots=20"
+          ports:
+            - containerPort: 5432
+          env:
+            - name: POSTGRES_DB
+              value: registry
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: postgres
+          volumeMounts:
+            - mountPath: "/var/lib/postgresql/data"
+              name: "debezium-pgdata"
+      volumes:
+        - emptyDir:
+            sizeLimit: 500Mi
+          name: debezium-pgdata
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: postgresql-debezium
+  name: postgresql-debezium-service
+spec:
+  ports:
+    - name: postgres
+      port: 5432
+      protocol: TCP
+      targetPort: 5432
+  selector:
+    app: postgresql-debezium
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: postgresql-debezium
+  name: postgresql-debezium-service-external
+spec:
+  ports:
+    - protocol: TCP
+      port: 5432
+      targetPort: 5432
+  selector:
+    app: postgresql-debezium
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

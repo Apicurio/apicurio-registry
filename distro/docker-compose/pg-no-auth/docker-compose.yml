@@ -1,0 +1,52 @@
+version: '3.8'
+
+volumes:
+  postgres_data:
+    driver: local
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: apicurio-registry-pgnoauth_db
+    environment:
+      POSTGRES_USER: pguser
+      POSTGRES_PASSWORD: pgpass
+      POSTGRES_DB: registrydb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pguser -d registrydb"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-snapshot
+    container_name: apicurio-registry-pgnoauth_api
+    environment:
+      # Database configuration
+      APICURIO_DATASOURCE_URL: 'jdbc:postgresql://postgres:5432/registrydb'
+      APICURIO_DATASOURCE_USERNAME: pguser
+      APICURIO_DATASOURCE_PASSWORD: pgpass
+      APICURIO_STORAGE_KIND: "sql"
+      APICURIO_STORAGE_SQL_KIND: "postgresql"
+      # API configuration (same as in-memory-no-auth)
+      apicurio.rest.deletion.group.enabled: "true"
+      apicurio.rest.deletion.artifact.enabled: "true"
+      apicurio.rest.deletion.artifact-version.enabled: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  apicurio-registry-ui:
+    image: apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: apicurio-registry-pgnoauth_ui
+    ports:
+      - "8888:8080"
+    depends_on:
+      - apicurio-registry

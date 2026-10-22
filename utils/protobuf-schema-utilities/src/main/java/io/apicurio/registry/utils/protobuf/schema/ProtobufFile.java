@@ -1,0 +1,326 @@
+package io.apicurio.registry.utils.protobuf.schema;
+
+import com.google.common.collect.BoundType;
+import com.google.common.collect.ContiguousSet;
+import com.google.common.collect.DiscreteDomain;
+import com.google.common.collect.Range;
+import com.google.common.io.Files;
+import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.squareup.wire.Syntax;
+import com.squareup.wire.schema.Location;
+import com.squareup.wire.schema.internal.parser.EnumConstantElement;
+import com.squareup.wire.schema.internal.parser.EnumElement;
+import com.squareup.wire.schema.internal.parser.FieldElement;
+import com.squareup.wire.schema.internal.parser.MessageElement;
+import com.squareup.wire.schema.internal.parser.OneOfElement;
+import com.squareup.wire.schema.internal.parser.ProtoFileElement;
+import com.squareup.wire.schema.internal.parser.ProtoParser;
+import com.squareup.wire.schema.internal.parser.ReservedElement;
+import com.squareup.wire.schema.internal.parser.RpcElement;
+import com.squareup.wire.schema.internal.parser.ServiceElement;
+import com.squareup.wire.schema.internal.parser.TypeElement;
+import kotlin.ranges.IntRange;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+
+/**
+ * Indexed representation of the data resulting from parsing a single .proto protobuf schema file, used mainly
+ * for schema validation.
+ *
+ * @see <a href="https://github.com/nilslice/protolock">Protolock</a>
+ * @see ProtobufCompatibilityChecker
+ */
+public class ProtobufFile {
+
+    private final ProtoFileElement element;
+
+    private final Map<String, Set<Object>> reservedFields = new HashMap<>();
+
+    private final Map<String, Map<String, FieldElement>> fieldMap = new HashMap<>();
+    private final Map<String, Map<String, EnumConstantElement>> enumFieldMap = new HashMap<>();
+
+    private final Map<String, Map<String, FieldElement>> mapMap = new HashMap<>();
+
+    private final Map<String, Set<Object>> nonReservedFields = new HashMap<>();
+    private final Map<String, Set<Object>> nonReservedEnumFields = new HashMap<>();
+
+    private final Map<String, Map<Integer, String>> fieldsById = new HashMap<>();
+    private final Map<String, Map<Integer, String>> enumFieldsById = new HashMap<>();
+
+    private final Map<String, Set<String>> serviceRPCnames = new HashMap<>();
+    private final Map<String, Map<String, String>> serviceRPCSignatures = new HashMap<>();
+
+    public ProtobufFile(String data) {
+        element = toProtoFileElement(data);
+        buildIndexes();
+    }
+
+    public ProtobufFile(File file) throws IOException {
+        // Location location = Location.get(file.getAbsolutePath());
+        List<String> data = Files.readLines(file, StandardCharsets.UTF_8);
+        element = toProtoFileElement(String.join("\n", data));
+        buildIndexes();
+    }
+
+    public ProtobufFile(ProtoFileElement element) {
+        this.element = element;
+        buildIndexes();
+    }
+
+    public static ProtoFileElement toProtoFileElement(String data) {
+        try {
+            ProtoParser parser = new ProtoParser(Location.get(""), data.toCharArray());
+            return parser.readProtoFile();
+        } catch (Exception e) {
+            // Exctracted from AbstractResource.java, lines 138-149.
+            byte[] decodedBytes = Base64.getDecoder().decode(data);
+            DescriptorProtos.FileDescriptorProto descriptorProto = null;
+            try {
+                descriptorProto = DescriptorProtos.FileDescriptorProto.parseFrom(decodedBytes);
+            } catch (InvalidProtocolBufferException ex) {
+                throw new RuntimeException(ex);
+            }
+            return FileDescriptorUtils.fileDescriptorToProtoFile(descriptorProto);
+        }
+    }
+
+    public String getPackageName() {
+        return element.getPackageName();
+    }
+
+    /*
+     * message name -> Set { Integer/tag || String/name }
+     */
+    public Map<String, Set<Object>> getReservedFields() {
+        return reservedFields;
+    }
+
+    /*
+     * message name -> Map { field name -> FieldElement }
+     */
+    public Map<String, Map<String, FieldElement>> getFieldMap() {
+        return fieldMap;
+    }
+
+    /*
+     * enum name -> Map { String/name -> EnumConstantElement }
+     */
+    public Map<String, Map<String, EnumConstantElement>> getEnumFieldMap() {
+        return enumFieldMap;
+    }
+
+    /*
+     * message name -> Map { field name -> FieldElement }
+     */
+    public Map<String, Map<String, FieldElement>> getMapMap() {
+        return mapMap;
+    }
+
+    /*
+     * message name -> Set { Integer/tag || String/name }
+     */
+    public Map<String, Set<Object>> getNonReservedFields() {
+        return nonReservedFields;
+    }
+
+    /*
+     * enum name -> Set { Integer/tag || String/name }
+     */
+    public Map<String, Set<Object>> getNonReservedEnumFields() {
+        return nonReservedEnumFields;
+    }
+
+    /*
+     * message name -> Map { field id -> field name }
+     */
+    public Map<String, Map<Integer, String>> getFieldsById() {
+        return fieldsById;
+    }
+
+    /*
+     * enum name -> Map { field id -> field name }
+     */
+    public Map<String, Map<Integer, String>> getEnumFieldsById() {
+        return enumFieldsById;
+    }
+
+    /*
+     * service name -> Set { rpc name }
+     */
+    public Map<String, Set<String>> getServiceRPCnames() {
+        return serviceRPCnames;
+    }
+
+    /*
+     * service name -> Map { rpc name -> method signature }
+     */
+    public Map<String, Map<String, String>> getServiceRPCSignatures() {
+        return serviceRPCSignatures;
+    }
+
+    public Syntax getSyntax() {
+        Syntax syntax = element.getSyntax();
+        return syntax != null ? syntax : Syntax.PROTO_2 /* default syntax */;
+    }
+
+    /**
+     * Resolves the map type for a given entry type in Protobuf.
+     *
+     * @param entryType The entry type to resolve.
+     * @return The corresponding map type, or null if not a map entry.
+     */
+    public String getMapType(String entryType) {
+        // Check if the entry type corresponds to a map entry
+        if (entryType != null && entryType.endsWith("Entry")) {
+            // Extract the base type by removing the "Entry" suffix
+            return "map<string, string>"; // Adjust logic if needed for dynamic key/value types
+        }
+        return null;
+    }
+
+    private void buildIndexes() {
+
+        for (TypeElement typeElement : element.getTypes()) {
+            if (typeElement instanceof MessageElement) {
+
+                MessageElement messageElement = (MessageElement) typeElement;
+                processMessageElement("", messageElement);
+
+            } else if (typeElement instanceof EnumElement) {
+
+                EnumElement enumElement = (EnumElement) typeElement;
+                processEnumElement("", enumElement);
+
+            } else {
+                throw new RuntimeException();
+            }
+        }
+
+        for (ServiceElement serviceElement : element.getServices()) {
+            Set<String> rpcNames = new HashSet<>();
+            Map<String, String> rpcSignatures = new HashMap<>();
+            for (RpcElement rpcElement : serviceElement.getRpcs()) {
+                rpcNames.add(rpcElement.getName());
+
+                String signature = rpcElement.getRequestType() + ":" + rpcElement.getRequestStreaming() + "->"
+                        + rpcElement.getResponseType() + ":" + rpcElement.getResponseStreaming();
+                rpcSignatures.put(rpcElement.getName(), signature);
+            }
+            if (!rpcNames.isEmpty()) {
+                serviceRPCnames.put(serviceElement.getName(), rpcNames);
+                serviceRPCSignatures.put(serviceElement.getName(), rpcSignatures);
+            }
+
+        }
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private void processMessageElement(String scope, MessageElement messageElement) {
+
+        // reservedFields
+        Set<Object> reservedFieldSet = new HashSet<>();
+        for (ReservedElement reservedElement : messageElement.getReserveds()) {
+            for (Object value : reservedElement.getValues()) {
+                if (value instanceof IntRange) {
+                    // Handle Kotlin IntRange from wire-schema library (e.g., "reserved 1 to 2;")
+                    IntRange intRange = (IntRange) value;
+                    Range<Integer> range = Range.range(intRange.getStart(), BoundType.CLOSED,
+                            intRange.getLast(), BoundType.CLOSED);
+                    reservedFieldSet.addAll(ContiguousSet.create(range, DiscreteDomain.integers()));
+                } else if (value instanceof Range) {
+                    reservedFieldSet.addAll(ContiguousSet.create((Range) value, DiscreteDomain.integers()));
+                } else {
+                    reservedFieldSet.add(value);
+                }
+            }
+        }
+        if (!reservedFieldSet.isEmpty()) {
+            reservedFields.put(scope + messageElement.getName(), reservedFieldSet);
+        }
+
+        // fieldMap, mapMap, FieldsIDName
+        Map<String, FieldElement> fieldTypeMap = new HashMap<>();
+        Map<String, FieldElement> mapMap = new HashMap<>();
+        Map<Integer, String> idsToNames = new HashMap<>();
+        for (FieldElement fieldElement : messageElement.getFields()) {
+            fieldTypeMap.put(fieldElement.getName(), fieldElement);
+            if (fieldElement.getType().startsWith("map<")) {
+                mapMap.put(fieldElement.getName(), fieldElement);
+            }
+            idsToNames.put(fieldElement.getTag(), fieldElement.getName());
+        }
+        for (OneOfElement oneOfElement : messageElement.getOneOfs()) {
+            for (FieldElement fieldElement : oneOfElement.getFields()) {
+                fieldTypeMap.put(fieldElement.getName(), fieldElement);
+                if (fieldElement.getType().startsWith("map<")) {
+                    mapMap.put(fieldElement.getName(), fieldElement);
+                }
+                idsToNames.put(fieldElement.getTag(), fieldElement.getName());
+            }
+        }
+
+        // Always add to fieldMap, even if empty, so that empty messages can be found during type resolution
+        fieldMap.put(scope + messageElement.getName(), fieldTypeMap);
+        if (!mapMap.isEmpty()) {
+            this.mapMap.put(scope + messageElement.getName(), mapMap);
+        }
+        if (!idsToNames.isEmpty()) {
+            fieldsById.put(scope + messageElement.getName(), idsToNames);
+        }
+
+        // nonReservedFields
+        Set<Object> fieldKeySet = new HashSet<>();
+        for (FieldElement fieldElement : messageElement.getFields()) {
+            fieldKeySet.add(fieldElement.getTag());
+            fieldKeySet.add(fieldElement.getName());
+        }
+        for (OneOfElement oneOfElement : messageElement.getOneOfs()) {
+            for (FieldElement fieldElement : oneOfElement.getFields()) {
+                fieldKeySet.add(fieldElement.getTag());
+                fieldKeySet.add(fieldElement.getName());
+            }
+        }
+
+        // Always add to nonReservedFields, even if empty, for type existence checking
+        nonReservedFields.put(scope + messageElement.getName(), fieldKeySet);
+
+        for (TypeElement typeElement : messageElement.getNestedTypes()) {
+            if (typeElement instanceof MessageElement) {
+                processMessageElement(scope + messageElement.getName() + ".", (MessageElement) typeElement);
+            } else if (typeElement instanceof EnumElement) {
+                processEnumElement(scope + messageElement.getName() + ".", (EnumElement) typeElement);
+            }
+        }
+    }
+
+    private void processEnumElement(String scope, EnumElement enumElement) {
+
+        // TODO reservedEnumFields - wire doesn't preserve these
+        // https://github.com/square/wire/issues/797 RFE: capture EnumElement reserved info
+
+        // enumFieldMap, enumFieldsIDName, nonReservedEnumFields
+        Map<String, EnumConstantElement> map = new HashMap<>();
+        Map<Integer, String> idsToNames = new HashMap<>();
+        Set<Object> fieldKeySet = new HashSet<>();
+        for (EnumConstantElement enumConstantElement : enumElement.getConstants()) {
+            map.put(enumConstantElement.getName(), enumConstantElement);
+            idsToNames.put(enumConstantElement.getTag(), enumConstantElement.getName());
+
+            fieldKeySet.add(enumConstantElement.getTag());
+            fieldKeySet.add(enumConstantElement.getName());
+        }
+        if (!map.isEmpty()) {
+            enumFieldMap.put(scope + enumElement.getName(), map);
+        }
+        if (!idsToNames.isEmpty()) {
+            enumFieldsById.put(scope + enumElement.getName(), idsToNames);
+        }
+        if (!fieldKeySet.isEmpty()) {
+            nonReservedEnumFields.put(scope + enumElement.getName(), fieldKeySet);
+        }
+    }
+}

@@ -1,0 +1,404 @@
+package io.apicurio.registry.serde.protobuf;
+
+import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.DynamicMessage;
+import com.squareup.wire.schema.SchemaException;
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.ParsedSchemaImpl;
+import io.apicurio.registry.utils.protobuf.schema.FileDescriptorUtils;
+import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+/**
+ * Unit tests for ProtobufSchemaParser to verify correct handling of different schema formats.
+ * This includes text .proto format, raw binary FileDescriptorProto, and base64-encoded binary.
+ *
+ * @see <a href="https://github.com/Apicurio/apicurio-registry/issues/7269">Issue #7269</a>
+ */
+public class ProtobufSchemaParserTest {
+
+    private static final String SIMPLE_PROTO_SCHEMA = """
+            syntax = "proto3";
+            package test;
+            message Simple {
+              string name = 1;
+            }
+            """;
+
+    private static final String DEP_PROTO_SCHEMA = """
+            syntax = "proto3";
+            package test;
+            message Dep {
+              string name = 1;
+            }
+            """;
+
+    private static final String ROOT_PROTO_SCHEMA = """
+            syntax = "proto3";
+            package test;
+            import "dep.proto";
+            message Root {
+              Dep d = 1;
+            }
+            """;
+
+    private ProtobufSchemaParser<DynamicMessage> parser;
+
+    @BeforeEach
+    public void setup() {
+        parser = new ProtobufSchemaParser<>();
+    }
+
+    /**
+     * Test that text .proto format is parsed correctly.
+     */
+    @Test
+    public void testParseSchemaWithTextFormat() {
+        byte[] rawSchema = SIMPLE_PROTO_SCHEMA.getBytes();
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        ProtobufSchema result = parser.parseSchema(rawSchema, resolvedReferences);
+
+        assertNotNull(result);
+        assertNotNull(result.getFileDescriptor());
+        assertEquals("test", result.getFileDescriptor().getPackage());
+        assertNotNull(result.getFileDescriptor().findMessageTypeByName("Simple"));
+    }
+
+    /**
+     * Test that raw binary FileDescriptorProto format is parsed correctly.
+     */
+    @Test
+    public void testParseSchemaWithRawBinaryFormat() throws Exception {
+        // Create a FileDescriptorProto from the text schema
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(
+                SIMPLE_PROTO_SCHEMA, "simple.proto", Optional.of("test"));
+        byte[] rawSchema = fd.toProto().toByteArray();
+
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        ProtobufSchema result = parser.parseSchema(rawSchema, resolvedReferences);
+
+        assertNotNull(result);
+        assertNotNull(result.getFileDescriptor());
+        assertEquals("test", result.getFileDescriptor().getPackage());
+        assertNotNull(result.getFileDescriptor().findMessageTypeByName("Simple"));
+    }
+
+    /**
+     * Test that base64-encoded binary FileDescriptorProto format is parsed correctly.
+     * This is the main fix for issue #7269.
+     */
+    @Test
+    public void testParseSchemaWithBase64EncodedFormat() throws Exception {
+        // Create a FileDescriptorProto from the text schema and encode as base64
+        Descriptors.FileDescriptor fd = FileDescriptorUtils.protoFileToFileDescriptor(
+                SIMPLE_PROTO_SCHEMA, "simple.proto", Optional.of("test"));
+        String base64Encoded = Base64.getEncoder().encodeToString(fd.toProto().toByteArray());
+        byte[] rawSchema = base64Encoded.getBytes();
+
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        ProtobufSchema result = parser.parseSchema(rawSchema, resolvedReferences);
+
+        assertNotNull(result);
+        assertNotNull(result.getFileDescriptor());
+        assertEquals("test", result.getFileDescriptor().getPackage());
+        assertNotNull(result.getFileDescriptor().findMessageTypeByName("Simple"));
+    }
+
+    /**
+     * Test that base64-encoded binary with references works correctly.
+     */
+    @Test
+    public void testParseSchemaWithBase64EncodedAndReferences() throws Exception {
+        // First, create the dependency schema
+        Descriptors.FileDescriptor depFd = FileDescriptorUtils.protoFileToFileDescriptor(
+                DEP_PROTO_SCHEMA, "dep.proto", Optional.of("test"));
+
+        // Create ParsedSchema for the dependency
+        ProtobufSchema depProtobufSchema = new ProtobufSchema(depFd,
+                FileDescriptorUtils.fileDescriptorToProtoFile(depFd.toProto()));
+        ParsedSchema<ProtobufSchema> depParsedSchema = new ParsedSchemaImpl<ProtobufSchema>()
+                .setParsedSchema(depProtobufSchema)
+                .setReferenceName("dep.proto");
+
+        // Create resolvedReferences map
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = new HashMap<>();
+        resolvedReferences.put("dep.proto", depParsedSchema);
+
+        // Create the root schema as base64-encoded binary
+        // For this test, we need to build the root FileDescriptor with the dependency
+        DescriptorProtos.FileDescriptorProto.Builder rootProtoBuilder = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("root.proto")
+                .setPackage("test")
+                .setSyntax("proto3")
+                .addDependency("dep.proto")
+                .addMessageType(DescriptorProtos.DescriptorProto.newBuilder()
+                        .setName("Root")
+                        .addField(DescriptorProtos.FieldDescriptorProto.newBuilder()
+                                .setName("d")
+                                .setNumber(1)
+                                .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_MESSAGE)
+                                .setTypeName(".test.Dep")
+                                .build())
+                        .build());
+
+        DescriptorProtos.FileDescriptorProto rootProto = rootProtoBuilder.build();
+        String base64Encoded = Base64.getEncoder().encodeToString(rootProto.toByteArray());
+        byte[] rawSchema = base64Encoded.getBytes();
+
+        ProtobufSchema result = parser.parseSchema(rawSchema, resolvedReferences);
+
+        assertNotNull(result);
+        assertNotNull(result.getFileDescriptor());
+        assertEquals("test", result.getFileDescriptor().getPackage());
+        assertNotNull(result.getFileDescriptor().findMessageTypeByName("Root"));
+    }
+
+    /**
+     * Test that invalid content throws appropriate exception.
+     */
+    @Test
+    public void testParseSchemaWithInvalidContent() {
+        byte[] rawSchema = "this is not valid protobuf or base64".getBytes();
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        assertThrows(RuntimeException.class, () -> parser.parseSchema(rawSchema, resolvedReferences));
+    }
+
+    /**
+     * Test that schemas importing well-known types (like google/protobuf/timestamp.proto)
+     * are parsed correctly even when resolvedReferences is empty.
+     * This is the fix for issue #7377.
+     *
+     * @see <a href="https://github.com/Apicurio/apicurio-registry/issues/7377">Issue #7377</a>
+     */
+    @Test
+    public void testParseSchemaWithWellKnownTypeImportAndEmptyReferences() {
+        String schemaWithTimestamp = """
+                syntax = "proto3";
+                package test;
+                import "google/protobuf/timestamp.proto";
+                message Event {
+                  string name = 1;
+                  google.protobuf.Timestamp created_at = 2;
+                }
+                """;
+        byte[] rawSchema = schemaWithTimestamp.getBytes();
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        // This should not throw NPE (the bug from issue #7377)
+        ProtobufSchema result = parser.parseSchema(rawSchema, resolvedReferences);
+
+        assertNotNull(result);
+        assertNotNull(result.getFileDescriptor());
+        assertEquals("test", result.getFileDescriptor().getPackage());
+        assertNotNull(result.getFileDescriptor().findMessageTypeByName("Event"));
+    }
+
+    /**
+     * Test that schemas importing multiple well-known types are parsed correctly
+     * even when resolvedReferences is empty.
+     *
+     * @see <a href="https://github.com/Apicurio/apicurio-registry/issues/7377">Issue #7377</a>
+     */
+    @Test
+    public void testParseSchemaWithMultipleWellKnownTypeImports() {
+        String schemaWithMultipleImports = """
+                syntax = "proto3";
+                package test;
+                import "google/protobuf/timestamp.proto";
+                import "google/protobuf/duration.proto";
+                import "google/protobuf/any.proto";
+                message Event {
+                  string name = 1;
+                  google.protobuf.Timestamp created_at = 2;
+                  google.protobuf.Duration duration = 3;
+                  google.protobuf.Any metadata = 4;
+                }
+                """;
+        byte[] rawSchema = schemaWithMultipleImports.getBytes();
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        // This should not throw NPE
+        ProtobufSchema result = parser.parseSchema(rawSchema, resolvedReferences);
+
+        assertNotNull(result);
+        assertNotNull(result.getFileDescriptor());
+        assertEquals("test", result.getFileDescriptor().getPackage());
+        assertNotNull(result.getFileDescriptor().findMessageTypeByName("Event"));
+    }
+
+    /**
+     * Test that schemas importing google/protobuf/struct.proto are parsed correctly.
+     *
+     * @see <a href="https://github.com/Apicurio/apicurio-registry/issues/7377">Issue #7377</a>
+     */
+    @Test
+    public void testParseSchemaWithStructImport() {
+        String schemaWithStruct = """
+                syntax = "proto3";
+                package test;
+                import "google/protobuf/struct.proto";
+                message Document {
+                  string id = 1;
+                  google.protobuf.Struct data = 2;
+                }
+                """;
+        byte[] rawSchema = schemaWithStruct.getBytes();
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        // This should not throw NPE
+        ProtobufSchema result = parser.parseSchema(rawSchema, resolvedReferences);
+
+        assertNotNull(result);
+        assertNotNull(result.getFileDescriptor());
+        assertEquals("test", result.getFileDescriptor().getPackage());
+        assertNotNull(result.getFileDescriptor().findMessageTypeByName("Document"));
+    }
+
+    /**
+     * Test that schemas importing custom (non-well-known) proto files that are not in
+     * resolvedReferences do not crash with SchemaException. Instead, the parser should
+     * fall back to binary descriptor parsing.
+     * <p>
+     * This reproduces the real-world scenario where a Kafka consumer deserializes a message
+     * whose proto schema references transitive imports (e.g. pipeline_core_types.proto) that
+     * are not registered in the schema registry.
+     * </p>
+     */
+    @Test
+    void testParseSchemaWithUnresolvableCustomImportFallsBackToDescriptor() {
+        // Provide the schema as a binary descriptor (which parseDescriptor can handle) that
+        // also declares an import not present in resolvedReferences. The successful fallback
+        // path requires the dependency to be declared but not actually used by message fields.
+        DescriptorProtos.FileDescriptorProto fdp = DescriptorProtos.FileDescriptorProto.newBuilder()
+                .setName("wrapper.proto")
+                .setPackage("test")
+                .setSyntax("proto3")
+                .addDependency("custom/missing_types.proto")
+                .addMessageType(DescriptorProtos.DescriptorProto.newBuilder()
+                        .setName("Wrapper")
+                        .addField(DescriptorProtos.FieldDescriptorProto.newBuilder()
+                                .setName("id")
+                                .setNumber(1)
+                                .setType(DescriptorProtos.FieldDescriptorProto.Type.TYPE_STRING)
+                                .build())
+                        .build())
+                .build();
+        byte[] binarySchema = fdp.toByteArray();
+
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        // Binary descriptor with unresolved dependency should still parse (the dependency
+        // is declared but not required for the message fields we're using)
+        ProtobufSchema result = parser.parseSchema(binarySchema, resolvedReferences);
+
+        assertNotNull(result);
+        assertNotNull(result.getFileDescriptor());
+        assertEquals("test", result.getFileDescriptor().getPackage());
+        assertNotNull(result.getFileDescriptor().findMessageTypeByName("Wrapper"));
+    }
+
+    /**
+     * Test that SchemaException from wire-schema parsing is caught and falls back
+     * rather than propagating to the caller as an uncaught RuntimeException.
+     * <p>
+     * When text-format parsing triggers SchemaException and the content is not valid
+     * binary descriptor either, the parser should throw a clean RuntimeException from
+     * parseDescriptor (not the original SchemaException from wire-schema).
+     * </p>
+     */
+    @Test
+    void testParseSchemaWithUnresolvableImportTextOnlyThrowsCleanError() {
+        // Text proto that USES a type from an unresolvable import - this is what actually
+        // triggers wire-schema's SchemaException (just declaring an unused import does not).
+        // The bytes are also NOT valid binary, so parseDescriptor also fails.
+        // The key assertion: the propagated error must come from the binary fallback, not be the
+        // raw SchemaException from wire-schema (which is what the typed catch is there to absorb).
+        String schemaWithCustomImport = """
+                syntax = "proto3";
+                package test;
+                import "totally/missing.proto";
+                message Broken {
+                  totally.MissingType name = 1;
+                }
+                """;
+        byte[] textSchema = schemaWithCustomImport.getBytes();
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = Collections.emptyMap();
+
+        RuntimeException thrown = assertThrows(RuntimeException.class,
+                () -> parser.parseSchema(textSchema, resolvedReferences));
+
+        assertFalse(thrown instanceof SchemaException,
+                "wire-schema's SchemaException must be absorbed by the typed catch, "
+                        + "not propagated to the caller");
+        assertNotNull(thrown.getCause(), "Wrapped error from parseDescriptor should expose a cause");
+    }
+
+    /**
+     * A registered schema with a map whose value type carries qualification, plus an
+     * import of another registered artifact. This is the exact shape a client receives
+     * back from the registry since #8771 switched text generation to real map&lt;K, V&gt;
+     * syntax (and the shape protoc-canonical text always had). Before the
+     * FileDescriptorUtils fix, toDescriptor lost the value type's qualification, failed
+     * with '"Value" is not defined', and the fallback then died with 'unable to find
+     * test/common/item.proto' because it parses without the resolved references.
+     */
+    @Test
+    public void testParseSchemaMapWithQualifiedValueTypeAndReferences() throws Exception {
+        String itemSchema = """
+                syntax = "proto3";
+                package test.common;
+                message Item {
+                  string id = 1;
+                }
+                """;
+        String docSchema = """
+                syntax = "proto3";
+                package test.docs;
+                import "google/protobuf/struct.proto";
+                import "test/common/item.proto";
+                message Doc {
+                  map<string, google.protobuf.Value> metadata = 1;
+                  map<string, test.common.Item> items = 2;
+                }
+                """;
+
+        ParsedSchema<ProtobufSchema> itemRef = new ParsedSchemaImpl<ProtobufSchema>()
+                .setParsedSchema(parser.parseSchema(itemSchema.getBytes(), Collections.emptyMap()))
+                .setReferenceName("test/common/item.proto")
+                .setRawSchema(itemSchema.getBytes());
+        Map<String, ParsedSchema<ProtobufSchema>> resolvedReferences = new HashMap<>();
+        resolvedReferences.put("test/common/item.proto", itemRef);
+
+        ProtobufSchema result = parser.parseSchema(docSchema.getBytes(), resolvedReferences);
+
+        assertNotNull(result);
+        Descriptors.Descriptor doc = result.getFileDescriptor().findMessageTypeByName("Doc");
+        assertNotNull(doc);
+        Descriptors.FieldDescriptor metadata = doc.findFieldByName("metadata");
+        assertTrue(metadata.isMapField());
+        assertEquals("google.protobuf.Value",
+                metadata.getMessageType().findFieldByName("value").getMessageType().getFullName());
+        Descriptors.FieldDescriptor items = doc.findFieldByName("items");
+        assertTrue(items.isMapField());
+        assertEquals("test.common.Item",
+                items.getMessageType().findFieldByName("value").getMessageType().getFullName());
+    }
+}

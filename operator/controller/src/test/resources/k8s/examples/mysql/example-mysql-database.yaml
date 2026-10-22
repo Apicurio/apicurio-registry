@@ -1,0 +1,56 @@
+# IMPORTANT: This resource should only be used for development or testing purposes.
+# MySQL StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: example-mysql-database
+spec:
+  serviceName: example-mysql-database-service
+  selector:
+    matchLabels:
+      app: example-mysql-database
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: example-mysql-database
+    spec:
+      containers:
+        - name: example-mysql-database
+          image: mysql:8.0
+          volumeMounts:
+            - mountPath: /var/lib/mysql
+              name: cache-volume
+          env:
+            - name: MYSQL_USER
+              value: username
+            - name: MYSQL_PASSWORD
+              value: password
+            - name: MYSQL_DATABASE
+              value: apicurio
+            - name: MYSQL_ROOT_PASSWORD
+              value: rootpassword
+      volumes:
+        - name: cache-volume
+          emptyDir: { }
+---
+# MySQL StatefulSet Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-mysql-database
+spec:
+  selector:
+    app: example-mysql-database
+  ports:
+    - port: 3306
+      targetPort: 3306
+---
+# MySQL Password Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: example-mysql-database-password
+type: Opaque
+data:
+  password: cGFzc3dvcmQ=

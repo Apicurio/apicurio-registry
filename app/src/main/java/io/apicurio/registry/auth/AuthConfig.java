@@ -1,0 +1,403 @@
+package io.apicurio.registry.auth;
+
+import io.apicurio.common.apps.config.Dynamic;
+import io.apicurio.common.apps.config.Info;
+import jakarta.annotation.PostConstruct;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
+import org.eclipse.microprofile.config.Config;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.slf4j.Logger;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
+import java.util.stream.Collectors;
+
+import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_AUTH;
+
+@Singleton
+public class AuthConfig {
+
+    private static final String DEFAULT_USERNAME_HEADER = "X-Forwarded-User";
+    private static final String DEFAULT_EMAIL_HEADER = "X-Forwarded-Email";
+    private static final String DEFAULT_GROUPS_HEADER = "X-Forwarded-Groups";
+
+    @Inject
+    Logger log;
+
+    @Inject
+    Config config;
+
+    @ConfigProperty(name = "quarkus.oidc.tenant-enabled", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Enable auth", availableSince = "2.0.0.Final")
+    boolean oidcAuthEnabled;
+
+    // back to fake auth and use another property
+    @Dynamic(label = "HTTP basic authentication", description = "When selected, users are permitted to authenticate using HTTP basic authentication (in addition to OAuth).", requires = "apicurio.authn.enabled=true")
+    @ConfigProperty(name = "apicurio.authn.basic-client-credentials.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Enable basic auth client credentials", availableSince = "2.1.0.Final")
+    Supplier<Boolean> basicClientCredentialsAuthEnabled;
+
+    @ConfigProperty(name = "quarkus.http.auth.basic", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Enable basic auth", availableSince = "3.X.X.Final")
+    boolean basicAuthEnabled;
+
+    @ConfigProperty(name = "quarkus.http.auth.form.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Enable form auth. Requires adding 'form' to apicurio.authn.mechanism.priority and configuring a Quarkus identity provider (e.g. quarkus.security.users.embedded.* or a JDBC/LDAP realm). WARNING: Form auth with session cookies reintroduces CSRF exposure for state-changing requests. Production deployments must configure CSRF protection and Secure/HttpOnly cookies.", availableSince = "3.3.1")
+    boolean formAuthEnabled;
+
+    // TODO: Add suffix?
+    @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration", defaultValue = "10")
+    @Info(category = CATEGORY_AUTH, description = "Default client credentials token expiration time in minutes.", availableSince = "2.2.6.Final")
+    Integer accessTokenExpiration;
+
+    // TODO: Add suffix?
+    @ConfigProperty(name = "apicurio.authn.basic-client-credentials.cache-expiration-offset", defaultValue = "10")
+    @Info(category = CATEGORY_AUTH, description = "Client credentials token expiration offset from JWT expiration, in seconds.", availableSince = "2.5.9.Final")
+    Integer accessTokenExpirationOffset;
+
+    @ConfigProperty(name = "apicurio.authn.basic.scope")
+    @Info(category = CATEGORY_AUTH, description = "Client credentials scope.", availableSince = "2.5.0.Final")
+    Optional<String> scope;
+
+    @ConfigProperty(name = "apicurio.authn.audit.log.prefix", defaultValue = "audit")
+    @Info(category = CATEGORY_AUTH, description = "Prefix used for application audit logging.", availableSince = "2.2.6")
+    String auditLogPrefix;
+
+    @ConfigProperty(name = "quarkus.oidc.auth-server-url", defaultValue = "_")
+    @Info(category = CATEGORY_AUTH, description = "Authentication server endpoint.", availableSince = "2.1.0.Final")
+    String authServerUrl;
+
+    @ConfigProperty(name = "quarkus.oidc.token-path", defaultValue = "/protocol/openid-connect/token")
+    @Info(category = CATEGORY_AUTH, description = "Authentication server token endpoint.", availableSince = "2.1.0.Final")
+    String oidcTokenPath;
+
+    @ConfigProperty(name = "quarkus.oidc.client-secret")
+    @Info(category = CATEGORY_AUTH, description = "Client secret used by the server for authentication.", availableSince = "2.1.0.Final")
+    Optional<String> clientSecret;
+
+    @ConfigProperty(name = "quarkus.oidc.client-id", defaultValue = "")
+    @Info(category = CATEGORY_AUTH, description = "Client identifier used by the server for authentication.", availableSince = "2.0.0.Final")
+    String clientId;
+
+    @ConfigProperty(name = "apicurio.auth.role-based-authorization", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Enable role based authorization", availableSince = "2.1.0.Final")
+    boolean roleBasedAuthorizationEnabled;
+
+    @Dynamic(label = "Artifact owner-only authorization", description = "When selected, Service Registry allows only the artifact owner (creator) to modify an artifact.", requires = "quarkus.oidc.tenant-enabled=true")
+    @ConfigProperty(name = "apicurio.auth.owner-only-authorization", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Artifact owner-only authorization", availableSince = "2.0.0.Final")
+    Supplier<Boolean> ownerOnlyAuthorizationEnabled;
+
+    @Dynamic(label = "Artifact group owner-only authorization", description = "When selected, Service Registry allows only the artifact group owner (creator) to modify an artifact group.", requires = {
+            "quarkus.oidc.tenant-enabled=true", "apicurio.auth.owner-only-authorization=true" })
+    @ConfigProperty(name = "apicurio.auth.owner-only-authorization.limit-group-access", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Artifact group owner-only authorization", availableSince = "2.1.0.Final")
+    Supplier<Boolean> ownerOnlyAuthorizationLimitGroupAccess;
+
+    @Dynamic(label = "Anonymous read access", description = "When selected, requests from anonymous users (requests without any credentials) are granted read-only access.", requires = "quarkus.oidc.tenant-enabled=true")
+    @ConfigProperty(name = "apicurio.auth.anonymous-read-access.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Anonymous read access", availableSince = "2.1.0.Final")
+    Supplier<Boolean> anonymousReadAccessEnabled;
+
+    @Dynamic(label = "Authenticated read access", description = "When selected, requests from any authenticated user are granted at least read-only access.", requires = {
+            "quarkus.oidc.tenant-enabled=true", "apicurio.auth.role-based-authorization=true" })
+    @ConfigProperty(name = "apicurio.auth.authenticated-read-access.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Authenticated read access", availableSince = "2.1.4.Final")
+    Supplier<Boolean> authenticatedReadAccessEnabled;
+
+    @ConfigProperty(name = "apicurio.auth.roles.readonly", defaultValue = "sr-readonly")
+    @Info(category = CATEGORY_AUTH, description = "Auth roles readonly", availableSince = "2.1.0.Final")
+    String readOnlyRole;
+
+    @ConfigProperty(name = "apicurio.auth.roles.developer", defaultValue = "sr-developer")
+    @Info(category = CATEGORY_AUTH, description = "Auth roles developer", availableSince = "2.1.0.Final")
+    String developerRole;
+
+    @ConfigProperty(name = "apicurio.auth.roles.admin", defaultValue = "sr-admin")
+    @Info(category = CATEGORY_AUTH, description = "Auth roles admin", availableSince = "2.0.0.Final")
+    String adminRole;
+
+    @ConfigProperty(name = "apicurio.auth.role-source", defaultValue = "token")
+    @Info(category = CATEGORY_AUTH, description = "Auth roles source", availableSince = "2.1.0.Final")
+    String roleSource;
+
+    @ConfigProperty(name = "apicurio.auth.admin-override.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Auth admin override enabled", availableSince = "2.1.0.Final")
+    boolean adminOverrideEnabled;
+
+    @ConfigProperty(name = "apicurio.auth.admin-override.from", defaultValue = "token")
+    @Info(category = CATEGORY_AUTH, description = "Auth admin override from", availableSince = "2.1.0.Final")
+    String adminOverrideFrom;
+
+    @ConfigProperty(name = "apicurio.auth.admin-override.type", defaultValue = "role")
+    @Info(category = CATEGORY_AUTH, description = "Auth admin override type", availableSince = "2.1.0.Final")
+    String adminOverrideType;
+
+    @ConfigProperty(name = "apicurio.auth.admin-override.role", defaultValue = "sr-admin")
+    @Info(category = CATEGORY_AUTH, description = "Auth admin override role", availableSince = "2.1.0.Final")
+    String adminOverrideRole;
+
+    @ConfigProperty(name = "apicurio.auth.admin-override.claim", defaultValue = "org-admin")
+    @Info(category = CATEGORY_AUTH, description = "Auth admin override claim", availableSince = "2.1.0.Final")
+    String adminOverrideClaim;
+
+    @ConfigProperty(name = "apicurio.auth.admin-override.claim-value", defaultValue = "true")
+    @Info(category = CATEGORY_AUTH, description = "Auth admin override claim value", availableSince = "2.1.0.Final")
+    String adminOverrideClaimValue;
+
+    @ConfigProperty(name = "apicurio.auth.admin-override.user", defaultValue = "admin")
+    @Info(category = CATEGORY_AUTH, description = "Auth admin override user name", availableSince = "3.0.0")
+    String adminOverrideUser;
+
+    @ConfigProperty(name = "apicurio.authn.proxy-header.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Enable proxy header authentication", availableSince = "3.1.7")
+    boolean proxyHeaderAuthEnabled;
+
+    @ConfigProperty(name = "apicurio.authn.proxy-header.username", defaultValue = DEFAULT_USERNAME_HEADER)
+    @Info(category = CATEGORY_AUTH, description = "Header name for username", availableSince = "3.1.7")
+    String usernameHeader;
+
+    @ConfigProperty(name = "apicurio.authn.proxy-header.email", defaultValue = DEFAULT_EMAIL_HEADER)
+    @Info(category = CATEGORY_AUTH, description = "Header name for email", availableSince = "3.1.7")
+    String emailHeader;
+
+    @ConfigProperty(name = "apicurio.authn.proxy-header.groups", defaultValue = DEFAULT_GROUPS_HEADER)
+    @Info(category = CATEGORY_AUTH, description = "Header name for groups/roles", availableSince = "3.1.7")
+    String groupsHeader;
+
+    @ConfigProperty(name = "apicurio.authn.proxy-header.trust-proxy-authorization", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "When enabled, authorization checks are skipped and the proxy is trusted to have performed authorization", availableSince = "3.1.0.Final")
+    boolean proxyHeaderTrustProxyAuthorization;
+
+    @ConfigProperty(name = "apicurio.authn.kubernetes.enabled", defaultValue = "false")
+    @Info(category = CATEGORY_AUTH, description = "Enable Kubernetes TokenReview authentication", availableSince = "3.3.0", experimental = true)
+    boolean kubernetesAuthEnabled;
+
+    @ConfigProperty(name = "apicurio.authn.kubernetes.api-audiences")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated list of API audiences for TokenReview validation. If empty, audience is not validated.", availableSince = "3.3.0", experimental = true)
+    Optional<String> kubernetesApiAudiences;
+
+    @ConfigProperty(name = "apicurio.authn.kubernetes.cache-expiration", defaultValue = "5")
+    @Info(category = CATEGORY_AUTH, description = "TokenReview result cache expiration in minutes", availableSince = "3.3.0", experimental = true)
+    int kubernetesTokenCacheExpiration;
+
+    @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.admin")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-admin role", availableSince = "3.3.0", experimental = true)
+    Optional<String> kubernetesAdminGroups;
+
+    @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.developer")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-developer role", availableSince = "3.3.0", experimental = true)
+    Optional<String> kubernetesDeveloperGroups;
+
+    @ConfigProperty(name = "apicurio.auth.role-source.kubernetes.group-mapping.readonly")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated Kubernetes groups that map to sr-readonly role", availableSince = "3.3.0", experimental = true)
+    Optional<String> kubernetesReadOnlyGroups;
+
+    @ConfigProperty(name = "apicurio.authn.mechanism.priority", defaultValue = "basic,proxy-header,oidc")
+    @Info(category = CATEGORY_AUTH, description = "Comma-separated ordered list of authentication mechanism names. Only mechanisms that are also enabled will be used. Valid values: basic, form, proxy-header, oidc, kubernetes.", availableSince = "3.2.3")
+    String mechanismPriority;
+
+    @PostConstruct
+    void onConstruct() {
+        log.debug("===============================");
+        log.debug("OIDC Auth Enabled: {}", oidcAuthEnabled);
+        log.debug("Basic Auth Enabled: {}", basicAuthEnabled);
+        log.debug("Form Auth Enabled: {}", formAuthEnabled);
+        log.debug("Proxy Auth Enabled: {}", proxyHeaderAuthEnabled);
+        log.debug("Kubernetes Auth Enabled: {}", kubernetesAuthEnabled);
+        log.debug("Mechanism Priority: {}", mechanismPriority);
+        log.debug("Anonymous Read Access Enabled: {}", anonymousReadAccessEnabled);
+        log.debug("Authenticated Read Access Enabled: {}", authenticatedReadAccessEnabled);
+        log.debug("RBAC Enabled: {}", roleBasedAuthorizationEnabled);
+        if (roleBasedAuthorizationEnabled) {
+            log.debug("   RBAC Roles: {}, {}, {}", readOnlyRole, developerRole, adminRole);
+            log.debug("   Role Source: {}", roleSource);
+        }
+        log.debug("OBAC Enabled: {}", ownerOnlyAuthorizationEnabled);
+        log.debug("Admin Override Enabled: {}", adminOverrideEnabled);
+        if (adminOverrideEnabled) {
+            log.debug("   Admin Override from: {}", adminOverrideFrom);
+            log.debug("   Admin Override type: {}", adminOverrideType);
+            log.debug("   Admin Override role: {}", adminOverrideRole);
+            log.debug("   Admin Override claim: {}", adminOverrideClaim);
+            log.debug("   Admin Override claim-value: {}", adminOverrideClaimValue);
+        }
+        log.debug("===============================");
+    }
+
+    public boolean isOidcAuthEnabled() {
+        return this.oidcAuthEnabled;
+    }
+
+    public boolean isBasicAuthEnabled() {
+        return this.basicAuthEnabled;
+    }
+
+    public boolean isFormAuthEnabled() {
+        return this.formAuthEnabled;
+    }
+
+    public boolean isProxyHeaderAuthEnabled() {
+        return this.proxyHeaderAuthEnabled;
+    }
+
+    /**
+     * True when any authentication backend is enabled. Canonical check used by
+     * {@link AuthorizedInterceptor} and ownership-transfer authorization — keep those
+     * call sites on this method so a new backend cannot silently bypass authz.
+     */
+    public boolean isAuthenticationEnabled() {
+        return oidcAuthEnabled || basicAuthEnabled || proxyHeaderAuthEnabled || kubernetesAuthEnabled || formAuthEnabled;
+    }
+    public boolean isRbacEnabled() {
+        return this.roleBasedAuthorizationEnabled;
+    }
+
+    public boolean isObacEnabled() {
+        return this.ownerOnlyAuthorizationEnabled.get();
+    }
+
+    public boolean isAdminOverrideEnabled() {
+        return this.adminOverrideEnabled;
+    }
+
+    public String getRoleSource() {
+        return this.roleSource;
+    }
+
+    public boolean isKubernetesAuthEnabled() {
+        return this.kubernetesAuthEnabled;
+    }
+
+    public boolean isApplicationRbacEnabled() {
+        return this.roleBasedAuthorizationEnabled && "application".equals(getRoleSource());
+    }
+
+    public boolean isAnonymousReadsEnabled() {
+        return anonymousReadAccessEnabled.get();
+    }
+
+    public boolean isAuthenticatedReadsEnabled() {
+        return authenticatedReadAccessEnabled.get();
+    }
+
+    /**
+     * Returns the ordered list of authentication mechanism names from the configured priority.
+     *
+     * @return list of mechanism names (e.g. ["basic", "proxy-header", "oidc"])
+     */
+    public List<String> getMechanismPriorityList() {
+        return Arrays.stream(mechanismPriority.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Parses a comma-separated role configuration value into a set of role names.
+     * This allows configuring multiple role names that map to a single authorization level.
+     * For example: "sr-admin,azure-group-uuid-123,AppRole.Admin"
+     *
+     * @param roleValue the comma-separated role configuration value
+     * @return a set of trimmed, non-empty role names
+     */
+    private Set<String> parseRoles(String roleValue) {
+        if (roleValue == null || roleValue.trim().isEmpty()) {
+            return Collections.emptySet();
+        }
+        return Arrays.stream(roleValue.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Gets the set of role names that grant read-only access.
+     * Supports comma-separated values for multiple role mappings (e.g., Azure AD groups).
+     */
+    public Set<String> getReadOnlyRoles() {
+        return parseRoles(readOnlyRole);
+    }
+
+    /**
+     * Gets the set of role names that grant developer access.
+     * Supports comma-separated values for multiple role mappings (e.g., Azure AD groups).
+     */
+    public Set<String> getDeveloperRoles() {
+        return parseRoles(developerRole);
+    }
+
+    /**
+     * Gets the set of role names that grant admin access.
+     * Supports comma-separated values for multiple role mappings (e.g., Azure AD groups).
+     */
+    public Set<String> getAdminRoles() {
+        return parseRoles(adminRole);
+    }
+
+    /**
+     * Gets the set of role names that grant admin override access.
+     * Supports comma-separated values for multiple role mappings.
+     */
+    public Set<String> getAdminOverrideRoles() {
+        return parseRoles(adminOverrideRole);
+    }
+
+    public Set<String> getKubernetesAdminGroups() {
+        return kubernetesAdminGroups.map(this::parseRoles).orElse(Collections.emptySet());
+    }
+
+    public Set<String> getKubernetesDeveloperGroups() {
+        return kubernetesDeveloperGroups.map(this::parseRoles).orElse(Collections.emptySet());
+    }
+
+    public Set<String> getKubernetesReadOnlyGroups() {
+        return kubernetesReadOnlyGroups.map(this::parseRoles).orElse(Collections.emptySet());
+    }
+
+    public List<String> getKubernetesApiAudiences() {
+        return kubernetesApiAudiences.map(audiences ->
+                Arrays.stream(audiences.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .collect(Collectors.toList())
+        ).orElse(Collections.emptyList());
+    }
+
+    /**
+     * Gets the OAuth scope for a given client ID.
+     * First checks for a client-specific scope (apicurio.authn.basic.scope.{clientId}),
+     * then falls back to the default scope (apicurio.authn.basic.scope).
+     * Converts comma-separated scopes to space-separated (OAuth2 standard).
+     *
+     * @param clientId the client ID requesting the scope
+     * @return the scope string, or null if no scope is configured
+     */
+    public String getScopeForClient(String clientId) {
+        if (clientId != null) {
+            String clientSpecificKey = "apicurio.authn.basic.scope." + clientId;
+            var clientScope = config.getOptionalValue(clientSpecificKey, String.class);
+            if (clientScope.isPresent()) {
+                return normalizeScope(clientScope.orElseThrow());
+            }
+        }
+        return scope.map(this::normalizeScope).orElse(null);
+    }
+
+    /**
+     * Normalizes a scope value by converting comma-separated scopes to space-separated.
+     * OAuth2 RFC 6749 specifies that multiple scopes should be space-separated.
+     */
+    private String normalizeScope(String scopeValue) {
+        if (scopeValue == null) {
+            return null;
+        }
+        return scopeValue.replace(",", " ").trim();
+    }
+
+}

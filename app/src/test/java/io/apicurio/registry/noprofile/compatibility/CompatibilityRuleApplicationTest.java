@@ -1,0 +1,678 @@
+package io.apicurio.registry.noprofile.compatibility;
+
+import com.microsoft.kiota.ApiException;
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.JsonSchemas;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.model.GroupId;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateRule;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.Rule;
+import io.apicurio.registry.rest.client.models.RuleType;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
+import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rules.RuleApplicationType;
+import io.apicurio.registry.rules.RuleContext;
+import io.apicurio.registry.rules.violation.RuleViolation;
+import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.rules.RulesService;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.app.compatibility.CompatibilityRuleExecutor;
+import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.quarkus.test.junit.QuarkusTest;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+@QuarkusTest
+public class CompatibilityRuleApplicationTest extends AbstractResourceTestBase {
+
+    private static TypedContent toTypedContent(String schema) {
+        return TypedContent.create(ContentHandle.create(schema), ContentTypes.APPLICATION_JSON);
+    }
+
+    private static final String SCHEMA_SIMPLE = "{\"type\": \"string\"}";
+    private static final String SCHEMA_WITH_MAP = "{\r\n" + "    \"type\": \"record\",\r\n"
+            + "    \"name\": \"userInfo\",\r\n" + "    \"namespace\": \"my.example\",\r\n"
+            + "    \"fields\": [\r\n" + "        {\r\n" + "            \"name\": \"name\",\r\n"
+            + "            \"type\": \"string\",\r\n" + "            \"default\": \"NONE\"\r\n"
+            + "        },\r\n" + "        {\r\n" + "            \"name\": \"props\",\r\n"
+            + "            \"type\": {\r\n" + "                \"type\": \"map\",\r\n"
+            + "                \"values\": \"string\"\r\n" + "            }\r\n" + "        }\r\n"
+            + "    ]\r\n" + "}";
+    private static final String INVALID_SCHEMA_WITH_MAP = "{\r\n" + "    \"type\": \"record\",\r\n"
+            + "    \"name\": \"userInfo\",\r\n" + "    \"namespace\": \"my.example\",\r\n"
+            + "    \"fields\": [\r\n" + "        {\r\n" + "            \"name\": \"name\",\r\n"
+            + "            \"type\": \"string\",\r\n" + "            \"default\": \"NONE\"\r\n"
+            + "        },\r\n" + "        {\r\n" + "            \"name\": \"props\",\r\n"
+            + "            \"type\": {\r\n" + "                \"type\": \"map\",\r\n"
+            + "                \"values\": \"string\"\r\n" + "            },\r\n"
+            + "            \"default\": \"{}\"\r\n" + "        }\r\n" + "    ]\r\n" + "}";
+
+    private static final String citizenSchema = "{\n"
+            + "  \"$id\": \"https://example.com/citizen.schema.json\",\n"
+            + "  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n" + "  \"title\": \"Citizen\",\n"
+            + "  \"type\": \"object\",\n" + "  \"properties\": {\n" + "    \"firstName\": {\n"
+            + "      \"type\": \"string\",\n" + "      \"description\": \"The citizen's first name.\"\n"
+            + "    },\n" + "    \"lastName\": {\n" + "      \"type\": \"string\",\n"
+            + "      \"description\": \"The citizen's last name.\"\n" + "    },\n" + "    \"age\": {\n"
+            + "      \"description\": \"Age in years which must be equal to or greater than zero.\",\n"
+            + "      \"type\": \"integer\",\n" + "      \"minimum\": 0\n" + "    },\n" + "    \"city\": {\n"
+            + "      \"$ref\": \"city.json\"\n" + "    }\n" + "  },\n" + "  \"required\": [\n"
+            + "    \"city\"\n" + "  ]\n" + "}";
+    private static final String citySchema = "{\n" + "  \"$id\": \"https://example.com/city.schema.json\",\n"
+            + "  \"$schema\": \"http://json-schema.org/draft-07/schema#\",\n" + "  \"title\": \"City\",\n"
+            + "  \"type\": \"object\",\n" + "  \"properties\": {\n" + "    \"name\": {\n"
+            + "      \"type\": \"string\",\n" + "      \"description\": \"The city's name.\"\n" + "    },\n"
+            + "    \"zipCode\": {\n" + "      \"type\": \"integer\",\n"
+            + "      \"description\": \"The zip code.\",\n" + "      \"minimum\": 0\n" + "    }\n" + "  }\n"
+            + "}";
+
+    private static final CreateArtifact createArtifact = new CreateArtifact();
+    static {
+        createArtifact.setArtifactType(ArtifactType.JSON);
+        CreateVersion createVersion = new CreateVersion();
+        createArtifact.setFirstVersion(createVersion);
+        VersionContent versionContent = new VersionContent();
+        createVersion.setContent(versionContent);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+    }
+
+    @Inject
+    RulesService rules;
+
+    @Inject
+    CompatibilityRuleExecutor compatibility;
+
+    @Test
+    public void testGlobalCompatibilityRuleNoArtifact() throws Exception {
+        // Add a global rule
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig("FULL");
+
+        clientV3.admin().rules().post(createRule);
+
+        // Verify the rule was added.
+        Rule rule = clientV3.admin().rules().byRuleType(RuleType.COMPATIBILITY.name()).get();
+        Assertions.assertEquals(RuleType.COMPATIBILITY, rule.getRuleType());
+        Assertions.assertEquals(CompatibilityLevel.FULL.name(), rule.getConfig());
+
+        rules.applyRules("no-group", "not-existent", ArtifactType.AVRO, toTypedContent(SCHEMA_SIMPLE),
+                RuleApplicationType.CREATE, Collections.emptyList(), Collections.emptyMap());
+    }
+
+    @Test
+    public void testAvroCompatibility() {
+        String v1Schema = "{\"type\":\"record\",\"namespace\":\"com.example\",\"name\":\"FullName\",\"fields\":[{\"name\":\"first\",\"type\":\"string\"},{\"name\":\"last\",\"type\":\"string\"}]}";
+        String v2Schema = "{\"type\": \"string\"}";
+
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            RuleContext context = new RuleContext("TestGroup", "Test", "AVRO", "BACKWARD",
+                    Collections.singletonList(toTypedContent(v1Schema)), toTypedContent(v2Schema),
+                    Collections.emptyList(), Collections.emptyMap(), null);
+            compatibility.execute(context);
+        });
+    }
+
+    @Test
+    public void testJsonSchemaCompatibility() {
+        String v1Schema = JsonSchemas.jsonSchema;
+        String v2Schema = JsonSchemas.incompatibleJsonSchema;
+
+        RuleViolationException ruleViolationException = Assertions.assertThrows(RuleViolationException.class,
+                () -> {
+                    RuleContext context = new RuleContext("TestGroup", "TestJson", ArtifactType.JSON,
+                            "FORWARD_TRANSITIVE", Collections.singletonList(toTypedContent(v1Schema)),
+                            toTypedContent(v2Schema), Collections.emptyList(), Collections.emptyMap(),
+                            null);
+                    compatibility.execute(context);
+                });
+
+        Set<RuleViolation> ruleViolationCauses = ruleViolationException.getCauses();
+        RuleViolation ageViolationCause = findCauseByContext(ruleViolationCauses, "/properties/age/type");
+        RuleViolation zipCodeViolationCause = findCauseByContext(ruleViolationCauses, "/properties/zipcode");
+
+        /*
+         * Explanation for why the following diff type is not SUBSCHEMA_TYPE_CHANGED:
+         *
+         * Consider the following schemas, with FORWARD compatibility checking (i.e. B is newer, but is
+         * checked in a reverse order): A: ``` { "type": "object", "properties": { "age": { "type": "integer",
+         * "minimum": 0 } } } ``` B: ``` { "type": "object", "properties": { "age": { "type": "string",
+         * "minimum": 0 } } } ``` A is incompatible with B, because the `type` property has been changed from
+         * `string` to `integer`, however the `minimum` property, which is found in number schemas remained in
+         * B. The Everit library parses subschema of the `age` property in B not as a string schema with an
+         * extra property, but as a "synthetic" allOf combined schema of string and number. The compatibility
+         * checking then compares this synthetic number subschema to the number schema in A.
+         */
+        Assertions.assertEquals("/properties/age/type", ageViolationCause.getContext());
+        Assertions.assertEquals(DiffType.NUMBER_TYPE_INTEGER_REQUIRED_FALSE_TO_TRUE.getDescription(),
+                ageViolationCause.getDescription());
+        Assertions.assertEquals("/properties/zipcode", zipCodeViolationCause.getContext());
+        Assertions.assertEquals(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription(),
+                zipCodeViolationCause.getDescription());
+
+    }
+
+    @Test
+    public void validateJsonSchemaEvolutionWithReferences() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String cityArtifactId = generateArtifactId();
+
+        /* final Integer cityDependencyGlobalId = */createArtifact(groupId, cityArtifactId, ArtifactType.JSON,
+                citySchema, ContentTypes.APPLICATION_JSON);
+
+        final io.apicurio.registry.rest.v3.beans.ArtifactReference cityReference = new io.apicurio.registry.rest.v3.beans.ArtifactReference();
+        cityReference.setVersion("1");
+        cityReference.setGroupId(groupId);
+        cityReference.setArtifactId(cityArtifactId);
+        cityReference.setName("city.json");
+
+        String artifactId = generateArtifactId();
+
+        /* final Integer globalId = */createArtifactWithReferences(groupId, artifactId, ArtifactType.JSON,
+                citizenSchema, ContentTypes.APPLICATION_JSON, List.of(cityReference));
+
+        createArtifactRule(groupId, artifactId, io.apicurio.registry.types.RuleType.COMPATIBILITY,
+                "BACKWARD");
+
+        // Try to create another version, it should be validated with no issues.
+        createArtifactVersionExtendedRaw(groupId, artifactId, citizenSchema, ContentTypes.APPLICATION_JSON,
+                List.of(cityReference));
+    }
+
+    private RuleViolation findCauseByContext(Set<RuleViolation> ruleViolations, String context) {
+        for (RuleViolation violation : ruleViolations) {
+            if (violation.getContext().equals(context)) {
+                return violation;
+            }
+        }
+        return null;
+    }
+
+    @Test
+    public void testCompatibilityRuleApplication_Map() throws Exception {
+        String artifactId = "testCompatibilityRuleApplication_Map";
+        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.FULL.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(createRule);
+
+        // This will result in org.apache.avro.AvroTypeException in the compatibility checker,
+        // which is rethrown as UnprocessableSchemaException.
+        // TODO: Do we want such cases to result in RuleViolationException instead?
+        var exception = Assertions.assertThrows(ApiException.class, () -> {
+            createArtifactVersion(artifactId, INVALID_SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+        });
+        Assertions.assertEquals(422, exception.getResponseStatusCode());
+    }
+
+    @Test
+    public void testCompatibilityInvalidExitingContentRuleApplication_Map() throws Exception {
+        String artifactId = "testCompatibilityInvalidExitingContentRuleApplication_Map";
+        createArtifact(artifactId, ArtifactType.AVRO, INVALID_SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.FULL.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(createRule);
+
+        // This will result in org.apache.avro.AvroTypeException in the compatibility checker,
+        // which is rethrown as UnprocessableSchemaException.
+        // TODO: Do we want such cases to result in RuleViolationException instead?
+        var exception = Assertions.assertThrows(ApiException.class, () -> {
+            createArtifactVersion(artifactId, INVALID_SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+        });
+        Assertions.assertEquals(422, exception.getResponseStatusCode());
+    }
+
+    @Test
+    public void testJsonSchemaUnsupportedDraftCompatibilityIsUnprocessable() throws Exception {
+        String artifactId = "testJsonSchemaUnsupportedDraftCompatibilityIsUnprocessable";
+        String v1 = "{\"$schema\": \"https://json-schema.org/draft/2020-12/schema\", \"type\": \"object\"}";
+        String v2 = "{\"$schema\": \"https://json-schema.org/draft/2020-12/schema\", \"type\": \"object\", "
+                + "\"properties\": {\"name\": {\"type\": \"string\"}}}";
+        createArtifact(artifactId, ArtifactType.JSON, v1, ContentTypes.APPLICATION_JSON);
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.BACKWARD.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(createRule);
+
+        // The everit-based checker cannot load draft 2020-12 and throws SchemaException,
+        // which is rethrown as UnprocessableSchemaException (previously a 500).
+        var exception = Assertions.assertThrows(ApiException.class, () -> {
+            createArtifactVersion(artifactId, v2, ContentTypes.APPLICATION_JSON);
+        });
+        Assertions.assertEquals(422, exception.getResponseStatusCode());
+    }
+
+    @Test
+    public void testCompatibilityRuleApplication_FullTransitive() throws Exception {
+        String artifactId = "testCompatibilityRuleApplication_FullTransitive";
+
+        // Create artifact with 4 versions, where the first one is not compatible with the others
+        createArtifact(artifactId, ArtifactType.AVRO, SCHEMA_SIMPLE, ContentTypes.APPLICATION_JSON);
+        createArtifactVersion(artifactId, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+        createArtifactVersion(artifactId, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+        createArtifactVersion(artifactId, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+        createArtifactVersion(artifactId, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+
+        // Activate compatibility rules
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.BACKWARD_TRANSITIVE.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(createRule);
+
+        // Should fail, the new version is not compatible with the first one
+        Assertions.assertThrows(Exception.class, () -> {
+            createArtifactVersion(artifactId, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+        });
+
+        // Change rule to backward, should pass since the new version is compatible with the latest one
+        Rule rule = new Rule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
+        rule.setConfig(CompatibilityLevel.BACKWARD.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().byRuleType(RuleType.COMPATIBILITY.getValue()).put(rule);
+        createArtifactVersion(artifactId, SCHEMA_WITH_MAP, ContentTypes.APPLICATION_JSON);
+    }
+
+    @Test
+    public void testAvroSchemaUpdateOptionalField() throws Exception {
+        String artifactId = generateArtifactId();
+        String initialSchema = "{\"type\":\"record\",\"name\":\"ExampleType\",\"fields\":[{\"name\":\"sdfgfsdgsdg\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"},{\"name\":\"field3\",\"type\":\"int\",\"default\":\"\"}]}";
+
+        // Create artifact with initial schema
+        createArtifact(artifactId, ArtifactType.AVRO, initialSchema, ContentTypes.APPLICATION_JSON);
+
+        // Create backwards compatibility rule
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(rule);
+
+        // Try to update schema with incompatible change
+        String updatedSchema = "{\"type\":\"record\",\"name\":\"ExampleType\",\"fields\":[{\"name\":\"sdfgfsdgsdg\",\"type\":\"string\"},{\"name\":\"field2\",\"type\":\"int\"},{\"name\":\"field3\",\"type\":\"string\",\"default\":\"\"}]}";
+
+        ProblemDetails exception = Assertions.assertThrows(ProblemDetails.class, () -> {
+            createArtifactVersion(artifactId, updatedSchema, ContentTypes.APPLICATION_JSON);
+        });
+
+        Assertions.assertEquals(422, exception.getResponseStatusCode());
+        Assertions.assertNotNull(exception.getDetail(), "AvroTypeException: Invalid default for field field3: \"\" not a \"int\"");
+        Assertions.assertNotNull(exception.getTitle(), "Could not execute compatibility rule on invalid Avro schema");
+    }
+
+    /**
+     * Test for PR #6833: Protobuf compatibility with base64-encoded schemas.
+     * This validates that compatibility checking works when stored Protobuf schemas
+     * are in base64-encoded FileDescriptorProto format.
+     */
+    @Test
+    public void testProtobufBackwardCompatibility() throws Exception {
+        String artifactId = generateArtifactId();
+
+        // Initial Protobuf schema
+        String personV1 = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              int32 age = 2;
+              string email = 3;
+            }
+            """;
+
+        // Compatible evolution - adds optional field
+        String personV2 = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              int32 age = 2;
+              string email = 3;
+              string phone = 4;
+            }
+            """;
+
+        // Incompatible evolution - changes field type
+        String personV3 = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              string age = 2;
+              string email = 3;
+            }
+            """;
+
+        // Create artifact with initial schema
+        createArtifact(artifactId, ArtifactType.PROTOBUF, personV1, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Enable backward compatibility rule
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(rule);
+
+        // Compatible update should succeed
+        // This internally tests that the stored schema (v1) is properly deserialized from base64
+        createArtifactVersion(artifactId, personV2, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Incompatible update should fail
+        Assertions.assertThrows(Exception.class, () -> {
+            createArtifactVersion(artifactId, personV3, ContentTypes.APPLICATION_PROTOBUF);
+        });
+    }
+
+    /**
+     * Test for PR #6833: Protobuf backward transitive compatibility.
+     * Validates base64 deserialization works across multiple stored schema versions.
+     */
+    @Test
+    public void testProtobufBackwardTransitiveCompatibility() throws Exception {
+        String artifactId = generateArtifactId();
+
+        String employeeV1 = """
+            syntax = "proto3";
+            package test.employee;
+
+            message Employee {
+              string id = 1;
+              string name = 2;
+            }
+            """;
+
+        String employeeV2 = """
+            syntax = "proto3";
+            package test.employee;
+
+            message Employee {
+              string id = 1;
+              string name = 2;
+              string email = 3;
+            }
+            """;
+
+        String employeeV3Incompatible = """
+            syntax = "proto3";
+            package test.employee;
+
+            message Employee {
+              int32 id = 1;
+              string name = 2;
+            }
+            """;
+
+        // Create initial version
+        createArtifact(artifactId, ArtifactType.PROTOBUF, employeeV1, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Add second version
+        createArtifactVersion(artifactId, employeeV2, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Enable backward transitive compatibility
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD_TRANSITIVE");
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(rule);
+
+        // Compatible with all previous versions should succeed
+        createArtifactVersion(artifactId, employeeV2, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Incompatible with v1 should fail
+        Assertions.assertThrows(Exception.class, () -> {
+            createArtifactVersion(artifactId, employeeV3Incompatible, ContentTypes.APPLICATION_PROTOBUF);
+        });
+    }
+
+    /**
+     * Test that when compatibility rule is set to NONE, incompatible changes are allowed.
+     * This test verifies the fix for issue #6839.
+     */
+    @Test
+    public void testCompatibilityRuleNoneAllowsIncompatibleChanges() throws Exception {
+        String artifactId = generateArtifactId();
+        String v1Schema = "{\"type\":\"record\",\"namespace\":\"com.example\",\"name\":\"FullName\",\"fields\":[{\"name\":\"first\",\"type\":\"string\"},{\"name\":\"last\",\"type\":\"string\"}]}";
+        String v2Schema = "{\"type\": \"string\"}";
+
+        // Create artifact with initial schema
+        createArtifact(artifactId, ArtifactType.AVRO, v1Schema, ContentTypes.APPLICATION_JSON);
+
+        // Create compatibility rule with NONE configuration
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.NONE.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(createRule);
+
+        // Verify the rule was added with NONE configuration
+        Rule rule = clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().byRuleType(RuleType.COMPATIBILITY.getValue()).get();
+        Assertions.assertEquals(RuleType.COMPATIBILITY, rule.getRuleType());
+        Assertions.assertEquals(CompatibilityLevel.NONE.name(), rule.getConfig());
+
+        // This schema change is incompatible, but should be allowed since the rule is set to NONE
+        // Before the fix for #6839, this would fail because the rule was still being executed
+        createArtifactVersion(artifactId, v2Schema, ContentTypes.APPLICATION_JSON);
+    }
+
+    /**
+     * Test that the RuleExecutor directly handles NONE configuration correctly.
+     * This is a unit-level test for the fix in issue #6839.
+     */
+    @Test
+    public void testCompatibilityRuleExecutorWithNoneConfig() {
+        String v1Schema = "{\"type\":\"record\",\"namespace\":\"com.example\",\"name\":\"FullName\",\"fields\":[{\"name\":\"first\",\"type\":\"string\"},{\"name\":\"last\",\"type\":\"string\"}]}";
+        String v2Schema = "{\"type\": \"string\"}";
+
+        // This would normally throw a RuleViolationException with any compatibility level other than NONE
+        // With NONE, the executor should return early without checking compatibility
+        RuleContext context = new RuleContext("TestGroup", "TestArtifact", ArtifactType.AVRO,
+                CompatibilityLevel.NONE.name(), Collections.singletonList(toTypedContent(v1Schema)),
+                toTypedContent(v2Schema), Collections.emptyList(), Collections.emptyMap(), null);
+
+        // This should NOT throw an exception
+        Assertions.assertDoesNotThrow(() -> {
+            compatibility.execute(context);
+        });
+    }
+
+    /**
+     * Test for issue #7068: Protobuf compatibility check should return detailed errors.
+     * Previously, incompatibility errors returned generic messages like
+     * "The new version of the protobuf artifact is not backward compatible".
+     * Now they should return specific messages like
+     * "Conflict, field id changed, message Person, before: 4, after 5".
+     */
+    @Test
+    public void testProtobufCompatibilityReturnsDetailedErrors() throws Exception {
+        String artifactId = generateArtifactId();
+
+        String personV1 = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              int32 age = 2;
+            }
+            """;
+
+        // Incompatible change - changes field ID
+        String personV2FieldIdChanged = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              int32 age = 5;
+            }
+            """;
+
+        // Create artifact with initial schema
+        createArtifact(artifactId, ArtifactType.PROTOBUF, personV1, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Enable backward compatibility rule
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(rule);
+
+        // Incompatible update should fail with detailed error message
+        RuleViolationProblemDetails exception = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> {
+                    createArtifactVersion(artifactId, personV2FieldIdChanged,
+                            ContentTypes.APPLICATION_PROTOBUF);
+                });
+
+        // Verify that the detailed error is present in the causes
+        Assertions.assertNotNull(exception.getCauses(), "Causes should not be null");
+        Assertions.assertFalse(exception.getCauses().isEmpty(), "Causes should not be empty");
+
+        // Check that at least one cause contains the detailed field id change message
+        boolean hasDetailedError = exception.getCauses().stream()
+                .anyMatch(cause -> cause.getDescription() != null
+                        && cause.getDescription().contains("field id changed"));
+
+        Assertions.assertTrue(hasDetailedError,
+                "Should contain detailed error about field id change. Actual causes: "
+                        + exception.getCauses());
+
+        // Verify context is extracted (should be /Person)
+        boolean hasContext = exception.getCauses().stream()
+                .anyMatch(cause -> cause.getContext() != null && cause.getContext().contains("Person"));
+
+        Assertions.assertTrue(hasContext, "Should contain context path. Actual causes: "
+                + exception.getCauses());
+    }
+
+    /**
+     * Test for issue #7068: Protobuf compatibility check should return multiple detailed errors.
+     * When there are multiple incompatibilities, all should be reported.
+     */
+    @Test
+    public void testProtobufCompatibilityReturnsMultipleDetailedErrors() throws Exception {
+        String artifactId = generateArtifactId();
+
+        String personV1 = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              int32 age = 2;
+              string email = 3;
+            }
+            """;
+
+        // Multiple incompatible changes - changes field ID and field type
+        String personV2MultipleErrors = """
+            syntax = "proto3";
+            package test.person;
+
+            message Person {
+              string name = 1;
+              int32 age = 5;
+              int64 email = 3;
+            }
+            """;
+
+        // Create artifact with initial schema
+        createArtifact(artifactId, ArtifactType.PROTOBUF, personV1, ContentTypes.APPLICATION_PROTOBUF);
+
+        // Enable backward compatibility rule
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.COMPATIBILITY);
+        rule.setConfig("BACKWARD");
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(rule);
+
+        // Incompatible update should fail with multiple detailed error messages
+        RuleViolationProblemDetails exception = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> {
+                    createArtifactVersion(artifactId, personV2MultipleErrors,
+                            ContentTypes.APPLICATION_PROTOBUF);
+                });
+
+        // Verify that multiple detailed errors are present
+        Assertions.assertNotNull(exception.getCauses(), "Causes should not be null");
+        Assertions.assertTrue(exception.getCauses().size() >= 2,
+                "Should have at least 2 causes for multiple incompatibilities. Actual: "
+                        + exception.getCauses().size());
+
+        // Check for field id change error
+        boolean hasFieldIdError = exception.getCauses().stream()
+                .anyMatch(cause -> cause.getDescription() != null
+                        && cause.getDescription().contains("field id changed"));
+
+        // Check for field type change error
+        boolean hasFieldTypeError = exception.getCauses().stream()
+                .anyMatch(cause -> cause.getDescription() != null
+                        && cause.getDescription().contains("Field type changed"));
+
+        Assertions.assertTrue(hasFieldIdError,
+                "Should contain detailed error about field id change. Actual causes: "
+                        + exception.getCauses());
+        Assertions.assertTrue(hasFieldTypeError,
+                "Should contain detailed error about field type change. Actual causes: "
+                        + exception.getCauses());
+    }
+
+    /**
+     * Test that updating a compatibility rule from a restrictive level to NONE allows incompatible changes.
+     * This verifies that the NONE configuration properly disables the rule.
+     */
+    @Test
+    public void testCompatibilityRuleUpdateToNone() throws Exception {
+        String artifactId = generateArtifactId();
+        String v1Schema = "{\"type\":\"record\",\"namespace\":\"com.example\",\"name\":\"FullName\",\"fields\":[{\"name\":\"first\",\"type\":\"string\"},{\"name\":\"last\",\"type\":\"string\"}]}";
+        String v2Schema = "{\"type\": \"string\"}";
+
+        // Create artifact with initial schema
+        createArtifact(artifactId, ArtifactType.AVRO, v1Schema, ContentTypes.APPLICATION_JSON);
+
+        // Create compatibility rule with FULL configuration
+        CreateRule createRule = new CreateRule();
+        createRule.setRuleType(RuleType.COMPATIBILITY);
+        createRule.setConfig(CompatibilityLevel.FULL.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().post(createRule);
+
+        // Verify that incompatible change is blocked with FULL compatibility
+        Assertions.assertThrows(RuleViolationProblemDetails.class, () -> {
+            createArtifactVersion(artifactId, v2Schema, ContentTypes.APPLICATION_JSON);
+        });
+
+        // Update the rule to NONE
+        Rule updatedRule = new Rule();
+        updatedRule.setRuleType(RuleType.COMPATIBILITY);
+        updatedRule.setConfig(CompatibilityLevel.NONE.name());
+        clientV3.groups().byGroupId(GroupId.DEFAULT.getRawGroupIdWithDefaultString()).artifacts()
+                .byArtifactId(artifactId).rules().byRuleType(RuleType.COMPATIBILITY.getValue())
+                .put(updatedRule);
+
+        // Now the incompatible change should be allowed
+        createArtifactVersion(artifactId, v2Schema, ContentTypes.APPLICATION_JSON);
+    }
+}

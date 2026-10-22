@@ -1,0 +1,605 @@
+# Run `make` for a list of targets, and `make config-show` to show the current configuration.
+
+########## Config
+
+SHELL = /usr/bin/env bash -o pipefail
+.SHELLFLAGS = -ec
+
+VERSION ?= $(shell mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+LC_VERSION ?= $(shell echo "$(VERSION)" | tr A-Z a-z)
+LC_VERSION_SUFFIX ?= $(shell echo "$(LC_VERSION)" | sed -n 's/[^-]*\(-.*\)/\1/p')
+
+BUILD_OPTS_EXT += $(BUILD_OPTS)
+
+# -T1 overrides the inherited -T 1C from .mvn/maven.config — operator @QuarkusTest tests require single-threaded execution
+BUILD_OPTS_EXT += -T1 -pl controller -am
+
+SKIP_TESTS ?= false
+ifneq ($(SKIP_TESTS),true)
+	override BUILD_OPTS_EXT += -DskipOperatorTests=false
+endif
+
+IMAGE_REGISTRY ?= quay.io/apicurio
+IMAGE_NAME ?= apicurio-registry-3-operator
+IMAGE_TAG ?= $(LC_VERSION)
+
+IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
+ADDITIONAL_IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(ADDITIONAL_IMAGE_TAG)
+
+IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+# Commit the image is built from, in its org.opencontainers.image.revision label.
+# Verify's publish guard reads it from latest-snapshot.
+IMAGE_REVISION ?= $(shell git rev-parse HEAD 2>/dev/null)
+
+OPERAND_IMAGE_TAG ?= latest-snapshot
+
+REGISTRY_APP_IMAGE ?= quay.io/apicurio/apicurio-registry:$(OPERAND_IMAGE_TAG)
+REGISTRY_UI_IMAGE ?= quay.io/apicurio/apicurio-registry-ui:$(OPERAND_IMAGE_TAG)
+REGISTRY_GITOPS_SYNC_IMAGE ?= quay.io/apicurio/apicurio-registry-gitops-sync:$(OPERAND_IMAGE_TAG)
+REGISTRY_CONSOLE_PLUGIN_IMAGE ?= quay.io/apicurio/apicurio-registry-console-plugin:$(OPERAND_IMAGE_TAG)
+
+NAMESPACE ?= default
+
+### Bundle
+
+PACKAGE_NAME ?= apicurio-registry-3
+PACKAGE ?= $(PACKAGE_NAME).v$(LC_VERSION)
+
+PREVIOUS_PACKAGE_VERSION ?= 3.3.2
+PREVIOUS_PACKAGE ?= $(PACKAGE_NAME).v$(PREVIOUS_PACKAGE_VERSION)
+
+# Auto-derive channel from version (e.g., 3.2.1 -> 3.2.x, 3.3.0-snapshot -> 3.3.x)
+CHANNEL ?= $(shell echo "$(LC_VERSION)" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+PREVIOUS_CHANNEL ?= $(shell echo "$(PREVIOUS_PACKAGE_VERSION)" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+# The minor channel from the version before this release. Passed by CI when a cross-minor
+# release happens (e.g., OLD_PREVIOUS_CHANNEL=3.2.x when releasing 3.3.0 after 3.2.x).
+# Used by release-catalog-template-update to finalize the old minor channel.
+OLD_PREVIOUS_CHANNEL ?=
+
+# Pass ROLLING_CHANNEL=3.x from CI when releasing from main to include the rolling channel.
+# Maintenance branch releases omit it, so the bundle only goes in the minor channel.
+ROLLING_CHANNEL ?=
+ifdef ROLLING_CHANNEL
+  CHANNELS ?= $(ROLLING_CHANNEL),$(CHANNEL)
+  DEFAULT_CHANNEL ?= $(ROLLING_CHANNEL)
+else
+  CHANNELS ?= $(CHANNEL)
+  DEFAULT_CHANNEL ?= $(CHANNEL)
+endif
+
+BUNDLE_OPTS ?= --package $(PACKAGE_NAME) --version $(LC_VERSION) --channels=$(CHANNELS) --default-channel=$(DEFAULT_CHANNEL)
+BUNDLE_DIR ?= target/bundle/$(PACKAGE_NAME)/$(LC_VERSION)
+
+BUNDLE_IMAGE_NAME ?= $(IMAGE_NAME)-bundle
+BUNDLE_IMAGE_TAG ?= $(LC_VERSION)
+BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(BUNDLE_IMAGE_TAG)
+ADDITIONAL_BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(ADDITIONAL_BUNDLE_TAG)
+
+PREVIOUS_BUNDLE_IMAGE ?= $(IMAGE_REGISTRY)/$(BUNDLE_IMAGE_NAME):$(PREVIOUS_PACKAGE_VERSION)
+
+### Catalog
+
+CATALOG_NAMESPACE ?= olm
+
+CATALOG_DIR ?= olm-tests/src/test/deploy/catalog
+CATALOG_TARGET_DIR ?= target/catalog
+
+CATALOG_IMAGE_NAME ?= $(IMAGE_NAME)-catalog
+CATALOG_IMAGE_TAG ?= $(LC_VERSION)
+CATALOG_IMAGE ?= $(IMAGE_REGISTRY)/$(CATALOG_IMAGE_NAME):$(CATALOG_IMAGE_TAG)
+ADDITIONAL_CATALOG_IMAGE ?= $(IMAGE_REGISTRY)/$(CATALOG_IMAGE_NAME):$(ADDITIONAL_CATALOG_IMAGE_TAG)
+
+OLM_VERSION ?= 0
+OLM_DEPLOY_DIR ?= $(CATALOG_DIR)/../olmv$(OLM_VERSION)
+
+### Install
+
+INSTALL_NAMESPACE ?= PLACEHOLDER_NAMESPACE
+INSTALL_FILE ?= install/apicurio-registry-operator-$(VERSION).yaml
+INSTALL_NAMESPACED_FILE ?= install/apicurio-registry-operator-namespaced-$(VERSION).yaml
+
+DIST_TARGET_DIR ?= target/dist
+
+### Other
+
+CURRENT_DIR = $(shell pwd)
+
+OS ?= linux
+ARCH ?= amd64
+
+DATE=$(shell date -Idate)
+
+CC_RED = $(shell echo -e "\033[0;31m")
+CC_YELLOW = $(shell echo -e "\033[0;33m")
+CC_CYAN = $(shell echo -e "\033[0;36m")
+CC_END = $(shell echo -e "\033[0m")
+
+### Kustomize variables
+
+export PLACEHOLDER_NAMESPACE := $(NAMESPACE)
+
+export PLACEHOLDER_VERSION := $(VERSION)
+export PLACEHOLDER_LC_VERSION := $(LC_VERSION)
+
+export PLACEHOLDER_IMAGE := $(IMAGE)
+export PLACEHOLDER_REGISTRY_APP_IMAGE := $(REGISTRY_APP_IMAGE)
+export PLACEHOLDER_REGISTRY_UI_IMAGE := $(REGISTRY_UI_IMAGE)
+export PLACEHOLDER_REGISTRY_GITOPS_SYNC_IMAGE := $(REGISTRY_GITOPS_SYNC_IMAGE)
+export PLACEHOLDER_REGISTRY_CONSOLE_PLUGIN_IMAGE := $(REGISTRY_CONSOLE_PLUGIN_IMAGE)
+
+export PLACEHOLDER_DATE := $(DATE)
+
+export PLACEHOLDER_PACKAGE_NAME := $(PACKAGE_NAME)
+export PLACEHOLDER_PACKAGE := $(PACKAGE)
+export PLACEHOLDER_PREVIOUS_PACKAGE := $(PREVIOUS_PACKAGE)
+
+export PLACEHOLDER_BUNDLE_IMAGE := $(BUNDLE_IMAGE)
+
+export PLACEHOLDER_CATALOG_NAMESPACE := $(CATALOG_NAMESPACE)
+export PLACEHOLDER_CATALOG_IMAGE := $(CATALOG_IMAGE)
+
+export PLACEHOLDER_CHANNEL := $(DEFAULT_CHANNEL)
+
+
+########## Help
+
+
+.DEFAULT_GOAL = help
+.PHONY: help
+help: ## TODO
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "$(CC_CYAN)%-30s$(CC_END) %s\n", $$1, $$2}'
+
+
+.PHONY: config-show
+config-show: ## TODO
+	@echo "$(CC_YELLOW)==============================================$(CC_END)"
+	@echo "Configuration properties:"
+	@echo ""
+	@echo "$(CC_CYAN)Operator$(CC_END)"
+	@echo "VERSION=$(VERSION)"
+	@echo "LC_VERSION=$(LC_VERSION)"
+ifneq ($(LC_VERSION_SUFFIX),)
+	@echo "LC_VERSION_SUFFIX=$(LC_VERSION_SUFFIX)"
+endif
+	@echo "NAMESPACE=$(NAMESPACE)"
+	@echo "SKIP_TESTS=$(SKIP_TESTS)"
+	@echo "BUILD_OPTS=$(BUILDS_OPTS)"
+	@echo "IMAGE=$(IMAGE)"
+ifneq ($(ADDITIONAL_IMAGE),)
+ifneq ($(ADDITIONAL_IMAGE_TAG),)
+	@echo "ADDITIONAL_IMAGE=$(ADDITIONAL_IMAGE)"
+endif
+endif
+	@echo ""
+	@echo "$(CC_CYAN)Operand$(CC_END)"
+	@echo "REGISTRY_APP_IMAGE=$(REGISTRY_APP_IMAGE)"
+	@echo "REGISTRY_UI_IMAGE=$(REGISTRY_UI_IMAGE)"
+	@echo "REGISTRY_GITOPS_SYNC_IMAGE=$(REGISTRY_GITOPS_SYNC_IMAGE)"
+	@echo ""
+	@echo "$(CC_CYAN)Bundle$(CC_END)"
+	@echo "PACKAGE_NAME=$(PACKAGE_NAME)"
+	@echo "CHANNEL=$(CHANNEL)"
+	@echo "PREVIOUS_CHANNEL=$(PREVIOUS_CHANNEL)"
+	@echo "CHANNELS=$(CHANNELS)"
+	@echo "DEFAULT_CHANNEL=$(DEFAULT_CHANNEL)"
+	@echo "BUNDLE_IMAGE=$(BUNDLE_IMAGE)"
+ifneq ($(ADDITIONAL_BUNDLE_IMAGE),)
+ifneq ($(ADDITIONAL_BUNDLE_IMAGE_TAG),)
+	@echo "ADDITIONAL_BUNDLE_IMAGE=$(ADDITIONAL_BUNDLE_IMAGE)"
+endif
+endif
+	@echo ""
+	@echo "$(CC_CYAN)Catalog$(CC_END)"
+	@echo "CATALOG_IMAGE=$(CATALOG_IMAGE)"
+ifneq ($(ADDITIONAL_CATALOG_IMAGE),)
+ifneq ($(ADDITIONAL_CATALOG_IMAGE_TAG),)
+	@echo "ADDITIONAL_CATALOG_IMAGE=$(ADDITIONAL_CATALOG_IMAGE)"
+endif
+endif
+	@echo ""
+	@echo "$(CC_CYAN)Other$(CC_END)"
+	@echo "OS=$(OS)"
+	@echo "ARCH=$(ARCH)"
+	@echo "DATE=$(DATE)"
+	@echo "$(CC_YELLOW)==============================================$(CC_END)"
+
+
+########## Tools
+
+
+define target_dir
+    @{ \
+		if [ -d $(1) ]; \
+		then \
+			if  [[ $(1) == target/* ]]; \
+			then \
+				echo "Cleaning $(1)"; \
+				rm -rf "$(1)"; \
+			fi; \
+		fi; \
+		mkdir -p $(1); \
+   	}
+endef
+
+
+# Registries (e.g. quay.io) occasionally return transient 5xx errors on push.
+# Retry a few times with a short backoff instead of failing the whole job.
+define docker_push_retry
+    @{ \
+		for i in 1 2 3; do \
+			docker push $(1) && break; \
+			if [ $$i -eq 3 ]; then \
+				echo "docker push $(1) failed after 3 attempts"; \
+				exit 1; \
+			fi; \
+			echo "docker push $(1) failed (attempt $$i/3), retrying..."; \
+			sleep 5; \
+		done; \
+	}
+endef
+
+
+OPERATOR_SDK_VERSION ?= 1.37.0
+OPERATOR_SDK = $(shell pwd)/target/bin/operator-sdk
+.PHONY: install-operator-sdk
+install-operator-sdk: ## Install operator-sdk v1.37.0
+	@{ \
+		if [ ! -f $(OPERATOR_SDK) ]; \
+		then \
+			mkdir -p $(dir $(OPERATOR_SDK)); \
+			curl -sSLo $(OPERATOR_SDK) "https://github.com/operator-framework/operator-sdk/releases/download/v$(OPERATOR_SDK_VERSION)/operator-sdk_$(OS)_$(ARCH)"; \
+			chmod +x $(OPERATOR_SDK); \
+		fi; \
+	}
+
+
+.PHONY: install-opm
+OPM_VERSION ?= 1.48.0
+OPM = $(CURRENT_DIR)/target/bin/opm
+install-opm: ## Install opm v1.48.0
+	@{ \
+		if [ ! -f $(OPM) ]; \
+		then \
+			mkdir -p $(dir $(OPM)); \
+			curl -sSLo $(OPM) "https://github.com/operator-framework/operator-registry/releases/download/v$(OPM_VERSION)/$(OS)-$(ARCH)-opm"; \
+			chmod +x $(OPM); \
+		fi; \
+	}
+
+
+YQ_VERSION ?= 4.27.5
+YQ = $(CURRENT_DIR)/target/bin/yq
+.PHONY: install-yq
+install-yq: ## Install yq v4.27.5
+	@{ \
+		if [ ! -f $(YQ) ]; \
+		then \
+			mkdir -p $(dir $(YQ)); \
+			curl -sSLo $(YQ) "https://github.com/mikefarah/yq/releases/download/v$(YQ_VERSION)/yq_$(OS)_$(ARCH)"; \
+			chmod +x $(YQ); \
+		fi; \
+	}
+
+
+########## Targets
+
+
+.PHONY: build
+build: ## TODO
+	mvn clean install $(BUILD_OPTS_EXT)
+
+
+GROUPS ?=
+EXCLUDED_GROUPS ?=
+
+.PHONY: test-local-group
+test-local-group: ## Run local (in-process operator) tests filtered by JUnit tag groups
+	mvn verify $(BUILD_OPTS_EXT) \
+		$(if $(GROUPS),-Dgroups=$(GROUPS)) \
+		$(if $(EXCLUDED_GROUPS),-DexcludedGroups=$(EXCLUDED_GROUPS))
+
+
+.PHONY: test-remote-all
+test-remote-all: ## TODO
+	# Do not run `mvn clean` when not necessary.
+ifeq ($(REMOTE_TESTS_ALL_INSTALL_FILE),)
+	$(MAKE) INSTALL_FILE=controller/target/test-install.yaml dist-install-file
+else
+	cp $(REMOTE_TESTS_ALL_INSTALL_FILE) controller/target/test-install.yaml
+endif
+	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) -Dtest.operator.deployment-type=remote -Dtest.operator.catalog-image=$(CATALOG_IMAGE)
+
+
+.PHONY: test-remote-group
+test-remote-group: ## Run remote tests filtered by JUnit tag groups
+ifeq ($(REMOTE_TESTS_ALL_INSTALL_FILE),)
+	$(MAKE) INSTALL_FILE=controller/target/test-install.yaml dist-install-file
+else ifneq ($(REMOTE_TESTS_ALL_INSTALL_FILE),controller/target/test-install.yaml)
+	cp $(REMOTE_TESTS_ALL_INSTALL_FILE) controller/target/test-install.yaml
+endif
+	mvn verify $(subst -pl controller -am,,$(BUILD_OPTS_EXT)) \
+		-Dtest.operator.deployment-type=remote \
+		-Dtest.operator.catalog-image=$(CATALOG_IMAGE) \
+		$(if $(GROUPS),-Dgroups=$(GROUPS)) \
+		$(if $(EXCLUDED_GROUPS),-DexcludedGroups=$(EXCLUDED_GROUPS))
+
+
+.PHONY: image-build
+image-build: ## TODO
+	docker build -f controller/src/main/docker/Dockerfile.jvm -t $(IMAGE) controller/target
+ifneq ($(ADDITIONAL_IMAGE),)
+ifneq ($(ADDITIONAL_IMAGE_TAG),)
+	docker tag $(IMAGE) $(ADDITIONAL_IMAGE)
+endif
+endif
+
+
+.PHONY: image-push
+image-push: ## TODO
+	$(call docker_push_retry,$(IMAGE))
+ifneq ($(ADDITIONAL_IMAGE),)
+ifneq ($(ADDITIONAL_IMAGE_TAG),)
+	$(call docker_push_retry,$(ADDITIONAL_IMAGE))
+endif
+endif
+
+
+.PHONY: image-buildx-push
+image-buildx-push: ## Build and push a multi-arch operator image
+	@{ \
+		for i in 1 2 3; do \
+			docker buildx build --push -f controller/src/main/docker/Dockerfile.jvm \
+				--platform $(IMAGE_PLATFORMS) \
+				$(if $(IMAGE_REVISION),--label org.opencontainers.image.revision=$(IMAGE_REVISION),) \
+				--label org.opencontainers.image.source=https://github.com/Apicurio/apicurio-registry \
+				-t $(IMAGE) \
+				$(if $(and $(ADDITIONAL_IMAGE),$(ADDITIONAL_IMAGE_TAG)),-t $(ADDITIONAL_IMAGE),) \
+				controller/target && break; \
+			if [ $$i -eq 3 ]; then \
+				echo "docker buildx build --push failed after 3 attempts"; \
+				exit 1; \
+			fi; \
+			echo "docker buildx build --push failed (attempt $$i/3), retrying..."; \
+			sleep 5; \
+		done; \
+	}
+
+
+.PHONY: image
+image: image-build image-push ## TODO
+
+
+.PHONY: deploy
+deploy: ## Deploy the Operator to a cluster using kubectl
+	kubectl create namespace $(NAMESPACE) || true
+	kubectl kustomize controller/src/main/deploy/install/default | envsubst | kubectl -n $(NAMESPACE) apply -f -
+
+
+.PHONY: undeploy
+undeploy: ## TODO
+	kubectl kustomize controller/src/main/deploy/install/default | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+
+
+.PHONY: dist-install-file
+dist-install-file: ## TODO
+	mkdir -p $(dir $(INSTALL_FILE))
+ifeq ($(DEBUG),true)
+	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
+	kubectl kustomize controller/src/main/deploy/install/debug | envsubst >$(INSTALL_FILE)
+else
+	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
+	kubectl kustomize controller/src/main/deploy/install/default | envsubst >$(INSTALL_FILE)
+endif
+
+
+.PHONY: dist-install-file-namespaced
+dist-install-file-namespaced: ## Generate the single-namespace (least-privilege) install file
+	mkdir -p $(dir $(INSTALL_NAMESPACED_FILE))
+	export PLACEHOLDER_NAMESPACE=$(INSTALL_NAMESPACE) && \
+	kubectl kustomize controller/src/main/deploy/install/namespaced | envsubst >$(INSTALL_NAMESPACED_FILE)
+
+
+.PHONY: dist
+dist: dist-install-file dist-install-file-namespaced ## TODO
+	$(call target_dir,$(DIST_TARGET_DIR))
+	cp -rt $(DIST_TARGET_DIR) controller/src/main/deploy/dist-template/*
+	# Licenses
+	cp -t $(DIST_TARGET_DIR) $(CURRENT_DIR)/../LICENSE
+	mkdir -p $(DIST_TARGET_DIR)/licenses
+	cp -t $(DIST_TARGET_DIR)/licenses target/generated-resources/licenses.xml
+	sed -i '\|^.*<file>.*</file>.*$$|d' $(DIST_TARGET_DIR)/licenses/licenses.xml
+	# Examples
+	mkdir -p $(DIST_TARGET_DIR)/examples
+	# cp -t $(DIST_TARGET_DIR)/examples controller/src/main/deploy/examples/*
+	# rm $(DIST_TARGET_DIR)/examples/kustomization.yaml
+	cp -rt $(DIST_TARGET_DIR)/examples controller/src/test/resources/k8s/examples/*
+	# Install
+	mkdir -p $(DIST_TARGET_DIR)/install
+	cp $(INSTALL_FILE) $(DIST_TARGET_DIR)/install/install.yaml
+	cp $(INSTALL_NAMESPACED_FILE) $(DIST_TARGET_DIR)/install/install-namespaced.yaml
+	# Archive
+	cd $(DIST_TARGET_DIR) && tar -zcf ../apicurio-registry-operator-$(VERSION).tar.gz *
+
+
+.PHONY: quickstart
+quickstart: build image-build image-push deploy ## TODO
+
+
+.PHONY: bundle-build
+bundle-build: install-operator-sdk install-yq ## Generate bundle metadata
+	$(call target_dir,$(BUNDLE_DIR))
+	kubectl kustomize controller/src/main/deploy/csv | envsubst | $(OPERATOR_SDK) generate bundle -q --output-dir $(BUNDLE_DIR) $(BUNDLE_OPTS)
+	# Post-process annotations.yaml
+	$(YQ) '... comments = ""' -i $(BUNDLE_DIR)/metadata/annotations.yaml
+	$(YQ) '.annotations = (.annotations | to_entries | del(.[] | select(.key == "operators.operatorframework.io.metrics.*")) | from_entries)' -i $(BUNDLE_DIR)/metadata/annotations.yaml
+	$(YQ) '.annotations."com.redhat.openshift.versions" = "v4.12"' -i $(BUNDLE_DIR)/metadata/annotations.yaml
+	$(YQ) 'sort_keys(..)' -i $(BUNDLE_DIR)/metadata/annotations.yaml
+	# Post-process bundle.Dockerfile
+	mv bundle.Dockerfile $(BUNDLE_DIR)
+	sed -i '\|^# .*$$|d' $(BUNDLE_DIR)/bundle.Dockerfile
+	sed -i '\|^LABEL operators\.operatorframework.io\.metrics\..*$$|d' $(BUNDLE_DIR)/bundle.Dockerfile
+	sed -i 's|^FROM scratch$$|FROM scratch\n\nLABEL com.redhat.openshift.versions=v4.12|g' $(BUNDLE_DIR)/bundle.Dockerfile
+	# Validate
+	$(OPERATOR_SDK) bundle validate $(BUNDLE_DIR)
+
+
+.PHONY: bundle-image-build
+bundle-image-build: ## TODO
+	docker build -f $(BUNDLE_DIR)/bundle.Dockerfile -t $(BUNDLE_IMAGE) .
+ifneq ($(ADDITIONAL_BUNDLE_IMAGE),)
+ifneq ($(ADDITIONAL_BUNDLE_TAG),)
+	docker tag $(BUNDLE_IMAGE) $(ADDITIONAL_BUNDLE_IMAGE)
+endif
+endif
+
+
+.PHONY: bundle-image-push
+bundle-image-push: ## TODO
+	$(call docker_push_retry,$(BUNDLE_IMAGE))
+ifneq ($(ADDITIONAL_BUNDLE_IMAGE),)
+ifneq ($(ADDITIONAL_BUNDLE_TAG),)
+	$(call docker_push_retry,$(ADDITIONAL_BUNDLE_IMAGE))
+endif
+endif
+
+
+.PHONY: bundle
+bundle: bundle-build bundle-image-build bundle-image-push ## TODO
+
+
+.PHONY: catalog-build
+catalog-build: install-opm ## TODO
+	$(call target_dir,$(CATALOG_TARGET_DIR))
+	# Create catalog.yaml
+	mkdir -p $(CATALOG_TARGET_DIR)/configs
+	cat $(CATALOG_DIR)/catalog.template.yaml | envsubst >$(CATALOG_TARGET_DIR)/catalog.yaml
+	# Build
+	cd $(CATALOG_TARGET_DIR) && $(OPM) alpha render-template basic catalog.yaml --output=yaml >configs/index.yaml
+	cd $(CATALOG_TARGET_DIR) && $(OPM) generate dockerfile configs
+	# Workaround for Docker error: FromAsCasing: 'as' and 'FROM' keywords' casing do not match (line 3)
+	sed -i 's|^FROM \(.*\) as builder$$|FROM \1 AS builder|g' $(CATALOG_TARGET_DIR)/configs.Dockerfile
+
+
+.PHONY: catalog-image-build
+catalog-image-build: ## TODO
+	docker build -f $(CATALOG_TARGET_DIR)/configs.Dockerfile -t $(CATALOG_IMAGE) $(CATALOG_TARGET_DIR)
+ifneq ($(ADDITIONAL_CATALOG_IMAGE),)
+ifneq ($(ADDITIONAL_CATALOG_IMAGE_TAG),)
+	docker tag $(CATALOG_IMAGE) $(ADDITIONAL_CATALOG_IMAGE)
+endif
+endif
+
+
+.PHONY: catalog-image-push
+catalog-image-push: ## TODO
+	$(call docker_push_retry,$(CATALOG_IMAGE))
+ifneq ($(ADDITIONAL_CATALOG_IMAGE),)
+ifneq ($(ADDITIONAL_CATALOG_IMAGE_TAG),)
+	$(call docker_push_retry,$(ADDITIONAL_CATALOG_IMAGE))
+endif
+endif
+
+
+.PHONY: catalog
+catalog: catalog-build catalog-image-build catalog-image-push ## TODO
+
+
+.PHONY: catalog-deploy
+catalog-deploy: ## TODO
+	kubectl create namespace $(CATALOG_NAMESPACE) || true
+ifeq ($(OLM_VERSION),0)
+	cat $(OLM_DEPLOY_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) apply -f -
+else ifeq ($(OLM_VERSION),1)
+	cat $(OLM_DEPLOY_DIR)/cluster-catalog.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) apply -f -
+else
+	$(error Invalid value of variable OLM_VERSION=$(OLM_VERSION))
+endif
+
+
+.PHONY: catalog-undeploy
+catalog-undeploy: ## TODO
+ifeq ($(OLM_VERSION),0)
+	cat $(OLM_DEPLOY_DIR)/catalog-source.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) delete -f - || true
+else ifeq ($(OLM_VERSION),1)
+	cat $(OLM_DEPLOY_DIR)/cluster-catalog.yaml | envsubst | kubectl -n $(CATALOG_NAMESPACE) delete -f - || true
+else
+	$(error Invalid value of variable OLM_VERSION=$(OLM_VERSION))
+endif
+
+
+.PHONY: catalog-subscription-deploy
+catalog-subscription-deploy: ## TODO
+	kubectl create namespace $(NAMESPACE) || true
+ifeq ($(OLM_VERSION),0)
+	cat $(OLM_DEPLOY_DIR)/operator-group.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	cat $(OLM_DEPLOY_DIR)/subscription.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+else ifeq ($(OLM_VERSION),1)
+	cat $(OLM_DEPLOY_DIR)/service-account.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	cat $(OLM_DEPLOY_DIR)/cluster-role.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	cat $(OLM_DEPLOY_DIR)/cluster-role-binding.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	#cat $(OLM_DEPLOY_DIR)/role.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	#cat $(OLM_DEPLOY_DIR)/role-binding.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+	cat $(OLM_DEPLOY_DIR)/cluster-extension.yaml | envsubst | kubectl -n $(NAMESPACE) apply -f -
+else
+	$(error Invalid value of variable OLM_VERSION=$(OLM_VERSION))
+endif
+
+
+.PHONY: catalog-subscription-undeploy
+catalog-subscription-undeploy: ## TODO
+ifeq ($(OLM_VERSION),0)
+	cat $(OLM_DEPLOY_DIR)/subscription.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	cat $(OLM_DEPLOY_DIR)/operator-group.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+else ifeq ($(OLM_VERSION),1)
+	cat $(OLM_DEPLOY_DIR)/cluster-extension.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	#cat $(OLM_DEPLOY_DIR)/role-binding.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	#cat $(OLM_DEPLOY_DIR)/role.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	cat $(OLM_DEPLOY_DIR)/cluster-role-binding.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	cat $(OLM_DEPLOY_DIR)/cluster-role.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+	cat $(OLM_DEPLOY_DIR)/service-account.yaml | envsubst | kubectl -n $(NAMESPACE) delete -f - || true
+else
+	$(error Invalid value of variable OLM_VERSION=$(OLM_VERSION))
+endif
+	kubectl -n $(NAMESPACE) delete clusterserviceversion $(PACKAGE) || true
+
+
+.PHONY: release-catalog-template-update
+release-catalog-template-update: install-yq
+	# Update 3.x rolling channel: replace placeholder with released version, add new placeholder
+	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "3.x") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml
+	# Finalize old minor channel if this is a cross-minor release.
+	# OLD_PREVIOUS_CHANNEL is passed by CI when the previous release was on a different minor.
+ifdef OLD_PREVIOUS_CHANNEL
+	@echo "Finalizing old $(OLD_PREVIOUS_CHANNEL) channel: replacing placeholder with last entry"
+	$(YQ) 'del(.entries[] | select(.schema == "olm.channel") | select(.name == "$(OLD_PREVIOUS_CHANNEL)") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}"))' -i $(CATALOG_DIR)/catalog.template.yaml
+endif
+	# Update minor-version channel (CHANNEL and PREVIOUS_CHANNEL are always the same minor here)
+	@if $(YQ) -e '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)"))' $(CATALOG_DIR)/catalog.template.yaml > /dev/null 2>&1; then \
+		echo "Updating existing $(CHANNEL) channel: replacing placeholder with $(PREVIOUS_PACKAGE)"; \
+		$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)") | .entries[] | select(.name == "$${PLACEHOLDER_PACKAGE}")).name = "$(PREVIOUS_PACKAGE)"' -i $(CATALOG_DIR)/catalog.template.yaml; \
+		echo "Adding new placeholder to $(CHANNEL) channel"; \
+		$(YQ) '(.entries[] | select(.schema == "olm.channel") | select(.name == "$(CHANNEL)") | .entries) |= [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}] + .' -i $(CATALOG_DIR)/catalog.template.yaml; \
+	else \
+		echo "Creating new $(CHANNEL) channel with $(PREVIOUS_PACKAGE)"; \
+		$(YQ) '.entries |= . + [{"schema": "olm.channel", "package": "$${PLACEHOLDER_PACKAGE_NAME}", "name": "$(CHANNEL)", "entries": [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}, {"name": "$(PREVIOUS_PACKAGE)"}]}]' -i $(CATALOG_DIR)/catalog.template.yaml; \
+	fi
+	# Update defaultChannel to the current channel
+	$(YQ) '(.entries[] | select(.schema == "olm.package")).defaultChannel = "$${PLACEHOLDER_CHANNEL}"' -i $(CATALOG_DIR)/catalog.template.yaml
+	# Add bundle image for the released version
+	$(YQ) '.entries |= . + [{"schema": "olm.bundle", "image": "$(PREVIOUS_BUNDLE_IMAGE)"}]' -i $(CATALOG_DIR)/catalog.template.yaml
+
+
+.PHONY: dev
+dev:
+	export POD_NAMESPACE=$$(kubectl config current-context | awk '{split($$0,x,"/"); printf "%s",x[1]}'); mvn quarkus:dev
+
+
+.PHONY: variable-set
+variable-set:
+	sed -i 's|^\( *$(VAR) *\??=\) *\([^ ]*\)\(.*\)$$|\1 $(VAL)\3|g' Makefile
+
+
+.PHONY: variable-get
+variable-get:
+	@echo $($(VAR))

@@ -1,0 +1,24 @@
+{
+  "$id": "https://example.com/citizen.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Citizen",
+  "type": "object",
+  "properties": {
+    "firstName": {
+      "type": "string",
+      "description": "The citizen's first name."
+    },
+    "lastName": {
+      "type": "string",
+      "description": "The citizen's last name."
+    },
+    "age": {
+      "description": "Age in years which must be equal to or greater than zero.",
+      "type": "integer",
+      "minimum": 0
+    },
+    "city": {
+      "$ref": "city.json"
+    }
+  }
+}

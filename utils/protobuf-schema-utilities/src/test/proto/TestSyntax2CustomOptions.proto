@@ -1,0 +1,55 @@
+syntax = "proto2";
+
+package io.apicurio.registry.utils.protobuf.schema.syntax2.customoptions;
+
+import "metadata/metadata.proto";
+
+message Address {
+
+  required string street = 1 [(metadata.metadata_key) = "description", (metadata.metadata_value) = "less than 40 characters"];
+
+  optional int32 zip = 2 [(metadata.metadata_key) = "connect.schema", (metadata.metadata_value) = "int8"];
+
+  optional string city = 3;
+
+  enum Type {
+    OFFICE = 0;
+    APARTMENT = 1;
+    HOUSE = 2;
+  }
+
+  map<int32, int32> rentPerYear = 4 [(metadata.metadata_key) = "description", (metadata.metadata_value) = "rent per year in USD"];
+
+  map<string, Type> addressType = 9;
+
+  message ContactPersons {
+    required string name = 1;
+    optional int32 phone = 2 [(metadata.metadata_key) = "maximum number of characters", (metadata.metadata_value) = "20"];
+  }
+
+  map<string, ContactPersons> pastOwners = 12;
+
+  oneof test_oneof {
+    string state = 5;
+    string country = 7 [(metadata.metadata_key) = "description", (metadata.metadata_value) = "country of residence"];
+  }
+
+  repeated int32 samples = 6 [packed=true];
+
+  map<string, string> pastAddresses = 8;
+}
+
+message Customer {
+
+  required string name = 1;
+
+  optional int32 balance = 3 [(metadata.metadata_key) = "decimal.scale", (metadata.metadata_value) = "10"];
+
+  reserved 2, 15, 10 to 11, 800 to 899;
+
+  extensions 100 to 199, 1000 to max;
+}
+
+service OriginalService {
+  rpc Foo(Customer) returns(Address);
+}

@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  apicurio-registry:
+    image: apicurio/apicurio-registry:latest-release
+    container_name: apicurio-registry
+    ports:
+      - "8081:8080"
+    environment:
+      # OIDC Authentication - API
+      # NOTE: Using same client ID for both API and UI to ensure roles work correctly
+      QUARKUS_OIDC_TENANT_ENABLED: "true"
+      QUARKUS_OIDC_AUTH_SERVER_URL: "https://login.microsoftonline.com/${TENANT_ID}/v2.0"
+      QUARKUS_OIDC_CLIENT_ID: "${CLIENT_ID}"
+      QUARKUS_OIDC_CREDENTIALS_SECRET: "${CLIENT_SECRET}"
+      QUARKUS_OIDC_ROLES_ROLE_CLAIM_PATH: "roles"
+
+      # Role-based Authorization
+      APICURIO_AUTH_ROLE_BASED_AUTHORIZATION: "true"
+      APICURIO_AUTH_ROLE_SOURCE: "token"
+      APICURIO_AUTH_ROLES_ADMIN: "sr-admin"
+      APICURIO_AUTH_ROLES_DEVELOPER: "sr-developer"
+      APICURIO_AUTH_ROLES_READONLY: "sr-readonly"
+
+      # CORS Configuration (allow UI to call API)
+      QUARKUS_HTTP_CORS: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+
+      # Enable deletion operations
+      APICURIO_REST_DELETION_GROUP_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACT_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACT_VERSION_ENABLED: "true"
+
+      # Optional: Enable debug logging (uncomment if needed)
+      # QUARKUS_LOG_LEVEL: "DEBUG"
+      # QUARKUS_LOG_CATEGORY__IO_QUARKUS_OIDC__LEVEL: "DEBUG"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - apicurio-network
+
+  apicurio-registry-ui:
+    image: apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: apicurio-registry-ui
+    ports:
+      - "8080:8080"
+    depends_on:
+      - apicurio-registry
+    environment:
+      # Registry API URL (points to the backend service)
+      REGISTRY_API_URL: "http://localhost:8081/apis/registry/v3"
+
+      # OIDC Authentication - UI
+      # NOTE: Using same client ID as API to ensure roles are included in JWT tokens
+      REGISTRY_AUTH_TYPE: "oidc"
+      REGISTRY_AUTH_URL: "https://login.microsoftonline.com/${TENANT_ID}/v2.0"
+      REGISTRY_AUTH_CLIENT_ID: "${CLIENT_ID}"
+      REGISTRY_AUTH_REDIRECT_URL: "http://localhost:8080"
+      # Use standard OIDC scopes (Azure AD userinfo endpoint requires this)
+      REGISTRY_AUTH_CLIENT_SCOPES: "openid profile email api://${CLIENT_ID}/access_as_user"
+      REGISTRY_AUTH_LOAD_USER_INFO: "false"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - apicurio-network
+
+networks:
+  apicurio-network:
+    driver: bridge

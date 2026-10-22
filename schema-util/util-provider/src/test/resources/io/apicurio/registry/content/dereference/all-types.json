@@ -1,0 +1,57 @@
+{
+  "openapi": "3.0.2",
+  "info": {
+    "title": "all-types.json",
+    "version": "1.0.0",
+    "description": ""
+  },
+  "paths": {
+    "/": {}
+  },
+  "components": {
+    "schemas": {
+      "Foo": {
+        "description": "",
+        "required": [
+          "id",
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "description": "",
+            "type": "string"
+          },
+          "type": {
+            "description": "",
+            "type": "string"
+          },
+          "address": {
+            "$ref": "http://types.example.org/address.json#/components/schemas/Address"
+          }
+        }
+      },
+      "Bar": {
+        "description": "",
+        "required": [
+          "name",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "",
+            "type": "string"
+          },
+          "description": {
+            "description": "",
+            "type": "string"
+          },
+          "address": {
+            "$ref": "http://types.example.org/address.json#/components/schemas/Address"
+          }
+        }
+      }
+    }
+  }
+}

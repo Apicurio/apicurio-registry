@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apicurio-support-chat
+  labels:
+    app: apicurio-support-chat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apicurio-support-chat
+  template:
+    metadata:
+      labels:
+        app: apicurio-support-chat
+    spec:
+      containers:
+        - name: support-chat
+          image: apicurio/registry-support-chat:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: REGISTRY_URL
+              value: "http://apicurio-registry:8080"
+            - name: OLLAMA_URL
+              value: "http://ollama:11434"
+            - name: OLLAMA_MODEL
+              value: "llama3.2"
+            - name: OLLAMA_EMBEDDING_MODEL
+              value: "nomic-embed-text"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /q/health/live
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /q/health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apicurio-support-chat
+  labels:
+    app: apicurio-support-chat
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      name: http
+  selector:
+    app: apicurio-support-chat
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: apicurio-support-chat
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+    - host: support-chat.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: apicurio-support-chat
+                port:
+                  number: 8080

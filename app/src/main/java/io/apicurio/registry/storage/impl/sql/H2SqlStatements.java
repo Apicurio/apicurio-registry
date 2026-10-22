@@ -1,0 +1,135 @@
+package io.apicurio.registry.storage.impl.sql;
+
+/**
+ * H2 implementation of the sql statements interface. Provides sql statements that are specific to H2, where
+ * applicable.
+ */
+public class H2SqlStatements extends CommonSqlStatements {
+
+    /**
+     * Constructor.
+     */
+    public H2SqlStatements() {
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#dbType()
+     */
+    @Override
+    public String dbType() {
+        return "h2";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isPrimaryKeyViolation(java.lang.Exception)
+     */
+    @Override
+    public boolean isPrimaryKeyViolation(Exception error) {
+        return error.getMessage() != null && error.getMessage().contains("primary key violation");
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isForeignKeyViolation(java.lang.Exception)
+     */
+    @Override
+    public boolean isForeignKeyViolation(Exception error) {
+        return error.getMessage() != null
+                && error.getMessage().contains("Referential integrity constraint violation");
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isDatabaseInitialized()
+     */
+    @Override
+    public String isDatabaseInitialized() {
+        return "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_name = 'APICURIO'";
+    }
+
+    @Override
+    public String isDatabaseSchemaInitialized() {
+        return "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = ? AND table_name = 'APICURIO'";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
+     */
+    @Override
+    public String getNextSequenceValue() {
+        throw new RuntimeException("Not applicable when using H2 as the database kind.");
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
+     */
+    @Override
+    public String resetSequenceValue() {
+        throw new RuntimeException("Not applicable when using H2 as the database kind.");
+    }
+
+    @Override
+    public String insertSequenceValue() {
+        throw new RuntimeException("Not applicable when using H2 as the database kind.");
+    }
+
+    @Override
+    public String selectCurrentSequenceValue() {
+        throw new RuntimeException("Not applicable when using H2 as the database kind.");
+    }
+
+    @Override
+    public String createDataSnapshot() {
+        return "SCRIPT TO ?";
+    }
+
+    @Override
+    public String createDataSnapshot(String location) {
+        if (location != null && location.endsWith(COMPRESSED_SNAPSHOT_EXTENSION)) {
+            return "SCRIPT TO ? COMPRESSION GZIP";
+        }
+        return createDataSnapshot();
+    }
+
+    @Override
+    public String restoreFromSnapshot() {
+        return "RUNSCRIPT FROM ?";
+    }
+
+    @Override
+    public String restoreFromSnapshot(String location) {
+        if (location != null && location.endsWith(COMPRESSED_SNAPSHOT_EXTENSION)) {
+            return "RUNSCRIPT FROM ? COMPRESSION GZIP";
+        }
+        return restoreFromSnapshot();
+    }
+
+    @Override
+    public String selectArtifactUsageMetrics() {
+        return "SELECT v.version, su.globalId, COUNT(*) AS totalFetches, "
+                + "COUNT(DISTINCT su.clientId) AS uniqueClients, "
+                + "MIN(su.eventTimestamp) AS firstFetchedOn, MAX(su.eventTimestamp) AS lastFetchedOn, "
+                + "LISTAGG(DISTINCT su.clientId, ',') AS clientList "
+                + "FROM schema_usage su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
+                + "WHERE v.groupId = ? AND v.artifactId = ? "
+                + "GROUP BY v.globalId, v.version, v.versionOrder ORDER BY v.versionOrder";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#acquireInitLock()
+     */
+    @Override
+    public String acquireInitLock() {
+        // H2 is only used in single-instance mode, so no distributed locking needed
+        // Return a no-op query that always succeeds
+        return "SELECT 1";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#releaseInitLock()
+     */
+    @Override
+    public String releaseInitLock() {
+        // H2 is only used in single-instance mode, so no distributed locking needed
+        // Return a no-op query that always succeeds
+        return "SELECT 1";
+    }
+}

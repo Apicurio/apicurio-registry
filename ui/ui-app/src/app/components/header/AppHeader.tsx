@@ -1,0 +1,36 @@
+import { FunctionComponent } from "react";
+import { Brand, Masthead, MastheadLogo, MastheadContent, MastheadMain, MastheadBrand } from "@patternfly/react-core";
+import { Link } from "react-router";
+import { AppHeaderToolbar } from "@app/components";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
+
+
+import { useLogoSrc } from "@services/useThemeService.tsx";
+
+
+export type AppHeaderProps = object;
+
+
+export const AppHeader: FunctionComponent<AppHeaderProps> = () => {
+    const appNavigation: AppNavigation = useAppNavigation();
+    const config: ConfigService = useConfigService();
+    const logoSrc: string = useLogoSrc();
+
+    if (config.features().showMasthead !== undefined && !config.features().showMasthead) {
+        return <></>;
+    }
+
+    return (
+        <Masthead id="icon-router-link">
+            <MastheadMain>
+                <MastheadBrand data-codemods><MastheadLogo data-codemods component={props => <Link {...props} to={ appNavigation.createLink("/dashboard") } />}>
+                    <Brand src={logoSrc} alt="Apicurio Registry" heights={{ default: "36px" }} />
+                </MastheadLogo></MastheadBrand>
+            </MastheadMain>
+            <MastheadContent>
+                <AppHeaderToolbar />
+            </MastheadContent>
+        </Masthead>
+    );
+};

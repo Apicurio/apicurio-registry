@@ -1,0 +1,35 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Apicurio 3.1 servers ClassCastException repro",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "https://{host}/v1",
+            "description": "Server with a templated variable.",
+            "variables": {
+                "host": {
+                    "default": "example.com",
+                    "enum": [
+                        "example.com",
+                        "staging.example.com"
+                    ],
+                    "description": "Target host."
+                }
+            }
+        }
+    ],
+    "paths": {
+        "/ping": {
+            "get": {
+                "operationId": "ping",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        }
+    }
+}

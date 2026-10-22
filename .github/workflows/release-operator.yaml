@@ -1,0 +1,581 @@
+name: Release Operator
+# Triggered by Release Images workflow after all operand images are pushed,
+# ensuring correct ordering without a polling loop. Can also be dispatched
+# manually for re-runs.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag name
+        required: true
+      run_tests:
+        description: Run tests using the release artifacts
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+
+  release-build:
+    name: Build & Publish
+    if: github.repository_owner == 'Apicurio'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    outputs:
+      release-version: ${{ steps.config.outputs.release-version }}
+      branch: ${{ steps.config.outputs.branch }}
+      run-tests: ${{ steps.config.outputs.run-tests }}
+      package-version: ${{ steps.config.outputs.package-version }}
+    steps:
+
+      - name: Fetch Release Details
+        run: |
+          touch release.json && curl "https://api.github.com/repos/$GITHUB_REPOSITORY/releases/tags/${{ github.event.inputs.tag }}" > release.json
+          echo "RELEASE_VERSION=$(cat release.json | jq -r '.name')" >> $GITHUB_ENV
+          echo "BRANCH=$(cat release.json | jq -r '.target_commitish')" >> $GITHUB_ENV
+          echo "RUN_TESTS=${{ github.event.inputs.run_tests }}" >> $GITHUB_ENV
+
+      - name: Download Source Code
+        run: |
+          git config --global user.name apicurio-ci
+          git config --global user.email apicurio.ci@gmail.com
+          git clone "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git" registry
+          cd registry && git checkout "$RELEASE_VERSION"
+          # Resolve BRANCH if it's a commit SHA (happens when releasing from non-default branches)
+          if [[ "$BRANCH" =~ ^[0-9a-f]{40}$ ]]; then
+            # Prefer maintenance branches (X.Y.x) over main to avoid resolving
+            # maintenance releases to main (the SHA may exist on both after post-release sync).
+            # Feature branches are ignored — only main and X.Y.x patterns are considered.
+            ALL_BRANCHES=$(git branch -r --contains "$BRANCH" | grep -v HEAD | sed 's|.*origin/||' | tr -d ' ')
+            RESOLVED=$(echo "$ALL_BRANCHES" | grep -E '^[0-9]+\.[0-9]+\.x$' | head -1)
+            if [ -z "$RESOLVED" ]; then
+              RESOLVED="main"
+            fi
+            if [ -n "$RESOLVED" ]; then
+              echo "Resolved branch SHA $BRANCH to $RESOLVED (candidates: $(echo $ALL_BRANCHES | tr '\n' ', '))"
+              echo "BRANCH=$RESOLVED" >> $GITHUB_ENV
+            else
+              echo "ERROR: Could not resolve commit $BRANCH to a branch name"
+              exit 1
+            fi
+          fi
+
+      # Backward compatibility: ci-settings.xml was added after 3.3.1 (#8556) and may not
+      # exist in older release tags. Remove this guard once all supported tags include the file.
+      - name: Resolve Maven settings
+        run: |
+          SETTINGS_FILE="${{ github.workspace }}/registry/.github/ci-settings.xml"
+          if [ -f "$SETTINGS_FILE" ]; then
+            echo "MVN_SETTINGS=-s $SETTINGS_FILE" >> $GITHUB_ENV
+          else
+            echo "MVN_SETTINGS=" >> $GITHUB_ENV
+          fi
+
+      - name: Verify Project Version
+        working-directory: registry
+        run: |
+          PROJECT_VERSION="$(mvn $MVN_SETTINGS help:evaluate -Dexpression=project.version -q -DforceStdout)"
+          if [[ "$PROJECT_VERSION" != "$RELEASE_VERSION" ]]
+          then
+              echo "ERROR: Project version $PROJECT_VERSION does not match released version $RELEASE_VERSION"
+              exit 1
+          fi
+
+      - name: Configure outputs
+        id: config
+        working-directory: registry/operator
+        run: |
+          echo "release-version=$RELEASE_VERSION" >> $GITHUB_OUTPUT
+          echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+          echo "run-tests=$RUN_TESTS" >> $GITHUB_OUTPUT
+          echo "package-version=$(make VAR=LC_VERSION variable-get)" >> $GITHUB_OUTPUT
+
+      - name: Show make configuration
+        working-directory: registry/operator
+        run: |
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION config-show
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Build the operator
+        working-directory: registry/operator
+        run: |
+          make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true build
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Login to Quay.io Registry
+        run: docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
+
+      - name: Build and push operator image
+        working-directory: registry/operator
+        run: |
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_IMAGE_TAG=latest image-buildx-push
+
+      - name: Build operator bundle
+        working-directory: registry/operator
+        run: |
+          ROLLING_CHANNEL_ARG=""
+          if [ "$BRANCH" = "main" ]; then
+            ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
+          fi
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION $ROLLING_CHANNEL_ARG bundle
+
+      - name: Build operator catalog
+        working-directory: registry/operator
+        run: |
+          ROLLING_CHANNEL_ARG=""
+          if [ "$BRANCH" = "main" ]; then
+            ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
+          fi
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_CATALOG_IMAGE_TAG=latest $ROLLING_CHANNEL_ARG catalog
+
+      - name: Generate install file for tests
+        working-directory: registry/operator
+        run: |
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION INSTALL_FILE=controller/target/test-install.yaml dist-install-file
+
+      - name: Upload test artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: operator-test-artifacts
+          path: |
+            registry/operator/controller/target/
+            registry/operator/model/target/
+            registry/operator/olm-tests/target/
+          retention-days: 1
+
+      - name: Upload bundle artifacts
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: operator-bundle-artifacts
+          path: |
+            registry/operator/target/bundle/
+          retention-days: 1
+
+  release-test:
+    name: Test (${{ matrix.name }})
+    needs: release-build
+    if: needs.release-build.outputs.run-tests == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: smoke
+            groups: "smoke"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: kafka
+            groups: "kafka"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: auth
+            groups: "auth"
+            excluded-groups: "kafka"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: database
+            groups: "database"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: feature
+            groups: "feature"
+            excluded-groups: "feature-setup"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: feature-setup
+            groups: "feature-setup"
+            olm-enable: "false"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+          - name: olm-v1
+            groups: "OLM"
+            olm-enable: "true"
+            olm-v1-enable: "true"
+            extra-build-opts: "-Dtest.operator.olm-version=1"
+          - name: olm-v0
+            groups: "OLM"
+            olm-enable: "true"
+            olm-v1-enable: "false"
+            extra-build-opts: ""
+    steps:
+
+      - name: Download Source Code
+        run: |
+          git clone https://github.com/Apicurio/apicurio-registry.git registry
+          cd registry && git checkout "${{ needs.release-build.outputs.release-version }}"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Download test artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: operator-test-artifacts
+          path: registry/operator/
+
+
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        with:
+          driver: 'none'
+          ingress-enable: 'true'
+          olm-enable: ${{ matrix.olm-enable }}
+          olm-v1-enable: ${{ matrix.olm-v1-enable }}
+          start-args: '--alsologtostderr --v=2'
+
+      - name: Run ${{ matrix.name }} tests on Minikube
+        working-directory: registry/operator
+        run: |
+          make BUILD_OPTS="--no-transfer-progress ${{ matrix.extra-build-opts }}" \
+            OPERAND_IMAGE_TAG="${{ needs.release-build.outputs.release-version }}" \
+            REMOTE_TESTS_ALL_INSTALL_FILE=controller/target/test-install.yaml \
+            GROUPS="${{ matrix.groups }}" \
+            EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \
+            test-remote-group
+
+  release-post:
+    name: Post-Release
+    needs: [release-build, release-test]
+    if: always() && needs.release-build.result == 'success' && (needs.release-test.result == 'success' || needs.release-test.result == 'skipped')
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    # Read by the notify job, which leaves out a failure already reported here.
+    outputs:
+      notified: ${{ steps.notify.outcome }}
+    env:
+      RELEASE_VERSION: ${{ needs.release-build.outputs.release-version }}
+      BRANCH: ${{ needs.release-build.outputs.branch }}
+      PACKAGE_VERSION: ${{ needs.release-build.outputs.package-version }}
+    steps:
+
+      - name: Configure env. variables
+        run: |
+          echo "GH_TOKEN=${{ secrets.ACCESS_TOKEN }}" >> "$GITHUB_ENV"
+          echo "RELEASE_BRANCH=release-$PACKAGE_VERSION" >> "$GITHUB_ENV"
+
+      - name: Download Source Code
+        run: |
+          git config --global user.name apicurio-ci
+          git config --global user.email apicurio.ci@gmail.com
+          git clone "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git" registry
+          cd registry && git checkout "$RELEASE_VERSION"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          java-version: '21'
+          distribution: temurin
+          cache: maven
+
+      - name: Build operator
+        working-directory: registry/operator
+        run: |
+          make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true OPERAND_IMAGE_TAG=$RELEASE_VERSION build
+
+      - name: Download bundle artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: operator-bundle-artifacts
+          path: registry/operator/target/bundle/
+
+      - name: Build dist archive and attach to the release
+        working-directory: registry/operator
+        run: |
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION dist
+          DIST_FILE="target/apicurio-registry-operator-$RELEASE_VERSION.tar.gz"
+          gh release upload "$RELEASE_VERSION" "$DIST_FILE"
+
+      - name: Checkout the Community Operators repository
+        run: |
+          mkdir community-operators
+          cd community-operators
+          git init
+          git remote add origin https://github.com/k8s-operatorhub/community-operators.git
+          git remote add source "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/community-operators.git"
+          git fetch
+          git checkout --track origin/main
+          git push -f source main
+
+      - name: Create the Community Operators PR
+        id: community-operators-pr
+        continue-on-error: true
+        working-directory: community-operators
+        run: |
+          git checkout -b "$RELEASE_BRANCH"
+          TITLE="Release Apicurio Registry Operator $PACKAGE_VERSION"
+          BODY="$(curl -s https://raw.githubusercontent.com/k8s-operatorhub/community-operators/main/docs/pull_request_template.md)"
+          cp -r "../registry/operator/target/bundle/apicurio-registry-3/$PACKAGE_VERSION" operators/apicurio-registry-3
+          git add .
+          git commit -s -m "$TITLE"
+          git push -f source "$RELEASE_BRANCH"
+          gh repo set-default k8s-operatorhub/community-operators
+          gh pr create --title "$TITLE" --body "$BODY" --base main --head "Apicurio:$RELEASE_BRANCH"
+
+      - name: Warn if Community Operators PR failed
+        if: steps.community-operators-pr.outcome == 'failure'
+        run: echo "::warning::Failed to create Community Operators PR. Please create it manually."
+
+      - name: Checkout the Openshift Community Operators repository
+        run: |
+          mkdir openshift-community-operators
+          cd openshift-community-operators
+          git init
+          git remote add origin https://github.com/redhat-openshift-ecosystem/community-operators-prod.git
+          git remote add source "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/community-operators-prod.git"
+          git fetch
+          git checkout --track origin/main
+          git push -f source main
+
+      - name: Create the Openshift Community Operators Bundle PR
+        id: openshift-community-operators-bundle-pr
+        continue-on-error: true
+        working-directory: openshift-community-operators
+        run: |
+          git checkout -b "${RELEASE_BRANCH}-bundle"
+          TITLE="Release Apicurio Registry Operator $PACKAGE_VERSION"
+          BODY="$(curl -s https://raw.githubusercontent.com/redhat-openshift-ecosystem/community-operators-prod/main/docs/pull_request_template.md)"
+          cp -r "../registry/operator/target/bundle/apicurio-registry-3/$PACKAGE_VERSION" operators/apicurio-registry-3
+          git add .
+          git commit -s -m "$TITLE"
+          git push -f source "${RELEASE_BRANCH}-bundle"
+          gh repo set-default redhat-openshift-ecosystem/community-operators-prod
+          gh pr create --title "$TITLE" --body "$BODY" --base main --head "Apicurio:${RELEASE_BRANCH}-bundle"
+
+      - name: Warn if Openshift Community Operators Bundle PR failed
+        if: steps.openshift-community-operators-bundle-pr.outcome == 'failure'
+        run: echo "::warning::Failed to create Openshift Community Operators Bundle PR. Please create it manually."
+
+      - name: Create the Openshift Community Operators Catalog PR
+        id: openshift-community-operators-catalog-pr
+        if: steps.openshift-community-operators-bundle-pr.outcome == 'success'
+        continue-on-error: true
+        working-directory: openshift-community-operators
+        run: |
+          PKG_NAME="apicurio-registry-3"
+          FBC_ENABLED=$(cd "operators/$PKG_NAME" && cat ci.yaml | grep -c "fbc:" || true)
+          if [ "$FBC_ENABLED" -eq 0 ]; then
+            echo "FBC is not enabled — skipping catalog PR"
+            exit 0
+          fi
+
+          # Wait for the pipeline-built bundle, then refresh catalog history in
+          # case a preceding catalog submission merged while we were waiting.
+          BUNDLE_IMG=$(bash ../registry/operator/scripts/published-bundle.sh "$PACKAGE_VERSION")
+          git fetch origin main
+          git checkout -B main origin/main
+          git checkout -b "${RELEASE_BRANCH}-catalog"
+          TITLE="Update FBC catalogs for Apicurio Registry Operator $PACKAGE_VERSION"
+
+          MINOR_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          CSV_NAME="$PKG_NAME.v$PACKAGE_VERSION"
+
+          if [ "$BRANCH" = "main" ]; then
+            CHANNELS="3.x $MINOR_CHANNEL"
+          else
+            CHANNELS="$MINOR_CHANNEL"
+          fi
+
+          cd "operators/$PKG_NAME"
+
+          if [ ! -f ../../bin/yq ]; then
+            mkdir -p ../../bin
+            curl -sLo ../../bin/yq "https://github.com/mikefarah/yq/releases/download/v4.45.1/yq_linux_amd64"
+            chmod +x ../../bin/yq
+          fi
+          YQ="../../bin/yq"
+          PREVIOUS_CSV=$($YQ '.spec.replaces // ""' "../../../registry/operator/target/bundle/$PKG_NAME/$PACKAGE_VERSION/manifests/$PKG_NAME.clusterserviceversion.yaml")
+
+          for tpl in catalog-templates/v4.*.yaml; do
+            echo "  Updating $tpl"
+            for CH in $CHANNELS; do
+              CH_EXISTS=$($YQ ".entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .name" "$tpl" 2>/dev/null || true)
+              CH_HEAD=$($YQ ".entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries[0].name" "$tpl" 2>/dev/null || true)
+
+              if [ "$CH_HEAD" = "$CSV_NAME" ]; then
+                echo "    $CH already contains $CSV_NAME as its head"
+              elif [ -z "$CH_EXISTS" ] || [ "$CH_EXISTS" = "null" ]; then
+                echo "    Creating new channel $CH"
+                $YQ -i ".entries |= . + [{\"schema\": \"olm.channel\", \"package\": \"$PKG_NAME\", \"name\": \"$CH\", \"entries\": [{\"name\": \"$CSV_NAME\"}]}]" "$tpl"
+                if [ -n "$PREVIOUS_CSV" ]; then
+                  $YQ -i "(.entries[] | select(.schema == \"olm.channel\" and .name == \"$CH\") | .entries[0].replaces) = \"$PREVIOUS_CSV\"" "$tpl"
+                fi
+              elif [ -n "$CH_HEAD" ] && [ "$CH_HEAD" != "null" ]; then
+                $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\", \"replaces\": \"$CH_HEAD\"}] + ." "$tpl"
+              else
+                $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$CH\") | .entries) |= [{\"name\": \"$CSV_NAME\"}]" "$tpl"
+                if [ -n "$PREVIOUS_CSV" ]; then
+                  $YQ -i "(.entries[] | select(.schema == \"olm.channel\" and .name == \"$CH\") | .entries[0].replaces) = \"$PREVIOUS_CSV\"" "$tpl"
+                fi
+              fi
+            done
+            if ! $YQ -e ".entries[] | select(.schema == \"olm.bundle\" and .image == \"$BUNDLE_IMG\")" "$tpl" >/dev/null 2>&1; then
+              $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$tpl"
+            fi
+          done
+
+          make catalogs
+          make validate-catalogs
+          echo "FBC catalog update complete"
+          cd ../..
+
+          git add .
+          git commit -s -m "$TITLE"
+          git push -f source "${RELEASE_BRANCH}-catalog"
+          gh repo set-default redhat-openshift-ecosystem/community-operators-prod
+          gh pr create --title "$TITLE" --body "FBC catalog update for $PACKAGE_VERSION." --base main --head "Apicurio:${RELEASE_BRANCH}-catalog"
+
+      - name: Warn if Openshift Community Operators Catalog PR failed
+        if: steps.openshift-community-operators-catalog-pr.outcome == 'failure'
+        run: echo "::warning::Failed to create Openshift Community Operators Catalog PR. Please create it manually."
+
+      - name: Prepare post-release changes
+        working-directory: registry/operator
+        run: |
+          # Switch to the branch and pull latest to pick up the snapshot version update by release.yaml .
+          # It could have been pushed after the initial clone.
+          git fetch origin
+          git checkout "$BRANCH"
+          git pull origin "$BRANCH"
+
+      - name: Update Makefile
+        working-directory: registry/operator
+        run: |
+          make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
+          git add Makefile
+
+      - name: Update catalog template
+        working-directory: registry/operator
+        run: |
+          make release-catalog-template-update
+          git add "$(make VAR=CATALOG_DIR variable-get)"
+
+      - name: Update install file
+        working-directory: registry/operator
+        run: |
+          make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file
+          make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml dist-install-file-namespaced
+          git add install/*
+
+      - name: Commit & push post-release changes
+        working-directory: registry/operator
+        run: |
+          git commit -m "ci(operator): post-release changes for $RELEASE_VERSION"
+          # Rebase in case somebody else pushed to the branch
+          git fetch origin
+          git rebase "origin/$BRANCH"
+          git push origin "$BRANCH"
+
+      - name: Sync post-release changes to main
+        if: env.BRANCH != 'main'
+        working-directory: registry
+        run: |
+          # Save the versioned install files before switching branches
+          INSTALL_FILE="operator/install/apicurio-registry-operator-$RELEASE_VERSION.yaml"
+          INSTALL_NAMESPACED_FILE="operator/install/apicurio-registry-operator-namespaced-$RELEASE_VERSION.yaml"
+          cp "$INSTALL_FILE" /tmp/install-file.yaml
+          cp "$INSTALL_NAMESPACED_FILE" /tmp/install-file-namespaced.yaml
+
+          # Switch to main
+          git checkout main
+          git pull origin main
+
+          # Copy the versioned install files
+          cp /tmp/install-file.yaml "$INSTALL_FILE"
+          cp /tmp/install-file-namespaced.yaml "$INSTALL_NAMESPACED_FILE"
+
+          RELEASE_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          MAIN_CHANNEL=$(cd operator && make VAR=CHANNEL variable-get)
+
+          cd operator
+          if [ "$RELEASE_CHANNEL" = "$MAIN_CHANNEL" ]; then
+            # Same minor as main — full catalog update
+            make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
+            make release-catalog-template-update
+          else
+            # Maintenance release from an older minor — only update its channel
+            # and add the bundle image. Do NOT touch PREVIOUS_PACKAGE_VERSION,
+            # the rolling channel, or other minor channels on main.
+            CATALOG_DIR=$(make VAR=CATALOG_DIR variable-get)
+            CATALOG_FILE="$CATALOG_DIR/catalog.template.yaml"
+            PKG_NAME=$(make VAR=PACKAGE_NAME variable-get)
+            LC_VERSION=$(echo "$PACKAGE_VERSION" | tr A-Z a-z)
+            PREV_PKG=$(make VAR=PREVIOUS_PACKAGE variable-get)
+            BUNDLE_IMG="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$LC_VERSION"
+            YQ=$(make VAR=YQ variable-get)
+
+            echo "Syncing maintenance release $PACKAGE_VERSION to main (channel $RELEASE_CHANNEL only)"
+
+            # Add the new version to its minor channel
+            $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$RELEASE_CHANNEL\") | .entries) |= [{\"name\": \"$PKG_NAME.v$PACKAGE_VERSION\", \"replaces\": \"$PREV_PKG\"}] + ." "$CATALOG_FILE"
+
+            # Add the bundle image
+            $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$CATALOG_FILE"
+          fi
+
+          cd ..
+          git add .
+          git commit -m "ci(operator): sync $RELEASE_VERSION post-release changes from $BRANCH to main"
+          git rebase origin/main
+          git push origin main
+
+      # Before tmate, which holds the job open until it times out, so whoever is
+      # notified can still connect. tmate lets in only github.actor's SSH keys,
+      # and apicurio-ci (which dispatches this workflow from release-images)
+      # has none: then there is no session, and the notify job reports the
+      # failure, mentioning whoever ran the release.
+      - name: Notify failure
+        id: notify
+        if: failure() && github.actor != 'apicurio-ci'
+        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
+        with:
+          level: important
+          text: ":x: ${{ github.workflow }} failed for ${{ inputs.tag }} in release-post. :mag: Debug it on the runner: @${{ github.actor }} can SSH in with tmate until the job times out. The ssh command is in the job log."
+          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          mention: ${{ github.actor }},${{ github.triggering_actor }}
+          user-map: ${{ secrets.SLACK_USER_MAP }}
+          important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+
+      - name: Setup tmate session on failure
+        if: failure() && github.actor != 'apicurio-ci'
+        uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3
+        with:
+          limit-access-to-actor: true
+
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
+    needs: [release-build, release-test, release-post]
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
+    with:
+      results: ${{ toJSON(needs) }}
+      version: ${{ inputs.tag }}
+    secrets:
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+      SLACK_GENERAL_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

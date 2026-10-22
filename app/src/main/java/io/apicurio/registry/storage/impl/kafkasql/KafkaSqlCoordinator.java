@@ -1,0 +1,109 @@
+package io.apicurio.registry.storage.impl.kafkasql;
+
+import io.apicurio.registry.types.RegistryException;
+import io.quarkus.arc.lookup.LookupIfProperty;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Coordinates "write" responses across threads in the Kafka-SQL artifactStore implementation. Basically this
+ * is used to communicate between the Kafka consumer thread and the waiting HTTP/API thread, where the HTTP
+ * thread is waiting for an operation to be completed by the Kafka consumer thread.
+ */
+@ApplicationScoped
+@LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
+public class KafkaSqlCoordinator {
+
+    @Inject
+    Instance<KafkaSqlConfiguration> configuration;
+
+    private static final Object NULL = new Object();
+    private Map<UUID, CountDownLatch> latches = new ConcurrentHashMap<>();
+    private Map<UUID, Object> returnValues = new ConcurrentHashMap<>();
+
+    /**
+     * Creates a UUID for a single operation.
+     */
+    public UUID createUUID() {
+        UUID uuid = UUID.randomUUID();
+        latches.put(uuid, new CountDownLatch(1));
+        return uuid;
+    }
+
+    /**
+     * Waits for a response to the operation with the given UUID. There is a countdown latch for each
+     * operation. The caller waiting for the response will wait for the countdown to happen and then proceed.
+     * We also remove the latch from the Map here since it's not needed anymore.
+     *
+     * @param uuid
+     * @throws InterruptedException
+     */
+    public Object waitForResponse(UUID uuid) {
+        try {
+            boolean completed = latches.get(uuid).await(
+                    configuration.get().getResponseTimeout().toMillis(), TimeUnit.MILLISECONDS);
+            if (!completed) {
+                throw new RegistryException(
+                        "[KafkaSqlCoordinator] Timed out waiting for a Kafka Sql response for operation " + uuid);
+            }
+
+            Object rval = returnValues.remove(uuid);
+            if (rval == NULL) {
+                return null;
+            } else if (rval instanceof RuntimeException) {
+                // Rethrow any RuntimeException to preserve the original exception type
+                // for proper handling by exception mappers.
+                throw (RuntimeException) rval;
+            }
+            return rval;
+        } catch (InterruptedException e) {
+            throw new RegistryException(
+                    "[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
+        } finally {
+            latches.remove(uuid);
+            returnValues.remove(uuid);
+        }
+    }
+
+    /**
+     * Countdown the latch for the given UUID. This will wake up the thread waiting for the response so that
+     * it can proceed.
+     *
+     * @param uuid
+     * @param returnValue
+     */
+    public void notifyResponse(UUID uuid, Object returnValue) {
+        // we are re-using the topic from a streams based registry instance
+        if (uuid == null) {
+            return;
+        }
+
+        // Retrieve the latch in a single atomic call to avoid a TOCTOU race where
+        // waitForResponse removes the latch between a containsKey check and a get.
+        // If there is no countdown latch, then there is no HTTP thread waiting for
+        // a response. This means one of two possible things:
+        // 1) We're in a cluster and the HTTP thread is on another node
+        // 2) We're starting up and consuming all the old journal entries
+        CountDownLatch latch = latches.get(uuid);
+        if (latch == null) {
+            return;
+        }
+
+        // Otherwise, put the return value in the Map and countdown the latch. The latch
+        // countdown will notify the HTTP thread that the operation is complete and there is
+        // a return value waiting for it.
+        if (returnValue == null) {
+            returnValue = NULL;
+        }
+        returnValues.put(uuid, returnValue);
+        latch.countDown();
+    }
+
+}

@@ -1,0 +1,19 @@
+{
+  "type": "record",
+  "namespace": "com.example",
+  "name": "Person",
+  "fields": [
+    {
+      "name": "firstName",
+      "type": "string"
+    },
+    {
+      "name": "lastName",
+      "type": "string"
+    },
+    {
+      "name": "homeAddress",
+      "type": "com.example.common.Address"
+    }
+  ]
+}

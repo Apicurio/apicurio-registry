@@ -1,0 +1,15 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: testgroup
+artifactId: compat-fail
+artifactType: AVRO
+rules:
+  - ruleType: COMPATIBILITY
+    config: BACKWARD
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/v1.avsc
+  - version: "2"
+    state: ENABLED
+    content: ./content/v2.avsc

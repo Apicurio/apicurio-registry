@@ -1,0 +1,41 @@
+[id="pod-spec"]
+// Do not forget to update link text in related xref(s). Antora does not support automatic name if the link has a fragment.
+= Configuring {registry} deployment using PodTemplate
+
+The `ApicurioRegistry3` CRD contains the `spec.app.podTemplateSpec` (and `spec.ui.podTemplateSpec`) field, which has the same structure as the field `spec.template` in a Kubernetes `Deployment` resource (the `PodTemplateSpec` struct).
+
+With some restrictions, the {operator} forwards the data from this field to the corresponding field in the {registry} deployment.
+This provides greater configuration flexibility, without the need for the {operator} to natively support each use case.
+
+The following table contains a list of subfields that are not accepted by the {operator}, and result in a configuration error:
+
+.Restrictions on the `podTemplateSpec` subfields
+[%header,cols="4,3,4"]
+|===
+| `podTemplateSpec` subfield | Status | Details
+
+| `spec.containers[*]`
+| warning
+| To configure the {registry} container, `name: apicurio-registry-app` must be used (or `name: apicurio-registry-ui` for the UI component). If a container is not specified with the correct name, the operator will automatically create one and log a warning message. See `io.apicurio.registry.operator.api.v1.ContainerNames` for valid container names.
+
+| `spec.containers[name = "apicurio-registry-app"].env`
+| alternative exists
+| `spec.app.env`
+
+ifdef::apicurio-registry[]
+| `spec.containers[name = "apicurio-registry-app"].image`
+| reserved
+| -
+endif::[]
+ifdef::service-registry[]
+| `spec.containers[name = "apicurio-registry-app"].image`
+| reserved
+| -
+endif::[]
+
+|===
+
+WARNING: If you set a field in `podTemplateSpec`, its value must be valid, as if you configured it in the {registry} `Deployment` directly. The {operator} might still modify the values you provided, but it will not fix an invalid value or make sure a default value is present.
+
+.Additional resources
+* link:https://kubernetes.io/docs/concepts/workloads/pods/#pod-templates[Kubernetes documentation on Pod templates]

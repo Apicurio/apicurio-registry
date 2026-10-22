@@ -1,0 +1,229 @@
+package io.apicurio.registry.cli;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.apicurio.registry.rest.v3.beans.GroupMetaData;
+import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
+import io.apicurio.registry.rest.v3.beans.SearchedGroup;
+import io.quarkus.test.junit.QuarkusTest;
+import org.jboss.logging.Logger;
+import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import java.util.Map;
+
+import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * Basic smoke tests for the Apicurio Registry CLI.
+ */
+@QuarkusTest
+@TestMethodOrder(OrderAnnotation.class)
+public class GroupCommandTest extends AbstractCLITest {
+
+    public final Logger log = Logger.getLogger(GroupCommandTest.class);
+
+    @Test
+    public void testGroupHelp() {
+        testHelpCommand("group");
+        testHelpCommand("group", "create");
+        testHelpCommand("group", "get");
+        testHelpCommand("group", "delete");
+    }
+
+    @Test
+    @Order(0)
+    public void testGroupCommandEmpty() throws JsonProcessingException {
+        // When
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "--output-type", "json");
+        var groups = MAPPER.readValue(out.toString(), GroupSearchResults.class);
+
+        // Then — the implicit default group should always be present
+        assertThat(groups.getGroups())
+                .as(withCliOutput("There should be one group initially (the implicit `default` group)."))
+                .hasSize(1);
+        assertThat(groups.getGroups().get(0).getGroupId())
+                .as(withCliOutput("The initial group should be the implicit `default` group."))
+                .isEqualTo("default");
+    }
+
+    @Test
+    @Order(1)
+    public void testGroupCreateCommand() throws JsonProcessingException {
+        // When
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "create", "--output-type", "json",
+                "--description", "Test group",
+                "--label", "env=test",
+                "--label", "color=pink",
+                "first");
+        var group = MAPPER.readValue(out.toString(), GroupMetaData.class);
+
+        // Then
+        assertThat(group.getGroupId())
+                .as(withCliOutput("Created group should have the correct groupId"))
+                .isEqualTo("first");
+        assertThat(group.getDescription())
+                .as(withCliOutput("Created group should have the correct description"))
+                .isEqualTo("Test group");
+        assertThat(group.getLabels())
+                .as(withCliOutput("Created group should have the correct labels"))
+                .containsExactlyInAnyOrderEntriesOf(Map.of("env", "test", "color", "pink"));
+    }
+
+    @Test
+    public void testGroupCreateCommandFails() {
+        // Required groupId parameter is missing
+        executeAndAssertFailure("group", "create", "--output-type", "json");
+        // Unknown output type
+        executeAndAssertFailure("group", "create", "--output-type", "foo");
+    }
+
+    @Test
+    @Order(2)
+    public void testGroupCommand() throws JsonProcessingException {
+        // When
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "--output-type", "json");
+        var groups = MAPPER.readValue(out.toString(), GroupSearchResults.class);
+
+        // Then — default + first
+        assertThat(groups.getGroups())
+                .as(withCliOutput("There should be two groups (`default` plus the one we just created)."))
+                .hasSize(2);
+        assertThat(groups.getGroups())
+                .as(withCliOutput("Groups should contain 'default' and 'first'"))
+                .extracting(SearchedGroup::getGroupId)
+                .contains("default", "first");
+
+        // And when
+        executeAndAssertSuccess("group", "create", "second");
+        executeAndAssertSuccess("group", "create", "third");
+
+        // Then
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "--output-type", "json", "-p", "2", "-s", "2");
+        groups = MAPPER.readValue(out.toString(), GroupSearchResults.class);
+        assertThat(groups.getGroups())
+                .as(withCliOutput("There should be one group on the second page."))
+                .hasSize(1);
+    }
+
+    @Test
+    public void testGroupListCommandFails() {
+        // Pagination options belong to the `group` list command, not to `group create`.
+        // Assert on the error message so these cases cannot pass merely because the
+        // option is unrecognized by the command under test.
+
+        // Page must be greater than 0
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "-p", "-1");
+        assertThat(err.toString())
+                .as(withCliOutput("Page must be rejected as not greater than 0"))
+                .contains("must be greater than 0");
+
+        // Size must be greater than 0
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "-s", "0");
+        assertThat(err.toString())
+                .as(withCliOutput("Size must be rejected as not greater than 0"))
+                .contains("must be greater than 0");
+    }
+
+    @Test
+    public void testGroupGetCommandFails() {
+        // Assert on the error message so these cases cannot pass merely because the
+        // command failed for some other reason.
+
+        // Required groupId parameter is missing
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "get");
+        assertThat(err.toString())
+                .as(withCliOutput("Missing groupId parameter must be reported"))
+                .contains("Missing required parameter")
+                .contains("groupId");
+
+        // Unknown output type (rejected while parsing, so the group need not exist)
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "get", "some-group", "--output-type", "foo");
+        assertThat(err.toString())
+                .as(withCliOutput("Invalid --output-type value must be reported"))
+                .contains("--output-type")
+                .contains("foo");
+    }
+
+    @Test
+    @Order(3)
+    public void testGroupDeleteCommand() throws JsonProcessingException {
+        // When
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "--output-type", "json");
+        var groups = MAPPER.readValue(out.toString(), GroupSearchResults.class);
+
+        // Then — default + first + second + third
+        assertThat(groups.getGroups())
+                .as(withCliOutput("There should be four groups before deletion (default + 3 created)."))
+                .hasSize(4);
+
+        // When
+        executeAndAssertSuccess("group", "delete", "second");
+
+        // Then
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "--output-type", "json");
+        groups = MAPPER.readValue(out.toString(), GroupSearchResults.class);
+        assertThat(groups.getGroups())
+                .as(withCliOutput("There should be three groups after deletion (default + 2 remaining)."))
+                .hasSize(3);
+
+        // TODO: Test `--force` when we have a way to create artifacts via the CLI.
+    }
+
+    @Test
+    public void testDefaultGroupHandling() throws JsonProcessingException {
+        // Test getting default group (returns stub, no API call)
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "get", "default", "--output-type", "json");
+        var group = MAPPER.readValue(out.toString(), GroupMetaData.class);
+        assertThat(group.getGroupId()).isEqualTo("default");
+
+        // Test getting default group as a table
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "get", "default", "--output-type", "table");
+        assertThat(out.toString()).contains("N/A");
+
+        // Test getting empty string (resolves to default group)
+        out.getBuffer().setLength(0);
+        executeAndAssertSuccess("group", "get", "", "--output-type", "json");
+        group = MAPPER.readValue(out.toString(), GroupMetaData.class);
+        assertThat(group.getGroupId()).isEqualTo("default");
+
+        // Test create/update/delete default group fails with validation error and proper message
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "create", "default");
+        assertThat(err.toString()).contains("is reserved and cannot be created");
+
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "create", "");
+        assertThat(err.toString()).contains("is reserved and cannot be created");
+
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "update", "default");
+        assertThat(err.toString()).contains("is implicit and cannot be updated");
+
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "update", "");
+        assertThat(err.toString()).contains("is implicit and cannot be updated");
+
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "delete", "default");
+        assertThat(err.toString()).contains("is implicit and cannot be deleted");
+
+        err.getBuffer().setLength(0);
+        executeAndAssertFailure("group", "delete", "");
+        assertThat(err.toString()).contains("is implicit and cannot be deleted");
+    }
+}

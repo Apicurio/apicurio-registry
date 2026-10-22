@@ -1,0 +1,177 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+// assembly-rule-reference
+[id="registry-rule-reference_{context}"]
+= {registry} content rule reference
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+{registry} supports content rules that govern how artifacts evolve. The following sections describe the available rule types, their maturity level for each artifact type, and the order of precedence when both artifact-specific and global rules are configured.
+
+[role="_additional-resources"]
+.Additional resources
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+
+//INCLUDES
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+// ref-registry-rule-types
+[id="registry-rule-types_{context}"]
+== {registry} content rule types
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+You can specify `VALIDITY`, `COMPATIBILITY`, and `INTEGRITY` rule types to govern content evolution in {registry}. These rule types apply to both global rules and artifact-specific rules.
+
+.{registry} content rule types
+[%header,cols=2*]
+|===
+|Type
+|Description
+|`VALIDITY`
+a| Validates content before adding it to {registry}. The possible configuration values for this rule are as follows:
+
+* `FULL`: The validation is both syntax and semantic.
+* `SYNTAX_ONLY`: The validation is syntax only.
+* `NONE`: All validation checks are disabled.
+
+|`COMPATIBILITY`
+a| Enforces a compatibility level when updating artifacts (for example, `BACKWARD` for backward compatibility). This rule ensures that new artifacts are compatible with previously added artifact versions or clients. The possible configuration values for this rule are as follows:
+
+* `FULL`: The new artifact is forward and backward compatible with the most recently added artifact.
+* `FULL_TRANSITIVE`: The new artifact is forward and backward compatible with all previously added artifacts.
+* `BACKWARD`: Clients using the new artifact can read data written using the most recently added artifact.
+* `BACKWARD_TRANSITIVE`: Clients using the new artifact can read data written using all previously added artifacts.
+* `FORWARD`: Clients using the most recently added artifact can read data written using the new artifact.
+* `FORWARD_TRANSITIVE`: Clients using all previously added artifacts can read data written using the new artifact.
+* `NONE`: All backward and forward compatibility checks are disabled.
+
+|`INTEGRITY`
+a| Enforces artifact reference integrity when creating or updating artifacts. This rule ensures that artifact references are correct. The possible configuration values for this rule are as follows:
+
+* `FULL`: All artifact reference integrity checks are enabled.
+* `NO_DUPLICATES`: Detect if there are any duplicate artifact references.
+* `NO_CIRCULAR_REFERENCES`: Detect circular reference chains among artifacts.
+* `REFS_EXIST`: Detect if there are any references to non-existent artifacts.
+* `ALL_REFS_MAPPED`: Ensure that all artifact references are mapped.
+* `NONE`: All artifact reference integrity checks are disabled.
+|===
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+// ref-registry-rule-maturity-matrix
+[id="registry-rule-maturity-matrix_{context}"]
+== {registry} content rule maturity
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Not all content rules are fully implemented for every artifact type supported by {registry}. The following table shows the current maturity level for each rule and artifact type:
+
+.{registry} content rule maturity matrix
+[%header,cols=4*]
+|===
+|Artifact type
+|Validity rule
+|Compatibility rule
+|Integrity rule
+|*Avro*
+a| Full
+a| Full
+a| Full
+|*Protobuf*
+a| Full
+a| Full
+a| Full
+|*JSON Schema*
+a| Full
+a| Full
+a| Mapping detection not supported
+|*OpenAPI*
+a| Full
+a| Full
+a| Full
+|*AsyncAPI*
+a| Syntax Only
+a| None
+a| Full
+|*OpenRPC*
+a| Full
+a| None
+a| Full
+|*GraphQL*
+a| Syntax Only
+a| None
+a| Mapping detection not supported
+|*Kafka Connect*
+a| Syntax Only
+a| None
+a| Mapping detection not supported
+|*Thrift*
+a| Syntax Only
+a| None
+a| Mapping detection not supported
+|*WSDL*
+a| Full
+a| None
+a| Mapping detection not supported
+|*XML*
+a| Full
+a| None
+a| Mapping detection not supported
+|*XSD*
+a| Full
+a| Full
+a| Mapping detection not supported
+|===
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
+
+// ref-registry-rule-precedence
+[id="registry-rule-precedence_{context}"]
+== {registry} content rule precedence
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+When you add or update an artifact, {registry} applies rules to check the validity, compatibility, or integrity of the artifact content. Configured artifact-specific rules override the equivalent configured global rules, as shown in the following table.
+
+.{registry} content rule precedence
+[%header,cols=4*]
+|===
+|Artifact-specific rule
+|Global rule
+|Rule applied to this artifact
+|Global rule available for other artifacts?
+|Enabled
+|Enabled
+|Artifact-specific
+|Yes
+|Disabled
+|Enabled
+|Global
+|Yes
+|Disabled
+|Disabled
+|None
+|No
+|Enabled, set to None
+|Enabled
+|None
+|Yes
+|Disabled
+|Enabled, set to None
+|None
+|No
+|===

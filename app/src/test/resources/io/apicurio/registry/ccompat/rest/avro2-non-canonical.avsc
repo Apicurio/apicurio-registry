@@ -1,0 +1,18 @@
+{
+    "fields": [
+        {
+            "name": "id",
+            "type": "string"
+        },
+        {
+            "name": "fieldValues",
+            "type": {
+                "items": "string",
+                "type": "array"
+            }
+        }
+    ],
+    "name": "Test",
+    "namespace": "test",
+    "type": "record"
+}

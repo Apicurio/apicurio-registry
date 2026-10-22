@@ -1,0 +1,18 @@
+[id="registry-operator-prerequisites"]
+= {operator} platforms
+
+The {operator} supports the following platform versions:
+
+.{operator} platforms
+[%header,cols=2*]
+|===
+| Platform | Required version
+ifdef::apicurio-registry[]
+| Kubernetes
+| 1.19+
+endif::[]
+| OpenShift
+| 4.6+
+|===
+
+NOTE: {operator} does not yet deploy and manage {registry} storage. You must ensure that storage options such as Kafka or PostgreSQL are installed and configured.

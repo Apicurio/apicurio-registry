@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+
+    "module": "node18",
+    "allowImportingTsExtensions": false,
+    "isolatedModules": true,
+    "erasableSyntaxOnly": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "strict": true,
+    /* Temporary: Kiota >= 1.35.0 run with "--serializer none --deserializer none" emits empty
+       "if (registry.registerDefaultSerializer) {}" guards in the generated client, which tsc
+       rejects with TS2774 (only reported under strictNullChecks). tsc cannot suppress a single
+       error code, so relax strictNullChecks until Kiota stops emitting the empty guards.
+       Emitted .d.ts files are identical either way. */
+    "strictNullChecks": false,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src", "lib", "tests"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}

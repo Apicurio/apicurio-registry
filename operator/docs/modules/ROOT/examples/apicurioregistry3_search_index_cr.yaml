@@ -1,0 +1,25 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: registry-with-search-index
+spec:
+  app:
+    ingress:
+      host: registry.apps.cluster.example
+    # Elasticsearch search indexing configuration
+    searchIndex:
+      # Enable Elasticsearch-based content search indexing
+      enabled: true
+      # Elasticsearch hosts
+      hosts: elasticsearch:9200
+      # Optional: custom index name (defaults to 'apicurio-registry')
+      indexName: apicurio-registry
+      # Optional: username for secured Elasticsearch clusters
+      username: elastic
+      # Optional: password from a Kubernetes Secret
+      password:
+        name: elasticsearch-credentials
+        key: password
+  ui:
+    ingress:
+      host: registry-ui.apps.cluster.example

@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: mysql-debezium
+  name: mysql-debezium
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql-debezium
+  template:
+    metadata:
+      labels:
+        app: mysql-debezium
+    spec:
+      containers:
+        - name: mysql-debezium
+          image: quay.io/debezium/example-mysql:2.5
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              value: debezium
+            - name: MYSQL_DATABASE
+              value: registry
+          volumeMounts:
+            - mountPath: "/var/lib/mysql"
+              name: "debezium-mysqldata"
+      volumes:
+        - emptyDir:
+            sizeLimit: 500Mi
+          name: debezium-mysqldata
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: mysql-debezium
+  name: mysql-debezium-service
+spec:
+  ports:
+    - name: mysql
+      port: 3306
+      protocol: TCP
+      targetPort: 3306
+  selector:
+    app: mysql-debezium
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: mysql-debezium
+  name: mysql-debezium-service-external
+spec:
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  selector:
+    app: mysql-debezium
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster

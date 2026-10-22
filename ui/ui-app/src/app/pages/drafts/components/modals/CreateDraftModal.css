@@ -1,0 +1,8 @@
+.pf-v6-c-page__main-wizard .pf-v6-c-wizard__footer, .pf-v6-c-modal-box .pf-v6-c-wizard__footer, .pf-v6-c-drawer > .pf-v6-c-wizard__footer {
+    box-shadow: none;
+    border-top: 1px solid #ccc;
+}
+
+.url-upload textarea, textarea#draft-content {
+    height: 200px;
+}

@@ -1,0 +1,775 @@
+package io.apicurio.registry.storage.impl.sql.repositories;
+
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionContentDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.ContentNotFoundException;
+import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.storage.impl.sql.HandleFactory;
+import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.storage.impl.sql.SqlOutboxEvent;
+import io.apicurio.registry.storage.impl.sql.SqlStatements;
+import io.apicurio.registry.storage.impl.sql.jdb.Handle;
+import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.ArtifactVersionMetaDataDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.VersionContentDtoMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.GAVMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.StoredArtifactMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.StringMapper;
+import io.apicurio.registry.storage.impl.sql.mappers.VersionStateMapper;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.events.ArtifactVersionCreated;
+import io.apicurio.registry.events.ArtifactVersionDeleted;
+import io.apicurio.registry.events.ArtifactVersionMetadataUpdated;
+import io.apicurio.registry.events.ArtifactVersionStateChanged;
+import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.types.VersionState;
+import io.apicurio.registry.utils.VersionUtil;
+import io.quarkus.security.identity.SecurityIdentity;
+import jakarta.enterprise.event.Event;
+import org.slf4j.Logger;
+
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
+import static io.apicurio.registry.utils.StringUtil.limitStr;
+import static io.apicurio.registry.utils.StringUtil.asLowerCase;
+
+/**
+ * Repository handling artifact version operations in the SQL storage layer.
+ * Extracted from AbstractSqlRegistryStorage to improve maintainability.
+ */
+public class SqlVersionRepository {
+
+    public static final int MAX_VERSION_NAME_LENGTH = 512;
+    public static final int MAX_VERSION_DESCRIPTION_LENGTH = 1024;
+    public static final int MAX_LABEL_KEY_LENGTH = 256;
+    public static final int MAX_LABEL_VALUE_LENGTH = 512;
+
+    private final Logger log;
+    private final SqlStatements sqlStatements;
+    private final HandleFactory handles;
+    private final SecurityIdentity securityIdentity;
+    private final Event<SqlOutboxEvent> outboxEvent;
+    private final SqlBranchRepository branchRepository;
+    private final SqlArtifactRepository artifactRepository;
+    private final SqlContentRepository contentRepository;
+    private final SqlSequenceRepository sequenceRepository;
+    private final RegistryStorageContentUtils utils;
+
+    public SqlVersionRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log,
+            SecurityIdentity securityIdentity, Event<SqlOutboxEvent> outboxEvent,
+            SqlBranchRepository branchRepository, SqlArtifactRepository artifactRepository,
+            SqlContentRepository contentRepository, SqlSequenceRepository sequenceRepository,
+            RegistryStorageContentUtils utils) {
+        this.handles = handles;
+        this.sqlStatements = sqlStatements;
+        this.log = log;
+        this.securityIdentity = securityIdentity;
+        this.outboxEvent = outboxEvent;
+        this.branchRepository = branchRepository;
+        this.artifactRepository = artifactRepository;
+        this.contentRepository = contentRepository;
+        this.sequenceRepository = sequenceRepository;
+        this.utils = utils;
+    }
+
+    /**
+     * Get artifact version metadata by globalId.
+     */
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(Long globalId)
+            throws VersionNotFoundException, RegistryStorageException {
+        return handles.withHandle(handle -> {
+            Optional<ArtifactVersionMetaDataDto> res = handle
+                    .createQuery(sqlStatements.selectArtifactVersionMetaDataByGlobalId()).bind(0, globalId)
+                    .map(ArtifactVersionMetaDataDtoMapper.instance).findOne();
+            return res.orElseThrow(() -> new VersionNotFoundException(globalId));
+        });
+    }
+
+    /**
+     * Get artifact version metadata by GAV.
+     */
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaData(String groupId, String artifactId,
+            String version) {
+        return handles.withHandle(handle -> getArtifactVersionMetaDataRaw(handle, groupId, artifactId, version));
+    }
+
+    /**
+     * Get artifact version metadata using an existing handle.
+     */
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataRaw(Handle handle, String groupId,
+            String artifactId, String version) {
+        Optional<ArtifactVersionMetaDataDto> res = handle
+                .createQuery(sqlStatements.selectArtifactVersionMetaData()).bind(0, normalizeGroupId(groupId))
+                .bind(1, artifactId).bind(2, version).map(ArtifactVersionMetaDataDtoMapper.instance)
+                .findOne();
+        return res.orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
+    }
+
+    /**
+     * Get artifact version metadata by groupId, artifactId, and versionOrder.
+     */
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByVersionOrder(String groupId,
+            String artifactId, int versionOrder) {
+        return handles.withHandle(handle -> {
+            Optional<ArtifactVersionMetaDataDto> res = handle
+                    .createQuery(sqlStatements.selectArtifactVersionMetaDataByVersionOrder())
+                    .bind(0, normalizeGroupId(groupId))
+                    .bind(1, artifactId).bind(2, versionOrder)
+                    .map(ArtifactVersionMetaDataDtoMapper.instance)
+                    .findOne();
+            return res.orElseThrow(
+                    () -> new VersionNotFoundException(groupId, artifactId, String.valueOf(versionOrder)));
+        });
+    }
+
+    /**
+     * Get artifact version content by globalId.
+     */
+    public StoredArtifactVersionDto getArtifactVersionContent(long globalId)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        log.debug("Selecting a single artifact version by globalId: {}", globalId);
+        return handles.withHandle(handle -> {
+            Optional<StoredArtifactVersionDto> res = handle
+                    .createQuery(sqlStatements.selectArtifactVersionContentByGlobalId()).bind(0, globalId)
+                    .map(StoredArtifactMapper.instance).findOne();
+            return res.orElseThrow(() -> new ArtifactNotFoundException(null, "gid-" + globalId));
+        });
+    }
+
+    /**
+     * Get artifact version content by GAV.
+     */
+    public StoredArtifactVersionDto getArtifactVersionContent(String groupId, String artifactId,
+            String version) throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        log.debug("Selecting a single artifact version by artifactId: {} {} and version {}", groupId,
+                artifactId, version);
+        return handles.withHandle(handle -> {
+            Optional<StoredArtifactVersionDto> res = handle
+                    .createQuery(sqlStatements.selectArtifactVersionContent())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version)
+                    .map(StoredArtifactMapper.instance).findOne();
+            return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
+        });
+    }
+
+    /**
+     * Delete an artifact version.
+     */
+    public void deleteArtifactVersion(String groupId, String artifactId, String version)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        log.debug("Deleting version {} of artifact {} {}", version, groupId, artifactId);
+
+        handles.withHandle(handle -> {
+            int rows = handle.createUpdate(sqlStatements.deleteVersion()).bind(0, normalizeGroupId(groupId))
+                    .bind(1, artifactId).bind(2, version).execute();
+
+            if (rows == 0) {
+                throw new VersionNotFoundException(groupId, artifactId, version);
+            }
+
+            if (rows > 1) {
+                throw new RegistryStorageException("Unexpected: deleted more than one version row");
+            }
+
+            outboxEvent.fire(SqlOutboxEvent.of(ArtifactVersionDeleted.of(groupId, artifactId, version)));
+
+            return null;
+        });
+    }
+
+    /**
+     * Update artifact version metadata.
+     */
+    public void updateArtifactVersionMetaData(String groupId, String artifactId, String version,
+            EditableVersionMetaDataDto editableMetadata)
+            throws ArtifactNotFoundException, VersionNotFoundException, RegistryStorageException {
+        log.debug("Updating meta-data for an artifact version: {} {}", groupId, artifactId);
+
+        var metadata = getArtifactVersionMetaData(groupId, artifactId, version);
+        long globalId = metadata.getGlobalId();
+
+        handles.withHandle(handle -> {
+            boolean modified = false;
+
+            if (editableMetadata.getName() != null) {
+                modified = true;
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionNameByGAV())
+                        .bind(0, limitStr(editableMetadata.getName(), MAX_VERSION_NAME_LENGTH))
+                        .bind(1, normalizeGroupId(groupId))
+                        .bind(2, artifactId).bind(3, version).execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+            }
+
+            if (editableMetadata.getDescription() != null) {
+                modified = true;
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionDescriptionByGAV())
+                        .bind(0, limitStr(editableMetadata.getDescription(), MAX_VERSION_DESCRIPTION_LENGTH))
+                        .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version).execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+            }
+
+            Map<String, String> labels = editableMetadata.getLabels();
+            if (labels != null) {
+                modified = true;
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionLabelsByGAV())
+                        .bind(0, RegistryContentUtils.serializeLabels(labels))
+                        .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version).execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+
+                // Delete old labels
+                handle.createUpdate(sqlStatements.deleteVersionLabelsByGlobalId()).bind(0, globalId).execute();
+
+                // Insert new labels
+                labels.forEach((k, v) -> {
+                    handle.createUpdate(sqlStatements.insertVersionLabel())
+                            .bind(0, globalId)
+                            .bind(1, limitStr(asLowerCase(k), MAX_LABEL_KEY_LENGTH))
+                            .bind(2, limitStr(asLowerCase(v), MAX_LABEL_VALUE_LENGTH)).execute();
+                });
+            }
+
+            if (modified) {
+                String modifiedBy = securityIdentity.getPrincipal().getName();
+                Date modifiedOn = new Date();
+
+                int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionModifiedByOn())
+                        .bind(0, modifiedBy).bind(1, modifiedOn).bind(2, normalizeGroupId(groupId))
+                        .bind(3, artifactId).bind(4, version).execute();
+                if (rowCount == 0) {
+                    throw new VersionNotFoundException(groupId, artifactId, version);
+                }
+            }
+
+            outboxEvent.fire(SqlOutboxEvent
+                    .of(ArtifactVersionMetadataUpdated.of(groupId, artifactId, version, editableMetadata)));
+
+            return null;
+        });
+    }
+
+    /**
+     * Get artifact version state.
+     */
+    public VersionState getArtifactVersionState(String groupId, String artifactId, String version) {
+        return handles.withHandle(handle -> {
+            Optional<VersionState> res = handle.createQuery(sqlStatements.selectArtifactVersionState())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version)
+                    .map(VersionStateMapper.instance).findOne();
+            return res.orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
+        });
+    }
+
+    /**
+     * Update artifact version state.
+     */
+    public void updateArtifactVersionState(String groupId, String artifactId, String version,
+            VersionState newState, boolean dryRun) {
+        handles.withHandle(handle -> {
+            if (dryRun) {
+                handle.setRollback(true);
+            }
+
+            Optional<VersionState> res = handle
+                    .createQuery(sqlStatements.selectArtifactVersionStateForUpdate())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version)
+                    .map(VersionStateMapper.instance).findOne();
+            VersionState currentState = res
+                    .orElseThrow(() -> new VersionNotFoundException(groupId, artifactId, version));
+
+            handle.createUpdate(sqlStatements.updateArtifactVersionStateByGAV()).bind(0, newState.name())
+                    .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version).execute();
+
+            String modifiedBy = securityIdentity.getPrincipal().getName();
+            Date modifiedOn = new Date();
+            handle.createUpdate(sqlStatements.updateArtifactVersionModifiedByOn()).bind(0, modifiedBy)
+                    .bind(1, modifiedOn).bind(2, normalizeGroupId(groupId)).bind(3, artifactId)
+                    .bind(4, version).execute();
+
+            // Handle branch updates on state transition from DRAFT
+            if (currentState == VersionState.DRAFT) {
+                GAV gav = new GAV(groupId, artifactId, version);
+                branchRepository.createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
+                branchRepository.createOrUpdateSemverBranchesRaw(handle, gav);
+                branchRepository.removeVersionFromBranchRaw(handle, gav, BranchId.DRAFTS);
+            }
+
+            outboxEvent.fire(SqlOutboxEvent.of(
+                    ArtifactVersionStateChanged.of(groupId, artifactId, version, currentState, newState)));
+
+            return null;
+        });
+    }
+
+    /**
+     * Get list of artifact versions.
+     */
+    public List<String> getArtifactVersions(String groupId, String artifactId, Set<VersionState> filterBy)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        log.debug("Getting a list of versions for artifact: {} {}", groupId, artifactId);
+
+        return handles.withHandle(handle -> {
+            String sql = sqlStatements.selectArtifactVersions();
+            if (filterBy != null && !filterBy.isEmpty()) {
+                sql = sqlStatements.selectArtifactVersionsFilteredByState();
+                String jclause = filterBy.stream().map(vs -> "'" + vs.name() + "'")
+                        .collect(Collectors.joining(",", "(", ")"));
+                sql = sql.replace("(?)", jclause);
+            }
+            return getArtifactVersionsRaw(handle, groupId, artifactId, sql);
+        });
+    }
+
+    private List<String> getArtifactVersionsRaw(Handle handle, String groupId, String artifactId,
+            String sqlStatement) throws ArtifactNotFoundException, RegistryStorageException {
+        List<String> versions = handle.createQuery(sqlStatement).bind(0, normalizeGroupId(groupId))
+                .bind(1, artifactId).map(StringMapper.instance).list();
+
+        if (versions.isEmpty()) {
+            throw new ArtifactNotFoundException(groupId, artifactId);
+        }
+        return versions;
+    }
+
+    /**
+     * Count active artifact versions.
+     */
+    public long countActiveArtifactVersions(String groupId, String artifactId)
+            throws RegistryStorageException {
+        log.debug("Searching for versions of artifact {} {}", groupId, artifactId);
+        return handles.withHandleNoException(handle -> {
+            Integer count = handle.createQuery(sqlStatements.selectActiveArtifactVersionsCount())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Integer.class).one();
+            return count.longValue();
+        });
+    }
+
+    /**
+     * Count all artifact versions.
+     */
+    public long countArtifactVersions(String groupId, String artifactId) throws RegistryStorageException {
+        return handles.withHandle(handle -> {
+            if (!artifactRepository.isArtifactExistsRaw(handle, groupId, artifactId)) {
+                throw new ArtifactNotFoundException(groupId, artifactId);
+            }
+            return countArtifactVersionsRaw(handle, groupId, artifactId);
+        });
+    }
+
+    /**
+     * Count all artifact versions using an existing handle.
+     */
+    public long countArtifactVersionsRaw(Handle handle, String groupId, String artifactId)
+            throws RegistryStorageException {
+        return handle.createQuery(sqlStatements.selectAllArtifactVersionsCount())
+                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).mapTo(Long.class).one();
+    }
+
+    /**
+     * Count total artifact versions.
+     */
+    public long countTotalArtifactVersions() throws RegistryStorageException {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.selectTotalArtifactVersionsCount()).mapTo(Long.class).one();
+        });
+    }
+
+    /**
+     * Check if artifact version exists.
+     */
+    public boolean isArtifactVersionExists(String groupId, String artifactId, String version)
+            throws RegistryStorageException {
+        try {
+            getArtifactVersionMetaData(groupId, artifactId, version);
+            return true;
+        } catch (VersionNotFoundException ignored) {
+            return false;
+        }
+    }
+
+    // ==================== IMPORT OPERATIONS ====================
+
+    /**
+     * Check if a globalId exists using an existing handle.
+     */
+    public boolean isGlobalIdExistsRaw(Handle handle, long globalId) {
+        return handle.createQuery(sqlStatements.selectGlobalIdExists())
+                .bind(0, globalId)
+                .mapTo(Integer.class)
+                .one() > 0;
+    }
+
+    /**
+     * Import an artifact version entity (used for data import/migration).
+     */
+    public void importArtifactVersion(ArtifactVersionEntity entity) {
+        handles.withHandleNoException(handle -> {
+            if (!artifactRepository.isArtifactExistsRaw(handle, entity.groupId, entity.artifactId)) {
+                throw new ArtifactNotFoundException(entity.groupId, entity.artifactId);
+            }
+            if (isGlobalIdExistsRaw(handle, entity.globalId)) {
+                throw new VersionAlreadyExistsException(entity.globalId);
+            }
+
+            handle.createUpdate(sqlStatements.importArtifactVersion())
+                    .bind(0, entity.globalId)
+                    .bind(1, normalizeGroupId(entity.groupId))
+                    .bind(2, entity.artifactId)
+                    .bind(3, entity.version)
+                    .bind(4, VersionUtil.generateVersionSortKey(entity.version))
+                    .bind(5, entity.versionOrder)
+                    .bind(6, entity.state)
+                    .bind(7, entity.name)
+                    .bind(8, entity.description)
+                    .bind(9, entity.owner)
+                    .bind(10, new Date(entity.createdOn))
+                    .bind(11, entity.modifiedBy)
+                    .bind(12, new Date(entity.modifiedOn))
+                    .bind(13, RegistryContentUtils.serializeLabels(entity.labels))
+                    .bind(14, entity.contentId)
+                    .execute();
+
+            // Insert labels into the "version_labels" table
+            if (entity.labels != null && !entity.labels.isEmpty()) {
+                entity.labels.forEach((k, v) -> {
+                    handle.createUpdate(sqlStatements.insertVersionLabel())
+                            .bind(0, entity.globalId)
+                            .bind(1, asLowerCase(k))
+                            .bind(2, asLowerCase(v))
+                            .execute();
+                });
+            }
+
+            return null;
+        });
+    }
+
+    // ==================== ADDITIONAL VERSION OPERATIONS ====================
+
+    /**
+     * Get artifact versions by content ID.
+     */
+    public List<ArtifactVersionMetaDataDto> getArtifactVersionsByContentId(long contentId) {
+        return handles.withHandleNoException(handle -> {
+            List<ArtifactVersionMetaDataDto> dtos = handle
+                    .createQuery(sqlStatements.selectArtifactVersionMetaDataByContentId())
+                    .bind(0, contentId).map(ArtifactVersionMetaDataDtoMapper.instance).list();
+            if (dtos.isEmpty()) {
+                throw new ContentNotFoundException(contentId);
+            }
+            return dtos;
+        });
+    }
+
+    /**
+     * Update artifact version content (for draft versions).
+     */
+    public void updateArtifactVersionContent(String groupId, String artifactId, String version,
+            long contentId) {
+        log.debug("Updating content for artifact version: {} {} @ {}", groupId, artifactId, version);
+
+        String modifiedBy = securityIdentity.getPrincipal().getName();
+        Date modifiedOn = new Date();
+
+        handles.withHandle(handle -> {
+            int rowCount = handle.createUpdate(sqlStatements.updateArtifactVersionContent())
+                    .bind(0, contentId).bind(1, modifiedBy).bind(2, modifiedOn)
+                    .bind(3, normalizeGroupId(groupId)).bind(4, artifactId).bind(5, version).execute();
+            if (rowCount == 0) {
+                throw new VersionNotFoundException(groupId, artifactId, version);
+            }
+
+            return null;
+        });
+    }
+
+    /**
+     * Check if artifact version exists using an existing handle.
+     */
+    public boolean isArtifactVersionExistsRaw(Handle handle, String groupId, String artifactId,
+            String version) {
+        Optional<ArtifactVersionMetaDataDto> res = handle
+                .createQuery(sqlStatements.selectArtifactVersionMetaData())
+                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, version)
+                .map(ArtifactVersionMetaDataDtoMapper.instance).findOne();
+        return res.isPresent();
+    }
+
+    // ==================== VERSION CREATION ====================
+
+    /**
+     * Create a new artifact version within an existing transaction handle.
+     */
+    public ArtifactVersionMetaDataDto createArtifactVersionRaw(Handle handle, boolean firstVersion,
+            String groupId, String artifactId, String version, EditableVersionMetaDataDto metaData,
+            String owner, Date createdOn, Long contentId, List<String> branches, boolean isDraft) {
+        if (metaData == null) {
+            metaData = EditableVersionMetaDataDto.builder().build();
+        }
+
+        VersionState state = isDraft ? VersionState.DRAFT : VersionState.ENABLED;
+        String labelsStr = RegistryContentUtils.serializeLabels(metaData.getLabels());
+
+        Long globalId = sequenceRepository.nextGlobalIdRaw(handle);
+        GAV gav;
+        String sortKey = VersionUtil.generateVersionSortKey(version);
+
+        // Create a row in the "versions" table
+        if (firstVersion) {
+            if (version == null) {
+                version = "1";
+                sortKey = VersionUtil.generateVersionSortKey("1");
+            }
+            final String finalSortKey = sortKey;
+            final String finalVersion1 = version; // Lambda requirement
+            handle.createUpdate(sqlStatements.insertVersion(true)).bind(0, globalId)
+                    .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, finalVersion1)
+                    .bind(4, finalSortKey)
+                    .bind(5, state).bind(6, limitStr(metaData.getName(), MAX_VERSION_NAME_LENGTH))
+                    .bind(7, limitStr(metaData.getDescription(), MAX_VERSION_DESCRIPTION_LENGTH, true))
+                    .bind(8, owner).bind(9, createdOn).bind(10, owner).bind(11, createdOn)
+                    .bind(12, labelsStr).bind(13, contentId).execute();
+
+            gav = new GAV(groupId, artifactId, finalVersion1);
+        } else {
+            handle.createUpdate(sqlStatements.insertVersion(false)).bind(0, globalId)
+                    .bind(1, normalizeGroupId(groupId)).bind(2, artifactId).bind(3, version)
+                    .bind(4, sortKey)
+                    .bind(5, normalizeGroupId(groupId)).bind(6, artifactId).bind(7, state)
+                    .bind(8, limitStr(metaData.getName(), MAX_VERSION_NAME_LENGTH))
+                    .bind(9, limitStr(metaData.getDescription(), MAX_VERSION_DESCRIPTION_LENGTH, true))
+                    .bind(10, owner).bind(11, createdOn).bind(12, owner).bind(13, createdOn)
+                    .bind(14, labelsStr).bind(15, contentId).execute();
+
+            // If version is null, update the row we just inserted to set the version to the generated
+            // versionOrder
+            if (version == null) {
+                handle.createUpdate(sqlStatements.autoUpdateVersionForGlobalId()).bind(0, globalId).execute();
+                
+                gav = getGAVByGlobalIdRaw(handle, globalId);
+                String generatedSortKey = VersionUtil.generateVersionSortKey(gav.getRawVersionId());
+                handle.createUpdate(sqlStatements.updateVersionSortKey())
+                        .bind(0, generatedSortKey)
+                        .bind(1, globalId)
+                        .execute();
+            } else {
+                gav = getGAVByGlobalIdRaw(handle, globalId);
+            }
+        }
+
+        // Insert labels into the "version_labels" table
+        if (metaData.getLabels() != null && !metaData.getLabels().isEmpty()) {
+            metaData.getLabels().forEach((k, v) -> {
+                handle.createUpdate(sqlStatements.insertVersionLabel()).bind(0, globalId)
+                        .bind(1, limitStr(asLowerCase(k), MAX_LABEL_KEY_LENGTH))
+                        .bind(2, limitStr(asLowerCase(v), MAX_LABEL_VALUE_LENGTH))
+                        .execute();
+            });
+        }
+
+        // Update system generated branches
+        if (isDraft) {
+            branchRepository.createOrUpdateBranchRaw(handle, gav, BranchId.DRAFTS, true);
+        } else {
+            branchRepository.createOrUpdateBranchRaw(handle, gav, BranchId.LATEST, true);
+            branchRepository.createOrUpdateSemverBranchesRaw(handle, gav);
+        }
+
+        // Create any user defined branches
+        if (branches != null && !branches.isEmpty()) {
+            branches.forEach(branch -> {
+                BranchId branchId = new BranchId(branch);
+                branchRepository.createOrUpdateBranchRaw(handle, gav, branchId, false);
+            });
+        }
+
+        ArtifactVersionMetaDataDto avmd = handle
+                .createQuery(sqlStatements.selectArtifactVersionMetaDataByGlobalId()).bind(0, globalId)
+                .map(ArtifactVersionMetaDataDtoMapper.instance).one();
+
+        outboxEvent.fire(SqlOutboxEvent.of(ArtifactVersionCreated.of(avmd)));
+
+        return avmd;
+    }
+
+    /**
+     * Get GAV by globalId using an existing handle.
+     */
+    public GAV getGAVByGlobalIdRaw(Handle handle, long globalId) {
+        return handle.createQuery(sqlStatements.selectGAVByGlobalId()).bind(0, globalId)
+                .map(GAVMapper.instance).findOne().orElseThrow(() -> new VersionNotFoundException(globalId));
+    }
+
+    // ==================== VERSION LOOKUP BY CONTENT ====================
+
+    /**
+     * Get artifact version metadata by content hash.
+     */
+    public ArtifactVersionMetaDataDto getArtifactVersionMetaDataByContent(String groupId, String artifactId,
+            boolean canonical, TypedContent content, List<ArtifactReferenceDto> references)
+            throws ArtifactNotFoundException, RegistryStorageException {
+
+        return handles.withHandle(handle -> {
+            String hash = getContentHashRaw(handle, groupId, artifactId, canonical, content, references);
+
+            String sql;
+            if (canonical) {
+                sql = sqlStatements.selectArtifactVersionMetaDataByCanonicalHash();
+            } else {
+                sql = sqlStatements.selectArtifactVersionMetaDataByContentHash();
+            }
+            Optional<ArtifactVersionMetaDataDto> res = handle.createQuery(sql)
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).bind(2, hash)
+                    .map(ArtifactVersionMetaDataDtoMapper.instance).findFirst();
+            return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
+        });
+    }
+
+    /**
+     * Get artifact metadata using an existing handle.
+     */
+    private ArtifactMetaDataDto getArtifactMetaDataRaw(Handle handle, String groupId, String artifactId)
+            throws ArtifactNotFoundException, RegistryStorageException {
+        Optional<ArtifactMetaDataDto> res = handle.createQuery(sqlStatements.selectArtifactMetaData())
+                .bind(0, normalizeGroupId(groupId)).bind(1, artifactId)
+                .map(ArtifactMetaDataDtoMapper.instance).findOne();
+        return res.orElseThrow(() -> new ArtifactNotFoundException(groupId, artifactId));
+    }
+
+    /**
+     * Calculate content hash (regular or canonical) using an existing handle.
+     */
+    private String getContentHashRaw(Handle handle, String groupId, String artifactId, boolean canonical,
+            TypedContent content, List<ArtifactReferenceDto> references) {
+        if (canonical) {
+            var artifactMetaData = getArtifactMetaDataRaw(handle, groupId, artifactId);
+            Function<List<ArtifactReferenceDto>, Map<String, TypedContent>> referenceResolver = (refs) -> {
+                return contentRepository.resolveReferencesRaw(handle, refs);
+            };
+            return utils.getCanonicalContentHash(content, artifactMetaData.getArtifactType(), references,
+                    referenceResolver);
+        } else {
+            return utils.getContentHash(content, references);
+        }
+    }
+
+    /**
+     * Get all versions modified since the given timestamp. Used for asynchronous search index polling.
+     *
+     * @param sinceTimestamp Timestamp in milliseconds since epoch
+     * @return List of version metadata for modified versions
+     */
+    public List<ArtifactVersionMetaDataDto> getVersionsModifiedSince(long sinceTimestamp) {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.selectVersionsModifiedSince())
+                    .bind(0, new java.sql.Timestamp(sinceTimestamp))
+                    .map(ArtifactVersionMetaDataDtoMapper.instance).list();
+        });
+    }
+
+    /**
+     * Count versions modified since the given timestamp. Used to cheaply determine whether to do
+     * an incremental update or a full rebuild.
+     *
+     * @param sinceTimestamp Timestamp in milliseconds since epoch
+     * @return count of modified versions
+     */
+    public long countVersionsModifiedSince(long sinceTimestamp) {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.countVersionsModifiedSince())
+                    .bind(0, new java.sql.Timestamp(sinceTimestamp))
+                    .mapTo(Long.class).one();
+        });
+    }
+
+    /**
+     * Get the timestamp of the most recently modified version.
+     *
+     * @return Timestamp in milliseconds since epoch, or 0 if no versions exist
+     */
+    public long getLatestVersionTimestamp() {
+        return handles.withHandle(handle -> {
+            java.sql.Timestamp ts = handle.createQuery(sqlStatements.selectLatestVersionTimestamp())
+                    .mapTo(java.sql.Timestamp.class).findOne().orElse(null);
+            return ts != null ? ts.getTime() : 0L;
+        });
+    }
+
+    /**
+     * Get all version globalIds. Used for periodic reconciliation in asynchronous search indexing.
+     *
+     * @return List of all globalIds
+     */
+    public List<Long> getAllVersionGlobalIds() {
+        return handles.withHandle(handle -> {
+            return handle.createQuery(sqlStatements.selectAllVersionGlobalIds())
+                    .mapTo(Long.class).list();
+        });
+    }
+
+    /**
+     * Streams all versions with their content through a single cursor-based SQL query. Used by the
+     * startup reindexer to populate the search index from scratch.
+     *
+     * @param consumer receives each version's metadata and content
+     */
+    public void forEachVersion(Consumer<VersionContentDto> consumer) {
+        handles.withHandle(handle -> {
+            Stream<VersionContentDto> stream = handle
+                    .createQuery(sqlStatements.selectAllVersionsWithContent())
+                    .setFetchSize(50)
+                    .map(VersionContentDtoMapper.instance)
+                    .stream();
+            try (stream) {
+                stream.forEach(consumer);
+            }
+            return null;
+        });
+    }
+
+    /**
+     * Streams versions modified since the given timestamp, with their content, through a single
+     * cursor-based SQL query. Used for incremental search index updates.
+     *
+     * @param sinceTimestamp only include versions with modifiedOn >= this value (millis since epoch)
+     * @param consumer receives each version's metadata and content
+     */
+    public void forEachVersion(long sinceTimestamp, Consumer<VersionContentDto> consumer) {
+        handles.withHandle(handle -> {
+            Stream<VersionContentDto> stream = handle
+                    .createQuery(sqlStatements.selectVersionsWithContentModifiedSince())
+                    .bind(0, new java.sql.Timestamp(sinceTimestamp))
+                    .setFetchSize(50)
+                    .map(VersionContentDtoMapper.instance)
+                    .stream();
+            try (stream) {
+                stream.forEach(consumer);
+            }
+            return null;
+        });
+    }
+}

@@ -1,0 +1,428 @@
+import { FunctionComponent, useEffect, useState } from "react";
+import "./AgentsPage.css";
+import {
+    Button,
+    Card,
+    CardBody,
+    CardTitle,
+    EmptyState,
+    EmptyStateBody,
+    Gallery,
+    Label,
+    LabelGroup,
+    PageSection,
+    PageSectionVariants,
+    Pagination,
+    SearchInput,
+    Select,
+    SelectOption,
+    MenuToggle,
+    MenuToggleElement,
+    Spinner,
+    Content,
+    Toolbar,
+    ToolbarContent,
+    ToolbarItem,
+    Tooltip,
+    Flex,
+    FlexItem
+} from "@patternfly/react-core";
+import { SearchIcon, CubesIcon, ExternalLinkAltIcon } from "@patternfly/react-icons";
+import { RootPageHeader } from "@app/components";
+import { AGENTS_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
+import {
+    AgentSearchFilters,
+    AgentSearchResult,
+    AgentSearchResults,
+    useAgentService
+} from "@services/useAgentService";
+import { Paging } from "@models/Paging.ts";
+import { useAppNavigation } from "@services/useAppNavigation.ts";
+import { FromNow, PleaseWaitModal } from "@apitomy/common-ui-components";
+import { CreateAgentModal, ImportAgentModal } from "@app/pages/agents/components";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { CreateArtifact } from "@sdk/lib/generated-client/models";
+
+const EMPTY_RESULTS: AgentSearchResults = {
+    agents: [],
+    count: 0
+};
+
+const DEFAULT_PAGING: Paging = {
+    page: 1,
+    pageSize: 12
+};
+
+const CAPABILITY_OPTIONS = [
+    { value: "", label: "All Capabilities" },
+    { value: "streaming", label: "Streaming" },
+    { value: "pushNotifications", label: "Push Notifications" }
+];
+
+/**
+ * The Agents discovery page.
+ */
+export const AgentsPage: FunctionComponent<PageProperties> = () => {
+    const [pageError, setPageError] = useState<PageError>();
+    const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
+    const [isSearching, setSearching] = useState<boolean>(false);
+    const [results, setResults] = useState<AgentSearchResults>(EMPTY_RESULTS);
+    const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
+    const [appliedFilters, setAppliedFilters] = useState<AgentSearchFilters>({});
+    const [nameFilter, setNameFilter] = useState<string>("");
+    const [capabilityFilter, setCapabilityFilter] = useState<string>("");
+    const [skillFilter, setSkillFilter] = useState<string>("");
+    const [capabilitySelectOpen, setCapabilitySelectOpen] = useState(false);
+
+    const [isCreateAgentModalOpen, setIsCreateAgentModalOpen] = useState(false);
+    const [isImportAgentModalOpen, setIsImportAgentModalOpen] = useState(false);
+    const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
+    const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
+
+    const agentSvc = useAgentService();
+    const appNav = useAppNavigation();
+    const groups: GroupsService = useGroupsService();
+
+    const createFilters = (): AgentSearchFilters => {
+        return {
+            name: nameFilter || undefined,
+            capability: capabilityFilter || undefined,
+            skill: skillFilter || undefined
+        };
+    };
+
+    const search = async (filters: AgentSearchFilters, paging: Paging): Promise<void> => {
+        setAppliedFilters(filters);
+        setSearching(true);
+        try {
+            const results = await agentSvc.searchAgents(filters, paging);
+            setResults(results);
+        } catch (error) {
+            setPageError(toPageError(error, "Error searching for agents."));
+        } finally {
+            setSearching(false);
+        }
+    };
+
+    const applyFilters = (newFilters: AgentSearchFilters): void => {
+        const newPaging = { ...DEFAULT_PAGING };
+        setPaging(newPaging);
+        search(newFilters, newPaging);
+    };
+
+    const createLoaders = (): Promise<any> => {
+        return search(createFilters(), paging);
+    };
+
+    const handleSearch = (): void => {
+        applyFilters(createFilters());
+    };
+
+    const handleKeyPress = (event: React.KeyboardEvent): void => {
+        if (event.key === "Enter") {
+            handleSearch();
+        }
+    };
+
+    const handlePageChange = (_event: any, page: number): void => {
+        const newPaging = { ...paging, page };
+        setPaging(newPaging);
+        search(appliedFilters, newPaging);
+    };
+
+    const handlePerPageChange = (_event: any, perPage: number): void => {
+        const newPaging = { page: 1, pageSize: perPage };
+        setPaging(newPaging);
+        search(appliedFilters, newPaging);
+    };
+
+    const handleCapabilitySelect = (_event: React.MouseEvent | undefined, value: string | number | undefined): void => {
+        const selectedValue = value as string || "";
+        setCapabilityFilter(selectedValue);
+        setCapabilitySelectOpen(false);
+        applyFilters({
+            ...appliedFilters,
+            capability: selectedValue || undefined
+        });
+    };
+
+    const navigateToAgent = (agent: AgentSearchResult): void => {
+        const gid = encodeURIComponent(agent.groupId || "default");
+        const aid = encodeURIComponent(agent.artifactId);
+        appNav.navigateTo(`/explore/${gid}/${aid}`);
+    };
+
+    const doSaveAgent = (groupId: string, data: CreateArtifact, waitMessage: string, errorMessage: string): void => {
+        setPleaseWaitMessage(waitMessage);
+        setIsPleaseWaitModalOpen(true);
+        groups.createArtifact(groupId || null, data).then(response => {
+            const gid = encodeURIComponent(response.artifact?.groupId || groupId || "default");
+            const aid = encodeURIComponent(response.artifact?.artifactId || data.artifactId || "");
+            setIsPleaseWaitModalOpen(false);
+            appNav.navigateTo(`/explore/${gid}/${aid}`);
+        }).catch(error => {
+            setIsPleaseWaitModalOpen(false);
+            setPageError(toPageError(error, errorMessage));
+        });
+    };
+
+    useEffect(() => {
+        setLoaders(createLoaders());
+    }, []);
+
+    const renderAgentCard = (agent: AgentSearchResult): React.ReactElement => {
+        const primaryInterface = agent.supportedInterfaces?.[0];
+        return (
+            <Card
+                key={`${agent.groupId}-${agent.artifactId}`}
+                className="agent-card"
+                onClick={() => navigateToAgent(agent)}
+            >
+                <CardTitle>
+                    <Flex>
+                        <FlexItem>
+                            <span className="agent-name">{agent.name || agent.artifactId}</span>
+                        </FlexItem>
+                        {agent.version && (
+                            <FlexItem align={{ default: "alignRight" }}>
+                                <Label color="blue" isCompact>v{agent.version}</Label>
+                            </FlexItem>
+                        )}
+                    </Flex>
+                </CardTitle>
+                <CardBody>
+                    <div className="agent-description">
+                        {agent.description || <span className="no-description">No description</span>}
+                    </div>
+
+                    {primaryInterface?.url && (
+                        <div className="agent-url">
+                            <a href={primaryInterface.url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()}>
+                                {primaryInterface.url}
+                                <ExternalLinkAltIcon className="external-icon" />
+                            </a>
+                            {primaryInterface.protocolBinding && (
+                                <Label color="teal" isCompact className="agent-protocol-binding">
+                                    {primaryInterface.protocolBinding}
+                                </Label>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Capabilities */}
+                    {agent.capabilities && (
+                        <div className="agent-capabilities">
+                            <LabelGroup>
+                                {agent.capabilities.streaming && (
+                                    <Label color="green" isCompact>Streaming</Label>
+                                )}
+                                {agent.capabilities.pushNotifications && (
+                                    <Label color="green" isCompact>Push Notifications</Label>
+                                )}
+                            </LabelGroup>
+                        </div>
+                    )}
+
+                    {/* Skills */}
+                    {agent.skills && agent.skills.length > 0 && (
+                        <div className="agent-skills">
+                            <LabelGroup numLabels={3}>
+                                {agent.skills.map((skill, index) => (
+                                    <Tooltip key={index} content={skill}>
+                                        <Label color="purple" isCompact>{skill}</Label>
+                                    </Tooltip>
+                                ))}
+                            </LabelGroup>
+                        </div>
+                    )}
+
+                    {/* Metadata */}
+                    <div className="agent-metadata">
+                        <span className="metadata-item">
+                            <strong>Group:</strong> {agent.groupId || "default"}
+                        </span>
+                        {agent.createdOn && (
+                            <span className="metadata-item">
+                                <strong>Created:</strong> <FromNow date={new Date(agent.createdOn)} />
+                            </span>
+                        )}
+                        {agent.owner && (
+                            <span className="metadata-item">
+                                <strong>Owner:</strong> {agent.owner}
+                            </span>
+                        )}
+                    </div>
+                </CardBody>
+            </Card>
+        );
+    };
+
+    const renderEmptyState = (): React.ReactElement => {
+        const isFiltered = !!(appliedFilters.name || appliedFilters.capability || appliedFilters.skill);
+        return (
+            <EmptyState
+                headingLevel="h4"
+                icon={isFiltered ? SearchIcon : CubesIcon}
+                titleText={isFiltered ? "No agents found" : "No agents registered"}>
+                <EmptyStateBody>
+                    {isFiltered
+                        ? "No agents match your search criteria. Try adjusting your filters."
+                        : "There are no A2A Agent Cards registered in the registry yet. Register an agent card artifact to see it here."}
+                </EmptyStateBody>
+            </EmptyState>
+        );
+    };
+
+    const renderToolbar = (): React.ReactElement => {
+        return (
+            <Toolbar>
+                <ToolbarContent>
+                    <ToolbarItem>
+                        <SearchInput
+                            placeholder="Search by name..."
+                            value={nameFilter}
+                            onChange={(_event, value) => setNameFilter(value)}
+                            onSearch={handleSearch}
+                            onClear={() => {
+                                setNameFilter("");
+                                applyFilters({
+                                    ...appliedFilters,
+                                    name: undefined
+                                });
+                            }}
+                            onKeyDown={handleKeyPress}
+                        />
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <SearchInput
+                            placeholder="Filter by skill..."
+                            value={skillFilter}
+                            onChange={(_event, value) => setSkillFilter(value)}
+                            onSearch={handleSearch}
+                            onClear={() => {
+                                setSkillFilter("");
+                                applyFilters({
+                                    ...appliedFilters,
+                                    skill: undefined
+                                });
+                            }}
+                            onKeyDown={handleKeyPress}
+                        />
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <Select
+                            isOpen={capabilitySelectOpen}
+                            onOpenChange={setCapabilitySelectOpen}
+                            toggle={(toggleRef: React.Ref<MenuToggleElement>) => (
+                                <MenuToggle
+                                    ref={toggleRef}
+                                    onClick={() => setCapabilitySelectOpen(!capabilitySelectOpen)}
+                                    isExpanded={capabilitySelectOpen}
+                                >
+                                    {CAPABILITY_OPTIONS.find(o => o.value === capabilityFilter)?.label || "All Capabilities"}
+                                </MenuToggle>
+                            )}
+                            onSelect={handleCapabilitySelect}
+                            selected={capabilityFilter}
+                        >
+                            {CAPABILITY_OPTIONS.map(option => (
+                                <SelectOption key={option.value} value={option.value}>
+                                    {option.label}
+                                </SelectOption>
+                            ))}
+                        </Select>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <Button variant="primary" onClick={handleSearch}>
+                            Search
+                        </Button>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <Button variant="secondary" onClick={() => setIsCreateAgentModalOpen(true)}>
+                            Create Agent
+                        </Button>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <Button variant="secondary" onClick={() => setIsImportAgentModalOpen(true)}>
+                            Import Agent
+                        </Button>
+                    </ToolbarItem>
+                    <ToolbarItem variant="pagination" align={{ default: "alignEnd" }}>
+                        <Pagination
+                            itemCount={results.count}
+                            perPage={paging.pageSize}
+                            page={paging.page}
+                            onSetPage={handlePageChange}
+                            onPerPageSelect={handlePerPageChange}
+                            variant="top"
+                            isCompact
+                        />
+                    </ToolbarItem>
+                </ToolbarContent>
+            </Toolbar>
+        );
+    };
+
+    return (
+        <PageErrorHandler error={pageError}>
+            <PageDataLoader loaders={loaders}>
+                <PageSection hasBodyWrapper={false} className="ps_agents-header"  padding={{ default: "noPadding" }}>
+                    <RootPageHeader tabKey={AGENTS_PAGE_IDX} />
+                </PageSection>
+                <PageSection hasBodyWrapper={false} className="ps_agents-description" >
+                    <Content>
+                        <h1>A2A Agent Discovery</h1>
+                        <p>
+                            Discover and explore registered A2A Agent Cards. Search by name, filter by capabilities, or find agents with specific skills.
+                        </p>
+                    </Content>
+                </PageSection>
+                <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true}>
+                    {renderToolbar()}
+                    {isSearching ? (
+                        <div className="loading-container">
+                            <Spinner size="xl" />
+                        </div>
+                    ) : results.count === 0 ? (
+                        renderEmptyState()
+                    ) : (
+                        <Gallery hasGutter className="agents-gallery">
+                            {results.agents.map(agent => renderAgentCard(agent))}
+                        </Gallery>
+                    )}
+                    {results.count > 0 && (
+                        <Pagination
+                            itemCount={results.count}
+                            perPage={paging.pageSize}
+                            page={paging.page}
+                            onSetPage={handlePageChange}
+                            onPerPageSelect={handlePerPageChange}
+                            variant="bottom"
+                            className="bottom-pagination"
+                        />
+                    )}
+                </PageSection>
+            </PageDataLoader>
+            <CreateAgentModal
+                isOpen={isCreateAgentModalOpen}
+                onClose={() => setIsCreateAgentModalOpen(false)}
+                onCreate={(groupId, data) => {
+                    setIsCreateAgentModalOpen(false);
+                    doSaveAgent(groupId, data, "Creating agent card, please wait...", "Error creating agent.");
+                }}
+            />
+            <ImportAgentModal
+                isOpen={isImportAgentModalOpen}
+                onClose={() => setIsImportAgentModalOpen(false)}
+                onImport={(groupId, data) => {
+                    setIsImportAgentModalOpen(false);
+                    doSaveAgent(groupId, data, "Importing agent card, please wait...", "Error importing agent.");
+                }}
+            />
+            <PleaseWaitModal
+                message={pleaseWaitMessage}
+                isOpen={isPleaseWaitModalOpen}
+            />
+        </PageErrorHandler>
+    );
+};

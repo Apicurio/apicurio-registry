@@ -1,0 +1,25 @@
+{
+	"$id": "https://example.com/message.schema.json",
+	"$schema": "http://json-schema.org/draft-07/schema#",
+	"required": [
+		"message",
+		"time",
+		"created_by"
+	],
+	"type": "object",
+	"properties": {
+		"message": {
+			"description": "",
+			"type": "string"
+		},
+		"time": {
+			"description": "",
+			"type": "string",
+			"format": "date-time"
+		},
+		"created_by": {
+			"description": "",
+			"type": "string"
+		}
+	}
+}

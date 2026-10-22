@@ -1,0 +1,75 @@
+{
+  "namespace": "com.kubetrade.schema.trade",
+  "type": "record",
+  "name": "TradeRaw",
+  "fields": [
+    {
+      "name": "tradeKey",
+      "type": "TradeKey"
+    },
+    {
+      "name": "value",
+      "type": [
+        "string",
+        "TradeValue"
+      ]
+    },
+    {
+      "name": "symbol",
+      "type": "string"
+    },
+    {
+      "name": "retailPrice",
+      "type": {
+        "type": "record",
+        "name": "MonetaryAmount",
+        "fields": [
+          {
+            "name": "amount",
+            "type": {
+              "type": "bytes",
+              "logicalType": "decimal",
+              "precision": 9,
+              "scale": 2
+            }
+          },
+          {
+            "name": "currency",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "wholesalePrice",
+      "type": "MonetaryAmount"
+    },
+    {
+      "name": "status",
+      "type": {
+        "type": "enum",
+        "name": "Status",
+        "symbols": [
+          "PENDING",
+          "COMPLETED"
+        ]
+      }
+    },
+    {
+      "name": "previousStatus",
+      "type": "Status"
+    },
+    {
+      "name": "hash1",
+      "type": {
+        "type": "fixed",
+        "name": "MD5",
+        "size": 16
+      }
+    },
+    {
+      "name": "hash2",
+      "type": "MD5"
+    }
+  ]
+}

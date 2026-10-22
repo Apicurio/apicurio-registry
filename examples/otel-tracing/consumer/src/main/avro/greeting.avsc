@@ -1,0 +1,29 @@
+{
+  "type": "record",
+  "name": "Greeting",
+  "namespace": "io.apicurio.registry.examples.otel",
+  "doc": "A greeting message with timestamp for distributed tracing demonstration",
+  "fields": [
+    {
+      "name": "message",
+      "type": "string",
+      "doc": "The greeting message content"
+    },
+    {
+      "name": "timestamp",
+      "type": "long",
+      "doc": "Unix timestamp in milliseconds when the greeting was created"
+    },
+    {
+      "name": "source",
+      "type": "string",
+      "doc": "The source service that created this greeting"
+    },
+    {
+      "name": "traceId",
+      "type": ["null", "string"],
+      "default": null,
+      "doc": "Optional trace ID for correlation (populated automatically by OTel)"
+    }
+  ]
+}

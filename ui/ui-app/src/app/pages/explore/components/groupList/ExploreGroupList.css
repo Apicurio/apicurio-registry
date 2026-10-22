@@ -1,0 +1,60 @@
+.explore-group-list {
+}
+
+.explore-group-list .explore-group-list-item {
+    margin-bottom: 2px;
+}
+
+.explore-group-list .explore-group-list-item.default-group {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border-top: 2px #ccc dashed;
+    border-bottom: 2px #ccc dashed;
+}
+.explore-group-list .explore-group-list-item.default-group > div {
+    padding-bottom: 10px;
+}
+.explore-group-list .explore-group-list-item.default-group > div > div {
+    padding-top: 10px;
+}
+
+.explore-group-list .explore-group-list-item .type-icon-cell {
+    flex: initial;
+}
+
+.explore-group-list .explore-group-list-item .type-icon-cell > .type-icon {
+    margin-top: 5px;
+}
+
+.explore-group-list .explore-group-list-item .content-cell {
+}
+
+.explore-group-list .explore-group-list-item .content-cell .group-title {
+}
+
+.explore-group-list .explore-group-list-item .content-cell .group-title a, .explore-group-list .explore-group-list-item .content-cell .group-title a:hover {
+    text-decoration: none;
+}
+
+.explore-group-list .explore-group-list-item .content-cell .group-title .group {
+    color: #2b9af3;
+    font-weight: bold;
+}
+
+.explore-group-list .explore-group-list-item .content-cell .group-title .name {
+    color: #2b9af3;
+    font-weight: bold;
+    font-size: 18px;
+    margin-right: 10px;
+}
+
+.explore-group-list .explore-group-list-item .content-cell .group-description {
+    font-size: 13px;
+}
+
+.explore-group-list .explore-group-list-item .content-cell .group-tags {
+}
+
+.explore-group-list .explore-group-list-item .content-cell .group-tags > span {
+    margin-right: 5px;
+}

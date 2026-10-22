@@ -1,0 +1,101 @@
+package io.apicurio.registry.cli.group;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.IdUtil;
+import io.apicurio.registry.cli.common.OutputTypeMixin;
+import io.apicurio.registry.cli.utils.OutputBuffer;
+import io.apicurio.registry.cli.utils.TableBuilder;
+import io.apicurio.registry.rest.v3.beans.GroupMetaData;
+import lombok.Getter;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Mixin;
+import picocli.CommandLine.Parameters;
+import picocli.CommandLine.ParentCommand;
+
+import static io.apicurio.registry.cli.utils.Columns.CREATED_ON;
+import static io.apicurio.registry.cli.utils.Columns.DESCRIPTION;
+import static io.apicurio.registry.cli.utils.Columns.FIELD;
+import static io.apicurio.registry.cli.utils.Columns.GROUP_ID;
+import static io.apicurio.registry.cli.utils.Columns.LABELS;
+import static io.apicurio.registry.cli.utils.Columns.MODIFIED_BY;
+import static io.apicurio.registry.cli.utils.Columns.MODIFIED_ON;
+import static io.apicurio.registry.cli.utils.Columns.OWNER;
+import static io.apicurio.registry.cli.utils.Columns.VALUE;
+import static io.apicurio.registry.cli.common.IdUtil.isDefaultGroup;
+import static io.apicurio.registry.cli.utils.Conversions.convert;
+import static io.apicurio.registry.cli.utils.Conversions.convertToString;
+import static io.apicurio.registry.cli.utils.Mapper.MAPPER;
+
+@Command(
+        name = "get",
+        description = "Get an existing group"
+)
+public class GroupGetCommand extends AbstractCommand {
+
+    @Parameters(
+            index = "0"
+    )
+    private String groupId;
+
+    @Mixin
+    private OutputTypeMixin outputType;
+
+    @ParentCommand
+    @Getter
+    private GroupCommand parent;
+
+    @Override
+    public void run(OutputBuffer output) throws Exception {
+        GroupMetaData group;
+        if (isDefaultGroup(groupId)) {
+            // This is a synthetic stub because the server does not return proper metadata for the default group yet.
+            group = GroupMetaData.builder()
+                    .groupId("default")
+                    .description("The default group.")
+                    .build();
+        } else {
+            //noinspection ConstantConditions
+            group = convert(client.getRegistryClient().groups().byGroupId(groupId).get());
+        }
+        IdUtil.updateGroupContext(group.getGroupId(), config, output);
+        // TODO: Should we include the `default` group in the list?
+        printGroup(output, group, outputType);
+    }
+
+    static void printGroup(OutputBuffer output, GroupMetaData group, OutputTypeMixin outputType) throws JsonProcessingException {
+        output.writeStdOutChunkWithException(out -> {
+            switch (outputType.getOutputType()) {
+                case json -> {
+                    out.append(MAPPER.writeValueAsString(group));
+                    out.append('\n');
+                }
+                case table -> {
+                    var isDefault = isDefaultGroup(group.getGroupId());
+                    var table = new TableBuilder();
+                    table.addColumns(FIELD, VALUE);
+                    table.addRow(GROUP_ID, group.getGroupId());
+                    table.addRow(DESCRIPTION, group.getDescription());
+                    table.addRow(CREATED_ON, displayObj(isDefault, group.getCreatedOn()));
+                    table.addRow(OWNER, displayStr(isDefault, group.getOwner()));
+                    table.addRow(MODIFIED_ON, displayObj(isDefault, group.getModifiedOn()));
+                    table.addRow(MODIFIED_BY, displayStr(isDefault, group.getModifiedBy()));
+                    table.addRow(LABELS, displayObj(isDefault, group.getLabels()));
+                    table.print(out);
+                }
+            }
+        });
+    }
+
+    private static String displayObj(boolean isDefault, java.util.Date value) {
+        return isDefault ? "N/A" : convertToString(value);
+    }
+
+    private static String displayObj(boolean isDefault, java.util.Map<String, String> value) {
+        return isDefault ? "N/A" : convertToString(value);
+    }
+
+    private static String displayStr(boolean isDefault, String value) {
+        return isDefault ? "N/A" : value;
+    }
+}

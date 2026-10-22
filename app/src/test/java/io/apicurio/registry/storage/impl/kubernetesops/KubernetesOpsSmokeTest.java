@@ -1,0 +1,239 @@
+package io.apicurio.registry.storage.impl.kubernetesops;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.storage.dto.SearchFilter;
+import io.apicurio.registry.storage.dto.OrderBy;
+import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.impl.polling.PollingStorageStatus;
+import io.apicurio.registry.util.YAMLObjectMapper;
+import io.apicurio.registry.storage.util.KubernetesOpsTestProfile;
+import io.apicurio.registry.types.RuleType;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import jakarta.enterprise.context.control.ActivateRequestContext;
+import jakarta.inject.Inject;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.List;
+import java.util.Set;
+import java.util.function.Supplier;
+
+import static java.util.Objects.requireNonNull;
+import static org.awaitility.Awaitility.await;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@QuarkusTest
+@TestProfile(KubernetesOpsTestProfile.class)
+class KubernetesOpsSmokeTest {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    @Inject
+    @Current
+    RegistryStorage storage;
+
+    @Inject
+    KubernetesClient kubernetesClient;
+
+    @Inject
+    KubernetesOpsRegistryStorage kubernetesOpsStorage;
+
+    @BeforeEach
+    void setup() {
+        KubernetesTestResourceManager.initializeConfigMapStore(kubernetesClient);
+        var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
+        configMapStore.load("git/empty");
+        await().atMost(Duration.ofSeconds(30)).until(
+                () -> withContext(() -> storage.getArtifactIds(10)),
+                equalTo(Set.of()));
+    }
+
+    @Test
+    void smokeTest() throws Exception {
+        assertEquals(Set.of(), storage.getArtifactIds(10));
+
+        var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
+
+        // Waiting to load smoke01
+        configMapStore.load("git/smoke01");
+        await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
+                equalTo(Set.of("petstore")));
+
+        // Global rules
+        assertEquals(Set.of(RuleType.VALIDITY), Set.copyOf(storage.getGlobalRules()));
+        assertEquals("FULL", storage.getGlobalRule(RuleType.VALIDITY).getConfiguration());
+
+        // Groups
+        assertEquals(Set.of("foo"), Set.copyOf(storage.getGroupIds(10)));
+        var search = storage.searchArtifacts(Set.of(SearchFilter.ofGroupId("foo"),
+                SearchFilter.ofStructure("openapi:operation:listpets")), OrderBy.artifactId,
+                OrderDirection.asc, 0, 10, false);
+        assertEquals(1, search.getCount());
+        assertEquals("petstore", search.getArtifacts().get(0).getArtifactId());
+
+        // Artifact rules
+        assertEquals(Set.of(RuleType.COMPATIBILITY), Set.copyOf(storage.getArtifactRules("foo", "petstore")));
+        assertEquals("BACKWARD",
+                storage.getArtifactRule("foo", "petstore", RuleType.COMPATIBILITY).getConfiguration());
+
+        // Artifact versions
+        var version = storage.getArtifactVersionContent("foo", "petstore", "1");
+        assertEquals("1", storage.getBranchTip(new GA("foo", "petstore"), BranchId.LATEST,
+                RegistryStorage.RetrievalBehavior.SKIP_DISABLED_LATEST).getRawVersionId());
+        assertNotNull(version.getGlobalId());
+        assertNotNull(version.getContentId());
+        var content = loadFile("git/smoke01/content/petstore-1.0.0.yaml");
+        assertEquals(YAMLObjectMapper.YAML_MAPPER.readTree(content.bytes()),
+                YAMLObjectMapper.YAML_MAPPER.readTree(version.getContent().bytes()));
+
+        // Peers
+        var peers = storage.getPeers();
+        assertEquals(1, peers.size());
+        var peer = peers.get(0);
+        assertEquals("eu-registry", peer.getPeerId());
+        assertEquals("https://registry.eu.example.com", peer.getUrl());
+        assertEquals("EU registry", peer.getName());
+        assertTrue(peer.isEnabled());
+        assertEquals("eu-registry", peer.getCredentialSecretRef());
+
+        // Waiting to load smoke02
+        configMapStore.load("git/smoke02");
+        await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
+                equalTo(Set.of("person")));
+
+        // Global rules
+        assertEquals(Set.of(), Set.copyOf(storage.getGlobalRules()));
+
+        // Groups
+        assertEquals(Set.of("bar"), Set.copyOf(storage.getGroupIds(10)));
+
+        // Artifact rules
+        assertEquals(Set.of(), Set.copyOf(storage.getArtifactRules("bar", "person")));
+
+        // Artifact versions
+        version = storage.getArtifactVersionContent("bar", "person", "1");
+        assertNotNull(version.getGlobalId());
+        assertNotNull(version.getContentId());
+        content = loadFile("git/smoke02/content/Person.json");
+        assertEquals(MAPPER.readTree(content.bytes()), MAPPER.readTree(version.getContent().bytes()));
+
+        // Peers removed (omitted/empty peers list wipes the previously loaded peer)
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
+
+        // Waiting to load empty
+        configMapStore.load("git/empty");
+        await().atMost(Duration.ofSeconds(30)).until(() -> withContext(() -> storage.getArtifactIds(10)),
+                equalTo(Set.of()));
+        assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
+    }
+
+    @Test
+    void peerReloadUpdatesFieldsAndOmittedEnabledDefaultsToTrue() throws Exception {
+        var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
+
+        // Each wait asserts the whole peer from one read, so a snapshot left by an earlier load
+        // cannot satisfy it.
+        configMapStore.load("git/peers-update-1");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var peers = storage.getPeers();
+            assertEquals(1, peers.size());
+            var before = peers.get(0);
+            assertEquals("update-test-peer", before.getPeerId());
+            assertEquals("https://before.example.com", before.getUrl());
+            assertEquals("Before Update", before.getName());
+            assertFalse(before.isEnabled());
+            assertEquals("before-cred", before.getCredentialSecretRef());
+        });
+
+        // Reload the same peer id with different field values and enabled omitted entirely.
+        configMapStore.load("git/peers-update-2");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var peers = storage.getPeers();
+            assertEquals(1, peers.size());
+            var after = peers.get(0);
+            assertEquals("update-test-peer", after.getPeerId());
+            assertEquals("https://after.example.com", after.getUrl());
+            assertEquals("After Update", after.getName());
+            // enabled is omitted in this load; it must default to true fresh, not carry over the
+            // previous load's explicit enabled: false.
+            assertTrue(after.isEnabled());
+            assertEquals("after-cred", after.getCredentialSecretRef());
+        });
+    }
+
+    @Test
+    void peerWithAnAddressTheOutboundPolicyRefusesIsNotLoaded() throws Exception {
+        var configMapStore = KubernetesTestResourceManager.getConfigMapStore();
+
+        // This load has to succeed and leave no error behind, so that the error waited for below can
+        // only come from the revision loaded after it.
+        configMapStore.load("git/peers-update-1");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var status = kubernetesOpsStorage.getStatus();
+            assertEquals(PollingStorageStatus.SyncState.IDLE, status.getSyncState());
+            assertEquals(List.of(), status.getErrors());
+            assertPeerLoadedBeforeTheRefusedRevision();
+        });
+
+        // Plain http is refused unless apicurio.federation.peer.insecure-http.enabled is set, which
+        // this profile does not do. The admin API refuses the same url, so a declarative peer must
+        // not be a way around the policy.
+        configMapStore.load("git/peers-insecure");
+
+        // KubernetesOps has no status endpoint, so this reads the status the GitOps endpoint is built
+        // from. The detail names a peer that only this revision defines, so it shows that this
+        // revision was processed and refused. A refused revision is not swapped in: the peer loaded
+        // before it must still be the only one, unchanged.
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            var status = kubernetesOpsStorage.getStatus();
+            assertEquals(PollingStorageStatus.SyncState.ERROR, status.getSyncState());
+            assertEquals(1, status.getErrors().size());
+            assertEquals("Could not import peer insecure-peer: Peer url must use https. Plain http requires "
+                    + "apicurio.federation.peer.insecure-http.enabled=true.",
+                    status.getErrors().get(0).detail());
+            assertPeerLoadedBeforeTheRefusedRevision();
+        });
+    }
+
+    private void assertPeerLoadedBeforeTheRefusedRevision() {
+        var peers = storage.getPeers();
+        assertEquals(1, peers.size());
+        var peer = peers.get(0);
+        assertEquals("update-test-peer", peer.getPeerId());
+        assertEquals("https://before.example.com", peer.getUrl());
+        assertEquals("Before Update", peer.getName());
+        assertFalse(peer.isEnabled());
+        assertEquals("before-cred", peer.getCredentialSecretRef());
+    }
+
+    @ActivateRequestContext
+    public <T> T withContext(Supplier<T> supplier) {
+        return supplier.get();
+    }
+
+    private ContentHandle loadFile(String path) {
+        try {
+            var fullPath = Path.of(
+                    requireNonNull(Thread.currentThread().getContextClassLoader().getResource(path)).toURI());
+            return ContentHandle.create(Files.readAllBytes(fullPath));
+        } catch (IOException | URISyntaxException ex) {
+            throw new RuntimeException(ex);
+        }
+    }
+}

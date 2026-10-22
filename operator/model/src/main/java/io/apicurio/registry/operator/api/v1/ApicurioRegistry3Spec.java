@@ -1,0 +1,76 @@
+package io.apicurio.registry.operator.api.v1;
+
+import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.databind.JsonDeserializer.None;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.ConsolePluginSpec;
+import io.apicurio.registry.operator.api.v1.spec.UiSpec;
+import lombok.*;
+
+import static com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL;
+import static com.fasterxml.jackson.annotation.Nulls.SKIP;
+import static lombok.AccessLevel.PRIVATE;
+
+@JsonInclude(NON_NULL)
+@JsonPropertyOrder({"app", "ui", "consolePlugin"})
+@JsonDeserialize(using = None.class)
+@NoArgsConstructor
+@AllArgsConstructor(access = PRIVATE)
+@Builder
+@Getter
+@Setter
+@EqualsAndHashCode
+@ToString
+public class ApicurioRegistry3Spec {
+
+    /**
+     * Configure Apicurio Registry backend (app) component.
+     */
+    @JsonProperty("app")
+    @JsonPropertyDescription("""
+            Configure Apicurio Registry backend (app) component.""")
+    @JsonSetter(nulls = SKIP)
+    private AppSpec app;
+
+    /**
+     * Configure Apicurio Registry UI component.
+     */
+    @JsonProperty("ui")
+    @JsonPropertyDescription("""
+            Configure Apicurio Registry UI component.
+            """)
+    @JsonSetter(nulls = SKIP)
+    private UiSpec ui;
+
+    /**
+     * Configure Apicurio Registry OpenShift Console Plugin component.
+     */
+    @JsonProperty("consolePlugin")
+    @JsonPropertyDescription("""
+            Configure Apicurio Registry OpenShift Console Plugin component.
+            """)
+    @JsonSetter(nulls = SKIP)
+    private ConsolePluginSpec consolePlugin;
+
+    public AppSpec withApp() {
+        if (app == null) {
+            app = new AppSpec();
+        }
+        return app;
+    }
+
+    public UiSpec withUi() {
+        if (ui == null) {
+            ui = new UiSpec();
+        }
+        return ui;
+    }
+
+    public ConsolePluginSpec withConsolePlugin() {
+        if (consolePlugin == null) {
+            consolePlugin = new ConsolePluginSpec();
+        }
+        return consolePlugin;
+    }
+}

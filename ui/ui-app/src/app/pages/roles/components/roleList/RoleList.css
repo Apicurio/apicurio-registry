@@ -1,0 +1,12 @@
+.role-list .role-list-action-column {
+    text-align: right
+}
+
+.role-list .principal-id {
+    margin-right: 12px;
+}
+
+.role-list .principal-name {
+    color: #999;
+}
+

@@ -1,0 +1,10 @@
+<productname>{registry}</productname>
+<productnumber>{registry-version}</productnumber>
+<subtitle>{registry}</subtitle>
+<abstract>
+    <para>This guide introduces {registry} concepts and features, and explains how to install with your preferred registry storage option. This guide explains how to manage your event schemas and API designs stored in {registry} using the {registry} web console or Registry REST API. This guide also describes the artifact types and rule types stored in the registry, and environment variables that you can configure for health checks on OpenShift.</para>
+</abstract>
+<authorgroup>
+  <org>
+  </org>
+</authorgroup>

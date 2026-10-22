@@ -1,0 +1,70 @@
+package io.apicurio.registry.cli.version;
+
+import io.apicurio.registry.cli.common.AbstractCommand;
+import io.apicurio.registry.cli.common.IdUtil;
+import io.apicurio.registry.cli.utils.OutputBuffer;
+import io.apicurio.registry.rest.client.models.NewComment;
+import picocli.CommandLine.Command;
+import picocli.CommandLine.Option;
+import picocli.CommandLine.Parameters;
+
+@Command(
+        name = "update",
+        description = "Update an existing comment"
+)
+public class CommentUpdateCommand extends AbstractCommand {
+
+    @Option(
+            names = {"-g", "--group"},
+            description = "Group ID. If not provided, uses the groupId from the current context, or 'default'."
+    )
+    private String groupId;
+
+    @Option(
+            names = {"-a", "--artifact"},
+            description = "Artifact ID. If not provided, uses the artifactId from the current context."
+    )
+    private String artifactId;
+
+    @Option(
+            names = {"-v", "--version"},
+            description = "The version expression (e.g. 1.0.0, latest)",
+            required = true
+    )
+    private String versionExpression;
+
+    @Parameters(
+            index = "0",
+            description = "The comment ID to update"
+    )
+    private String commentId;
+
+    @Option(
+            names = {"-m", "--message"},
+            description = "The new comment text. Use '-' to read from stdin.",
+            required = true
+    )
+    private String commentText;
+
+    @Override
+    public void run(final OutputBuffer output) throws Exception {
+        final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
+        final var resolvedArtifactId = IdUtil.resolveArtifactId(artifactId, config);
+        final var registryClient = client.getRegistryClient();
+        IdUtil.validateGroup(registryClient, resolvedGroupId);
+        IdUtil.validateArtifact(registryClient, resolvedGroupId, resolvedArtifactId);
+        final var resolvedText = "-".equals(commentText)
+                ? new String(System.in.readAllBytes()).trim()
+                : commentText;
+        final var updatedComment = new NewComment();
+        updatedComment.setValue(resolvedText);
+        registryClient.groups().byGroupId(resolvedGroupId)
+                .artifacts().byArtifactId(resolvedArtifactId)
+                .versions().byVersionExpression(versionExpression)
+                .comments().byCommentId(commentId)
+                .put(updatedComment);
+        output.writeStdOutChunk(out -> {
+            out.append("Comment '").append(commentId).append("' updated successfully.\n");
+        });
+    }
+}

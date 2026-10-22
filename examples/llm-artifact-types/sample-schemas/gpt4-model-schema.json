@@ -1,0 +1,168 @@
+{
+  "$schema": "https://apicur.io/schemas/model-schema/v1",
+  "modelId": "gpt-4-turbo",
+  "provider": "openai",
+  "version": "2024-01",
+  "input": {
+    "type": "object",
+    "properties": {
+      "messages": {
+        "type": "array",
+        "description": "A list of messages comprising the conversation so far",
+        "items": {
+          "type": "object",
+          "properties": {
+            "role": {
+              "type": "string",
+              "enum": ["system", "user", "assistant", "tool"],
+              "description": "The role of the message author"
+            },
+            "content": {
+              "type": "string",
+              "description": "The contents of the message"
+            },
+            "name": {
+              "type": "string",
+              "description": "An optional name for the participant"
+            }
+          },
+          "required": ["role", "content"]
+        }
+      },
+      "temperature": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 2,
+        "default": 1,
+        "description": "Sampling temperature between 0 and 2"
+      },
+      "max_tokens": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 128000,
+        "description": "Maximum number of tokens to generate"
+      },
+      "top_p": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "default": 1,
+        "description": "Nucleus sampling parameter"
+      },
+      "frequency_penalty": {
+        "type": "number",
+        "minimum": -2,
+        "maximum": 2,
+        "default": 0,
+        "description": "Frequency penalty for token repetition"
+      },
+      "presence_penalty": {
+        "type": "number",
+        "minimum": -2,
+        "maximum": 2,
+        "default": 0,
+        "description": "Presence penalty for topic diversity"
+      },
+      "response_format": {
+        "type": "object",
+        "description": "Format for structured outputs",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["text", "json_object", "json_schema"]
+          }
+        }
+      },
+      "tools": {
+        "type": "array",
+        "description": "A list of tools the model may call",
+        "items": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string", "enum": ["function"] },
+            "function": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "parameters": { "type": "object" }
+              },
+              "required": ["name"]
+            }
+          }
+        }
+      }
+    },
+    "required": ["messages"]
+  },
+  "output": {
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": "string",
+        "description": "A unique identifier for the chat completion"
+      },
+      "object": {
+        "type": "string",
+        "const": "chat.completion"
+      },
+      "created": {
+        "type": "integer",
+        "description": "Unix timestamp of when the completion was created"
+      },
+      "model": {
+        "type": "string",
+        "description": "The model used for the completion"
+      },
+      "choices": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "index": { "type": "integer" },
+            "message": {
+              "type": "object",
+              "properties": {
+                "role": { "type": "string" },
+                "content": { "type": "string" },
+                "tool_calls": { "type": "array" }
+              }
+            },
+            "finish_reason": {
+              "type": "string",
+              "enum": ["stop", "length", "tool_calls", "content_filter"]
+            }
+          }
+        }
+      },
+      "usage": {
+        "type": "object",
+        "properties": {
+          "prompt_tokens": { "type": "integer" },
+          "completion_tokens": { "type": "integer" },
+          "total_tokens": { "type": "integer" }
+        }
+      }
+    },
+    "required": ["id", "object", "created", "model", "choices"]
+  },
+  "metadata": {
+    "contextWindow": 128000,
+    "maxOutputTokens": 4096,
+    "capabilities": [
+      "chat",
+      "function_calling",
+      "vision",
+      "json_mode",
+      "structured_outputs"
+    ],
+    "pricing": {
+      "input": 0.01,
+      "output": 0.03,
+      "currency": "USD",
+      "unit": "1K tokens"
+    },
+    "trainingDataCutoff": "2023-12",
+    "supportedLanguages": ["en", "es", "fr", "de", "it", "pt", "zh", "ja", "ko"]
+  }
+}

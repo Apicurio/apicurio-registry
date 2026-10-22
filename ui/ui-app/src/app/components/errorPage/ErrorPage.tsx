@@ -1,0 +1,109 @@
+import React, { FunctionComponent, useState } from "react";
+import "./ErrorPage.css";
+import {
+    Button,
+    EmptyState,
+    EmptyStateActions,
+    EmptyStateBody,
+    EmptyStateFooter,
+    PageSection,
+    
+} from "@patternfly/react-core";
+import { ExclamationTriangleIcon } from "@patternfly/react-icons";
+import { PageError } from "@app/pages";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
+import { RegistryPatternFlyCodeEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
+
+
+export type ErrorPageProps = {
+    error: PageError | undefined;
+};
+
+export const ErrorPage: FunctionComponent<ErrorPageProps> = (props: ErrorPageProps) => {
+    const [isShowDetails, setIsShowDetails] = useState<boolean>(false);
+
+    const appNavigation: AppNavigation = useAppNavigation();
+
+    const errorMessage = (): string => {
+        if (props.error) {
+            return props.error.errorMessage;
+        } else {
+            return "Internal server error";
+        }
+    };
+
+    const errorDetail = (): string => {
+        if (props.error && props.error.error && props.error.error.detail) {
+            return props.error.error.detail;
+        } else if (props.error && props.error.error) {
+            return JSON.stringify(props.error.error, null, 3);
+        } else {
+            return "Error info not available";
+        }
+    };
+
+    const canShowDetails = (): boolean => {
+        return !!(props.error && props.error.error);
+    };
+
+    const showDetails = (): void => {
+        setIsShowDetails(true);
+    };
+    
+    const reloadPage = (): void => {
+        window.location.reload();
+    };
+
+    return (
+        <React.Fragment>
+            <PageSection hasBodyWrapper={false} className="ps_error" >
+                <div className="centerizer">
+                    <EmptyState  headingLevel="h4" icon={ExclamationTriangleIcon}  titleText={errorMessage()}>
+                        <EmptyStateBody>
+                            Try reloading the page. If the issue persists, reach out to your administrator.
+                        </EmptyStateBody>
+                        <EmptyStateFooter>
+                            <EmptyStateActions>
+                                <Button variant="primary" onClick={reloadPage}>Reload page</Button>
+                            </EmptyStateActions>
+                            <EmptyStateActions>
+                                <Button variant="link"
+                                    data-testid="error-btn-artifacts"
+                                    onClick={() => appNavigation.navigateTo("/")}>Back to artifacts</Button>
+                                {
+                                    canShowDetails() ?
+                                        <Button variant="link"
+                                            data-testid="error-btn-details"
+                                            onClick={showDetails}>Show details</Button>
+                                        :
+                                        <span/>
+                                }
+                            </EmptyStateActions>
+                        </EmptyStateFooter>
+                    </EmptyState>
+                    <div className="separator">&nbsp;</div>
+                    {
+                        isShowDetails ?
+                            <RegistryPatternFlyCodeEditor
+                                code={errorDetail()}
+                                width="700px"
+                                isReadOnly={true}
+                                isLineNumbersVisible={false}
+                                isMinimapVisible={false}
+                                onChange={() => {}}
+                                language="json"
+                                onEditorDidMount={(editor) => {
+                                    editor.layout();
+                                    editor.getModel()?.updateOptions({ tabSize: 4 });
+                                }}
+                                height="300px"
+                            />
+                            :
+                            <div/>
+                    }
+                </div>
+            </PageSection>
+        </React.Fragment>
+    );
+
+};

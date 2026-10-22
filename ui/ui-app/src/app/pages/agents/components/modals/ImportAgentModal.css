@@ -1,0 +1,7 @@
+.import-agent-modal .pf-v6-c-wizard {
+    min-height: 500px;
+}
+
+.import-agent-modal .agent-card-viewer {
+    max-width: 800px;
+}

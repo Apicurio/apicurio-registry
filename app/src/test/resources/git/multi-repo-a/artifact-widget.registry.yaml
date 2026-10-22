@@ -1,0 +1,9 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: alpha
+artifactId: widget
+artifactType: JSON
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/widget.json

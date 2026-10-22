@@ -1,0 +1,609 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Apicurio Registry Artifact Type Webhooks",
+    "version": "3.1.0",
+    "description": "Defines the webhooks needed to provide functionality for a custom artifact type."
+  },
+  "paths": {
+    "/ContentAccepter": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {}
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentAccepterResponse"
+                }
+              }
+            },
+            "description": "Successful response."
+          },
+          "500": {
+            "description": "Server error detected."
+          }
+        },
+        "operationId": "acceptsContent",
+        "summary": "Webhook for the ContentAccepter interface"
+      }
+    },
+    "/ContentCanonicalizer": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentCanonicalizerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentCanonicalizerResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "500": {
+            "description": "Server error detected."
+          }
+        },
+        "operationId": "canonicalize",
+        "summary": "ContentCanonicalizer"
+      }
+    },
+    "/ContentValidator": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentValidatorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentValidatorResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "500": {
+            "description": "Server error detected."
+          }
+        },
+        "operationId": "validate",
+        "summary": "ContentValidator"
+      }
+    },
+    "/CompatibilityChecker": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompatibilityCheckerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompatibilityCheckerResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "500": {
+            "description": "Server error detected."
+          }
+        },
+        "operationId": "testCompatibility",
+        "summary": "CompatibilityChecker"
+      }
+    },
+    "/ContentDereferencer": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContentDereferencerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContentDereferencerResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "500": {
+            "description": "Server error detected."
+          }
+        },
+        "operationId": "dereference",
+        "summary": "ContentDereferencer"
+      }
+    },
+    "/ReferenceFinder": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReferenceFinderRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReferenceFinderResponse"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "500": {
+            "description": "Server error detected."
+          }
+        },
+        "operationId": "findExternalReferences",
+        "summary": "ReferenceFinder"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ContentAccepterRequest": {
+        "description": "",
+        "required": [
+          "typedContent"
+        ],
+        "type": "object",
+        "properties": {
+          "typedContent": {
+            "$ref": "#/components/schemas/TypedContent",
+            "description": ""
+          },
+          "resolvedReferences": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedReference"
+            }
+          }
+        }
+      },
+      "ResolvedReference": {
+        "title": "Root Type for ResolvedReference",
+        "description": "",
+        "required": [
+          "content",
+          "contentType",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "name": "data-types.json#/components/schemas/MyType",
+          "content": "THE CONTENT OF THE REFERENCE",
+          "contentType": "application/json"
+        }
+      },
+      "ContentAccepterResponse": {
+        "title": "Root Type for ContentAccepterResponse",
+        "description": "",
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "accepted": true
+        }
+      },
+      "CompatibilityCheckerRequest": {
+        "title": "Root Type for CompatibilityCheckerRequest",
+        "description": "",
+        "required": [
+          "level",
+          "existingArtifacts",
+          "proposedArtifact"
+        ],
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string"
+          },
+          "existingArtifacts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TypedContent"
+            }
+          },
+          "proposedArtifact": {
+            "$ref": "#/components/schemas/TypedContent"
+          },
+          "resolvedReferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedReference"
+            }
+          }
+        }
+      },
+      "TypedContent": {
+        "title": "Root Type for TypedContent",
+        "description": "",
+        "required": [
+          "content",
+          "contentType"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          },
+          "contentType": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "content": "CONTENT_GOES_HERE",
+          "contentType": "application/json"
+        }
+      },
+      "CompatibilityCheckerResponse": {
+        "title": "Root Type for CompatibilityCheckerResponse",
+        "description": "",
+        "type": "object",
+        "properties": {
+          "incompatibleDifferences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IncompatibleDifference"
+            }
+          }
+        }
+      },
+      "IncompatibleDifference": {
+        "description": "",
+        "required": [
+          "type"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "description": "",
+            "type": "string"
+          },
+          "context": {
+            "description": "",
+            "type": "string"
+          },
+          "type": {
+            "description": "",
+            "type": "string"
+          },
+          "diffType": {
+            "description": "",
+            "type": "string"
+          },
+          "pathOriginal": {
+            "description": "",
+            "type": "string"
+          },
+          "pathUpdated": {
+            "description": "",
+            "type": "string"
+          },
+          "subSchemaOriginal": {
+            "description": "",
+            "type": "string"
+          },
+          "subSchemaUpdated": {
+            "description": "",
+            "type": "string"
+          }
+        }
+      },
+      "ContentCanonicalizerRequest": {
+        "description": "",
+        "required": [
+          "content"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/TypedContent",
+            "description": ""
+          },
+          "resolvedReferences": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedReference"
+            }
+          }
+        }
+      },
+      "ContentCanonicalizerResponse": {
+        "description": "",
+        "required": [
+          "typedContent"
+        ],
+        "type": "object",
+        "properties": {
+          "typedContent": {
+            "$ref": "#/components/schemas/TypedContent",
+            "description": ""
+          }
+        }
+      },
+      "ContentDereferencerRequest": {
+        "description": "",
+        "required": [
+          "content",
+          "function"
+        ],
+        "type": "object",
+        "properties": {
+          "content": {
+            "$ref": "#/components/schemas/TypedContent",
+            "description": ""
+          },
+          "resolvedReferences": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedReference"
+            }
+          },
+          "function": {
+            "description": "",
+            "enum": [
+              "dereference",
+              "rewriteReferences"
+            ],
+            "type": "string"
+          },
+          "resolvedReferenceUrls": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedReferenceUrl"
+            }
+          }
+        }
+      },
+      "ContentDereferencerResponse": {
+        "description": "",
+        "required": [
+          "typedContent"
+        ],
+        "type": "object",
+        "properties": {
+          "typedContent": {
+            "$ref": "#/components/schemas/TypedContent",
+            "description": ""
+          }
+        }
+      },
+      "ContentValidatorRequest": {
+        "description": "",
+        "required": [
+          "content",
+          "function"
+        ],
+        "type": "object",
+        "properties": {
+          "level": {
+            "description": "",
+            "type": "string"
+          },
+          "function": {
+            "description": "",
+            "enum": [
+              "validate",
+              "validateReferences"
+            ],
+            "type": "string"
+          },
+          "content": {
+            "$ref": "#/components/schemas/TypedContent",
+            "description": ""
+          },
+          "resolvedReferences": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResolvedReference"
+            }
+          },
+          "references": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ArtifactReference"
+            }
+          }
+        }
+      },
+      "ContentValidatorResponse": {
+        "description": "",
+        "type": "object",
+        "properties": {
+          "ruleViolations": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleViolation"
+            }
+          }
+        }
+      },
+      "ArtifactReference": {
+        "description": "",
+        "required": [
+          "groupId",
+          "artifactId",
+          "version",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "description": "",
+            "type": "string"
+          },
+          "artifactId": {
+            "description": "",
+            "type": "string"
+          },
+          "version": {
+            "description": "",
+            "type": "string"
+          },
+          "name": {
+            "description": "",
+            "type": "string"
+          }
+        }
+      },
+      "RuleViolation": {
+        "title": "Root Type for RuleViolation",
+        "description": "",
+        "required": [
+          "context",
+          "description"
+        ],
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string"
+          },
+          "context": {
+            "type": "string"
+          }
+        }
+      },
+      "ReferenceFinderRequest": {
+        "description": "",
+        "required": [
+          "typedContent"
+        ],
+        "type": "object",
+        "properties": {
+          "typedContent": {
+            "$ref": "#/components/schemas/TypedContent",
+            "description": ""
+          }
+        }
+      },
+      "ReferenceFinderResponse": {
+        "description": "",
+        "type": "object",
+        "properties": {
+          "externalReferences": {
+            "description": "",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalReference"
+            }
+          }
+        }
+      },
+      "ExternalReference": {
+        "description": "",
+        "required": [
+          "fullReference",
+          "resource"
+        ],
+        "type": "object",
+        "properties": {
+          "fullReference": {
+            "description": "",
+            "type": "string"
+          },
+          "resource": {
+            "description": "",
+            "type": "string"
+          },
+          "component": {
+            "description": "",
+            "type": "string"
+          }
+        }
+      },
+      "ResolvedReferenceUrl": {
+        "title": "Root Type for ResolvedReferenceUrl",
+        "description": "",
+        "required": [
+          "name",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        },
+        "example": {
+          "name": "orders.xsd",
+          "url": "http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/versions/1.0"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,127 @@
+name: CLI Verification
+
+on:
+  workflow_call:
+    inputs:
+      image-tag:
+        type: string
+        required: true
+        description: 'Build artifact identifier (commit SHA)'
+
+permissions:
+  contents: read
+
+jobs:
+  cli-verify:
+    name: CLI (${{ matrix.os-name }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            os-name: linux-x86_64
+            test-args: '-Dtest.app.image=quay.io/apicurio/apicurio-registry:latest-release'
+          - runner: macos-14
+            os-name: osx-aarch_64
+            # Docker is not available on macOS runners (see https://github.com/douglascamata/setup-docker-macos-action/issues/35),
+            # skip @DockerRequired tests
+            test-args: '-Dgroups=!docker-required'
+            timeout-minutes: 30
+          - runner: windows-latest
+            os-name: windows-x86_64
+            # Windows runners cannot run Linux containers, so skip @DockerRequired tests (as on macOS).
+            test-args: '-Dgroups=!docker-required'
+            # Native image is slowest on Windows; give it more headroom.
+            timeout-minutes: 45
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: ${{ matrix.timeout-minutes || 30 }}
+    # The build steps are bash scripts. Git Bash is available on all three runners
+    # (including windows-latest), so run every step with bash for a single script per OS.
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Use JDK 25 (latest) instead of JDK 23 (release default) to catch
+      # forward-compatibility issues with GraalVM/native-image early in PRs.
+      - name: Set up GraalVM
+        uses: graalvm/setup-graalvm@27b360dbb857524eaf0b4c4cef364d38e5b4f173 # v1
+        with:
+          java-version: '25'
+          distribution: 'graalvm-community'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Job reports make setup-graalvm export
+          # NATIVE_IMAGE_OPTIONS=-H:BuildOutputJSONFile=<RUNNER_TEMP>/native-image-build-output.json,
+          # which registers that file as a build artifact. On windows-latest RUNNER_TEMP is on C:
+          # while the workspace is on D:, and BuildArtifactsExporter relativizes every artifact
+          # against the image output directory -- across drives that throws "'other' has different
+          # root" and fails the build after the image is already built. Platforms with a single
+          # filesystem root cannot hit this, so keep the reports everywhere except Windows.
+          native-image-job-reports: ${{ matrix.os-name != 'windows-x86_64' }}
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: build-artifacts-${{ inputs.image-tag }}
+          path: .
+
+      - name: Install Pre-built Artifacts to Maven Repository
+        run: |
+          # github.workspace is a backslash path on windows-latest ("D:\a\repo\repo"), and these
+          # steps run under bash, which would eat the backslashes as escapes. Quote every expansion
+          # of it -- Maven accepts the resulting mixed separators on Windows.
+          VERSION=$(./mvnw -s "${{ github.workspace }}/.github/ci-settings.xml" help:evaluate -Dexpression=project.version -q -DforceStdout)
+
+          # Install parent POM
+          ./mvnw -s "${{ github.workspace }}/.github/ci-settings.xml" install:install-file -B -Dfile=pom.xml -DpomFile=pom.xml
+
+          # Install each dependency module
+          for module_path in \
+            config-index/definitions:apicurio-registry-config-definitions \
+            common:apicurio-registry-common \
+            schema-util/common:apicurio-registry-schema-util-common \
+            java-sdk/common:apicurio-registry-java-sdk-common \
+            java-sdk/adapter-vertx:apicurio-registry-java-sdk-adapter-vertx \
+            java-sdk/adapter-jdk:apicurio-registry-java-sdk-adapter-jdk \
+            java-sdk/client:apicurio-registry-java-sdk; do
+
+            dir="${module_path%%:*}"
+            artifact="${module_path##*:}"
+
+            ./mvnw -s "${{ github.workspace }}/.github/ci-settings.xml" install:install-file -B \
+              -Dfile="${dir}/target/${artifact}-${VERSION}.jar" \
+              -DpomFile="${dir}/pom.xml"
+          done
+
+      - name: Build and Test CLI
+        run: |
+          # -Dquarkus.native.container-build=false: use locally installed GraalVM (not Docker-based native build)
+          # matrix.test-args: per-OS test config (Linux uses Docker-based tests, macOS skips them)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # -Dmaven.wagon.http*: limit concurrent HTTP connections and retry on transient download failures
+          ./mvnw -s "${{ github.workspace }}/.github/ci-settings.xml" verify -pl cli \
+            --no-transfer-progress \
+            -Dquarkus.native.container-build=false \
+            ${{ matrix.test-args }} \
+            -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop \
+            -Dmaven.wagon.httpconnectionManager.maxTotal=30 \
+            -Dmaven.wagon.http.retryHandler.count=5
+
+      - name: Verify Native Binary
+        run: |
+          # The binary is "-runner" on Linux/macOS and "-runner.exe" on Windows.
+          binary=$(ls cli/target/apicurio-registry-cli-*-runner.exe 2>/dev/null || true)
+          if [ -z "$binary" ]; then
+            binary=$(ls cli/target/apicurio-registry-cli-*-runner)
+          fi
+          "$binary" --help
+          "$binary" version
+
+      - name: Run CLI Update E2E Tests
+        if: matrix.os-name == 'linux-x86_64'
+        run: |
+          cli/src/test/scripts/test-update.sh
+          cli/src/test/scripts/test-upgrade-from-previous.sh

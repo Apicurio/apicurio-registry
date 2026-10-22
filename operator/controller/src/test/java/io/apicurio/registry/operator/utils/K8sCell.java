@@ -1,0 +1,193 @@
+package io.apicurio.registry.operator.utils;
+
+import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.Status;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.javaoperatorsdk.operator.processing.event.ResourceID;
+import org.awaitility.core.ConditionTimeoutException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import static io.apicurio.registry.utils.Cell.cell;
+import static org.awaitility.Awaitility.await;
+
+/**
+ * One-item non-thread-safe cache-like container that can be used to read and update a Kubernetes resource.
+ */
+public class K8sCell<T extends HasMetadata> {
+
+    private static final Logger log = LoggerFactory.getLogger(K8sCell.class);
+
+    private final KubernetesClient client;
+
+    private T cachedValue;
+
+    private final Supplier<T> initialReader;
+
+    public static <T extends HasMetadata> K8sCell<T> k8sCell(KubernetesClient client, Supplier<T> initialReader) {
+        return new K8sCell<>(client, initialReader);
+    }
+
+    /**
+     * Create is deferred until the first {@link #get()}, {@link #getCached()}, or {@link #getOptional()}
+     * call. A {@link KubernetesClientException} from the POST (e.g. 409 on an existing object) propagates
+     * unchanged, so it cannot be mistaken for a later read of a missing resource.
+     */
+    public static <T extends HasMetadata> K8sCell<T> k8sCellCreate(KubernetesClient client, Supplier<T> initialCreator) {
+        return new K8sCell<>(client, () -> {
+            T r = initialCreator.get();
+            return client.resource(r).create();
+        });
+    }
+
+    private K8sCell(KubernetesClient client, Supplier<T> initialReader) {
+        this.client = client;
+        this.initialReader = initialReader;
+    }
+
+    public Optional<T> getOptional() {
+        if (cachedValue == null) {
+            cachedValue = initialReader.get();
+        } else {
+            cachedValue = client.resource(cachedValue).get();
+        }
+        return Optional.ofNullable(cachedValue);
+    }
+
+    public T get() {
+        return getOptional().orElseThrow(() -> new IllegalStateException("Kubernetes resource does not exist."));
+    }
+
+    public T getCached() {
+        if (cachedValue == null) {
+            cachedValue = initialReader.get();
+        }
+        if (cachedValue == null) {
+            throw new IllegalStateException("Kubernetes resource does not exist.");
+        }
+        return cachedValue;
+    }
+
+    public void update(Consumer<T> updater) {
+        var first = cell(true);
+        await().atMost(Duration.ofSeconds(30)).until(() -> {
+            try {
+                if (first.get()) {
+                    getCached();
+                    first.set(false);
+                } else {
+                    get();
+                }
+                updater.accept(cachedValue);
+                cachedValue = client.resource(cachedValue).update();
+                return true;
+            } catch (KubernetesClientException ex) {
+                if (isConflict(ex) || isRetryableTimeout(ex)) {
+                    log.info("Retrying update of {} because of a Kubernetes client exception: {}",
+                            ResourceID.fromResource(cachedValue), ex.getMessage());
+                    return false;
+                } else {
+                    throw ex;
+                }
+            }
+        });
+    }
+
+    /**
+     * Deletes the resource and waits for it to disappear. If it is still present after
+     * {@code gracefulTimeout} (e.g. blocked by a finalizer), force-clears its finalizers and
+     * waits again up to {@code forceTimeout}. A no-op if the resource does not exist, whether that
+     * is discovered before the delete call or via a 404 from the delete call itself (a benign race
+     * with another process deleting the same resource first).
+     * <p>
+     * Both waits poll through transient read failures (see {@link #isTransient}), which are expected
+     * while a resource is torn down. Anything else, such as a 403, fails the wait at once rather
+     * than surfacing as a timeout. A resource that is already absent reads as {@code null}, not as
+     * an exception.
+     */
+    public void delete(Duration gracefulTimeout, Duration forceTimeout) {
+        var current = getOptional();
+        if (current.isEmpty()) {
+            return;
+        }
+        try {
+            client.resource(current.get()).delete();
+        } catch (KubernetesClientException ex) {
+            if (ex.getCode() == 404) {
+                return;
+            }
+            throw ex;
+        }
+        try {
+            await().atMost(gracefulTimeout).ignoreExceptionsMatching(K8sCell::isTransient)
+                    .until(() -> getOptional().isEmpty());
+        } catch (ConditionTimeoutException ex) {
+            log.warn("Timed out waiting for graceful deletion of {}, force-removing finalizers",
+                    ResourceID.fromResource(current.get()));
+            await().atMost(forceTimeout).ignoreExceptionsMatching(K8sCell::isTransient)
+                    .until(this::clearFinalizersUntilGone);
+        }
+    }
+
+    /**
+     * One poll of the forced deletion: true once the resource is gone, otherwise clears any
+     * finalizers it still carries. A 404 or a conflict on the patch is not an error here: the
+     * resource either disappeared or changed since it was read, and the next poll re-reads it.
+     */
+    private boolean clearFinalizersUntilGone() {
+        var resource = getOptional();
+        if (resource.isEmpty()) {
+            return true;
+        }
+        var finalizers = resource.get().getMetadata().getFinalizers();
+        if (finalizers != null && !finalizers.isEmpty()) {
+            resource.get().getMetadata().setFinalizers(List.of());
+            try {
+                client.resource(resource.get()).patch();
+            } catch (KubernetesClientException ex) {
+                if (ex.getCode() != 404 && !isConflict(ex)) {
+                    throw ex;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Read failures worth polling through while a resource is torn down: client-side timeouts,
+     * API server errors and throttling.
+     */
+    static boolean isTransient(Throwable t) {
+        return t instanceof KubernetesClientException ex
+                && (isRetryableTimeout(ex) || ex.getCode() >= 500 || ex.getCode() == 429);
+    }
+
+    /**
+     * HTTP 409 or Status.reason Conflict — the Fabric8-idiomatic conflict check used by
+     * OperatorErrorConditionManager and requested for OLM InstallPlan retries.
+     */
+    static boolean isConflict(KubernetesClientException ex) {
+        if (ex.getCode() == 409) {
+            return true;
+        }
+        Status status = ex.getStatus();
+        return status != null && "Conflict".equals(status.getReason());
+    }
+
+    /**
+     * Client-side / message-signaled timeouts. Fabric8 often surfaces these as
+     * {@link KubernetesClientException} with {@code getCode() == -1} and "timeout" in the message,
+     * not as HTTP 408.
+     */
+    static boolean isRetryableTimeout(KubernetesClientException ex) {
+        String message = ex.getMessage();
+        return message != null && message.contains("timeout");
+    }
+}

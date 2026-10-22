@@ -1,0 +1,13 @@
+{
+  "name": "untyped_output_tool",
+  "description": "outputSchema omits 'type', which the registry's MCP tool schema does not require",
+  "inputSchema": {
+    "type": "object"
+  },
+  "outputSchema": {
+    "properties": {
+      "total": { "type": "integer" }
+    },
+    "required": ["total"]
+  }
+}

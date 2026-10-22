@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+  <head>
+    <meta charset="utf-8">
+    <title>Apicurio Registry APIs</title>
+    <base href="/">
+    <link rel="icon" type="image/svg+xml" href="resources/images/favicon.ico">
+    <link rel="stylesheet" type="text/css" href="resources/css/apidocs.css" >
+  </head>
+
+  <body class="root">
+    <div class="apidocs-header">
+      <span class="title">(API Documentation)</span>
+    </div>
+    <div class="apidocs-subheader">
+      <span>Supported API Listing</span>
+    </div>
+    <div class="apidocs-body">
+      <div class="apidocs-listing">
+
+        <!-- Apicurio Registry API (v3) -->
+        <div class="apidocs-api default">
+          <div class="name">Core Registry API (Version 3)</div>
+          <div class="description">
+            The primary API for accessing Apicurio Registry.  This is the most recent API and is preferred for all use-cases.  All
+            other APIs are supported for compatibility purposes only.
+          </div>
+          <div class="endpoint">
+            <a href="apis/registry/v3" class="url"><code>/apis/registry/v3</code></a>
+          </div>
+        </div>
+
+        <!-- Apicurio Registry API (v2) -->
+        <div class="apidocs-api">
+          <div class="name">Core Registry API (Version 2)</div>
+          <div class="description">
+            The primary API for accessing Apicurio Registry.  This is the previous major version release of the core API and 
+            should now be considered deprecated.  Please upgrade to using version 3 of the core API as soon as possible.
+          </div>
+          <div class="endpoint">
+            <a href="apis/registry/v2" class="url"><code>/apis/registry/v2</code></a>
+          </div>
+        </div>
+
+        <!-- Confluent Compatible API (v7) -->
+        <div class="apidocs-api">
+          <div class="name">Confluent Schema Registry API (Version 7)</div>
+          <div class="description">
+            To provide compatibility with Confluent Serdes (and other clients), Apicurio Registry implements the API defined by
+            the Confluent Schema Registry.  Use this endpoint if your tooling is compatible with v7 of that API.  This is only
+            provided for compatibility purposes, the core Registry API should be used instead when possible.
+          </div>
+          <div class="endpoint">
+            <a href="apis/ccompat/v7" class="url"><code>/apis/ccompat/v7</code></a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </body>
+</html>

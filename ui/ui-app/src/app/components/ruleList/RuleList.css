@@ -1,0 +1,30 @@
+.rule-list {
+    border-top: 1px solid var(--pf-t--global--border--color--default, #ccc);
+    width: 100%;
+    background-color: var(--registry-card-bg, white);
+}
+
+.rule {
+    padding: 25px;
+    min-width: 0;
+    border-bottom: 1px solid var(--pf-t--global--border--color--default, #ccc);
+}
+
+.rule .rule-icon {
+    margin-right: 5px;
+}
+
+.rule.disabled-state-text .rule-name, .rule.disabled-state-text .rule-description, .rule.disabled-state-text .rule-icon, .rule.disabled-state-text .rule-value {
+    color: var(--pf-t--global--text--color--disabled, rgb(106, 110, 115));
+}
+
+.rule .rule-description {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.rule .rule-actions {
+    display: inline;
+    white-space: nowrap;
+}

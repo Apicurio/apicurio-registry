@@ -1,0 +1,104 @@
+package io.apicurio.registry.openapi.content.dereference;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.apitomy.datamodels.Library;
+import io.apitomy.datamodels.TraverserDirection;
+import io.apitomy.datamodels.models.Document;
+import io.apitomy.datamodels.util.ModelTypeUtil;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.content.util.ContentTypeUtil;
+
+import java.io.IOException;
+import java.util.Locale;
+import java.util.Map;
+
+public class ApicurioDataModelsContentDereferencer implements ContentDereferencer {
+
+    @Override
+    public TypedContent dereference(TypedContent content, Map<String, TypedContent> resolvedReferences) {
+        try {
+            JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
+            Document doc = Library.readDocument((ObjectNode) node);
+            RegistryReferenceResolver resolver = new RegistryReferenceResolver(resolvedReferences);
+            if (ModelTypeUtil.isAsyncApi2Model(doc)) {
+                // 2.x message payloads are raw JSON that the library does not dereference
+                Library.visitTree(doc, new AsyncApi2PayloadInliner(resolver), TraverserDirection.down);
+            }
+            Document dereferencedDoc = Library.dereferenceDocument(doc, resolver, false);
+
+            // An inlined schema may be shared by several wrappers, but the resolver only sees the first one.
+            // Make every wrapper pointing at an inlined Avro/Protobuf schema carry a versioned schemaFormat.
+            ObjectNode dereferencedNode = Library.writeDocument(dereferencedDoc);
+            if (AsyncApiSchemaFormats.normalizeVersionless(dereferencedNode)) {
+                dereferencedDoc = Library.readDocument(dereferencedNode);
+            }
+
+            // Preserve the original content format (YAML or JSON)
+            String dereferencedContent = writeDocumentPreservingFormat(dereferencedDoc, content.getContentType());
+            return TypedContent.create(ContentHandle.create(dereferencedContent), content.getContentType());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.content.dereference.ContentDereferencer#rewriteReferences(io.apicurio.registry.content.TypedContent,
+     *      java.util.Map)
+     */
+    @Override
+    public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {
+        try {
+            JsonNode node = ContentTypeUtil.parseJsonOrYaml(content);
+            Document doc = Library.readDocument((ObjectNode) node);
+            ReferenceRewriter visitor = new ReferenceRewriter(resolvedReferenceUrls);
+            Library.visitTree(doc, visitor, TraverserDirection.down);
+
+            // Preserve the original content format (YAML or JSON)
+            String rewrittenContent = writeDocumentPreservingFormat(doc, content.getContentType());
+            return TypedContent.create(ContentHandle.create(rewrittenContent), content.getContentType());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * Writes a document to a string, preserving the original content format (YAML or JSON).
+     *
+     * @param doc the document to write
+     * @param originalContentType the original content type
+     * @return the document as a string in the appropriate format
+     * @throws IOException if an error occurs during conversion
+     */
+    private String writeDocumentPreservingFormat(Document doc, String originalContentType)
+            throws IOException {
+        // Convert document to JSON string first (this is what the Library supports)
+        String jsonString = Library.writeDocumentToJSONString(doc);
+
+        // If the original content was YAML, convert the JSON back to YAML
+        if (isYamlContentType(originalContentType)) {
+            ObjectMapper jsonMapper = new ObjectMapper();
+            ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+            JsonNode jsonNode = jsonMapper.readTree(jsonString);
+            return yamlMapper.writeValueAsString(jsonNode);
+        }
+
+        // Otherwise, return as JSON
+        return jsonString;
+    }
+
+    /**
+     * Determines if the given content type represents YAML format.
+     *
+     * @param contentType the content type to check
+     * @return true if the content type is YAML, false otherwise
+     */
+    private boolean isYamlContentType(String contentType) {
+        String lc = contentType != null ? contentType.toLowerCase(Locale.ROOT) : null;
+        return lc != null && (lc.contains("yaml") || lc.contains("yml"));
+    }
+}

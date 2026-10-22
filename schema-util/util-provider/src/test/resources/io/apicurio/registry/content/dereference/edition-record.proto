@@ -1,0 +1,7 @@
+edition = "2023";
+
+package com.example;
+
+message EditionRecord {
+    string record_id = 1;
+}

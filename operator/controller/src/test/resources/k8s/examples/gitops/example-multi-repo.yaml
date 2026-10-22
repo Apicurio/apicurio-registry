@@ -1,0 +1,38 @@
+# GitOps Multi-Repo (HTTPS)
+#
+# Aggregates schemas from two Git repositories (branches) into a single
+# registry instance. Each repo is cloned into its own directory.
+#
+# - Platform team (main branch): registry config, common schemas
+# - Fulfillment team (fulfillment branch): fulfillment-specific schemas
+#
+# Steps:
+#   1. Deploy:
+#      kubectl apply -f example-multi-repo.yaml
+#
+#   2. Verify:
+#      kubectl port-forward svc/gitops-multi-repo-app-service 8080:8080
+#      curl http://localhost:8080/apis/registry/v3/groups
+#
+# For local Docker Compose deployment, see: examples/gitops/multi-repo-pull-https/
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: gitops-multi-repo
+spec:
+  app:
+    storage:
+      type: gitops
+      gitops:
+        repos:
+          - url: https://github.com/Apicurio/apicurio-registry-gitops-example.git
+            dir: platform
+          - url: https://github.com/Apicurio/apicurio-registry-gitops-example.git
+            branch: fulfillment
+            dir: fulfillment
+        registryId: prod
+    ingress:
+      host: gitops-multi-repo-app.apps.cluster.example
+  ui:
+    ingress:
+      host: gitops-multi-repo-ui.apps.cluster.example

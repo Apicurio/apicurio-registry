@@ -1,0 +1,84 @@
+import { FunctionComponent, useEffect, useRef, useMemo } from "react";
+import { ConfigService, useConfigService } from "@services/useConfigService.ts";
+import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { deriveOrigin } from "@utils/url.utils.ts";
+
+export type OpenApiVisualizerProps = {
+    spec: any;
+    className?: string;
+};
+
+
+export const OpenApiVisualizer: FunctionComponent<OpenApiVisualizerProps> = (props: OpenApiVisualizerProps) => {
+    const config: ConfigService = useConfigService();
+    const logger: LoggerService = useLoggerService();
+    const ref = useRef<HTMLIFrameElement>(null);
+    const iframeLoaded = useRef<boolean>(false);
+
+    const oaiDocsUrl = (): string => {
+        let rval: string = config.uiOaiDocsUrl() || "/docs";
+        if (rval.startsWith("/")) {
+            rval = window.location.origin + rval;
+        }
+        return rval;
+    };
+
+    logger.info("[OpenApiVisualizer] OAI docs URL: ", oaiDocsUrl());
+
+    const expectedOrigin = useMemo(() => {
+        return deriveOrigin(oaiDocsUrl(), window.location.origin);
+    }, [config]);
+
+    const sendSpecToIframe = (spec: Record<string, unknown>): void => {
+        if (ref.current?.contentWindow) {
+            const message = {
+                type: "apicurio-docs-render",
+                data: {
+                    contentType: "OPENAPI",
+                    content: spec
+                }
+            };
+            if (expectedOrigin) {
+                ref.current.contentWindow.postMessage(message, expectedOrigin);
+            }
+        }
+    };
+
+    const onIframeLoaded = (): void => {
+        iframeLoaded.current = true;
+        sendSpecToIframe(props.spec);
+    };
+
+    // Listen for "ready" signal from the iframe and send the spec in response.
+    // This handles the race where the iframe's onLoad fires before the iframe's
+    // message listener is set up, causing the initial postMessage to be lost.
+    useEffect(() => {
+        const handler = (evt: MessageEvent): void => {
+            if (!expectedOrigin || evt.origin !== expectedOrigin) {
+                return;
+            }
+            if (evt.data?.type === "apicurio-docs-ready" && props.spec && Object.keys(props.spec).length > 0) {
+                sendSpecToIframe(props.spec);
+            }
+        };
+        window.addEventListener("message", handler);
+        return () => window.removeEventListener("message", handler);
+    }, [props.spec]);
+
+    // Re-send the spec when it changes after the iframe has already loaded.
+    useEffect(() => {
+        if (iframeLoaded.current && props.spec && Object.keys(props.spec).length > 0) {
+            sendSpecToIframe(props.spec);
+        }
+    }, [props.spec]);
+
+    return (
+        <iframe id="openapi-editor-frame"
+            ref={ ref }
+            style={{ width: "100%", flex: 1, minHeight: 0, border: "none" }}
+            className={ props.className ? props.className : "openapi-docs-container" }
+            onLoad={ onIframeLoaded }
+            src={ oaiDocsUrl() } />
+    );
+
+};

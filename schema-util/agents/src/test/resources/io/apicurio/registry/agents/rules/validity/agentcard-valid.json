@@ -1,0 +1,20 @@
+{
+  "name": "TestAgent",
+  "description": "A test AI agent for unit testing",
+  "version": "1.0.0",
+  "protocolVersion": "1.0",
+  "supportedInterfaces": [
+    { "url": "https://example.com/agents/test-agent", "protocolBinding": "http+json", "protocolVersion": "1.0" }
+  ],
+  "provider": { "organization": "Test Corp", "url": "https://example.com" },
+  "capabilities": { "streaming": true, "pushNotifications": false },
+  "skills": [
+    { "id": "analysis", "name": "Data Analysis", "description": "Analyze data", "tags": ["analytics", "data"] },
+    { "id": "reporting", "name": "Report Generation", "description": "Generate reports", "tags": ["reporting"] }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"],
+  "securitySchemes": {
+    "bearer": { "type": "httpAuth", "scheme": "Bearer" }
+  }
+}

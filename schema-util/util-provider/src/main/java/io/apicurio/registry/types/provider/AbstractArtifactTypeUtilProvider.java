@@ -1,0 +1,122 @@
+package io.apicurio.registry.types.provider;
+
+import io.apicurio.registry.content.ContentAccepter;
+import io.apicurio.registry.content.canon.ContentCanonicalizer;
+import io.apicurio.registry.content.dereference.ContentDereferencer;
+import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.NoopStructuredContentExtractor;
+import io.apicurio.registry.content.extract.StructuredContentExtractor;
+import io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor;
+import io.apicurio.registry.content.refs.ReferenceFinder;
+import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
+import io.apicurio.registry.rules.validity.ContentValidator;
+
+public abstract class AbstractArtifactTypeUtilProvider implements ArtifactTypeUtilProvider {
+
+    private volatile ContentAccepter contentAccepter;
+    private volatile CompatibilityChecker compatibilityChecker;
+    private volatile ContentCanonicalizer contentCanonicalizer;
+    private volatile ContentValidator contentValidator;
+    private volatile ContentExtractor contentExtractor;
+    private volatile ContentDereferencer contentDereferencer;
+    private volatile ReferenceFinder referenceFinder;
+    private volatile ReferenceArtifactIdentifierExtractor referenceArtifactIdentifierExtractor;
+    private volatile StructuredContentExtractor structuredContentExtractor;
+
+    @Override
+    public ContentAccepter getContentAccepter() {
+        if (contentAccepter == null) {
+            contentAccepter = createContentAccepter();
+        }
+        return contentAccepter;
+    }
+
+    protected abstract ContentAccepter createContentAccepter();
+
+    public void setCompatibilityChecker(CompatibilityChecker checker) {
+        this.compatibilityChecker = checker;
+    }
+
+    @Override
+    public CompatibilityChecker getCompatibilityChecker() {
+        if (compatibilityChecker == null) {
+            compatibilityChecker = createCompatibilityChecker();
+        }
+        return compatibilityChecker;
+    }
+
+    protected abstract CompatibilityChecker createCompatibilityChecker();
+
+    @Override
+    public ContentCanonicalizer getContentCanonicalizer() {
+        if (contentCanonicalizer == null) {
+            contentCanonicalizer = createContentCanonicalizer();
+        }
+        return contentCanonicalizer;
+    }
+
+    protected abstract ContentCanonicalizer createContentCanonicalizer();
+
+    @Override
+    public ContentValidator getContentValidator() {
+        if (contentValidator == null) {
+            contentValidator = createContentValidator();
+        }
+        return contentValidator;
+    }
+
+    protected abstract ContentValidator createContentValidator();
+
+    @Override
+    public ContentExtractor getContentExtractor() {
+        if (contentExtractor == null) {
+            contentExtractor = createContentExtractor();
+        }
+        return contentExtractor;
+    }
+
+    protected abstract ContentExtractor createContentExtractor();
+
+    @Override
+    public ContentDereferencer getContentDereferencer() {
+        if (contentDereferencer == null) {
+            contentDereferencer = createContentDereferencer();
+        }
+        return contentDereferencer;
+    }
+
+    protected abstract ContentDereferencer createContentDereferencer();
+
+    @Override
+    public ReferenceFinder getReferenceFinder() {
+        if (referenceFinder == null) {
+            referenceFinder = createReferenceFinder();
+        }
+        return referenceFinder;
+    }
+
+    protected abstract ReferenceFinder createReferenceFinder();
+
+    @Override
+    public ReferenceArtifactIdentifierExtractor getReferenceArtifactIdentifierExtractor() {
+        if (referenceArtifactIdentifierExtractor == null) {
+            referenceArtifactIdentifierExtractor = createReferenceArtifactIdentifierExtractor();
+        }
+        return referenceArtifactIdentifierExtractor;
+    }
+
+    protected abstract ReferenceArtifactIdentifierExtractor createReferenceArtifactIdentifierExtractor();
+
+    @Override
+    public StructuredContentExtractor getStructuredContentExtractor() {
+        if (structuredContentExtractor == null) {
+            structuredContentExtractor = createStructuredContentExtractor();
+        }
+        return structuredContentExtractor;
+    }
+
+    protected StructuredContentExtractor createStructuredContentExtractor() {
+        return NoopStructuredContentExtractor.INSTANCE;
+    }
+
+}

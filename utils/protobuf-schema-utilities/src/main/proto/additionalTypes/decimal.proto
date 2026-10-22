@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package additionalTypes;
+
+option java_package = "additionalTypes";
+option java_outer_classname = "Decimals";
+
+
+// Protobuf standard library / WellKnownTypes don't provide a Decimal type.
+// This posses a challenge to represent Decimals that cannot be accurately represented
+// using float or double types.
+// Related issue: https://github.com/protocolbuffers/protobuf/issues/4406
+message Decimal {
+
+  // The whole units of the Decimal.
+  // This has to be a whole positive or negative or zero
+  // Ex: Units for -89.567800 will be -89
+  int64 units = 1;
+
+  // Number of nano (10^9) units of the amount.
+  // The value must be between -999,999,999 and +999,999,999 inclusive.
+  // If `units` is positive, `fraction` must be positive or zero.
+  // If `units` is zero, `fraction` can be positive, zero, or negative.
+  // If `units` is negative, `fraction` must be negative or zero.
+  // Ex: -89.5678000 is represented as `units`=-89 and `fraction`=-567,800,000 (-0.567800 * 10^9)
+  int32 fraction = 2;
+
+  // Represents the precision for the Decimal
+  // Precision can only be a positive integer.
+  // Ex: -89.567800 has precision of 8
+  uint32 precision = 3;
+
+  // Represents the scale for the Decimal
+  // Scale can be positive, zero or negative.
+  // Ex: -89.567800 has scale of 6
+  // -89.567800 represented with scale=0 is -89
+  // -89.567800 represented with scale=-1 is -80
+  int32 scale = 4;
+}

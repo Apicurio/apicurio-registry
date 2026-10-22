@@ -1,0 +1,16 @@
+{
+    "type": "struct",
+    "fields": [
+        {
+            "type": "string",
+            "optional": false,
+            "field": "bar"
+        },
+        {
+            "type": "string",
+            "optional": true,
+            "field": "foo"
+        }
+    ],
+    "optional": false
+}

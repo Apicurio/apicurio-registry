@@ -1,0 +1,30 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-kafkasql-tls
+spec:
+  app:
+    env:
+      - name: QUARKUS_LOG_LEVEL
+        value: DEBUG
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "<service name>.<namespace>.svc:9093"
+        # Try using Strimzi/Red Hat AMQ Streams Operator!
+        auth:
+          enabled: true
+          mechanism: "OAUTHBEARER"
+          clientIdRef:
+            name: client-credentials
+            key: clientId
+          clientSecretRef:
+            name: client-credentials
+            key: clientSecret
+          tokenEndpoint: http://keycloak:8080/realms/registry/protocol/openid-connect/token
+          loginHandlerClass: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+    ingress:
+      host: example-kafkasql-tls-app.apps.cluster.example
+  ui:
+    ingress:
+      host: example-kafkasql-tls-ui.apps.cluster.example

@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package io.apicurio.registry.utils.protobuf.schema.syntax3;
+
+import "google/protobuf/api.proto";
+import "google/protobuf/field_mask.proto";
+import "google/protobuf/source_context.proto";
+import "google/protobuf/type.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/duration.proto";
+import "google/type/money.proto";
+import "google/type/date.proto";
+import "google/type/timeofday.proto";
+import "google/type/calendar_period.proto";
+import "google/type/color.proto";
+import "google/type/latlng.proto";
+import "google/type/fraction.proto";
+import "google/type/dayofweek.proto";
+import "google/type/phone_number.proto";
+import "google/type/postal_address.proto";
+import "google/type/localized_text.proto";
+import "google/type/month.proto";
+import "google/type/interval.proto";
+import "google/type/expr.proto";
+import "google/type/quaternion.proto";
+
+message WellKnownTypesSyntax3 {
+  int32 a = 100;
+  string bg = 101;
+  float floating = 102;
+
+  google.protobuf.Any f18 = 18;
+  google.protobuf.BoolValue f24 = 24;
+  google.protobuf.BytesValue f25 = 25;
+  google.protobuf.DoubleValue f26 = 26;
+  google.protobuf.Duration f5 = 5;
+  google.protobuf.Empty f4 = 4;
+  google.protobuf.FloatValue f3 = 3;
+  google.protobuf.Int32Value f27 = 27;
+  google.protobuf.Int64Value f28 = 28;
+  google.protobuf.ListValue f22 = 22;
+  google.protobuf.NullValue f29 = 29;
+  google.protobuf.StringValue f2 = 2;
+  google.protobuf.Struct f33 = 33;
+  google.protobuf.Timestamp f1 = 1;
+  google.protobuf.UInt32Value f34 = 34;
+  google.protobuf.UInt64Value f35 = 35;
+  google.protobuf.Value f36 = 36;
+  google.protobuf.Api f37 = 37;
+  google.protobuf.FieldMask f38 = 38;
+  google.protobuf.SourceContext f39 = 39;
+  google.protobuf.Type f41 = 41;
+  google.protobuf.Enum f42 = 42;
+  google.protobuf.EnumValue f43 = 43;
+  google.protobuf.Field f44 = 44;
+  google.protobuf.Field.Cardinality f45 = 45;
+  google.protobuf.Field.Kind f46 = 46;
+  google.protobuf.Method f47 = 47;
+  google.protobuf.Mixin f48 = 48;
+  google.protobuf.Option f49 = 49;
+  google.protobuf.Syntax f50 = 50;
+
+  google.type.Money f6 = 6;
+  google.type.Date f7 = 7;
+  google.type.TimeOfDay f8 = 8;
+  google.type.CalendarPeriod f9 = 9;
+  google.type.Color f10 = 10;
+  google.type.DayOfWeek f11 = 11;
+  google.type.LatLng f12 = 12;
+  google.type.Fraction f13 = 13;
+  google.type.Month f14 = 14;
+  google.type.PhoneNumber f15 = 15;
+  google.type.PostalAddress f16 = 16;
+  google.type.LocalizedText f17 = 17;
+  google.type.Interval f19 = 19;
+  google.type.Expr f20 = 20;
+  google.type.Quaternion f21 = 21;
+}

@@ -1,0 +1,17 @@
+{
+  "name": "draft07_tool",
+  "description": "inputSchema declares draft-07 and uses tuple-form 'items', which draft-07 allows and 2020-12 does not",
+  "inputSchema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+      "coordinate": {
+        "type": "array",
+        "items": [
+          { "type": "string" },
+          { "type": "integer" }
+        ]
+      }
+    }
+  }
+}

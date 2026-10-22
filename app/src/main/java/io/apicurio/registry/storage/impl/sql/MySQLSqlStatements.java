@@ -1,0 +1,125 @@
+package io.apicurio.registry.storage.impl.sql;
+
+/**
+ * MySQL implementation of the sql statements interface. Provides sql statements that are specific to MySQL,
+ * where applicable.
+ */
+public class MySQLSqlStatements extends CommonSqlStatements {
+
+    /**
+     * Constructor.
+     */
+    public MySQLSqlStatements() {
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#dbType()
+     */
+    @Override
+    public String dbType() {
+        return "mysql";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isPrimaryKeyViolation(java.lang.Exception)
+     */
+    @Override
+    public boolean isPrimaryKeyViolation(Exception error) {
+        return error.getMessage().contains("Duplicate entry");
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#isForeignKeyViolation(java.lang.Exception)
+     */
+    @Override
+    public boolean isForeignKeyViolation(Exception error) {
+        return error.getMessage().contains("foreign key constraint fails");
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
+     */
+    @Override
+    public String getNextSequenceValue() {
+        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, 1) ON DUPLICATE KEY UPDATE seqValue = seqValue + 1";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
+     */
+    @Override
+    public String resetSequenceValue() {
+        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?) ON DUPLICATE KEY UPDATE seqValue = ?";
+    }
+
+    @Override
+    public String upsertBranch() {
+        return """
+                INSERT INTO branches (groupId, artifactId, branchId, description, systemDefined, owner, createdOn, modifiedBy, modifiedOn)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE groupId=VALUES(groupId)
+                """;
+    }
+
+    @Override
+    public String upsertConfigProperty() {
+        return "INSERT INTO config (propName, propValue, modifiedOn) VALUES (?, ?, ?) "
+                + "ON DUPLICATE KEY UPDATE propValue = VALUES(propValue), modifiedOn = VALUES(modifiedOn)";
+    }
+
+    @Override
+    public String selectCountTableTemplate(String countBy, String tableName, String alias,
+            String whereClause) {
+        return super.selectCountTableTemplate(countBy, "`" + tableName + "`", alias, whereClause);
+    }
+
+    @Override
+    public String selectTableTemplate(String columns, String tableName, String alias, String whereClause,
+            String orderBy) {
+        return super.selectTableTemplate(columns, "`" + tableName + "`", alias, whereClause, orderBy);
+    }
+
+    @Override
+    public String groupsTable() {
+        return "`groups`";
+    }
+
+    @Override
+    public String createDataSnapshot() {
+        throw new IllegalStateException("Snapshot creation is not supported for MySQL storage");
+    }
+
+    @Override
+    public String restoreFromSnapshot() {
+        throw new IllegalStateException("Restoring from snapshot is not supported for MySQL storage");
+    }
+
+    @Override
+    public String selectArtifactUsageMetrics() {
+        return "SELECT v.version, su.globalId, COUNT(*) AS totalFetches, "
+                + "COUNT(DISTINCT su.clientId) AS uniqueClients, "
+                + "MIN(su.eventTimestamp) AS firstFetchedOn, MAX(su.eventTimestamp) AS lastFetchedOn, "
+                + "GROUP_CONCAT(DISTINCT su.clientId SEPARATOR ',') AS clientList "
+                + "FROM schema_usage su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
+                + "WHERE v.groupId = ? AND v.artifactId = ? "
+                + "GROUP BY v.globalId, v.version, v.versionOrder ORDER BY v.versionOrder";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#acquireInitLock()
+     */
+    @Override
+    public String acquireInitLock() {
+        // Use MySQL GET_LOCK with 30 second timeout
+        // Returns 1 if lock acquired, 0 if timeout, NULL on error
+        return "SELECT GET_LOCK('apicurio_init_lock', 30)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#releaseInitLock()
+     */
+    @Override
+    public String releaseInitLock() {
+        return "SELECT RELEASE_LOCK('apicurio_init_lock')";
+    }
+}

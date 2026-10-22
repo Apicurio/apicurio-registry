@@ -1,0 +1,16 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-kubernetesops-basic
+spec:
+  app:
+    storage:
+      type: kubernetesops
+      kubernetesops:
+        registryId: my-registry
+        namespace: apicurio
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com

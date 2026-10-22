@@ -1,0 +1,24 @@
+{
+  "type": "record",
+  "name": "LegalRepresentatives",
+  "doc": "Legal representatives for the order line, containing a.o. the signees and contracting parties",
+  "fields": [
+    {
+      "name": "relationId",
+      "type": {
+        "type": "string",
+        "avro.java.string": "String"
+      },
+      "doc": "RelationId of the Legal representative"
+    },
+    {
+      "name": "legalRepresentatives",
+      "type": [
+        "null",
+        "LegalRepresentatives"
+      ],
+      "doc": "List of sub legalRepresentatives",
+      "default": null
+    }
+  ]
+}

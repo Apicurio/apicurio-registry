@@ -1,0 +1,54 @@
+# IMPORTANT: This resource should only be used for development or testing purposes.
+# PostgreSQL StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: example-postgresql-database
+spec:
+  serviceName: example-postgresql-database-service
+  selector:
+    matchLabels:
+      app: example-postgresql-database
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: example-postgresql-database
+    spec:
+      containers:
+        - name: example-postgresql-database
+          image: quay.io/sclorg/postgresql-15-c9s:latest
+          volumeMounts:
+            - mountPath: /var/lib/pgsql/data
+              name: cache-volume
+          env:
+            - name: POSTGRESQL_USER
+              value: username
+            - name: POSTGRESQL_PASSWORD
+              value: password
+            - name: POSTGRESQL_DATABASE
+              value: apicurio
+      volumes:
+        - name: cache-volume
+          emptyDir: { }
+---
+# PostgreSQL StatefulSet Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: example-postgresql-database
+spec:
+  selector:
+    app: example-postgresql-database
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# PostgreSQL Password Secret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: example-postgresql-database-password
+type: Opaque
+data:
+  password: cGFzc3dvcmQ=

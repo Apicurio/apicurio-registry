@@ -1,0 +1,30 @@
+{
+    "openapi": "3.0.2",
+    "info": {
+        "title": "Referenced Types",
+        "version": "1.0.0",
+        "description": "OpenAPI document containing reusable type definitions"
+    },
+    "paths": {},
+    "components": {
+        "schemas": {
+            "Widget": {
+                "title": "Root Type for Widget",
+                "description": "A simple widget type",
+                "type": "object",
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "description": {
+                        "type": "string"
+                    }
+                },
+                "example": {
+                    "name": "My Widget",
+                    "description": "A sample widget"
+                }
+            }
+        }
+    }
+}

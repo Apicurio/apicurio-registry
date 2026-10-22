@@ -1,0 +1,1 @@
+{"fields":[{"name":"fieldValues","type":{"items":"string","type":"array"}},{"name":"id","type":"string"}],"name":"Test","namespace":"test","type":"record"}

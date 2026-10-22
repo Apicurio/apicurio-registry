@@ -1,0 +1,11 @@
+.ps_settings-header {
+}
+
+.config-property-group {
+    max-width: 848px;
+    margin-bottom: 15px;
+}
+
+.config-property-group .title {
+    border-bottom: 2px solid #eee;
+}

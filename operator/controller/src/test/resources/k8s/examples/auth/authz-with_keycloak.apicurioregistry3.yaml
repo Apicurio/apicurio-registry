@@ -1,0 +1,47 @@
+# IMPORTANT: This example CR uses the in-memory storage for simplicity.
+# This storage type is not supported because it is not suitable for production deployments.
+# Please refer to the PostgreSQL and KafkaSQL examples
+# for information on how to configure a production-ready storage.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: simple-authz
+spec:
+  app:
+    ingress:
+      host: simple-app.apps.cluster.example
+    auth:
+      enabled: true
+      appClientId: registry-api
+      uiClientId: apicurio-registry
+      authServerUrl: https://simple-keycloak.apps.cluster.example/realms/registry
+      redirectUri: https://simple-ui.apps.cluster.example
+      logoutUrl: https://simple-ui.apps.cluster.example
+      authz:
+        enabled: true
+        ownerOnlyEnabled: true
+        groupAccessEnabled: true
+        readAccessEnabled: true
+        roles:
+          source: token
+          admin: admin
+          developer: dev
+          readOnly: read
+        adminOverride:
+          enabled: true
+          from: token
+          type: claim
+          role: admin
+          claimName: test
+          claimValue: test
+      tls:
+        tlsVerificationType: required
+        truststoreSecretRef:
+          name: keycloak-truststore
+          key: truststore
+        truststorePasswordSecretRef:
+          name: keycloak-truststore
+          key: password
+  ui:
+    ingress:
+      host: simple-ui.apps.cluster.example

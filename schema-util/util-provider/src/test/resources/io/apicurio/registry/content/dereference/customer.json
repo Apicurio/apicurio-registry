@@ -1,0 +1,22 @@
+{
+  "$id": "https://test/schemas/CustomerSchema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Customer",
+  "type": "object",
+  "properties": {
+    "customerId": {
+      "type": "string",
+      "description": "A unique identifier for the customer."
+    },
+    "name": {
+      "type": "string",
+      "description": "The full name of the customer."
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "The email address of the customer."
+    }
+  },
+  "required": ["customerId", "name", "email"]
+}

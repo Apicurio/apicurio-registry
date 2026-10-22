@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "eventId": {
+      "type": "string"
+    },
+    "eventName": {
+      "type": "string"
+    },
+    "eventDate": {
+      "type": "string",
+      "format": "date"
+    },
+    "eventDateTime": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "eventTimestamp": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["eventId", "eventName", "eventDate", "eventDateTime", "eventTimestamp"]
+}

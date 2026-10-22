@@ -1,0 +1,9 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: com.example.yaml
+artifactId: hello-api
+artifactType: OPENAPI
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/hello-api.yaml

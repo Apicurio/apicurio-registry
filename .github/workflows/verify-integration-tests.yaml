@@ -1,0 +1,132 @@
+name: Integration Tests
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        type: string
+        default: '21'
+      image-tag:
+        type: string
+        required: true
+        description: 'Docker image tag to test'
+
+permissions:
+  contents: read
+
+jobs:
+  integration-tests:
+    name: Integration Tests (${{ matrix.storage }}-${{ matrix.name || matrix.groups }})
+    runs-on: ubuntu-latest
+    # Fail fast: the longest healthy job (serdes) finishes well under 30 minutes.
+    # Environmental stalls (dead registry pod, network hangs) previously kept jobs
+    # alive for hours; kill them instead of waiting.
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        # 'groups' selects JUnit 5 test tags via -Dgroups. If omitted, pom.xml default is used.
+        # 'name' overrides 'groups' for the job display name when using default groups,
+        # groups contains multiple values or contains special characters.
+        # For single-group entries, name is derived from groups automatically
+        # via ${{ matrix.name || matrix.groups }}.
+        include:
+          # h2 (in-memory) storage
+          - { storage: h2, name: default, remote-profile: remote-mem }
+          - { storage: h2, groups: auth, remote-profile: remote-mem }
+          - { storage: h2, groups: migration, remote-profile: remote-mem }
+          - { storage: h2, name: debezium, groups: 'debezium,debezium-snapshot,debezium-mysql,debezium-mysql-snapshot', remote-profile: remote-mem }
+          - { storage: h2, groups: iceberg, remote-profile: remote-mem }
+          # postgresql storage
+          - { storage: postgresql, name: default, remote-profile: remote-sql }
+          - { storage: postgresql, groups: auth, remote-profile: remote-sql }
+          - { storage: postgresql, groups: migration, remote-profile: remote-sql }
+          # kafkasql storage
+          - { storage: kafkasql, name: default, remote-profile: remote-kafka }
+          - { storage: kafkasql, groups: auth, remote-profile: remote-kafka }
+          - { storage: kafkasql, groups: migration, remote-profile: remote-kafka }
+          - { storage: kafkasql, groups: kafkasql-snapshotting, remote-profile: remote-kafka }
+          # Startup verification (topic config checks, v2/v3 journal reuse) deploys
+          # its own Kafka + registry containers; it does not use the deployed one.
+          # Moved here from utils/extra-tests.
+          - { storage: kafkasql, groups: kafkasql-startup, remote-profile: remote-kafka }
+          # kubernetesops storage
+          - { storage: kubernetesops, groups: kubernetesops, remote-profile: remote-kubernetesops }
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+
+
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        id: minikube-setup
+        continue-on-error: true
+
+      # medyagh/setup-minikube (invoked by the composite action) intermittently
+      # fails with transient HTTP 504s while downloading; one retry absorbs it
+      # instead of failing the whole job.
+      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        if: steps.minikube-setup.outcome == 'failure'
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        with:
+          artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
+          image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
+          minikube: 'true'
+          image-name: 'apicurio/apicurio-registry'
+          tag: '${{ inputs.image-tag }}'
+
+      - name: Run Integration Tests
+        run: |
+          # -Pintegration-tests + -P<remote-profile>: select storage backend (remote-mem, remote-sql, remote-kafka, etc.)
+          # -Dgroups: JUnit 5 test tags filtering (e.g., auth, migration, debezium)
+          # -Dregistry-image: Docker image built by the Build job, loaded into Minikube
+          # -Dfailsafe.rerunFailingTestsCount=1: automatically retry flaky integration tests once
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          # -Djunit.jupiter.execution.timeout.default=10m: fail hung tests fast; environmental stalls
+          #   previously kept a single test running for 30+ minutes (x2 with the flaky rerun)
+          # -Djunit.jupiter.execution.parallel.enabled=true: run test classes concurrently against the
+          #   deployed registry (see integration-tests/src/test/resources/junit-platform.properties)
+          ./mvnw -s ${{ github.workspace }}/.github/ci-settings.xml verify -am --no-transfer-progress \
+            -Pintegration-tests \
+            -P${{ matrix.remote-profile }} \
+            ${{ matrix.groups && format('-Dgroups={0}', matrix.groups) || '' }} \
+            -Dregistry-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
+            -Dregistry3-image=apicurio/apicurio-registry:${{ inputs.image-tag }} \
+            -pl integration-tests \
+            -Dmaven.javadoc.skip=true \
+            -Daether.syncContext.named.factory=noop \
+            -Dfailsafe.rerunFailingTestsCount=1 \
+            -Djunit.jupiter.execution.timeout.default=10m \
+            -Djunit.jupiter.execution.parallel.enabled=true
+
+      - name: Parse Flaky Tests
+        if: always()
+        run: |
+          python3 .github/scripts/parse-flaky-tests.py --reports-dir . --output-file flaky-tests-${{ matrix.storage }}-${{ matrix.name || matrix.groups }}.json
+
+      - name: Upload Flaky Tests Artifact
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: flaky-tests-${{ matrix.storage }}-${{ matrix.name || matrix.groups }}
+          path: flaky-tests-${{ matrix.storage }}-${{ matrix.name || matrix.groups }}.json
+          retention-days: 1
+
+      - name: Collect logs
+        if: failure()
+        run: sh ./.github/scripts/collect_logs.sh
+
+      - name: Upload tests logs artifacts
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: tests-logs-${{ matrix.storage }}-${{ matrix.name || matrix.groups }}
+          path: artifacts

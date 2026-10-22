@@ -1,0 +1,22 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: registry-with-otel
+spec:
+  app:
+    ingress:
+      host: registry.apps.cluster.example
+    # OpenTelemetry observability configuration
+    otel:
+      # Enable OpenTelemetry tracing and metrics
+      enabled: true
+      # OTLP collector endpoint (Jaeger, Grafana Tempo, or OpenTelemetry Collector)
+      endpoint: http://jaeger:4317
+      # Protocol: 'grpc' (default) or 'http/protobuf'
+      protocol: grpc
+      # Trace sampling ratio (0.0-1.0). Recommended for production.
+      # A value of 0.1 means 10% of traces are sampled.
+      traceSamplingRatio: 0.1
+  ui:
+    ingress:
+      host: registry-ui.apps.cluster.example

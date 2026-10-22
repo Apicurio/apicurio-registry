@@ -1,0 +1,47 @@
+{
+  "$schema": "https://apicurio.io/schemas/model-schema/v1",
+  "modelId": "sentiment-analysis-output",
+  "provider": "a2a-demo",
+  "version": "1.0.0",
+  "output": {
+    "type": "object",
+    "required": ["sentiment", "emotions", "urgency"],
+    "properties": {
+      "sentiment": {
+        "type": "string",
+        "enum": ["very_positive", "positive", "neutral", "negative", "very_negative"],
+        "description": "Overall sentiment classification of the customer message"
+      },
+      "emotions": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "List of detected emotions (e.g., frustration, anger, disappointment)"
+      },
+      "urgency": {
+        "type": "string",
+        "enum": ["low", "medium", "high", "critical"],
+        "description": "Urgency level based on time-sensitive language and threats"
+      },
+      "escalation_risk": {
+        "type": "string",
+        "enum": ["low", "medium", "high"],
+        "description": "Risk level for customer escalation (chargeback, legal, social media)"
+      },
+      "confidence": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1,
+        "description": "Confidence score for the analysis"
+      },
+      "reasoning": {
+        "type": "string",
+        "description": "Brief explanation of the sentiment analysis"
+      }
+    }
+  },
+  "metadata": {
+    "description": "Output schema for sentiment analysis agent - analyzes customer emotions, urgency, and escalation risk",
+    "category": "customer-support",
+    "tags": ["sentiment", "nlp", "customer-service"]
+  }
+}

@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package io.apicurio.registry.utils.protobuf.schema.syntax3;
+
+import "additionalTypes/decimal.proto";
+
+message Address {
+  map<int32, string> contactPersons = 4;
+
+  string street = 1 [json_name = "Address_Street"];
+
+  int32 zip = 2 [deprecated = true];
+
+  enum Type {
+    OFFICE = 0;
+    APARTMENT = 1;
+    HOUSE = 2;
+  }
+
+  optional bool occupied = 11;
+
+  map<int32, Type> addressType = 9;
+
+  string city = 3;
+
+  oneof test_oneof {
+    string state = 5;
+    string country = 7;
+  }
+
+  repeated int32 samples = 6 [packed=true];
+
+  map<string, string> pastAddresses = 8;
+
+  message Customer {
+    int32 f = 1;
+  }
+
+  map<string, Customer> pastCustomers = 12;
+
+  map<string, int32> contactNumbers = 10;
+}
+
+message Customer {
+  string name = 1;
+
+  additionalTypes.Decimal decimal = 5;
+
+  reserved 2, 15, 10 to 11, 800 to 899;
+  Address address = 3;
+  AddressType addressType = 4;
+
+  enum AddressType {
+    RESIDENTIAL = 0;
+    COMMERCIAL = 1;
+  }
+}

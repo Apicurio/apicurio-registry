@@ -1,0 +1,7 @@
+$type: content-v0
+content: ./content/customer.avsc
+references:
+  - groupId: com.example.refs
+    artifactId: address
+    version: "1"
+    name: com.example.refs.Address

@@ -1,0 +1,35 @@
+.diff-view {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.diff-view .diff-label {
+    font-size: 15px;
+    margin-bottom: 10px;
+}
+
+.diff-view .diff-label .before {
+    color: #c9190b;
+    font-weight: 500;
+}
+
+.diff-view .diff-label .after {
+    color: #3e8635;
+    font-weight: 500;
+}
+
+.diff-view .diff-label .divider {
+    margin-left: 16px;
+    margin-right: 16px;
+    color: #6a6e73;
+}
+
+.diff-view .diff-editor {
+    flex-grow: 1;
+    border: 1px solid #ddd;
+}
+
+.diff-view .diff-toggle-group {
+    padding: 5px 5px 10px 0px;
+}

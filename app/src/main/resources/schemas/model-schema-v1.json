@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://apicur.io/schemas/model-schema/v1",
+  "title": "Apicurio Model Schema",
+  "description": "Schema for MODEL_SCHEMA artifacts in Apicurio Registry. Defines input/output schemas for AI/ML models.",
+  "type": "object",
+  "required": ["modelId"],
+  "anyOf": [
+    { "required": ["input"] },
+    { "required": ["output"] }
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to this JSON Schema for IDE autocompletion",
+      "const": "https://apicur.io/schemas/model-schema/v1"
+    },
+    "modelId": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for the model"
+    },
+    "provider": {
+      "type": "string",
+      "description": "The provider or vendor of the model (e.g., 'openai', 'anthropic', 'google')"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version of the model"
+    },
+    "input": {
+      "type": "object",
+      "description": "JSON Schema defining the expected input structure for the model"
+    },
+    "output": {
+      "type": "object",
+      "description": "JSON Schema defining the output structure from the model"
+    },
+    "definitions": {
+      "type": "object",
+      "description": "Reusable schema definitions that can be referenced via $ref",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the model",
+      "properties": {
+        "contextWindow": {
+          "type": "integer",
+          "description": "Maximum context window size in tokens"
+        },
+        "maxOutputTokens": {
+          "type": "integer",
+          "description": "Maximum output tokens the model can generate"
+        },
+        "capabilities": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of model capabilities (e.g., 'chat', 'completion', 'embedding', 'vision', 'function-calling')"
+        },
+        "pricing": {
+          "type": "object",
+          "description": "Pricing information for the model",
+          "properties": {
+            "inputTokens": {
+              "type": "number",
+              "description": "Cost per 1M input tokens"
+            },
+            "outputTokens": {
+              "type": "number",
+              "description": "Cost per 1M output tokens"
+            },
+            "currency": {
+              "type": "string",
+              "default": "USD",
+              "description": "Currency for pricing"
+            }
+          },
+          "additionalProperties": true
+        },
+        "deprecated": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this model version is deprecated"
+        },
+        "deprecationDate": {
+          "type": "string",
+          "description": "Date when the model will be deprecated (ISO 8601 format)"
+        },
+        "successorModel": {
+          "type": "string",
+          "description": "Recommended successor model if this one is deprecated"
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "examples": [
+    {
+      "$schema": "https://apicur.io/schemas/model-schema/v1",
+      "modelId": "gpt-4-turbo",
+      "provider": "openai",
+      "version": "2024-04",
+      "input": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["role", "content"],
+              "properties": {
+                "role": {
+                  "type": "string",
+                  "enum": ["system", "user", "assistant"]
+                },
+                "content": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "temperature": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 2
+          }
+        },
+        "required": ["messages"]
+      },
+      "output": {
+        "type": "object",
+        "properties": {
+          "choices": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "message": {
+                  "type": "object",
+                  "properties": {
+                    "role": { "type": "string" },
+                    "content": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "metadata": {
+        "contextWindow": 128000,
+        "maxOutputTokens": 4096,
+        "capabilities": ["chat", "vision", "function-calling"]
+      }
+    }
+  ]
+}

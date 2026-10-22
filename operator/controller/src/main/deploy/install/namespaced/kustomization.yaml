@@ -1,0 +1,41 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Single-namespace, least-privilege install variant. Uses the namespace-scoped
+# RBAC (rbac/namespaced) and the operator overlay that watches only its own
+# namespace (operator/namespaced). Use install/default for an all-namespaces
+# install with cluster-wide RBAC.
+resources:
+  - ../../crd
+  - ../../rbac/namespaced
+  - ../../operator/namespaced
+
+# ClusterRole and ClusterRoleBinding are cluster-scoped, so their names are global.
+# install.yaml already ships both names with cluster-wide rules; if this variant reused
+# them, `kubectl apply` would replace those objects wholesale (rules and subjects are
+# atomic lists), breaking an existing all-namespaces install and preventing two
+# single-namespace installs from coexisting. Suffixing with the install namespace gives
+# each install its own pair. The suffix is substituted by the same `sed`/envsubst pass
+# that resolves PLACEHOLDER_NAMESPACE everywhere else in the file.
+#
+# This rename lives here rather than in rbac/namespaced because that directory is also
+# consumed by the CSV overlay (deploy/csv), where OLM owns cluster-scoped object naming
+# and no namespace placeholder is substituted.
+patches:
+  - target:
+      kind: ClusterRole
+      name: apicurio-registry-operator-clusterrole
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: apicurio-registry-operator-clusterrole-${PLACEHOLDER_NAMESPACE}
+  - target:
+      kind: ClusterRoleBinding
+      name: apicurio-registry-operator-clusterrolebinding
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: apicurio-registry-operator-clusterrolebinding-${PLACEHOLDER_NAMESPACE}
+      - op: replace
+        path: /roleRef/name
+        value: apicurio-registry-operator-clusterrole-${PLACEHOLDER_NAMESPACE}

@@ -1,0 +1,216 @@
+package io.apicurio.registry.serde.avro;
+
+import io.apicurio.registry.resolver.ParsedSchema;
+import io.apicurio.registry.resolver.ParsedSchemaImpl;
+import io.apicurio.registry.resolver.SchemaParser;
+import io.apicurio.registry.resolver.data.Record;
+import io.apicurio.registry.serde.utils.BoundedCacheFactory;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.utils.IoUtil;
+import org.apache.avro.Schema;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
+
+    private AvroDatumProvider<U> avroDatumProvider;
+    private final Map<Schema, ParsedSchema<Schema>> schemaCache;
+    private final Map<Schema, ParsedSchema<Schema>> dereferencedSchemaCache;
+
+    /**
+     * Creates a new AvroSchemaParser with the given datum provider and schema cache size.
+     *
+     * @param avroDatumProvider the datum provider for converting data payloads to Avro schemas
+     * @param schemaCacheSize the maximum number of entries in each schema cache (LRU eviction)
+     */
+    public AvroSchemaParser(AvroDatumProvider<U> avroDatumProvider, int schemaCacheSize) {
+        this.avroDatumProvider = avroDatumProvider;
+        this.schemaCache = BoundedCacheFactory.createLRU(schemaCacheSize);
+        this.dereferencedSchemaCache = BoundedCacheFactory.createLRU(schemaCacheSize);
+    }
+
+    /**
+     * @see io.apicurio.registry.resolver.SchemaParser#artifactType()
+     */
+    @Override
+    public String artifactType() {
+        return ArtifactType.AVRO;
+    }
+
+    /**
+     * @see io.apicurio.registry.resolver.SchemaParser#parseSchema(byte[], Map)
+     */
+    @Override
+    public Schema parseSchema(byte[] rawSchema, Map<String, ParsedSchema<Schema>> resolvedReferences) {
+        return AvroSchemaUtils.parse(IoUtil.toString(rawSchema),
+                new ArrayList<>(resolvedReferences.values()));
+    }
+
+    /**
+     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(Record)
+     */
+    @Override
+    public ParsedSchema<Schema> getSchemaFromData(Record<U> data) {
+        Schema schema = avroDatumProvider.toSchema(data.payload());
+        synchronized (schemaCache) {
+            return schemaCache.computeIfAbsent(schema, s -> {
+                final List<ParsedSchema<Schema>> resolvedReferences = handleReferences(s);
+
+                // Deduplicate references based on referenceName to handle cases where
+                // multiple fields reference the same nested schema (e.g., Debezium PostGIS Point geometry)
+                final List<ParsedSchema<Schema>> deduplicatedReferences = resolvedReferences.stream()
+                        .collect(Collectors.toMap(
+                                ParsedSchema::referenceName,
+                                ref -> ref,
+                                (existing, replacement) -> existing))
+                        .values()
+                        .stream()
+                        .collect(Collectors.toList());
+
+                return new ParsedSchemaImpl<Schema>().setParsedSchema(s).setReferenceName(s.getFullName())
+                        .setSchemaReferences(deduplicatedReferences)
+                        .setRawSchema(IoUtil.toBytes(s.toString(deduplicatedReferences.stream()
+                                .map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()), false)))
+                        .setReferencelessRawSchema(IoUtil.toBytes(s.toString()));
+            });
+        }
+    }
+
+    /**
+     * @see io.apicurio.registry.resolver.SchemaParser#getSchemaFromData(Record, boolean)
+     */
+    @Override
+    public ParsedSchema<Schema> getSchemaFromData(Record<U> data, boolean dereference) {
+        if (dereference) {
+            Schema schema = avroDatumProvider.toSchema(data.payload());
+            synchronized (dereferencedSchemaCache) {
+                return dereferencedSchemaCache.computeIfAbsent(schema, s ->
+                        new ParsedSchemaImpl<Schema>().setParsedSchema(s)
+                                .setReferenceName(s.getFullName())
+                                .setRawSchema(IoUtil.toBytes(s.toString())));
+            }
+        } else {
+            return getSchemaFromData(data);
+        }
+    }
+
+    private List<ParsedSchema<Schema>> handleReferences(Schema schema) {
+        final List<ParsedSchema<Schema>> schemaReferences = new ArrayList<>();
+        switch (schema.getType()) {
+            case RECORD:
+                schemaReferences.addAll(handleRecord(schema));
+                break;
+            case UNION:
+                schemaReferences.addAll(handleUnion(schema));
+                break;
+            case ENUM:
+                schemaReferences.add(handleEnum(schema));
+                break;
+            case MAP:
+                schemaReferences.addAll(handleMap(schema));
+                break;
+            case ARRAY:
+                schemaReferences.addAll(handleArray(schema));
+                break;
+        }
+
+        return schemaReferences;
+    }
+
+    private List<ParsedSchema<Schema>> handleUnion(Schema schema) {
+        final List<ParsedSchema<Schema>> schemaReferences = new ArrayList<>();
+        for (Schema type : schema.getTypes()) {
+            if (isComplexType(type.getType())) {
+                addComplexTypeSubSchema(schemaReferences, type);
+            }
+        }
+        return schemaReferences;
+    }
+
+    private List<ParsedSchema<Schema>> handleMap(Schema schema) {
+        final List<ParsedSchema<Schema>> schemaReferences = new ArrayList<>();
+        final Schema elementSchema = schema.getValueType();
+        if (isComplexType(schema.getValueType().getType())) {
+            addComplexTypeSubSchema(schemaReferences, elementSchema);
+        }
+
+        return schemaReferences;
+    }
+
+    private List<ParsedSchema<Schema>> handleArray(Schema schema) {
+        final List<ParsedSchema<Schema>> schemaReferences = new ArrayList<>();
+        final Schema elementSchema = schema.getElementType();
+        if (isComplexType(schema.getElementType().getType())) {
+            addComplexTypeSubSchema(schemaReferences, elementSchema);
+        }
+
+        return schemaReferences;
+    }
+
+    private void addComplexTypeSubSchema(List<ParsedSchema<Schema>> schemaReferences, Schema elementSchema) {
+        if (elementSchema.getType().equals(Schema.Type.ENUM)) {
+            schemaReferences.add(parseSchema(elementSchema, Collections.emptyList()));
+        } else if (elementSchema.getType().equals(Schema.Type.RECORD)) {
+            List<ParsedSchema<Schema>> nestedReferences = new ArrayList<>(handleReferences(elementSchema));
+            schemaReferences.add(parseSchema(elementSchema, nestedReferences));
+        }
+    }
+
+    private List<ParsedSchema<Schema>> handleRecord(Schema schema) {
+        final List<ParsedSchema<Schema>> schemaReferences = new ArrayList<>();
+        for (Schema.Field field : schema.getFields()) {
+            if (field.schema().getType().equals(Schema.Type.RECORD)) {
+
+                final List<ParsedSchema<Schema>> parsedSchemas = handleReferences(field.schema());
+
+                byte[] rawSchema = IoUtil.toBytes(field.schema().toString(
+                        parsedSchemas.stream().map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()),
+                        false));
+
+                ParsedSchema<Schema> referencedSchema = new ParsedSchemaImpl<Schema>()
+                        .setParsedSchema(field.schema()).setReferenceName(field.schema().getFullName())
+                        .setSchemaReferences(parsedSchemas).setRawSchema(rawSchema);
+
+                schemaReferences.add(referencedSchema);
+            } else if (field.schema().getType().equals(Schema.Type.UNION)) {
+                schemaReferences.addAll(handleUnion(field.schema()));
+
+            } else if (field.schema().getType().equals(Schema.Type.ARRAY)) {
+                schemaReferences.addAll(handleArray(field.schema()));
+
+            } else if (field.schema().getType().equals(Schema.Type.MAP)) {
+                schemaReferences.addAll(handleMap(field.schema()));
+
+            } else if (field.schema().getType().equals(Schema.Type.ENUM)) {
+                schemaReferences.add(handleEnum(field.schema()));
+            }
+        }
+
+        return schemaReferences;
+    }
+
+    private ParsedSchema<Schema> parseSchema(Schema schema, List<ParsedSchema<Schema>> schemaReferences) {
+        byte[] rawSchema = IoUtil.toBytes(schema.toString(
+                schemaReferences.stream().map(ParsedSchema::getParsedSchema).collect(Collectors.toSet()),
+                false));
+
+        return new ParsedSchemaImpl<Schema>().setParsedSchema(schema).setReferenceName(schema.getFullName())
+                .setSchemaReferences(schemaReferences).setRawSchema(rawSchema);
+    }
+
+    private ParsedSchema<Schema> handleEnum(Schema schema) {
+        byte[] rawSchema = IoUtil.toBytes(schema.toString());
+
+        return new ParsedSchemaImpl<Schema>().setParsedSchema(schema).setReferenceName(schema.getFullName())
+                .setSchemaReferences(Collections.emptyList()).setRawSchema(rawSchema);
+    }
+
+    public boolean isComplexType(Schema.Type type) {
+        return type == Schema.Type.ARRAY || type == Schema.Type.MAP || type == Schema.Type.RECORD
+                || type == Schema.Type.ENUM || type == Schema.Type.UNION;
+    }
+}

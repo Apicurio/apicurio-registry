@@ -1,0 +1,20 @@
+{
+  "namespace": "com.example.trade",
+  "type": "record",
+  "name": "Customer",
+  "doc": "Customer information",
+  "fields": [
+    {
+      "name": "customerId",
+      "type": "string"
+    },
+    {
+      "name": "name",
+      "type": "string"
+    },
+    {
+      "name": "address",
+      "type": "Address"
+    }
+  ]
+}

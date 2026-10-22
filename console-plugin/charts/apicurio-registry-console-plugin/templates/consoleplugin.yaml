@@ -1,0 +1,22 @@
+apiVersion: console.openshift.io/v1
+kind: ConsolePlugin
+metadata:
+  name: {{ .Values.plugin.name }}
+spec:
+  displayName: Apicurio Registry
+  backend:
+    type: Service
+    service:
+      name: {{ .Values.plugin.name }}
+      namespace: {{ .Release.Namespace }}
+      port: {{ .Values.plugin.port }}
+      basePath: /
+  proxy:
+    - alias: registry-api
+      authorization: UserToken
+      endpoint:
+        type: Service
+        service:
+          name: {{ .Values.plugin.name }}
+          namespace: {{ .Release.Namespace }}
+          port: {{ .Values.plugin.port }}

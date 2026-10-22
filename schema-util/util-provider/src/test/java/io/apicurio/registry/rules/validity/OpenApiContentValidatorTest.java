@@ -1,0 +1,123 @@
+package io.apicurio.registry.rules.validity;
+
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.openapi.rules.validity.OpenApiContentValidator;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rules.violation.RuleViolationException;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * Tests the OpenAPI content validator.
+ */
+public class OpenApiContentValidatorTest extends ArtifactUtilProviderTestBase {
+
+    @Test
+    public void testValidSyntax() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("openapi-valid-syntax.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testValidSyntax_OpenApi31() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("openapi-valid-syntax-openapi31.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testValidSemantics() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("openapi-valid-semantics.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testInvalidSyntax() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("openapi-invalid-syntax.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+        });
+    }
+
+    @Test
+    public void testInvalidSemantics() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("openapi-invalid-semantics.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+        });
+    }
+
+    /**
+     * Test for issue #6864 - OpenAPI 3.1 with endpoint security fails to validate.
+     * This test validates an OpenAPI 3.1 document with security requirements on endpoints.
+     * Before the fix in apicurio-data-models, this would throw a ClassCastException.
+     */
+    @Test
+    public void testValidateOpenApi31WithSecurityRequirements() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("openapi-3.1-security-requirements.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    /**
+     * Test for issue #8505 - OpenAPI 3.1 with server variables fails to validate.
+     * Before the fix in apitomy-data-models, this would throw a ClassCastException because
+     * OasServerVarNotFoundInTemplateRule casts to OpenApi30Server instead of OpenApiServer.
+     */
+    @Test
+    public void testValidateOpenApi31WithServerVariables() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("openapi-3.1-server-variables.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
+    }
+
+    @Test
+    public void testValidateRefs() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("openapi-valid-with-refs.json");
+        OpenApiContentValidator validator = new OpenApiContentValidator();
+        validator.validate(ValidityLevel.SYNTAX_ONLY, content, Collections.emptyMap());
+
+        // Properly map both required references - success.
+        {
+            List<ArtifactReference> references = new ArrayList<>();
+            references.add(ArtifactReference.builder().groupId("default").artifactId("ExternalWidget")
+                    .version("1.0").name("example.com#/components/schemas/ExternalWidget").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("AnotherWidget")
+                    .version("1.1").name("example.com#/components/schemas/AnotherWidget").build());
+            validator.validateReferences(content, references);
+        }
+
+        // Don't map either of the required references - failure.
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            List<ArtifactReference> references = new ArrayList<>();
+            validator.validateReferences(content, references);
+        });
+
+        // Only map one of the two required refs - failure.
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            List<ArtifactReference> references = new ArrayList<>();
+            references.add(ArtifactReference.builder().groupId("default").artifactId("AnotherWidget")
+                    .version("1.1").name("example.com#/components/schemas/AnotherWidget").build());
+            validator.validateReferences(content, references);
+        });
+
+        // Only map one of the two required refs - failure.
+        Assertions.assertThrows(RuleViolationException.class, () -> {
+            List<ArtifactReference> references = new ArrayList<>();
+            references.add(ArtifactReference.builder().groupId("default").artifactId("AnotherWidget")
+                    .version("1.1").name("example.com#/components/schemas/AnotherWidget").build());
+            references.add(ArtifactReference.builder().groupId("default").artifactId("WrongWidget")
+                    .version("2.3").name("example.com#/components/schemas/WrongWidget").build());
+            validator.validateReferences(content, references);
+        });
+    }
+
+}

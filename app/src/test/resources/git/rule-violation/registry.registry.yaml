@@ -1,0 +1,6 @@
+$type: registry-v0
+registryId: test
+globalRules:
+  - ruleType: VALIDITY
+    config: FULL
+properties: []

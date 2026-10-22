@@ -1,0 +1,71 @@
+target/
+dependency-reduced-pom.xml
+.project
+.settings
+.classpath
+.DS_Store
+.checkstyle
+
+# VS Code
+.vscode/
+.factorypath
+
+# IntelliJ / IDEA
+.idea/
+.run/
+*.iml
+*.ipr
+*.iws
+
+website
+
+# Other
+*~
+.work
+.notes
+.projects
+**/bin
+*.jar
+
+apicurio-codegen
+/docs/.jbang/
+/docs/superpowers/
+
+python-sdk/dist
+python-sdk/kiota_tmp
+python-sdk/apicurioregistrysdk/client
+python-sdk/openapi.json
+__pycache__
+
+# Secrets
+.env
+
+# Docker/Testcontainers workarounds
+**/docker-java.properties
+
+# Generated Repository Index
+PROJECT_INDEX.md
+PROJECT_INDEX.json
+
+# Ignore .claude directories in subdirectories (e.g. module/.claude) but keep the root one
+**/.claude
+!/.claude
+# Local Claude files
+.claude/settings.local.json
+CLAUDE.local.md
+claudedocs
+
+# Vale linter
+.vale.ini
+.vale/
+
+# Serena MCP
+.serena
+
+# Vale linting tooling
+.vale.ini
+.vale/
+
+.claude/scheduled_tasks.lock
+
+.worktrees/

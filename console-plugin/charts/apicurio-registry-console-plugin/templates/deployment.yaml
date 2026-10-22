@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.plugin.name }}
+  labels:
+    app.kubernetes.io/name: {{ .Values.plugin.name }}
+    app.kubernetes.io/part-of: apicurio-registry
+    app.kubernetes.io/component: console-plugin
+spec:
+  replicas: {{ .Values.plugin.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ .Values.plugin.name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ .Values.plugin.name }}
+        app.kubernetes.io/part-of: apicurio-registry
+        app.kubernetes.io/component: console-plugin
+    spec:
+      containers:
+        - name: {{ .Values.plugin.name }}
+          image: {{ .Values.plugin.image }}
+          ports:
+            - containerPort: {{ .Values.plugin.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.plugin.resources | nindent 12 }}
+          volumeMounts:
+            - name: serving-cert
+              readOnly: true
+              mountPath: /var/serving-cert
+      volumes:
+        - name: serving-cert
+          secret:
+            secretName: {{ .Values.plugin.name }}-cert
+            defaultMode: 420
+      restartPolicy: Always

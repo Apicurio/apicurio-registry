@@ -1,0 +1,27 @@
+.references-toolbar {
+    padding-left: 15px;
+    padding-right: 35px;
+    padding-top: 15px;
+}
+
+.references-toolbar > div {
+    width: 100%;
+}
+
+.references-toolbar .filter-types-toggle span.pf-v6-c-menu-toggle__text {
+    width: 125px;
+    text-align: left;
+}
+
+#references-toolbar-1 .tbi-filter-type {
+    margin-right: 0;
+}
+
+.references-toolbar .view-mode-toggle-item {
+    margin-left: 16px;
+}
+
+.references-toolbar .view-mode-toggle-item .pf-v6-c-toggle-group__button {
+    padding-left: 12px;
+    padding-right: 12px;
+}

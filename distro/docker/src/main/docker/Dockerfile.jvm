@@ -1,0 +1,17 @@
+FROM registry.access.redhat.com/ubi10/openjdk-21-runtime@sha256:6e2216b796e97edb7145d55300b0251c15834f45c21004824976a3024a1f7a2b
+
+ENV APP_URL="${docker.app.file}" \
+    JAVA_OPTIONS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
+
+ADD "$APP_URL" /deployments
+
+USER root
+
+# Set appropriate permissions and ownership
+RUN chmod -R "ug=rwx" /deployments \
+    && chown -R 1001:0 /deployments
+
+# Set user for running the container, according to OpenShift best practices
+USER 1001
+
+EXPOSE 8080 8443 9000

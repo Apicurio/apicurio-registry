@@ -1,0 +1,235 @@
+package io.apicurio.registry.content.util;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.types.ContentTypes;
+import org.xml.sax.InputSource;
+import org.xml.sax.helpers.DefaultHandler;
+
+import javax.xml.XMLConstants;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.Locale;
+import java.util.regex.Pattern;
+
+public final class ContentTypeUtil {
+
+    public static final String CT_APPLICATION_JSON = "application/json";
+    public static final String CT_APPLICATION_CREATE_EXTENDED = "application/create.extended+json";
+    public static final String CT_APPLICATION_CREATE_EXTENDED_VND = "application/vnd.create.extended+json";
+    public static final String CT_APPLICATION_GET_EXTENDED = "application/get.extended+json";
+    public static final String CT_APPLICATION_GET_EXTENDED_VND = "application/vnd.get.extended+json";
+    public static final String CT_APPLICATION_YAML = "application/x-yaml";
+    public static final String CT_APPLICATION_XML = "application/xml";
+    public static final String CT_TEXT_PLAIN = "text/plain";
+
+    private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+    private static final ObjectMapper jsonMapper = new ObjectMapper();
+
+    /**
+     * Returns true if the Content-Type of the inbound request is "application/json".
+     *
+     * @param ct content type
+     */
+    public static boolean isApplicationJson(String ct) {
+        if (ct == null) {
+            return false;
+        }
+        return ct.contains(CT_APPLICATION_JSON);
+    }
+
+    /**
+     * Returns true if the Content-Type of the inbound request is "application/x-yaml".
+     *
+     * @param ct content type
+     */
+    public static boolean isApplicationYaml(String ct) {
+        if (ct == null) {
+            return false;
+        }
+        return ct.contains(CT_APPLICATION_YAML);
+    }
+
+    /**
+     * Returns true if the Content-Type of the inbound request is "application/create.extended+json".
+     *
+     * @param ct content type
+     */
+    public static boolean isApplicationCreateExtended(String ct) {
+        if (ct == null) {
+            return false;
+        }
+        return ct.contains(CT_APPLICATION_CREATE_EXTENDED) || ct.contains(CT_APPLICATION_CREATE_EXTENDED_VND);
+    }
+
+    /**
+     * Returns true if the Content-Type of the inbound request is "application/get.extended+json".
+     *
+     * @param ct content type
+     */
+    public static boolean isApplicationGetExtended(String ct) {
+        if (ct == null) {
+            return false;
+        }
+        return ct.contains(CT_APPLICATION_GET_EXTENDED) || ct.contains(CT_APPLICATION_GET_EXTENDED_VND);
+    }
+
+    /**
+     * Returns true if the Content-Type indicates plain text.
+     *
+     * @param ct content type
+     */
+    public static boolean isTextPlain(String ct) {
+        if (ct == null) {
+            return false;
+        }
+        // Check for standard text/plain and variations
+        return ct.toLowerCase(Locale.ROOT).contains(CT_TEXT_PLAIN);
+    }
+
+    /**
+     * Returns true if the content can be parsed as yaml.
+     */
+    public static boolean isParsableYaml(ContentHandle yaml) {
+        try {
+            String content = yaml.content().trim();
+            // it's Json or Xml
+            if (content.startsWith("{") || content.startsWith("<")) {
+                return false;
+            }
+            JsonNode root = yamlMapper.readTree(yaml.stream());
+            return root != null && root.elements().hasNext();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if the content can be parsed as yaml.
+     */
+    public static boolean isParsableJson(ContentHandle content) {
+        try {
+            JsonNode root = jsonMapper.readTree(content.stream());
+            return root != null && !root.isNull() && !root.isMissingNode();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * Returns true if the content can be parsed as xml.
+     */
+    public static boolean isParsableXml(ContentHandle content) {
+        try {
+            SAXParserFactory factory = SAXParserFactory.newInstance();
+            factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+            SAXParser saxParser = factory.newSAXParser();
+            saxParser.parse(new InputSource(new StringReader(content.content())), new DefaultHandler());
+            // If no exception is thrown, the XML is valid
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static ContentHandle yamlToJson(ContentHandle yaml) {
+        try {
+            JsonNode root = yamlMapper.readTree(yaml.stream());
+            return ContentHandle.create(jsonMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(root));
+        } catch (Throwable t) {
+            return yaml;
+        }
+    }
+
+    public static JsonNode parseJson(ContentHandle content) throws IOException {
+        JsonNode root = jsonMapper.readTree(content.stream());
+        return root;
+    }
+
+    public static JsonNode parseYaml(ContentHandle content) throws IOException {
+        JsonNode root = yamlMapper.readTree(content.stream());
+        return root;
+    }
+
+    public static JsonNode parseJsonOrYaml(TypedContent content) throws IOException {
+        JsonNode node = null;
+        String contentType = content.getContentType();
+        if (contentType == null) {
+            // A null content type is treated as unknown: we cannot rely on it to pick a parser.
+            // The callers (content accepters, reference finders, validators) deliberately let a
+            // null content type through, so this must not throw on null. Because JSON is a subset
+            // of YAML, try JSON first (the common case) and fall back to YAML on a parse failure,
+            // so YAML-shaped content submitted without a content type (e.g. prompt templates,
+            // which are published as YAML) is still detected instead of being silently rejected.
+            try {
+                node = ContentTypeUtil.parseJson(content.getContent());
+            } catch (IOException e) {
+                node = ContentTypeUtil.parseYaml(content.getContent());
+            }
+        } else if (contentType.toLowerCase(Locale.ROOT).contains("yaml")
+                || contentType.toLowerCase(Locale.ROOT).contains("yml")
+                || contentType.equalsIgnoreCase("text/x-prompt-template")) {
+            node = ContentTypeUtil.parseYaml(content.getContent());
+        } else {
+            node = ContentTypeUtil.parseJson(content.getContent());
+        }
+
+        if (!node.isObject()) {
+            throw new IOException("Input is not a valid document.");
+        }
+
+        return node;
+    }
+
+    private static final Pattern GRAPHQL_DEF_PATTERN = Pattern.compile("(?m)^\\s*(?:extend\\s+)?(type|interface|scalar|union|input)\\s+[a-zA-Z_][a-zA-Z0-9_]*\\s*(?:\\{|implements|\\=|$)");
+    private static final Pattern GRAPHQL_SCHEMA_PATTERN = Pattern.compile("(?m)^\\s*schema\\s*\\{");
+    private static final Pattern GRAPHQL_DIRECTIVE_PATTERN = Pattern.compile("(?m)^\\s*directive\\s+@[a-zA-Z_][a-zA-Z0-9_]*");
+
+    /**
+     * Returns true if the content is likely a GraphQL schema.
+     */
+    public static boolean isParsableGraphQL(ContentHandle content) {
+        try {
+            String text = content.content().trim();
+            if (text.startsWith("{") || text.startsWith("<")) {
+                return false;
+            }
+            
+            return GRAPHQL_DEF_PATTERN.matcher(text).find()
+                    || GRAPHQL_SCHEMA_PATTERN.matcher(text).find()
+                    || GRAPHQL_DIRECTIVE_PATTERN.matcher(text).find();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static String determineContentType(ContentHandle content) {
+        // Ensure content is fully materialized once in memory.
+        // If we do not call bytes() here, the isParsableJson check may consume
+        // the underlying InputStream (e.g. via ObjectMapper.readTree), leaving
+        // the stream empty and causing subsequent format checks to incorrectly fail.
+        content.bytes();
+        if (isParsableJson(content)) {
+            return CT_APPLICATION_JSON;
+        }
+        if (isParsableGraphQL(content)) {
+            return ContentTypes.APPLICATION_GRAPHQL;
+        }
+        if (isParsableYaml(content)) {
+            return CT_APPLICATION_YAML;
+        }
+        if (isParsableXml(content)) {
+            return CT_APPLICATION_XML;
+        }
+        return ContentTypes.APPLICATION_PROTOBUF;
+    }
+
+}

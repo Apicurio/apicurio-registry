@@ -1,0 +1,14 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string"
+    },
+    "value": {
+      "type": "number"
+    },
+    "shippingAddress": {
+      "$ref": "simple-address.json"
+    }
+  }
+}

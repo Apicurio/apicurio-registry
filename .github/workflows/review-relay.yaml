@@ -1,0 +1,40 @@
+name: Review Relay
+
+# Does nothing itself. Its only purpose is to fire a workflow_run event in
+# pr-lifecycle.yml (review-relay job, handleReviewRelay) when a review is
+# submitted or dismissed, so the orchestrator can re-run the commit's Verify
+# run once an approval makes the full suite required.
+#
+# Why not handle the review directly: on a fork PR, pull_request_review gives
+# GITHUB_TOKEN the same read-only, secret-less token as pull_request, which
+# cannot re-run a workflow. workflow_run always runs in the base repository
+# with its own permissions, whatever triggered it.
+#
+# Why not let verify.yaml trigger on the review itself (as it used to): that
+# starts a second Verify run for a commit that already has one, repeating a
+# full suite that already ran and showing two sets of checks on the PR.
+#
+# `dismissed` is included because dismissing a stale CHANGES_REQUESTED can
+# flip reviewDecision to APPROVED.
+#
+# Nothing here reads the PR or the review, and it needs no permissions. The
+# orchestrator trusts only which commit this ran for, and reads everything
+# else back through the API. Like any pull_request_review workflow, a fork PR
+# can change or remove this file for its own runs; the stale sweep and /retry
+# cover a relay that never arrives.
+
+on:
+  # No branches: filter here — pull_request_review does not support one.
+  pull_request_review:
+    types: [submitted, dismissed]
+
+permissions: {}
+
+jobs:
+  relay:
+    name: Relay
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
+    steps:
+      - name: Relay review to the orchestrator
+        run: echo "Review event relayed; pr-lifecycle.yml picks it up via workflow_run."

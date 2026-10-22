@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "SelfReference",
+  "namespace": "com.axual.client.tests",
+  "doc": "Self referencing schema",
+  "fields": [
+    {
+      "name": "selfReference",
+      "type": {
+        "type": "array",
+        "items": "SelfReference"
+      },
+      "doc": "List of sub selfReferences"
+    }
+  ]
+}

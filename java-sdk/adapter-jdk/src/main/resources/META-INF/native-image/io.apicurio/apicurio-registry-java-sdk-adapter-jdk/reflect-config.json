@@ -1,0 +1,7 @@
+[
+  {
+    "name": "io.apicurio.registry.client.common.JdkAdapterFactory",
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true
+  }
+]

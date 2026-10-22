@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: "apicurio-registry-e2e"
+  name: registry-config
+  labels:
+    apicurio.io/registry-id: "e2e-test"
+data:
+  registry.registry.yaml: |
+    $type: registry-v0
+    registryId: e2e-test
+    globalRules:
+      - ruleType: VALIDITY
+        config: FULL
+    properties: []
+  group-foo.registry.yaml: |
+    $type: group-v0
+    registryIds: [e2e-test]
+    groupId: foo
+  artifact-petstore.registry.yaml: |
+    $type: artifact-v0
+    registryIds: [e2e-test]
+    groupId: foo
+    artifactId: petstore
+    artifactType: OPENAPI
+    versions:
+      - version: "1"
+        state: ENABLED
+        content: petstore-1.0.0.yaml
+    rules:
+      - ruleType: COMPATIBILITY
+        config: BACKWARD
+  petstore-1.0.0.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Swagger Petstore
+    paths: {}

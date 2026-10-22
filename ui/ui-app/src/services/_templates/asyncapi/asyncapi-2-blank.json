@@ -1,0 +1,7 @@
+{
+  "asyncapi": "2.6.0",
+  "info": {
+    "title": "Blank API",
+    "version": "1.0.0"
+  }
+}

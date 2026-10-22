@@ -1,0 +1,19 @@
+{
+  "type": "record",
+  "name": "SelfReference",
+  "namespace": "io.axual.client.example.schema",
+  "fields": [
+    {
+      "name": "field1",
+      "type": "string"
+    },
+    {
+      "name": "field2",
+      "type": "SelfReference"
+    },
+    {
+      "type": "string",
+      "name": "field3"
+    }
+  ]
+}

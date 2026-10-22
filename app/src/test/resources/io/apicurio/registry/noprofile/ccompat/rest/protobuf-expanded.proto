@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package test;
+
+message FinancialSecurity {
+
+  string isin = 1;
+
+  string name = 2;
+
+  string financial_security_type = 3;
+
+  optional string quote = 4;
+
+  optional string leverage = 5;
+
+  optional string underlying_instrument_isin = 6;
+
+  optional string option_type = 7;
+
+  bool quote_estimated = 8;
+
+  int64 quote_time = 9;
+
+  int32 average_volume = 10;
+
+  optional int32 ex_dividend_date = 11;
+
+  optional string interest_rate = 12;
+
+}

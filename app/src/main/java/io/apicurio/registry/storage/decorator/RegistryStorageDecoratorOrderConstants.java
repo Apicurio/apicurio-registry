@@ -1,0 +1,14 @@
+package io.apicurio.registry.storage.decorator;
+
+/**
+ * Decorators are ordered by natural int ordering, e.g. one with a lower order value is executed first.
+ */
+public interface RegistryStorageDecoratorOrderConstants {
+    int CONTENT_CACHE_DECORATOR = 5;
+    int READ_ONLY_DECORATOR = 10;
+    int KAFKA_SQL_DECORATOR = 20;
+    int LIMITS_ENFORCER_DECORATOR = 30;
+    int CONFIG_CACHE_DECORATOR = 40;
+    int EVENT_SOURCED_DECORATOR = 50;
+    int SEARCH_INDEX_EVENT_DECORATOR = 60;
+}

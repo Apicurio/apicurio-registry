@@ -1,0 +1,58 @@
+{
+  "namespace": "com.example",
+  "type": "record",
+  "name": "User",
+  "fields": [
+    {
+      "name": "tradeKey",
+      "type": "TradeKey"
+    },
+    {
+      "name": "addressType",
+      "type": {
+        "type": "enum",
+        "name": "AddressType",
+        "namespace": "com.example.adr",
+        "symbols": [
+          "HOME",
+          "WORK"
+        ]
+      }
+    },
+    {
+      "name": "billingAddressType",
+      "type": "com.example.adr.AddressType"
+    },
+    {
+      "name": "hash1",
+      "type": {
+        "type": "fixed",
+        "name": "MD5",
+        "namespace": "com.example.hash",
+        "size": 16
+      }
+    },
+    {
+      "name": "hash2",
+      "type": "com.example.hash.MD5"
+    },
+    {
+      "name": "homeAddress",
+      "type": {
+        "type": "record",
+        "name": "Address",
+        "namespace": "com.example.adr",
+        "fields": [
+          {
+            "name": "street",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "workAddress",
+      "type": "com.example.adr.Address"
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: apicurio-registry-kafka
+  name: apicurio-registry-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: apicurio-registry-kafka
+  template:
+    metadata:
+      labels:
+        app: apicurio-registry-kafka
+    spec:
+      containers:
+        - env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: APICURIO_KAFKASQL_BOOTSTRAP_SERVERS
+              value: kafka-service:9092
+            - name: APICURIO_STORAGE_KIND
+              value: "kafkasql"
+            - name: QUARKUS_LOG_CATEGORY__IO_APICURIO__LEVEL
+              value: "DEBUG"
+            - name: APICURIO_REST_DELETION_ARTIFACT_ENABLED
+              value: "true"
+            - name: APICURIO_REST_DELETION_ARTIFACTVERSION_ENABLED
+              value: "true"
+            - name: APICURIO_REST_DELETION_GROUP_ENABLED
+              value: "true"
+          image: registry-image
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/live
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          name: apicurio-registry-kafka
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+            - containerPort: 9000
+              name: management
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /health/ready
+              port: 9000
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 10
+          volumeMounts:
+            - mountPath: /tmp/
+              name: snapshots-volume
+      volumes:
+      - name: snapshots-volume
+        persistentVolumeClaim:
+          claimName: snapshots-volume
+---
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: "apicurio-registry-e2e"
+  labels:
+    app: apicurio-registry-kafka
+  name: apicurio-registry-service
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+      nodePort: 32586
+    - name: management
+      protocol: TCP
+      port: 9000
+      targetPort: 9000
+  selector:
+    app: apicurio-registry-kafka
+  type: LoadBalancer
+  sessionAffinity: None
+  externalTrafficPolicy: Cluster
+  ipFamilies:
+    - IPv4
+  ipFamilyPolicy: SingleStack
+  allocateLoadBalancerNodePorts: true
+  internalTrafficPolicy: Cluster
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  namespace: "apicurio-registry-e2e"
+  name: snapshots-volume
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi

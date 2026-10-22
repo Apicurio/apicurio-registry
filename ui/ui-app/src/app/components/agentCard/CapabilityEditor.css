@@ -1,0 +1,13 @@
+.capability-editor {
+    margin-bottom: 16px;
+}
+
+.capability-editor .section-title {
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.capability-editor .capabilities-form {
+    gap: 12px;
+}

@@ -1,0 +1,15 @@
+{
+  "type": "record",
+  "name": "TestMessage",
+  "namespace": "io.apicurio.schema.validation.avro",
+  "fields": [
+    {
+      "name": "message",
+      "type": "string"
+    },
+    {
+      "name": "time",
+      "type": "long"
+    }
+  ]
+}

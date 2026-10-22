@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<assembly xmlns="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/plugins/maven-assembly-plugin/assembly/1.1.2 http://maven.apache.org/xsd/assembly-1.1.2.xsd">
+  <id>converter</id>
+  <formats>
+    <format>tar.gz</format>
+    <format>zip</format>
+  </formats>
+  <includeBaseDirectory>false</includeBaseDirectory>
+  <dependencySets>
+    <dependencySet>
+      <unpack>false</unpack>
+      <scope>compile</scope>
+      <useProjectArtifact>false</useProjectArtifact>
+      <useTransitiveFiltering>true</useTransitiveFiltering>
+      <excludes>
+        <!-- Exclude dependencies of Kafka APIs, since they will be available in the runtime -->
+
+        <exclude>org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:*</exclude>
+      </excludes>
+    </dependencySet>
+    <dependencySet>
+      <unpack>false</unpack>
+      <scope>runtime</scope>
+      <useProjectArtifact>false</useProjectArtifact>
+      <useTransitiveFiltering>true</useTransitiveFiltering>
+      <useTransitiveDependencies>true</useTransitiveDependencies>
+      <excludes>
+        <!-- Exclude dependencies of Kafka APIs, since they will be available in the runtime -->
+
+        <exclude>org.jboss.spec.javax.ws.rs:jboss-jaxrs-api_2.1_spec:*</exclude>
+      </excludes>
+    </dependencySet>
+
+  </dependencySets>
+  <fileSets>
+    <fileSet>
+      <directory>${project.basedir}/../..</directory>
+      <includes>
+        <include>README*</include>
+        <include>LICENSE*</include>
+      </includes>
+      <useDefaultExcludes>true</useDefaultExcludes>
+    </fileSet>
+  </fileSets>
+</assembly>

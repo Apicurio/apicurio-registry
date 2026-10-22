@@ -1,0 +1,48 @@
+
+.artifact-overview-tab-content {
+    padding: 22px;
+    flex-grow: 1;
+}
+
+.artifact-overview-tab-content .__drawer-head {
+    padding: 0;
+}
+
+.artifact-overview-tab-content .artifact-basics {
+    margin-top: -8px;
+}
+
+.artifact-overview-tab-content .artifact-versions {
+}
+
+.artifact-overview-tab-content .title-and-type {
+    padding: 20px;
+    border-bottom: 1px solid #ccc;
+}
+
+.artifact-overview-tab-content .title-and-type .type {
+}
+
+.artifact-overview-tab-content .title-and-type .title {
+    color: var(--pf-t--global--text--color--regular, #333);
+    font-size: 17px;
+    font-weight: bold;
+    line-height: 24px;
+}
+
+.artifact-overview-tab-content .artifact-basics .metaData {
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.artifact-overview-tab-content .artifact-basics .actions {
+}
+
+.artifact-overview-tab-content .artifact-versions .version-list {
+    padding: 20px;
+}
+
+.artifact-overview-tab-content .btn-header-create-version {
+    margin-top: -6px;
+    margin-bottom: -6px;
+}

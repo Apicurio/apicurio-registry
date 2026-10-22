@@ -1,0 +1,193 @@
+[id="registry-persistence-kafkasql-access"]
+= Configuring Kafka storage using the Kafka Access Operator
+
+You can simplify the configuration of secured Kafka storage by using the Strimzi Kafka Access Operator.
+Instead of manually configuring TLS certificates and SASL credentials, the {operator} can read all connection details from a single Kubernetes Secret produced by the Kafka Access Operator.
+
+This approach supports TLS, SCRAM-SHA-512, and other SASL mechanisms automatically, based on the Kafka cluster and user configuration.
+
+NOTE: The Kafka Access Operator integration is available starting with {registry} version 3.2.0.
+
+.Prerequisites
+
+* You have installed the {operator} using the OperatorHub or command line.
+* You have installed the {kafka-streams} Operator or have Kafka accessible from your OpenShift cluster.
+* You have installed the link:https://github.com/strimzi/kafka-access-operator[Strimzi Kafka Access Operator].
+
+.Procedure
+
+. Create a Kafka cluster with the desired security configuration (TLS, SCRAM, or both). For example, a cluster with TLS and SCRAM-SHA-512:
++
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: registry-example-kafkasql-access
+spec:
+  kafka:
+    config:
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+    version: 3.7.0
+    storage:
+      type: ephemeral
+    replicas: 3
+    listeners:
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+        authentication:
+          type: scram-sha-512
+    authorization:
+      type: simple
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
+  zookeeper:
+    storage:
+      type: ephemeral
+    replicas: 3
+----
+
+. Create a *KafkaUser* resource with the appropriate authentication and authorization:
++
+[source,yaml]
+----
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: my-user
+  labels:
+    strimzi.io/cluster: my-cluster
+  namespace: registry-example-kafkasql-access
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    acls:
+      - operations:
+          - Read
+          - Write
+        resource:
+          name: kafkasql-journal
+          patternType: literal
+          type: topic
+      - operations:
+          - Read
+          - Write
+        resource:
+          name: apicurio-registry-
+          patternType: prefix
+          type: group
+    type: simple
+----
+
+. Create a *KafkaAccess* resource that binds the Kafka cluster and user together. The Kafka Access Operator will produce a Secret containing all connection details:
++
+[source,yaml]
+----
+apiVersion: access.strimzi.io/v1alpha1
+kind: KafkaAccess
+metadata:
+  name: my-kafka-access
+  namespace: registry-example-kafkasql-access
+spec:
+  kafka:
+    name: my-cluster
+    namespace: registry-example-kafkasql-access
+    listener: tls
+  user:
+    kind: KafkaUser
+    apiGroup: kafka.strimzi.io
+    name: my-user
+    namespace: registry-example-kafkasql-access
+----
++
+The Kafka Access Operator creates a Secret named `my-kafka-access` (matching the `KafkaAccess` resource name) of type `servicebinding.io/kafka`. This secret contains keys such as `bootstrapServers`, `security.protocol`, `ssl.truststore.crt`, `sasl.jaas.config`, and `sasl.mechanism`.
+
+. Deploy {registry} using the `kafkaAccessSecretName` field. This single field replaces the manual `bootstrapServers`, `tls`, and `auth` configuration:
++
+[source,yaml]
+----
+include::example$apicurioregistry_kafkasql_access_cr.yaml[]
+----
+
+IMPORTANT: When `kafkaAccessSecretName` is set alongside `bootstrapServers`, the `kafkaAccessSecretName` takes precedence and `bootstrapServers` is ignored.
+
+NOTE: The {operator} wires all environment variables from the Kafka Access secret using `secretKeyRef`, so credential values never appear in the {registry} deployment spec. Non-required keys (such as SASL configuration for a TLS-only cluster) are marked as optional, so the pod starts correctly regardless of which security mechanisms the cluster uses.
+
+[id="kafkasql-access-pre-3.2.0"]
+== Alternative for versions before 3.2.0
+
+The `kafkaAccessSecretName` field is available starting with {registry} version 3.2.0. If you are using an earlier version, you must configure the Kafka connection manually using the `bootstrapServers`, `tls`, and `auth` fields in the `ApicurioRegistry3` CR.
+
+For TLS-only clusters, see xref:ROOT:assembly-registry-storage.adoc#registry-persistence-kafkasql-tls[Configuring Kafka storage with TLS security].
+
+For SCRAM-SHA-512, configure TLS for the truststore and set the SCRAM credentials via environment variables:
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-apicurioregistry-kafkasql-secured
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "my-cluster-kafka-bootstrap.my-namespace.svc:9093"
+        tls:
+          truststoreSecretRef:
+            name: my-cluster-cluster-ca-cert
+          truststorePasswordSecretRef:
+            name: my-cluster-cluster-ca-cert
+    env:
+      - name: APICURIO_KAFKA_COMMON_SECURITY_PROTOCOL
+        value: "SASL_SSL"
+      - name: APICURIO_KAFKA_COMMON_SASL_MECHANISM
+        value: "SCRAM-SHA-512"
+      - name: APICURIO_KAFKA_COMMON_SASL_JAAS_CONFIG
+        valueFrom:
+          secretKeyRef:
+            name: my-user
+            key: sasl.jaas.config
+----
+
+For OAuth (OAUTHBEARER), use the `auth` section directly (available in all versions of the `ApicurioRegistry3` CRD):
+
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-apicurioregistry-kafkasql-oauth
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "my-cluster-kafka-bootstrap.my-namespace.svc:9093"
+        tls:
+          truststoreSecretRef:
+            name: my-cluster-cluster-ca-cert
+          truststorePasswordSecretRef:
+            name: my-cluster-cluster-ca-cert
+        auth:
+          enabled: true
+          mechanism: OAUTHBEARER
+          clientIdRef:
+            name: kafka-oauth-credentials
+            key: clientId
+          clientSecretRef:
+            name: kafka-oauth-credentials
+            key: clientSecret
+          tokenEndpoint: https://identity-server.example.com/token
+          loginHandlerClass: io.strimzi.kafka.oauth.client.JaasClientOauthLoginCallbackHandler
+----
+
+See xref:ROOT:assembly-registry-storage.adoc#registry-persistence-kafkasql-oauth[Configuring Kafka storage with OAuth authentication] for the full OAuth procedure.

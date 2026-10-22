@@ -1,0 +1,478 @@
+package io.apicurio.deployment;
+
+import io.fabric8.kubernetes.api.model.Namespace;
+import io.fabric8.kubernetes.api.model.Pod;
+import io.fabric8.kubernetes.api.model.PodList;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientBuilder;
+import io.fabric8.kubernetes.client.KubernetesClientTimeoutException;
+import io.fabric8.kubernetes.client.dsl.LogWatch;
+import io.fabric8.kubernetes.client.dsl.Resource;
+import io.fabric8.openshift.api.model.Route;
+import io.fabric8.openshift.client.DefaultOpenShiftClient;
+import io.fabric8.openshift.client.OpenShiftClient;
+import org.junit.platform.engine.TestExecutionResult;
+import org.junit.platform.launcher.TestExecutionListener;
+import org.junit.platform.launcher.TestIdentifier;
+import org.junit.platform.launcher.TestPlan;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.commons.io.IOUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import static io.apicurio.deployment.Constants.REGISTRY_IMAGE;
+import static io.apicurio.deployment.KubernetesTestResources.*;
+
+public class RegistryDeploymentManager implements TestExecutionListener {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RegistryDeploymentManager.class);
+
+    public static KubernetesClient kubernetesClient;
+
+    // Guards against failsafe's rerun re-executing the test plan (and therefore the
+    // deployment) in the same JVM.
+    private static final AtomicBoolean DEPLOYED = new AtomicBoolean(false);
+
+    // Set when handleInfraDeployment() throws below. testPlanExecutionStarted() cannot
+    // abort the JUnit Platform launcher's test plan from a TestExecutionListener callback,
+    // so a failure here used to be logged and silently ignored: tests then ran against a
+    // half-seeded/never-restarted deployment and failed with confusing, unrelated
+    // assertion errors far away from the actual root cause. ApicurioRegistryBaseIT checks
+    // this in its @BeforeAll so every test class fails fast with the real error instead.
+    private static volatile Throwable deploymentFailure;
+
+    static List<LogWatch> logWatch;
+
+    static String testLogsIdentifier;
+
+    @Override
+    public void executionStarted(TestIdentifier testIdentifier) {
+        TestExecutionListener.super.executionStarted(testIdentifier);
+        if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
+            logWatch = streamPodLogs(testLogsIdentifier);
+        }
+    }
+
+    @Override
+    public void executionFinished(TestIdentifier testIdentifier, TestExecutionResult testExecutionResult) {
+        TestExecutionListener.super.executionFinished(testIdentifier, testExecutionResult);
+
+        if (logWatch != null && !logWatch.isEmpty()) {
+            logWatch.forEach(LogWatch::close);
+        }
+    }
+
+    @Override
+    public void testPlanExecutionStarted(TestPlan testPlan) {
+        // Set quarkus.args for iceberg before Quarkus starts (must be a system property, read by the framework)
+        if (Constants.isGroupActive(Constants.ICEBERG)) {
+            System.setProperty("quarkus.args",
+                    "-Dapicurio.features.experimental.enabled=true -Dapicurio.iceberg.enabled=true");
+        }
+
+        if (Boolean.parseBoolean(System.getProperty("cluster.tests"))) {
+
+            // Failsafe re-executes the whole test plan for failing-test reruns
+            // (rerunFailingTestsCount). Deploy only once per JVM: redeploying would
+            // tear down and recreate the namespace mid-run, and the rerun can never
+            // pass against a half-recreated deployment.
+            if (!DEPLOYED.compareAndSet(false, true)) {
+                LOGGER.info("Registry already deployed in this JVM (failsafe rerun), skipping redeploy");
+                return;
+            }
+
+            kubernetesClient = new KubernetesClientBuilder().build();
+
+            try {
+                handleInfraDeployment();
+            } catch (Exception e) {
+                LOGGER.error("Error starting registry deployment", e);
+                deploymentFailure = e;
+            }
+
+            // Namespace cleanup must not run at test-plan end either: that method
+            // fires between the initial plan and the failsafe rerun plan. The CI
+            // runner is ephemeral, so deleting on JVM shutdown is sufficient.
+            if (!Boolean.parseBoolean(System.getProperty("preserveNamespace"))) {
+                Runtime.getRuntime().addShutdownHook(new Thread(this::cleanupTestResources));
+            }
+
+            LOGGER.info("Test suite started ##################################################");
+        }
+    }
+
+    @Override
+    public void testPlanExecutionFinished(TestPlan testPlan) {
+        LOGGER.info("Test suite ended ##################################################");
+
+        try {
+            if (logWatch != null && !logWatch.isEmpty()) {
+                logWatch.forEach(LogWatch::close);
+            }
+        } catch (Exception e) {
+            LOGGER.error("Exception closing log watchers", e);
+        }
+    }
+
+    /**
+     * Fails fast, with the real root cause, if test-infra deployment failed during
+     * testPlanExecutionStarted(). Must be called from every test class's setup (see
+     * ApicurioRegistryBaseIT#prepareRestAssured) since a TestExecutionListener cannot itself
+     * abort the test plan it was notified about.
+     */
+    public static void verifyDeploymentSucceeded() throws Exception {
+        if (deploymentFailure != null) {
+            throw new IllegalStateException(
+                    "Registry test-infra deployment failed during test-plan startup; "
+                            + "no tests can run against a broken/incomplete deployment. "
+                            + "See the 'Error starting registry deployment' log entry for the root cause.",
+                    deploymentFailure);
+        }
+    }
+
+    private void cleanupTestResources() {
+        try {
+            if (kubernetesClient != null) {
+                LOGGER.info("Closing test resources ##################################################");
+
+                final Resource<Namespace> namespaceResource = kubernetesClient.namespaces()
+                        .withName(TEST_NAMESPACE);
+
+                namespaceResource.delete();
+            }
+        } catch (Exception e) {
+            LOGGER.error("Exception closing test resources", e);
+        } finally {
+            if (kubernetesClient != null) {
+                kubernetesClient.close();
+            }
+        }
+    }
+
+    private void handleInfraDeployment() throws Exception {
+        // First, create the namespace used for the test.
+        kubernetesClient.load(getClass().getResourceAsStream(E2E_NAMESPACE_RESOURCE)).serverSideApply();
+
+        // Based on the configuration, deploy the appropriate variant
+        String registryImage = System.getProperty("registry-image");
+        if (Boolean.parseBoolean(System.getProperty("deployInMemory"))) {
+            LOGGER.info(
+                    "Deploying In Memory Registry Variant with image: {} ##################################################",
+                    registryImage);
+            InMemoryDeploymentManager.deployInMemoryApp(registryImage);
+            testLogsIdentifier = "apicurio-registry-memory";
+        } else if (Boolean.parseBoolean(System.getProperty("deploySql"))) {
+            LOGGER.info(
+                    "Deploying SQL Registry Variant with image: {} ##################################################",
+                    registryImage);
+            SqlDeploymentManager.deploySqlApp(registryImage);
+            testLogsIdentifier = "apicurio-registry-sql";
+        } else if (Boolean.parseBoolean(System.getProperty("deployKafka"))) {
+            LOGGER.info(
+                    "Deploying Kafka SQL Registry Variant with image: {} ##################################################",
+                    registryImage);
+            KafkaSqlDeploymentManager.deployKafkaApp(registryImage);
+            testLogsIdentifier = "apicurio-registry-kafka";
+        } else if (Boolean.parseBoolean(System.getProperty("deployKubernetesOps"))) {
+            LOGGER.info(
+                    "Deploying KubernetesOps Registry Variant with image: {} ##################################################",
+                    registryImage);
+            KubernetesOpsDeploymentManager.deployKubernetesOpsApp(registryImage);
+            testLogsIdentifier = "apicurio-registry-kubernetesops";
+        }
+
+        // Deploy Debezium infrastructure based on active test groups.
+        // When all debezium groups are active, deploy everything at once (CI optimization).
+        // Otherwise, deploy only the infrastructure needed for the specific group.
+        boolean hasPostgres = Constants.isGroupActive(Constants.DEBEZIUM) || Constants.isGroupActive(Constants.DEBEZIUM_SNAPSHOT);
+        boolean hasMySQL = Constants.isGroupActive(Constants.DEBEZIUM_MYSQL) || Constants.isGroupActive(Constants.DEBEZIUM_MYSQL_SNAPSHOT);
+        boolean useLocalConverters = Constants.isGroupActive(Constants.DEBEZIUM_SNAPSHOT) || Constants.isGroupActive(Constants.DEBEZIUM_MYSQL_SNAPSHOT);
+
+        if (hasPostgres && hasMySQL) {
+            LOGGER.info("Deploying ALL Debezium infrastructure ##################################################");
+            DebeziumDeploymentManager.deployAllDebeziumInfra();
+        } else if (hasPostgres) {
+            LOGGER.info("Deploying Debezium PostgreSQL infrastructure ##################################################");
+            DebeziumDeploymentManager.deployDebeziumInfra(useLocalConverters);
+        } else if (hasMySQL) {
+            LOGGER.info("Deploying Debezium MySQL infrastructure ##################################################");
+            DebeziumDeploymentManager.deployDebeziumMySQLInfra(useLocalConverters);
+        }
+    }
+
+    static void prepareTestsInfra(String externalResources, String registryResources, boolean startKeycloak,
+            String registryImage) throws IOException {
+        if (startKeycloak) {
+            LOGGER.info("Deploying Keycloak resources ##################################################");
+            deployResource(KEYCLOAK_RESOURCES);
+        }
+
+        if (externalResources != null) {
+            LOGGER.info(
+                    "Deploying external dependencies for Registry ##################################################");
+            deployResource(externalResources);
+        }
+
+        final InputStream resourceAsStream = RegistryDeploymentManager.class
+                .getResourceAsStream(registryResources);
+
+        assert resourceAsStream != null;
+
+        String registryLoadedResources = IOUtils.toString(resourceAsStream, StandardCharsets.UTF_8.name());
+
+        if (registryImage != null) {
+            registryLoadedResources = registryLoadedResources.replace(REGISTRY_IMAGE, registryImage);
+        }
+
+        try {
+            // Deploy all the resources associated to the registry variant
+            kubernetesClient
+                    .load(IOUtils.toInputStream(registryLoadedResources, StandardCharsets.UTF_8.name()))
+                    .serverSideApply();
+        } catch (Exception ex) {
+            LOGGER.debug("Error creating registry resources:", ex);
+        }
+
+        waitForAllPodsReady();
+
+        setupTestNetworking();
+
+        // Wait for registry HTTP endpoint to be accessible via LoadBalancer
+        waitForRegistryReady();
+    }
+
+    static void setupTestNetworking() {
+        // For openshift, a route to the application is created and used for networking.
+        if (Constants.isGroupActive("openshift")) {
+
+            OpenShiftClient openShiftClient = new DefaultOpenShiftClient();
+
+            try {
+                final Route registryRoute = openShiftClient.routes()
+                        .load(RegistryDeploymentManager.class.getResourceAsStream(REGISTRY_OPENSHIFT_ROUTE))
+                        .serverSideApply();
+
+                System.setProperty("quarkus.http.test-host", registryRoute.getSpec().getHost());
+                System.setProperty("quarkus.http.test-port", "80");
+            } catch (Exception ex) {
+                LOGGER.warn("The registry route already exists: ", ex);
+            }
+
+        } else {
+            // If we're running the cluster tests but no external endpoint has been provided, set the value of
+            // the load balancer.
+            if (System.getProperty("quarkus.http.test-host").equals("localhost")
+                    && !System.getProperty("os.name").contains("Mac OS")) {
+                System.setProperty("quarkus.http.test-host",
+                        kubernetesClient.services().inNamespace(TEST_NAMESPACE).withName(APPLICATION_SERVICE)
+                                .get().getSpec().getClusterIP());
+            }
+        }
+    }
+
+    private static void deployResource(String resource) {
+        kubernetesClient.load(RegistryDeploymentManager.class.getResourceAsStream(resource))
+                .serverSideApply();
+
+        waitForAllPodsReady();
+    }
+
+    static final int POD_WAIT_TIMEOUT_SECONDS = 360;
+    static final int POD_WAIT_MAX_ATTEMPTS = 5;
+
+    /**
+     * Waits for every pod in the test namespace to become ready.
+     * <p>
+     * A fixed number of fixed-length attempts conflates two different situations. In the
+     * KafkaSQL snapshotting job the pods were not stuck, they were slow: after the first 360s
+     * attempt none of the three registry replicas were ready, and after the second, two of
+     * three were - so the deployment was progressing steadily and the wait simply ran out of
+     * budget while replaying the snapshot topic on a contended runner. Meanwhile a genuinely
+     * wedged deployment burned the full budget before reporting anything.
+     * <p>
+     * So this keeps waiting while the number of ready pods is still climbing, and gives up as
+     * soon as a whole attempt passes with no additional pod becoming ready. That makes the
+     * slow case pass and the stuck case fail sooner, instead of trading one against the other
+     * by tuning a timeout.
+     */
+    static void waitForAllPodsReady() {
+        waitForAllPodsReady(kubernetesClient);
+    }
+
+    static void waitForAllPodsReady(KubernetesClient client) {
+        int previousReadyCount = -1;
+        for (int attempt = 1; attempt <= POD_WAIT_MAX_ATTEMPTS; attempt++) {
+            try {
+                client.pods().inNamespace(TEST_NAMESPACE)
+                        .waitUntilReady(POD_WAIT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                return;
+            } catch (KubernetesClientTimeoutException e) {
+                int readyCount = countReadyPods(client);
+
+                // A failed listing (-1) means "unknown", not "no progress" - treating it as a
+                // regression would abort a run that was in fact still coming up.
+                boolean progressUnknown = readyCount < 0 || previousReadyCount < 0;
+                if (attempt > 1 && !progressUnknown && readyCount <= previousReadyCount) {
+                    throw new RuntimeException(
+                            "Pods not ready and no longer making progress: " + readyCount
+                                    + " ready after attempt " + attempt + " of "
+                                    + POD_WAIT_MAX_ATTEMPTS + " (" + POD_WAIT_TIMEOUT_SECONDS
+                                    + "s each), unchanged from the previous attempt",
+                            e);
+                }
+                if (attempt == POD_WAIT_MAX_ATTEMPTS) {
+                    throw new RuntimeException(
+                            "Pods not ready after " + POD_WAIT_MAX_ATTEMPTS + " attempts ("
+                                    + POD_WAIT_TIMEOUT_SECONDS + "s each), still making progress "
+                                    + "at the last attempt (" + readyCount + " ready)",
+                            e);
+                }
+
+                LOGGER.warn("Pod wait attempt {}/{} timed out with {} pod(s) ready "
+                        + "(previously {}), still progressing - retrying: {}",
+                        attempt, POD_WAIT_MAX_ATTEMPTS, readyCount, previousReadyCount,
+                        e.getMessage());
+                previousReadyCount = readyCount;
+            }
+        }
+    }
+
+    /**
+     * Number of pods currently reporting a true Ready condition, or -1 if they could not be
+     * listed. A transient listing failure must not fail the run, so it is reported as unknown
+     * and the caller keeps waiting rather than mistaking it for a lack of progress.
+     */
+    static int countReadyPods(KubernetesClient client) {
+        try {
+            var pods = client.pods().inNamespace(TEST_NAMESPACE).list().getItems();
+            pods.forEach(pod -> LOGGER.info("Pod {}: phase={}, ready={}", pod.getMetadata().getName(),
+                    pod.getStatus() != null ? pod.getStatus().getPhase() : "unknown", isPodReady(pod)));
+            return (int) pods
+                    .stream().filter(RegistryDeploymentManager::isPodReady).count();
+        } catch (Exception ex) {
+            LOGGER.warn("Could not count ready pods: {}", ex.getMessage());
+            return -1;
+        }
+    }
+
+    private static boolean isPodReady(Pod pod) {
+        return pod.getStatus() != null && pod.getStatus().getConditions() != null
+                && pod.getStatus().getConditions().stream()
+                        .anyMatch(c -> "Ready".equals(c.getType()) && "True".equals(c.getStatus()));
+    }
+
+    static void logPodStatus() {
+        try {
+            PodList pods = kubernetesClient.pods().inNamespace(TEST_NAMESPACE).list();
+            pods.getItems().forEach(pod -> {
+                String name = pod.getMetadata().getName();
+                String phase = pod.getStatus() != null ? pod.getStatus().getPhase() : "unknown";
+                LOGGER.info("Pod {}: phase={}, ready={}", name, phase, isPodReady(pod));
+            });
+        } catch (Exception e) {
+            LOGGER.warn("Could not list pods for diagnostics: {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Waits for the Apicurio Registry to be ready by checking the REST API health endpoint.
+     * Uses the external LoadBalancer service to check readiness via localhost.
+     */
+    static void waitForRegistryReady() {
+        LOGGER.info("Waiting for Apicurio Registry to be accessible via LoadBalancer ##################################################");
+
+        try {
+            // In minikube with tunnel, the service should be accessible via localhost
+            // Let's wait a bit and then try to connect
+            Thread.sleep(10000); // Give minikube tunnel time to set up the route
+
+            // Try to connect to the Registry REST API
+            String registryUrl = "http://" + System.getProperty("quarkus.http.test-host") + ":9000/health/ready";
+            LOGGER.info("Checking Registry readiness at: {}", registryUrl);
+
+            int maxAttempts = 30;
+            int attempt = 0;
+            boolean ready = false;
+            int connectionRefusedCount = 0;
+            int httpResponseCount = 0;
+            int lastStatusCode = -1;
+
+            while (attempt < maxAttempts && !ready) {
+                java.net.HttpURLConnection conn = null;
+                try {
+                    // Simple HTTP GET to check if service is responding
+                    java.net.URL url = new java.net.URL(registryUrl);
+                    conn = (java.net.HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("GET");
+                    conn.setConnectTimeout(2000);
+                    conn.setReadTimeout(2000);
+
+                    int responseCode = conn.getResponseCode();
+                    if (responseCode == 200) {
+                        ready = true;
+                        LOGGER.info("Apicurio Registry is ready!");
+                    } else {
+                        httpResponseCount++;
+                        lastStatusCode = responseCode;
+                        LOGGER.info("Attempt {}/{}: Apicurio Registry starting up (HTTP {})",
+                                attempt + 1, maxAttempts, responseCode);
+                    }
+                } catch (Exception e) {
+                    LOGGER.info("Attempt {}/{}: Apicurio Registry not reachable ({})",
+                            attempt + 1, maxAttempts, e.getMessage());
+                    connectionRefusedCount++;
+                } finally {
+                    if (conn != null) {
+                        conn.disconnect();
+                    }
+                }
+                if (!ready) {
+                    Thread.sleep(2000);
+                }
+                attempt++;
+            }
+
+            if (!ready) {
+                String diagnosis;
+                if (httpResponseCount == 0) {
+                    diagnosis = "All " + maxAttempts + " attempts got Connection refused — " +
+                            "this is a routing issue, not a startup timeout. Check minikube tunnel status.";
+                } else if (connectionRefusedCount == 0) {
+                    diagnosis = "All attempts reached the server but never got HTTP 200 (last status: " +
+                            lastStatusCode + ") — startup is too slow or the service is unhealthy.";
+                } else {
+                    diagnosis = "Mixed signals: " + connectionRefusedCount + " Connection refused, " +
+                            httpResponseCount + " HTTP responses (last status: " + lastStatusCode +
+                            "). Service was intermittently reachable.";
+                }
+                LOGGER.error("Apicurio Registry readiness check failed. Diagnosis: {}", diagnosis);
+                throw new RuntimeException("Apicurio Registry did not become ready after " + maxAttempts + " attempts. " + diagnosis);
+            }
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while waiting for Registry", e);
+        }
+    }
+
+    private static List<LogWatch> streamPodLogs(String container) {
+        List<LogWatch> logWatchList = new ArrayList<>();
+
+        PodList podList = kubernetesClient.pods().inNamespace(TEST_NAMESPACE).withLabel("app", container)
+                .list();
+
+        podList.getItems()
+                .forEach(p -> logWatchList.add(kubernetesClient.pods().inNamespace(TEST_NAMESPACE)
+                        .withName(p.getMetadata().getName()).inContainer(container).tailingLines(10)
+                        .watchLog(System.out)));
+
+        return logWatchList;
+    }
+}

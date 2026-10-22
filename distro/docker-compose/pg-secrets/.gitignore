@@ -1,0 +1,2 @@
+# Ignore secret files to prevent accidental commits
+secrets/

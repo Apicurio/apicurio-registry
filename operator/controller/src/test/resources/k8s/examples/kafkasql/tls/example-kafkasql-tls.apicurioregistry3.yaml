@@ -1,0 +1,25 @@
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-kafkasql-tls
+spec:
+  app:
+    storage:
+      type: kafkasql
+      kafkasql:
+        bootstrapServers: "<service name>.<namespace>.svc:9092"
+        # Try using Strimzi/Red Hat AMQ Streams Operator!
+        tls:
+          keystoreSecretRef:
+            name: apicurio
+          keystorePasswordSecretRef:
+            name: apicurio
+          truststoreSecretRef:
+            name: example-cluster-cluster-ca-cert
+          truststorePasswordSecretRef:
+            name: example-cluster-cluster-ca-cert
+    ingress:
+      host: example-kafkasql-tls-app.apps.cluster.example
+  ui:
+    ingress:
+      host: example-kafkasql-tls-ui.apps.cluster.example

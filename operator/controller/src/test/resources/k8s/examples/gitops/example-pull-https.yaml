@@ -1,0 +1,34 @@
+# GitOps Pull Mode (HTTPS)
+#
+# Pulls schemas from a public Git repository over HTTPS using the GitOps sync sidecar.
+# The operator automatically injects the sidecar container and shared volume.
+#
+# Steps:
+#   1. (Optional) Fork https://github.com/Apicurio/apicurio-registry-gitops-example
+#      and update the repo URL below.
+#
+#   2. Deploy:
+#      kubectl apply -f example-pull-https.yaml
+#
+#   3. Verify:
+#      kubectl port-forward svc/gitops-pull-https-app-service 8080:8080
+#      curl http://localhost:8080/apis/registry/v3/groups
+#
+# For local Docker Compose deployment, see: examples/gitops/pull-https/
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: gitops-pull-https
+spec:
+  app:
+    storage:
+      type: gitops
+      gitops:
+        repos:
+          - url: https://github.com/Apicurio/apicurio-registry-gitops-example.git
+        registryId: prod
+    ingress:
+      host: gitops-pull-https-app.apps.cluster.example
+  ui:
+    ingress:
+      host: gitops-pull-https-ui.apps.cluster.example

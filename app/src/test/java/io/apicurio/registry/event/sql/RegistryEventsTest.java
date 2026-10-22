@@ -1,0 +1,1420 @@
+package io.apicurio.registry.event.sql;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
+import io.apicurio.registry.rest.client.models.EditableGroupMetaData;
+import io.apicurio.registry.rest.client.models.EditableVersionMetaData;
+import io.apicurio.registry.rest.client.models.GroupMetaData;
+import io.apicurio.registry.rest.client.models.Labels;
+import io.apicurio.registry.rest.client.models.VersionContent;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
+import io.apicurio.registry.rest.v3.beans.ContractRule;
+import io.apicurio.registry.rest.v3.beans.ContractRuleSet;
+import io.apicurio.registry.rest.v3.beans.ContractStatusTransition;
+import io.apicurio.registry.rest.v3.beans.EditableContractMetadata;
+import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.storage.StorageEventType;
+import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.RuleType;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.rnorth.ducttape.unreliables.Unreliables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_CREATED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_DELETED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_METADATA_UPDATED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_RULE_CONFIGURED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_CREATED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_DELETED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_METADATA_UPDATED;
+import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_STATE_CHANGED;
+import static io.apicurio.registry.storage.StorageEventType.CONTRACT_METADATA_UPDATED;
+import static io.apicurio.registry.storage.StorageEventType.CONTRACT_RULESET_CONFIGURED;
+import static io.apicurio.registry.storage.StorageEventType.CONTRACT_STATUS_CHANGED;
+import static io.apicurio.registry.storage.StorageEventType.GLOBAL_RULE_CONFIGURED;
+import static io.apicurio.registry.storage.StorageEventType.GROUP_CREATED;
+import static io.apicurio.registry.storage.StorageEventType.GROUP_DELETED;
+import static io.apicurio.registry.storage.StorageEventType.GROUP_METADATA_UPDATED;
+import static io.apicurio.registry.storage.StorageEventType.GROUP_RULE_CONFIGURED;
+import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+@QuarkusTest
+@TestProfile(EventsTestProfile.class)
+@Tag(ApicurioTestTags.SLOW)
+public class RegistryEventsTest extends AbstractResourceTestBase {
+
+    private static final Logger log = LoggerFactory.getLogger(RegistryEventsTest.class);
+
+    protected KafkaConsumer<String, String> consumer;
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final String ARTIFACT_CONTENT = "{\"name\":\"redhat\"}";
+
+    @BeforeAll
+    public void init() {
+        consumer = getConsumer(System.getProperty("bootstrap.servers"));
+        consumer.subscribe(List.of("outbox.event.registry-events"));
+    }
+
+    @Test
+    public void createGroup() throws Exception {
+        // Preparation
+        final String groupId = "createGroup";
+        final String description = "createGroupDescription";
+
+        Labels labels = new Labels();
+
+        ensureGroupCreated(groupId, description, labels);
+
+        // Consume the create event from the broker
+        List<JsonNode> events = lookupEvent(consumer, GROUP_CREATED, Map.of("groupId", groupId));
+
+        Assertions.assertEquals(1, events.size());
+        checkGroupEvent(groupId, events);
+    }
+
+    @Test
+    public void updateGroupMetadata() throws Exception {
+        // Preparation
+        final String groupId = "updateGroupMetadata";
+        final String description = "updateGroupMetadataDescription";
+
+        Labels labels = new Labels();
+
+        ensureGroupCreated(groupId, description, labels);
+
+        EditableGroupMetaData emd = new EditableGroupMetaData();
+        emd.setDescription("updateArtifactMetadataEventDescriptionEdited");
+        clientV3.groups().byGroupId(groupId).put(emd);
+
+        // Consume the create event from the broker
+        List<JsonNode> events = lookupEvent(consumer, GROUP_METADATA_UPDATED, Map.of("groupId", groupId));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(GROUP_METADATA_UPDATED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(GROUP_METADATA_UPDATED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals("updateArtifactMetadataEventDescriptionEdited",
+                updateEvent.get("description").asText());
+    }
+
+    @Test
+    public void deleteGroupEvent() throws Exception {
+        // Preparation
+        final String groupId = "deleteGroupEvent";
+        final String description = "deleteGroupEventDescription";
+
+        Labels labels = new Labels();
+
+        ensureGroupCreated(groupId, description, labels);
+
+        clientV3.groups().byGroupId(groupId).delete();
+
+        // Consume the delete event from the broker
+        List<JsonNode> deleteEvents = lookupEvent(consumer, GROUP_DELETED, Map.of("groupId", groupId));
+
+        JsonNode deleteEvent = null;
+
+        for (JsonNode event : deleteEvents) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(GROUP_DELETED.name())) {
+                deleteEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, deleteEvents.size());
+        Assertions.assertEquals(groupId, deleteEvent.get("groupId").asText());
+        Assertions.assertEquals(GROUP_DELETED.name(), deleteEvent.get("eventType").asText());
+    }
+
+    @Test
+    void createArtifactEvent() throws Exception {
+        // Preparation
+        final String groupId = "testCreateArtifact";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "testCreateArtifactName";
+        final String description = "testCreateArtifactDescription";
+
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_CREATED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+        Assertions.assertEquals(1, events.size());
+        checkArtifactEvent(groupId, artifactId, name, events.get(0));
+    }
+
+    @Test
+    public void updateArtifactMetadataEvent() throws Exception {
+        // Preparation
+        final String groupId = "updateArtifactMetadataEvent";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "updateArtifactMetadataEventName";
+        final String description = "updateArtifactMetadataEventDescription";
+
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
+
+        EditableArtifactMetaData emd = new EditableArtifactMetaData();
+        emd.setName("updateArtifactMetadataEventNameEdited");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).put(emd);
+
+        // Consume the update events from the broker
+        List<JsonNode> updateEvents = lookupEvent(consumer, ARTIFACT_METADATA_UPDATED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : updateEvents) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_METADATA_UPDATED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, updateEvents.size());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_METADATA_UPDATED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
+        Assertions.assertEquals("updateArtifactMetadataEventNameEdited", updateEvent.get("name").asText());
+    }
+
+    @Test
+    public void deleteArtifactEvent() throws Exception {
+        // Preparation
+        final String groupId = "deleteArtifactEvent";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "deleteArtifactEventName";
+        final String description = "deleteArtifactEventDescription";
+
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
+
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
+
+        // Consume the delete event from the broker
+        List<JsonNode> deleteEvents = lookupEvent(consumer, ARTIFACT_DELETED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : deleteEvents) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_DELETED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, deleteEvents.size());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_DELETED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
+    }
+
+    @Test
+    public void createArtifactVersion() throws Exception {
+        // Preparation
+        final String groupId = "createArtifactVersion";
+
+        final String artifactId = generateArtifactId();
+
+        String name = "createArtifactVersionName";
+        String description = "createArtifactVersionDescription";
+
+        ensureArtifactCreated(groupId, artifactId, name, description);
+        // Consume the create event from the broker
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_VERSION_CREATED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_CREATED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_VERSION_CREATED.name(), updateEvent.get("eventType").asText());
+    }
+
+    @Test
+    public void dryRunCreateArtifactEmitsNoEvent() throws Exception {
+        // Preparation
+        final String groupId = "dryRunCreateArtifact";
+        final String artifactId = generateArtifactId();
+
+        CreateArtifact dryRunCreate = buildCreateArtifact(artifactId, "dryRunLeakName");
+        clientV3.groups().byGroupId(groupId).artifacts().post(dryRunCreate,
+                config -> config.queryParameters.dryRun = true);
+
+        // Real create of the same id acts as a barrier: any leaked dry-run event precedes it.
+        CreateArtifact realCreate = buildCreateArtifact(artifactId, "realCreateName");
+        clientV3.groups().byGroupId(groupId).artifacts().post(realCreate);
+
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_CREATED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals("realCreateName", events.get(0).get("name").asText());
+        for (JsonNode event : events) {
+            Assertions.assertNotEquals("dryRunLeakName", event.get("name").asText());
+        }
+    }
+
+    @Test
+    public void dryRunCreateArtifactVersionEmitsNoEvent() throws Exception {
+        // Preparation
+        final String groupId = "dryRunCreateArtifactVersion";
+        final String artifactId = generateArtifactId();
+
+        ensureArtifactCreated(groupId, artifactId, "dryRunCreateArtifactVersionName",
+                "dryRunCreateArtifactVersionDescription");
+
+        CreateVersion dryRunVersion = buildCreateVersion("2", "dryRunLeakVersionName");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(dryRunVersion, config -> config.queryParameters.dryRun = true);
+
+        // Real create of version "2" acts as a barrier: any leaked dry-run event precedes it.
+        CreateVersion realVersion = buildCreateVersion("2", "realVersionName");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(realVersion);
+
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_VERSION_CREATED,
+                Map.of("groupId", groupId, "artifactId", artifactId, "version", "2"));
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals("realVersionName", events.get(0).get("name").asText());
+        for (JsonNode event : events) {
+            Assertions.assertNotEquals("dryRunLeakVersionName", event.get("name").asText());
+        }
+    }
+
+    @Test
+    public void updateArtifactVersionMetadata() throws Exception {
+        // Preparation
+        final String groupId = "updateArtifactVersionMetadata";
+        final String artifactId = generateArtifactId();
+
+        String name = "updateArtifactVersionMetadataName";
+        String description = "updateArtifactVersionMetadataDescription";
+
+        ensureArtifactCreated(groupId, artifactId, name, description);
+
+        EditableVersionMetaData emd = new EditableVersionMetaData();
+        emd.setDescription("updateArtifactVersionMetadataEventDescriptionEdited");
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").put(emd);
+
+        // Consume the create event from the broker
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_VERSION_METADATA_UPDATED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_METADATA_UPDATED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_VERSION_METADATA_UPDATED.name(),
+                updateEvent.get("eventType").asText());
+        Assertions.assertEquals("updateArtifactVersionMetadataEventDescriptionEdited",
+                updateEvent.get("description").asText());
+    }
+
+    @Test
+    public void updateArtifactVersionState() throws Exception {
+        // Preparation
+        final String groupId = "updateArtifactVersionState";
+        final String artifactId = generateArtifactId();
+
+        String name = "updateArtifactVersionStateName";
+        String description = "updateArtifactVersionStateDescription";
+
+        ensureArtifactCreated(groupId, artifactId, name, description);
+
+        // A freshly created version is ENABLED; transition it to DEPRECATED.
+        WrappedVersionState newState = new WrappedVersionState();
+        newState.setState(VersionState.DEPRECATED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state().put(newState);
+
+        // The state change must produce an ARTIFACT_VERSION_STATE_CHANGED event.
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_VERSION_STATE_CHANGED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        JsonNode stateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_STATE_CHANGED.name())) {
+                stateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(groupId, stateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, stateEvent.get("artifactId").asText());
+        Assertions.assertEquals(ARTIFACT_VERSION_STATE_CHANGED.name(),
+                stateEvent.get("eventType").asText());
+        Assertions.assertEquals("1", stateEvent.get("version").asText());
+        Assertions.assertEquals(VersionState.ENABLED.name(), stateEvent.get("oldState").asText());
+        Assertions.assertEquals(VersionState.DEPRECATED.name(), stateEvent.get("newState").asText());
+    }
+
+    @Test
+    public void updateArtifactVersionStateDryRun() throws Exception {
+        // Preparation
+        final String groupId = "updateArtifactVersionStateDryRun";
+        final String artifactId = generateArtifactId();
+
+        String name = "updateArtifactVersionStateDryRunName";
+        String description = "updateArtifactVersionStateDryRunDescription";
+
+        ensureArtifactCreated(groupId, artifactId, name, description);
+
+        // A dry-run state change must NOT emit an event. Target DISABLED so that a leaked
+        // dry-run event would be distinguishable from the real change below.
+        WrappedVersionState disabled = new WrappedVersionState();
+        disabled.setState(VersionState.DISABLED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state()
+                .put(disabled, config -> config.queryParameters.dryRun = true);
+
+        // A real state change to DEPRECATED, used as a deterministic barrier: since events are
+        // produced in submission order to a single partition, a leaked dry-run event (if any)
+        // would already be on the topic by the time this real event is consumed.
+        WrappedVersionState deprecated = new WrappedVersionState();
+        deprecated.setState(VersionState.DEPRECATED);
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").state().put(deprecated);
+
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_VERSION_STATE_CHANGED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        JsonNode stateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_STATE_CHANGED.name())) {
+                stateEvent = event;
+            }
+            // The dry-run transition to DISABLED must never have produced an event.
+            Assertions.assertNotEquals(VersionState.DISABLED.name(), event.get("newState").asText());
+        }
+
+        // Only the real DEPRECATED change is emitted; the dry-run produced nothing. The
+        // oldState is ENABLED (not DISABLED), which also confirms the dry-run did not persist.
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(ARTIFACT_VERSION_STATE_CHANGED.name(),
+                stateEvent.get("eventType").asText());
+        Assertions.assertEquals(VersionState.ENABLED.name(), stateEvent.get("oldState").asText());
+        Assertions.assertEquals(VersionState.DEPRECATED.name(), stateEvent.get("newState").asText());
+    }
+
+    @Test
+    public void deleteArtifactVersion() throws Exception {
+        // Preparation
+        final String groupId = "createArtifactVersion";
+        final String artifactId = generateArtifactId();
+        String name = "deleteArtifactVersionName";
+        String description = "deleteArtifactVersionDescription";
+
+        ensureArtifactCreated(groupId, artifactId, name, description);
+
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("1").delete();
+
+        // Consume the delete event from the broker
+        List<JsonNode> deleteEvents = lookupEvent(consumer, ARTIFACT_VERSION_DELETED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        JsonNode deleteEvent = null;
+
+        for (JsonNode event : deleteEvents) {
+            if (event.get("groupId").asText().equals(groupId)
+                    && event.get("eventType").asText().equals(ARTIFACT_VERSION_DELETED.name())) {
+                deleteEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, deleteEvents.size());
+        Assertions.assertEquals(groupId, deleteEvent.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_VERSION_DELETED.name(), deleteEvent.get("eventType").asText());
+    }
+
+    @Test
+    public void globalRuleCreated() throws Exception {
+        createGlobalRule(RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        // Consume the create event from the broker
+        List<JsonNode> events = lookupEvent(consumer, GLOBAL_RULE_CONFIGURED,
+                Map.of("ruleType", RuleType.VALIDITY.value()));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(GLOBAL_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(GLOBAL_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+    }
+
+    @Test
+    public void globalRuleUpdated() throws Exception {
+        createGlobalRule(RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        // Consume the create event from the broker
+        updateGlobalRule(RuleType.VALIDITY, ValidityLevel.FULL.name());
+
+        // Lookup for the update event
+        List<JsonNode> events = lookupEvent(consumer, GLOBAL_RULE_CONFIGURED,
+                Map.of("rule", ValidityLevel.FULL.name()));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(GLOBAL_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(GLOBAL_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.FULL.name(), updateEvent.get("rule").asText());
+    }
+
+    @Test
+    public void globalRuleDeleted() throws Exception {
+        createGlobalRule(RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        clientV3.admin().rules().byRuleType(RuleType.VALIDITY.name()).delete();
+
+        // Lookup for the update event
+        List<JsonNode> events = lookupEvent(consumer, GLOBAL_RULE_CONFIGURED,
+                Map.of("rule", ValidityLevel.NONE.name()));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(GLOBAL_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(GLOBAL_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asText());
+    }
+
+    @Test
+    public void groupRuleCreated() throws Exception {
+        // Preparation
+        final String groupId = "groupRuleConfigured";
+        final String description = "groupRuleConfiguredDescription";
+
+        Labels labels = new Labels();
+
+        ensureGroupCreated(groupId, description, labels);
+
+        createGroupRule(groupId, RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        // Consume the create event from the broker
+        List<JsonNode> events = lookupEvent(consumer, GROUP_RULE_CONFIGURED, Map.of("groupId", groupId));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(GROUP_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(GROUP_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+    }
+
+    @Test
+    public void groupRuleUpdated() throws Exception {
+        // Preparation
+        final String groupId = "groupRuleUpdated";
+        final String description = "groupRuleUpdatedDescription";
+
+        Labels labels = new Labels();
+
+        ensureGroupCreated(groupId, description, labels);
+
+        createGroupRule(groupId, RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        updateGroupRule(groupId, RuleType.VALIDITY, ValidityLevel.FULL.name());
+
+        // Lookup for the update event
+        List<JsonNode> events = lookupEvent(consumer, GROUP_RULE_CONFIGURED,
+                Map.of("groupId", groupId, "rule", ValidityLevel.FULL.name()));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(GROUP_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(GROUP_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.FULL.name(), updateEvent.get("rule").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+    }
+
+    @Test
+    public void groupRuleDeleted() throws Exception {
+        // Preparation
+        final String groupId = "groupRuleDeleted";
+        final String description = "groupRuleDeletedDescription";
+
+        Labels labels = new Labels();
+
+        ensureGroupCreated(groupId, description, labels);
+
+        createGroupRule(groupId, RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        clientV3.groups().byGroupId(groupId).rules().byRuleType(RuleType.VALIDITY.name()).delete();
+
+        // Lookup for the update event
+        List<JsonNode> events = lookupEvent(consumer, GROUP_RULE_CONFIGURED,
+                Map.of("groupId", groupId, "rule", ValidityLevel.NONE.name()));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(GROUP_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(GROUP_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+    }
+
+    @Test
+    public void artifactRuleConfigured() throws Exception {
+        // Preparation
+        final String groupId = "artifactRuleConfigured";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "artifactRuleConfiguredName";
+        final String description = "artifactRuleConfiguredDescription";
+
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
+        createArtifactRule(groupId, artifactId, RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        // Consume the create event from the broker
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_RULE_CONFIGURED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(ARTIFACT_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(ARTIFACT_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
+    }
+
+    @Test
+    public void artifactRuleUpdated() throws Exception {
+        // Preparation
+        final String groupId = "artifactRuleUpdated";
+        final String description = "artifactRuleUpdatedDescription";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "artifactRuleUpdatedName";
+
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
+        createArtifactRule(groupId, artifactId, RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        updateArtifactRule(groupId, artifactId, RuleType.VALIDITY, ValidityLevel.FULL.name());
+
+        // Lookup for the update event
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_RULE_CONFIGURED,
+                Map.of("groupId", groupId, "rule", ValidityLevel.FULL.name(), "artifactId", artifactId));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(ARTIFACT_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(ARTIFACT_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.FULL.name(), updateEvent.get("rule").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
+    }
+
+    @Test
+    public void artifactRuleDeleted() throws Exception {
+        // Preparation
+        final String groupId = "artifactRuleUpdated";
+        final String description = "artifactRuleUpdatedDescription";
+        final String artifactId = generateArtifactId();
+
+        final String version = "1";
+        final String name = "artifactRuleUpdatedName";
+
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
+        createArtifactRule(groupId, artifactId, RuleType.VALIDITY, "SYNTAX_ONLY");
+
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules()
+                .byRuleType(RuleType.VALIDITY.name()).delete();
+
+        // Lookup for the update event
+        List<JsonNode> events = lookupEvent(consumer, ARTIFACT_RULE_CONFIGURED,
+                Map.of("groupId", groupId, "rule", ValidityLevel.NONE.name(), "artifactId", artifactId));
+
+        JsonNode updateEvent = null;
+
+        for (JsonNode event : events) {
+            if (event.get("eventType").asText().equals(ARTIFACT_RULE_CONFIGURED.name())) {
+                updateEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(1, events.size());
+        Assertions.assertEquals(ARTIFACT_RULE_CONFIGURED.name(), updateEvent.get("eventType").asText());
+        Assertions.assertEquals(ValidityLevel.NONE.name(), updateEvent.get("rule").asText());
+        Assertions.assertEquals(groupId, updateEvent.get("groupId").asText());
+        Assertions.assertEquals(artifactId, updateEvent.get("artifactId").asText());
+    }
+
+    @Test
+    public void contractRulesetConfigured() throws Exception {
+        // Preparation
+        final String groupId = "contractRulesetConfigured";
+        final String artifactId = generateArtifactId();
+        final String name = "contractRulesetConfiguredName";
+        final String description = "contractRulesetConfiguredDescription";
+
+        ensureArtifactCreated(groupId, artifactId, "1", name, description);
+
+        ContractRuleSet ruleSet = newRuleSet("contractRulesetConfiguredRule");
+
+        // Set an artifact-level contract ruleset
+        given()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .body(ruleSet)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                .then()
+                .statusCode(200);
+
+        // Verify the written rule content was persisted (KafkaSql replication), not just that
+        // the GET returns 200 -- an empty/default ruleset also returns 200, so we assert on the
+        // actual rule name to distinguish a replicated write from the pre-write default state.
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            ContractRuleSet retrieved = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                    .then()
+                    .extract().as(ContractRuleSet.class);
+            return retrieved != null && retrieved.getDomainRules() != null
+                    && retrieved.getDomainRules().size() == 1
+                    && "contractRulesetConfiguredRule".equals(retrieved.getDomainRules().get(0).getName());
+        });
+
+        // Consume the event from the broker
+        List<JsonNode> events = lookupEvent(consumer, CONTRACT_RULESET_CONFIGURED,
+                Map.of("groupId", groupId, "artifactId", artifactId, "action", "SET"));
+
+        Assertions.assertEquals(1, events.size());
+        JsonNode event = events.get(0);
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals("SET", event.get("action").asText());
+    }
+
+    @Test
+    public void artifactContractRulesetDeleted() throws Exception {
+        // Preparation
+        final String groupId = "artifactContractRulesetDeleted";
+        final String artifactId = generateArtifactId();
+        final String name = "artifactContractRulesetDeletedName";
+        final String description = "artifactContractRulesetDeletedDescription";
+
+        ensureArtifactCreated(groupId, artifactId, "1", name, description);
+
+        ContractRuleSet ruleSet = newRuleSet("artifactContractRulesetDeletedRule");
+
+        // Set an artifact-level contract ruleset so there is something to delete
+        given()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .body(ruleSet)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                .then()
+                .statusCode(200);
+
+        // Confirm the ruleset was actually replicated before deleting it
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            ContractRuleSet retrieved = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                    .then()
+                    .extract().as(ContractRuleSet.class);
+            return retrieved != null && retrieved.getDomainRules() != null
+                    && retrieved.getDomainRules().size() == 1;
+        });
+
+        // Delete the artifact-level contract ruleset
+        given()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .delete("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                .then()
+                .statusCode(204);
+
+        // Confirm the delete was replicated: since we already confirmed the non-empty state
+        // above, seeing an empty ruleset here is a genuine post-delete signal, not stale data.
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            ContractRuleSet retrieved = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/ruleset")
+                    .then()
+                    .extract().as(ContractRuleSet.class);
+            return retrieved != null && (retrieved.getDomainRules() == null
+                    || retrieved.getDomainRules().isEmpty());
+        });
+
+        // Consume the delete event from the broker
+        List<JsonNode> events = lookupEvent(consumer, CONTRACT_RULESET_CONFIGURED,
+                Map.of("groupId", groupId, "artifactId", artifactId, "action", "DELETE"));
+
+        Assertions.assertEquals(1, events.size());
+        JsonNode event = events.get(0);
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals("DELETE", event.get("action").asText());
+    }
+
+    @Test
+    public void versionContractRulesetConfigured() throws Exception {
+        // Preparation
+        final String groupId = "versionContractRulesetConfigured";
+        final String artifactId = generateArtifactId();
+        final String version = "1";
+        final String name = "versionContractRulesetConfiguredName";
+        final String description = "versionContractRulesetConfiguredDescription";
+
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
+
+        ContractRuleSet ruleSet = newRuleSet("versionContractRulesetConfiguredRule");
+
+        // Set a version-level contract ruleset
+        given()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .pathParam("versionExpression", version)
+                .body(ruleSet)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/ruleset")
+                .then()
+                .statusCode(200);
+
+        // Verify the written rule content was persisted (KafkaSql replication)
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            ContractRuleSet retrieved = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .pathParam("versionExpression", version)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/ruleset")
+                    .then()
+                    .extract().as(ContractRuleSet.class);
+            return retrieved != null && retrieved.getDomainRules() != null
+                    && retrieved.getDomainRules().size() == 1
+                    && "versionContractRulesetConfiguredRule".equals(retrieved.getDomainRules().get(0).getName());
+        });
+
+        // Consume the event from the broker
+        List<JsonNode> events = lookupEvent(consumer, CONTRACT_RULESET_CONFIGURED,
+                Map.of("groupId", groupId, "artifactId", artifactId, "version", version, "action", "SET"));
+
+        Assertions.assertEquals(1, events.size());
+        JsonNode event = events.get(0);
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals(version, event.get("version").asText());
+        Assertions.assertEquals("SET", event.get("action").asText());
+    }
+
+    @Test
+    public void versionContractRulesetDeleted() throws Exception {
+        // Preparation
+        final String groupId = "versionContractRulesetDeleted";
+        final String artifactId = generateArtifactId();
+        final String version = "1";
+        final String name = "versionContractRulesetDeletedName";
+        final String description = "versionContractRulesetDeletedDescription";
+
+        ensureArtifactCreated(groupId, artifactId, version, name, description);
+
+        ContractRuleSet ruleSet = newRuleSet("versionContractRulesetDeletedRule");
+
+        // Set a version-level contract ruleset so there is something to delete
+        given()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .pathParam("versionExpression", version)
+                .body(ruleSet)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/ruleset")
+                .then()
+                .statusCode(200);
+
+        // Confirm the ruleset was actually replicated before deleting it
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            ContractRuleSet retrieved = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .pathParam("versionExpression", version)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/ruleset")
+                    .then()
+                    .extract().as(ContractRuleSet.class);
+            return retrieved != null && retrieved.getDomainRules() != null
+                    && retrieved.getDomainRules().size() == 1;
+        });
+
+        // Delete the version-level contract ruleset
+        given()
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .pathParam("versionExpression", version)
+                .delete("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/ruleset")
+                .then()
+                .statusCode(204);
+
+        // Confirm the delete was replicated
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            ContractRuleSet retrieved = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .pathParam("versionExpression", version)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/{versionExpression}/contract/ruleset")
+                    .then()
+                    .extract().as(ContractRuleSet.class);
+            return retrieved != null && (retrieved.getDomainRules() == null
+                    || retrieved.getDomainRules().isEmpty());
+        });
+
+        // Consume the delete event from the broker
+        List<JsonNode> events = lookupEvent(consumer, CONTRACT_RULESET_CONFIGURED,
+                Map.of("groupId", groupId, "artifactId", artifactId, "version", version, "action", "DELETE"));
+
+        Assertions.assertEquals(1, events.size());
+        JsonNode event = events.get(0);
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals(version, event.get("version").asText());
+        Assertions.assertEquals("DELETE", event.get("action").asText());
+    }
+
+    @Test
+    public void globalContractRulesetConfigured() throws Exception {
+        // Preparation
+        final String ruleName = "globalContractRulesetConfiguredRule-" + UUID.randomUUID();
+        ContractRuleSet ruleSet = newRuleSet(ruleName);
+
+        // Set the global contract ruleset
+        given()
+                .contentType(CT_JSON)
+                .body(ruleSet)
+                .put("/registry/v3/admin/contracts/ruleset")
+                .then()
+                .statusCode(200);
+
+        // Verify the written rule content was persisted (KafkaSql replication)
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            ContractRuleSet retrieved = given()
+                    .get("/registry/v3/admin/contracts/ruleset")
+                    .then()
+                    .extract().as(ContractRuleSet.class);
+            return retrieved != null && retrieved.getDomainRules() != null
+                    && retrieved.getDomainRules().stream().anyMatch(r -> ruleName.equals(r.getName()));
+        });
+
+        // Consume the event from the broker
+        List<JsonNode> events = lookupEvent(consumer, CONTRACT_RULESET_CONFIGURED,
+                Map.of("groupId", "__GLOBAL__", "artifactId", "__GLOBAL__", "action", "SET"));
+
+        Assertions.assertEquals(1, events.size());
+        JsonNode event = events.get(0);
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals("__GLOBAL__", event.get("groupId").asText());
+        Assertions.assertEquals("__GLOBAL__", event.get("artifactId").asText());
+        Assertions.assertEquals("SET", event.get("action").asText());
+    }
+
+    @Test
+    public void globalContractRulesetDeleted() throws Exception {
+        // Preparation
+        final String ruleName = "globalContractRulesetDeletedRule-" + UUID.randomUUID();
+        ContractRuleSet ruleSet = newRuleSet(ruleName);
+
+        // Set the global contract ruleset so there is something to delete
+        given()
+                .contentType(CT_JSON)
+                .body(ruleSet)
+                .put("/registry/v3/admin/contracts/ruleset")
+                .then()
+                .statusCode(200);
+
+        // Confirm the ruleset was actually replicated before deleting it
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            ContractRuleSet retrieved = given()
+                    .get("/registry/v3/admin/contracts/ruleset")
+                    .then()
+                    .extract().as(ContractRuleSet.class);
+            return retrieved != null && retrieved.getDomainRules() != null
+                    && retrieved.getDomainRules().stream().anyMatch(r -> ruleName.equals(r.getName()));
+        });
+
+        // Delete the global contract ruleset
+        given()
+                .delete("/registry/v3/admin/contracts/ruleset")
+                .then()
+                .statusCode(204);
+
+        // Confirm the delete was replicated: the rule we just confirmed present must be gone
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            ContractRuleSet retrieved = given()
+                    .get("/registry/v3/admin/contracts/ruleset")
+                    .then()
+                    .extract().as(ContractRuleSet.class);
+            return retrieved != null && (retrieved.getDomainRules() == null
+                    || retrieved.getDomainRules().stream().noneMatch(r -> ruleName.equals(r.getName())));
+        });
+
+        // Consume the delete event from the broker
+        List<JsonNode> events = lookupEvent(consumer, CONTRACT_RULESET_CONFIGURED,
+                Map.of("groupId", "__GLOBAL__", "artifactId", "__GLOBAL__", "action", "DELETE"));
+
+        Assertions.assertEquals(1, events.size());
+        JsonNode event = events.get(0);
+        Assertions.assertEquals(CONTRACT_RULESET_CONFIGURED.name(), event.get("eventType").asText());
+        Assertions.assertEquals("__GLOBAL__", event.get("groupId").asText());
+        Assertions.assertEquals("__GLOBAL__", event.get("artifactId").asText());
+        Assertions.assertEquals("DELETE", event.get("action").asText());
+    }
+
+    private ContractRuleSet newRuleSet(String ruleName) {
+        ContractRule rule = new ContractRule();
+        rule.setName(ruleName);
+        rule.setKind(ContractRule.Kind.CONDITION);
+        rule.setType("CEL");
+        rule.setMode(ContractRule.Mode.WRITE);
+        rule.setExpr("true");
+
+        ContractRuleSet ruleSet = new ContractRuleSet();
+        ruleSet.setDomainRules(List.of(rule));
+        ruleSet.setMigrationRules(List.of());
+        return ruleSet;
+    }
+
+    @Test
+    public void contractMetadataUpdated() throws Exception {
+        // Preparation
+        final String groupId = "contractMetadataUpdated";
+        final String artifactId = generateArtifactId();
+        final String name = "contractMetadataUpdatedName";
+        final String description = "contractMetadataUpdatedDescription";
+
+        ensureArtifactCreated(groupId, artifactId, "1", name, description);
+
+        EditableContractMetadata metadata = new EditableContractMetadata();
+        metadata.setStatus(EditableContractMetadata.Status.DRAFT);
+        metadata.setOwnerTeam("platform-team");
+
+        // Update contract metadata
+        given()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .body(metadata)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then()
+                .statusCode(200);
+
+        // Wait until the written ownerTeam value is visible on the read side (ensures
+        // KafkaSql replication has completed before polling for the outbox event).
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            String ownerTeam = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                    .then()
+                    .extract().path("ownerTeam");
+            return "platform-team".equals(ownerTeam);
+        });
+
+        // Consume the event from the broker
+        List<JsonNode> events = lookupEvent(consumer, CONTRACT_METADATA_UPDATED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        Assertions.assertEquals(1, events.size());
+        JsonNode event = events.get(0);
+        Assertions.assertEquals(CONTRACT_METADATA_UPDATED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+    }
+
+    @Test
+    public void contractStatusChanged() throws Exception {
+        // Preparation
+        final String groupId = "contractStatusChanged";
+        final String artifactId = generateArtifactId();
+        final String name = "contractStatusChangedName";
+        final String description = "contractStatusChangedDescription";
+
+        ensureArtifactCreated(groupId, artifactId, "1", name, description);
+
+        EditableContractMetadata metadata = new EditableContractMetadata();
+        metadata.setStatus(EditableContractMetadata.Status.DRAFT);
+
+        // Set initial DRAFT status so a transition is possible
+        given()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .body(metadata)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                .then()
+                .statusCode(200);
+
+        // Wait until DRAFT status is visible (ensures KafkaSql replication completed)
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            String status = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                    .then()
+                    .extract().path("status");
+            return "DRAFT".equals(status);
+        });
+
+        ContractStatusTransition transition = new ContractStatusTransition();
+        transition.setStatus(ContractStatusTransition.Status.STABLE);
+
+        // Transition from DRAFT to STABLE
+        given()
+                .contentType(CT_JSON)
+                .pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId)
+                .body(transition)
+                .post("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/status")
+                .then()
+                .statusCode(200);
+
+        // Wait until STABLE status is visible (ensures KafkaSql replication completed
+        // before polling for the CONTRACT_STATUS_CHANGED outbox event).
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            String status = given()
+                    .pathParam("groupId", groupId)
+                    .pathParam("artifactId", artifactId)
+                    .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
+                    .then()
+                    .extract().path("status");
+            return "STABLE".equals(status);
+        });
+
+        // Consume the event from the broker
+        List<JsonNode> events = lookupEvent(consumer, CONTRACT_STATUS_CHANGED,
+                Map.of("groupId", groupId, "artifactId", artifactId));
+
+        Assertions.assertEquals(1, events.size());
+        JsonNode event = events.get(0);
+        Assertions.assertEquals(CONTRACT_STATUS_CHANGED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals("DRAFT", event.get("fromStatus").asText());
+        Assertions.assertEquals("STABLE", event.get("toStatus").asText());
+    }
+
+    private void checkGroupEvent(String groupId, List<JsonNode> events) {
+        JsonNode createEvent = null;
+        for (JsonNode event : events) {
+            if (event.get("groupId").asText().equals(groupId)) {
+                createEvent = event;
+            }
+        }
+
+        Assertions.assertEquals(groupId, createEvent.get("groupId").asText());
+        Assertions.assertEquals(GROUP_CREATED.name(), createEvent.get("eventType").asText());
+    }
+
+    private void checkArtifactEvent(String groupId, String artifactId, String name, JsonNode event) {
+        Assertions.assertEquals(groupId, event.get("groupId").asText());
+        Assertions.assertEquals(ARTIFACT_CREATED.name(), event.get("eventType").asText());
+        Assertions.assertEquals(artifactId, event.get("artifactId").asText());
+        Assertions.assertEquals(name, event.get("name").asText());
+    }
+
+    public CreateArtifactResponse ensureArtifactCreated(String groupId, String artifactId, String name,
+                                                        String description) throws Exception {
+        CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON,
+                ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON, (createArtifact -> {
+                    createArtifact.setName(name);
+                    createArtifact.setDescription(description);
+                }));
+
+        // Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getArtifact().getGroupId());
+        assertEquals(artifactId, created.getArtifact().getArtifactId());
+        assertEquals(name, created.getArtifact().getName());
+        assertEquals(description, created.getArtifact().getDescription());
+
+        return created;
+    }
+
+    public CreateArtifactResponse ensureArtifactCreated(String groupId, String artifactId, String version,
+                                                        String name, String description) throws Exception {
+        CreateArtifactResponse created = createArtifact(groupId, artifactId, ArtifactType.JSON,
+                ARTIFACT_CONTENT, ContentTypes.APPLICATION_JSON, (createArtifact -> {
+                    createArtifact.setName(name);
+                    createArtifact.setDescription(description);
+                    createArtifact.getFirstVersion().setVersion(version);
+                }));
+
+        // Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getArtifact().getGroupId());
+        assertEquals(artifactId, created.getArtifact().getArtifactId());
+        assertEquals(version, created.getVersion().getVersion());
+        assertEquals(name, created.getArtifact().getName());
+        assertEquals(description, created.getArtifact().getDescription());
+        assertEquals(ARTIFACT_CONTENT,
+                new String(
+                        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                                .byVersionExpression("branch=latest").content().get().readAllBytes(),
+                        StandardCharsets.UTF_8));
+
+        return created;
+    }
+
+    public void ensureGroupCreated(String groupId, String description, Labels labels) throws Exception {
+        GroupMetaData created = createGroup(groupId, description, labels, (createGroup -> {
+            createGroup.setDescription(description);
+            createGroup.setGroupId(groupId);
+            createGroup.setLabels(labels);
+        }));
+
+        // Assertions
+        assertNotNull(created);
+        assertEquals(groupId, created.getGroupId());
+        assertEquals(description, created.getDescription());
+    }
+
+    private CreateArtifact buildCreateArtifact(String artifactId, String name) {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setName(name);
+        createArtifact.setFirstVersion(buildCreateVersion(null, null));
+        return createArtifact;
+    }
+
+    private CreateVersion buildCreateVersion(String version, String name) {
+        CreateVersion createVersion = new CreateVersion();
+        if (version != null) {
+            createVersion.setVersion(version);
+        }
+        if (name != null) {
+            createVersion.setName(name);
+        }
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(ARTIFACT_CONTENT);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(versionContent);
+        return createVersion;
+    }
+
+    protected KafkaConsumer<String, String> getConsumer(String bootstrapServers) {
+        return new KafkaConsumer<>(
+                Map.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
+                        ConsumerConfig.GROUP_ID_CONFIG, "tc-" + UUID.randomUUID(),
+                        ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest"),
+                new StringDeserializer(), new StringDeserializer());
+    }
+
+    /**
+     * Polls Kafka for events matching the specified field and event type.
+     * 
+     * @param consumer the Kafka consumer to poll from
+     * @param fieldLookupName the name of the field to match
+     * @param fieldValue the expected value of the field
+     * @param eventType the expected event type
+     * @return list of all consumed events (for compatibility)
+     */
+    private List<JsonNode> lookupEvent(KafkaConsumer<String, String> consumer, String fieldLookupName,
+                                       String fieldValue, StorageEventType eventType) {
+
+        List<JsonNode> events = new ArrayList<>();
+
+        Unreliables.retryUntilTrue(10, TimeUnit.SECONDS, () -> {
+            // Poll for new records with a reasonable timeout
+            consumer.poll(Duration.ofMillis(200)).iterator().forEachRemaining(record -> {
+                events.add(readEventPayload(record));
+            });
+
+            // Check if any matching event exists in the accumulated events
+            boolean matchFound = events.stream().anyMatch(event -> 
+                event.get(fieldLookupName).asText().equals(fieldValue)
+                && event.get("eventType").asText().equals(eventType.name())
+            );
+            
+            if (matchFound) {
+                log.info("Found matching event for {}={}, eventType={}", 
+                         fieldLookupName, fieldValue, eventType.name());
+            }
+            
+            return matchFound;
+        });
+        
+        return events;
+    }
+
+    /**
+     * Polls Kafka for events matching the specified event type and field lookups.
+     * 
+     * @param consumer the Kafka consumer to poll from
+     * @param eventType the expected event type to look for
+     * @param lookups map of field names to expected values that must all match
+     * @return list of matching events found
+     */
+    private List<JsonNode> lookupEvent(KafkaConsumer<String, String> consumer, StorageEventType eventType,
+                                       Map<String, String> lookups) {
+
+        log.info("Event type: {}", eventType.name());
+        log.info("Lookups: {}", lookups);
+        
+        List<JsonNode> consumedEvents = new ArrayList<>();
+        List<JsonNode> lookedUpEvents = new ArrayList<>();
+
+        Unreliables.retryUntilTrue(20, TimeUnit.SECONDS, () -> {
+            // Poll for new records with a reasonable timeout
+            consumer.poll(Duration.ofMillis(200)).iterator().forEachRemaining(record -> {
+                consumedEvents.add(readEventPayload(record));
+            });
+
+            // Clear previously found events to get fresh matches from accumulated events
+            lookedUpEvents.clear();
+            
+            // Find all matching events from the accumulated events
+            for (JsonNode event : consumedEvents) {
+                if (event.get("eventType").asText().equals(eventType.name()) && lookups.keySet().stream()
+                        .allMatch(fieldName -> checkField(event, fieldName, lookups.get(fieldName)))) {
+                    lookedUpEvents.add(event);
+                }
+            }
+            
+            // Log current state for debugging
+            if (!lookedUpEvents.isEmpty()) {
+                log.info("Found {} matching event(s) out of {} consumed events", 
+                         lookedUpEvents.size(), consumedEvents.size());
+            }
+            
+            // Return true if at least one matching event was found
+            return !lookedUpEvents.isEmpty();
+        });
+        
+        return lookedUpEvents;
+    }
+
+    private boolean checkField(JsonNode event, String fieldName, String expectedFieldValue) {
+        return event.get(fieldName).asText().equals(expectedFieldValue);
+    }
+
+    private JsonNode readEventPayload(ConsumerRecord<String, String> event) {
+        String eventPayload = null;
+        try {
+            eventPayload = objectMapper.readTree(event.value()).asText();
+
+            if (eventPayload.isBlank()) {
+                eventPayload = event.value();
+            }
+
+            return objectMapper.readValue(eventPayload, JsonNode.class);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+    }
+}

@@ -1,0 +1,375 @@
+import { FunctionComponent, useEffect, useState } from "react";
+import "./GroupPage.css";
+import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
+import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
+import { Link, useLocation, useMatch, useParams } from "react-router";
+import {
+    EXPLORE_PAGE_IDX,
+    GroupOverviewTabContent,
+    GroupPageHeader, GroupRulesTabContent,
+    PageDataLoader,
+    PageError,
+    PageErrorHandler,
+    PageProperties,
+    toPageError
+} from "@app/pages";
+import {
+    ChangeOwnerModal,
+    ConfirmDeleteModal,
+    CreateArtifactModal,
+    EditMetaDataModal,
+    IfFeature,
+    InvalidContentModal,
+    MetaData, RootPageHeader
+} from "@app/components";
+import { PleaseWaitModal } from "@apitomy/common-ui-components";
+import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
+import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import {
+    CreateArtifact,
+    GroupMetaData,
+    Rule,
+    RuleType,
+    RuleViolationProblemDetails,
+    SearchedVersion
+} from "@sdk/lib/generated-client/models";
+
+
+/**
+ * The group page.
+ */
+export const GroupPage: FunctionComponent<PageProperties> = () => {
+    const [pageError, setPageError] = useState<PageError>();
+    const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
+    const [group, setGroup] = useState<GroupMetaData>();
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isDeleteArtifactModalOpen, setIsDeleteArtifactModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isChangeOwnerModalOpen, setIsChangeOwnerModalOpen] = useState(false);
+    const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
+    const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
+    const [isCreateArtifactModalOpen, setCreateArtifactModalOpen] = useState<boolean>(false);
+    const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [isInvalidContentModalOpen, setInvalidContentModalOpen] = useState<boolean>(false);
+    const [artifactToDelete, setArtifactToDelete] = useState<SearchedVersion>();
+    const [artifactDeleteSuccessCallback, setArtifactDeleteSuccessCallback] = useState<() => void>();
+    const [rules, setRules] = useState<Rule[]>([]);
+    const [ruleActionError, setRuleActionError] = useState<string>();
+    const [pendingRuleType, setPendingRuleType] = useState<string>();
+
+    const appNavigation: AppNavigation = useAppNavigation();
+    const logger: LoggerService = useLoggerService();
+    const groups: GroupsService = useGroupsService();
+    const { groupId }= useParams();
+    const location = useLocation();
+    const rulesMatch = useMatch("/explore/:groupId/rules");
+
+    let activeTabKey: string = "overview";
+    if (location.pathname.indexOf("/artifacts") !== -1) {
+        activeTabKey = "artifacts";
+    }
+    if (rulesMatch) {
+        activeTabKey = "rules";
+    }
+
+    const createLoaders = (guard: LoaderGuard): Promise<any>[] => {
+        logger.info("Loading data for group: ", groupId);
+        return [
+            groups.getGroupMetaData(groupId as string)
+                .then(guard.wrap(setGroup))
+                .catch(guard.wrap((error: any) => {
+                    setPageError(toPageError(error, "Error loading page data."));
+                })),
+            groups.getGroupRules(groupId as string)
+                .then(guard.wrap(setRules))
+                .catch(guard.wrap((error: any) => {
+                    setPageError(toPageError(error, "Error loading page data."));
+                })),
+        ];
+    };
+
+    const handleTabClick = (_event: any, tabIndex: any): void => {
+        const gid: string = encodeURIComponent(groupId as string);
+
+        if (tabIndex === "overview") {
+            appNavigation.navigateTo(`/explore/${gid}`);
+        } else {
+            appNavigation.navigateTo(`/explore/${gid}/${tabIndex}`);
+        }
+    };
+
+    const onDeleteGroup = (): void => {
+        setIsDeleteModalOpen(true);
+    };
+
+    const onDeleteModalClose = (): void => {
+        setIsDeleteModalOpen(false);
+    };
+
+    const onCreateArtifact = (): void => {
+        setCreateArtifactModalOpen(true);
+    };
+
+    const onCreateArtifactModalClose = (): void => {
+        setCreateArtifactModalOpen(false);
+    };
+
+    const doDeleteGroup = (): void => {
+        onDeleteModalClose();
+        pleaseWait(true, "Deleting group, please wait.");
+        groups.deleteGroup(groupId as string).then( () => {
+            pleaseWait(false);
+            appNavigation.navigateTo("/explore");
+        }).catch(error => {
+            setPageError(toPageError(error, "Error deleting group."));
+        });
+    };
+
+    const doDeleteArtifact = (): void => {
+        setIsDeleteArtifactModalOpen(false);
+        pleaseWait(true, "Deleting artifact, please wait.");
+        groups.deleteArtifact(groupId as string, artifactToDelete?.artifactId as string).then( () => {
+            pleaseWait(false);
+            if (artifactDeleteSuccessCallback) {
+                artifactDeleteSuccessCallback();
+            }
+        });
+    };
+
+    const doCreateArtifact = (_groupId: string | undefined, data: CreateArtifact): void => {
+        // Note: the create artifact modal passes the groupId, but we don't care about that because
+        // this is the group page, so we know we want to create the artifact within this group!
+        onCreateArtifactModalClose();
+        pleaseWait(true, "Creating artifact, please wait.");
+        groups.createArtifact(group?.groupId as string, data).then(response => {
+            const groupId: string = response.artifact!.groupId || "default";
+            const artifactLocation: string = `/explore/${ encodeURIComponent(groupId) }/${ encodeURIComponent(response.artifact!.artifactId!) }`;
+            logger.info("[SearchPage] Artifact successfully created.  Redirecting to details page: ", artifactLocation);
+            appNavigation.navigateTo(artifactLocation);
+        }).catch( error => {
+            pleaseWait(false);
+            if (error && (error.status === 400 || error.status === 409)) {
+                handleInvalidContentError(error);
+            } else {
+                setPageError(toPageError(error, "Error creating artifact."));
+            }
+        });
+    };
+
+    const doEnableRule = (ruleType: string): void => {
+        logger.debug("[GroupPage] Enabling rule:", ruleType);
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
+        let config: string = "FULL";
+        if (ruleType === "COMPATIBILITY") {
+            config = "BACKWARD";
+        }
+        groups.createGroupRule(groupId as string, ruleType, config).then(() => {
+            setRules(prev => [...prev, { config, ruleType: ruleType as RuleType }]);
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error enabling "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
+        });
+    };
+
+    const doDisableRule = (ruleType: string): void => {
+        logger.debug("[GroupPage] Disabling rule:", ruleType);
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
+        groups.deleteGroupRule(groupId as string, ruleType).then(() => {
+            setRules(prev => prev.filter(r => r.ruleType !== ruleType));
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error disabling "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
+        });
+    };
+
+    const doConfigureRule = (ruleType: string, config: string): void => {
+        logger.debug("[GroupPage] Configuring rule:", ruleType, config);
+        setRuleActionError(undefined);
+        setPendingRuleType(ruleType);
+        groups.updateGroupRule(groupId as string, ruleType, config).then(() => {
+            setRules(prev => prev.map(r => {
+                if (r.ruleType === ruleType) {
+                    return { config, ruleType: r.ruleType };
+                } else {
+                    return r;
+                }
+            }));
+        }).catch(error => {
+            setRuleActionError(error?.detail || error?.title || `Error configuring "${ ruleType }" group rule. Please try again.`);
+        }).finally(() => {
+            setPendingRuleType(undefined);
+        });
+    };
+
+    const closeInvalidContentModal = (): void => {
+        setInvalidContentModalOpen(false);
+    };
+
+    const handleInvalidContentError = (error: any): void => {
+        logger.info("[SearchPage] Invalid content error:", error);
+        setInvalidContentError(error);
+        setInvalidContentModalOpen(true);
+    };
+
+    const openChangeOwnerModal = (): void => {
+        setIsChangeOwnerModalOpen(true);
+    };
+
+    const onEditModalClose = (): void => {
+        setIsEditModalOpen(false);
+    };
+
+    const onChangeOwnerModalClose = (): void => {
+        setIsChangeOwnerModalOpen(false);
+    };
+
+    const doEditMetaData = (metaData: MetaData): void => {
+        groups.updateGroupMetaData(groupId as string, metaData).then( () => {
+            setGroup({
+                ...(group as GroupMetaData),
+                ...metaData
+            });
+        }).catch( error => {
+            setPageError(toPageError(error, "Error editing group metadata."));
+        });
+        onEditModalClose();
+    };
+
+    const doChangeOwner = (newOwner: string): void => {
+        groups.updateGroupOwner(groupId as string, newOwner).then( () => {
+            setGroup({
+                ...(group as GroupMetaData),
+                owner: newOwner
+            });
+        }).catch( error => {
+            setPageError(toPageError(error, "Error changing group ownership."));
+        });
+        onChangeOwnerModalClose();
+    };
+
+    const onViewArtifact = (artifact: SearchedVersion): void => {
+        const groupId: string = encodeURIComponent(group?.groupId || "default");
+        const artifactId: string = encodeURIComponent(artifact.artifactId!);
+        appNavigation.navigateTo(`/explore/${groupId}/${artifactId}`);
+    };
+
+    const onDeleteArtifact = (artifact: SearchedVersion, deleteSuccessCallback?: () => void): void => {
+        setArtifactToDelete(artifact);
+        setIsDeleteArtifactModalOpen(true);
+        setArtifactDeleteSuccessCallback(() => deleteSuccessCallback);
+    };
+
+    const pleaseWait = (isOpen: boolean, message: string = ""): void => {
+        setIsPleaseWaitModalOpen(isOpen);
+        setPleaseWaitMessage(message);
+    };
+
+    useEffect(() => {
+        setPageError(undefined);
+        const guard: LoaderGuard = newLoaderGuard();
+        setLoaders(createLoaders(guard));
+        return () => guard.cancel();
+    }, [groupId]);
+
+    const tabs: any[] = [
+        <Tab data-testid="group-overview-tab" eventKey="overview" title="Overview" key="overview" tabContentId="tab-overview">
+            <GroupOverviewTabContent
+                group={group as GroupMetaData}
+                onEditMetaData={() => setIsEditModalOpen(true)}
+                onChangeOwner={openChangeOwnerModal}
+                onCreateArtifact={onCreateArtifact}
+                onViewArtifact={onViewArtifact}
+                onDeleteArtifact={onDeleteArtifact}
+            />
+        </Tab>,
+        <Tab data-testid="group-rules-tab" eventKey="rules" title="Rules" key="rules" tabContentId="tab-rules">
+            <GroupRulesTabContent
+                group={group as GroupMetaData}
+                rules={rules}
+                onEnableRule={doEnableRule}
+                onDisableRule={doDisableRule}
+                onConfigureRule={doConfigureRule}
+                actionError={ruleActionError}
+                onDismissActionError={() => setRuleActionError(undefined)}
+                pendingRuleType={pendingRuleType}
+            />
+        </Tab>
+    ];
+
+    const breadcrumbs = (
+        <Breadcrumb>
+            <BreadcrumbItem><Link to={appNavigation.createLink("/explore")} data-testid="breadcrumb-lnk-explore">Explore</Link></BreadcrumbItem>
+            <BreadcrumbItem isActive={true}>{ groupId as string }</BreadcrumbItem>
+        </Breadcrumb>
+    );
+
+    return (
+        <PageErrorHandler error={pageError}>
+            <PageDataLoader loaders={loaders}>
+                <PageSection hasBodyWrapper={false} className="ps_explore-header"  padding={{ default: "noPadding" }}>
+                    <RootPageHeader tabKey={EXPLORE_PAGE_IDX} />
+                </PageSection>
+                <IfFeature feature="breadcrumbs" is={true}>
+                    <PageSection hasBodyWrapper={false} className="ps_header-breadcrumbs"  children={breadcrumbs} />
+                </IfFeature>
+                <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
+                    <GroupPageHeader title={groupId as string}
+                        onDeleteGroup={onDeleteGroup}
+                        groupId={groupId as string} />
+                </PageSection>
+                <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
+                    <Tabs className="group-page-tabs"
+                        variant="default"
+                        id="group-page-tabs"
+                        unmountOnExit={true}
+                        isFilled={false}
+                        activeKey={activeTabKey}
+                        children={tabs}
+                        onSelect={handleTabClick}
+                        style={{ backgroundColor: "var(--registry-card-bg)" }}
+                    />
+                </PageSection>
+            </PageDataLoader>
+            <EditMetaDataModal
+                entityType="group"
+                description={group?.description || ""}
+                labels={group?.labels || {}}
+                isOpen={isEditModalOpen}
+                onClose={onEditModalClose}
+                onEditMetaData={doEditMetaData} />
+            <ConfirmDeleteModal isOpen={isDeleteModalOpen}
+                title="Delete Group"
+                message="Do you want to delete this group and all artifacts contained within? This action cannot be undone."
+                onDelete={doDeleteGroup}
+                onClose={onDeleteModalClose} />
+            <ConfirmDeleteModal isOpen={isDeleteArtifactModalOpen}
+                title="Delete Artifact"
+                message="Do you want to delete the artifact and all its versions? This action cannot be undone."
+                onDelete={doDeleteArtifact}
+                onClose={() => {setIsDeleteArtifactModalOpen(false);}} />
+            <ChangeOwnerModal
+                isOpen={isChangeOwnerModalOpen}
+                onClose={onChangeOwnerModalClose}
+                currentOwner={group?.owner || ""}
+                onChangeOwner={doChangeOwner}
+            />
+            <CreateArtifactModal
+                isOpen={isCreateArtifactModalOpen}
+                onClose={onCreateArtifactModalClose}
+                onCreate={doCreateArtifact}
+                groupId={group?.groupId as string} />
+            <InvalidContentModal
+                error={invalidContentError}
+                isOpen={isInvalidContentModalOpen}
+                onClose={closeInvalidContentModal} />
+            <PleaseWaitModal message={pleaseWaitMessage}
+                isOpen={isPleaseWaitModalOpen} />
+        </PageErrorHandler>
+    );
+
+};

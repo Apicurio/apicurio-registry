@@ -1,0 +1,72 @@
+package io.apicurio.registry.auth;
+
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.common.RegistryClientOptions;
+import io.apicurio.registry.maven.RegisterRegistryMojo;
+import io.apicurio.registry.noprofile.maven.RegistryMojoTestBase;
+import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.apicurio.registry.utils.tests.AuthTestProfile;
+import io.apicurio.registry.utils.tests.KeycloakTestContainerManager;
+import io.apicurio.registry.utils.tests.TestUtils;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import io.vertx.core.Vertx;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+
+@QuarkusTest
+@TestProfile(AuthTestProfile.class)
+@Tag(ApicurioTestTags.SLOW)
+public class MojoAuthTest extends RegistryMojoTestBase {
+
+    @ConfigProperty(name = "quarkus.oidc.token-path")
+    String authServerUrlConfigured;
+
+    @ConfigProperty(name = "quarkus.oidc.tenant-enabled")
+    Boolean authEnabled;
+
+    String clientSecret = "test1";
+
+    String clientScope = "openid";
+
+    String testUsername = "developer-client";
+    String testPassword = clientSecret;
+
+    @Override
+    protected RegistryClient createRestClientV3(Vertx vertx) {
+        return RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                .oauth2(authServerUrlConfigured, KeycloakTestContainerManager.ADMIN_CLIENT_ID, "test1"));
+    }
+
+    @Test
+    public void testRegister() throws IOException, MojoFailureException, MojoExecutionException {
+        System.out.println("Auth is " + authEnabled);
+
+        RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
+        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
+        registerRegistryMojo.setAuthServerUrl(authServerUrlConfigured);
+        registerRegistryMojo.setClientId(KeycloakTestContainerManager.ADMIN_CLIENT_ID);
+        registerRegistryMojo.setClientSecret(clientSecret);
+        registerRegistryMojo.setClientScope(clientScope);
+
+        super.testRegister(registerRegistryMojo, "testRegister");
+    }
+
+    @Test
+    public void testBasicAuth() throws IOException, MojoFailureException, MojoExecutionException {
+        System.out.println("Auth is " + authEnabled);
+
+        RegisterRegistryMojo registerRegistryMojo = new RegisterRegistryMojo();
+        registerRegistryMojo.setRegistryUrl(TestUtils.getRegistryV3ApiUrl(testPort));
+        registerRegistryMojo.setUsername(testUsername);
+        registerRegistryMojo.setPassword(testPassword);
+
+        super.testRegister(registerRegistryMojo, "testBasicAuth");
+    }
+}

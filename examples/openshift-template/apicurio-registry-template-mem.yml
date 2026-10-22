@@ -1,0 +1,175 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: apicurio-registry-mem
+message: |-
+  Congratulations on deploying Apicurio Registry (In-Memory Storage) into OpenShift!
+  
+  All components have been deployed and configured.
+  
+  Note that whenever this application is restarted all state will be lost.  This should
+  only be used for evaluation purposes!
+
+objects:
+# Image Streams for the components
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: registry
+  spec:
+    tags:
+      - name: latest
+        from:
+          kind: DockerImage
+          name: apicurio/apicurio-registry-mem:latest
+        importPolicy:
+          scheduled: true
+# Services for the components
+- apiVersion: v1
+  kind: Service
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: apicurio-registry-mem
+      template: apicurio-registry-mem
+    name: apicurio-registry-mem
+  spec:
+    selector:
+      app: apicurio-registry-mem
+    ports:
+    - port: 8080
+      protocol: TCP
+      targetPort: 8080
+      nodePort: 32222
+    sessionAffinity: None
+    type: NodePort
+  status:
+    loadBalancer: {}
+# Registry Deployment Configuration
+# #################################
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    creationTimestamp: null
+    labels:
+      app: apicurio-registry-mem
+      template: apicurio-registry-mem
+    name: apicurio-registry-mem
+  spec:
+    replicas: 1
+    selector:
+      app: apicurio-registry-mem
+      deploymentconfig: apicurio-registry-mem
+    strategy:
+      type: Recreate
+      recreateParams:
+        timeoutSeconds: 600
+      resources: {}
+      activeDeadlineSeconds: 21600
+    template:
+      metadata:
+        creationTimestamp: null
+        labels:
+          app: apicurio-registry-mem
+          deploymentconfig: apicurio-registry-mem
+          template: apicurio-registry-mem
+      spec:
+        replicas: 1
+        containers:
+        - image: registry:latest
+          imagePullPolicy: Always
+          name: apicurio-registry-mem
+          ports:
+          - containerPort: 8080
+            protocol: TCP
+          env:
+          - name: QUARKUS_PROFILE
+            value: prod
+          resources:
+            limits:
+              cpu: ${REGISTRY_CPU_LIMIT}
+              memory: ${REGISTRY_MEM_LIMIT}
+            requests:
+              cpu: ${REGISTRY_CPU_REQUEST}
+              memory: ${REGISTRY_MEM_REQUEST}
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 5
+            timeoutSeconds: 5
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          terminationMessagePath: /dev/termination-log
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        terminationGracePeriodSeconds: 30
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+          - apicurio-registry-mem
+        from:
+          kind: ImageStreamTag
+          name: 'registry:latest'
+  status: {}
+# The Route(s)
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: apicurio-registry-mem
+    creationTimestamp: null
+    labels:
+      app: apicurio-registry-mem
+      template: apicurio-registry-mem
+  spec:
+    host: "${REGISTRY_ROUTE}"
+    to:
+      kind: Service
+      name: apicurio-registry-mem
+      weight: 100
+    tls:
+      termination: edge
+      insecureEdgeTerminationPolicy: Redirect
+    wildcardPolicy: None
+# Template Parameters
+parameters:
+- name: REGISTRY_ROUTE
+  displayName: Registry Route Name
+  description: The route name to use for the Registry API (leave blank to let OpenShift generate an appropriate route name).
+  value: ''
+  required: true
+- name: REGISTRY_MEM_LIMIT
+  displayName: Registry Max Memory Limit
+  description: Registry Pods Max Memory Limit
+  value: 1300Mi
+  required: true
+- name: REGISTRY_MEM_REQUEST
+  displayName: Registry Memory Requests
+  description: Registry Pods Memory Requests
+  value: 600Mi
+  required: true
+- name: REGISTRY_CPU_LIMIT
+  displayName: Registry Max CPU Limit
+  description: Registry Pods Max CPU Limit
+  value: '1'
+  required: true
+- name: REGISTRY_CPU_REQUEST
+  displayName: Registry CPU Requests
+  description: Registry Pods CPU Requests
+  value: 100m
+  required: true

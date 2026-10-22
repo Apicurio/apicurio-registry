@@ -1,0 +1,458 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+// assembly-managing-registry-artifacts-api
+[id="managing-registry-artifacts-api_{context}"]
+= Managing {registry} content using the REST API
+//If the assembly covers a task, start the title with a verb in the gerund form, such as Creating or Configuring.
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+Client applications can use {registry} REST API operations to manage schema and API artifacts in {registry}, for example, in a CI/CD pipeline deployed in production. The Core Registry API v3 provides operations for artifacts, versions, metadata, and rules stored in {registry}. For detailed information, see the {registry-rest-api}.
+
+**Prerequisites**
+
+* {registry-overview}
+
+[role="_additional-resources"]
+.Additional resources
+* link:{attachmentsdir}/registry-rest-api.htm[Apicurio Registry REST API documentation]
+
+//INCLUDES
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
+
+// proc-managing-artifacts-using-rest-api
+[id="managing-artifacts-using-rest-api_{context}"]
+== Managing schema and API artifacts using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+Use the Core Registry API v3 to add and retrieve a schema artifact in {registry}.
+
+.Prerequisites
+
+* {registry} is installed and running in your environment.
+
+.Procedure
+
+. Add an artifact to {registry} using the `/groups/\{groupId\}/artifacts` operation. The following example `curl` command adds a schema artifact for a share price application:
++
+[source,bash]
+----
+$ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data-raw '{
+    "artifactId": "share-price",
+    "artifactType": "AVRO",
+    "firstVersion": {
+        "content": {
+            "content": "{\"type\":\"record\",\"name\":\" p\",\"namespace\":\"com.example\", \"fields\":[{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"price\",\"type\":\"string\"}]}",
+            "contentType": "application/json"
+        }
+    }
+}'
+----
++
+* This example adds an Apache Avro schema artifact with an artifact ID of `share-price`. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID.
+* `MY-REGISTRY-URL` is the
+hostname on which {registry} is deployed. For example: `\http://localhost:8080`.
+* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path.
+
+. Verify that the response includes the expected JSON body to confirm that the artifact was added. For example:
++
+[source,bash]
+----
+{"artifact":{"owner":"","createdOn":"2024-09-26T17:24:21Z","modifiedBy":"","modifiedOn":"2024-09-26T17:24:21Z","artifactType":"AVRO","groupId":"my-group","artifactId":"share-price"},"version":{"version":"1","owner":"","createdOn":"2024-09-26T17:24:21Z","artifactType":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2,"artifactId":"share-price"}}
+----
++
+* You did not specify a version when adding the artifact, so the default version `1` is created automatically.
+* This was the second artifact added to {registry}, so the global ID and content ID have a value of `2`.
+. Retrieve the artifact version content from {registry} using its artifact ID in the API path. In this example, the specified ID is `share-price`:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
+ MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/share-price/versions/1/content
+ {"type":"record","name":"price","namespace":"com.example",
+  "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rest-api}
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
+
+// proc-managing-artifact-versions-using-rest-api
+[id="managing-artifact-versions-using-rest-api_{context}"]
+== Managing schema and API artifact versions using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+If you do not specify an artifact version number when adding schema and API artifacts using the Core Registry API v3, {registry} generates a version number automatically. The default version when creating a new artifact is `1`.
+
+{registry} also supports custom versioning where you can specify a version number when creating the artifact or artifact version. Specifying a custom version value overrides the default version normally assigned when creating an artifact or artifact version. You can then use this version value when running REST API operations that require a version number.
+
+Use the Core Registry API v3 to add and retrieve a custom Apache Avro schema version in {registry}. You can specify custom version numbers to create artifacts, or to add artifact versions.
+
+.Prerequisites
+
+* {registry} is installed and running in your environment.
+
+.Procedure
+
+. Add an artifact version in the registry using the `/groups/\{groupId\}/artifacts` operation. The following example `curl` command adds an artifact for a share price application:
++
+[source,bash]
+----
+$ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data-raw '{
+    "artifactId": "my-share-price",
+    "artifactType": "AVRO",
+    "firstVersion": {
+        "version": "1.1.1",
+        "content": {
+            "content": "{\"type\":\"record\",\"name\":\" p\",\"namespace\":\"com.example\", \"fields\":[{\"name\":\"symbol\",\"type\":\"string\"},{\"name\":\"price\",\"type\":\"string\"}]}",
+            "contentType": "application/json"
+        }
+    }
+}'
+----
++
+* This example adds an Avro schema artifact with an artifact ID of `my-share-price` and version of `1.1.1`. If you do not specify a version, {registry} automatically generates a default version of `1`.
+* `MY-REGISTRY-URL` is the
+hostname on which {registry} is deployed. For example: `\http://localhost:8080`.
+* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path.
+
+. Verify that the response includes the expected JSON body to confirm that the custom artifact version was added. For example:
++
+[source,bash]
+----
+{"artifact":{"owner":"","createdOn":"2024-09-26T17:06:21Z","modifiedBy":"","modifiedOn":"2024-09-26T17:06:21Z","artifactType":"AVRO","groupId":"my-group","artifactId":"my-share-price"},"version":{"version":"1.1.1","owner":"","createdOn":"2024-09-26T17:06:21Z","artifactType":"AVRO","globalId":4,"state":"ENABLED","groupId":"my-group","contentId":4,"artifactId":"my-share-price"}}
+----
+* You specified a custom version of `1.1.1` when adding the artifact.
+* This was the fourth artifact added to the registry, so the global ID and content ID have a value of `4`.
+
+. Retrieve the artifact content from the registry using its artifact ID and version in the API path. In this example, the specified ID is `my-share-price` and the version is `1.1.1`:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" \
+    MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/my-share-price/versions/1.1.1/content
+{"type":"record","name":"price","namespace":"com.example",
+  "fields":[{"name":"symbol","type":"string"},{"name":"price","type":"string"}]}
+----
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rest-api}
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts-api.adoc
+
+// proc-managing-artifact-references-using-rest-api
+[id="managing-artifact-references-using-rest-api_{context}"]
+== Managing schema and API artifact references using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
+
+The following artifact types support artifact references:
+
+* Apache Avro
+* Google Protobuf
+* JSON Schema
+* OpenAPI
+* AsyncAPI
+
+Use the Core Registry API v3 to add and retrieve an artifact reference in {registry}.
+
+This example first creates a schema artifact named `ItemId`:
+
+**ItemId schema**
+
+[source,json]
+----
+{
+    "namespace":"com.example.common",
+    "name":"ItemId",
+    "type":"record",
+    "fields":[
+        {
+            "name":"id",
+            "type":"int"
+        }
+    ]
+}
+----
+
+This example then creates a schema artifact named `Item`, which includes a reference to the nested `ItemId` artifact.
+
+**Item schema with nested ItemId schema**
+
+[source,json]
+----
+{
+    "namespace":"com.example.common",
+    "name":"Item",
+    "type":"record",
+    "fields":[
+        {
+            "name":"itemId",
+            "type":"com.example.common.ItemId"
+        }
+    ]
+}
+----
+
+**Dereference**
+
+In some situations, having an artifact's content with the referenced content inlined might be helpful. For those situations, the Core Registry API v3 supports the _references parameter_ in certain operations.
+
+This support is currently implemented for Avro, JSON Schema, Protobuf, OpenAPI, and AsyncAPI when the parameter is present in a particular API operation. The parameter is not supported in other schema types.
+
+NOTE: `references=REWRITE` is currently supported for JSON Schema, OpenAPI, and AsyncAPI.
+For Avro and Protobuf artifacts, requesting `references=REWRITE` returns HTTP `400`
+(`DereferencingNotSupportedException`).
+
+.Prerequisites
+
+* {registry} is installed and running in your environment.
+
+.Procedure
+. Add the `ItemId` schema artifact that you want to create the nested artifact reference to using the `/groups/\{groupId\}/artifacts` operation:
++
+[source,bash]
+----
+$ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
+   -H "Content-Type: application/json" \
+   -H "Authorization: Bearer $ACCESS_TOKEN" \
+   --data '{"artifactId":"ItemId","artifactType":"AVRO","firstVersion":{"version":"1.0.0","content":{"content":"{\"namespace\":\"com.example.common\",\"name\":\"ItemId\",\"type\":\"record\",\"fields\":[{\"name\":\"id\",\"type\":\"int\"}]}","contentType":"application/json"}}}'
+----
++
+* This example adds an Avro schema artifact with an artifact ID of `ItemId`. If you do not specify a unique artifact ID, {registry} generates one automatically as a UUID.
+* `MY-REGISTRY-URL` is the
+hostname on which {registry} is deployed. For example: `\http://localhost:8080`.
+* This example specifies a group ID of `my-group` in the API path. If you do not specify a unique group ID, you must specify `../groups/default` in the API path.
+
+. Verify that the response includes the expected JSON body to confirm that the artifact was added. For example:
++
+[source,bash]
+----
+{"artifact":{"owner":"","createdOn":"2024-09-26T16:27:38Z","modifiedBy":"","modifiedOn":"2024-09-26T16:27:38Z","artifactType":"AVRO","groupId":"my-group","artifactId":"ItemId"},"version":{"version":"1.0.0","owner":"","createdOn":"2024-09-26T16:27:38Z","artifactType":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2,"artifactId":"ItemId"}}
+----
+
+. Add the `Item` schema artifact that includes the artifact reference to the `ItemId` schema using the `/groups/\{groupId\}/artifacts` operation:
++
+[source,bash]
+----
+$ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
+-H 'Content-Type: application/json' \
+-H "Authorization: Bearer $ACCESS_TOKEN" \
+--data-raw '{
+	"artifactId": "Item",
+	"artifactType": "AVRO",
+	"firstVersion": {
+		"version": "1.0.0",
+		"content": {
+			"content": "{\"namespace\":\"com.example.common\",\"name\":\"Item\",\"type\":\"record\",\"fields\":[{\"name\":\"itemId\",\"type\":\"com.example.common.ItemId\"}]}",
+			"contentType": "application/json",
+			"references": [
+				{
+					"name": "com.example.common.ItemId",
+					"groupId": "my-group",
+					"artifactId": "ItemId",
+					"version": "1.0.0"
+				}
+			]
+		}
+	}
+}'
+----
+
+. Verify that the response includes the expected JSON body to confirm that the artifact was created with the reference. For example:
++
+[source,bash]
+----
+{"artifact":{"owner":"","createdOn":"2024-09-26T16:28:45Z","modifiedBy":"","modifiedOn":"2024-09-26T16:28:45Z","artifactType":"AVRO","groupId":"my-group","artifactId":"Item"},"version":{"version":"1.0.0","owner":"","createdOn":"2024-09-26T16:28:45Z","artifactType":"AVRO","globalId":3,"state":"ENABLED","groupId":"my-group","contentId":3,"artifactId":"Item"}}
+----
+
+. Retrieve the artifact reference from {registry} by specifying the coordinates of the artifact that includes the reference:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/Item/versions/1.0.0/references
+----
+
+. Verify that the response includes the expected JSON body for this artifact reference. For example:
++
+[source,bash]
+----
+[{"groupId":"my-group","artifactId":"ItemId","version":"1.0.0","name":"com.example.common.ItemId"}]
+----
+
+. Retrieve the dereferenced (inlined) schema content:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/Item/versions/1.0.0/content?references=DEREFERENCE
+----
+
+. Verify that the response includes the expected JSON body for this artifact content with the references inlined. For example:
++
+[source,bash]
+----
+{"type":"record","name":"Item","namespace":"com.example.common","fields":[{"name":"itemId","type":{"type":"record","name":"ItemId","fields":[{"name":"id","type":"int"}]}}]}
+----
++
+This support is currently implemented only for Avro, Protobuf, OpenAPI, AsyncAPI, and JSON Schema artifacts when the `dereference` parameter is specified in the API operation. This parameter is not supported for any other artifact types.
++
+NOTE: For Protobuf artifacts, dereferencing content is supported only when all the schemas belong to the same package.
++
+NOTE: Some artifact types (for example, JSON Schema) allow circular dependencies, but {registry} does not support them.
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rest-api}
+* {registry-client-serdes-config}
+
+
+
+// Metadata created by nebel
+// ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
+
+// proc-exporting-importing-using-rest-api
+[id="searching-artifacts-using-rest-api_{context}"]
+== Searching for schema and API artifacts using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the {registry} REST API search endpoints to find artifacts, versions, and groups. Search filters match exactly by default, and you can use the `*` wildcard for pattern matching.
+
+.Procedure
+. Search for artifacts with an exact filter value:
++
+[source,bash]
+----
+$ curl "http://localhost:8080/apis/registry/v3/search/artifacts?artifactId=my-artifact"
+----
+. To match patterns, include the `*` wildcard anywhere in the `groupId`, `artifactId`, or `labels` filter values:
++
+[source,bash]
+----
+$ curl "http://localhost:8080/apis/registry/v3/search/artifacts?artifactId=my-*"
+$ curl "http://localhost:8080/apis/registry/v3/search/artifacts?labels=env*:prod*"
+----
++
+The `*` character is the only supported wildcard.
+. To search by name, use an exact value or a leading or trailing `*` wildcard. The `name` filter matches against the artifact name or the artifact ID, and behaves the same on the artifact and version search endpoints:
++
+[source,bash]
+----
+$ curl "http://localhost:8080/apis/registry/v3/search/versions?name=*payment*"
+----
++
+The `description` filter is different: it always matches substrings.
+. Optional: To improve performance on large result sets, set the `skipCount` parameter to `true`. The registry then skips the expensive total count query, and the `count` field in the response is `0`:
++
+[source,bash]
+----
+$ curl "http://localhost:8080/apis/registry/v3/search/artifacts?limit=50&skipCount=true"
+----
++
+The `skipCount` parameter is available on the artifact and version search endpoints, and on the endpoints that list the artifacts of a group and the versions of an artifact.
+
+[id="canonicalizing-content-using-rest-api_{context}"]
+== Canonicalizing content using the {registry} REST API
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the {registry} REST API to convert schema or API content to its canonical form without storing it. Canonical content is useful for comparing schemas independently of formatting differences.
+
+.Procedure
+. Send the content to the canonicalization endpoint. The `artifactType` query parameter is required:
++
+[source,bash]
+----
+$ curl -X POST -H "Content-Type: application/json" --data @schema.json \
+  "http://localhost:8080/apis/registry/v3/content/canonicalize?artifactType=AVRO"
+----
++
+The response body contains the canonicalized content. An empty request body or an unknown artifact type produces a `400` error response.
+. To retrieve the canonical form of a stored artifact version with its references resolved, use the `canonical` parameter on the version content endpoint instead:
++
+[source,bash]
+----
+$ curl "http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/versions/1.0.0/content?canonical=true"
+----
++
+[NOTE]
+====
+The canonicalization endpoint operates on the content exactly as provided and does not resolve external references. To canonicalize content that uses references, store the content first and use the `canonical` parameter.
+====
+
+[id="exporting-importing-using-rest-api_{context}"]
+== Exporting and importing registry data using {registry} REST API commands
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+As an administrator, you can use the Core Registry API v3 to export data from one {registry} instance and import into another {registry} instance, so you can migrate data between different instances.
+
+Use the Core Registry API v3 to export and import data in `.zip` format between {registry} instances. All the artifact data contained in the {registry} instance is exported in the `.zip` file.
+
+.Prerequisites
+
+* {registry} is installed and running in your environment.
+* {registry} instances have been created:
+** The source instance that you want to export data from contains at least one schema or API artifact.
+** The target instance that you want to import data into is empty to preserve unique IDs.
+
+.Procedure
+. Export the {registry} data from your existing source {registry} instance:
++
+[source,bash]
+----
+$ curl MY-REGISTRY-URL/apis/registry/v3/admin/export \
+  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --output my-registry-data.zip
+----
++
+`MY-REGISTRY-URL` is the
+hostname on which the source {registry} is deployed. For example: `\http://my-source-registry:8080`.
+
+. Import the registry data into your target {registry} instance:
++
+[source,bash]
+----
+$ curl -X POST "MY-REGISTRY-URL/apis/registry/v3/admin/import" \
+  -H "Content-Type: application/zip" -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data-binary @my-registry-data.zip
+----
++
+`MY-REGISTRY-URL` is the
+hostname on which the target {registry} is deployed. For example: `\http://my-target-registry:8080`.
+
+
+[role="_additional-resources"]
+.Additional resources
+* {registry-rest-api}
+//* For details on export tools for migrating from {registry} version 1.x to 2.x, see link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/exportV1[Apicurio Registry export utility for 1.x versions].
+

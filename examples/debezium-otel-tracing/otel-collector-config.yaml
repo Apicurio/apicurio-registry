@@ -1,0 +1,45 @@
+# OpenTelemetry Collector Configuration for Debezium CDC Tracing Example
+#
+# This configuration collects traces from:
+# - Order Service (Quarkus application)
+# - Debezium Connect (CDC connector)
+# - Apicurio Registry (Schema registry)
+# - CDC Consumer (Kafka consumer)
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 1024
+
+  # Add resource attributes for better trace organization
+  resource:
+    attributes:
+      - key: deployment.environment
+        value: docker-compose
+        action: upsert
+
+exporters:
+  # Export to Jaeger via OTLP
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+
+  # Debug logging (optional, useful for troubleshooting)
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch, resource]
+      exporters: [otlp/jaeger, debug]

@@ -1,0 +1,301 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://a2a-protocol.org/schemas/agent-card.json",
+  "title": "A2A Agent Card v1.0",
+  "description": "Schema for A2A (Agent-to-Agent) protocol Agent Card documents, aligned with A2A Protocol v1.0",
+  "type": "object",
+  "required": ["name", "description", "version", "supportedInterfaces", "capabilities", "skills", "defaultInputModes", "defaultOutputModes"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable name of the agent"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Description of what the agent does"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version of the agent"
+    },
+    "protocolVersion": {
+      "type": "string",
+      "description": "A2A protocol version supported by the agent (e.g. '1.0')"
+    },
+    "supportedInterfaces": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Protocol interfaces supported by the agent",
+      "items": {
+        "type": "object",
+        "required": ["url", "protocolBinding", "protocolVersion"],
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Service endpoint URL"
+          },
+          "protocolBinding": {
+            "type": "string",
+            "description": "Protocol type (e.g. 'jsonrpc', 'grpc', 'http+json')"
+          },
+          "protocolVersion": {
+            "type": "string",
+            "description": "Protocol version supported at this interface"
+          },
+          "tenant": {
+            "type": "string",
+            "description": "Tenant identifier"
+          }
+        }
+      }
+    },
+    "provider": {
+      "type": "object",
+      "description": "Information about the agent's provider/organization",
+      "required": ["organization", "url"],
+      "properties": {
+        "organization": {
+          "type": "string",
+          "description": "Name of the organization providing the agent"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "URL of the organization's website"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "description": "Agent capabilities",
+      "properties": {
+        "streaming": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the agent supports streaming responses"
+        },
+        "pushNotifications": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the agent supports push notifications"
+        },
+        "extendedAgentCard": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether the agent supports extended agent card discovery"
+        },
+        "extensions": {
+          "type": "array",
+          "description": "Agent extensions",
+          "items": {
+            "type": "object",
+            "properties": {
+              "uri": {
+                "type": "string",
+                "description": "Extension identifier URI"
+              },
+              "description": {
+                "type": "string",
+                "description": "Extension description"
+              },
+              "required": {
+                "type": "boolean",
+                "description": "Whether the client must support this extension"
+              },
+              "params": {
+                "type": "object",
+                "description": "Extension parameters"
+              }
+            }
+          }
+        }
+      },
+      "additionalProperties": {
+        "type": "boolean"
+      }
+    },
+    "skills": {
+      "type": "array",
+      "minItems": 1,
+      "description": "List of skills the agent provides",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "description", "tags"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the skill"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name of the skill"
+          },
+          "description": {
+            "type": "string",
+            "description": "Description of what the skill does"
+          },
+          "tags": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "string"
+            },
+            "description": "Tags for categorizing the skill"
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Example prompts or use cases for the skill"
+          },
+          "inputModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Skill-specific supported input modes, overriding agent defaults"
+          },
+          "outputModes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Skill-specific supported output modes, overriding agent defaults"
+          },
+          "securityRequirements": {
+            "type": "array",
+            "items": {
+              "$ref": "#/definitions/securityRequirement"
+            },
+            "description": "Security requirements specific to this skill"
+          }
+        }
+      }
+    },
+    "defaultInputModes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "Supported input modes (e.g., 'text', 'application/json')"
+    },
+    "defaultOutputModes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "Supported output modes (e.g., 'text', 'application/json')"
+    },
+    "securitySchemes": {
+      "type": "object",
+      "description": "Named security scheme definitions",
+      "additionalProperties": {
+        "$ref": "#/definitions/securityScheme"
+      }
+    },
+    "securityRequirements": {
+      "type": "array",
+      "description": "Security requirements for accessing the agent",
+      "items": {
+        "$ref": "#/definitions/securityRequirement"
+      }
+    },
+    "iconUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to an icon representing the agent"
+    },
+    "documentationUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "URL to the agent's documentation"
+    },
+    "signatures": {
+      "type": "array",
+      "description": "Digital signatures for agent card verification (JWS per RFC 7515)",
+      "items": {
+        "type": "object",
+        "required": ["protected", "signature"],
+        "properties": {
+          "protected": {
+            "type": "string",
+            "description": "Base64url-encoded JWS Protected Header"
+          },
+          "signature": {
+            "type": "string",
+            "description": "Base64url-encoded JWS Signature"
+          },
+          "header": {
+            "type": "object",
+            "description": "Unprotected JWS header parameters"
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": true,
+  "definitions": {
+    "securityScheme": {
+      "type": "object",
+      "description": "A security scheme definition",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["apiKey", "httpAuth", "oauth2", "openIdConnect", "mutualTls"],
+          "description": "The type of security scheme"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the security scheme"
+        },
+        "location": {
+          "type": "string",
+          "enum": ["header", "query", "cookie"],
+          "description": "Location of the API key (for apiKey type)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the API key parameter (for apiKey type)"
+        },
+        "scheme": {
+          "type": "string",
+          "description": "HTTP auth scheme (for httpAuth type, e.g. 'Basic', 'Bearer')"
+        },
+        "bearerFormat": {
+          "type": "string",
+          "description": "Bearer token format (for httpAuth type, e.g. 'JWT')"
+        },
+        "flows": {
+          "type": "object",
+          "description": "OAuth2 flows configuration (for oauth2 type)"
+        },
+        "oauth2MetadataUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "OAuth2 metadata URL (for oauth2 type)"
+        },
+        "openIdConnectUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "OpenID Connect discovery URL (for openIdConnect type)"
+        }
+      }
+    },
+    "securityRequirement": {
+      "type": "object",
+      "description": "Maps security scheme names to required scopes",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

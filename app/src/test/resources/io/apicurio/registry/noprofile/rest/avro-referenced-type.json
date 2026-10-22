@@ -1,0 +1,19 @@
+{
+  "type": "record",
+  "namespace": "com.example.common",
+  "name": "Address",
+  "fields": [
+    {
+      "name": "street",
+      "type": "string"
+    },
+    {
+      "name": "city",
+      "type": "string"
+    },
+    {
+      "name": "zipCode",
+      "type": "string"
+    }
+  ]
+}

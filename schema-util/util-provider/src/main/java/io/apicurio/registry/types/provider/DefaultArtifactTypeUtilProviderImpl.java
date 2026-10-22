@@ -3,7 +3,9 @@ package io.apicurio.registry.types.provider;
 import static io.apicurio.registry.types.provider.StandardArtifactTypeProviderRegistry.createStandardProviders;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -24,6 +26,7 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
     public DefaultArtifactTypeUtilProviderImpl(boolean initStandardProviders) {
         if (initStandardProviders) {
             loadStandardProviders();
+            validateFileExtensions();
         }
     }
 
@@ -46,6 +49,29 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
     @Override
     public List<ArtifactTypeUtilProvider> getAllArtifactTypeProviders() {
         return providers;
+    }
+
+    /**
+     * Validates that no file extension is claimed by more than one provider.
+     * Normalises extensions to lowercase with leading dot before comparing.
+     */
+    protected void validateFileExtensions() {
+        final Map<String, String> extensionOwners = new HashMap<>();
+        for (ArtifactTypeUtilProvider provider : providers) {
+            for (String ext : provider.getFileExtensions()) {
+                final String normalized = normalizeExtension(ext);
+                final String existing = extensionOwners.put(normalized, provider.getArtifactType());
+                if (existing != null) {
+                    throw new IllegalStateException("File extension '" + normalized
+                            + "' is claimed by both " + existing + " and " + provider.getArtifactType());
+                }
+            }
+        }
+    }
+
+    private static String normalizeExtension(String ext) {
+        final String lower = ext.toLowerCase(Locale.ROOT);
+        return lower.startsWith(".") ? lower : "." + lower;
     }
 
 }

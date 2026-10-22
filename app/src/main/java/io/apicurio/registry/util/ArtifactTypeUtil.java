@@ -7,7 +7,10 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public final class ArtifactTypeUtil {
 
@@ -72,5 +75,46 @@ public final class ArtifactTypeUtil {
         }
 
         throw new InvalidArtifactTypeException("Failed to discover artifact type from content.");
+    }
+
+    /**
+     * Detects the artifact type from a file extension by querying all registered providers.
+     * If exactly one provider claims the extension, its type is returned. If multiple providers
+     * claim it, the extension is treated as ambiguous and null is returned (fall back to content
+     * detection). If no provider claims it, null is returned.
+     *
+     * @param fileName the file name or path
+     * @param factory the provider factory to query
+     * @return the artifact type, or null if the extension is unrecognized or ambiguous
+     */
+    public static String detectArtifactTypeFromExtension(String fileName,
+            ArtifactTypeUtilProviderFactory factory) {
+        final int dotIndex = fileName.toLowerCase(Locale.ROOT).lastIndexOf('.');
+        if (dotIndex < 0) {
+            return null;
+        }
+        final String extension = fileName.substring(dotIndex).toLowerCase(Locale.ROOT);
+        String matched = null;
+        for (ArtifactTypeUtilProvider provider : factory.getAllArtifactTypeProviders()) {
+            if (provider.getFileExtensions().contains(extension)) {
+                if (matched != null) {
+                    return null;
+                }
+                matched = provider.getArtifactType();
+            }
+        }
+        return matched;
+    }
+
+    /**
+     * Returns all file extensions supported by registered providers, for use in error messages.
+     *
+     * @param factory the provider factory to query
+     * @return all supported file extensions
+     */
+    public static Set<String> getAllSupportedFileExtensions(ArtifactTypeUtilProviderFactory factory) {
+        return factory.getAllArtifactTypeProviders().stream()
+                .flatMap(p -> p.getFileExtensions().stream())
+                .collect(Collectors.toSet());
     }
 }

@@ -3,8 +3,7 @@ package io.apicurio.registry.storage.impl.sql;
 import java.util.List;
 
 /**
- * Returns SQL statements used by the JDB artifactStore implementation. There
- * are different implementations of
+ * Returns SQL statements used by the JDB artifactStore implementation. There are different implementations of
  * this interface depending on the database being used.
  */
 public interface SqlStatements {
@@ -32,8 +31,7 @@ public interface SqlStatements {
     public String isDatabaseInitialized();
 
     /**
-     * A statement that returns 'true' if the database (with schema) has already
-     * been initialized.
+     * A statement that returns 'true' if the database (with schema) has already been initialized.
      */
     public String isDatabaseSchemaInitialized();
 
@@ -43,14 +41,12 @@ public interface SqlStatements {
     public List<String> databaseInitialization();
 
     /**
-     * A sequence of statements needed to upgrade the DB from one version to
-     * another.
+     * A sequence of statements needed to upgrade the DB from one version to another.
      */
     public List<String> databaseUpgrade(int fromVersion, int toVersion);
 
     /**
-     * A statement that returns the current DB version (pulled from the "apicurio"
-     * attribute table).
+     * A statement that returns the current DB version (pulled from the "apicurio" attribute table).
      */
     public String getDatabaseVersion();
 
@@ -90,8 +86,7 @@ public interface SqlStatements {
     public String insertArtifact();
 
     /**
-     * A statement used to update the 'version' column of the 'versions' table by
-     * globalId. The value of the
+     * A statement used to update the 'version' column of the 'versions' table by globalId. The value of the
      * "versionOrder" column is copied into the "version" column.
      */
     public String autoUpdateVersionForGlobalId();
@@ -102,8 +97,7 @@ public interface SqlStatements {
     public String insertVersion(boolean firstVersion);
 
     /**
-     * A statement used when updating artifact version content. Updates the versions
-     * table with a new
+     * A statement used when updating artifact version content. Updates the versions table with a new
      * contentId, modifiedBy, and modifiedOn.
      */
     public String updateArtifactVersionContent();
@@ -114,26 +108,22 @@ public interface SqlStatements {
     public String selectArtifactVersionMetaDataByGlobalId();
 
     /**
-     * A statement used to select a single row in the versions by artifactId and
-     * content hash.
+     * A statement used to select a single row in the versions by artifactId and content hash.
      */
     public String selectArtifactVersionMetaDataByContentHash();
 
     /**
-     * A statement used to select a single row in the versions by artifactId and
-     * content id.
+     * A statement used to select a single row in the versions by artifactId and content id.
      */
     public String selectArtifactVersionMetaDataByContentId();
 
     /**
-     * A statement used to select a single row in the versions by artifactId and
-     * canonical content hash.
+     * A statement used to select a single row in the versions by artifactId and canonical content hash.
      */
     public String selectArtifactVersionMetaDataByCanonicalHash();
 
     /**
-     * A statement to select the content of an artifact version from the versions
-     * table by globalId.
+     * A statement to select the content of an artifact version from the versions table by globalId.
      */
     public String selectArtifactVersionContentByGlobalId();
 
@@ -143,8 +133,7 @@ public interface SqlStatements {
     public String selectArtifactVersions();
 
     /**
-     * A statement used to select non-disabled version numbers (only) for a given
-     * artifactId.
+     * A statement used to select non-disabled version numbers (only) for a given artifactId.
      */
     public String selectArtifactVersionsFilteredByState();
 
@@ -164,8 +153,7 @@ public interface SqlStatements {
     public String selectAllArtifactVersionsCount();
 
     /**
-     * A statement used to count the total # of non-disabled versions for an
-     * artifact.
+     * A statement used to count the total # of non-disabled versions for an artifact.
      */
     public String selectActiveArtifactVersionsCount();
 
@@ -175,20 +163,17 @@ public interface SqlStatements {
     public String selectTotalArtifactVersionsCount();
 
     /**
-     * A statement used to select artifact version metadata by artifactId and
-     * version.
+     * A statement used to select artifact version metadata by artifactId and version.
      */
     public String selectArtifactVersionMetaData();
 
     /**
-     * A statement used to select artifact version metadata by artifactId and
-     * versionOrder.
+     * A statement used to select artifact version metadata by artifactId and versionOrder.
      */
     public String selectArtifactVersionMetaDataByVersionOrder();
 
     /**
-     * A statement to select the content of an artifact version from the versions
-     * table by artifactId +
+     * A statement to select the content of an artifact version from the versions table by artifactId +
      * version.
      */
     public String selectArtifactVersionContent();
@@ -213,14 +198,12 @@ public interface SqlStatements {
     public String updateContentCanonicalHash();
 
     /**
-     * A statement to get a single artifact (latest version) meta-data by
-     * artifactId.
+     * A statement to get a single artifact (latest version) meta-data by artifactId.
      */
     public String selectArtifactMetaData();
 
     /**
-     * A statement to select the contentId of a row in the content table by hash
-     * value.
+     * A statement to select the contentId of a row in the content table by hash value.
      */
     public String selectContentIdByHash();
 
@@ -235,8 +218,7 @@ public interface SqlStatements {
     public String insertArtifactRule();
 
     /**
-     * A statement to get a single artifact rule from the 'rules' table by
-     * artifactId and rule type.
+     * A statement to get a single artifact rule from the 'rules' table by artifactId and rule type.
      */
     public String selectArtifactRuleByType();
 
@@ -261,8 +243,7 @@ public interface SqlStatements {
     public String updateArtifactModifiedByOn();
 
     /**
-     * A statement to update the modified by and modified on for an artifact
-     * version.
+     * A statement to update the modified by and modified on for an artifact version.
      */
     public String updateArtifactVersionModifiedByOn();
 
@@ -313,8 +294,7 @@ public interface SqlStatements {
     public String deleteGroupLabelsByGroupId();
 
     /**
-     * A statement to delete all rows in the artifact_labels table for a given
-     * artifact.
+     * A statement to delete all rows in the artifact_labels table for a given artifact.
      */
     public String deleteArtifactLabels();
 
@@ -326,8 +306,7 @@ public interface SqlStatements {
     public String deleteArtifactLabelsByPrefix();
 
     /**
-     * A statement to delete all rows in the artifact_structured_content table for a
-     * given artifact.
+     * A statement to delete all rows in the artifact_structured_content table for a given artifact.
      */
     public String deleteArtifactStructuredContent();
 
@@ -427,32 +406,27 @@ public interface SqlStatements {
     public String selectContentIdsReferencingArtifactBy();
 
     /**
-     * A statement to select global ids of artifact versions with content
-     * referencing an artifact version
+     * A statement to select global ids of artifact versions with content referencing an artifact version
      */
     public String selectGlobalIdsReferencingArtifactVersionBy();
 
     /**
-     * A statement to select global ids of artifact versions with content
-     * referencing an artifact
+     * A statement to select global ids of artifact versions with content referencing an artifact
      */
     public String selectGlobalIdsReferencingArtifactBy();
 
     /**
-     * A statement to select GAV info of artifact versions with content referencing
-     * an artifact
+     * A statement to select GAV info of artifact versions with content referencing an artifact
      */
     public String selectInboundContentReferencesByGAV();
 
     /**
-     * A statement to select the number of artifacts with a given artifactId (should
-     * be 0 or 1).
+     * A statement to select the number of artifacts with a given artifactId (should be 0 or 1).
      */
     public String selectArtifactCountById();
 
     /**
-     * A statement to select the number of groups with a given groupId (should be 0
-     * or 1).
+     * A statement to select the number of groups with a given groupId (should be 0 or 1).
      */
     public String selectGroupCountById();
 
@@ -477,25 +451,20 @@ public interface SqlStatements {
     public String selectContentById();
 
     /**
-     * A statement to select the bytes of a content row by contentId, joined with
-     * one artifact version that
-     * references it, so that the artifact type can be returned in the same query.
-     * Returns no rows if the
-     * content does not exist or if it is orphaned (not referenced by any artifact
-     * version).
+     * A statement to select the bytes of a content row by contentId, joined with one artifact version that
+     * references it, so that the artifact type can be returned in the same query. Returns no rows if the
+     * content does not exist or if it is orphaned (not referenced by any artifact version).
      */
     public String selectContentAndArtifactTypeById();
 
     /**
-     * A statement template for batch loading artifact version metadata. The
-     * REFERENCES_CONDITION placeholder
+     * A statement template for batch loading artifact version metadata. The REFERENCES_CONDITION placeholder
      * is replaced at runtime with OR conditions for each reference.
      */
     public String selectArtifactVersionMetaDataBatch();
 
     /**
-     * A statement template for batch loading content by multiple IDs. The (?)
-     * placeholder is replaced with
+     * A statement template for batch loading content by multiple IDs. The (?) placeholder is replaced with
      * actual IN clause values at runtime.
      */
     public String selectContentByIdBatch();
@@ -506,8 +475,7 @@ public interface SqlStatements {
     public String selectContentByContentHash();
 
     /**
-     * A statement to delete content that is no longer being referenced by an
-     * artifact version.
+     * A statement to delete content that is no longer being referenced by an artifact version.
      */
     public String deleteAllOrphanedContent();
 
@@ -572,8 +540,7 @@ public interface SqlStatements {
     public String selectArtifactVersionStateForUpdate();
 
     /**
-     * A statement used to select the max versionOrder for an artifact with
-     * row-level locking. Used for atomic
+     * A statement used to select the max versionOrder for an artifact with row-level locking. Used for atomic
      * conditional version creation.
      */
     public String selectMaxVersionOrderForUpdate();
@@ -819,8 +786,7 @@ public interface SqlStatements {
     public String createDataSnapshot();
 
     /**
-     * Returns the SQL statement to create a data snapshot at the given location,
-     * optionally
+     * Returns the SQL statement to create a data snapshot at the given location, optionally
      * applying compression based on the file extension.
      */
     default String createDataSnapshot(String location) {
@@ -830,8 +796,7 @@ public interface SqlStatements {
     public String restoreFromSnapshot();
 
     /**
-     * Returns the SQL statement to restore from a snapshot at the given location,
-     * optionally
+     * Returns the SQL statement to restore from a snapshot at the given location, optionally
      * applying decompression based on the file extension.
      */
     default String restoreFromSnapshot(String location) {
@@ -882,8 +847,7 @@ public interface SqlStatements {
     public String releaseInitLock();
 
     /**
-     * Returns a SQL statement to select all version metadata for versions modified
-     * since a given timestamp.
+     * Returns a SQL statement to select all version metadata for versions modified since a given timestamp.
      * Used by the asynchronous search index updater to poll for changes.
      *
      * @return SQL query with one timestamp parameter
@@ -891,8 +855,7 @@ public interface SqlStatements {
     public String selectVersionsModifiedSince();
 
     /**
-     * Returns a SQL statement to count versions modified since a given timestamp.
-     * Used to cheaply
+     * Returns a SQL statement to count versions modified since a given timestamp. Used to cheaply
      * determine whether an incremental or full rebuild is needed.
      *
      * @return SQL query with one timestamp parameter
@@ -900,18 +863,15 @@ public interface SqlStatements {
     String countVersionsModifiedSince();
 
     /**
-     * Returns a SQL statement to select the timestamp of the most recently modified
-     * version.
-     * Used by the asynchronous search index updater to determine the starting point
-     * for polling.
+     * Returns a SQL statement to select the timestamp of the most recently modified version.
+     * Used by the asynchronous search index updater to determine the starting point for polling.
      *
      * @return SQL query returning a single timestamp value
      */
     public String selectLatestVersionTimestamp();
 
     /**
-     * Returns a SQL statement to select all version globalIds. Used by the
-     * asynchronous search index
+     * Returns a SQL statement to select all version globalIds. Used by the asynchronous search index
      * updater for periodic reconciliation to detect deleted versions.
      *
      * @return SQL query returning globalId values
@@ -919,15 +879,13 @@ public interface SqlStatements {
     public String selectAllVersionGlobalIds();
 
     /**
-     * A SQL statement to select all versions with their artifact type and content,
-     * used for
+     * A SQL statement to select all versions with their artifact type and content, used for
      * streaming startup reindex.
      */
     String selectAllVersionsWithContent();
 
     /**
-     * A SQL statement to select versions modified since a given timestamp with
-     * their artifact type
+     * A SQL statement to select versions modified since a given timestamp with their artifact type
      * and content. Used for streaming incremental search index updates.
      */
     String selectVersionsWithContentModifiedSince();

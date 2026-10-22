@@ -990,6 +990,7 @@ public class AdminResourceImpl implements AdminResource {
                 .toList();
 
         Map<String, ConsumerVersionEntry> consumerMap = new HashMap<>();
+        Map<String, Integer> maxVersionOrderByClient = new HashMap<>();
         for (ConsumerVersionEntryDto dto : entries) {
             ConsumerVersionEntry entry = consumerMap.computeIfAbsent(dto.getClientId(), k -> {
                 ConsumerVersionEntry e = new ConsumerVersionEntry();
@@ -998,13 +999,11 @@ public class AdminResourceImpl implements AdminResource {
                 return e;
             });
             entry.getVersions().setAdditionalProperty(dto.getVersion(), dto.getFetchCount());
+            maxVersionOrderByClient.merge(dto.getClientId(), dto.getVersionOrder(), Math::max);
         }
 
         for (ConsumerVersionEntry entry : consumerMap.values()) {
-            int clientMaxOrder = entries.stream()
-                    .filter(e -> e.getClientId().equals(entry.getClientId()))
-                    .mapToInt(ConsumerVersionEntryDto::getVersionOrder)
-                    .max().orElse(0);
+            int clientMaxOrder = maxVersionOrderByClient.get(entry.getClientId());
             int behind = maxVersionOrder - clientMaxOrder;
             entry.setVersionsBehind(behind);
             entry.setDriftAlert(behind >= usageTelemetryConfig.getDriftAlertThreshold());

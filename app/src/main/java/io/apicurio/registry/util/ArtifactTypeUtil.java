@@ -7,7 +7,10 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 public final class ArtifactTypeUtil {
 
@@ -72,5 +75,33 @@ public final class ArtifactTypeUtil {
         }
 
         throw new InvalidArtifactTypeException("Failed to discover artifact type from content.");
+    }
+
+    /**
+     * Detects the artifact type from a file extension using the factory's pre-built
+     * extension-to-type map. Returns null if the extension is unrecognized.
+     *
+     * @param fileName the file name or path
+     * @param factory the provider factory to query
+     * @return the artifact type, or null if the extension is unrecognized
+     */
+    public static String detectArtifactTypeFromExtension(String fileName,
+            ArtifactTypeUtilProviderFactory factory) {
+        final int dotIndex = fileName.lastIndexOf('.');
+        if (dotIndex < 0) {
+            return null;
+        }
+        final String extension = fileName.substring(dotIndex).toLowerCase(Locale.ROOT);
+        return factory.getFileExtensionToTypeMap().get(extension);
+    }
+
+    /**
+     * Returns all file extensions supported by registered providers, sorted for stable output.
+     *
+     * @param factory the provider factory to query
+     * @return all supported file extensions in sorted order
+     */
+    public static Set<String> getAllSupportedFileExtensions(ArtifactTypeUtilProviderFactory factory) {
+        return new TreeSet<>(factory.getFileExtensionToTypeMap().keySet());
     }
 }

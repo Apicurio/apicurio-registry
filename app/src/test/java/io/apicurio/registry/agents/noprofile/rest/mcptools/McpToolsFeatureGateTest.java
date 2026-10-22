@@ -8,6 +8,11 @@ import io.restassured.specification.RequestSpecification;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 
 /**
  * Tests MCP well-known endpoints when experimental/A2A are on but MCP tools are off.
@@ -46,6 +51,23 @@ public class McpToolsFeatureGateTest extends AbstractResourceTestBase {
                 .get("/.well-known/mcp-tools/{groupId}/{artifactId}")
                 .then()
                 .statusCode(404);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/.well-known/mcp-tools/some-group/some-tool/compatible",
+            "/.well-known/mcp-tools/some-group/some-tool/compatibility",
+            "/apis/registry/v3/well-known/mcp-tools/some-group/some-tool/compatible",
+            "/apis/registry/v3/well-known/mcp-tools/some-group/some-tool/compatibility",
+    })
+    public void testMcpToolCompatibilityBlockedWhenMcpDisabled(String path) {
+        givenAtRoot()
+                .when()
+                .get(path)
+                .then()
+                .statusCode(404)
+                .body("status", equalTo(404))
+                .body("title", notNullValue());
     }
 
     @Test

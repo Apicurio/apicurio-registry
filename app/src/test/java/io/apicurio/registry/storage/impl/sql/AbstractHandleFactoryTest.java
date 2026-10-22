@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -54,6 +55,27 @@ class AbstractHandleFactoryTest {
         assertEquals(1, thrown.getSuppressed().length);
         assertSame(rollbackFailure, thrown.getSuppressed()[0].getCause());
         verify(connection).rollback();
+        verify(connection).close();
+    }
+
+    @Test
+    void shouldPropagateRollbackFailureWhenCallbackSucceeds() throws Exception {
+        AgroalDataSource dataSource = mock(AgroalDataSource.class);
+        Connection connection = mock(Connection.class);
+        SQLException rollbackFailure = new SQLException("rollback failed");
+        when(dataSource.getConnection()).thenReturn(connection);
+        doThrow(rollbackFailure).when(connection).rollback();
+        AbstractHandleFactory factory = factory(dataSource);
+        HandleCallback<String, RuntimeException> dryRun = handle -> {
+            handle.setRollback(true);
+            return "dry-run";
+        };
+
+        RegistryStorageException thrown = assertThrows(RegistryStorageException.class,
+                () -> factory.withHandle(dryRun));
+
+        assertSame(rollbackFailure, thrown.getCause());
+        verify(connection, never()).commit();
         verify(connection).close();
     }
 

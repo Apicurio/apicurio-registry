@@ -8980,6 +8980,152 @@
           }
         ]
       },
+      "Peer": {
+        "title": "Root Type for Peer",
+        "description": "A peer registry that this registry federates with.",
+        "required": [
+          "peerId",
+          "url",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "peerId": {
+            "description": "Unique id of the peer registry. Lowercase letters, digits, `.`, `_` and `-` only, at most 256 characters. `local` is reserved.",
+            "type": "string"
+          },
+          "url": {
+            "description": "Base URL of the peer registry, for example `https://registry.eu.example.com`.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the peer registry.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of the peer registry.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the peer registry is used for federation.",
+            "type": "boolean"
+          },
+          "credentialSecretRef": {
+            "description": "Name of the key in the registry's peer credentials directory that holds the credential for this peer. A reference only: the credential value is never stored or returned.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "peerId": "eu-registry",
+          "url": "https://registry.eu.example.com",
+          "name": "EU registry",
+          "description": "Registry serving the EU region.",
+          "enabled": true,
+          "credentialSecretRef": "eu-registry"
+        }
+      },
+      "NewPeer": {
+        "title": "Root Type for NewPeer",
+        "description": "The information needed to register a new peer registry.",
+        "required": [
+          "peerId",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "peerId": {
+            "description": "Unique id of the peer registry. Lowercase letters, digits, `.`, `_` and `-` only, at most 256 characters. `local` is reserved.",
+            "type": "string"
+          },
+          "url": {
+            "description": "Base URL of the peer registry, for example `https://registry.eu.example.com`.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the peer registry.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of the peer registry.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the peer registry is used for federation. Defaults to `true`.",
+            "type": "boolean"
+          },
+          "credentialSecretRef": {
+            "description": "Name of the key in the registry's peer credentials directory that holds the credential for this peer. A reference only: the credential value is never stored or returned.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "peerId": "eu-registry",
+          "url": "https://registry.eu.example.com",
+          "name": "EU registry",
+          "description": "Registry serving the EU region.",
+          "enabled": true,
+          "credentialSecretRef": "eu-registry"
+        }
+      },
+      "UpdatePeer": {
+        "title": "Root Type for UpdatePeer",
+        "description": "The replacement definition of a peer registry. Optional fields that are omitted are cleared.",
+        "required": [
+          "url",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "description": "Base URL of the peer registry, for example `https://registry.eu.example.com`.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the peer registry.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of the peer registry.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the peer registry is used for federation.",
+            "type": "boolean"
+          },
+          "credentialSecretRef": {
+            "description": "Name of the key in the registry's peer credentials directory that holds the credential for this peer. A reference only: the credential value is never stored or returned.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "url": "https://registry.eu.example.com",
+          "name": "EU registry",
+          "description": "Registry serving the EU region.",
+          "enabled": true,
+          "credentialSecretRef": "eu-registry"
+        }
+      },
+      "PeerSearchResults": {
+        "description": "Describes the response received when listing peer registries.",
+        "required": [
+          "peers",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "peers": {
+            "description": "The peer registries returned in the result set.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Peer"
+            }
+          },
+          "count": {
+            "description": "The total number of peer registries (may be more than the number of peers in the result set).",
+            "type": "integer"
+          }
+        }
+      },
       "EditableVersionMetaData": {
         "title": "Root Type for EditableArtifactMetaData",
         "description": "",

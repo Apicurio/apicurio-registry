@@ -22,6 +22,8 @@ public final class MethodParameterKeys {
     public static final String MPK_NAME = "name";
     public static final String MPK_NAME_ENCODED = "name_encoded";
     public static final String MPK_OWNER = "owner";
+    public static final String MPK_PEER = "peer";
+    public static final String MPK_PEER_ID = "peer_id";
     public static final String MPK_PRINCIPAL_ID = "principal_id";
     public static final String MPK_SUBSCRIPTION_ID = "subscription_id";
     public static final String MPK_PROPERTY_CONFIGURATION = "property_configuration";
@@ -29,6 +31,7 @@ public final class MethodParameterKeys {
     public static final String MPK_ROLE_MAPPING = "role_mapping";
     public static final String MPK_RULE = "rule";
     public static final String MPK_RULE_TYPE = "rule_type";
+    public static final String MPK_UPDATE_PEER = "update_peer";
     public static final String MPK_UPDATE_ROLE = "update_role";
     public static final String MPK_UPDATE_STATE = "update_state";
     public static final String MPK_VERSION = "version";

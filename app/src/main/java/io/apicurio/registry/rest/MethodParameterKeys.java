@@ -1,5 +1,10 @@
 package io.apicurio.registry.rest;
 
+/**
+ * Constants for method parameter keys used in {@link MethodMetadata} annotations.
+ * These keys are extracted by {@link MethodMetadataInterceptor} and made available
+ * to downstream interceptors (e.g. auditing, caching).
+ */
 public final class MethodParameterKeys {
 
     public static final String MPK_ARTIFACT_ID = "artifact_id";

@@ -85,9 +85,9 @@ public class McpServerContentValidator implements ContentValidator {
         return message.startsWith(prefix) ? message.substring(prefix.length()) : message;
     }
 
-    /** server.json has no reference fields, so there is nothing in the content that must be mapped. */
     @Override
     public void validateReferences(TypedContent content, List<ArtifactReference> references) {
+        // server.json has no reference fields, so there is nothing in the content that must be mapped.
     }
 
     /** A server references the tools it provides. */

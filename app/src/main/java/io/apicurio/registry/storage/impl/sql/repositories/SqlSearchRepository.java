@@ -41,6 +41,10 @@ public class SqlSearchRepository {
             "Content search requires the search index, which is not enabled. "
             + "Enable the search index to use content search.";
 
+    private static final String VERSION_STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE =
+            "Structure search on versions requires the search index, which is not enabled. "
+            + "Enable the search index, or search artifacts by structure instead.";
+
     /**
      * Escape character for LIKE patterns built from request-derived values. '!' is not a LIKE
      * metacharacter, and every supported database (H2, PostgreSQL, MySQL, SQL Server) accepts it in an
@@ -48,7 +52,7 @@ public class SqlSearchRepository {
      * escapes the escape character itself, so a value that genuinely contains '!' still matches
      * literally - the character is only ever consumed as an escape when this code puts it there.
      */
-    private static final char LIKE_ESCAPE_CHAR = '!';
+    static final char LIKE_ESCAPE_CHAR = '!';
 
     private static final String STRUCTURE_FILTER_FORMAT_HELP = "Expected '<artifactType>:<kind>:<name>', "
             + "'<kind>:<name>' or '<name>', for example 'agent_card:skill:translation'.";
@@ -106,6 +110,11 @@ public class SqlSearchRepository {
                     case groupId:
                         buildWildcardClause(where, "a.groupId",
                                 normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
+                        break;
+                    case authorization:
+                        SqlAuthorizationFilter.appendArtifactCondition(where, binders,
+                                filter.getAuthorizationValue(), sqlStatements.dbType(), "a.groupId", "a.artifactId",
+                                "a.owner");
                         break;
                     case artifactId:
                         buildWildcardClause(where, "a.artifactId",
@@ -352,6 +361,11 @@ public class SqlSearchRepository {
                         buildWildcardClause(where, "a.groupId",
                                 normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
                         break;
+                    case authorization:
+                        SqlAuthorizationFilter.appendArtifactCondition(where, binders,
+                                filter.getAuthorizationValue(), sqlStatements.dbType(), "a.groupId", "a.artifactId",
+                                "a.owner");
+                        break;
                     case artifactType:
                         op = filter.isNot() ? "!=" : "=";
                         where.append("a.type " + op + " ?");
@@ -436,6 +450,10 @@ public class SqlSearchRepository {
                         break;
                     case content:
                         throw new ContentSearchNotSupportedException(CONTENT_SEARCH_UNSUPPORTED_MESSAGE);
+                    case structure:
+                        // Structured content is indexed per artifact in SQL (see searchArtifacts), but
+                        // version-level structure search is only served by the search index.
+                        throw new ContentSearchNotSupportedException(VERSION_STRUCTURE_SEARCH_UNSUPPORTED_MESSAGE);
                     default:
                         throw new RegistryStorageException("Filter type not supported: " + filter.getType());
                 }
@@ -523,7 +541,7 @@ public class SqlSearchRepository {
      * is used inside a LIKE pattern, so request-derived text is matched literally. The caller is
      * responsible for adding any intentional wildcards and the matching {@code ESCAPE} clause.
      */
-    private static String escapeLikePattern(String value) {
+    static String escapeLikePattern(String value) {
         StringBuilder escaped = new StringBuilder(value.length());
         for (char c : value.toCharArray()) {
             if (c == LIKE_ESCAPE_CHAR || c == '%' || c == '_') {

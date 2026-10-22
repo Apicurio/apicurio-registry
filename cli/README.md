@@ -588,6 +588,17 @@ acr search version --name <name> --group <group-id> --artifact <artifact-id>
 
 All filters are optional and can be combined. Additional filters include `--description`, `--type`, `--state`, `--label`, `--global-id`, `--content-id`. Pagination (`--page`, `--size`) and ordering (`--order`, `--order-by`) are supported.
 
+### Interactive mode (experimental)
+
+The `acr artifact` and `acr search artifact` commands accept `--interactive`, which opens the results in a selectable terminal table instead of printing a static listing. Interactive mode is experimental and subject to backwards-incompatible change or removal. It requires an interactive terminal (TTY); with redirected input the command fails with an error.
+
+```bash
+acr artifact -g <group-id> --interactive
+acr search artifact --name <name> --interactive
+```
+
+Search filters apply before the table loads. Keys: Up/Down move the selection; `Enter` prints the selected artifact's metadata and exits; `d` deletes the selected artifact after a `y/N` confirmation (requires `apicurio.rest.deletion.artifact.enabled=true` on the registry); `/` filters the loaded rows on the client; `PgUp`/`PgDn` switch pages; `q`/`Esc` exits.
+
 ### GitOps storage
 
 The GitOps commands require a registry instance with GitOps storage enabled.

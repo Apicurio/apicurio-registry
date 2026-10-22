@@ -1,5 +1,6 @@
 package io.apicurio.registry.auth;
 
+import io.apicurio.registry.auth.grants.GrantsAccessControllerConfig;
 import io.quarkus.security.ForbiddenException;
 import io.quarkus.security.UnauthorizedException;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -109,6 +110,8 @@ class AuthorizedInterceptorReadParityTest {
         interceptor.adminOverride = adminOverride;
         interceptor.rbac = rbac;
         interceptor.obac = obac;
+        // Per-resource authorization is out of scope for read-access parity
+        interceptor.grantsAcConfig = mock(GrantsAccessControllerConfig.class);
 
         InvocationContext context = mock(InvocationContext.class);
         when(context.getMethod()).thenReturn(method);

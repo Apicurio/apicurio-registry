@@ -51,7 +51,12 @@ on:
   # becomes required.
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # A retry of a push run (attempt 2 or later) gets a group of its own commit,
+  # so it neither cancels the run of a newer push nor is cancelled by one: a
+  # failure on main is retried to tell a flake from a break (#10380), and that
+  # answer must not depend on whether someone merged in the meantime. Retries
+  # of PR runs stay in the branch group, so a push to the PR still cancels them.
+  group: ${{ github.workflow }}-${{ github.ref }}${{ github.event_name == 'push' && github.run_attempt > 1 && format('-retry-{0}', github.sha) || '' }}
   # A push supersedes the suite it interrupts — those results describe a SHA
   # nobody is merging, so cancelling them is right. Pushes are now the only
   # thing that starts a PR run here, so this can be unconditional again. It
@@ -205,7 +210,7 @@ jobs:
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
 
       - name: Upload Build Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: build-artifacts-${{ github.sha }}
           path: |
@@ -237,7 +242,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: '24.21.0'
           cache: 'npm'
@@ -375,7 +380,7 @@ jobs:
       # writes the report at session start, so it survives a later failure.
       - name: Upload Scalpel report
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: scalpel-report-pr${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
           path: |
@@ -413,7 +418,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.27.1'
+          go-version: '1.27.2'
 
       - name: Regenerate Go SDK
         run: |
@@ -538,6 +543,15 @@ jobs:
       && github.repository_owner == 'Apicurio'
       && needs.build-java.result == 'success'
       && needs.gate.result == 'success'
+    # One publish at a time per branch, so verify-publish.yaml's check against
+    # the published commit and its pushes never interleave with another run's:
+    # a retry has its own run concurrency group and can reach this job while a
+    # newer run does. queue: max keeps every waiting run; with the default
+    # queue of one, a second arrival would cancel the one already waiting.
+    concurrency:
+      group: ${{ github.workflow }}-publish-${{ github.ref }}
+      cancel-in-progress: false
+      queue: max
     uses: ./.github/workflows/verify-publish.yaml
     with:
       image-tag: ${{ github.sha }}
@@ -547,19 +561,3 @@ jobs:
       DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_PASSWORD: ${{ secrets.QUAY_PASSWORD }}
-
-  # ============================================================================
-  # NOTIFICATIONS
-  # ============================================================================
-  notify-slack:
-    name: Slack Notification
-    needs: [gate, publish, operator]
-    if: github.event_name == 'push' && github.repository_owner == 'Apicurio' && always()
-    uses: ./.github/workflows/reusable-notify-slack.yaml
-    with:
-      workflow-name: ${{ github.workflow }}
-      job-name: 'verification'
-      job-status: ${{ (needs.gate.result == 'failure' || needs.publish.result == 'failure' || needs.operator.result == 'failure') && 'failure' || 'success' }}
-    secrets:
-      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
-      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

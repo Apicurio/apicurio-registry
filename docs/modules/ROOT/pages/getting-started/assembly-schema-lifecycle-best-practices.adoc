@@ -333,7 +333,7 @@ With these evolution strategies, you can identify which changes are safe. To enc
 
 [role="_additional-resources"]
 .Additional resources
-* xref:registry-rule-reference_{context}[]
+* xref:getting-started/assembly-rule-reference.adoc[]
 
 // ref-schema-data-structure-recommendations
 [id="schema-data-structure-recommendations_{context}"]
@@ -425,7 +425,7 @@ With shared types, evolution strategies, and data structures in place, you can c
 
 [role="_additional-resources"]
 .Additional resources
-* xref:registry-rule-reference_{context}[]
+* xref:getting-started/assembly-rule-reference.adoc[]
 
 // proc-managing-schema-lifecycle-states
 [id="managing-schema-lifecycle-states_{context}"]
@@ -467,7 +467,7 @@ The following table summarizes when to use each state transition.
 * You have a running {registry} instance.
 * You have registered a schema artifact with at least one version.
 * You have the group ID, artifact ID, and version identifier for the version you want to update.
-* If your {registry} instance requires authentication, you have a valid access token. Changing version states requires the `developer` or `admin` role when role-based access control is enabled. For details, see xref:configuring-registry-security_{context}[].
+* If your {registry} instance requires authentication, you have a valid access token. Changing version states requires the `developer` or `admin` role when role-based access control is enabled. For details, see xref:getting-started/assembly-configuring-registry-security.adoc[].
 
 NOTE: The examples in this procedure omit authentication headers for brevity. If your {registry} instance requires authentication, include an `Authorization` header with a valid bearer token in each request.
 
@@ -647,7 +647,7 @@ These validation layers apply to any Kafka producer. If your architecture includ
 
 [role="_additional-resources"]
 .Additional resources
-* xref:configuring-registry-security_{context}[]
+* xref:getting-started/assembly-configuring-registry-security.adoc[]
 
 // con-schema-event-driven-integration
 [id="schema-event-driven-integration_{context}"]
@@ -731,7 +731,7 @@ A working example that demonstrates Debezium, Kafka, and {registry} working toge
 * xref:schema-lifecycle-overview_{context}[]
 * xref:schema-evolution-strategies_{context}[]
 * {managing-registry-artifacts-api}
-* xref:registry-rule-reference_{context}[]
+* xref:getting-started/assembly-rule-reference.adoc[]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/event-driven-architecture[Event-driven architecture example]
 
 // ref-schema-lifecycle-checklist

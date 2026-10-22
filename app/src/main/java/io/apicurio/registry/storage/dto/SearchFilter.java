@@ -76,6 +76,17 @@ public class SearchFilter {
         return new SearchFilter(SearchFilterType.groupId, value);
     }
 
+    public static SearchFilter ofAuthorization(AuthorizationFilter value) {
+        return new SearchFilter(SearchFilterType.authorization, value);
+    }
+
+    public AuthorizationFilter getAuthorizationValue() {
+        if (value instanceof AuthorizationFilter filter) {
+            return filter;
+        }
+        throw new IllegalStateException("value is not an authorization filter");
+    }
+
     public static SearchFilter ofArtifactId(String value) {
         return new SearchFilter(SearchFilterType.artifactId, value);
     }

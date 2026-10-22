@@ -1,0 +1,7 @@
+syntax = "proto2";
+
+package com.example;
+
+message LegacyRecord {
+    optional string note = 1 [default = "edition = '2023';"];
+}

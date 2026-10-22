@@ -6822,6 +6822,186 @@
         }
       ]
     },
+    "/well-known/mcp-tools/{groupId}/{artifactId}/compatible": {
+      "summary": "Find compatible MCP tools.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "description": "The version of the source tool. Defaults to the latest version.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "The number of results to skip. A negative value is treated as 0.",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "description": "The maximum number of results to return. A value above 1000 is treated as 1000, and a negative value as 1.",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpCompatibleToolsResults"
+                }
+              }
+            },
+            "description": "The MCP tools that accept every output of the source tool."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "findCompatibleTools",
+        "summary": "Find compatible MCP tools",
+        "description": "Returns the registered MCP tools whose `inputSchema` accepts every output that the `outputSchema` of the source tool permits, newest first. These are the tools that the `compatibility` operation reports as `COMPATIBLE`. The source tool is never returned, and a source tool whose `outputSchema` is absent or cannot be compared returns no tools."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/well-known/mcp-tools/{groupId}/{artifactId}/compatibility": {
+      "summary": "Get MCP tool compatibility.",
+      "get": {
+        "tags": [
+          "WellKnown"
+        ],
+        "parameters": [
+          {
+            "name": "version",
+            "description": "The version of the source tool. Defaults to the latest version.",
+            "schema": {
+              "type": "string"
+            },
+            "in": "query"
+          },
+          {
+            "name": "verdict",
+            "description": "Returns only the results with this verdict: `COMPATIBLE`, `INCOMPATIBLE` or `INDETERMINATE`. Repeat the parameter to select several verdicts. All three are returned by default. Any other value is rejected with a `400` error.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "in": "query"
+          },
+          {
+            "name": "offset",
+            "description": "The number of results to skip. A negative value is treated as 0.",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "limit",
+            "description": "The maximum number of results to return. A value above 1000 is treated as 1000, and a negative value as 1.",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolCompatibilityResults"
+                }
+              }
+            },
+            "description": "The verdict for each evaluated candidate tool, with its reasons and limitations."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        },
+        "operationId": "getToolCompatibility",
+        "summary": "Get MCP tool compatibility",
+        "description": "Compares the `outputSchema` of the source tool with the `inputSchema` of each candidate MCP tool, as if the whole output object were passed to the candidate, and returns every verdict with its reasons and limitations, newest candidate first. A source tool whose `outputSchema` is absent or cannot be compared is compared with no candidate, and the top-level `limitations` say why."
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/well-known/schemas/{schemaType}/{version}": {
       "summary": "Get JSON Schema.",
       "get": {
@@ -10398,6 +10578,204 @@
             }
           }
         }
+      },
+      "McpCompatibleToolsResults": {
+        "description": "The MCP tools whose `inputSchema` accepts every output of the source tool.",
+        "required": [
+          "count",
+          "tools"
+        ],
+        "type": "object",
+        "properties": {
+          "count": {
+            "description": "The number of compatible tools, before pagination.",
+            "type": "integer"
+          },
+          "tools": {
+            "description": "The requested page of compatible tools, newest first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpToolSearchResult"
+            }
+          }
+        }
+      },
+      "McpToolCompatibilityResults": {
+        "description": "The compatibility of the `outputSchema` of a source MCP tool with the `inputSchema` of each evaluated candidate tool.",
+        "required": [
+          "candidateTotal",
+          "evaluated",
+          "scanLimit",
+          "complete",
+          "totals",
+          "count",
+          "limitations",
+          "results"
+        ],
+        "type": "object",
+        "properties": {
+          "candidateTotal": {
+            "description": "The number of MCP tools in the registry, including the source tool. When per-resource authorization is enabled, only the tools that the caller can read are counted. It is 0 when the source tool cannot be compared.",
+            "type": "integer"
+          },
+          "evaluated": {
+            "description": "The number of candidate tools compared with the source tool. The source tool is not a candidate, and a tool that is deleted during the scan, or that has no enabled or deprecated version, is skipped.",
+            "type": "integer"
+          },
+          "scanLimit": {
+            "description": "The maximum number of MCP tools scanned, newest first by creation date.",
+            "type": "integer"
+          },
+          "complete": {
+            "description": "False when older MCP tools were not compared because only the newest `scanLimit` tools are scanned. It reports scan coverage, not that every verdict is conclusive.",
+            "type": "boolean"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/McpToolCompatibilityTotals"
+          },
+          "count": {
+            "description": "The number of results that match the `verdict` filter, before pagination.",
+            "type": "integer"
+          },
+          "limitations": {
+            "description": "Why the source tool cannot be compared with any candidate, such as `SOURCE_HAS_NO_OUTPUT_SCHEMA`. Empty when the candidates were compared.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpToolCompatibilityLimitation"
+            }
+          },
+          "results": {
+            "description": "The requested page of results that match the `verdict` filter, newest candidate first.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpToolCompatibilityResult"
+            }
+          }
+        }
+      },
+      "McpToolCompatibilityTotals": {
+        "description": "The number of evaluated candidate tools with each verdict, before the `verdict` filter.",
+        "required": [
+          "compatible",
+          "incompatible",
+          "indeterminate"
+        ],
+        "type": "object",
+        "properties": {
+          "compatible": {
+            "type": "integer"
+          },
+          "incompatible": {
+            "type": "integer"
+          },
+          "indeterminate": {
+            "type": "integer"
+          }
+        }
+      },
+      "McpToolCompatibilityResult": {
+        "description": "The compatibility of the source tool with one candidate tool.",
+        "required": [
+          "tool",
+          "verdict",
+          "reasons",
+          "limitations"
+        ],
+        "type": "object",
+        "properties": {
+          "tool": {
+            "$ref": "#/components/schemas/McpToolSearchResult"
+          },
+          "verdict": {
+            "$ref": "#/components/schemas/McpToolCompatibilityVerdict"
+          },
+          "reasons": {
+            "description": "The mismatches that make the verdict `INCOMPATIBLE`. Empty for any other verdict.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpToolCompatibilityReason"
+            }
+          },
+          "limitations": {
+            "description": "Everything that prevented a complete comparison. An `INCOMPATIBLE` result can have limitations that do not affect its reasons.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpToolCompatibilityLimitation"
+            }
+          }
+        }
+      },
+      "McpToolCompatibilityVerdict": {
+        "description": "Whether the output of the source tool can be passed to the input of the candidate tool.\n\n* COMPATIBLE: no mismatch was found and no limitation affects either schema.\n* INCOMPATIBLE: at least one mismatch was found that no limitation invalidates.\n* INDETERMINATE: no mismatch stands, but a limitation prevents a positive verdict.\n",
+        "enum": [
+          "COMPATIBLE",
+          "INCOMPATIBLE",
+          "INDETERMINATE"
+        ],
+        "type": "string"
+      },
+      "McpToolCompatibilityReason": {
+        "description": "A mismatch between the `outputSchema` of the source tool and the `inputSchema` of the candidate tool.",
+        "required": [
+          "code",
+          "producerPointer",
+          "consumerPointer",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "What kind of mismatch this is. Current values are `REQUIRED_NOT_GUARANTEED`, `TYPE_NOT_ACCEPTED`, `ADDITIONAL_PROPERTY_NOT_ACCEPTED` and `VALUE_NOT_ACCEPTED`. Later versions can add values.",
+            "type": "string"
+          },
+          "producerPointer": {
+            "description": "A JSON Pointer into the source tool definition.",
+            "type": "string"
+          },
+          "consumerPointer": {
+            "description": "A JSON Pointer into the candidate tool definition.",
+            "type": "string"
+          },
+          "message": {
+            "description": "A human readable description of the mismatch.",
+            "type": "string"
+          }
+        }
+      },
+      "McpToolCompatibilityLimitation": {
+        "description": "Something that prevents the comparison from fully deciding whether the two tools are compatible.",
+        "required": [
+          "code",
+          "side",
+          "pointer",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "description": "What kind of limitation this is. Current values are `UNSUPPORTED_DIALECT`, `UNSUPPORTED_KEYWORD`, `PRODUCER_OBJECT_OPEN`, `DEPTH_LIMIT_REACHED`, `COMPARISON_FAILED` and `SOURCE_HAS_NO_OUTPUT_SCHEMA`. Later versions can add values.",
+            "type": "string"
+          },
+          "side": {
+            "$ref": "#/components/schemas/McpToolCompatibilitySide"
+          },
+          "pointer": {
+            "description": "A JSON Pointer into the tool definition on that side, which locates the cause.",
+            "type": "string"
+          },
+          "message": {
+            "description": "A human readable description of the limitation.",
+            "type": "string"
+          }
+        }
+      },
+      "McpToolCompatibilitySide": {
+        "description": "The tool that a limitation refers to.\n\n* PRODUCER: the source tool, whose `outputSchema` is compared\n* CONSUMER: the candidate tool, whose `inputSchema` is compared\n",
+        "enum": [
+          "PRODUCER",
+          "CONSUMER"
+        ],
+        "type": "string"
       },
       "AiCatalog": {
         "description": "AI Catalog document per the ai-catalog.io specification, listing agent and tool entries hosted by this registry.",

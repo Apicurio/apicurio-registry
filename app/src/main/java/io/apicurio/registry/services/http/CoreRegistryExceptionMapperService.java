@@ -113,6 +113,10 @@ public class CoreRegistryExceptionMapperService {
             RuleViolationCause cause = new RuleViolationCause();
             cause.setContext(violation.getContext());
             cause.setDescription(violation.getDescription());
+            cause.setCode(violation.getCode());
+            cause.setDirection(violation.getDirection());
+            cause.setProposed(violation.getProposed());
+            cause.setExisting(violation.getExisting());
             return cause;
         }).collect(Collectors.toList());
     }

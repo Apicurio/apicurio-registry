@@ -371,7 +371,7 @@
     <cel-standalone.version>0.6.0</cel-standalone.version>
 
     <!-- Kroxylicious Authorizer API (shared authorization contract) -->
-    <kroxylicious.version>0.25.0</kroxylicious.version>
+    <kroxylicious.version>0.25.1</kroxylicious.version>
   </properties>
 
   <dependencyManagement>

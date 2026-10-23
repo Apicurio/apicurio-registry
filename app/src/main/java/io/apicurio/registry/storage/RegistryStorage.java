@@ -197,7 +197,7 @@ public interface RegistryStorage extends DynamicConfigStorage {
     List<ArtifactVersionMetaDataDto> getArtifactVersionsByContentId(long contentId);
 
     /**
-     * Get all content IDs for every (non-DISABLED) version of an artifact.
+     * Get all content IDs for every (non-DISABLED, non-DRAFT) version of an artifact.
      *
      * @param groupId
      * @param artifactId

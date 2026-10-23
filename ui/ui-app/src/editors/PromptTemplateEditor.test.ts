@@ -41,10 +41,11 @@ if (typeof window !== "undefined" && !window.matchMedia) {
 
 const monaco = await import("monaco-editor");
 
-import { PromptTemplateEditor } from "./PromptTemplateEditor.tsx";
+import { PROMPT_TEMPLATE_EDITOR_ARIA_LABEL, PromptTemplateEditor } from "./PromptTemplateEditor.tsx";
 import { contentToString } from "@utils/content.utils.ts";
 import {
     PROMPT_TEMPLATE_LANGUAGE_ID,
+    PROMPT_TEMPLATE_MARKER_OWNER,
     registerPromptTemplate
 } from "./PromptTemplateLanguage.ts";
 
@@ -118,7 +119,36 @@ mcp:
   name: greeting-prompt
   description: A greeting prompt for MCP`;
 
+/**
+ * Creates a real Monaco text model in the prompt-template language and a minimal editor facade
+ * exposing it, so synchronization, undo history and markers run against Monaco itself.
+ */
+function createEditorHarness(text: string) {
+    const model = monaco.editor.createModel(text, PROMPT_TEMPLATE_LANGUAGE_ID);
+    const editor = { getModel: () => model, getValue: () => model.getValue() };
+    return { model, editor };
+}
+
+function markerMessages(model: any): string[] {
+    return monaco.editor.getModelMarkers({ resource: model.uri, owner: PROMPT_TEMPLATE_MARKER_OWNER })
+        .map(marker => marker.message);
+}
+
+function renderEditor(content: string, key?: string) {
+    return React.createElement(PromptTemplateEditor, {
+        key,
+        content: { content, contentType: "application/x-yaml" } as any,
+        onChange: vi.fn()
+    });
+}
+
+const RECOVERED_YAML = `templateId: greeting
+name: Greeting Template
+template: "Hi {{name}}, recovered edit."`;
+
 describe("PromptTemplateEditor — Mounted Component Lifecycle & Synchronization", () => {
+    const models: any[] = [];
+
     beforeEach(() => {
         capturedEditorProps = null;
         registerPromptTemplate(monaco);
@@ -126,109 +156,116 @@ describe("PromptTemplateEditor — Mounted Component Lifecycle & Synchronization
 
     afterEach(() => {
         cleanup();
+        models.splice(0).forEach(model => model.dispose());
     });
 
-    it("executes full mount lifecycle: initial content, props forwarding, onMount, and no spurious setValue", () => {
-        const mockOnChange = vi.fn();
-        const mockEditor = {
-            getValue: vi.fn().mockReturnValue(YAML_TEMPLATE),
-            setValue: vi.fn()
-        };
+    function mount(text: string) {
+        const harness = createEditorHarness(text);
+        models.push(harness.model);
+        act(() => {
+            capturedEditorProps.onMount(harness.editor, monaco);
+        });
+        return harness;
+    }
 
-        render(
-            React.createElement(PromptTemplateEditor, {
-                content: { content: YAML_TEMPLATE, contentType: "application/x-yaml" } as any,
-                onChange: mockOnChange
-            })
-        );
+    it("mounts with the raw content, prompt-template language and an accessible label", () => {
+        render(renderEditor(YAML_TEMPLATE));
 
-        // 1. Initial mounted state
-        expect(capturedEditorProps).not.toBeNull();
-        expect(capturedEditorProps.defaultLanguage).toBe("prompt-template");
+        expect(capturedEditorProps.defaultLanguage).toBe(PROMPT_TEMPLATE_LANGUAGE_ID);
         expect(capturedEditorProps.defaultValue).toBe(YAML_TEMPLATE);
+        expect(capturedEditorProps.options.ariaLabel).toBe(PROMPT_TEMPLATE_EDITOR_ARIA_LABEL);
+        expect(capturedEditorProps.options.wordWrap).toBe("on");
 
-        // Mount the Monaco editor instance
-        act(() => {
-            capturedEditorProps.onMount(mockEditor);
-        });
-
-        // 5. setValue was NOT called on initial mount
-        expect(mockEditor.setValue).not.toHaveBeenCalled();
+        const { model } = mount(YAML_TEMPLATE);
+        expect(model.getValue()).toBe(YAML_TEMPLATE);
+        expect(markerMessages(model)).toEqual([]);
     });
 
-    it("does not call setValue or reset editor when rerendered with unchanged content", () => {
-        const mockOnChange = vi.fn();
-        const mockEditor = {
-            getValue: vi.fn().mockReturnValue(YAML_TEMPLATE),
-            setValue: vi.fn()
-        };
-
-        const { rerender } = render(
-            React.createElement(PromptTemplateEditor, {
-                content: { content: YAML_TEMPLATE, contentType: "application/x-yaml" } as any,
-                onChange: mockOnChange
-            })
-        );
+    it("does not touch the model or undo history when rerendered with unchanged content", () => {
+        const { rerender } = render(renderEditor(YAML_TEMPLATE));
+        const { model } = mount(YAML_TEMPLATE);
+        const versionBefore = model.getAlternativeVersionId();
 
         act(() => {
-            capturedEditorProps.onMount(mockEditor);
+            rerender(renderEditor(YAML_TEMPLATE));
         });
 
-        // 2. Rerender with unchanged content (new object reference, identical content)
-        act(() => {
-            rerender(
-                React.createElement(PromptTemplateEditor, {
-                    content: { content: YAML_TEMPLATE, contentType: "application/x-yaml" } as any,
-                    onChange: mockOnChange
-                })
-            );
-        });
-
-        // 6. Verify unchanged content does not unnecessarily reset the editor
-        expect(mockEditor.setValue).not.toHaveBeenCalled();
+        expect(model.getValue()).toBe(YAML_TEMPLATE);
+        expect(model.getAlternativeVersionId()).toBe(versionBefore);
     });
 
-    it("synchronizes external content update via setValue and updates editor content", () => {
-        const mockOnChange = vi.fn();
-        let editorContent = YAML_TEMPLATE;
-        const mockEditor = {
-            getValue: vi.fn().mockImplementation(() => editorContent),
-            setValue: vi.fn().mockImplementation((val: string) => {
-                editorContent = val;
-            })
-        };
-
-        const { rerender } = render(
-            React.createElement(PromptTemplateEditor, {
-                content: { content: YAML_TEMPLATE, contentType: "application/x-yaml" } as any,
-                onChange: mockOnChange
-            })
-        );
+    it("applies a restored draft as an undoable edit so the user can undo back and redo again", async () => {
+        const { rerender } = render(renderEditor(YAML_TEMPLATE));
+        const { model } = mount(YAML_TEMPLATE);
 
         act(() => {
-            capturedEditorProps.onMount(mockEditor);
+            rerender(renderEditor(RECOVERED_YAML));
+        });
+        expect(model.getValue()).toBe(RECOVERED_YAML);
+
+        await model.undo();
+        expect(model.getValue()).toBe(YAML_TEMPLATE);
+
+        await model.redo();
+        expect(model.getValue()).toBe(RECOVERED_YAML);
+    });
+
+    it("keeps earlier user edits undoable after a restored draft is applied", async () => {
+        const { rerender } = render(renderEditor(YAML_TEMPLATE));
+        const { model } = mount(YAML_TEMPLATE);
+        const userEdit = YAML_TEMPLATE.replace("Greeting Template", "Edited Template");
+
+        model.pushEditOperations([], [{ range: model.getFullModelRange(), text: userEdit }], () => null);
+        model.pushStackElement();
+        act(() => {
+            rerender(renderEditor(RECOVERED_YAML));
         });
 
-        // 3. Replace content through an external update / navigation / recovery update
-        const externalUpdated = `templateId: external-update
-name: External Update
-template: "Hello {{audience}}!"`;
+        await model.undo();
+        expect(model.getValue()).toBe(userEdit);
+        await model.undo();
+        expect(model.getValue()).toBe(YAML_TEMPLATE);
+    });
+
+    it("starts a fresh editor and undo history when switching to another draft", async () => {
+        const draftB = `templateId: other
+template: "{{#unless premium}}Upgrade{{/unless}}"`;
+        const { rerender } = render(renderEditor(YAML_TEMPLATE, "draft-a"));
+        const first = mount(YAML_TEMPLATE);
+        first.model.pushEditOperations([], [{ range: first.model.getFullModelRange(), text: YAML_WITH_METADATA }], () => null);
 
         act(() => {
-            rerender(
-                React.createElement(PromptTemplateEditor, {
-                    content: { content: externalUpdated, contentType: "application/x-yaml" } as any,
-                    onChange: mockOnChange
-                })
-            );
+            rerender(renderEditor(draftB, "draft-b"));
         });
+        // EditorPage keys the editor by draft, so a new draft mounts a new Monaco editor with its own content.
+        expect(capturedEditorProps.defaultValue).toBe(draftB);
+        const second = mount(draftB);
 
-        // 5. Verify setValue was called when expected
-        expect(mockEditor.setValue).toHaveBeenCalledTimes(1);
-        expect(mockEditor.setValue).toHaveBeenCalledWith(externalUpdated);
+        await second.model.undo();
+        expect(second.model.getValue()).toBe(draftB);
+        expect(first.model.getValue()).toBe(YAML_WITH_METADATA);
 
-        // 4. Verify the resulting editor model/content
-        expect(mockEditor.getValue()).toBe(externalUpdated);
+        // The unmounted editor no longer publishes markers for draft A.
+        first.model.setValue("template: \"{{#if a}}\"");
+        expect(markerMessages(first.model)).toEqual([]);
+        expect(markerMessages(second.model)).toEqual([]);
+    });
+
+    it("publishes warning markers for unsupported constructs and refreshes them as the content changes", () => {
+        render(renderEditor(YAML_WITH_UNLESS));
+        const { model } = mount(YAML_WITH_UNLESS);
+        expect(markerMessages(model)).toEqual([]);
+
+        model.setValue("template: \"{{#if a}}{{#if b}}x{{/if}}\"");
+        expect(markerMessages(model)).toEqual([
+            "Nested conditional blocks are not supported by the prompt renderer.",
+            "Unclosed {{#if}} block; the prompt renderer leaves it as literal text."
+        ]);
+        expect(monaco.editor.getModelMarkers({ resource: model.uri, owner: PROMPT_TEMPLATE_MARKER_OWNER })
+            .map(marker => marker.severity)).toEqual([monaco.MarkerSeverity.Warning, monaco.MarkerSeverity.Warning]);
+
+        model.setValue("template: \"{{#if a}}x{{/if}}\"");
+        expect(markerMessages(model)).toEqual([]);
     });
 
     it("passes malformed intermediate input directly to props.onChange unchanged without throwing", () => {
@@ -240,7 +277,6 @@ template: "Hello {{audience}}!"`;
             })
         );
 
-        // 7. Verify malformed intermediate input is passed to the parent unchanged
         const midEditBroken = INVALID_YAML + "\n  incomplete_placeholder: {{broken";
         act(() => {
             expect(() => capturedEditorProps.onChange(midEditBroken)).not.toThrow();
@@ -251,7 +287,6 @@ template: "Hello {{audience}}!"`;
     });
 
     it("recovers highlighting after incomplete intermediate input becomes valid using the real tokenizer", () => {
-        // 8. Verify highlighting recovers after incomplete input becomes valid using the real tokenizer/editor path
         // Step A: Incomplete input mid-typing
         const incompleteSource = "template: \"Hello {{incomplete";
         const incompleteTokens = monaco.editor.tokenize(incompleteSource, PROMPT_TEMPLATE_LANGUAGE_ID);

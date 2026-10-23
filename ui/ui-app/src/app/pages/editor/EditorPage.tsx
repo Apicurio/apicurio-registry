@@ -444,8 +444,9 @@ export const EditorPage: FunctionComponent<PageProperties> = () => {
         <AsyncApiEditor key={`asyncapi-${snapshotKey}-${iframeEditorKey}`} content={draftContent} onChange={onEditorChange}/>
     );
 
+    // Keyed by draft only (not iframeEditorKey) so restoring a recovered draft stays undoable.
     const promptTemplateEditor: React.ReactElement = (
-        <PromptTemplateEditor content={draftContent} onChange={onEditorChange}/>
+        <PromptTemplateEditor key={`prompt-template-${snapshotKey}`} content={draftContent} onChange={onEditorChange}/>
     );
 
     const editor = (): React.ReactElement => {

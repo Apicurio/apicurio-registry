@@ -52,4 +52,16 @@ public interface ArtifactTypeUtilProvider {
     default StructuredContentExtractor getStructuredContentExtractor() {
         return NoopStructuredContentExtractor.INSTANCE;
     }
+
+    /**
+     * Returns the file extensions that unambiguously identify this artifact type
+     * (e.g., {@code .avsc} for Avro, {@code .proto} for Protobuf). Extensions must
+     * include the leading dot and be lowercase. Ambiguous extensions like {@code .json}
+     * or {@code .yaml} should not be listed — those fall back to content-based detection.
+     *
+     * @return the unambiguous file extensions for this artifact type
+     */
+    default Set<String> getFileExtensions() {
+        return Set.of();
+    }
 }

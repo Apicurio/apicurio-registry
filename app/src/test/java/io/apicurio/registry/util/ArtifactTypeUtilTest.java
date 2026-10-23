@@ -4,6 +4,7 @@ import io.apicurio.registry.AbstractRegistryTestBase;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.types.ArtifactType;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 import org.apache.avro.Schema;
@@ -11,7 +12,12 @@ import org.apache.avro.Schema.Type;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Set;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
 
@@ -166,6 +172,75 @@ class ArtifactTypeUtilTest extends AbstractRegistryTestBase {
         content = resourceToTypedContentHandle("wsdl-2.0.wsdl");
         type = ArtifactTypeUtil.determineArtifactType(content, null, artifactTypeUtilProviderFactory);
         Assertions.assertEquals(ArtifactType.WSDL, type);
+    }
+
+    @Test
+    void testDetectArtifactTypeFromExtension_AllMappings() {
+        assertEquals(ArtifactType.AVRO, ArtifactTypeUtil.detectArtifactTypeFromExtension("schema.avsc", artifactTypeUtilProviderFactory));
+        assertEquals(ArtifactType.PROTOBUF, ArtifactTypeUtil.detectArtifactTypeFromExtension("schema.proto", artifactTypeUtilProviderFactory));
+        assertEquals(ArtifactType.GRAPHQL, ArtifactTypeUtil.detectArtifactTypeFromExtension("schema.graphql", artifactTypeUtilProviderFactory));
+        assertEquals(ArtifactType.GRAPHQL, ArtifactTypeUtil.detectArtifactTypeFromExtension("schema.gql", artifactTypeUtilProviderFactory));
+        assertEquals(ArtifactType.WSDL, ArtifactTypeUtil.detectArtifactTypeFromExtension("service.wsdl", artifactTypeUtilProviderFactory));
+        assertEquals(ArtifactType.XSD, ArtifactTypeUtil.detectArtifactTypeFromExtension("schema.xsd", artifactTypeUtilProviderFactory));
+        assertEquals(ArtifactType.THRIFT, ArtifactTypeUtil.detectArtifactTypeFromExtension("service.thrift", artifactTypeUtilProviderFactory));
+    }
+
+    @Test
+    void testDetectArtifactTypeFromExtension_CaseInsensitive() {
+        assertEquals(ArtifactType.AVRO, ArtifactTypeUtil.detectArtifactTypeFromExtension("USER.AVSC", artifactTypeUtilProviderFactory));
+        assertEquals(ArtifactType.PROTOBUF, ArtifactTypeUtil.detectArtifactTypeFromExtension("Schema.Proto", artifactTypeUtilProviderFactory));
+        assertEquals(ArtifactType.GRAPHQL, ArtifactTypeUtil.detectArtifactTypeFromExtension("QUERY.GQL", artifactTypeUtilProviderFactory));
+    }
+
+    @Test
+    void testDetectArtifactTypeFromExtension_AmbiguousReturnsNull() {
+        assertNull(ArtifactTypeUtil.detectArtifactTypeFromExtension("schema.json", artifactTypeUtilProviderFactory));
+        assertNull(ArtifactTypeUtil.detectArtifactTypeFromExtension("schema.yaml", artifactTypeUtilProviderFactory));
+        assertNull(ArtifactTypeUtil.detectArtifactTypeFromExtension("schema.yml", artifactTypeUtilProviderFactory));
+        assertNull(ArtifactTypeUtil.detectArtifactTypeFromExtension("schema.xml", artifactTypeUtilProviderFactory));
+    }
+
+    @Test
+    void testDetectArtifactTypeFromExtension_UnknownReturnsNull() {
+        assertNull(ArtifactTypeUtil.detectArtifactTypeFromExtension("schema.txt", artifactTypeUtilProviderFactory));
+        assertNull(ArtifactTypeUtil.detectArtifactTypeFromExtension("noextension", artifactTypeUtilProviderFactory));
+    }
+
+    @Test
+    void testDetectArtifactTypeFromExtension_ExplicitTypeWins() {
+        final String result = ArtifactTypeUtil.determineArtifactType(
+                resourceToTypedContentHandle("avro.json"), ArtifactType.AVRO, artifactTypeUtilProviderFactory);
+        assertEquals(ArtifactType.AVRO, result);
+    }
+
+    @Test
+    void testDuplicateFileExtensionAcrossProvidersFailsAtStartup() {
+        final var factory = new DefaultArtifactTypeUtilProviderImpl(true) {
+            public void validate() { validateFileExtensions(); }
+            {
+                // Add a fake provider that claims .avsc — already claimed by AVRO
+                getAllArtifactTypeProviders().add(new ArtifactTypeUtilProvider() {
+                    @Override public String getArtifactType() { return "MY_AVRO"; }
+                    @Override public Set<String> getContentTypes() { return Set.of("application/json"); }
+                    @Override public Set<String> getFileExtensions() { return Set.of(".avsc"); }
+                    @Override public io.apicurio.registry.content.ContentAccepter getContentAccepter() { return null; }
+                    @Override public io.apicurio.registry.content.canon.ContentCanonicalizer getContentCanonicalizer() { return null; }
+                    @Override public io.apicurio.registry.content.extract.ContentExtractor getContentExtractor() { return null; }
+                    @Override public io.apicurio.registry.content.refs.ReferenceFinder getReferenceFinder() { return null; }
+                    @Override public io.apicurio.registry.content.refs.ReferenceArtifactIdentifierExtractor getReferenceArtifactIdentifierExtractor() { return null; }
+                    @Override public io.apicurio.registry.content.dereference.ContentDereferencer getContentDereferencer() { return null; }
+                    @Override public io.apicurio.registry.rules.validity.ContentValidator getContentValidator() { return null; }
+                    @Override public io.apicurio.registry.rules.compatibility.CompatibilityChecker getCompatibilityChecker() { return null; }
+                    @Override public boolean supportsReferencesWithContext() { return false; }
+                });
+            }
+        };
+
+        final IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> factory.validate());
+        assertTrue(ex.getMessage().contains(".avsc"));
+        assertTrue(ex.getMessage().contains("AVRO"));
+        assertTrue(ex.getMessage().contains("MY_AVRO"));
     }
 
 }

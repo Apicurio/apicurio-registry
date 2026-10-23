@@ -51,7 +51,7 @@ Key capabilities provided by the search index:
 An external Elasticsearch cluster is required. The feature uses the official Elasticsearch Java client
 provided by the `quarkus-elasticsearch-java-client` Quarkus extension.
 
-**Supported versions**: Elasticsearch 7.x or 8.x.
+**Supported versions**: Elasticsearch 9.x. The 3.4 build bundles the 9.2.3 Java client (managed by the Quarkus platform BOM); use a server version that is the same as or newer than the client within the 9.x series.
 
 **Deployment options**:
 
@@ -63,7 +63,7 @@ provided by the `quarkus-elasticsearch-java-client` Quarkus extension.
 ```yaml
 services:
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.2.3
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false

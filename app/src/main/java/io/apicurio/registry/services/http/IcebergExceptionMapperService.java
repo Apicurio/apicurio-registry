@@ -16,6 +16,7 @@ import io.quarkus.security.ForbiddenException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
+import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -83,6 +84,12 @@ public class IcebergExceptionMapperService {
 
         if (t instanceof IllegalArgumentException) {
             return buildErrorResponse(400, "BadRequestException", t.getMessage());
+        }
+
+        // Keep a deliberate 4xx (or other status) rather than falling through to 500.
+        if (t instanceof WebApplicationException wae) {
+            return buildErrorResponse(wae.getResponse().getStatus(), t.getClass().getSimpleName(),
+                    t.getMessage());
         }
 
         // Default to internal server error

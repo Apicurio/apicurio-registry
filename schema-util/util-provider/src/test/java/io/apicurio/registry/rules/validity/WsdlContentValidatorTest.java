@@ -13,8 +13,43 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class WsdlContentValidatorTest extends ArtifactUtilProviderTestBase {
+
+    private static final String COMMON = """
+            <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:common">
+              <xs:complexType name="Address"><xs:sequence>
+                <xs:element name="street" type="xs:string"/></xs:sequence></xs:complexType>
+            </xs:schema>
+            """;
+
+    @Test
+    public void testFullEmbeddedImportMapped() {
+        TypedContent content = resourceToTypedContentHandle("wsdl-embedded-import.wsdl");
+        TypedContent common = TypedContent.create(ContentHandle.create(COMMON), ContentTypes.APPLICATION_XML);
+        Assertions.assertDoesNotThrow(() -> new WsdlContentValidator().validate(ValidityLevel.FULL, content,
+                Map.of("common.xsd", common)));
+    }
+
+    @Test
+    public void testFullEmbeddedImportUnmapped() {
+        TypedContent content = resourceToTypedContentHandle("wsdl-embedded-import.wsdl");
+        RuleViolationException ex = Assertions.assertThrows(RuleViolationException.class,
+                () -> new WsdlContentValidator().validate(ValidityLevel.FULL, content, Map.of()));
+        Assertions.assertEquals(RuleType.VALIDITY, ex.getRuleType());
+        Assertions.assertEquals(1, ex.getCauses().size());
+        RuleViolation v = ex.getCauses().iterator().next();
+        Assertions.assertEquals("common.xsd", v.getContext());
+        Assertions.assertEquals("Unresolved reference: common.xsd", v.getDescription());
+    }
+
+    @Test
+    public void testFullTwoInlineSchemasCrossReference() {
+        TypedContent content = resourceToTypedContentHandle("wsdl-two-inline-schemas.wsdl");
+        Assertions.assertDoesNotThrow(() -> new WsdlContentValidator().validate(ValidityLevel.FULL, content,
+                Map.of()));
+    }
     @Test
     public void testValidSyntax() throws Exception {
         TypedContent contentA = resourceToTypedContentHandle("wsdl-valid.wsdl");

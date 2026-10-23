@@ -5,15 +5,20 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.xml.sax.SAXException;
 
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
 import java.io.StringReader;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class XsdSchemaCompilerTest {
 
@@ -66,18 +71,100 @@ public class XsdSchemaCompilerTest {
     }
 
     @Test
-    public void testExternalUrlsNeverFetched() {
-        String evil = """
+    @Timeout(value = 10, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    public void testExternalUrlsNeverFetched() throws Exception {
+        try (ServerSocket server = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+            server.setSoTimeout(500);
+            String url = "http://127.0.0.1:" + server.getLocalPort() + "/x.xsd";
+            String evil = """
+                    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+                      <xs:include schemaLocation="file:///etc/passwd"/>
+                      <xs:import namespace="urn:x" schemaLocation="%s"/>
+                    </xs:schema>
+                    """.formatted(url);
+            XsdSchemaCompiler.UnresolvedReferencesException ex = Assertions.assertThrows(
+                    XsdSchemaCompiler.UnresolvedReferencesException.class,
+                    () -> XsdSchemaCompiler.compile(src(evil), Map.of()));
+            Assertions.assertEquals(List.of("file:///etc/passwd", url), List.copyOf(ex.getLocations()));
+            Assertions.assertThrows(SocketTimeoutException.class, server::accept);
+        }
+    }
+
+    @Test
+    @Timeout(value = 10, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    public void testDtdInReferencedSchemaNotReportedOrFetched() throws Exception {
+        try (ServerSocket server = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+            server.setSoTimeout(500);
+            String dtdUrl = "http://127.0.0.1:" + server.getLocalPort() + "/x.dtd";
+            String withDtd = """
+                    <?xml version="1.0"?>
+                    <!DOCTYPE xs:schema SYSTEM "%s">
+                    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:common">
+                      <xs:complexType name="Address"><xs:sequence>
+                        <xs:element name="street" type="xs:string"/></xs:sequence></xs:complexType>
+                    </xs:schema>
+                    """.formatted(dtdUrl);
+            MappedReferenceResourceResolver resolver = new MappedReferenceResourceResolver(
+                    Map.of("common.xsd", xml(withDtd)));
+            SchemaFactory factory = SchemaFactoryAccessor.newSchemaFactory();
+            factory.setResourceResolver(resolver);
+            try {
+                factory.newSchema(src(ORDER));
+            } catch (SAXException e) {
+                // the hardened factory may reject the DOCTYPE outright; acceptable
+            }
+            Assertions.assertFalse(resolver.getUnresolved().contains(dtdUrl));
+            Assertions.assertEquals(Set.of(), resolver.getUnresolved());
+            Assertions.assertThrows(SocketTimeoutException.class, server::accept);
+        }
+    }
+
+    @Test
+    @Timeout(value = 10, threadMode = Timeout.ThreadMode.SEPARATE_THREAD)
+    public void testEmptyMappedContentNeverFetched() throws Exception {
+        try (ServerSocket server = new ServerSocket(0, 1, InetAddress.getLoopbackAddress())) {
+            server.setSoTimeout(500);
+            String url = "http://127.0.0.1:" + server.getLocalPort() + "/x.xsd";
+            String root = """
+                    <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+                      <xs:import namespace="urn:x" schemaLocation="%s"/>
+                    </xs:schema>
+                    """.formatted(url);
+            Assertions.assertThrows(SAXException.class,
+                    () -> XsdSchemaCompiler.compile(src(root), Map.of(url, xml(""))));
+            Assertions.assertThrows(SocketTimeoutException.class, server::accept);
+        }
+    }
+
+    @Test
+    public void testDiamondInclude() {
+        String root = """
                 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
-                  <xs:include schemaLocation="file:///etc/passwd"/>
-                  <xs:import namespace="urn:x" schemaLocation="http://127.0.0.1:1/x.xsd"/>
+                  <xs:include schemaLocation="b.xsd"/>
+                  <xs:include schemaLocation="c.xsd"/>
+                  <xs:element name="root" type="BType"/>
                 </xs:schema>
                 """;
-        XsdSchemaCompiler.UnresolvedReferencesException ex = Assertions.assertThrows(
-                XsdSchemaCompiler.UnresolvedReferencesException.class,
-                () -> XsdSchemaCompiler.compile(src(evil), Map.of()));
-        Assertions.assertEquals(List.of("file:///etc/passwd", "http://127.0.0.1:1/x.xsd"),
-                List.copyOf(ex.getLocations()));
+        String b = """
+                <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+                  <xs:include schemaLocation="c.xsd"/>
+                  <xs:complexType name="BType"><xs:sequence>
+                    <xs:element name="c" type="CType"/></xs:sequence></xs:complexType>
+                </xs:schema>
+                """;
+        String c = """
+                <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+                  <xs:simpleType name="CType"><xs:restriction base="xs:string"/></xs:simpleType>
+                </xs:schema>
+                """;
+        Assertions.assertDoesNotThrow(() -> XsdSchemaCompiler.compile(src(root),
+                Map.of("b.xsd", xml(b), "c.xsd", xml(c))));
+    }
+
+    @Test
+    public void testSharedFactoryNotContaminated() throws Exception {
+        XsdSchemaCompiler.compile(src(ORDER), Map.of("common.xsd", xml(COMMON)));
+        Assertions.assertNull(SchemaFactoryAccessor.getSchemaFactory().getResourceResolver());
     }
 
     @Test

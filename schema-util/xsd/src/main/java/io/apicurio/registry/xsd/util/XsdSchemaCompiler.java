@@ -63,8 +63,9 @@ public final class XsdSchemaCompiler {
         } catch (SAXException e) {
             schemaError = e;
         }
-        if (!resolver.getUnresolved().isEmpty()) {
-            throw new UnresolvedReferencesException(resolver.getUnresolved());
+        Set<String> unresolved = resolver.getUnresolved();
+        if (!unresolved.isEmpty()) {
+            throw new UnresolvedReferencesException(unresolved);
         }
         if (schemaError != null) {
             throw schemaError;

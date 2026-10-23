@@ -4,6 +4,7 @@ import io.apicurio.registry.content.TypedContent;
 import org.w3c.dom.ls.LSInput;
 import org.w3c.dom.ls.LSResourceResolver;
 
+import javax.xml.XMLConstants;
 import java.io.InputStream;
 import java.io.Reader;
 import java.util.Collections;
@@ -13,8 +14,9 @@ import java.util.Set;
 
 /**
  * Resolves schema locations exclusively from a map of resolved registry references. Never accesses
- * network or filesystem. Unmapped locations are recorded and answered with an empty schema so that the
- * parser never falls back to loading the location itself.
+ * network or filesystem. Unmapped schema locations are recorded and answered with an empty schema so that the
+ * parser never falls back to loading the location itself. Non-schema resources (e.g. DTDs) are answered
+ * with empty content and are not recorded.
  */
 public class MappedReferenceResourceResolver implements LSResourceResolver {
 
@@ -25,6 +27,13 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
     public static final String ROOT_SYSTEM_ID = "urn:apicurio:root";
 
     private static final String EMPTY_SCHEMA = "<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\"/>";
+
+    /**
+     * Xerces treats an LSInput with empty string data as having no data and then opens the systemId itself
+     * (bypassing ACCESS_EXTERNAL_* restrictions). String data handed to Xerces must therefore never be
+     * empty; a single blank is used instead.
+     */
+    private static final String NON_EMPTY_BLANK = " ";
 
     private final Map<String, TypedContent> resolvedReferences;
     private final Set<String> unresolved = new LinkedHashSet<>();
@@ -48,6 +57,10 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
             String baseURI) {
         if (systemId == null) {
             return null;
+        }
+        if (!XMLConstants.W3C_XML_SCHEMA_NS_URI.equals(type)) {
+            // Non-schema resources (e.g. external DTDs) are never loaded and are not registry references.
+            return new StringInput(systemId, publicId, NON_EMPTY_BLANK);
         }
         TypedContent found = resolvedReferences.get(systemId);
         if (found == null) {
@@ -74,7 +87,7 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
         StringInput(String systemId, String publicId, String data) {
             this.systemId = systemId;
             this.publicId = publicId;
-            this.data = data;
+            this.data = data == null || data.isEmpty() ? NON_EMPTY_BLANK : data;
         }
 
         @Override

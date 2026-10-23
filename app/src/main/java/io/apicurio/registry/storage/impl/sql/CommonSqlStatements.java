@@ -1476,32 +1476,38 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String selectArtifactUsageMetrics() {
-        return "SELECT v.version, su.globalId, COUNT(*) AS totalFetches, "
-                + "COUNT(DISTINCT su.clientId) AS uniqueClients, "
-                + "MIN(su.eventTimestamp) AS firstFetchedOn, MAX(su.eventTimestamp) AS lastFetchedOn, "
-                + "STRING_AGG(DISTINCT su.clientId, ',') AS clientList "
+        // One row per (version, client). The per-version totals and the client list are folded in
+        // SqlUsageRepository, because string aggregation differs per database (STRING_AGG, LISTAGG,
+        // GROUP_CONCAT with a length cap) and DISTINCT inside it is not portable.
+        return "SELECT v.version, v.globalId, v.versionOrder, su.clientId, COUNT(*) AS fetches, "
+                + "MIN(su.eventTimestamp) AS firstFetchedOn, MAX(su.eventTimestamp) AS lastFetchedOn "
                 + "FROM schema_usage su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
                 + "WHERE v.groupId = ? AND v.artifactId = ? "
-                + "GROUP BY v.globalId, v.version, v.versionOrder ORDER BY v.versionOrder";
+                + "GROUP BY v.globalId, v.version, v.versionOrder, su.clientId "
+                + "ORDER BY v.versionOrder, su.clientId";
     }
 
     @Override
     public String selectUsageSummaryCounts() {
+        // A version can be fetched directly and also inherit liveness from a schema that references
+        // it, so the two sources are reduced to the latest timestamp per version before classifying.
         return "SELECT "
                 + "SUM(CASE WHEN (? - maxTs) <= ? THEN 1 ELSE 0 END) AS active, "
                 + "SUM(CASE WHEN (? - maxTs) > ? AND (? - maxTs) <= ? THEN 1 ELSE 0 END) AS stale, "
                 + "SUM(CASE WHEN (? - maxTs) > ? THEN 1 ELSE 0 END) AS dead "
                 + "FROM ("
+                + "SELECT globalId, MAX(maxTs) AS maxTs FROM ("
                 + "SELECT v.globalId, MAX(su.eventTimestamp) AS maxTs FROM schema_usage su "
                 + "JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
                 + "GROUP BY v.globalId "
-                + "UNION "
+                + "UNION ALL "
                 + "SELECT rv.globalId, MAX(su.eventTimestamp) AS maxTs "
                 + "FROM schema_usage su "
                 + "JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
                 + "JOIN content_references cr ON v.contentId = cr.contentId "
                 + "JOIN versions rv ON rv.groupId = cr.groupId AND rv.artifactId = cr.artifactId AND rv.version = cr.version "
                 + "GROUP BY rv.globalId"
+                + ") u GROUP BY globalId"
                 + ") agg";
     }
 

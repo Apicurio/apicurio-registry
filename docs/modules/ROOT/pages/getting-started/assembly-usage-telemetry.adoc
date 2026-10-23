@@ -33,9 +33,50 @@ If no `X-Registry-Client-Id` header is present, the request is not tracked.
 
 Both `globalId` and `contentId` based schema fetches are tracked. Clients configured with `IdOption.contentId` are fully supported.
 
-Referenced schemas (shared types, base schemas) automatically inherit liveness from the schemas that reference them. If `UserEvent v3` is Active and references `SharedTypes v1`, then `SharedTypes v1` is also considered Active.
+Referenced schemas (shared types, base schemas) inherit liveness from the schemas that directly reference them in the global usage summary. If `UserEvent v3` is Active and references `SharedTypes v1`, then `SharedTypes v1` is counted as Active in `GET /admin/usage/summary`, even if nobody ever fetched `SharedTypes v1` itself. The per-artifact endpoints do not apply this rule, so check the schemas that reference a version before you deprecate it.
 
-NOTE: Usage telemetry is an **experimental** feature. It requires `apicurio.features.experimental.enabled=true` in addition to the telemetry-specific configuration below.
+NOTE: Usage telemetry is an **experimental** feature and is disabled by default. It requires `apicurio.features.experimental.enabled=true` in addition to `apicurio.usage.telemetry.enabled=true`. It is tested with the H2, PostgreSQL, MySQL, SQL Server and KafkaSQL storage types; the tests do not check how client identifiers compare under each database collation (see below). It does nothing on the read-only GitOps and KubernetesOps storage types: events are dropped and the usage endpoints return empty results.
+
+[id="con-usage-telemetry-classification_{context}"]
+== How versions are classified
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+Each schema version is classified by the age of its most recent recorded fetch.
+
+Active:: The last fetch is no older than `apicurio.usage.active-threshold-days` (default 7 days).
+Stale:: The last fetch is older than the active threshold but no older than `apicurio.usage.stale-threshold-days` (default 30 days).
+Dead:: The last fetch is older than the stale threshold, so with the defaults a version whose last recorded fetch is more than 30 days old is Dead.
+
+A version inherits the most recent fetch of any schema that directly references it, but only in the global usage summary counts. The per-artifact metrics, the heatmap and the deprecation readiness list the fetches recorded for that version itself.
+
+IMPORTANT: The classification uses only the active and stale thresholds. `apicurio.usage.dead-threshold-days` is deprecated, has no effect, and will be removed in 4.0.0. It is still accepted, and the registry logs a warning at startup if it is set. The usage summary and the Active, Stale and Dead labels cover only versions that have at least one recorded fetch within the retention period, or that are referenced by a version that has one. A version with no recorded fetch and no such referrer, for example one that was never fetched or whose events were all removed by retention, is not counted in the summary and has no label. A version that was never fetched but is referenced by a fetched version is counted in the summary and takes the classification of its most recent referrer. The per-artifact metrics, heatmap and deprecation readiness never list a version without a recorded fetch of its own.
+
+On KafkaSQL, every usage event is one record in the journal topic, and retention removes database rows but never shrinks the journal. A journal written by an earlier release with telemetry enabled can hold usage records that were skipped until now. The first start of this release applies them all, including events older than the retention period, and the next retention run deletes the expired ones. During a rolling upgrade, nodes that still run the earlier release log an error for every usage record they cannot read.
+
+Events older than `apicurio.usage.retention-days` (default 180 days) are deleted on every aggregation run, which happens hourly by default (`apicurio.usage.aggregation.every`). Setting `apicurio.usage.retention-days` to `0` or less turns the cleanup off, and the events then accumulate without bound. Because events are deleted, a version whose last fetch is older than the retention period drops out of the counts instead of becoming Dead. Keep the retention period longer than the stale threshold, or Dead versions disappear.
+
+A fetch by `contentId` counts for every version that has the same content, in any artifact or group, because the identifier does not say which version was meant. Identical content registered in several artifacts therefore shares its fetches.
+
+Client identifiers are compared with the collation of the database column. On MySQL the default comparison is case-insensitive, so `Payments` and `payments` count as one client; on PostgreSQL they are two clients. SQL Server follows its database collation, which is usually case-insensitive; this was not checked.
+
+[id="con-usage-telemetry-reading-the-heatmap_{context}"]
+== Reading the consumer heatmap
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+The consumer version heatmap answers which client applications fetch which versions of one artifact.
+
+* Each row is a client application, identified by its `X-Registry-Client-Id`.
+* Each column is a version that at least one client fetched. The number in a cell is how many fetches that client made of that version within the retention period.
+* `versionsBehind` compares the newest version the client fetched with the newest version that any client fetched. A client on the newest version shows `0`.
+* `driftAlert` is `true` when `versionsBehind` is at least `apicurio.usage.drift-alert-threshold` (default 2).
+
+The heatmap lists only versions that were fetched. A newer version that nobody fetched yet does not count towards `versionsBehind`.
+
+Fetch counts are not exact request counts. The server drops a fetch when the same client fetched the same schema less than 60 seconds earlier. The schema is identified by the identifier of the request, so a schema that a client fetches once by `globalId` and once by `contentId` produces two events in that period. The record of recent fetches that implements this is held in the memory of each registry instance, so with several instances behind a load balancer each instance counts separately. While that record holds 10,000 entries, the instance records no new events at all. The record is pruned only during a flush that has buffered events, and a full record buffers none, so by reading the code an instance in that state may not recover until it restarts. A busy deployment can therefore show lower counts than the real traffic, or stop counting.
 
 [id="ref-usage-telemetry-server-configuration_{context}"]
 == Server configuration
@@ -62,12 +103,12 @@ The registry server exposes the following properties to configure usage telemetr
 |`apicurio.usage.stale-threshold-days`
 |int
 |`30`
-|A schema version not fetched for this many days is classified as **Stale**.
+|A schema version whose last fetch is older than the active threshold but no older than this many days is classified as **Stale**. A version whose last fetch is older than this is classified as **Dead**.
 
 |`apicurio.usage.dead-threshold-days`
 |int
 |`90`
-|A schema version not fetched for this many days (or never fetched) is classified as **Dead**.
+|Deprecated since 3.4.0, has no effect, and will be removed in 4.0.0. The Dead classification starts where the Stale classification ends.
 
 |`apicurio.usage.drift-alert-threshold`
 |int
@@ -83,6 +124,11 @@ The registry server exposes the following properties to configure usage telemetr
 |duration
 |`1h`
 |How often the usage metrics are refreshed and old events are cleaned up. Uses Quarkus scheduler expression syntax (for example, `1h`, `30m`, or `10s`).
+
+|`apicurio.usage.flush.every`
+|duration
+|`10s`
+|How often buffered usage events are written to storage. Uses Quarkus scheduler expression syntax.
 |===
 
 [id="ref-usage-telemetry-client-configuration_{context}"]
@@ -390,6 +436,7 @@ A demo script is provided to populate realistic usage data for testing.
 [source,bash]
 ----
 ./mvnw quarkus:dev -pl :apicurio-registry-app \
+  -Dapicurio.features.experimental.enabled=true \
   -Dapicurio.usage.telemetry.enabled=true
 ----
 

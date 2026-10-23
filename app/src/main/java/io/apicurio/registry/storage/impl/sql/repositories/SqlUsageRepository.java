@@ -9,7 +9,10 @@ import io.apicurio.registry.storage.impl.sql.HandleFactory;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.SqlStatements;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.StringJoiner;
 
 public class SqlUsageRepository {
 
@@ -44,22 +47,62 @@ public class SqlUsageRepository {
     }
 
     public List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId) {
-        return handles.withHandleNoException(handle -> {
+        List<ClientVersionUsage> rows = handles.withHandleNoException(handle -> {
             return handle
                     .createQuery(sqlStatements.selectArtifactUsageMetrics())
                     .bind(0, RegistryContentUtils.normalizeGroupId(groupId))
                     .bind(1, artifactId)
-                    .map(rs -> SchemaUsageSummaryDto.builder()
-                            .version(rs.getString("version"))
-                            .globalId(rs.getLong("globalId"))
-                            .totalFetches(rs.getLong("totalFetches"))
-                            .uniqueClients(rs.getInt("uniqueClients"))
-                            .firstFetchedOn(rs.getLong("firstFetchedOn"))
-                            .lastFetchedOn(rs.getLong("lastFetchedOn"))
-                            .clientList(rs.getString("clientList"))
-                            .build())
+                    .map(rs -> new ClientVersionUsage(rs.getString("version"), rs.getLong("globalId"),
+                            rs.getString("clientId"), rs.getLong("fetches"), rs.getLong("firstFetchedOn"),
+                            rs.getLong("lastFetchedOn")))
                     .list();
         });
+        return foldByVersion(rows);
+    }
+
+    /**
+     * Rows arrive ordered by version order and then client, one per (version, client). Folding them here
+     * keeps the SQL free of per-database string aggregation.
+     */
+    static List<SchemaUsageSummaryDto> foldByVersion(List<ClientVersionUsage> rows) {
+        Map<Long, Fold> folds = new LinkedHashMap<>();
+        for (ClientVersionUsage row : rows) {
+            folds.computeIfAbsent(row.globalId(), id -> new Fold(row.version(), id)).add(row);
+        }
+        return folds.values().stream().map(Fold::toDto).toList();
+    }
+
+    private static final class Fold {
+        private final String version;
+        private final long globalId;
+        private final StringJoiner clients = new StringJoiner(",");
+        private long totalFetches;
+        private int uniqueClients;
+        private long firstFetchedOn = Long.MAX_VALUE;
+        private long lastFetchedOn = Long.MIN_VALUE;
+
+        Fold(String version, long globalId) {
+            this.version = version;
+            this.globalId = globalId;
+        }
+
+        void add(ClientVersionUsage row) {
+            clients.add(row.clientId());
+            totalFetches += row.fetches();
+            uniqueClients++;
+            firstFetchedOn = Math.min(firstFetchedOn, row.firstFetchedOn());
+            lastFetchedOn = Math.max(lastFetchedOn, row.lastFetchedOn());
+        }
+
+        SchemaUsageSummaryDto toDto() {
+            return SchemaUsageSummaryDto.builder().version(version).globalId(globalId)
+                    .totalFetches(totalFetches).uniqueClients(uniqueClients).firstFetchedOn(firstFetchedOn)
+                    .lastFetchedOn(lastFetchedOn).clientList(clients.toString()).build();
+        }
+    }
+
+    record ClientVersionUsage(String version, long globalId, String clientId, long fetches,
+            long firstFetchedOn, long lastFetchedOn) {
     }
 
     public UsageSummaryCountsDto getUsageSummaryCounts(long nowMs, long activeMs, long staleMs) {

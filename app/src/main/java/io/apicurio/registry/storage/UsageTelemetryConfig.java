@@ -15,16 +15,25 @@ public class UsageTelemetryConfig {
     @Info(category = CATEGORY_USAGE, description = "Enable usage telemetry collection from SerDes clients", availableSince = "3.3.0", experimental = true)
     boolean enabled;
 
+    @ConfigProperty(name = "apicurio.usage.flush.every", defaultValue = "10s")
+    @Info(category = CATEGORY_USAGE, description = "How often buffered usage events are written to storage (Quarkus scheduler expression)", availableSince = "3.3.0")
+    String flushEvery;
+
     @ConfigProperty(name = "apicurio.usage.active-threshold-days", defaultValue = "7")
     @Info(category = CATEGORY_USAGE, description = "Number of days within which a schema is classified as ACTIVE", availableSince = "3.3.0")
     int activeThresholdDays;
 
     @ConfigProperty(name = "apicurio.usage.stale-threshold-days", defaultValue = "30")
-    @Info(category = CATEGORY_USAGE, description = "Number of days after which a schema is classified as STALE", availableSince = "3.3.0")
+    @Info(category = CATEGORY_USAGE, description = "A schema whose last fetch is older than the active threshold and no older than this many days is classified as STALE. Older than this is DEAD.", availableSince = "3.3.0")
     int staleThresholdDays;
 
+    /**
+     * @deprecated It has no effect: a schema is classified as DEAD once its last fetch is older than the
+     *             stale threshold. It will be removed in 4.0.0.
+     */
+    @Deprecated(since = "3.4.0", forRemoval = true)
     @ConfigProperty(name = "apicurio.usage.dead-threshold-days", defaultValue = "90")
-    @Info(category = CATEGORY_USAGE, description = "Number of days after which a schema is classified as DEAD", availableSince = "3.3.0")
+    @Info(category = CATEGORY_USAGE, description = "Deprecated, has no effect, and will be removed in 4.0.0: a schema is classified as DEAD once its last fetch is older than the stale threshold", availableSince = "3.3.0")
     int deadThresholdDays;
 
     @ConfigProperty(name = "apicurio.usage.drift-alert-threshold", defaultValue = "2")
@@ -51,10 +60,6 @@ public class UsageTelemetryConfig {
         return staleThresholdDays;
     }
 
-    public int getDeadThresholdDays() {
-        return deadThresholdDays;
-    }
-
     public int getDriftAlertThreshold() {
         return driftAlertThreshold;
     }
@@ -65,10 +70,6 @@ public class UsageTelemetryConfig {
 
     public long getStaleMsThreshold() {
         return Duration.ofDays(staleThresholdDays).toMillis();
-    }
-
-    public long getDeadMsThreshold() {
-        return Duration.ofDays(deadThresholdDays).toMillis();
     }
 
     public long getRetentionMs() {

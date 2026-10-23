@@ -170,7 +170,7 @@ public class VersionsMCPServer {
     }
 
     private VersionState validateVersionState(String versionState) {
-        if (versionState == null) {
+        if (versionState == null || versionState.isBlank()) {
             return null;
         }
         return Arrays.stream(VersionState.values())

@@ -101,6 +101,18 @@ public class VersionsMCPServerTest {
     }
 
     @Test
+    public void testBlankVersionStatePassesNullFilter() {
+        search("");
+        assertTrue(service.called);
+        assertNull(service.capturedState);
+
+        service.called = false;
+        search("   ");
+        assertTrue(service.called);
+        assertNull(service.capturedState);
+    }
+
+    @Test
     public void testInvalidVersionStateThrowsToolCallException() {
         ToolCallException exception = assertThrows(ToolCallException.class, () -> search("ENABLE"));
 

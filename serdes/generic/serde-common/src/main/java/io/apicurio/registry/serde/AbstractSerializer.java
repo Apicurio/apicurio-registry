@@ -203,7 +203,8 @@ public abstract class AbstractSerializer<T, U> implements AutoCloseable {
                 return;
             }
             Map<String, Object> recordMap = dataToMap(data);
-            RuleExecutionResult result = ruleEngine.execute(rules, "WRITE", recordMap);
+            // fieldTags=null: CEL_FIELD rules require server-side tag extraction (RegistryStorage + TagExtractorFactory) unavailable in SerDe. CEL_FIELD rules will vacuously pass. Use the /execute REST endpoint for field-level rule enforcement.
+            RuleExecutionResult result = ruleEngine.execute(rules, "WRITE", recordMap, null);
             if (!result.isPassed()) {
                 String msg = "Contract rule validation failed (WRITE): " + result.getViolations();
                 if (contractRulesFailOnError) {

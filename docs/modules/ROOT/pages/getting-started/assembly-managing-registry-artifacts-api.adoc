@@ -232,7 +232,7 @@ This example then creates a schema artifact named `Item`, which includes a refer
 
 In some situations, having an artifact's content with the referenced content inlined might be helpful. For those situations, the Core Registry API v3 supports the _references parameter_ in certain operations.
 
-This support is currently implemented for Avro, JSON Schema, Protobuf, OpenAPI, and AsyncAPI when the parameter is present in a particular API operation. The parameter is not supported in other schema types.
+This support is currently implemented for Avro, JSON Schema, Protobuf, OpenAPI, and AsyncAPI when the parameter is present in a particular API operation. XSD and WSDL artifacts support the parameter with `REWRITE` only; requesting `DEREFERENCE` for XSD or WSDL returns HTTP `400`. The parameter is not supported in other schema types.
 
 NOTE: `references=REWRITE` is currently supported for JSON Schema, OpenAPI, AsyncAPI, XSD, and WSDL.
 For XSD and WSDL artifacts, `REWRITE` replaces each mapped `schemaLocation` or `location` value with the
@@ -332,7 +332,7 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3
 {"type":"record","name":"Item","namespace":"com.example.common","fields":[{"name":"itemId","type":{"type":"record","name":"ItemId","fields":[{"name":"id","type":"int"}]}}]}
 ----
 +
-This support is currently implemented only for Avro, Protobuf, OpenAPI, AsyncAPI, and JSON Schema artifacts when the `dereference` parameter is specified in the API operation. This parameter is not supported for any other artifact types.
+This support is currently implemented only for Avro, Protobuf, OpenAPI, AsyncAPI, and JSON Schema artifacts when the `dereference` parameter is specified in the API operation. This parameter is not supported for any other artifact types. For XSD and WSDL artifacts, dereferencing returns HTTP `400`.
 +
 NOTE: For Protobuf artifacts, dereferencing content is supported only when all the schemas belong to the same package.
 +

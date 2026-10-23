@@ -1,8 +1,8 @@
 # Test Fix Pattern Catalog: Apicurio Registry
 
-**Date**: 2026-08-24 (updated with full-codebase sweep results)
-**Source**: 30+ PRs (May-August 2026) + full codebase sweep of 661 test files
-**Patterns**: 33 (11 original + 15 from sweep + 2 from clean-room + 2 from PR #9800 + 3 from epic #9807)
+**Date**: 2026-09-11 (P34 added; P31-P33 revised; base sweep results from 2026-08-24)
+**Source**: 30+ PRs (May-September 2026) + a codebase sweep of 661 test files
+**Patterns**: 34 (11 original + 15 from sweep + 2 from clean-room + 2 from PR #9800 + 1 from issue #9327 + 2 from epic #9807 + 1 from PR #9789)
 
 This catalog documents recurring test failure classes and their proven fixes, extracted
 from real CI fixes and a full-codebase pattern sweep. Each pattern has a unique ID, labels
@@ -10,17 +10,28 @@ for agent-based filtering, and a fix template.
 
 ## Labels
 
-Labels classify patterns for targeted agent sweeps:
+Labels classify patterns for targeted agent sweeps. This table is derived from the
+`**Labels**:` line of each pattern below, which is the authoritative declaration.
 
 | Label | Meaning | Patterns |
 |---|---|---|
 | `concurrency` | Breaks under parallel class/method execution | P1, P5, P6, P7, P12, P30 |
 | `timing` | Flakes under CI load or slow machines | P2, P4, P9, P17, P21, P24, P27, P29 |
 | `lifecycle` | Infra setup/teardown mismanagement | P5, P8, P11, P14, P16, P30 |
-| `correctness` | Test passes but does not verify what it claims | P7, P13, P18, P20, P26, P27, P28, P29 |
-| `waste` | Burns CI time without improving reliability | P17, P21, P24, P25 |
-| `hygiene` | Code quality, maintainability, dead code | P19, P22, P23 |
-| `race` | Race condition testing quality | P3, P10, P15 |
+| `correctness` | Test passes but does not verify what it claims | P2, P7, P13, P15, P18, P20, P26, P27, P28, P29, P31, P34 |
+| `waste` | Burns CI time without improving reliability | P4, P17, P21, P24, P25, P32 |
+| `hygiene` | Code quality, maintainability, dead code | P19, P22, P23, P33 |
+| `race` | Race condition testing quality | P3, P10, P15, P34 |
+
+## Scoring scope
+
+Every pattern gates the per-PR quality gate unless it appears in the table below. Listing
+only the exceptions means a pattern added later gates by default, with no edit here.
+
+| Pattern | Treatment | Why |
+|---|---|---|
+| P32 | Gating, narrow form only | Score down only when a new `@QuarkusTest` has no CDI injection at all. Most app tests already use `@QuarkusTest` (Pattern 32 carries the count); converting them is backlog work tracked in #9807, not a reason to score down a new test that follows the local convention. |
+| P33 | Advisory, never scored | `@ParameterizedTest` adoption is a style preference. Scoring it would penalize a PR for adding two structurally similar test methods, which is the "rule written too broadly" objection raised in review on #8626. |
 
 ## Pattern 1: Static Field Cross-Class Contamination
 **Labels**: `concurrency`
@@ -79,12 +90,15 @@ await().untilAsserted(() -> {
 
 **Twin test**: Same Byteman rule with the fix applied must make the forced interleaving harmless.
 
-**Infrastructure**: Maven `-Pbyteman` profile, `@EnabledIfSystemProperty(named="byteman.agent")`, configurable script path via `-Dbyteman.script=byteman/<name>.btm`.
+**Infrastructure**: not on `main` yet. The `-Pbyteman` profile arrives with PR #9789. Until that merges, `./mvnw -Pbyteman` names a profile that does not exist. Maven does not fail on that; it prints `[WARNING] The requested profile "byteman" could not be activated because it does not exist` after `BUILD SUCCESS` and exits 0, so the rules never load and the command still looks like it worked.
+
+What the PR branch adds is the profile in `app/pom.xml` plus BMUnit5 4.0.27. Rules are inline: `@WithByteman` on the class, `@BMRules`/`@BMRule` on the method. There are no `.btm` files and no `resourcescript:` to manage, because BMUnit attaches the agent through the JDK Attach API, driven by `-Djdk.attach.allowAttachSelf=true -Dbyteman.agent=true`. `byteman-bmunit5` sits at provided scope outside the profile. That scope satisfies two constraints at once: the test classes still compile without `-Pbyteman`, and FOSSA does not flag the dependency the way it did when the same artifact sat at unconditional test scope. Moving it back to test scope re-breaks the license scan. `@EnabledIfSystemProperty(named="byteman.agent", matches="true")` skips the class when the profile is inactive.
 
 **Key traps**:
 - BYTEMAN-38: `signalWake` before `waitFor` loses the signal. Always use `waitFor(key, TIMEOUT)`.
 - Rule errors are silent (disabled rule, test "passes" because injection never happened). Always assert an observable effect.
 - `signal()` and `setFlag()` do NOT exist. Use `signalWake()` and `flag()`.
+- Nested classes: use `Outer$Inner` in `targetClass`.
 
 **PRs**: #9789 (versionOrder race, SELECT FOR UPDATE fix)
 
@@ -244,8 +258,6 @@ CyclicBarrier barrier = new CyclicBarrier(threadCount);
 **Fix**: Use `wakeup()` (the only thread-safe method), catch `WakeupException` in the consumer loop, and call `close()` from the consumer thread's own `finally` block. Join the consumer thread with a timeout and interrupt as fallback.
 
 **PRs**: #9791 (KafkaSqlRegistryStorage.onDestroy)
-
----
 
 ---
 
@@ -446,8 +458,6 @@ CyclicBarrier barrier = new CyclicBarrier(threadCount);
 
 ---
 
----
-
 ## Pattern 27: Side Effects Inside Awaitility Lambda
 **Labels**: `correctness`, `timing`
 
@@ -491,8 +501,6 @@ await().atMost(10, SECONDS).untilAsserted(() -> {
     assertEquals("expected", getResult().getName());
 });
 ```
-
----
 
 ---
 
@@ -553,51 +561,14 @@ assertTrue(total >= expected, "Expected " + expected + " records, got " + total)
 
 ---
 
----
-
-## Pattern 29: Async-Treated-as-Sync
-**Labels**: `timing`, `correctness`
-
-**Failure class**: Test passes individually but fails under parallel execution. Resources collide from a previous test's teardown still in flight.
-
-**Mechanism**: An asynchronous operation (K8s namespace delete, container stop) is treated as complete because the API returned 200. The caller proceeds without waiting for actual completion.
-
-**Fix**: Poll for the operation's actual completion before returning.
-
-```java
-// BAD: treat API acceptance as completion
-assertThat(client.namespaces().withName(ns).delete()).isNotNull();
-
-// GOOD: wait for actual termination
-client.namespaces().withName(ns).delete();
-await().atMost(60, SECONDS).until(() -> client.namespaces().withName(ns).get() == null);
-```
-
-**PRs**: #9800 (operator namespace teardown race)
-
----
-
-## Pattern 30: Third-Party Thread Leak
-**Labels**: `concurrency`, `lifecycle`
-
-**Failure class**: `ConcurrentModificationException` or thread-safety violations in test N+1 after test N timed out.
-
-**Mechanism**: A library (e.g., `Unreliables`) submits retry loops to a shared thread pool. On timeout, the submitted loop is never cancelled and continues accessing shared mutable state.
-
-**Fix**: Replace with a caller-thread poll loop using an explicit deadline.
-
-**PRs**: #9800 (Debezium Unreliables thread leak)
-
----
-
-## Pattern 31: Vacuous Predicate on Empty Collection
+## Pattern 31: Vacuous Predicate
 **Labels**: `correctness`
 
 **Failure class**: Test always passes regardless of the actual result.
 
-**Mechanism**: `Stream.allMatch()` returns `true` on an empty collection. A test that filters to an empty set and asserts `allMatch(condition)` passes vacuously.
+**Mechanism**: Two shapes. `Stream.allMatch()` and `noneMatch()` return `true` on an empty collection, so a test that filters to an empty set and asserts `allMatch(condition)` passes vacuously. The same failure appears without a collection whenever the failure condition is unreachable: `assertTrue(t.isInterrupted() || !t.isAlive())` is satisfied by both states of a thread, so no thread can fail it.
 
-**Fix**: Assert the collection is non-empty before applying the predicate.
+**Fix**: For the collection form, assert the collection is non-empty before applying the predicate. For the unreachable-condition form, work out which concrete state the test is trying to prove and assert that one state. If a disjunction is genuinely needed, assert the specific value that distinguishes pass from fail alongside it.
 
 **Issues**: #9327 (SearchCommandTest)
 
@@ -629,15 +600,41 @@ await().atMost(60, SECONDS).until(() -> client.namespaces().withName(ns).get() =
 
 ---
 
+## Pattern 34: Concurrency Fix Without Race Test
+**Labels**: `correctness`, `race`
+
+**Failure class**: Silent. The fix compiles and CI passes, but the race it addresses is never tested. A later refactor can reintroduce the same bug undetected.
+
+**Mechanism**: A PR fixes a concurrency bug (TOCTOU, lost update, duplicate key under contention) by changing production code (`ConcurrentHashMap`, `volatile`, `synchronized`, `AtomicReference`, SQL UPSERT replacing DELETE+INSERT) and adds zero test files. The race window is too narrow for a `Thread.sleep`-based test, so no test gets written at all.
+
+**Detection signal**: the diff touches concurrency primitives or replaces a check-then-act sequence, and no test in the diff exercises the race. The runnable form of this check lives in Phase 1 of `/apicurio-test-quality`, which owns the pattern list; do not keep a second copy of the regex here. Note that an empty `src/test/` list is a sufficient condition, not a necessary one: a diff carrying an unrelated test edit still matches this pattern.
+
+**Fix**: Start with what runs on the current base. For SQL races, a `@QuarkusTest` driving two concurrent transactions against the same row is enough. For in-process races, coordinate the threads with a `CyclicBarrier` or `CountDownLatch` so the interleaving is forced rather than hoped for. Reach for a Byteman rule only when no barrier can open the window, and check Pattern 3's Infrastructure note first: on a base where `-Pbyteman` does not exist, a Byteman test is not a fix, it is a test that never runs. Whichever you pick, prove it by mutation: revert the production fix and show the test red.
+
+The worked example to copy is `app/src/test/java/io/apicurio/registry/storage/impl/sql/ConcurrentVersionCreationTest.java`, which arrives with PR #9789. Four things in it are worth carrying to any new rule, and all four are easy to get wrong:
+
+- `targetClass` takes a fully qualified name as a string. Byteman does not resolve imports, so a bare class name matches nothing and the rule is silently disabled.
+- Both rules fire `AT ENTRY`. A call-site location such as `AFTER INVOKE java.util.Map.containsKey 1` rots as soon as anyone edits the method body, and a rule with no valid injection point fails silently.
+- The freeze is released from the *second* thread's entry, not from any exit of the frozen thread. The frozen thread is parked in `waitFor`, so it cannot release itself.
+- Flag names are namespaced with the test class (`ConcurrentVersionCreationTest.writer-entered`). Byteman flags are JVM-global and collide across test classes otherwise.
+
+The test also arms its rules with a system property only after fixture setup, so the freeze rule does not fire during the fixture's own call into the target method.
+
+**PRs**: #9789 (a Byteman race test that passed against the unfixed code until review caught it), #9793 (UPSERT fix whose accompanying test asserted idempotency but never exercised the race)
+
+---
+
 ## Cross-Cutting: Test Infrastructure Investments
 
-These are not patterns per se but infrastructure decisions that enabled the fixes above:
+These are not patterns per se but infrastructure decisions that enabled the fixes above. The
+Status column matters: an investment that has not landed on `main` cannot be relied on by a
+new test.
 
-| Investment | What it enables | PR |
-|---|---|---|
-| JUnit 5 class-level parallelism | Patterns 1, 5, 6, 7 | #9757 |
-| Byteman `-Pbyteman` profile | Pattern 3 | #9789 |
-| mock-oauth2-server | Pattern 10 | #9790 |
-| Awaitility everywhere | Patterns 2, 4, 9 | #8651, #8388 |
-| Surefire `rerunFailingTestsCount` | Pattern 8 (safety net) | #8388 |
-| Per-JVM infrastructure lifecycle | Patterns 5, 8 | #9722 |
+| Investment | What it enables | PR | Status |
+|---|---|---|---|
+| JUnit 5 class-level parallelism | Patterns 1, 5, 6, 7 | #9757 | merged |
+| Byteman `-Pbyteman` profile | Patterns 3, 34 | #9789 | open, not on `main` |
+| mock-oauth2-server | Pattern 10 | #9790 | open, not on `main` |
+| Awaitility everywhere | Patterns 2, 4, 9 | #8651, #8388 | merged |
+| Surefire `rerunFailingTestsCount` | Pattern 8 (safety net) | #8388 | merged |
+| Per-JVM infrastructure lifecycle | Patterns 5, 8 | #9722 | merged |

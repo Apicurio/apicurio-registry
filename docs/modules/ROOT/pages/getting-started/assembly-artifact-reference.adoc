@@ -83,6 +83,10 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |http://www.w3.org/2001/XMLSchema
 |===
 
+NOTE: The `AVRO`, `PROTOBUF`, `JSON`, `OPENAPI`, `ASYNCAPI`, `XSD`, and `WSDL` artifact types support artifact
+references. For `XSD` and `WSDL`, the reference name must equal the literal `schemaLocation` or `location`
+attribute value. The `XML` artifact type does not support artifact references.
+
 // ref-registry-ai-ml-artifact-types
 [id="registry-ai-ml-artifact-types_{context}"]
 == AI/ML artifact types

@@ -179,6 +179,14 @@ The following artifact types support artifact references:
 * JSON Schema
 * OpenAPI
 * AsyncAPI
+* XML Schema (XSD)
+* WSDL (1.1 and 2.0)
+
+For XSD and WSDL artifacts, the reference name must equal the literal value of the `schemaLocation`
+attribute (`xs:import`, `xs:include`, `xs:redefine`, and `xs:override`, including schemas embedded in WSDL
+`types`) or the `location` attribute (`wsdl:import`, and WSDL 2.0 `import` and `include`).
+An `xs:import` element that specifies only a `namespace`, without a `schemaLocation`, does not require a
+reference mapping.
 
 Use the Core Registry API v3 to add and retrieve an artifact reference in {registry}.
 
@@ -226,8 +234,12 @@ In some situations, having an artifact's content with the referenced content inl
 
 This support is currently implemented for Avro, JSON Schema, Protobuf, OpenAPI, and AsyncAPI when the parameter is present in a particular API operation. The parameter is not supported in other schema types.
 
-NOTE: `references=REWRITE` is currently supported for JSON Schema, OpenAPI, and AsyncAPI.
+NOTE: `references=REWRITE` is currently supported for JSON Schema, OpenAPI, AsyncAPI, XSD, and WSDL.
+For XSD and WSDL artifacts, `REWRITE` replaces each mapped `schemaLocation` or `location` value with the
+{registry} content URL of the referenced artifact.
 For Avro and Protobuf artifacts, requesting `references=REWRITE` returns HTTP `400`
+(`DereferencingNotSupportedException`).
+For XSD and WSDL artifacts, requesting `references=DEREFERENCE` returns HTTP `400`
 (`DereferencingNotSupportedException`).
 
 .Prerequisites

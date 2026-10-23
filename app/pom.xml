@@ -187,6 +187,24 @@
       <artifactId>quarkus-jdbc-mssql</artifactId>
     </dependency>
 
+    <!-- Per-resource authorization: grants-based implementation of the Kroxylicious Authorizer API -->
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-authz-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.kroxylicious</groupId>
+      <artifactId>kroxylicious-authorizer-api</artifactId>
+      <exclusions>
+        <!-- Declared at compile scope upstream but only used by its tests -->
+        <exclusion>
+          <groupId>org.assertj</groupId>
+          <artifactId>assertj-core</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
     <!-- Third Party Libraries -->
     <dependency>
       <groupId>io.strimzi</groupId>

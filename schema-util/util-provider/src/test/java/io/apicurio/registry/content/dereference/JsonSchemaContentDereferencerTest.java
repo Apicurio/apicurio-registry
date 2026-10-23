@@ -1,5 +1,8 @@
 package io.apicurio.registry.content.dereference;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
@@ -250,4 +253,89 @@ public class JsonSchemaContentDereferencerTest extends ArtifactUtilProviderTestB
         Assertions.assertTrue(dereferencedContent.contains("\"city\""));
         Assertions.assertTrue(dereferencedContent.contains("\"zipCode\""));
     }
+    private static final String ADDRESS_SCHEMA = """
+            {"definitions": {"Address": {"type": "object", "properties": {"street": {"type": "string"}}}}}
+            """;
+
+    private static final String CUSTOMER_WITH_ID = """
+            {"$id": "https://example.com/schemas/customer/", "type": "object",
+             "properties": {"address": {"$ref": "address.json#/definitions/Address"}}}
+            """;
+
+    private static TypedContent json(String content) {
+        return TypedContent.create(ContentHandle.create(content), ContentTypes.APPLICATION_JSON);
+    }
+
+    private static JsonNode dereference(String schema, Map<String, TypedContent> references) throws Exception {
+        return new ObjectMapper()
+                .readTree(new JsonSchemaDereferencer().dereference(json(schema), references).getContent().content());
+    }
+
+    /**
+     * A reference registered under the literal $ref value dereferences in a schema with an $id.
+     */
+    @Test
+    public void testDereferenceWithIdAndLiteralReferenceName() throws Exception {
+        JsonNode result = dereference(CUSTOMER_WITH_ID,
+                Map.of("address.json#/definitions/Address", json(ADDRESS_SCHEMA)));
+        Assertions.assertEquals("string",
+                result.at("/properties/address/properties/street/type").asText());
+        Assertions.assertEquals("https://example.com/schemas/customer/", result.get("$id").asText());
+    }
+
+    /**
+     * A reference registered under the $ref resolved against the schema's $id dereferences as well.
+     */
+    @Test
+    public void testDereferenceWithIdAndResolvedReferenceName() throws Exception {
+        JsonNode result = dereference(CUSTOMER_WITH_ID, Map.of(
+                "https://example.com/schemas/customer/address.json#/definitions/Address", json(ADDRESS_SCHEMA)));
+        Assertions.assertEquals("string",
+                result.at("/properties/address/properties/street/type").asText());
+    }
+
+    /**
+     * Identical relative $refs in different $id scopes resolve to the reference registered for each scope.
+     */
+    @Test
+    public void testDereferenceSameRelativeRefInDifferentIdScopes() throws Exception {
+        String schema = """
+                {"type": "object", "properties": {
+                  "billing": {"$id": "https://example.com/billing/", "type": "object",
+                              "properties": {"a": {"$ref": "address.json"}}},
+                  "shipping": {"$id": "https://example.com/shipping/", "type": "object",
+                               "properties": {"a": {"$ref": "address.json"}}}
+                }}
+                """;
+        JsonNode result = dereference(schema, Map.of(
+                "https://example.com/billing/address.json",
+                json("{\"type\": \"object\", \"properties\": {\"iban\": {\"type\": \"string\"}}}"),
+                "https://example.com/shipping/address.json",
+                json("{\"type\": \"object\", \"properties\": {\"street\": {\"type\": \"string\"}}}")));
+        Assertions.assertEquals("string", result.at("/properties/billing/properties/a/properties/iban/type").asText());
+        Assertions.assertEquals("string",
+                result.at("/properties/shipping/properties/a/properties/street/type").asText());
+        Assertions.assertTrue(result.at("/properties/billing/properties/a/properties/street").isMissingNode());
+    }
+
+    /**
+     * REWRITE matches a reference registered under the $id-resolved URI, and falls back to the literal value.
+     */
+    @Test
+    public void testRewriteReferencesWithId() throws Exception {
+        String schema = """
+                {"$id": "https://example.com/schemas/customer/", "type": "object", "properties": {
+                  "address": {"$ref": "address.json#/definitions/Address"},
+                  "ssn": {"$ref": "ssn.json"}
+                }}
+                """;
+        TypedContent rewritten = new JsonSchemaDereferencer().rewriteReferences(json(schema), Map.of(
+                "https://example.com/schemas/customer/address.json", "https://registry/address",
+                "ssn.json", "https://registry/ssn"));
+        JsonNode result = new ObjectMapper().readTree(rewritten.getContent().content());
+        Assertions.assertEquals("https://registry/address#/definitions/Address",
+                result.at("/properties/address/$ref").asText());
+        Assertions.assertEquals("https://registry/ssn", result.at("/properties/ssn/$ref").asText());
+    }
+
 }

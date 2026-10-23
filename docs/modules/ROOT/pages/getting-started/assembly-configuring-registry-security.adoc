@@ -27,7 +27,7 @@ ifdef::apicurio-registry[]
 see the link:https://www.apicur.io/registry/docs/apicurio-registry-operator/{operator-version}/assembly-registry-maintenance.html#registry-security-keycloak[{operator} documentation].
 endif::[]
 ifdef::rh-service-registry[]
-see xref:registry-security-keycloak[].
+see xref:registry-security-keycloak_{context}[].
 endif::[]
 ====
 
@@ -157,7 +157,12 @@ TIP: For an example of setting environment variables on OpenShift, see the healt
 [role="_additional-resources"]
 .Additional resources
 * xref:registry-security-settings_{context}[]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-configuring-the-registry.adoc#configuring-liveness-readiness-probes_{context}[Configuring {registry} health checks on OpenShift]
+endif::[]
+ifdef::service-registry-downstream[]
 * xref:configuring-liveness-readiness-probes_{context}[]
+endif::[]
 * https://github.com/Apicurio/apicurio-registry/tree/{registry-version}.x/distro/docker-compose[Docker Compose example of Apicurio Registry with Keycloak]
 ifdef::apicurio-registry[]
 * link:https://www.keycloak.org/documentation[Keycloak documentation]
@@ -1568,7 +1573,12 @@ failures return an authentication error instead.
 
 [role="_additional-resources"]
 .Additional resources
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-configuring-the-registry.adoc#configuring-liveness-readiness-probes_{context}[Configuring {registry} health checks on OpenShift]
+endif::[]
+ifdef::service-registry-downstream[]
 * xref:configuring-liveness-readiness-probes_{context}[]
+endif::[]
 * https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation]
 
 

@@ -45,6 +45,7 @@ public class SystemResourceImpl implements SystemResource {
      * @see io.apicurio.registry.rest.v2.SystemResource#getResourceLimits()
      */
     @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public Limits getResourceLimits() {
         var limitsConfig = registryLimitsConfiguration;
         var limits = new Limits();

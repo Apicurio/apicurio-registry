@@ -2914,6 +2914,225 @@
         "description": "Creates a new mapping between a user/principal and a role.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n\n"
       }
     },
+    "/admin/peers": {
+      "summary": "Collection to manage the peer registries this registry federates with.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "description": "The number of peers to return.  Defaults to 20.",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "offset",
+            "description": "The number of peers to skip before starting the result set.  Defaults to 0.",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeerSearchResults"
+                }
+              }
+            },
+            "description": "A successful response will return the list of peer registries."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "listPeers",
+        "summary": "List peer registries",
+        "description": "**Experimental.** Gets the list of all peer registries configured in the registry, including disabled peers, ordered by `peerId`.\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewPeer"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Returned when the peer registry was successfully created."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "createPeer",
+        "summary": "Create a peer registry",
+        "description": "**Experimental.** Registers a new peer registry.\n\nThe peer `url` must use `https` unless `apicurio.federation.peer.insecure-http.enabled` is set. It must not contain userinfo, a query or a fragment, and must not point at a link-local, unspecified, multicast, reserved or cloud metadata address, or at a loopback address unless `apicurio.federation.peer.loopback.enabled` is set. `credentialSecretRef` names a key in the registry's peer credentials directory; it is never a credential value.\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* The peer definition is invalid (HTTP error `400`)\n* A peer with the same `peerId` already exists (HTTP error `409`)\n* The registry storage is read-only (HTTP error `409`)\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      }
+    },
+    "/admin/peers/{peerId}": {
+      "summary": "Manage the configuration of a single peer registry.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Peer"
+                }
+              }
+            },
+            "description": "When successful, returns the details of a peer registry."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getPeer",
+        "summary": "Get a peer registry",
+        "description": "**Experimental.** Gets the details of a single peer registry (by `peerId`).\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* The `peerId` is invalid (HTTP error `400`)\n* No peer registry with the `peerId` exists (HTTP error `404`)\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePeer"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Response when the update is successful."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "updatePeer",
+        "summary": "Update a peer registry",
+        "description": "**Experimental.** Replaces the definition of a single peer registry. Optional fields that are omitted are cleared.\n\nThe peer `url` must use `https` unless `apicurio.federation.peer.insecure-http.enabled` is set. It must not contain userinfo, a query or a fragment, and must not point at a link-local, unspecified, multicast, reserved or cloud metadata address, or at a loopback address unless `apicurio.federation.peer.loopback.enabled` is set. `credentialSecretRef` names a key in the registry's peer credentials directory; it is never a credential value.\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* The `peerId` or the peer definition is invalid (HTTP error `400`)\n* No peer registry with the `peerId` exists (HTTP error `404`)\n* The registry storage is read-only (HTTP error `409`)\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Response returned when the delete was successful."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "deletePeer",
+        "summary": "Delete a peer registry",
+        "description": "**Experimental.** Deletes a single peer registry.\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* The `peerId` is invalid (HTTP error `400`)\n* No peer registry with the `peerId` exists (HTTP error `404`)\n* The registry storage is read-only (HTTP error `409`)\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "peerId",
+          "description": "Unique id of a peer registry.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/admin/config/artifactTypes": {
       "summary": "The list of artifact types supported by this instance of Registry.",
       "get": {
@@ -8452,6 +8671,152 @@
             "role": "READ_ONLY"
           }
         ]
+      },
+      "Peer": {
+        "title": "Root Type for Peer",
+        "description": "A peer registry that this registry federates with.",
+        "required": [
+          "peerId",
+          "url",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "peerId": {
+            "description": "Unique id of the peer registry. Lowercase letters, digits, `.`, `_` and `-` only, at most 256 characters. `local` is reserved.",
+            "type": "string"
+          },
+          "url": {
+            "description": "Base URL of the peer registry, for example `https://registry.eu.example.com`.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the peer registry.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of the peer registry.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the peer registry is used for federation.",
+            "type": "boolean"
+          },
+          "credentialSecretRef": {
+            "description": "Name of the key in the registry's peer credentials directory that holds the credential for this peer. A reference only: the credential value is never stored or returned.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "peerId": "eu-registry",
+          "url": "https://registry.eu.example.com",
+          "name": "EU registry",
+          "description": "Registry serving the EU region.",
+          "enabled": true,
+          "credentialSecretRef": "eu-registry"
+        }
+      },
+      "NewPeer": {
+        "title": "Root Type for NewPeer",
+        "description": "The information needed to register a new peer registry.",
+        "required": [
+          "peerId",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "peerId": {
+            "description": "Unique id of the peer registry. Lowercase letters, digits, `.`, `_` and `-` only, at most 256 characters. `local` is reserved.",
+            "type": "string"
+          },
+          "url": {
+            "description": "Base URL of the peer registry, for example `https://registry.eu.example.com`.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the peer registry.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of the peer registry.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the peer registry is used for federation. Defaults to `true`.",
+            "type": "boolean"
+          },
+          "credentialSecretRef": {
+            "description": "Name of the key in the registry's peer credentials directory that holds the credential for this peer. A reference only: the credential value is never stored or returned.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "peerId": "eu-registry",
+          "url": "https://registry.eu.example.com",
+          "name": "EU registry",
+          "description": "Registry serving the EU region.",
+          "enabled": true,
+          "credentialSecretRef": "eu-registry"
+        }
+      },
+      "UpdatePeer": {
+        "title": "Root Type for UpdatePeer",
+        "description": "The replacement definition of a peer registry. Optional fields that are omitted are cleared.",
+        "required": [
+          "url",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "description": "Base URL of the peer registry, for example `https://registry.eu.example.com`.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the peer registry.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of the peer registry.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the peer registry is used for federation.",
+            "type": "boolean"
+          },
+          "credentialSecretRef": {
+            "description": "Name of the key in the registry's peer credentials directory that holds the credential for this peer. A reference only: the credential value is never stored or returned.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "url": "https://registry.eu.example.com",
+          "name": "EU registry",
+          "description": "Registry serving the EU region.",
+          "enabled": true,
+          "credentialSecretRef": "eu-registry"
+        }
+      },
+      "PeerSearchResults": {
+        "description": "Describes the response received when listing peer registries.",
+        "required": [
+          "peers",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "peers": {
+            "description": "The peer registries returned in the result set.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Peer"
+            }
+          },
+          "count": {
+            "description": "The total number of peer registries (may be more than the number of peers in the result set).",
+            "type": "integer"
+          }
+        }
       },
       "EditableVersionMetaData": {
         "title": "Root Type for EditableArtifactMetaData",

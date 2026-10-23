@@ -1,0 +1,5 @@
+package com.example;
+
+message LegacyRecord {
+    optional string note = 1 [default = "syntax = 'proto3';"];
+}

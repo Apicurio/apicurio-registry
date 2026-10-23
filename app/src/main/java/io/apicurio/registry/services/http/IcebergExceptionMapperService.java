@@ -1,5 +1,6 @@
 package io.apicurio.registry.services.http;
 
+import io.apicurio.registry.auth.AuthorizedInterceptor;
 import io.apicurio.registry.iceberg.metrics.IcebergMetricsService;
 import io.apicurio.registry.iceberg.rest.v1.beans.ErrorModel;
 import io.apicurio.registry.iceberg.rest.v1.beans.IcebergErrorResponse;
@@ -11,6 +12,7 @@ import io.apicurio.registry.storage.error.GroupNotEmptyException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.quarkus.security.ForbiddenException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.NotFoundException;
@@ -72,6 +74,11 @@ public class IcebergExceptionMapperService {
             metricsService.recordCommitConflict("table");
             return buildErrorResponse(409, "CommitFailedException",
                     "Version already exists: " + ((VersionAlreadyExistsException) t).getVersion());
+        }
+
+        if (t instanceof ForbiddenException) {
+            // Generic message: never reveal which resource or rule denied the request
+            return buildErrorResponse(403, "ForbiddenException", AuthorizedInterceptor.FORBIDDEN_MESSAGE);
         }
 
         if (t instanceof IllegalArgumentException) {

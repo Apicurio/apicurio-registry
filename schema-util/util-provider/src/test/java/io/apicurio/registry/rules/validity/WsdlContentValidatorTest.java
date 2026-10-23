@@ -1,12 +1,18 @@
 package io.apicurio.registry.rules.validity;
 
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.wsdl.rules.validity.WsdlContentValidator;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.List;
 
 public class WsdlContentValidatorTest extends ArtifactUtilProviderTestBase {
     @Test
@@ -52,5 +58,34 @@ public class WsdlContentValidatorTest extends ArtifactUtilProviderTestBase {
             // elements must be in a namespace other than WSDL's
             validator.validate(ValidityLevel.FULL, content, Collections.emptyMap());
         });
+    }
+
+    @Test
+    public void testValidateReferencesAllMapped() {
+        TypedContent content = resourceToTypedContentHandle("wsdl-with-refs.wsdl");
+        List<ArtifactReference> refs = List.of(
+                ArtifactReference.builder().name("base.wsdl").groupId("g").artifactId("c").version("1").build(),
+                ArtifactReference.builder().name("order.xsd").groupId("g").artifactId("p").version("1").build());
+        Assertions.assertDoesNotThrow(() -> new WsdlContentValidator().validateReferences(content, refs));
+    }
+
+    @Test
+    public void testValidateReferencesUnmapped() {
+        TypedContent content = resourceToTypedContentHandle("wsdl-with-refs.wsdl");
+        List<ArtifactReference> refs = List.of(
+                ArtifactReference.builder().name("base.wsdl").groupId("g").artifactId("c").version("1").build());
+        RuleViolationException ex = Assertions.assertThrows(RuleViolationException.class,
+                () -> new WsdlContentValidator().validateReferences(content, refs));
+        Assertions.assertEquals(RuleType.INTEGRITY, ex.getRuleType());
+        Assertions.assertEquals(1, ex.getCauses().size());
+        RuleViolation v = ex.getCauses().iterator().next();
+        Assertions.assertEquals("order.xsd", v.getContext());
+        Assertions.assertEquals("Unmapped reference detected.", v.getDescription());
+    }
+
+    @Test
+    public void testValidateReferencesMalformedIgnored() {
+        TypedContent bad = TypedContent.create(ContentHandle.create("<wsdl:definitions"), ContentTypes.APPLICATION_XML);
+        Assertions.assertDoesNotThrow(() -> new WsdlContentValidator().validateReferences(bad, List.of()));
     }
 }

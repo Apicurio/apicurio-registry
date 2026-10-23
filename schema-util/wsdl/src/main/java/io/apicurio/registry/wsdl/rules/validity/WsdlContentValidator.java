@@ -1,6 +1,7 @@
 package io.apicurio.registry.wsdl.rules.validity;
 
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.xml.rules.validity.XmlContentValidator;
 import io.apicurio.registry.rules.violation.RuleViolationException;
@@ -10,6 +11,7 @@ import io.apicurio.registry.xml.util.DocumentBuilderAccessor;
 import org.w3c.dom.Document;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 
 public class WsdlContentValidator extends XmlContentValidator {
@@ -38,5 +40,14 @@ public class WsdlContentValidator extends XmlContentValidator {
                         RuleType.VALIDITY, level.name(), e);
             }
         }
+    }
+
+    /**
+     * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(TypedContent, List)
+     */
+    @Override
+    public void validateReferences(TypedContent content, List<ArtifactReference> references)
+            throws RuleViolationException {
+        validateLocatedReferences(content, references);
     }
 }

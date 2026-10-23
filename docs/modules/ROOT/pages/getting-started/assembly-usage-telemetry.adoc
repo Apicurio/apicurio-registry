@@ -45,6 +45,7 @@ NOTE: Usage telemetry is an **experimental** feature. It requires `apicurio.feat
 [role="_abstract"]
 The registry server exposes the following properties to configure usage telemetry.
 
+.{registry} server properties for usage telemetry
 [cols="3,1,1,4"]
 |===
 |Property |Type |Default |Description
@@ -93,6 +94,7 @@ The registry server exposes the following properties to configure usage telemetr
 [role="_abstract"]
 The SerDes client exposes the following property to configure usage telemetry reporting.
 
+.SerDes client property for usage telemetry
 [cols="3,1,1,4"]
 |===
 |Property |Type |Default |Description
@@ -314,6 +316,7 @@ SUNSET badge:: Versions in the `SUNSET` state display a purple badge.
 [role="_abstract"]
 When OpenTelemetry is enabled (`quarkus.otel.sdk.disabled=false`), usage classification counts are exported as metrics.
 
+.OpenTelemetry metrics for usage classification
 [cols="2,3"]
 |===
 |Metric |Description

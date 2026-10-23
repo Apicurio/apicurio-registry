@@ -202,7 +202,7 @@ jobs:
           docker run --rm apicurio/apicurio-registry:${{ github.sha }}-mutable /deployments/build.sh --prune
 
       - name: Save Docker Image
-        uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        uses: apicurio/apicurio-github-actions/save-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         with:
           image-name: apicurio/apicurio-registry
           tag: '${{ github.sha }}'
@@ -288,7 +288,7 @@ jobs:
           docker build -t apicurio/apicurio-registry-ui:${{ github.sha }} .
 
       - name: Save UI Docker Image
-        uses: apicurio/apicurio-github-actions/save-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        uses: apicurio/apicurio-github-actions/save-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         with:
           image-name: apicurio/apicurio-registry-ui
           tag: '${{ github.sha }}'

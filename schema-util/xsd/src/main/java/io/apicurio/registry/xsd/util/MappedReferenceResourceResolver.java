@@ -87,7 +87,11 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
         StringInput(String systemId, String publicId, String data) {
             this.systemId = systemId;
             this.publicId = publicId;
-            this.data = data == null || data.isEmpty() ? NON_EMPTY_BLANK : data;
+            this.data = nonEmpty(data);
+        }
+
+        private static String nonEmpty(String data) {
+            return data == null || data.isEmpty() ? NON_EMPTY_BLANK : data;
         }
 
         @Override
@@ -115,7 +119,7 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
 
         @Override
         public void setStringData(String s) {
-            this.data = s;
+            this.data = nonEmpty(s);
         }
 
         @Override

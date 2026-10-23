@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.xml.sax.SAXException;
 
+import javax.xml.XMLConstants;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
@@ -107,12 +108,19 @@ public class XsdSchemaCompilerTest {
             MappedReferenceResourceResolver resolver = new MappedReferenceResourceResolver(
                     Map.of("common.xsd", xml(withDtd)));
             SchemaFactory factory = SchemaFactoryAccessor.newSchemaFactory();
-            factory.setResourceResolver(resolver);
+            List<String[]> seen = new ArrayList<>();
+            factory.setResourceResolver((type, ns, publicId, systemId, baseUri) -> {
+                seen.add(new String[] { type, systemId });
+                return resolver.resolveResource(type, ns, publicId, systemId, baseUri);
+            });
             try {
                 factory.newSchema(src(ORDER));
             } catch (SAXException e) {
-                // the hardened factory may reject the DOCTYPE outright; acceptable
+                // a parse error after resolution is acceptable; resolver consultation is asserted below
             }
+            Assertions.assertTrue(seen.stream().anyMatch(t -> dtdUrl.equals(t[1])
+                    && !XMLConstants.W3C_XML_SCHEMA_NS_URI.equals(t[0])),
+                    "resolver was not consulted for the DTD as a non-schema resource");
             Assertions.assertFalse(resolver.getUnresolved().contains(dtdUrl));
             Assertions.assertEquals(Set.of(), resolver.getUnresolved());
             Assertions.assertThrows(SocketTimeoutException.class, server::accept);

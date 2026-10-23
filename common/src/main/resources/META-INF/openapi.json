@@ -2914,32 +2914,33 @@
         "description": "Creates a new mapping between a user/principal and a role.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n\n"
       }
     },
-    "/admin/peers": {
-      "summary": "Collection to manage the peer registries this registry federates with.",
+    "/admin/webhooks": {
+      "summary": "Collection of webhook subscriptions.",
       "get": {
         "tags": [
-          "Admin"
+          "Webhooks"
         ],
         "parameters": [
           {
-            "name": "limit",
-            "description": "The number of peers to return.  Defaults to 20.",
+            "name": "offset",
+            "description": "The number of subscriptions to skip before starting the result set.  Defaults to 0.",
             "schema": {
-              "default": 20,
-              "type": "integer"
+              "minimum": 0,
+              "type": "integer",
+              "default": 0
             },
-            "in": "query",
-            "required": false
+            "in": "query"
           },
           {
-            "name": "offset",
-            "description": "The number of peers to skip before starting the result set.  Defaults to 0.",
+            "name": "limit",
+            "description": "The number of subscriptions to return.  Defaults to 20, maximum 100.",
             "schema": {
-              "default": 0,
-              "type": "integer"
+              "minimum": 1,
+              "maximum": 100,
+              "type": "integer",
+              "default": 20
             },
-            "in": "query",
-            "required": false
+            "in": "query"
           }
         ],
         "responses": {
@@ -2947,11 +2948,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PeerSearchResults"
+                  "$ref": "#/components/schemas/WebhookSubscriptionSearchResults"
                 }
               }
             },
-            "description": "A successful response will return the list of peer registries."
+            "description": "The requested page of subscriptions and the total number of subscriptions."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -2959,37 +2966,62 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           }
         },
-        "operationId": "listPeers",
-        "summary": "List peer registries",
-        "description": "**Experimental.** Gets the list of all peer registries configured in the registry, including disabled peers, ordered by `peerId`.\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+        "operationId": "listWebhookSubscriptions",
+        "summary": "List webhook subscriptions",
+        "description": "Gets a page of webhook subscriptions, ordered by creation time and then by ID. Deleted subscriptions are not included, and `count` is the total number of subscriptions that are not deleted.\n\nThis operation can fail for the following reasons:\n\n* The caller is not authenticated (HTTP error `401`)\n* The caller is not an administrator, or the registry is not configured to enforce administrator authorization (HTTP error `403`)\n* `offset` or `limit` is out of range (HTTP error `400`)\n* The registry is not using SQL storage (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
       },
       "post": {
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/NewPeer"
+                "$ref": "#/components/schemas/CreateWebhookSubscription"
               }
             }
           },
           "required": true
         },
         "tags": [
-          "Admin"
+          "Webhooks"
         ],
         "responses": {
-          "204": {
-            "description": "Returned when the peer registry was successfully created."
+          "201": {
+            "headers": {
+              "Location": {
+                "description": "The URL of the new subscription.",
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscription"
+                }
+              }
+            },
+            "description": "The subscription was created."
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request body is larger than 64 KiB."
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
@@ -2997,43 +3029,31 @@
           "403": {
             "$ref": "#/components/responses/Forbidden"
           },
-          "409": {
-            "$ref": "#/components/responses/Conflict"
-          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           }
         },
-        "operationId": "createPeer",
-        "summary": "Create a peer registry",
-        "description": "**Experimental.** Registers a new peer registry.\n\nThe peer `url` must use `https` unless `apicurio.federation.peer.insecure-http.enabled` is set. It must not contain userinfo, a query or a fragment, and must not point at a link-local, unspecified, multicast, reserved or cloud metadata address, or at a loopback address unless `apicurio.federation.peer.loopback.enabled` is set. `credentialSecretRef` names a key in the registry's peer credentials directory; it is never a credential value.\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* The peer definition is invalid (HTTP error `400`)\n* A peer with the same `peerId` already exists (HTTP error `409`)\n* The registry storage is read-only (HTTP error `409`)\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+        "operationId": "createWebhookSubscription",
+        "summary": "Create a webhook subscription",
+        "description": "Creates a webhook subscription. The subscription ID, owner, timestamps and revision are assigned by the registry. `enabled` defaults to `false`; creating an enabled subscription is refused until webhook delivery is available and `signingSecretRef` names a signing key that exists.\n\nThis operation can fail for the following reasons:\n\n* The caller is not authenticated (HTTP error `401`)\n* The caller is not an administrator, or the registry is not configured to enforce administrator authorization (HTTP error `403`)\n* The request is invalid, for example an `endpointUrl` that is not an absolute `https` URL, or an unsupported event type (HTTP error `400`)\n* The request body is larger than 64 KiB (HTTP error `413`)\n* `enabled` is `true` but the subscription cannot be activated yet (HTTP error `409`)\n* The registry is not using SQL storage (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
       }
     },
-    "/admin/peers/{peerId}": {
-      "summary": "Manage the configuration of a single peer registry.",
+    "/admin/webhooks/{subscriptionId}": {
+      "summary": "Manage a single webhook subscription.",
       "get": {
         "tags": [
-          "Admin"
+          "Webhooks"
         ],
         "responses": {
           "200": {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Peer"
+                  "$ref": "#/components/schemas/WebhookSubscription"
                 }
               }
             },
-            "description": "When successful, returns the details of a peer registry."
-          },
-          "400": {
-            "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
+            "description": "The subscription."
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -3041,40 +3061,57 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           }
         },
-        "operationId": "getPeer",
-        "summary": "Get a peer registry",
-        "description": "**Experimental.** Gets the details of a single peer registry (by `peerId`).\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* The `peerId` is invalid (HTTP error `400`)\n* No peer registry with the `peerId` exists (HTTP error `404`)\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+        "operationId": "getWebhookSubscription",
+        "summary": "Get a webhook subscription",
+        "description": "Gets a single webhook subscription.\n\nThis operation can fail for the following reasons:\n\n* The caller is not authenticated (HTTP error `401`)\n* The caller is not an administrator, or the registry is not configured to enforce administrator authorization (HTTP error `403`)\n* No subscription with this ID exists, or it was deleted (HTTP error `404`)\n* The registry is not using SQL storage (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
       },
       "put": {
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdatePeer"
+                "$ref": "#/components/schemas/UpdateWebhookSubscription"
               }
             }
           },
           "required": true
         },
         "tags": [
-          "Admin"
+          "Webhooks"
         ],
         "responses": {
-          "204": {
-            "description": "Response when the update is successful."
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookSubscription"
+                }
+              }
+            },
+            "description": "The updated subscription."
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
           },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The request body is larger than 64 KiB."
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -3082,30 +3119,42 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           }
         },
-        "operationId": "updatePeer",
-        "summary": "Update a peer registry",
-        "description": "**Experimental.** Replaces the definition of a single peer registry. Optional fields that are omitted are cleared.\n\nThe peer `url` must use `https` unless `apicurio.federation.peer.insecure-http.enabled` is set. It must not contain userinfo, a query or a fragment, and must not point at a link-local, unspecified, multicast, reserved or cloud metadata address, or at a loopback address unless `apicurio.federation.peer.loopback.enabled` is set. `credentialSecretRef` names a key in the registry's peer credentials directory; it is never a credential value.\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* The `peerId` or the peer definition is invalid (HTTP error `400`)\n* No peer registry with the `peerId` exists (HTTP error `404`)\n* The registry storage is read-only (HTTP error `409`)\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+        "operationId": "updateWebhookSubscription",
+        "summary": "Update a webhook subscription",
+        "description": "Replaces the mutable fields of a webhook subscription. This is a full replacement: an optional field that is omitted or `null` is cleared. `endpointUrl` and `signingSecretRef` cannot be changed; create a new subscription instead. The update is applied only if `expectedRevision` equals the subscription's current revision, and the revision is then incremented.\n\nThis operation can fail for the following reasons:\n\n* The caller is not authenticated (HTTP error `401`)\n* The caller is not an administrator, or the registry is not configured to enforce administrator authorization (HTTP error `403`)\n* The request is invalid (HTTP error `400`)\n* The request body is larger than 64 KiB (HTTP error `413`)\n* No subscription with this ID exists, or it was deleted (HTTP error `404`)\n* `expectedRevision` is not the current revision, or `enabled` is `true` but the subscription cannot be activated yet (HTTP error `409`)\n* The registry is not using SQL storage (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
       },
       "delete": {
         "tags": [
-          "Admin"
+          "Webhooks"
+        ],
+        "parameters": [
+          {
+            "name": "expectedRevision",
+            "description": "The subscription's current revision. The delete is applied only if it matches.",
+            "schema": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": true
+          }
         ],
         "responses": {
           "204": {
-            "description": "Response returned when the delete was successful."
+            "description": "The subscription was deleted."
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
-          },
-          "401": {
-            "$ref": "#/components/responses/Unauthorized"
-          },
-          "403": {
-            "$ref": "#/components/responses/Forbidden"
           },
           "404": {
             "$ref": "#/components/responses/NotFound"
@@ -3113,18 +3162,24 @@
           "409": {
             "$ref": "#/components/responses/Conflict"
           },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
           "500": {
             "$ref": "#/components/responses/ServerError"
           }
         },
-        "operationId": "deletePeer",
-        "summary": "Delete a peer registry",
-        "description": "**Experimental.** Deletes a single peer registry.\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* The `peerId` is invalid (HTTP error `400`)\n* No peer registry with the `peerId` exists (HTTP error `404`)\n* The registry storage is read-only (HTTP error `409`)\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+        "operationId": "deleteWebhookSubscription",
+        "summary": "Delete a webhook subscription",
+        "description": "Deletes a webhook subscription. The subscription is disabled and no longer returned, but its record is kept.\n\nThis operation can fail for the following reasons:\n\n* The caller is not authenticated (HTTP error `401`)\n* The caller is not an administrator, or the registry is not configured to enforce administrator authorization (HTTP error `403`)\n* `expectedRevision` is missing or out of range (HTTP error `400`)\n* No subscription with this ID exists, or it was already deleted (HTTP error `404`)\n* `expectedRevision` is not the current revision (HTTP error `409`)\n* The registry is not using SQL storage (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
       },
       "parameters": [
         {
-          "name": "peerId",
-          "description": "Unique id of a peer registry.",
+          "name": "subscriptionId",
+          "description": "The ID of the webhook subscription.",
           "schema": {
             "type": "string"
           },
@@ -8639,6 +8694,259 @@
           }
         }
       },
+      "WebhookEventType": {
+        "description": "An event type that a webhook subscription can receive.",
+        "enum": [
+          "io.apicurio.registry.artifact.created",
+          "io.apicurio.registry.artifact.metadata.updated",
+          "io.apicurio.registry.artifact.deleted",
+          "io.apicurio.registry.artifact.version.created",
+          "io.apicurio.registry.artifact.version.state.changed"
+        ],
+        "type": "string"
+      },
+      "CreateWebhookSubscription": {
+        "description": "A request to create a webhook subscription.",
+        "required": [
+          "endpointUrl",
+          "eventTypes"
+        ],
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "A human-readable name for the subscription.",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "endpointUrl": {
+            "description": "The absolute `https` URL that events are sent to. It must not contain user information or a fragment, and must not point to a loopback, private, link-local or other internal address.",
+            "maxLength": 2048,
+            "type": "string"
+          },
+          "eventTypes": {
+            "description": "The event types to deliver. An empty array means every supported type. Each value must be one of the `WebhookEventType` values, and may appear only once (a duplicate is rejected, not merged). Required.",
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          "groupFilter": {
+            "description": "Only deliver events for this group. Exact match; `null` means any group.",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "artifactIdFilter": {
+            "description": "Only deliver events for this artifact ID. Exact match; `null` means any artifact.",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "artifactTypeFilter": {
+            "description": "Only deliver events for this artifact type, for example `AVRO`. `null` means any type.",
+            "maxLength": 32,
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether events are delivered. Defaults to `false`.",
+            "default": false,
+            "type": "boolean"
+          },
+          "signingSecretRef": {
+            "description": "The name of the key used to sign deliveries. This is a reference to a key configured in the registry, never the key itself.",
+            "maxLength": 512,
+            "pattern": "^[A-Za-z0-9._-]+$",
+            "type": "string"
+          }
+        },
+        "example": {
+          "name": "Schema changes to CI",
+          "endpointUrl": "https://ci.example.com/hooks/registry",
+          "eventTypes": [
+            "io.apicurio.registry.artifact.version.created"
+          ],
+          "groupFilter": "com.example.orders",
+          "enabled": false,
+          "signingSecretRef": "ci-webhook-key"
+        }
+      },
+      "UpdateWebhookSubscription": {
+        "description": "A full replacement of a webhook subscription's mutable fields. Optional fields that are omitted or `null` are cleared. `endpointUrl` and `signingSecretRef` cannot be changed.",
+        "required": [
+          "eventTypes",
+          "enabled",
+          "expectedRevision"
+        ],
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "description": "A human-readable name for the subscription.",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "eventTypes": {
+            "description": "The event types to deliver. An empty array means every supported type. Each value must be one of the `WebhookEventType` values, and may appear only once (a duplicate is rejected, not merged). Required.",
+            "maxItems": 5,
+            "type": "array",
+            "items": {
+              "maxLength": 256,
+              "type": "string"
+            }
+          },
+          "groupFilter": {
+            "description": "Only deliver events for this group. Exact match; `null` means any group.",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "artifactIdFilter": {
+            "description": "Only deliver events for this artifact ID. Exact match; `null` means any artifact.",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "artifactTypeFilter": {
+            "description": "Only deliver events for this artifact type, for example `AVRO`. `null` means any type.",
+            "maxLength": 32,
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether events are delivered.",
+            "type": "boolean"
+          },
+          "expectedRevision": {
+            "description": "The subscription's current revision. The update is applied only if it matches.",
+            "format": "int64",
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "example": {
+          "name": "Schema changes to CI",
+          "eventTypes": [
+            "io.apicurio.registry.artifact.version.created",
+            "io.apicurio.registry.artifact.version.state.changed"
+          ],
+          "groupFilter": "com.example.orders",
+          "enabled": false,
+          "expectedRevision": 1
+        }
+      },
+      "WebhookSubscription": {
+        "description": "A webhook subscription.",
+        "required": [
+          "subscriptionId",
+          "ownerId",
+          "endpointUrl",
+          "eventTypes",
+          "enabled",
+          "revision",
+          "createdOn",
+          "modifiedOn"
+        ],
+        "type": "object",
+        "properties": {
+          "subscriptionId": {
+            "description": "The ID assigned by the registry.",
+            "type": "string"
+          },
+          "name": {
+            "description": "A human-readable name for the subscription.",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "ownerId": {
+            "description": "The principal that created the subscription.",
+            "type": "string"
+          },
+          "endpointUrl": {
+            "description": "The absolute `https` URL that events are sent to. It must not contain user information or a fragment, and must not point to a loopback, private, link-local or other internal address.",
+            "maxLength": 2048,
+            "type": "string"
+          },
+          "eventTypes": {
+            "description": "The event types delivered. An empty array means every supported type.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookEventType"
+            }
+          },
+          "groupFilter": {
+            "description": "Only deliver events for this group. Exact match; `null` means any group.",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "artifactIdFilter": {
+            "description": "Only deliver events for this artifact ID. Exact match; `null` means any artifact.",
+            "maxLength": 512,
+            "type": "string"
+          },
+          "artifactTypeFilter": {
+            "description": "Only deliver events for this artifact type, for example `AVRO`. `null` means any type.",
+            "maxLength": 32,
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether events are delivered.",
+            "type": "boolean"
+          },
+          "signingSecretRef": {
+            "description": "The name of the key used to sign deliveries. This is a reference to a key configured in the registry, never the key itself.",
+            "maxLength": 512,
+            "pattern": "^[A-Za-z0-9._-]+$",
+            "type": "string"
+          },
+          "revision": {
+            "description": "Incremented on every change. Send it back as `expectedRevision`.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "createdOn": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "modifiedOn": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "example": {
+          "subscriptionId": "3f1c2b9e-6a8d-4c1e-9b7a-2d5f8e0a1c34",
+          "name": "Schema changes to CI",
+          "ownerId": "admin",
+          "endpointUrl": "https://ci.example.com/hooks/registry",
+          "eventTypes": [
+            "io.apicurio.registry.artifact.version.created"
+          ],
+          "groupFilter": "com.example.orders",
+          "enabled": false,
+          "signingSecretRef": "ci-webhook-key",
+          "revision": 1,
+          "createdOn": "2026-10-14T09:00:00Z",
+          "modifiedOn": "2026-10-14T09:00:00Z"
+        }
+      },
+      "WebhookSubscriptionSearchResults": {
+        "description": "A page of webhook subscriptions.",
+        "required": [
+          "subscriptions",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "subscriptions": {
+            "description": "The subscriptions in this page.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookSubscription"
+            }
+          },
+          "count": {
+            "description": "The total number of subscriptions that are not deleted (may be more than the number in this page).",
+            "type": "integer"
+          }
+        }
+      },
       "RoleMappingSearchResults": {
         "description": "Describes the response received when searching for artifacts.",
         "required": [
@@ -11019,6 +11327,10 @@
     {
       "name": "GitOps",
       "description": "Experimental. Management and status endpoints for the GitOps storage backend. These endpoints are only available when the registry is configured with `apicurio.storage.kind=gitops`."
+    },
+    {
+      "name": "Webhooks",
+      "description": "Webhook subscription management. Only available to administrators, and only with SQL storage."
     },
     {
       "name": "WellKnown",

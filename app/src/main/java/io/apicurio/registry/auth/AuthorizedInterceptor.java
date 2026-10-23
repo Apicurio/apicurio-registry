@@ -28,6 +28,8 @@ public class AuthorizedInterceptor {
 
     public static final String FORBIDDEN_MESSAGE = "User is not authorized to perform the requested operation.";
 
+    static final String WEBHOOK_MANAGEMENT_NOT_ENFORCED_MESSAGE = "Webhook management requires enforced administrator authorization.";
+
     @Inject
     Logger log;
 
@@ -68,6 +70,12 @@ public class AuthorizedInterceptor {
                         "Access to /admin/roleMappings denied because application managed RBAC is not enabled.");
                 throw new ForbiddenException("Application RBAC not enabled.");
             }
+        }
+
+        // Webhook management is decided here, before the trusted-proxy and auth-disabled shortcuts
+        // below, so neither of them can let a caller through.
+        if (context.getMethod().isAnnotationPresent(WebhookManagementApiOperation.class)) {
+            return authorizeWebhookManagement(context);
         }
 
         // If proxy authorization is trusted, skip local authorization checks
@@ -183,5 +191,26 @@ public class AuthorizedInterceptor {
         }
 
         return context.proceed();
+    }
+
+    private Object authorizeWebhookManagement(InvocationContext context) throws Exception {
+        boolean adminDecidable = authConfig.roleBasedAuthorizationEnabled || authConfig.adminOverrideEnabled;
+        if (!authConfig.isAuthenticationEnabled() || !adminDecidable) {
+            log.warn("Webhook management denied: administrator authorization is not enforced.");
+            throw new ForbiddenException(WEBHOOK_MANAGEMENT_NOT_ENFORCED_MESSAGE);
+        }
+
+        if (securityIdentity == null || securityIdentity.isAnonymous()) {
+            log.warn("Authentication credentials missing and required for webhook management.");
+            throw new UnauthorizedException("User is not authenticated.");
+        }
+
+        if (adminOverride.isAdmin()
+                || (authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin())) {
+            return context.proceed();
+        }
+
+        log.warn("Webhook management denied: caller is not an administrator.");
+        throw new ForbiddenException(FORBIDDEN_MESSAGE);
     }
 }

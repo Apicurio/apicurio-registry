@@ -9,7 +9,9 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionDto;
 import io.apicurio.registry.storage.error.ReadOnlyStorageException;
+import io.apicurio.registry.storage.error.WebhookStorageNotSupportedException;
 import io.apicurio.registry.storage.util.GitopsTestProfile;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.util.JsonObjectMapper;
@@ -311,6 +313,30 @@ public class GitOpsSmokeTest {
         var v3 = storage.getArtifactVersionContent("testgroup", "compat-test", "3");
         assertNotNull(v1.getContent());
         assertNotNull(v3.getContent());
+    }
+
+    @Test
+    public void testWebhookManagementIsNotSupported() {
+        assertFalse(storage.isWebhookManagementSupported());
+
+        // Reads reach the GitOps storage, which refuses them as unsupported.
+        assertThrows(WebhookStorageNotSupportedException.class,
+                () -> storage.searchWebhookSubscriptions(0, 20));
+        assertThrows(WebhookStorageNotSupportedException.class,
+                () -> storage.getWebhookSubscription("11111111-1111-1111-1111-111111111111"));
+
+        // Writes are stopped earlier by the read-only decorator, as for every other GitOps write.
+        WebhookSubscriptionDto subscription = WebhookSubscriptionDto.builder()
+                .subscriptionId("11111111-1111-1111-1111-111111111111")
+                .ownerId("admin")
+                .endpointUrl("https://hooks.example.com/registry")
+                .eventTypes("[]")
+                .build();
+        assertThrows(ReadOnlyStorageException.class, () -> storage.createWebhookSubscription(subscription));
+        assertThrows(ReadOnlyStorageException.class,
+                () -> storage.updateWebhookSubscription("11111111-1111-1111-1111-111111111111", 1L, subscription));
+        assertThrows(ReadOnlyStorageException.class,
+                () -> storage.softDeleteWebhookSubscription("11111111-1111-1111-1111-111111111111", 1L));
     }
 
     @ActivateRequestContext

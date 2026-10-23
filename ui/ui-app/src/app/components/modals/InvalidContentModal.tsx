@@ -13,6 +13,9 @@ import {
 } from "@patternfly/react-core/deprecated";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { RuleViolationProblemDetails } from "@sdk/lib/generated-client/models";
+import { CompatibilityReport } from "@app/components/ruleViolation";
+import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
+import { causesOf, isCompatibilityViolation, isRuleViolation, toViolationCause } from "@utils/ruleViolation.utils.ts";
 
 
 /**
@@ -20,6 +23,12 @@ import { RuleViolationProblemDetails } from "@sdk/lib/generated-client/models";
  */
 export type InvalidContentModalProps = {
     error: RuleViolationProblemDetails|undefined;
+    /** The content the user submitted, kept so it can be shown with the violations. */
+    content?: string;
+    contentType?: string;
+    /** The artifact the content was submitted to, used to load the version it was compared against. */
+    groupId?: string | null;
+    artifactId?: string;
     isOpen: boolean;
     onClose: () => void;
 };
@@ -29,14 +38,28 @@ export type InvalidContentModalProps = {
  * that is not valid.
  */
 export const InvalidContentModal: FunctionComponent<InvalidContentModalProps> = (props: InvalidContentModalProps) => {
+    const groups: GroupsService = useGroupsService();
+
+    const artifactId: string | undefined = props.artifactId;
+    const loadComparedContent = artifactId === undefined ? undefined : (version: string): Promise<string> =>
+        groups.getArtifactVersionContent(props.groupId ?? null, artifactId, version);
 
     const errorDetail = (): React.ReactElement => {
         if (props.error) {
-            if (props.error.nameEscaped === "RuleViolationException" && props.error.causes != null && props.error.causes.length > 0 ) {
+            if (isCompatibilityViolation(props.error)) {
+                return (
+                    <CompatibilityReport
+                        causes={causesOf(props.error).map(toViolationCause)}
+                        content={props.content}
+                        contentType={props.contentType}
+                        loadComparedContent={loadComparedContent}
+                    />
+                );
+            } else if (isRuleViolation(props.error)) {
                 return (
                     <DataList aria-label="Error causes" className="error-causes" >
                         {
-                            props.error.causes.map( (cause, idx) =>
+                            causesOf(props.error).map( (cause, idx) =>
                                 <DataListItemRow key={""+idx} className="error-causes-item">
                                     <DataListItemCells
                                         dataListCells={[

@@ -1,6 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactPage.css";
 import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
+import { SubmittedContent, toSubmittedContent } from "@utils/ruleViolation.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useMatch, useParams } from "react-router";
 import { EXPLORE_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
@@ -62,6 +63,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const [ruleActionError, setRuleActionError] = useState<string>();
     const [pendingRuleType, setPendingRuleType] = useState<string>();
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [invalidContent, setInvalidContent] = useState<SubmittedContent>();
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState(false);
     const [versionToDelete, setVersionToDelete] = useState<SearchedVersion>();
     const [versionDeleteSuccessCallback, setVersionDeleteSuccessCallback] = useState<() => void>();
@@ -325,9 +327,10 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         });
     };
 
-    const handleInvalidContentError = (error: any): void => {
+    const handleInvalidContentError = (error: any, content?: SubmittedContent): void => {
         logger.info("INVALID CONTENT ERROR", error);
         setInvalidContentError(error);
+        setInvalidContent(content);
         setIsInvalidContentModalOpen(true);
     };
 
@@ -346,7 +349,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         }).catch( error => {
             pleaseWait(false);
             if (error && (error.status === 400 || error.status === 409)) {
-                handleInvalidContentError(error);
+                handleInvalidContentError(error, toSubmittedContent(data.content));
             } else {
                 setPageError(toPageError(error, "Error creating artifact version."));
             }
@@ -520,6 +523,10 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
             <PleaseWaitModal message={pleaseWaitMessage}
                 isOpen={isPleaseWaitModalOpen} />
             <InvalidContentModal error={invalidContentError}
+                content={invalidContent?.content}
+                contentType={invalidContent?.contentType}
+                groupId={groupId}
+                artifactId={artifactId}
                 isOpen={isInvalidContentModalOpen}
                 onClose={() => {setIsInvalidContentModalOpen(false);}} />
         </PageErrorHandler>

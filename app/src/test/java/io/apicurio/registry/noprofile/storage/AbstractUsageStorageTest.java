@@ -45,10 +45,10 @@ public abstract class AbstractUsageStorageTest extends AbstractResourceTestBase 
         String group = TestUtils.generateGroupId("usage");
         Fixture f = createFixture(group);
 
-        record(f.a1, "payments", now - 3 * DAY_MS);
-        record(f.a1, "analytics", now - 2 * DAY_MS);
-        record(f.a1, "analytics", now - DAY_MS);
-        record(f.a2, "payments", now - 60_000);
+        recordEvent(f.a1, "payments", now - 3 * DAY_MS);
+        recordEvent(f.a1, "analytics", now - 2 * DAY_MS);
+        recordEvent(f.a1, "analytics", now - DAY_MS);
+        recordEvent(f.a2, "payments", now - 60_000);
         awaitFetches(group, "A", 4);
 
         List<SchemaUsageSummaryDto> metrics = storage().getArtifactUsageMetrics(group, "A");
@@ -92,9 +92,9 @@ public abstract class AbstractUsageStorageTest extends AbstractResourceTestBase 
         Fixture f = createFixture(group);
         UsageSummaryCountsDto before = storage().getUsageSummaryCounts(now, ACTIVE_MS, STALE_MS);
 
-        record(f.b1, "legacy", now - 60 * DAY_MS);
-        record(f.c1, "old", now - 45 * DAY_MS);
-        record(f.a1, "app", now - DAY_MS);
+        recordEvent(f.b1, "legacy", now - 60 * DAY_MS);
+        recordEvent(f.c1, "old", now - 45 * DAY_MS);
+        recordEvent(f.a1, "app", now - DAY_MS);
         awaitFetches(group, "A", 1);
         awaitFetches(group, "B", 1);
         awaitFetches(group, "C", 1);
@@ -111,8 +111,8 @@ public abstract class AbstractUsageStorageTest extends AbstractResourceTestBase 
         String group = TestUtils.generateGroupId("usage");
         Fixture f = createFixture(group);
 
-        record(f.a1, "expired", now - 200 * DAY_MS);
-        record(f.a1, "recent", now - DAY_MS);
+        recordEvent(f.a1, "expired", now - 200 * DAY_MS);
+        recordEvent(f.a1, "recent", now - DAY_MS);
         awaitFetches(group, "A", 2);
         Assertions.assertEquals("expired,recent", storage().getArtifactUsageMetrics(group, "A").get(0)
                 .getClientList());
@@ -145,7 +145,7 @@ public abstract class AbstractUsageStorageTest extends AbstractResourceTestBase 
 
         recordByContent(d1.getContentId(), "batch", now - 5 * DAY_MS);
         recordByContent(d1.getContentId(), "batch", now - 4 * DAY_MS);
-        record(d2.getGlobalId(), "payments", now - 3 * DAY_MS);
+        recordEvent(d2.getGlobalId(), "payments", now - 3 * DAY_MS);
         recordByContent(d2.getContentId(), "payments", now - 2 * DAY_MS);
         recordByContent(d2.getContentId(), "batch", now - DAY_MS);
         awaitFetches(group, "D", 5);
@@ -185,7 +185,7 @@ public abstract class AbstractUsageStorageTest extends AbstractResourceTestBase 
         Assertions.assertEquals(0, after.getDead() - before.getDead());
     }
 
-    private void record(long globalId, String clientId, long timestamp) {
+    private void recordEvent(long globalId, String clientId, long timestamp) {
         storage().recordUsageEvent(SchemaUsageEventDto.builder().globalId(globalId).contentId(0)
                 .clientId(clientId).operation("SERIALIZE").eventTimestamp(timestamp).build());
     }

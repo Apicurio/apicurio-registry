@@ -17,7 +17,6 @@ import java.util.concurrent.CompletableFuture;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -106,8 +105,7 @@ class KafkaSqlUsageSubmissionTest {
 
         storage.deleteOldUsageEvents(5000L);
 
-        verify(log).warn(eq("Failed to send {} to the KafkaSQL journal."),
-                eq("DeleteOldUsageEvents1Message"), eq(cause));
+        verify(log).warn("Failed to send {} to the KafkaSQL journal.", "DeleteOldUsageEvents1Message", cause);
         assertEquals(0, coordinator.pendingCount());
     }
 
@@ -120,9 +118,9 @@ class KafkaSqlUsageSubmissionTest {
         storage.deleteOldUsageEvents(6000L);
         storage.deleteOldUsageEvents(7000L);
 
-        verify(log, times(1)).warn(eq("Failed to send {} to the KafkaSQL journal."),
-                eq("DeleteOldUsageEvents1Message"), eq(cause));
-        verify(log, times(2)).debug(eq("Failed to send {} to the KafkaSQL journal."),
-                eq("DeleteOldUsageEvents1Message"), eq(cause));
+        verify(log, times(1)).warn("Failed to send {} to the KafkaSQL journal.", "DeleteOldUsageEvents1Message",
+                cause);
+        verify(log, times(2)).debug("Failed to send {} to the KafkaSQL journal.", "DeleteOldUsageEvents1Message",
+                cause);
     }
 }

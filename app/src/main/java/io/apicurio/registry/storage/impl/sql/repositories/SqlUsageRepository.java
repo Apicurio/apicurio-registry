@@ -16,6 +16,8 @@ import java.util.StringJoiner;
 
 public class SqlUsageRepository {
 
+    private static final String CLIENT_ID_COLUMN = "clientId";
+
     private final SqlStatements sqlStatements;
     private final HandleFactory handles;
 
@@ -53,7 +55,7 @@ public class SqlUsageRepository {
                     .bind(0, RegistryContentUtils.normalizeGroupId(groupId))
                     .bind(1, artifactId)
                     .map(rs -> new ClientVersionUsage(rs.getString("version"), rs.getLong("globalId"),
-                            rs.getString("clientId"), rs.getLong("fetches"), rs.getLong("firstFetchedOn"),
+                            rs.getString(CLIENT_ID_COLUMN), rs.getLong("fetches"), rs.getLong("firstFetchedOn"),
                             rs.getLong("lastFetchedOn")))
                     .list();
         });
@@ -126,7 +128,7 @@ public class SqlUsageRepository {
                     .bind(0, RegistryContentUtils.normalizeGroupId(groupId))
                     .bind(1, artifactId)
                     .map(rs -> ConsumerVersionEntryDto.builder()
-                            .clientId(rs.getString("clientId"))
+                            .clientId(rs.getString(CLIENT_ID_COLUMN))
                             .globalId(rs.getLong("globalId"))
                             .version(rs.getString("version"))
                             .versionOrder(rs.getInt("versionOrder"))
@@ -144,7 +146,7 @@ public class SqlUsageRepository {
                     .bind(1, artifactId)
                     .bind(2, version)
                     .map(rs -> DeprecationReadinessDto.builder()
-                            .clientId(rs.getString("clientId"))
+                            .clientId(rs.getString(CLIENT_ID_COLUMN))
                             .lastFetched(rs.getLong("lastFetched"))
                             .fetchCount(rs.getLong("fetchCount"))
                             .build())

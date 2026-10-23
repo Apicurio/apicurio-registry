@@ -86,7 +86,7 @@ jobs:
 
       - name: Notify failure
         if: steps.results.outputs.failed != ''
-        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
+        uses: Apicurio/apicurio-github-actions/notify-slack@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2.4.0
         with:
           level: important
           text: ":x: ${{ github.workflow }} failed${{ inputs.version && format(' for {0}', inputs.version) || '' }} in ${{ steps.results.outputs.failed }}"
@@ -98,7 +98,7 @@ jobs:
       # Every job skipped (e.g. a release not tagged 3.*): say nothing.
       - name: Notify success
         if: inputs.notify-success && steps.results.outputs.outcome == 'success'
-        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
+        uses: Apicurio/apicurio-github-actions/notify-slack@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2.4.0
         with:
           level: general
           text: "${{ inputs.success-text || format(':white_check_mark: {0} finished{1}', github.workflow, inputs.version && format(' for {0}', inputs.version) || '') }}"

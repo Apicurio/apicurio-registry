@@ -558,7 +558,7 @@ jobs:
       - name: Notify failure
         id: notify
         if: failure() && github.actor != 'apicurio-ci'
-        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
+        uses: Apicurio/apicurio-github-actions/notify-slack@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2.4.0
         with:
           level: important
           text: ":x: ${{ github.workflow }} failed for ${{ inputs.tag }} in release-post. :mag: Debug it on the runner: @${{ github.actor }} can SSH in with tmate until the job times out. The ssh command is in the job log."

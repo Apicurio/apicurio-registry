@@ -1,16 +1,25 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.UsageTelemetryConfig;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
 
 import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class UsageTelemetryBufferTest {
 
@@ -69,6 +78,45 @@ class UsageTelemetryBufferTest {
         assertEquals(KEYS, buffer(telemetry).size());
     }
 
+    /**
+     * A flush stops once it has collected {@code MAX_BUFFER_SIZE * 2} events, leaving the rest for the
+     * next cycle. The check that enforces that limit must happen before an event is removed from the
+     * buffer, otherwise the event that trips the limit is dequeued, never added to the batch, and lost.
+     *
+     * <p>Filling the buffer with more events than a single flush can hold and then draining it exercises
+     * that boundary: every buffered event has to reach storage exactly once.
+     */
+    @Test
+    void testFlushDoesNotLoseEventsWhenTheBufferExceedsTheBatchLimit() throws Exception {
+        UsageTelemetryBuffer telemetry = new UsageTelemetryBuffer();
+        UsageTelemetryConfig config = mock(UsageTelemetryConfig.class);
+        when(config.isEnabled()).thenReturn(true);
+        RegistryStorage storage = mock(RegistryStorage.class);
+        Set<Long> recorded = new HashSet<>();
+        doAnswer(invocation -> {
+            recorded.add(((SchemaUsageEventDto) invocation.getArgument(0)).getGlobalId());
+            return null;
+        }).when(storage).recordUsageEvent(any());
+
+        setField(telemetry, "config", config);
+        setField(telemetry, "storage", storage);
+        setField(telemetry, "log", mock(Logger.class));
+
+        // More than 2 * MAX_BUFFER_SIZE (2000), so a single flush cannot drain the buffer.
+        int total = 2500;
+        for (int globalId = 1; globalId <= total; globalId++) {
+            telemetry.addEvent(event(globalId));
+        }
+        assertEquals(total, buffer(telemetry).size());
+
+        for (int i = 0; i < 10 && !buffer(telemetry).isEmpty(); i++) {
+            telemetry.flush();
+        }
+
+        assertEquals(total, recorded.size(),
+                "every buffered event must reach storage exactly once across the flush cycles");
+    }
+
     private static SchemaUsageEventDto event(long globalId) {
         return SchemaUsageEventDto.builder().globalId(globalId).clientId(CLIENT_ID)
                 .operation("read").eventTimestamp(System.currentTimeMillis()).build();
@@ -89,5 +137,12 @@ class UsageTelemetryBufferTest {
         Field field = UsageTelemetryBuffer.class.getDeclaredField(name);
         field.setAccessible(true);
         return field.get(telemetry);
+    }
+
+    private static void setField(UsageTelemetryBuffer telemetry, String name, Object value)
+            throws Exception {
+        Field field = UsageTelemetryBuffer.class.getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(telemetry, value);
     }
 }

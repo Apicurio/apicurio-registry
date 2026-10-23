@@ -35,7 +35,7 @@ Both `globalId` and `contentId` based schema fetches are tracked. Clients config
 
 Referenced schemas (shared types, base schemas) inherit liveness from the schemas that directly reference them in the global usage summary. If `UserEvent v3` is Active and references `SharedTypes v1`, then `SharedTypes v1` is counted as Active in `GET /admin/usage/summary`, even if nobody ever fetched `SharedTypes v1` itself. The per-artifact endpoints do not apply this rule, so check the schemas that reference a version before you deprecate it.
 
-NOTE: Usage telemetry is an **experimental** feature and is disabled by default. It requires `apicurio.features.experimental.enabled=true` in addition to `apicurio.usage.telemetry.enabled=true`. It is tested with the H2, PostgreSQL, MySQL and KafkaSQL storage types and has not been run against SQL Server. It does nothing on the read-only GitOps and KubernetesOps storage types: events are dropped and the usage endpoints return empty results.
+NOTE: Usage telemetry is an **experimental** feature and is disabled by default. It requires `apicurio.features.experimental.enabled=true` in addition to `apicurio.usage.telemetry.enabled=true`. It is tested with the H2, PostgreSQL, MySQL, SQL Server and KafkaSQL storage types; the tests do not check how client identifiers compare under each database collation (see below). It does nothing on the read-only GitOps and KubernetesOps storage types: events are dropped and the usage endpoints return empty results.
 
 [id="con-usage-telemetry-classification_{context}"]
 == How versions are classified

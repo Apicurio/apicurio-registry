@@ -95,6 +95,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.BOOTSTRAP_MESSAGE_TYPE;
@@ -113,9 +114,14 @@ import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implements RegistryStorage {
 
-    private static final long USAGE_SEND_WARNING_INTERVAL_MS = 60_000L;
+    private static final long USAGE_SEND_WARNING_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1);
 
-    private final AtomicLong lastUsageSendWarning = new AtomicLong();
+    /**
+     * A {@link System#nanoTime()} reading that is only ever compared by subtraction. It starts one interval in
+     * the past, so the first failure warns.
+     */
+    private final AtomicLong lastUsageSendWarning = new AtomicLong(
+            System.nanoTime() - USAGE_SEND_WARNING_INTERVAL_NANOS);
 
     @Inject
     Logger log;
@@ -1493,9 +1499,9 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
             if (error != null) {
                 Throwable cause = error instanceof CompletionException && error.getCause() != null
                         ? error.getCause() : error;
-                long now = System.currentTimeMillis();
+                long now = System.nanoTime();
                 long last = lastUsageSendWarning.get();
-                if (now - last >= USAGE_SEND_WARNING_INTERVAL_MS
+                if (now - last >= USAGE_SEND_WARNING_INTERVAL_NANOS
                         && lastUsageSendWarning.compareAndSet(last, now)) {
                     log.warn("Failed to send {} to the KafkaSQL journal.", message.getKey().getMessageType(),
                             cause);

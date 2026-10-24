@@ -16,6 +16,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.Locale;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
@@ -93,6 +94,28 @@ public class SearchVersionsTest extends AbstractResourceTestBase {
             config.queryParameters.artifactId = "testSearchVersionsByArtifactId_Group2_Artifact_0";
         });
         Assertions.assertEquals(1, results.getCount());
+    }
+
+    @Test
+    public void testSearchVersionsByNameCaseInsensitive() throws Exception {
+        String group = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        String name = "MixedCase-" + TestUtils.generateArtifactId();
+        String artifactContent = resourceToString("openapi-empty.json");
+        CreateArtifact createArtifact = TestUtils.clientCreateArtifact(artifactId, ArtifactType.OPENAPI,
+                artifactContent, ContentTypes.APPLICATION_JSON);
+        createArtifact.getFirstVersion().setName(name);
+        clientV3.groups().byGroupId(group).artifacts().post(createArtifact);
+
+        String lowerCaseName = "*" + name.toLowerCase(Locale.ROOT) + "*";
+
+        // Without the opt-in parameter, preserve the existing SQL-backed behavior.
+        given().when().queryParam("name", lowerCaseName).get("/registry/v3/search/versions").then()
+                .statusCode(200).body("count", equalTo(0));
+
+        given().when().queryParam("name", lowerCaseName).queryParam("nameCaseInsensitive", true)
+                .get("/registry/v3/search/versions").then().statusCode(200)
+                .body("count", equalTo(1)).body("versions[0].name", equalTo(name));
     }
 
     @Test

@@ -289,6 +289,9 @@ public class ElasticsearchSearchService {
         case name:
             return buildNameQuery(filter.getStringValue());
 
+        case nameCaseInsensitive:
+            return buildCaseInsensitiveNameQuery(filter.getStringValue());
+
         case description:
             return buildTextQuery(FIELD_DESCRIPTION, filter.getStringValue());
 
@@ -390,6 +393,41 @@ public class ElasticsearchSearchService {
                 .should(Query.of(sq -> sq.term(t -> t
                         .field("artifactId").value(value))))
         ));
+    }
+
+    /**
+     * Builds a case-insensitive wildcard query for the name and artifact ID fields. Only a leading
+     * or trailing {@code *} is treated as a wildcard, matching the SQL storage behavior.
+     *
+     * @param value the search value
+     * @return a query that matches name or artifactId without regard to case
+     */
+    private Query buildCaseInsensitiveNameQuery(String value) {
+        String escapedValue = escapeCaseInsensitiveNamePattern(value);
+        return Query.of(q -> q.bool(b -> b
+                .should(Query.of(sq -> sq.wildcard(w -> w
+                        .field("name.keyword").value(escapedValue).caseInsensitive(true))))
+                .should(Query.of(sq -> sq.wildcard(w -> w
+                        .field("artifactId").value(escapedValue).caseInsensitive(true))))
+        ));
+    }
+
+    /**
+     * Escapes Elasticsearch wildcard syntax inside a name search while preserving an intentional
+     * leading or trailing {@code *}. SQL treats interior {@code *}, {@code ?}, and backslashes as
+     * literal characters, so escaping them here keeps both storage paths consistent.
+     */
+    private static String escapeCaseInsensitiveNamePattern(String value) {
+        StringBuilder escaped = new StringBuilder(value.length());
+        for (int idx = 0; idx < value.length(); idx++) {
+            char character = value.charAt(idx);
+            boolean boundaryWildcard = character == '*' && (idx == 0 || idx == value.length() - 1);
+            if (!boundaryWildcard && (character == '*' || character == '?' || character == '\\')) {
+                escaped.append('\\');
+            }
+            escaped.append(character);
+        }
+        return escaped.toString();
     }
 
     /**

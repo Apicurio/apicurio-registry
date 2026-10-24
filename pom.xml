@@ -312,7 +312,7 @@
     <flink.version>1.20.5</flink.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.9.3</kiota.libs.version>
+    <kiota.libs.version>1.10.3</kiota.libs.version>
     <kiota.community.version>0.0.39</kiota.community.version>
     <!-- 0.0.39 retries transient ETXTBSY during process startup
          (https://bugs.openjdk.org/browse/JDK-8068370) and publishes
@@ -371,7 +371,7 @@
     <cel-standalone.version>0.6.0</cel-standalone.version>
 
     <!-- Kroxylicious Authorizer API (shared authorization contract) -->
-    <kroxylicious.version>0.25.0</kroxylicious.version>
+    <kroxylicious.version>0.25.1</kroxylicious.version>
   </properties>
 
   <dependencyManagement>

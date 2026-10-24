@@ -42,6 +42,14 @@ public class UserInterfaceConfigProperties {
     @ConfigProperty(name = "apicurio.ui.features.read-only.enabled", defaultValue = "false")
     @Info(category = CATEGORY_UI, description = "Enabled to set the UI to read-only mode", availableSince = "3.0.0")
     public Supplier<Boolean> featureReadOnly;
+    @Dynamic(label = "UI read-only banner", description = "When selected, the read-only banner is displayed while in read-only mode.")
+    @ConfigProperty(name = "apicurio.ui.features.read-only.banner.enabled", defaultValue = "true")
+    @Info(category = CATEGORY_UI, description = "Enabled to show the read-only banner in the UI", availableSince = "3.4.0")
+    public Supplier<Boolean> featureReadOnlyBannerEnabled;
+    @Dynamic(label = "UI read-only banner text", description = "Custom text for the read-only banner. When unset, the default text is used.")
+    @ConfigProperty(name = "apicurio.ui.features.read-only.banner.text", defaultValue = "")
+    @Info(category = CATEGORY_UI, description = "Custom text for the read-only banner", availableSince = "3.4.0")
+    public Supplier<String> featureReadOnlyBannerText;
     @ConfigProperty(name = "apicurio.ui.features.breadcrumbs", defaultValue = "true")
     @Info(category = CATEGORY_UI, description = "Enabled to show breadcrumbs in the UI", availableSince = "3.0.0")
     public String featureBreadcrumbs;

@@ -11,20 +11,24 @@ export const ReadOnlyBanner: FunctionComponent = () => {
     const localStorage = useLocalStorageService();
 
     const readOnly = config.featureReadOnly();
+    const bannerEnabled = config.featureReadOnlyBannerEnabled();
     const reason = config.featureReadOnlyReason();
     const storageName = config.features().storageName;
     const isGitOps = reason === "storage" && storageName === "gitops";
 
-    const message = isGitOps
-        ? "This registry is in read-only mode. Changes are managed via GitOps — update your source Git repository."
-        : "This registry is in read-only mode.";
+    const customText = config.featureReadOnlyBannerText();
+    const message = (customText !== undefined && customText.trim().length > 0)
+        ? customText
+        : (isGitOps
+            ? "This registry is in read-only mode. Changes are managed via GitOps — update your source Git repository."
+            : "This registry is in read-only mode.");
 
     const dismissKey = DISMISSED_KEY_PREFIX + String(shash(message));
     const alreadyDismissed = localStorage.getConfigProperty(dismissKey, undefined) === "true";
 
     const [isDismissed, setIsDismissed] = useState(alreadyDismissed);
 
-    if (!readOnly || isDismissed) {
+    if (!readOnly || !bannerEnabled || isDismissed) {
         return null;
     }
 

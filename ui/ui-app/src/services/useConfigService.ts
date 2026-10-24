@@ -58,6 +58,8 @@ export interface FeaturesConfig {
     readOnly?: boolean;
     readOnlyReason?: string;
     storageName?: string;
+    readOnlyBannerEnabled?: boolean;
+    readOnlyBannerText?: string;
     breadcrumbs?: boolean;
     roleManagement?: boolean;
     deleteGroup?: boolean;
@@ -232,6 +234,8 @@ export interface ConfigService {
     features(): FeaturesConfig;
     featureReadOnly(): boolean;
     featureReadOnlyReason(): string | undefined;
+    featureReadOnlyBannerEnabled(): boolean;
+    featureReadOnlyBannerText(): string | undefined;
     featureBreadcrumbs(): boolean;
     featureRoleManagement(): boolean;
     featureSettings(): boolean;
@@ -335,6 +339,14 @@ export class ConfigServiceImpl implements ConfigService {
 
     public featureReadOnlyReason(): string | undefined {
         return this.features().readOnlyReason;
+    }
+
+    public featureReadOnlyBannerEnabled(): boolean {
+        return this.features().readOnlyBannerEnabled === undefined ? true : this.features().readOnlyBannerEnabled as boolean;
+    }
+
+    public featureReadOnlyBannerText(): string | undefined {
+        return this.features().readOnlyBannerText;
     }
 
     public featureBreadcrumbs(): boolean {

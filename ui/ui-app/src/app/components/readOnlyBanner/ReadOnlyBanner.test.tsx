@@ -19,6 +19,8 @@ vi.mock("react", async (importOriginal) => {
 const mockConfigService = {
     featureReadOnly: vi.fn(),
     featureReadOnlyReason: vi.fn(),
+    featureReadOnlyBannerEnabled: vi.fn(),
+    featureReadOnlyBannerText: vi.fn(),
     features: vi.fn(),
 };
 vi.mock("@services/useConfigService.ts", () => ({
@@ -45,6 +47,8 @@ describe("ReadOnlyBanner", () => {
         vi.clearAllMocks();
         useStateValue = undefined;
         mockLocalStorage.getConfigProperty.mockReturnValue(undefined);
+        mockConfigService.featureReadOnlyBannerEnabled.mockReturnValue(true);
+        mockConfigService.featureReadOnlyBannerText.mockReturnValue(undefined);
     });
 
     it("returns null when registry is not read-only", () => {
@@ -121,5 +125,70 @@ describe("ReadOnlyBanner", () => {
             "true"
         );
         expect(setStateFn).toHaveBeenCalledWith(true);
+    });
+
+    it("returns null when featureReadOnlyBannerEnabled is false", () => {
+        mockConfigService.featureReadOnly.mockReturnValue(true);
+        mockConfigService.featureReadOnlyBannerEnabled.mockReturnValue(false);
+        mockConfigService.featureReadOnlyReason.mockReturnValue("config");
+        mockConfigService.features.mockReturnValue({ storageName: undefined });
+
+        const result = ReadOnlyBanner({});
+        expect(result).toBeNull();
+    });
+
+    it("shows custom text when configured, overriding GitOps default message", () => {
+        mockConfigService.featureReadOnly.mockReturnValue(true);
+        mockConfigService.featureReadOnlyBannerEnabled.mockReturnValue(true);
+        mockConfigService.featureReadOnlyBannerText.mockReturnValue("Custom banner text for all reasons");
+        mockConfigService.featureReadOnlyReason.mockReturnValue("storage");
+        mockConfigService.features.mockReturnValue({ storageName: "gitops" });
+
+        const result: any = ReadOnlyBanner({});
+        expect(result.props.title).toBe("Custom banner text for all reasons");
+        expect(result.props.variant).toBe("info");
+    });
+
+    it("shows custom text when configured, overriding config default message", () => {
+        mockConfigService.featureReadOnly.mockReturnValue(true);
+        mockConfigService.featureReadOnlyBannerEnabled.mockReturnValue(true);
+        mockConfigService.featureReadOnlyBannerText.mockReturnValue("Custom banner text for all reasons");
+        mockConfigService.featureReadOnlyReason.mockReturnValue("config");
+        mockConfigService.features.mockReturnValue({ storageName: undefined });
+
+        const result: any = ReadOnlyBanner({});
+        expect(result.props.title).toBe("Custom banner text for all reasons");
+    });
+
+    it("falls back to default message when custom text is unset or whitespace", () => {
+        mockConfigService.featureReadOnly.mockReturnValue(true);
+        mockConfigService.featureReadOnlyBannerEnabled.mockReturnValue(true);
+        mockConfigService.featureReadOnlyBannerText.mockReturnValue("   ");
+        mockConfigService.featureReadOnlyReason.mockReturnValue("config");
+        mockConfigService.features.mockReturnValue({ storageName: undefined });
+
+        const result: any = ReadOnlyBanner({});
+        expect(result.props.title).toBe("This registry is in read-only mode.");
+    });
+
+    it("resets dismissal and shows banner when custom text changes", () => {
+        mockConfigService.featureReadOnly.mockReturnValue(true);
+        mockConfigService.featureReadOnlyBannerEnabled.mockReturnValue(true);
+        mockConfigService.featureReadOnlyBannerText.mockReturnValue("New message text");
+        mockLocalStorage.getConfigProperty.mockReturnValue(undefined);
+
+        const result: any = ReadOnlyBanner({});
+        expect(result).not.toBeNull();
+        expect(result.props.title).toBe("New message text");
+    });
+
+    it("returns null when custom text was previously dismissed", () => {
+        mockConfigService.featureReadOnly.mockReturnValue(true);
+        mockConfigService.featureReadOnlyBannerEnabled.mockReturnValue(true);
+        mockConfigService.featureReadOnlyBannerText.mockReturnValue("Custom banner text");
+        mockLocalStorage.getConfigProperty.mockReturnValue("true");
+
+        const result = ReadOnlyBanner({});
+        expect(result).toBeNull();
     });
 });

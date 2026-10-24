@@ -56,7 +56,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
-import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -114,7 +114,7 @@ import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE_TYPE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_VERSION;
 import static io.apicurio.registry.rest.cache.HttpCaching.caching;
 import static io.apicurio.registry.rest.headers.Headers.checkIfDeprecated;
-import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.recursivelyResolveReferenceContentIds;
+import static io.apicurio.registry.references.ReferenceResolution.recursivelyResolveReferenceContentIds;
 import static io.apicurio.registry.utils.Cell.cellWithLoader;
 import static java.util.stream.Collectors.toList;
 
@@ -1069,7 +1069,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String filename = artifactId + ext;
 
         if (Boolean.TRUE.equals(canonical)) {
-            Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+            Map<String, TypedContent> resolvedReferences = ReferenceResolution
                     .recursivelyResolveReferences(artifactCell.get().getReferences(),
                             accessGuard.referenceLoader());
             contentToReturn = contentUtils.canonicalizeContent(metaData.getArtifactType(),
@@ -1260,7 +1260,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     gav.getRawArtifactId(), gav.getRawVersionId());
             StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),
                     gav.getRawArtifactId(), gav.getRawVersionId());
-            final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+            final Map<String, TypedContent> resolvedReferences = ReferenceResolution
                     .recursivelyResolveReferences(artifact.getReferences(), accessGuard.referenceLoader());
             final List<ArtifactReference> references = V3ApiUtil
                     .referenceDtosToReferences(artifact.getReferences());
@@ -1573,7 +1573,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         && data.getFirstVersion().getIsDraft();
 
                 // Try to resolve the references
-                final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+                final Map<String, TypedContent> resolvedReferences = ReferenceResolution
                         .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
                 // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
@@ -1708,7 +1708,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Apply rules unless the version is DRAFT (unless draft production mode is enabled)
         if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
             // Try to resolve the new artifact references and the nested ones (if any)
-            final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+            final Map<String, TypedContent> resolvedReferences = ReferenceResolution
                     .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
             TypedContent typedContent = TypedContent.create(effectiveContent, effectiveContentType);
@@ -2026,7 +2026,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Apply rules only if not a draft version (unless draft production mode is enabled)
         if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {
-            final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+            final Map<String, TypedContent> resolvedReferences = ReferenceResolution
                     .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
             final TypedContent typedContent = TypedContent.create(content, contentType);
             rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
@@ -2096,7 +2096,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     private void authorizeReferences(List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty() && accessGuard.isEnforced(AuthorizedLevel.Read)) {
-            RegistryContentUtils.recursivelyResolveReferences(references, accessGuard.referenceLoader());
+            ReferenceResolution.recursivelyResolveReferences(references, accessGuard.referenceLoader());
         }
     }
 

@@ -190,7 +190,7 @@ class DraftsBranchDdlUpgradeTest {
 
     private List<String> parseDdl(String resourcePath) {
         DdlParser parser = new DdlParser();
-        try (InputStream input = PeersDdlUpgradeTest.class.getResourceAsStream(resourcePath)) {
+        try (InputStream input = DraftsBranchDdlUpgradeTest.class.getResourceAsStream(resourcePath)) {
             Assertions.assertNotNull(input, "Missing test fixture: " + resourcePath);
             return parser.parse(input);
         } catch (Exception ex) {

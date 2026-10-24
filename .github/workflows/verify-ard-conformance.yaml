@@ -54,7 +54,7 @@ jobs:
 
       - name: Load Registry image for this commit
         if: inputs.image-tag != ''
-        uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+        uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         with:
           artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
           image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar

@@ -56,6 +56,10 @@ export declare type Alerts = {
 export interface FeaturesConfig {
     showMasthead?: boolean;
     readOnly?: boolean;
+    readOnlyReason?: string;
+    storageName?: string;
+    readOnlyBannerEnabled?: boolean;
+    readOnlyBannerText?: string;
     breadcrumbs?: boolean;
     roleManagement?: boolean;
     deleteGroup?: boolean;
@@ -229,6 +233,9 @@ export interface ConfigService {
     uiNavPrefixPath(): string|undefined;
     features(): FeaturesConfig;
     featureReadOnly(): boolean;
+    featureReadOnlyReason(): string | undefined;
+    featureReadOnlyBannerEnabled(): boolean;
+    featureReadOnlyBannerText(): string | undefined;
     featureBreadcrumbs(): boolean;
     featureRoleManagement(): boolean;
     featureSettings(): boolean;
@@ -328,6 +335,18 @@ export class ConfigServiceImpl implements ConfigService {
 
     public featureReadOnly(): boolean {
         return this.features().readOnly || false;
+    }
+
+    public featureReadOnlyReason(): string | undefined {
+        return this.features().readOnlyReason;
+    }
+
+    public featureReadOnlyBannerEnabled(): boolean {
+        return this.features().readOnlyBannerEnabled === undefined ? true : this.features().readOnlyBannerEnabled as boolean;
+    }
+
+    public featureReadOnlyBannerText(): string | undefined {
+        return this.features().readOnlyBannerText;
     }
 
     public featureBreadcrumbs(): boolean {

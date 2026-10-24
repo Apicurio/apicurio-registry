@@ -32,6 +32,7 @@ import { ArrowUpIcon, ExternalLinkAltIcon } from "@patternfly/react-icons";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@patternfly/react-table";
 import { ArtifactMetaData } from "@sdk/lib/generated-client/models";
 import { ContractStatusBadge, QualityScoreGauge } from "@app/components/contracts";
+import { IfFeature } from "@app/components";
 import { useAppNavigation } from "@services/useAppNavigation.ts";
 import {
     ContractAuditEntry,
@@ -238,11 +239,13 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
                                                 onClick={() => appNavigation.navigateTo(contractLink)}>
                                                 View contract artifact
                                             </Button>
-                                            {" | "}
-                                            <Button variant="link" isInline
-                                                onClick={openOdcsEditor}>
-                                                Edit YAML
-                                            </Button>
+                                            <IfFeature feature="readOnly" isNot={true}>
+                                                {" | "}
+                                                <Button variant="link" isInline
+                                                    onClick={openOdcsEditor}>
+                                                    Edit YAML
+                                                </Button>
+                                            </IfFeature>
                                         </DescriptionListDescription>
                                     </DescriptionListGroup>
                                 )}
@@ -390,16 +393,20 @@ export const ArtifactContractTabContent: FunctionComponent<ArtifactContractTabCo
                                 <>
                                     <p>No contract rules defined. Add quality rules by editing the ODCS contract YAML
                                         (quality.accuracy section) and re-submitting it.</p>
-                                    <Button variant="secondary" onClick={openOdcsEditor}
-                                        style={{ marginTop: 10 }}>
-                                        Edit ODCS Contract
-                                    </Button>
+                                    <IfFeature feature="readOnly" isNot={true}>
+                                        <Button variant="secondary" onClick={openOdcsEditor}
+                                            style={{ marginTop: 10 }}>
+                                            Edit ODCS Contract
+                                        </Button>
+                                    </IfFeature>
                                 </>
                             )}
                             <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center" }}>
-                                <Button variant="secondary" onClick={openOdcsEditor}>
-                                    Edit ODCS Contract
-                                </Button>
+                                <IfFeature feature="readOnly" isNot={true}>
+                                    <Button variant="secondary" onClick={openOdcsEditor}>
+                                        Edit ODCS Contract
+                                    </Button>
+                                </IfFeature>
                                 <HelperText>
                                     <HelperTextItem variant="indeterminate">
                                         <strong>Condition</strong> rules validate data (pass/fail). <strong>Transform</strong> rules modify data (e.g. schema migration).

@@ -75,7 +75,30 @@ public class SystemResourceImpl implements SystemResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.None)
     public UserInterfaceConfig getUIConfig() {
-        boolean readOnly = uiConfig.featureReadOnly.get() || storage.isReadOnly();
+        boolean storageReadOnly = storage.isReadOnly();
+        boolean readOnly = uiConfig.featureReadOnly.get() || storageReadOnly;
+
+        UserInterfaceConfigFeatures.ReadOnlyReason readOnlyReason = null;
+        String storageName = null;
+        if (storageReadOnly) {
+            readOnlyReason = UserInterfaceConfigFeatures.ReadOnlyReason.storage;
+            storageName = storage.storageName();
+        } else if (readOnly) {
+            readOnlyReason = UserInterfaceConfigFeatures.ReadOnlyReason.config;
+        }
+
+        boolean bannerEnabled = uiConfig.featureReadOnlyBannerEnabled == null || uiConfig.featureReadOnlyBannerEnabled.get();
+        String bannerText = null;
+        if (uiConfig.featureReadOnlyBannerText != null) {
+            try {
+                bannerText = uiConfig.featureReadOnlyBannerText.get();
+            } catch (java.util.NoSuchElementException ignored) {
+                bannerText = null;
+            }
+        }
+        if (bannerText != null && bannerText.isBlank()) {
+            bannerText = null;
+        }
 
         return UserInterfaceConfig.builder()
                 .ui(UserInterfaceConfigUi.builder().contextPath(uiConfig.contextPath)
@@ -86,6 +109,10 @@ public class SystemResourceImpl implements SystemResource {
                 .auth(uiAuthConfig())
                 .features(UserInterfaceConfigFeatures.builder()
                         .readOnly(readOnly)
+                        .readOnlyReason(readOnlyReason)
+                        .storageName(storageName)
+                        .readOnlyBannerEnabled(bannerEnabled)
+                        .readOnlyBannerText(bannerText)
                         .breadcrumbs("true".equals(uiConfig.featureBreadcrumbs))
                         .roleManagement(authConfig.isRbacEnabled() && "application".equals(authConfig.getRoleSource()))
                         .deleteGroup(restConfig.isGroupDeletionEnabled() && !readOnly)

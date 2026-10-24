@@ -1709,6 +1709,16 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`3.0.0`
 |Enabled to show breadcrumbs in the UI
+|`apicurio.ui.features.read-only.banner.enabled`
+|`boolean [dynamic]`
+|`true`
+|`3.4.0`
+|Enabled to show the read-only banner in the UI
+|`apicurio.ui.features.read-only.banner.text`
+|`string [dynamic]`
+|
+|`3.4.0`
+|Custom text for the read-only banner
 |`apicurio.ui.features.read-only.enabled`
 |`boolean [dynamic]`
 |`false`
@@ -1926,6 +1936,16 @@ The following {registry} configuration options are available for each component 
 |
 |
 |`apicurio.ui.features.agents.enabled.dynamic.allow`
+|`unknown`
+|`${apicurio.config.dynamic.allow-all}`
+|
+|
+|`apicurio.ui.features.read-only.banner.enabled.dynamic.allow`
+|`unknown`
+|`${apicurio.config.dynamic.allow-all}`
+|
+|
+|`apicurio.ui.features.read-only.banner.text.dynamic.allow`
 |`unknown`
 |`${apicurio.config.dynamic.allow-all}`
 |

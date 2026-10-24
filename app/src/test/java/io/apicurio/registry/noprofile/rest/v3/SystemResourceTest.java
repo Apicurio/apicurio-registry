@@ -18,6 +18,8 @@ public class SystemResourceTest extends AbstractResourceTestBase {
 
     private static final String STORAGE_READ_ONLY_PROPERTY_NAME = "apicurio.storage.read-only.enabled";
     private static final String UI_READ_ONLY_PROPERTY_NAME = "apicurio.ui.features.read-only.enabled";
+    private static final String UI_READ_ONLY_BANNER_ENABLED_PROPERTY_NAME = "apicurio.ui.features.read-only.banner.enabled";
+    private static final String UI_READ_ONLY_BANNER_TEXT_PROPERTY_NAME = "apicurio.ui.features.read-only.banner.text";
     private static final String DELETE_GROUP_PROPERTY_NAME = "apicurio.rest.deletion.group.enabled";
     private static final String DELETE_ARTIFACT_PROPERTY_NAME = "apicurio.rest.deletion.artifact.enabled";
     private static final String DELETE_VERSION_PROPERTY_NAME = "apicurio.rest.deletion.artifact-version.enabled";
@@ -26,6 +28,8 @@ public class SystemResourceTest extends AbstractResourceTestBase {
     public void resetReadOnlyProperties() {
         updateConfigProperty(STORAGE_READ_ONLY_PROPERTY_NAME, false);
         updateConfigProperty(UI_READ_ONLY_PROPERTY_NAME, false);
+        updateConfigProperty(UI_READ_ONLY_BANNER_ENABLED_PROPERTY_NAME, true);
+        updateConfigProperty(UI_READ_ONLY_BANNER_TEXT_PROPERTY_NAME, "");
         updateConfigProperty(DELETE_GROUP_PROPERTY_NAME, false);
         updateConfigProperty(DELETE_ARTIFACT_PROPERTY_NAME, false);
         updateConfigProperty(DELETE_VERSION_PROPERTY_NAME, false);
@@ -102,9 +106,49 @@ public class SystemResourceTest extends AbstractResourceTestBase {
                 .body("features.deleteVersion", equalTo(false));
     }
 
+    @Test
+    public void testUiReadOnlyBannerConfigProperties() {
+        // By default, readOnlyBannerEnabled is true and readOnlyBannerText is null
+        given().when().contentType(CT_JSON).get("/registry/v3/system/uiConfig").then().statusCode(200)
+                .body("features.readOnlyBannerEnabled", equalTo(true))
+                .body("features.readOnlyBannerText", nullValue());
+
+        // Update banner text to a custom message
+        updateConfigProperty(UI_READ_ONLY_BANNER_TEXT_PROPERTY_NAME, "Custom banner message");
+
+        given().when().contentType(CT_JSON).get("/registry/v3/system/uiConfig").then().statusCode(200)
+                .body("features.readOnlyBannerEnabled", equalTo(true))
+                .body("features.readOnlyBannerText", equalTo("Custom banner message"));
+
+        // Disable the banner deployment-wide
+        updateConfigProperty(UI_READ_ONLY_BANNER_ENABLED_PROPERTY_NAME, false);
+
+        given().when().contentType(CT_JSON).get("/registry/v3/system/uiConfig").then().statusCode(200)
+                .body("features.readOnlyBannerEnabled", equalTo(false))
+                .body("features.readOnlyBannerText", equalTo("Custom banner message"));
+
+        // Blank/empty banner text falls back to null
+        updateConfigProperty(UI_READ_ONLY_BANNER_TEXT_PROPERTY_NAME, "");
+
+        given().when().contentType(CT_JSON).get("/registry/v3/system/uiConfig").then().statusCode(200)
+                .body("features.readOnlyBannerEnabled", equalTo(false))
+                .body("features.readOnlyBannerText", nullValue());
+
+        // Re-enable banner
+        updateConfigProperty(UI_READ_ONLY_BANNER_ENABLED_PROPERTY_NAME, true);
+
+        given().when().contentType(CT_JSON).get("/registry/v3/system/uiConfig").then().statusCode(200)
+                .body("features.readOnlyBannerEnabled", equalTo(true))
+                .body("features.readOnlyBannerText", nullValue());
+    }
+
     private void updateConfigProperty(String propertyName, boolean value) {
+        updateConfigProperty(propertyName, String.valueOf(value));
+    }
+
+    private void updateConfigProperty(String propertyName, String value) {
         UpdateConfigurationProperty update = new UpdateConfigurationProperty();
-        update.setValue(String.valueOf(value));
+        update.setValue(value);
         given().when().contentType(CT_JSON).body(update).pathParam("propertyName", propertyName)
                 .put("/registry/v3/admin/config/properties/{propertyName}").then().statusCode(204);
     }

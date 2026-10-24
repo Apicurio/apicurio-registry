@@ -66,6 +66,18 @@ NOTE: The {operator} automatically configures the UI component with the REST API
 `REGISTRY_FEATURE_READ_ONLY`: Set to `true` to enable read-only mode. Defaults to `false`.
 +
 NOTE: Read-only mode disables all write operations in the {registry} web console. When enabled, users cannot create groups, create artifacts, upload new artifact versions, update artifact metadata, or delete artifacts.
++
+When read-only mode is active (whether from storage such as GitOps or manually enabled), the web console displays an informative banner. You can customize the banner text or hide the banner deployment-wide:
++
+* `apicurio.ui.features.read-only.banner.text`: Custom text to display in the banner. When unset, the default text is used.
+* `apicurio.ui.features.read-only.banner.enabled`: Set to `false` to hide the read-only banner deployment-wide. Defaults to `true`.
++
+.Example: Custom read-only banner message
+[source,properties]
+----
+apicurio.ui.features.read-only.banner.enabled=true
+apicurio.ui.features.read-only.banner.text=This registry is managed via GitOps. Submit changes as pull requests to https://github.com/my-org/my-registry-repo on branch main.
+----
 
 
 

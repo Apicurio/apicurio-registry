@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @QuarkusTest
 public class AgentReferencesTest extends AbstractResourceTestBase {
 
-    private static final String TOOL = """
+    protected static final String TOOL = """
             {
                 "name": "%s",
                 "description": "A test tool",
@@ -57,7 +57,7 @@ public class AgentReferencesTest extends AbstractResourceTestBase {
             }
             """;
 
-    private static final String AGENT = """
+    protected static final String AGENT = """
             {
                 "name": "%s",
                 "description": "A test agent",
@@ -92,7 +92,7 @@ public class AgentReferencesTest extends AbstractResourceTestBase {
     @Current
     RegistryStorage storage;
 
-    private String groupId;
+    protected String groupId;
 
     @BeforeEach
     void createGroup() {
@@ -102,7 +102,7 @@ public class AgentReferencesTest extends AbstractResourceTestBase {
         clientV3.groups().post(group);
     }
 
-    private void useIntegrityRule(IntegrityLevel level) {
+    protected void useIntegrityRule(IntegrityLevel level) {
         CreateRule rule = new CreateRule();
         rule.setRuleType(RuleType.INTEGRITY);
         rule.setConfig(level.name());
@@ -205,7 +205,7 @@ public class AgentReferencesTest extends AbstractResourceTestBase {
         assertEquals(Set.of("tool"), artifactIds(references("agent", ReferenceType.OUTBOUND)));
     }
 
-    private ArtifactReference ref(String artifactId, String name) {
+    protected ArtifactReference ref(String artifactId, String name) {
         ArtifactReference ref = new ArtifactReference();
         ref.setGroupId(groupId);
         ref.setArtifactId(artifactId);
@@ -214,7 +214,7 @@ public class AgentReferencesTest extends AbstractResourceTestBase {
         return ref;
     }
 
-    private void create(String artifactId, String type, String content, ArtifactReference... refs) {
+    protected void create(String artifactId, String type, String content, ArtifactReference... refs) {
         CreateArtifact artifact = new CreateArtifact();
         artifact.setArtifactId(artifactId);
         artifact.setArtifactType(type);

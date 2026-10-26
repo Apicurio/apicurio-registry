@@ -33,7 +33,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '21'
           distribution: temurin
@@ -154,7 +154,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '21'
           distribution: temurin
@@ -178,7 +178,7 @@ jobs:
         timeout-minutes: 20
         run: bash .github/scripts/cache-kubernetes-binaries.sh "$KUBERNETES_VERSION"
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         id: minikube-setup
         continue-on-error: true
         timeout-minutes: 10
@@ -192,7 +192,7 @@ jobs:
       # medyagh/setup-minikube (invoked by the composite action) intermittently
       # fails with transient HTTP 504s while downloading; one retry absorbs it
       # instead of failing the whole job.
-      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         if: steps.minikube-setup.outcome == 'failure'
         timeout-minutes: 10
         with:
@@ -307,7 +307,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '21'
           distribution: temurin
@@ -333,7 +333,7 @@ jobs:
         timeout-minutes: 20
         run: bash .github/scripts/cache-kubernetes-binaries.sh "$KUBERNETES_VERSION"
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         id: minikube-setup
         continue-on-error: true
         timeout-minutes: 10
@@ -368,7 +368,7 @@ jobs:
       # medyagh/setup-minikube (invoked by the composite action) intermittently
       # fails with transient HTTP 504s while downloading; one retry absorbs it
       # instead of failing the whole job.
-      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         if: steps.minikube-setup.outcome == 'failure'
         timeout-minutes: 10
         with:
@@ -402,21 +402,21 @@ jobs:
           docker push "$REGISTRY_GITOPS_SYNC_IMAGE"
           docker push "$IMAGE"
 
+      # ttl.sh pulls occasionally stall for 10+ minutes mid-test (catalog pod stuck
+      # Pending until the setup timeout). Pull once up front with retries; with
+      # driver=none the kubelet shares the host docker image store, so pods using
+      # these (non-:latest) images get IfNotPresent semantics and never pull during
+      # tests. A stalled attempt is killed after 3 minutes and retried (normal pulls of
+      # both images take under 70s). A pull already done is a no-op on retry.
       - name: Pre-pull OLM bundle and catalog images
-        run: |
-          # ttl.sh pulls occasionally stall for 10+ minutes mid-test (catalog pod stuck
-          # Pending until the setup timeout). Pull once up front with retries; with
-          # driver=none the kubelet shares the host docker image store, so pods using
-          # these (non-:latest) images get IfNotPresent semantics and never pull during
-          # tests.
-          for img in "$BUNDLE_IMAGE" "$CATALOG_IMAGE"; do
-            for i in 1 2 3; do
-              docker pull "$img" && break
-              echo "Pull failed for $img (attempt $i/3), retrying..."
-              sleep 5
-            done
-            docker image inspect "$img" > /dev/null || { echo "Could not pull $img"; exit 1; }
-          done
+        uses: Apitomy/apitomy-github-actions/retry@e10e64b8a9ca86982f45a1ea512847219ae2605e # v1.0.1
+        with:
+          command: |
+            docker pull "$BUNDLE_IMAGE"
+            docker pull "$CATALOG_IMAGE"
+          max-attempts: 3
+          initial-delay: 5
+          timeout-minutes: 3
 
       # -Dtest.operator.timeout.long=600: extend default Awaitility timeout from 420s (7 min)
       #   to 600s (10 min) for slow Kafka/OLM startups on shared runners. This is read by
@@ -457,7 +457,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '21'
           distribution: temurin
@@ -498,6 +498,12 @@ jobs:
     timeout-minutes: 20  # longest green run, week to 2026-10-01: 7 min
     needs: [operator-test, operator-check-install]
     if: inputs.publish
+    # One publish at a time per branch, as for Verify's images: a retried
+    # Verify run can reach this job while a newer run does (#10380).
+    concurrency:
+      group: ${{ github.workflow }}-publish-operator-${{ github.ref }}
+      cancel-in-progress: false
+      queue: max
     steps:
 
       - name: Configure env. variables
@@ -510,58 +516,63 @@ jobs:
       - name: Checkout ${{ github.ref }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # Publish only a commit newer than the one latest-snapshot was built
+      # from; every step below is skipped otherwise. The image name is the
+      # Makefile's IMAGE_REGISTRY/IMAGE_NAME. Checking the operator image is
+      # enough: the bundle and catalog are pushed after it, so they can't be
+      # newer.
+      - name: Compare with the published commit
+        id: guard
+        uses: ./.github/actions/newer-than-published
+        with:
+          images: quay.io/apicurio/apicurio-registry-3-operator:latest-snapshot
+
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        if: steps.guard.outputs.publish == 'true'
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '21'
           distribution: temurin
           cache: maven
 
       - name: Build
+        if: steps.guard.outputs.publish == 'true'
         working-directory: operator
         run: |
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make BUILD_OPTS="--no-transfer-progress -Daether.syncContext.named.factory=noop" SKIP_TESTS=true build
 
       - name: Set up QEMU
+        if: steps.guard.outputs.publish == 'true'
         uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
 
       - name: Set up Docker Buildx
+        if: steps.guard.outputs.publish == 'true'
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Login to quay.io registry
+        if: steps.guard.outputs.publish == 'true'
         run: |
           docker login -u "${{ secrets.QUAY_USERNAME }}" -p "${{ secrets.QUAY_PASSWORD }}" quay.io
 
       # TODO: Also push to DockerHub Registry
       - name: Build and publish operator image
+        if: steps.guard.outputs.publish == 'true'
         working-directory: operator
         run: |
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make image-buildx-push
 
       - name: Build and publish operator bundle
+        if: steps.guard.outputs.publish == 'true'
         working-directory: operator
         run: |
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make bundle
 
       - name: Build and publish operator catalog
+        if: steps.guard.outputs.publish == 'true'
         working-directory: operator
         run: |
           unset IMAGE REGISTRY_APP_IMAGE REGISTRY_GITOPS_SYNC_IMAGE BUNDLE_IMAGE CATALOG_IMAGE
           make catalog
-
-  # Slack notification using reusable workflow
-  notify-slack:
-    name: Slack Notification
-    needs: operator-publish
-    if: always() && inputs.publish
-    uses: ./.github/workflows/reusable-notify-slack.yaml
-    with:
-      workflow-name: ${{ github.workflow }}
-      job-name: 'operator-publish'
-      job-status: ${{ needs.operator-publish.result }}
-    secrets:
-      SLACK_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
-      SLACK_ERROR_WEBHOOK: ${{ secrets.SLACK_ERROR_WEBHOOK }}

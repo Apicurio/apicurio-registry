@@ -1,6 +1,7 @@
 name: PR Validation
 
-# Validates submission quality (issue link, DCO sign-off, milestone) and flags
+# Validates submission quality (issue link, DCO sign-off, milestone, unchanged
+# database upgrade scripts) and flags
 # duplicate PRs. Independent of the lifecycle state machine: this runs on every
 # PR regardless of lifecycle state.
 #
@@ -54,7 +55,7 @@ jobs:
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: 24.21.0
+          node-version: 24.22.1
 
       - name: Run unit tests
         run: node --test .github/scripts/pr-validation.test.js

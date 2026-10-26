@@ -92,6 +92,7 @@
     <module>utils/importexport</module>
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
+    <module>authz</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
     <module>schema-util/agents</module>
@@ -192,7 +193,7 @@
     <!-- Schema types -->
     <avro.version>1.12.2</avro.version>
     <json-schema-validator.version>1.5.9</json-schema-validator.version>
-    <wire-schema.version>6.4.0</wire-schema.version>
+    <wire-schema.version>6.4.7</wire-schema.version>
     <okhttp.version>4.12.0</okhttp.version>
     <okio.version>3.18.2</okio.version>
     <kotlin-stdlib.version>2.4.21</kotlin-stdlib.version>
@@ -248,7 +249,7 @@
 
     <!-- Dependency versions -->
     <lombok.version>1.18.48</lombok.version>
-    <commons-codec.version>1.22.1</commons-codec.version>
+    <commons-codec.version>1.23.0</commons-codec.version>
     <netty.version>4.1.136.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.18.0</kafka-oauth-client.version>
@@ -299,7 +300,7 @@
     <version.gmavenplus-plugin>4.3.1</version.gmavenplus-plugin>
 
     <!-- Central-Publishing-Maven-Plugin -->
-    <version.org.sonatype.central-publishing-maven-plugin>0.11.0</version.org.sonatype.central-publishing-maven-plugin>
+    <version.org.sonatype.central-publishing-maven-plugin>0.12.0</version.org.sonatype.central-publishing-maven-plugin>
 
     <!-- Plugin Deps -->
     <version.puppycrawl>13.11.0</version.puppycrawl>
@@ -311,7 +312,7 @@
     <flink.version>1.20.5</flink.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.9.3</kiota.libs.version>
+    <kiota.libs.version>1.10.3</kiota.libs.version>
     <kiota.community.version>0.0.39</kiota.community.version>
     <!-- 0.0.39 retries transient ETXTBSY during process startup
          (https://bugs.openjdk.org/browse/JDK-8068370) and publishes
@@ -368,6 +369,9 @@
 
     <!-- CEL (Common Expression Language) -->
     <cel-standalone.version>0.6.0</cel-standalone.version>
+
+    <!-- Kroxylicious Authorizer API (shared authorization contract) -->
+    <kroxylicious.version>0.25.1</kroxylicious.version>
   </properties>
 
   <dependencyManagement>
@@ -387,6 +391,12 @@
         <groupId>org.jline</groupId>
         <artifactId>jline-terminal-jansi</artifactId>
         <version>${jline.version}</version>
+      </dependency>
+      <!-- Kroxylicious Authorizer API -->
+      <dependency>
+        <groupId>io.kroxylicious</groupId>
+        <artifactId>kroxylicious-authorizer-api</artifactId>
+        <version>${kroxylicious.version}</version>
       </dependency>
 
       <!-- This project -->

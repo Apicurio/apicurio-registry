@@ -182,7 +182,12 @@ the database.
 [role="_additional-resources"]
 .Additional resources
 
+ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-installing-registry-storage-openshift.adoc#installing-postgresql-operatorhub_{context}[Installing a PostgreSQL database from the OpenShift OperatorHub]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:installing-postgresql-operatorhub_{context}[]
+endif::[]
 
 // proc-deploying-registry-mysql
 [id="deploying-registry-mysql_{context}"]
@@ -333,7 +338,12 @@ WARNING: You must configure the Kafka topic used by {registry} with `cleanup.pol
 [role="_additional-resources"]
 .Additional resources
 
+ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-installing-registry-storage-openshift.adoc#setting-up-kafka-streams-storage_{context}[Configuring {registry} with Kafka storage on OpenShift]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:setting-up-kafka-streams-storage_{context}[]
+endif::[]
 
 // ref-configuring-kafkasql-tls
 [id="configuring-kafkasql-tls_{context}"]
@@ -481,11 +491,21 @@ the experimental features gate required by KubernetesOps storage.
 
 . Optional: Verify that the {operator} created the RBAC resources that grant the registry read access
 to ConfigMaps. The {operator} automatically creates a ServiceAccount, a Role, and a RoleBinding, each named
-`<cr-name>-kubeops`, and sets the service account on the registry deployment. For deployments without the
-{operator}, see xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-rbac-requirements_{context}[RBAC requirements].
+`<cr-name>-kubeops`, and sets the service account on the registry deployment.
+ifndef::service-registry-downstream[]
+For deployments without the {operator}, see xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-rbac-requirements_{context}[RBAC requirements].
+endif::[]
+ifdef::service-registry-downstream[]
+For deployments without the {operator}, see xref:kubernetesops-rbac-requirements_{context}[RBAC requirements].
+endif::[]
 
-. Create ConfigMaps containing your registry data. See
-xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-configmap-format_{context}[ConfigMap data format] for the required format.
+. Create ConfigMaps containing your registry data.
+ifndef::service-registry-downstream[]
+See xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-configmap-format_{context}[ConfigMap data format] for the required format.
+endif::[]
+ifdef::service-registry-downstream[]
+See xref:kubernetesops-configmap-format_{context}[ConfigMap data format] for the required format.
+endif::[]
 
 . Click *Create* and wait for the {registry} deployment to be created.
 

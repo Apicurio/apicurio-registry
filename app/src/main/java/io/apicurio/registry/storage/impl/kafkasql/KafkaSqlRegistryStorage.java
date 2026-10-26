@@ -29,6 +29,7 @@ import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.storage.PeerValidator;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.StorageEvent;
 import io.apicurio.registry.storage.StorageEventType;
@@ -1099,6 +1100,39 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     }
 
     /**
+     * @see io.apicurio.registry.storage.RegistryStorage#createPeer(io.apicurio.registry.storage.dto.PeerDto)
+     */
+    @Override
+    public void createPeer(PeerDto peer) throws RegistryStorageException {
+        PeerValidator.validate(peer);
+        var message = new CreatePeer1Message(peer);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#updatePeer(io.apicurio.registry.storage.dto.PeerDto)
+     */
+    @Override
+    public void updatePeer(PeerDto peer) throws RegistryStorageException {
+        PeerValidator.validate(peer);
+        var message = new UpdatePeer1Message(peer);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.RegistryStorage#deletePeer(java.lang.String)
+     */
+    @Override
+    public void deletePeer(String peerId) throws RegistryStorageException {
+        PeerValidator.validatePeerId(peerId);
+        var message = new DeletePeer1Message(peerId);
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
+    }
+
+    /**
      * @see io.apicurio.registry.storage.RegistryStorage#deleteAllUserData()
      */
     @Override
@@ -1141,15 +1175,18 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     }
 
     /**
-     * Bypasses the Kafka journal and writes directly to SQL. This operation is triggered by a
-     * scheduled job that runs independently on every pod, so coordinating via the journal is
-     * unnecessary and would add bloat that slows down new-pod bootstrap.
+     * Must go through the Kafka journal. Content ID allocation deduplicates by content hash against
+     * the local SQL state, so deleting orphaned content only locally would make replicas (and
+     * replicas replaying the journal) assign different content IDs when identical content is
+     * re-registered. Journaling the deletion makes every replica apply it at the same position.
      *
      * @see io.apicurio.registry.storage.RegistryStorage#deleteAllOrphanedContent()
      */
     @Override
     public void deleteAllOrphanedContent() throws RegistryStorageException {
-        sqlStore.deleteAllOrphanedContent();
+        var message = new DeleteAllOrphanedContent0Message();
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
     @Override

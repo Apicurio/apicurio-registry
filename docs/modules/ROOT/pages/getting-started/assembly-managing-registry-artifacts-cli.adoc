@@ -406,6 +406,8 @@ You can use the CLI to create, list, get, update, and delete artifacts in {regis
 ----
 $ acr artifact --group my-schemas
 ----
++
+To browse the artifacts in a selectable table instead of a static list, see xref:browsing-artifacts-interactively-using-registry-cli_{context}[].
 . Create a new artifact from a file:
 +
 [source,bash]
@@ -443,6 +445,51 @@ $ acr artifact delete my-artifact --group my-schemas
 ====
 You must configure {registry} with `apicurio.rest.deletion.artifact.enabled=true` to allow artifact deletions.
 ====
+
+
+[id="browsing-artifacts-interactively-using-registry-cli_{context}"]
+== Browsing artifacts interactively using the CLI
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the CLI in interactive mode to browse the artifacts of a group or the results of an artifact search in a selectable table, view artifact metadata, and delete artifacts, all from one terminal screen.
+
+[NOTE]
+====
+Interactive mode is experimental and subject to backwards-incompatible change or removal. It requires an interactive terminal (TTY). When no TTY is available, for example when standard input is redirected, the command fails with the error message `Interactive mode requires an interactive terminal (TTY).`
+====
+
+.Prerequisites
+* You have configured at least one CLI context.
+* You have an interactive terminal (TTY).
+* You have set `apicurio.rest.deletion.artifact.enabled=true` on the {registry} server if you want to delete artifacts with the `d` key.
+
+.Procedure
+. Start interactive mode by adding the `--interactive` option to the `acr artifact` command or to the `acr search artifact` command:
++
+[source,bash]
+----
+$ acr artifact --group my-schemas --interactive
+$ acr search artifact --type AVRO --interactive
+----
++
+Search filters apply before the table loads and to every page that you load afterwards. Each row shows the artifact name or ID, the artifact type, and the creation date.
+. Work in the table with the following keys:
++
+Up arrow, Down arrow:: Move the selection.
+Enter:: Print the metadata of the selected artifact and exit.
+`d`:: Delete the selected artifact after confirmation.
+`/`:: Filter the loaded rows.
+Page Down, Page Up:: Load the next or previous page.
+`q`, Esc:: Exit without a selection.
+. To narrow the list, press `/` and type a filter value. The CLI filters the loaded rows as you type. The filter matches the artifact ID, name, group ID, type, and description, and ignores case. Press Enter to apply the filter, or press Esc to clear it. An applied filter remains visible in the footer and stays in effect for pages that you load afterwards. The filter does not query the registry; use the `acr search artifact` options to filter on the server.
+. To move through large result sets, press Page Down and Page Up. The table opens on the first page, the footer shows the current page number, and the `--size` option sets the number of artifacts in each page.
+. To view an artifact, select it with the arrow keys and press Enter. The CLI prints the artifact metadata and exits. With `--output-type json`, the CLI prints the metadata as JSON.
+. To delete the selected artifact, press `d`, and then press `y` to confirm. Press `n`, Enter, or Esc to cancel. After a successful deletion, the CLI reloads the current page and the table stays open. When a deletion fails, the error appears in the footer and the command exits with code `1` after you leave the table.
+
+.Verification
+* After you press Enter on a selected artifact, the CLI prints a `Field` and `Value` table that includes the `Group ID`, `Artifact ID`, `Name`, `Artifact Type`, `Description`, `Created On`, `Owner`, `Modified On`, `Modified By`, and `Labels` fields.
 
 
 [id="managing-artifact-versions-using-registry-cli_{context}"]

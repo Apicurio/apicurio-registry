@@ -45,7 +45,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     SchemaFormatService formatService;
 
     @Override
-    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.CCompatSchemaId, level = AuthorizedLevel.Read)
     public Schema getSchemaById(BigInteger id, String format, String subject) {
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
@@ -86,7 +86,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.CCompatSchemaId, level = AuthorizedLevel.Read)
     public String getSchemaContentById(BigInteger id, String format, String subject) {
         ContentHandle contentHandle;
         List<ArtifactReferenceDto> references;
@@ -150,7 +150,7 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
                 : cconfig.maxSubjects.get();
 
         // Search for versions to get schemas
-        VersionSearchResultsDto searchResults = storage.searchVersions(filters, OrderBy.createdOn,
+        VersionSearchResultsDto searchResults = searchAuthorizer.searchVersions(filters, OrderBy.createdOn,
                 OrderDirection.asc, effectiveOffset, effectiveLimit, false);
 
         List<Schema> schemas = new ArrayList<>();
@@ -185,9 +185,18 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.CCompatSchemaId, level = AuthorizedLevel.Read)
     public List<String> getSubjectsBySchemaId(BigInteger id, Boolean deleted) {
         final boolean fdeleted = deleted == null ? Boolean.FALSE : deleted;
+
+        if (cconfig.legacyIdModeEnabled.get()) {
+            // In legacy ID mode the ID is a global ID: it names exactly one version
+            ArtifactVersionMetaDataDto metaData = storage.getArtifactVersionMetaData(id.longValue());
+            if (!fdeleted && metaData.getState() == VersionState.DISABLED) {
+                throw new ArtifactNotFoundException("GlobalId: " + id);
+            }
+            return Collections.singletonList(metaData.getArtifactId());
+        }
 
         List<ArtifactVersionMetaDataDto> versions = storage.getArtifactVersionsByContentId(id.longValue());
         if (versions == null || versions.isEmpty()) {
@@ -196,12 +205,14 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
 
         return versions.stream()
                 .filter(v -> fdeleted || v.getState() != VersionState.DISABLED)
+                // Content is shared: only list subjects the caller may read
+                .filter(v -> searchAuthorizer.canReadArtifact(v.getGroupId(), v.getArtifactId()))
                 .map(ArtifactVersionMetaDataDto::getArtifactId).distinct().sorted()
                 .collect(Collectors.toList());
     }
 
     @Override
-    @Authorized(style = AuthorizedStyle.GlobalId, level = AuthorizedLevel.Read)
+    @Authorized(style = AuthorizedStyle.CCompatSchemaId, level = AuthorizedLevel.Read)
     public List<SubjectVersion> getSchemaVersionsById(BigInteger id, Boolean fdeleted) {
         boolean deleted = fdeleted != null && fdeleted;
         if (cconfig.legacyIdModeEnabled.get()) {
@@ -211,6 +222,8 @@ public class SchemasResourceImpl extends AbstractResource implements SchemasReso
         }
         return storage.getArtifactVersionsByContentId(id.longValue()).stream()
                 .filter(versionMetaData -> deleted || versionMetaData.getState() != VersionState.DISABLED)
+                // Content is shared: only list versions of artifacts the caller may read
+                .filter(v -> searchAuthorizer.canReadArtifact(v.getGroupId(), v.getArtifactId()))
                 .sorted((a, b) -> {
                     int cmp = a.getArtifactId().compareTo(b.getArtifactId());
                     return cmp != 0 ? cmp : Integer.compare(a.getVersionOrder(), b.getVersionOrder());

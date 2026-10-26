@@ -88,10 +88,6 @@ public final class ReferenceGraphWalker {
         int depth = 1;
 
         while (!currentLevel.isEmpty()) {
-            if (depth > maxDepth) {
-                throw new ReferenceDepthExceededException(maxDepth);
-            }
-
             List<GAV> distinctTargets = new ArrayList<>();
             for (ArtifactReferenceDto reference : currentLevel) {
                 if (reference.getName() == null) {
@@ -102,6 +98,14 @@ public final class ReferenceGraphWalker {
                 if (queued.add(target)) {
                     distinctTargets.add(target);
                 }
+            }
+
+            // The limit applies only to coordinates newly discovered at this depth: an edge back to a
+            // coordinate already queued at a shallower depth (for example the closing edge of a cycle, or
+            // a shared dependency reached by more than one path) must not fail a walk that is otherwise
+            // within the limit.
+            if (!distinctTargets.isEmpty() && depth > maxDepth) {
+                throw new ReferenceDepthExceededException(maxDepth);
             }
 
             Map<GAV, ReferenceNode> loaded = distinctTargets.isEmpty() ? Map.of()

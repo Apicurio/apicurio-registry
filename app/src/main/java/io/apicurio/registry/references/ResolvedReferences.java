@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -129,6 +130,11 @@ public final class ResolvedReferences {
      * entry per distinct reference name reachable from the root, each mapped to the content of whichever
      * target won that name (see the class Javadoc for how winners and ordering are decided), in
      * dependency-first order. A missing target's name is simply absent, matching the walker this replaces.
+     * <p>
+     * Two different names can legitimately target the same resolved version (for example {@code a.proto}
+     * and {@code b.proto} both referencing one shared file) — that is a normal alias, not the same-name
+     * collision this method defers to #9000. Every such alias gets its own entry here, all mapped to that
+     * target's content.
      */
     public Map<String, TypedContent> asNameMap() {
         Map<String, GAV> winners = new LinkedHashMap<>();
@@ -137,15 +143,18 @@ public final class ResolvedReferences {
                 winners.put(edge.name(), edge.target());
             }
         }
-        Map<GAV, String> nameByTarget = new HashMap<>();
+        Map<GAV, List<String>> namesByTarget = new LinkedHashMap<>();
         for (Map.Entry<String, GAV> entry : winners.entrySet()) {
-            nameByTarget.putIfAbsent(entry.getValue(), entry.getKey());
+            namesByTarget.computeIfAbsent(entry.getValue(), key -> new ArrayList<>()).add(entry.getKey());
         }
         Map<String, TypedContent> result = new LinkedHashMap<>();
         for (GAV gav : dependencyFirstOrder()) {
-            String name = nameByTarget.get(gav);
-            if (name != null) {
-                result.put(name, nodes.get(gav).getContent());
+            List<String> names = namesByTarget.get(gav);
+            if (names != null) {
+                TypedContent content = nodes.get(gav).getContent();
+                for (String name : names) {
+                    result.put(name, content);
+                }
             }
         }
         return Collections.unmodifiableMap(result);
@@ -178,6 +187,11 @@ public final class ResolvedReferences {
      * references. Computed as a depth-first walk over the already-resolved graph, starting from the root's
      * direct references in the order they were discovered. See the class Javadoc's "How names are
      * resolved" section for why this is DFS even though the walk itself was BFS.
+     * <p>
+     * Iterative, not recursive: the graph can be deep enough that a straightforward recursive post-order
+     * walk would overflow the stack even though {@link ReferenceGraphWalker}'s own, separate breadth-first
+     * depth limit accepted the graph (a wide root referencing every node of a long dependency chain gives
+     * every node breadth-first depth 1, but the chain itself can still be arbitrarily long).
      */
     public List<GAV> dependencyFirstOrder() {
         List<GAV> order = new ArrayList<>(nodes.size());
@@ -188,21 +202,45 @@ public final class ResolvedReferences {
         return order;
     }
 
-    private void visitPostOrder(GAV gav, Set<GAV> visited, List<GAV> order) {
-        if (!visited.add(gav)) {
+    private void visitPostOrder(GAV root, Set<GAV> visited, List<GAV> order) {
+        if (!visited.add(root)) {
             return;
         }
-        ReferenceNode node = nodes.get(gav);
-        if (node == null) {
+        ReferenceNode rootNode = nodes.get(root);
+        if (rootNode == null) {
             // Missing: recorded in missing(), nothing further to visit through it.
             return;
         }
-        if (node.getReferences() != null) {
-            for (ArtifactReferenceDto reference : node.getReferences()) {
-                visitPostOrder(ReferenceGraphWalker.coordinatesOf(reference), visited, order);
+
+        Deque<GAV> stack = new ArrayDeque<>();
+        Deque<Iterator<ArtifactReferenceDto>> iterators = new ArrayDeque<>();
+        stack.push(root);
+        iterators.push(childReferences(rootNode));
+
+        while (!stack.isEmpty()) {
+            Iterator<ArtifactReferenceDto> it = iterators.peek();
+            if (it.hasNext()) {
+                GAV child = ReferenceGraphWalker.coordinatesOf(it.next());
+                if (visited.add(child)) {
+                    ReferenceNode childNode = nodes.get(child);
+                    if (childNode != null) {
+                        stack.push(child);
+                        iterators.push(childReferences(childNode));
+                    }
+                    // else missing: nothing to visit through it, nothing added to order.
+                }
+                // else already visited (or on the current path, i.e. part of a cycle): already handled
+                // or being handled further down the stack, nothing more to do here.
+            } else {
+                order.add(stack.pop());
+                iterators.pop();
             }
         }
-        order.add(gav);
+    }
+
+    private static Iterator<ArtifactReferenceDto> childReferences(ReferenceNode node) {
+        List<ArtifactReferenceDto> references = node.getReferences();
+        return references == null ? Collections.emptyIterator() : references.iterator();
     }
 
     /**
@@ -217,13 +255,15 @@ public final class ResolvedReferences {
      * and recursed forever). Whether a cycle should be an error is the caller's decision — the
      * {@code NO_CIRCULAR_REFERENCES} rule and the {@code /references/graph} endpoint need the path to report
      * it; most other callers do not care that a cycle exists at all as long as the walk itself terminated.
+     * <p>
+     * Iterative, not recursive, for the same reason as {@link #dependencyFirstOrder()}: a long acyclic
+     * chain must not overflow the stack while this method is confirming it has no cycle.
      */
     public Optional<List<GAV>> findCycle() {
         Map<GAV, Integer> colour = new HashMap<>(); // absent = white, 1 = grey (on the current path), 2 = black (done)
-        Deque<GAV> path = new ArrayDeque<>();
         for (GAV start : nodes.keySet()) {
             if (!colour.containsKey(start)) {
-                Optional<List<GAV>> cycle = findCycleFrom(start, colour, path);
+                Optional<List<GAV>> cycle = findCycleFrom(start, colour);
                 if (cycle.isPresent()) {
                     return cycle;
                 }
@@ -232,40 +272,45 @@ public final class ResolvedReferences {
         return Optional.empty();
     }
 
-    private Optional<List<GAV>> findCycleFrom(GAV gav, Map<GAV, Integer> colour, Deque<GAV> path) {
-        colour.put(gav, 1);
-        path.addLast(gav);
-        ReferenceNode node = nodes.get(gav);
-        if (node != null && node.getReferences() != null) {
-            for (ArtifactReferenceDto reference : node.getReferences()) {
-                GAV target = ReferenceGraphWalker.coordinatesOf(reference);
-                if (!nodes.containsKey(target)) {
-                    continue; // Missing: no edge to follow.
-                }
-                int targetColour = colour.getOrDefault(target, 0);
-                if (targetColour == 1) {
-                    List<GAV> cycle = new ArrayList<>();
-                    boolean onCycle = false;
-                    for (GAV onPath : path) {
-                        if (onPath.equals(target)) {
-                            onCycle = true;
-                        }
-                        if (onCycle) {
-                            cycle.add(onPath);
-                        }
+    private Optional<List<GAV>> findCycleFrom(GAV start, Map<GAV, Integer> colour) {
+        Deque<GAV> path = new ArrayDeque<>();
+        Deque<Iterator<ArtifactReferenceDto>> iterators = new ArrayDeque<>();
+        colour.put(start, 1);
+        path.addLast(start);
+        iterators.push(childReferences(nodes.get(start)));
+
+        while (!path.isEmpty()) {
+            Iterator<ArtifactReferenceDto> it = iterators.peek();
+            if (!it.hasNext()) {
+                colour.put(path.removeLast(), 2);
+                iterators.pop();
+                continue;
+            }
+
+            GAV target = ReferenceGraphWalker.coordinatesOf(it.next());
+            if (!nodes.containsKey(target)) {
+                continue; // Missing: no edge to follow.
+            }
+            int targetColour = colour.getOrDefault(target, 0);
+            if (targetColour == 1) {
+                List<GAV> cycle = new ArrayList<>();
+                boolean onCycle = false;
+                for (GAV onPath : path) {
+                    if (onPath.equals(target)) {
+                        onCycle = true;
                     }
-                    cycle.add(target);
-                    return Optional.of(cycle);
-                } else if (targetColour == 0) {
-                    Optional<List<GAV>> found = findCycleFrom(target, colour, path);
-                    if (found.isPresent()) {
-                        return found;
+                    if (onCycle) {
+                        cycle.add(onPath);
                     }
                 }
+                cycle.add(target);
+                return Optional.of(cycle);
+            } else if (targetColour == 0) {
+                colour.put(target, 1);
+                path.addLast(target);
+                iterators.push(childReferences(nodes.get(target)));
             }
         }
-        path.removeLast();
-        colour.put(gav, 2);
         return Optional.empty();
     }
 }

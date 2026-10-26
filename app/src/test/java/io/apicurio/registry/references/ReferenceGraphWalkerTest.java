@@ -6,6 +6,7 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,12 +75,152 @@ public class ReferenceGraphWalkerTest {
                 () -> ReferenceGraphWalker.walk(List.of(reference("node-0")), loader, chainLength - 2));
     }
 
+    /**
+     * Regression test for a Copilot review finding on #10716: a cycle whose closing edge points back to a
+     * coordinate already loaded at a shallower depth must not fail the depth limit, even when the cycle's
+     * own length equals {@code maxDepth}. {@code A -> B -> A} with {@code maxDepth = 2}: A is loaded at
+     * depth 1, B at depth 2, and the edge B -> A at depth 3 is a dedup against the already-loaded A, not a
+     * newly discovered coordinate, so it must not throw.
+     */
+    @Test
+    void walkDoesNotFailDepthLimitOnACycleClosingEdge() {
+        ArtifactReferenceDto refB = reference("B");
+        ArtifactReferenceDto refA = reference("A");
+        Map<GAV, List<ArtifactReferenceDto>> referencesByCoordinates = Map.of(gav("A"), List.of(refB),
+                gav("B"), List.of(refA));
+
+        ReferenceLoader loader = coordinates -> {
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV target : coordinates) {
+                loaded.put(target,
+                        ReferenceNode.builder().coordinates(target)
+                                .content(TypedContent.create(target.getRawArtifactId(), "text/plain"))
+                                .references(referencesByCoordinates.get(target)).build());
+            }
+            return loaded;
+        };
+
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(List.of(refA), loader, 2);
+
+        Assertions.assertEquals(2, resolved.coordinates().size());
+        Assertions.assertTrue(resolved.findCycle().isPresent());
+    }
+
+    /**
+     * Regression test for a Copilot review finding on #10716: {@link ResolvedReferences#asNameMap()} used
+     * to keep only one name per target, dropping legitimate aliases — two different reference names
+     * pointing at the same resolved version, which is not the same-name/different-target collision #9000
+     * defers. Both {@code a.proto} and {@code b.proto} here target the same version and must both appear.
+     */
+    @Test
+    void asNameMapKeepsEveryAliasOfTheSameTarget() {
+        ArtifactReferenceDto refA = reference("a.proto", "shared");
+        ArtifactReferenceDto refB = reference("b.proto", "shared");
+
+        ReferenceLoader loader = coordinates -> {
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV target : coordinates) {
+                loaded.put(target, ReferenceNode.builder().coordinates(target)
+                        .content(TypedContent.create(target.getRawArtifactId(), "text/plain"))
+                        .references(List.of()).build());
+            }
+            return loaded;
+        };
+
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(List.of(refA, refB), loader, 100);
+
+        Map<String, TypedContent> nameMap = resolved.asNameMap();
+        Assertions.assertEquals(2, nameMap.size());
+        Assertions.assertEquals("shared", nameMap.get("a.proto").getContent().content());
+        Assertions.assertEquals("shared", nameMap.get("b.proto").getContent().content());
+    }
+
+    /**
+     * Regression test for two Copilot review findings on #10716: {@link ResolvedReferences#findCycle()} and
+     * its dependency-first order computation used plain recursion over the already-resolved graph, so a
+     * root that references every node of a long chain directly — giving every node breadth-first depth 1,
+     * well within any reasonable {@code maxDepth} — could still overflow the stack during the separate,
+     * in-memory post-order pass. Both an acyclic and (in a second case) a cyclic long chain must complete
+     * without a {@code StackOverflowError}.
+     */
+    @Test
+    void longDependencyChainWithShallowDiscoveryDepthDoesNotOverflowTheStack() {
+        int chainLength = 20_000;
+        List<ArtifactReferenceDto> rootReferences = new ArrayList<>();
+        Map<GAV, ArtifactReferenceDto> nextByCoordinates = new LinkedHashMap<>();
+        for (int i = 0; i < chainLength; i++) {
+            // Every node is directly referenced from the root (breadth-first depth 1), but node i also
+            // references node i + 1, forming a long dependency chain the post-order pass must traverse.
+            rootReferences.add(reference("node-" + i));
+            if (i + 1 < chainLength) {
+                nextByCoordinates.put(gav("node-" + i), reference("node-" + (i + 1)));
+            }
+        }
+
+        ReferenceLoader loader = coordinates -> {
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV target : coordinates) {
+                ArtifactReferenceDto next = nextByCoordinates.get(target);
+                loaded.put(target,
+                        ReferenceNode.builder().coordinates(target)
+                                .content(TypedContent.create(target.getRawArtifactId(), "text/plain"))
+                                .references(next == null ? List.of() : List.of(next)).build());
+            }
+            return loaded;
+        };
+
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(rootReferences, loader, chainLength + 1);
+
+        Assertions.assertEquals(chainLength, resolved.coordinates().size());
+        Assertions.assertEquals(chainLength, resolved.asNameMap().size());
+        Assertions.assertTrue(resolved.findCycle().isEmpty());
+    }
+
+    /**
+     * The cyclic counterpart of {@link #longDependencyChainWithShallowDiscoveryDepthDoesNotOverflowTheStack()}:
+     * the same long, directly-referenced chain, but its last node closes a cycle back to the first. Both
+     * {@link ResolvedReferences#findCycle()} and the dependency-first pass it is computed independently of
+     * must still complete without overflowing the stack, and the cycle must be found.
+     */
+    @Test
+    void longCyclicDependencyChainWithShallowDiscoveryDepthDoesNotOverflowTheStack() {
+        int chainLength = 20_000;
+        List<ArtifactReferenceDto> rootReferences = new ArrayList<>();
+        Map<GAV, ArtifactReferenceDto> nextByCoordinates = new LinkedHashMap<>();
+        for (int i = 0; i < chainLength; i++) {
+            rootReferences.add(reference("node-" + i));
+            // Node i references node i + 1, except the last node, which closes the cycle back to node 0.
+            nextByCoordinates.put(gav("node-" + i), reference("node-" + ((i + 1) % chainLength)));
+        }
+
+        ReferenceLoader loader = coordinates -> {
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV target : coordinates) {
+                ArtifactReferenceDto next = nextByCoordinates.get(target);
+                loaded.put(target,
+                        ReferenceNode.builder().coordinates(target)
+                                .content(TypedContent.create(target.getRawArtifactId(), "text/plain"))
+                                .references(List.of(next)).build());
+            }
+            return loaded;
+        };
+
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(rootReferences, loader, chainLength + 1);
+
+        Assertions.assertEquals(chainLength, resolved.coordinates().size());
+        Assertions.assertTrue(resolved.findCycle().isPresent());
+    }
+
     private static GAV gav(String artifactId) {
         return new GAV("default", artifactId, "1");
     }
 
     private static ArtifactReferenceDto reference(String name) {
-        return ArtifactReferenceDto.builder().groupId("default").artifactId(name).version("1").name(name)
-                .build();
+        return reference(name, name);
+    }
+
+    private static ArtifactReferenceDto reference(String name, String artifactId) {
+        return ArtifactReferenceDto.builder().groupId("default").artifactId(artifactId).version("1")
+                .name(name).build();
     }
 }

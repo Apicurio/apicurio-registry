@@ -27,8 +27,8 @@ import java.util.Set;
  * holds the whole graph once so that every caller's view of it — a flat name-to-content map for a type
  * handler, the set of content IDs for an ETag, a dependency-first iteration order, cycle detection — is
  * derived from the same data instead of each caller re-walking the graph its own way, which is what the
- * eight separate walkers this replaces used to do (see {@code DESIGN.md} in the project's tracking folder
- * for the inventory of those eight and the bugs that came from their disagreeing).
+ * eight separate walkers this replaces used to do (see the milestone epic #10635 for the inventory of
+ * those eight and the bugs that came from their disagreeing).
  *
  * <h2>Missing is not the same as failed</h2>
  * A reference whose target does not exist (an artifact version that was deleted, or never existed) is
@@ -39,8 +39,8 @@ import java.util.Set;
  * (an export, or a database upgrade validating that every reference still resolves) must treat it as a
  * failure. That decision belongs to the caller, not to this type or to the walker: {@link #missing()} is
  * simply the fact, and {@link #asNameMap()} silently omits missing targets the same way the walker this
- * replaces did, because changing that is out of scope for #10634 (see {@code DESIGN.md}, "Scope of
- * #10634" — #9626 is what removes the silent-skip behaviour).
+ * replaces did, because changing that is out of scope for #10634 — #9626 is what removes the silent-skip
+ * behaviour.
  *
  * <h2>How names are resolved, and in what order</h2>
  * A reference is named at the edge, not at the node: the same artifact version can be reached under
@@ -56,13 +56,15 @@ import java.util.Set;
  * stays open for a later occurrence, exactly as the walker this replaces behaved. Two different targets
  * sharing a name is already a bug (#9000 fixes it properly, by keying on coordinates instead of collapsing
  * by name); breadth-first order can pick a different winner than the old depth-first code did in that case,
- * and that is an accepted, deliberate behaviour change (see {@code DESIGN.md}, open question 5) rather than
- * an attempt to preserve what was an arbitrary choice to begin with.</li>
+ * and that is an accepted, deliberate behaviour change (#10635, open question 5) rather than an attempt to
+ * preserve what was an arbitrary choice to begin with. Pinned by {@code
+ * ReferenceGraphWalkerTest#asNameMapPicksTheBreadthFirstWinnerForASharedName}.</li>
  * <li><b>What order the winning entries appear in the returned map.</b> Dependency-first (post-order): a
  * node appears only after every node it references. This is computed as a second, separate, in-memory-only
  * pass over the already-resolved graph — a depth-first walk from the root's direct references, which costs
  * nothing in I/O because every node it visits is already loaded. It matches the order the walker this
- * replaces produced (open question 4), which at least one content type handler historically depended on.</li>
+ * replaces produced (#10635, open question 4), which at least one content type handler historically
+ * depended on. Pinned by {@code ReferenceGraphWalkerTest#dependencyFirstOrderPlacesDependenciesBeforeDependents}.</li>
  * </ul>
  *
  * <h2>Thread safety</h2>

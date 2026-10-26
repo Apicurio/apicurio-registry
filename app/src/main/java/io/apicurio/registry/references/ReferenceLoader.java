@@ -12,7 +12,7 @@ import java.util.Map;
  * needs next, so it asks for all of them in a single call instead of one query per reference. A SQL-backed
  * loader can turn this into one batched metadata query plus one batched content query per level, which is
  * the whole reason the walker is breadth-first rather than the depth-first recursion it replaces (see
- * {@code DESIGN.md} in the project's tracking folder — walker 4's requirement drove this).
+ * the milestone epic #10635 — walker 4's requirement drove this).
  * <p>
  * A coordinate the implementation does not find (no such artifact version) is simply left out of the
  * returned map — it is not an error. The walker records it as <i>missing</i>, and it is up to the caller of
@@ -25,7 +25,7 @@ import java.util.Map;
  * <p>
  * A loader that only knows how to fetch one coordinate at a time — such as the {@code Function<ArtifactReferenceDto,
  * ContentWrapperDto>} loaders the pre-#10634 entry points took — can still implement this interface with a
- * simple loop; it just forgoes the batching benefit. See the adapters in {@link ReferenceGraphWalker} used by
+ * simple loop; it just forgoes the batching benefit. See the adapters in {@link ReferenceResolution} used by
  * {@code RegistryContentUtils}'s thin wrapper methods.
  */
 @FunctionalInterface

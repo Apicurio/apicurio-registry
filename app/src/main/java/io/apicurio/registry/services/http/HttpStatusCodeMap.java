@@ -11,6 +11,7 @@ import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.limits.LimitExceededException;
+import io.apicurio.registry.references.ReferenceDepthExceededException;
 import io.apicurio.registry.rest.InvalidParameterValueException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
@@ -115,6 +116,12 @@ public class HttpStatusCodeMap {
         map.put(InvalidPropertyValueException.class, HTTP_BAD_REQUEST);
         map.put(io.apicurio.registry.rest.ConflictException.class, HTTP_CONFLICT);
         map.put(LimitExceededException.class, HTTP_CONFLICT);
+        // A client-supplied reference graph deeper than the configured limit: the same class of
+        // "input exceeds a configured limit" as LimitExceededException, so the same status (409). Mapping
+        // it to 500 would otherwise mark the pod unhealthy via ResponseErrorLivenessCheck after two such
+        // requests, letting any client with write (or even read, for an existing too-deep graph) access
+        // trigger a pod restart.
+        map.put(ReferenceDepthExceededException.class, HTTP_CONFLICT);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
         map.put(InvalidParameterValueException.class, HTTP_BAD_REQUEST);
         map.put(NotAllowedException.class, HTTP_CONFLICT); // We're using 409 instead of 403 to reserve the

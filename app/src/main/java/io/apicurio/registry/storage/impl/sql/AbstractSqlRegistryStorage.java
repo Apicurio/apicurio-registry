@@ -18,6 +18,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.references.ReferenceResolutionConfig;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.semver.SemVerConfigProperties;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -142,8 +143,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Inject
     MeterRegistry metrics;
 
-    @ConfigProperty(name = "apicurio.storage.references.max-depth", defaultValue = "100")
-    @Info(category = CATEGORY_STORAGE, description = "Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.", availableSince = "3.0.6")
+    @ConfigProperty(name = ReferenceResolutionConfig.MAX_DEPTH_PROPERTY,
+            defaultValue = ReferenceResolutionConfig.DEFAULT_MAX_DEPTH_STRING)
+    @Info(category = CATEGORY_STORAGE, description = "Maximum depth a reference graph may be resolved to. A graph deeper than this fails resolution instead of being silently truncated.", availableSince = "3.0.6")
     int maxReferenceDepth;
 
     protected SqlStatements sqlStatements() {

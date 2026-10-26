@@ -12,11 +12,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Walks an artifact's reference graph and resolves every version it reaches, replacing the five separate
+ * Walks an artifact's reference graph and resolves every version it reaches, replacing the eight separate
  * traversal implementations that used to do this on the server, each with its own rules for keying nodes,
- * detecting cycles, limiting depth and handling errors (see {@code DESIGN.md} in the project's tracking
- * folder for the inventory and the bugs that came from them disagreeing — #9000, #9626, #9527, #9095,
- * #9069).
+ * detecting cycles, limiting depth and handling errors (see the milestone epic #10635 for the inventory and
+ * the bugs that came from them disagreeing — #9000, #9626, #9527, #9095, #9069).
  *
  * <h2>Why breadth-first</h2>
  * The walker loads one level of the graph at a time: it asks its {@link ReferenceLoader} for every
@@ -45,10 +44,10 @@ import java.util.Set;
  * Callers that need to know whether a cycle exists, and where, use {@link ResolvedReferences#findCycle()}.
  *
  * <h2>Depth limit</h2>
- * {@code apicurio.storage.references.max-depth} applies to every walk (not only the ones that used it
- * before, see {@code DESIGN.md}, open question 3). Exceeding it throws {@link
- * ReferenceDepthExceededException} rather than silently truncating the graph: a truncated graph used to be
- * returned as if it were complete, with only a log warning to say otherwise.
+ * {@code apicurio.storage.references.max-depth} applies to every walk, not only the ones that used it
+ * before (#10635). Exceeding it throws {@link ReferenceDepthExceededException} rather than silently
+ * truncating the graph: a truncated graph used to be returned as if it were complete, with only a log
+ * warning to say otherwise.
  *
  * <h2>Errors</h2>
  * The walker does not catch anything its {@link ReferenceLoader} throws — a loader exception propagates

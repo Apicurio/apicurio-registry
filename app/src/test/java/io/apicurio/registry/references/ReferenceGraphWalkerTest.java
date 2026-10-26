@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ReferenceGraphWalkerTest {
@@ -73,6 +74,40 @@ public class ReferenceGraphWalkerTest {
 
         Assertions.assertThrows(ReferenceDepthExceededException.class,
                 () -> ReferenceGraphWalker.walk(List.of(reference("node-0")), loader, chainLength - 2));
+    }
+
+    /**
+     * Boundary test (review of #10716 at 79061fc, optional finding O2): a chain of exactly {@code maxDepth}
+     * levels must resolve, not throw. The walker is 1-based (root's direct references are depth 1,
+     * {@code depth > maxDepth} throws), unlike the pre-#10634 SQL resolver it replaces for this call site,
+     * which was 0-based and so allowed one level more than its configured limit; a chain that depended on
+     * that extra level is a behaviour change, not a bug in this walker.
+     */
+    @Test
+    void walkResolvesAChainOfExactlyMaximumDepth() {
+        int chainLength = 5;
+        Map<GAV, ArtifactReferenceDto> nextByCoordinates = new LinkedHashMap<>();
+        for (int i = 0; i < chainLength; i++) {
+            ArtifactReferenceDto next = i + 1 < chainLength ? reference("node-" + (i + 1)) : null;
+            nextByCoordinates.put(gav("node-" + i), next);
+        }
+
+        ReferenceLoader loader = coordinates -> {
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV target : coordinates) {
+                ArtifactReferenceDto next = nextByCoordinates.get(target);
+                loaded.put(target,
+                        ReferenceNode.builder().coordinates(target)
+                                .content(TypedContent.create(target.getRawArtifactId(), "text/plain"))
+                                .references(next == null ? List.of() : List.of(next)).build());
+            }
+            return loaded;
+        };
+
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(List.of(reference("node-0")), loader,
+                chainLength);
+
+        Assertions.assertEquals(chainLength, resolved.coordinates().size());
     }
 
     /**
@@ -209,6 +244,102 @@ public class ReferenceGraphWalkerTest {
 
         Assertions.assertEquals(chainLength, resolved.coordinates().size());
         Assertions.assertTrue(resolved.findCycle().isPresent());
+    }
+
+    /**
+     * Regression test for design question 4 (resolved 2026-10-23, pinned by review of #10716 at 79061fc):
+     * {@link ResolvedReferences#asNameMap()} and {@link ResolvedReferences#dependencyFirstOrder()} must
+     * order entries dependency-first (post-order), not in breadth-first discovery order. {@code root -> a
+     * -> b}: {@code b} must appear before {@code a} in both.
+     */
+    @Test
+    void dependencyFirstOrderPlacesDependenciesBeforeDependents() {
+        ArtifactReferenceDto refB = reference("b");
+        ArtifactReferenceDto refA = reference("a");
+        Map<GAV, List<ArtifactReferenceDto>> referencesByCoordinates = Map.of(gav("a"), List.of(refB),
+                gav("b"), List.of());
+
+        ReferenceLoader loader = coordinates -> {
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV target : coordinates) {
+                loaded.put(target, ReferenceNode.builder().coordinates(target)
+                        .content(TypedContent.create(target.getRawArtifactId(), "text/plain"))
+                        .references(referencesByCoordinates.get(target)).build());
+            }
+            return loaded;
+        };
+
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(List.of(refA), loader, 100);
+
+        Assertions.assertEquals(List.of(gav("b"), gav("a")), resolved.dependencyFirstOrder());
+        Assertions.assertEquals(List.of("b", "a"), new ArrayList<>(resolved.asNameMap().keySet()));
+    }
+
+    /**
+     * Regression test for design question 5 (resolved 2026-10-23, pinned by review of #10716 at 79061fc):
+     * when two different targets share a reference name, {@link ResolvedReferences#asNameMap()} must pick
+     * the one discovered first in breadth-first order — the shallower one — over one reached later through
+     * a deeper path. {@code "n"} is declared twice: directly from the root (depth 1, target {@code direct})
+     * and, through {@code mid}, one level deeper (depth 2, target {@code deep}); {@code direct} must win.
+     * #9000 changes this collapsing behaviour, and must touch this test when it does.
+     */
+    @Test
+    void asNameMapPicksTheBreadthFirstWinnerForASharedName() {
+        ArtifactReferenceDto directRef = reference("n", "direct");
+        ArtifactReferenceDto midRef = reference("mid", "mid");
+        ArtifactReferenceDto deepRef = reference("n", "deep");
+        Map<GAV, List<ArtifactReferenceDto>> referencesByCoordinates = Map.of(gav("direct"), List.of(),
+                gav("mid"), List.of(deepRef), gav("deep"), List.of());
+
+        ReferenceLoader loader = coordinates -> {
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV target : coordinates) {
+                loaded.put(target, ReferenceNode.builder().coordinates(target)
+                        .content(TypedContent.create(target.getRawArtifactId(), "text/plain"))
+                        .references(referencesByCoordinates.get(target)).build());
+            }
+            return loaded;
+        };
+
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(List.of(directRef, midRef), loader, 100);
+
+        Assertions.assertEquals(1, resolved.depthOf(gav("direct")).orElseThrow());
+        Assertions.assertEquals(2, resolved.depthOf(gav("deep")).orElseThrow());
+        Assertions.assertEquals("direct", resolved.asNameMap().get("n").getContent().content());
+    }
+
+    /**
+     * Regression test for {@link ResolvedReferences#missing()} and the documented "name stays open"
+     * behaviour of {@link ResolvedReferences#asNameMap()} (pinned by review of #10716 at 79061fc): a first
+     * occurrence of a name whose target does not resolve (a deleted, or never-existing, version) must not
+     * block a later occurrence of the same name whose target does resolve.
+     */
+    @Test
+    void asNameMapLeavesANameOpenWhenItsFirstOccurrenceIsMissing() {
+        ArtifactReferenceDto danglingRef = reference("common", "dangling");
+        ArtifactReferenceDto midRef = reference("mid", "mid");
+        ArtifactReferenceDto resolvedRef = reference("common", "resolved");
+        Map<GAV, List<ArtifactReferenceDto>> referencesByCoordinates = Map.of(gav("mid"), List.of(resolvedRef),
+                gav("resolved"), List.of());
+
+        ReferenceLoader loader = coordinates -> {
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV target : coordinates) {
+                if (target.equals(gav("dangling"))) {
+                    // Simulates a deleted, or never-existing, version: the loader has no node for it.
+                    continue;
+                }
+                loaded.put(target, ReferenceNode.builder().coordinates(target)
+                        .content(TypedContent.create(target.getRawArtifactId(), "text/plain"))
+                        .references(referencesByCoordinates.get(target)).build());
+            }
+            return loaded;
+        };
+
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(List.of(danglingRef, midRef), loader, 100);
+
+        Assertions.assertEquals(Set.of(gav("dangling")), resolved.missing());
+        Assertions.assertEquals("resolved", resolved.asNameMap().get("common").getContent().content());
     }
 
     private static GAV gav(String artifactId) {

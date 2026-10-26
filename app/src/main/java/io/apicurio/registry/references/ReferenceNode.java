@@ -8,9 +8,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * One artifact version visited while walking a reference graph, as loaded by a {@link ReferenceLoader}.
@@ -25,9 +24,11 @@ import java.util.List;
  * available (for example, one adapting an existing one-at-a-time loader that only returns content).
  * Callers that need it, such as the content-ID view used for ETags, must use a loader that supplies it.
  * <p>
- * {@link #getReferences()} returns a defensive, unmodifiable copy taken at construction time, not the
- * loader's own list: a loader that mutates or reuses the list it handed to the builder must not be able to
- * change a node already stored in a {@link ResolvedReferences} out from under it.
+ * {@link #getReferences()} returns a defensive, unmodifiable copy of both the list and its elements, taken
+ * at construction time, not the loader's own list or {@link ArtifactReferenceDto} instances: a loader that
+ * mutates or reuses what it handed to the builder — the list itself, or one of its elements, which {@link
+ * ArtifactReferenceDto} leaves mutable via {@code @Setter} — must not be able to change a node already
+ * stored in a {@link ResolvedReferences} out from under it.
  */
 @Builder
 @Getter
@@ -57,8 +58,14 @@ public final class ReferenceNode {
 
         public ReferenceNodeBuilder references(List<ArtifactReferenceDto> references) {
             this.references = references == null ? null
-                    : Collections.unmodifiableList(new ArrayList<>(references));
+                    : references.stream().map(ReferenceNode::copyOf).collect(Collectors.toUnmodifiableList());
             return this;
         }
+    }
+
+    private static ArtifactReferenceDto copyOf(ArtifactReferenceDto reference) {
+        return ArtifactReferenceDto.builder().groupId(reference.getGroupId())
+                .artifactId(reference.getArtifactId()).version(reference.getVersion())
+                .name(reference.getName()).build();
     }
 }

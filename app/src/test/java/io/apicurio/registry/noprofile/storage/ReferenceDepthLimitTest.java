@@ -6,6 +6,7 @@ import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
 import io.apicurio.registry.rest.client.models.CreateVersion;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -114,13 +115,18 @@ public class ReferenceDepthLimitTest extends AbstractResourceTestBase {
      * Chain: A -> B -> C -> D -> E (depth 4, limit is 3).
      * <p>
      * Creating {@code A} is what reaches the depth limit: registering content that references another
-     * artifact requires read access to every reference transitively ({@code authorizeReferences} in
-     * {@code GroupsResourceImpl}), which resolves the whole chain through
-     * {@link io.apicurio.registry.references.ReferenceResolution} and therefore
+     * artifact resolves the whole chain through {@link io.apicurio.registry.references.ReferenceResolution}
+     * before the content is stored — see {@code GroupsResourceImpl.createArtifact} — and therefore
      * {@link io.apicurio.registry.references.ReferenceGraphWalker}, which now enforces
-     * {@code apicurio.storage.references.max-depth} on every walk (see {@code DESIGN.md}, open question 3)
-     * rather than silently truncating. Before #10634, writing A succeeded and the truncation only
-     * surfaced, silently, at read time.
+     * {@code apicurio.storage.references.max-depth} on every walk rather than silently truncating. Before
+     * #10634, writing A succeeded and the truncation only surfaced, silently, at read time.
+     * <p>
+     * Asserts a 409, not a 500: {@link io.apicurio.registry.references.ReferenceDepthExceededException} is
+     * client input (a graph deeper than a configured limit) exceeding a configured limit, the same class of
+     * problem as {@link io.apicurio.registry.limits.LimitExceededException}, not a server fault. Mapping it
+     * to 500 marked the pod not live after two such requests within 60 seconds
+     * ({@code ResponseErrorLivenessCheck} suspects on every 500), letting any client trigger a pod restart
+     * by posting (or, for existing deep content, merely reading) an over-deep reference graph twice.
      */
     @Test
     public void testChainExceedingDepthLimit() throws Exception {
@@ -160,7 +166,18 @@ public class ReferenceDepthLimitTest extends AbstractResourceTestBase {
 
         ApiException error = Assertions.assertThrows(ApiException.class,
                 () -> clientV3.groups().byGroupId(GROUP_ID).artifacts().post(createArtifactA));
-        Assertions.assertEquals(500, error.getResponseStatusCode());
+        Assertions.assertEquals(409, error.getResponseStatusCode());
+        ProblemDetails problemDetails = (ProblemDetails) error;
+        Assertions.assertEquals("ReferenceDepthExceededException", problemDetails.getName());
+        Assertions.assertTrue(problemDetails.getTitle().contains("exceeds the maximum allowed depth of 3"));
+
+        // The pod must not be marked unhealthy by this: a client-input limit violation, not a server
+        // fault. Confirm a second identical request (enough to trip ResponseErrorLivenessCheck's
+        // threshold of 1 if this were still mapped to 500) also comes back 409, not a different failure
+        // mode from a suspected-unhealthy pod.
+        ApiException secondError = Assertions.assertThrows(ApiException.class,
+                () -> clientV3.groups().byGroupId(GROUP_ID).artifacts().post(createArtifactA));
+        Assertions.assertEquals(409, secondError.getResponseStatusCode());
     }
 
     /**

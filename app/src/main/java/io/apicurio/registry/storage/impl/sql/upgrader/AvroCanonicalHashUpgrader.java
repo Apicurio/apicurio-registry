@@ -6,6 +6,7 @@ import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.references.ReferenceGraphWalker;
 import io.apicurio.registry.references.ReferenceLoader;
 import io.apicurio.registry.references.ReferenceNode;
+import io.apicurio.registry.references.ReferenceResolutionConfig;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.impl.sql.IDbUpgrader;
@@ -137,15 +138,15 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
         }
         ReferenceLoader loader = coordinates -> {
             Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
-            for (GAV coordinates1 : coordinates) {
+            for (GAV coordinate : coordinates) {
                 ArtifactReferenceDto reference = ArtifactReferenceDto.builder()
-                        .groupId(coordinates1.getRawGroupIdWithNull()).artifactId(coordinates1.getRawArtifactId())
-                        .version(coordinates1.getRawVersionId()).build();
+                        .groupId(coordinate.getRawGroupIdWithNull()).artifactId(coordinate.getRawArtifactId())
+                        .version(coordinate.getRawVersionId()).build();
                 // Fails on a missing version, by design: an upgrade must not silently treat a dangling
                 // reference as resolvable. resolveReference's .one() throws if there is no such row.
                 ContentWrapperDto resolved = resolveReference(handle, reference);
-                loaded.put(coordinates1,
-                        ReferenceNode.builder().coordinates(coordinates1)
+                loaded.put(coordinate,
+                        ReferenceNode.builder().coordinates(coordinate)
                                 .content(TypedContent.create(resolved.getContent(), resolved.getContentType()))
                                 .artifactType(resolved.getArtifactType()).references(resolved.getReferences())
                                 .build());
@@ -159,7 +160,8 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
         // Read directly rather than injected: this upgrader is constructed with `new`, outside CDI. See
         // the same pattern in io.apicurio.registry.references.ReferenceResolution.
         return ConfigProvider.getConfig()
-                .getOptionalValue("apicurio.storage.references.max-depth", Integer.class).orElse(100);
+                .getOptionalValue(ReferenceResolutionConfig.MAX_DEPTH_PROPERTY, Integer.class)
+                .orElse(ReferenceResolutionConfig.DEFAULT_MAX_DEPTH);
     }
 
     private ContentWrapperDto resolveReference(Handle handle, ArtifactReferenceDto reference) {

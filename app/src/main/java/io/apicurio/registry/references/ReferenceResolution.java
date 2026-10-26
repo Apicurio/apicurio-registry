@@ -38,18 +38,6 @@ public final class ReferenceResolution {
 
     private static final Logger log = LoggerFactory.getLogger(ReferenceResolution.class);
 
-    /**
-     * {@code apicurio.storage.references.max-depth} read directly via {@link ConfigProvider} rather than
-     * injected, because this is a static utility called from about twenty places, not all of them CDI
-     * beans with that property already available. See {@code HttpCompressionWriterInterceptor} and
-     * {@code GitOpsConfig} for the same pattern elsewhere in this codebase. The value is re-read on every
-     * call rather than cached, matching how {@code @ConfigProperty}-injected fields pick up config changes
-     * only on redeploy anyway — this is not on a hot enough path for that to matter.
-     */
-    private static final String MAX_DEPTH_PROPERTY = "apicurio.storage.references.max-depth";
-
-    private static final int DEFAULT_MAX_DEPTH = 100;
-
     private ReferenceResolution() {
     }
 
@@ -68,11 +56,11 @@ public final class ReferenceResolution {
             Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
         ReferenceLoader batchLoader = coordinates -> {
             Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
-            for (GAV coordinates1 : coordinates) {
-                ContentWrapperDto content = loadOne(coordinates1, loader);
+            for (GAV coordinate : coordinates) {
+                ContentWrapperDto content = loadOne(coordinate, loader);
                 if (content != null) {
-                    loaded.put(coordinates1,
-                            ReferenceNode.builder().coordinates(coordinates1)
+                    loaded.put(coordinate,
+                            ReferenceNode.builder().coordinates(coordinate)
                                     // Content type, not artifact type: regression test for #10428.
                                     .content(TypedContent.create(content.getContent(), content.getContentType()))
                                     .artifactType(content.getArtifactType())
@@ -99,11 +87,11 @@ public final class ReferenceResolution {
             Function<ArtifactReferenceDto, StoredArtifactVersionDto> loader) {
         ReferenceLoader batchLoader = coordinates -> {
             Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
-            for (GAV coordinates1 : coordinates) {
-                StoredArtifactVersionDto version = loadOne(coordinates1, loader);
+            for (GAV coordinate : coordinates) {
+                StoredArtifactVersionDto version = loadOne(coordinate, loader);
                 if (version != null) {
-                    loaded.put(coordinates1,
-                            ReferenceNode.builder().coordinates(coordinates1)
+                    loaded.put(coordinate,
+                            ReferenceNode.builder().coordinates(coordinate)
                                     .content(TypedContent.create(version.getContent(), version.getContentType()))
                                     .contentId(version.getContentId()).references(version.getReferences())
                                     .build());
@@ -134,8 +122,17 @@ public final class ReferenceResolution {
         }
     }
 
+    /**
+     * Reads {@link ReferenceResolutionConfig#MAX_DEPTH_PROPERTY} directly via {@link ConfigProvider} rather
+     * than injecting it, because this is a static utility called from about twenty places, not all of them
+     * CDI beans with that property already available. See {@code HttpCompressionWriterInterceptor} and
+     * {@code GitOpsConfig} for the same pattern elsewhere in this codebase. The value is re-read on every
+     * call rather than cached, matching how {@code @ConfigProperty}-injected fields pick up config changes
+     * only on redeploy anyway — this is not on a hot enough path for that to matter.
+     */
     private static int maxDepth() {
-        return ConfigProvider.getConfig().getOptionalValue(MAX_DEPTH_PROPERTY, Integer.class)
-                .orElse(DEFAULT_MAX_DEPTH);
+        return ConfigProvider.getConfig()
+                .getOptionalValue(ReferenceResolutionConfig.MAX_DEPTH_PROPERTY, Integer.class)
+                .orElse(ReferenceResolutionConfig.DEFAULT_MAX_DEPTH);
     }
 }

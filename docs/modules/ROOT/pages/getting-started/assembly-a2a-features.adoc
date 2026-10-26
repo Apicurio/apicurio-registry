@@ -591,7 +591,7 @@ Artifact references record which tools, servers, models, and prompts an agent us
 |
 |===
 
-The allowed target types are checked by the `INTEGRITY` rule at the `REFS_EXIST` or `FULL` level, together with the check that each referenced version exists. A reference to any other artifact type is rejected, and no version is created. Without an `INTEGRITY` rule, references are not checked, so enable `INTEGRITY` for groups that contain agent artifacts.
+The allowed target types are checked by the `INTEGRITY` rule at the `REFS_EXIST` or `FULL` level, together with the check that each referenced version exists. A reference to any other artifact type is rejected, and no version is created. Without an `INTEGRITY` rule, references are not checked, so enable `INTEGRITY` for groups that contain agent artifacts. Violations of this check report the `REFS_EXIST` level, also when the rule is configured as `FULL`. Other artifact types, including custom types, do not restrict the types they reference.
 
 Reference names are not interpreted by {registry}. Use the name of the referenced tool, server, model, or prompt.
 

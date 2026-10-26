@@ -4,16 +4,19 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.content.util.ContentTypeUtil;
+import io.apicurio.registry.federation.PeerAddressPolicy;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.polling.model.Type;
 import io.apicurio.registry.storage.impl.polling.model.v0.Artifact;
 import io.apicurio.registry.storage.impl.polling.model.v0.ConfigurationProperty;
 import io.apicurio.registry.storage.impl.polling.model.v0.Content;
 import io.apicurio.registry.storage.impl.polling.model.v0.Group;
+import io.apicurio.registry.storage.impl.polling.model.v0.Peer;
 import io.apicurio.registry.storage.impl.polling.model.v0.Registry;
 import io.apicurio.registry.storage.impl.polling.model.v0.Rule;
 import io.apicurio.registry.storage.impl.polling.model.v0.Version;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.PeerDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ContentTypes;
@@ -22,6 +25,8 @@ import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
+import io.apicurio.registry.utils.impexp.v3.BranchEntity;
+import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.apicurio.registry.utils.impexp.v3.GlobalRuleEntity;
 import io.apicurio.registry.utils.impexp.v3.GroupEntity;
@@ -31,6 +36,7 @@ import org.slf4j.Logger;
 
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -51,6 +57,9 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
 
     @Inject
     RulesService rulesService;
+
+    @Inject
+    PeerAddressPolicy peerAddressPolicy;
 
     private PollingStorageConfig pollingConfig;
 
@@ -129,6 +138,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
         if (state.getCurrentRegistry() != null) {
             processConfigurationProperties(state);
             processGlobalRules(state);
+            processPeers(state);
 
             for (PollingDataFile file : state.fromTypeIndex(Type.ARTIFACT)) {
                 Artifact artifact = file.getEntityUnchecked();
@@ -201,6 +211,35 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
         }
     }
 
+    private void processPeers(ProcessingState state) {
+        var peers = state.getCurrentRegistry().getPeers();
+        if (peers != null) {
+            for (Peer peer : peers) {
+                if (peer == null) {
+                    state.recordError("Could not import peer: entry is null.");
+                    continue;
+                }
+                try {
+                    var dto = PeerDto.builder()
+                            .peerId(peer.getPeerId())
+                            .url(peer.getUrl())
+                            .name(peer.getName())
+                            .description(peer.getDescription())
+                            .enabled(peer.getEnabled() == null || peer.getEnabled())
+                            .credentialSecretRef(peer.getCredentialSecretRef())
+                            .build();
+                    log.trace("Importing peer {}", dto);
+                    // The same outbound address policy as the admin API: a declarative peer must not
+                    // be able to reach an address that an API-created peer is refused.
+                    peerAddressPolicy.validateUrl(dto.getUrl());
+                    state.getStorage().createPeer(dto);
+                } catch (Exception ex) {
+                    state.recordError("Could not import peer %s: %s", peer.getPeerId(), ex.getMessage());
+                }
+            }
+        }
+    }
+
     private void processArtifact(ProcessingState state, PollingDataFile artifactFile, Artifact artifact) {
         boolean artifactImported = false;
 
@@ -213,6 +252,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                 return;
             }
 
+            List<String> publishedVersions = new ArrayList<>();
             for (int i = 0; i < versions.size(); i++) {
                 Version version = versions.get(i);
                 try {
@@ -269,12 +309,23 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
 
                     log.trace("Importing {}",e);
                     state.getStorage().importArtifactVersion(e);
+                    if (e.state != VersionState.DRAFT) {
+                        publishedVersions.add(e.version);
+                    }
                     state.incrementVersionCount();
                 } catch (Exception ex) {
                     state.recordError(artifactFile, "Could not import artifact version '%s': %s",
                             artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion(),
                             ex.getMessage());
                 }
+            }
+            if (!publishedVersions.isEmpty()) {
+                long time = TimestampParser.parse(artifact.getModifiedOn(), state.getCommitTime());
+                state.getStorage().importBranch(BranchEntity.builder()
+                        .groupId(artifact.getGroupId()).artifactId(artifact.getArtifactId())
+                        .branchId(BranchId.LATEST.getRawBranchId()).systemDefined(true)
+                        .owner(artifact.getOwner()).createdOn(time).modifiedOn(time)
+                        .versions(publishedVersions).build());
             }
             processArtifactRules(state, artifact);
             artifactFile.setProcessed(true);

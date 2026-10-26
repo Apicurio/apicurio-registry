@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+package com.example;
+
+message UserSettings {
+    required string user_id = 1;
+    optional bool notifications_enabled = 2;
+    optional string locale = 3;
+}

@@ -64,6 +64,7 @@ public class KafkaSqlCoordinator {
             }
             return rval;
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RegistryException(
                     "[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
         } finally {

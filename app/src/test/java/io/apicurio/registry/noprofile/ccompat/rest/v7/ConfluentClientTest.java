@@ -542,6 +542,42 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
                 "Registering the same schema under different subjects should return the same id");
     }
 
+    /**
+     * A schema the compatibility checker can't process is reported as an invalid schema, with the
+     * Confluent error code clients look for, not only the HTTP status: here, a JSON Schema whose
+     * reference can't be resolved, and one whose $schema names no known draft.
+     */
+    @Test
+    public void testRegisterSchemaTheCompatibilityCheckCannotProcess() throws Exception {
+        String subject = "testRegisterSchemaTheCompatibilityCheckCannotProcess";
+        confluentClient.updateCompatibility(CompatibilityLevel.BACKWARD.name, subject);
+        confluentClient.registerSchema(jsonSchemaRequest("""
+                { "$schema": "http://json-schema.org/draft-07/schema#", "type": "object" }
+                """), subject, false);
+
+        for (String unprocessable : List.of("""
+                {
+                  "$schema": "http://json-schema.org/draft-07/schema#",
+                  "type": "object",
+                  "properties": { "x": { "$ref": "missing.json" } }
+                }
+                """, """
+                { "$schema": "https://example.com/my-meta-schema", "type": "object" }
+                """)) {
+            RestClientException rce = Assertions.assertThrows(RestClientException.class,
+                    () -> confluentClient.registerSchema(jsonSchemaRequest(unprocessable), subject, false));
+            assertEquals(422, rce.getStatus(), unprocessable);
+            assertEquals(ErrorCode.INVALID_SCHEMA.value(), rce.getErrorCode(), unprocessable);
+        }
+    }
+
+    private static RegisterSchemaRequest jsonSchemaRequest(String schema) {
+        RegisterSchemaRequest request = new RegisterSchemaRequest();
+        request.setSchema(schema);
+        request.setSchemaType("JSON");
+        return request;
+    }
+
     @Test
     public void testRegisterInvalidSchemaBadType() throws Exception {
         String subject = "testRegisterInvalidSchemaBadType";
@@ -908,7 +944,8 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
     public void testSchemaReferences() throws Exception {
         List<String> schemas = ConfluentTestUtils.getAvroSchemaWithReferences();
         String subject = "testSchemaReferences";
-        String referrer = "testSchemaReferencesReferer";
+        String referrer1 = "testSchemaReferencesReferer1";
+        String referrer2 = "testSchemaReferencesReferer2";
 
         ConfluentTestUtils.registerAndVerifySchema(confluentClient, schemas.get(0), subject);
 
@@ -916,29 +953,55 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         request.setSchema(schemas.get(1));
         SchemaReference ref = new SchemaReference("otherns.Subrecord", subject, 1);
         request.setReferences(Collections.singletonList(ref));
-        int registeredId = confluentClient.registerSchema(request, referrer, false).getId();
 
-        SchemaString schemaString = confluentClient.getId(registeredId);
-        // the newly registered schema should be immediately readable on the leader
-        assertEquals(schemas.get(1), schemaString.getSchemaString(), "Registered schema should be found");
+        int registeredId1 = confluentClient.registerSchema(request, referrer1, false).getId();
+        int registeredId2 = confluentClient.registerSchema(request, referrer2, false).getId();
+
+        SchemaString schemaString = confluentClient.getId(registeredId1);
+        assertEquals(schemas.get(1), schemaString.getSchemaString(),
+                "Registered schema should be found");
 
         List<Integer> refs = confluentClient.getReferencedBy(subject, 1);
-        assertEquals(registeredId, refs.get(0).intValue());
+        assertTrue(refs.contains(registeredId1));
+        assertTrue(refs.contains(registeredId2));
 
+        // Deletion must fail while both referrers are enabled.
         try {
-            confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject,
-                    String.valueOf(1));
-            fail("Deleting reference should fail with " + ErrorCode.REFERENCE_EXISTS.value());
+            confluentClient.deleteSchemaVersion(
+                    RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1");
+            fail("Deleting a schema with enabled referrers should fail with "
+                    + ErrorCode.REFERENCE_EXISTS.value());
         } catch (RestClientException rce) {
-            assertEquals(ErrorCode.REFERENCE_EXISTS.value(), rce.getErrorCode(), "Reference found");
+            assertEquals(ErrorCode.REFERENCE_EXISTS.value(), rce.getErrorCode(),
+                    "Reference found");
         }
 
+        // Soft-delete the first referrer, but leave the second enabled.
         assertEquals((Integer) 1,
-                confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, referrer, "1"));
+                confluentClient.deleteSchemaVersion(
+                        RestService.DEFAULT_REQUEST_PROPERTIES, referrer1, "1"));
+
+        // The base schema must still not be deletable.
+        try {
+            confluentClient.deleteSchemaVersion(
+                    RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1");
+            fail("Deleting a schema with an enabled referrer should fail with "
+                    + ErrorCode.REFERENCE_EXISTS.value());
+        } catch (RestClientException rce) {
+            assertEquals(ErrorCode.REFERENCE_EXISTS.value(), rce.getErrorCode(),
+                    "An enabled referrer should prevent deletion");
+        }
+
+        // Once every referrer is soft-deleted, deleting the base schema should succeed.
+        assertEquals((Integer) 1,
+                confluentClient.deleteSchemaVersion(
+                        RestService.DEFAULT_REQUEST_PROPERTIES, referrer2, "1"));
 
         assertEquals((Integer) 1,
-                confluentClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1"));
+                confluentClient.deleteSchemaVersion(
+                        RestService.DEFAULT_REQUEST_PROPERTIES, subject, "1"));
     }
+
 
     @Test
     public void testSchemaReferencesMultipleLevels() throws Exception {

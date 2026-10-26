@@ -1,0 +1,43 @@
+package io.apicurio.registry.agents.a2a.openapi;
+
+import io.apicurio.registry.auth.ResourceAccessGuard;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.extensions.ArtifactVersionWriteHook;
+import io.apicurio.registry.extensions.VersionWriteContext;
+import io.apicurio.registry.types.ArtifactType;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+
+/**
+ * Generates or synchronizes the AGENT_CARD companion of an OPENAPI artifact that carries an
+ * {@code x-agent-card} extension. A malformed extension rejects the write before anything is persisted;
+ * the companion itself is written only after the OpenAPI version was published.
+ */
+@ApplicationScoped
+public class OpenApiAgentCardWriteHook implements ArtifactVersionWriteHook {
+
+    @Inject
+    OpenApiAgentCardService openApiAgentCardService;
+
+    @Inject
+    ResourceAccessGuard accessGuard;
+
+    @Override
+    public Runnable beforePublish(VersionWriteContext context, TypedContent content) {
+        if (!ArtifactType.OPENAPI.equals(context.getArtifactType())) {
+            return null;
+        }
+        String cardJson = openApiAgentCardService.validateAndAssemble(content, context.isUpdate());
+        if (cardJson == null) {
+            return null;
+        }
+        // The companion is written after the OpenAPI version is published; check it now, so a
+        // forbidden companion fails the request before anything is persisted. Owner-only
+        // authorization is left to the service, which skips a companion owned by someone else.
+        accessGuard.requireGeneratedArtifactWrite(context.getGa().getRawGroupIdWithNull(),
+                OpenApiAgentCardService.companionId(context.getGa().getRawArtifactId()), false);
+        return () -> openApiAgentCardService.createOrSyncCompanion(context.getStorage(),
+                context.getGa().getRawGroupIdWithNull(), context.getGa().getRawArtifactId(), cardJson,
+                context.getOwner());
+    }
+}

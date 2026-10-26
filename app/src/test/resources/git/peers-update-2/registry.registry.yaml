@@ -1,0 +1,9 @@
+$type: registry-v0
+registryId: test
+globalRules: []
+properties: []
+peers:
+  - peerId: update-test-peer
+    url: https://after.example.com
+    name: After Update
+    credentialSecretRef: after-cred

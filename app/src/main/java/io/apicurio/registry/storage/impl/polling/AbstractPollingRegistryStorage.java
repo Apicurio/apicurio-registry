@@ -20,6 +20,7 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -88,6 +89,16 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
     private Instant lastRefresh = Instant.MIN;
 
     private volatile PollingStorageStatus status = PollingStorageStatus.initializing();
+
+    // Tracks whether the current ERROR state includes a poll() failure.
+    // Only poll-level errors (transient) should self-clear on the next successful poll.
+    // Load-level errors (bad data) must persist until valid data is loaded.
+    private boolean pollFailed = false;
+
+    // Persists load-level errors across poll failure/recovery cycles.
+    // Cleared only when loadInactive() succeeds, so a transient poll failure
+    // cannot erase the evidence of a rejected commit.
+    private List<PollingError> loadErrors = List.of();
 
     @Override
     public String storageName() {
@@ -190,6 +201,20 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                                     storageName(), active == green ? "green" : "blue", state);
                             try {
                                 var pollResult = pollingDataSourceManager.poll();
+                                if (pollFailed) {
+                                    pollFailed = false;
+                                    if (!loadErrors.isEmpty()) {
+                                        status = status.toBuilder()
+                                                .syncState(PollingStorageStatus.SyncState.ERROR)
+                                                .errors(loadErrors)
+                                                .build();
+                                    } else {
+                                        status = status.toBuilder()
+                                                .syncState(PollingStorageStatus.SyncState.IDLE)
+                                                .errors(Collections.emptyList())
+                                                .build();
+                                    }
+                                }
                                 if (pollResult.isHasChanges()) {
                                     debouncer.onChange(pollResult);
                                 }
@@ -199,6 +224,15 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                                 }
                             } catch (Exception e) {
                                 log.error("{} poll/load failed: {}", storageName(), e.getMessage(), e);
+                                pollFailed = true;
+                                final var pollError = new PollingError(
+                                        "Poll failed: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+                                final var allErrors = new ArrayList<>(loadErrors);
+                                allErrors.add(pollError);
+                                status = status.toBuilder()
+                                        .syncState(PollingStorageStatus.SyncState.ERROR)
+                                        .errors(allErrors)
+                                        .build();
                             }
                         }
                     }
@@ -224,6 +258,7 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
             var result = pollingDataSourceManager.process(inactive, pollResult);
             if (result.isSuccessful()) {
                 log.info("{} update loaded successfully (marker: {})", storageName(), pollResult.getMarker());
+                loadErrors = List.of();
                 pendingResult = pollResult;
                 pendingProcessingResult = result;
                 state = State.READY_TO_SWITCH;
@@ -234,18 +269,25 @@ public abstract class AbstractPollingRegistryStorage<MARKER extends SourceMarker
                 // Data errors won't be fixed by retrying the same commit — commit the marker
                 // so we stop re-detecting this change. A new commit will trigger a fresh attempt.
                 pollResult.commit();
+                loadErrors = result.getErrors();
                 status = status.toBuilder()
                         .syncState(PollingStorageStatus.SyncState.ERROR)
-                        .errors(result.getErrors())
+                        .errors(loadErrors)
                         .build();
             }
         } catch (Exception e) {
             // Transient errors (H2 issues, OOM, etc.) — don't commit the marker,
             // so the next poll cycle will retry the same commit.
             log.error("{} failed to load data into inactive storage: {}", storageName(), e.getMessage(), e);
+            loadErrors = List.of(new PollingError(
+                    "Transient error: " +
+                            (e.getMessage() != null
+                                    ? e.getMessage()
+                                    : e.getClass().getSimpleName())
+            ));
             status = status.toBuilder()
                     .syncState(PollingStorageStatus.SyncState.ERROR)
-                    .errors(List.of(new PollingError("Transient error: " + e.getMessage())))
+                    .errors(loadErrors)
                     .build();
         }
     }

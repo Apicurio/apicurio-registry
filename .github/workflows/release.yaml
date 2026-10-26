@@ -1,4 +1,7 @@
 name: Release Workflow
+# Found by this name to learn who ran the release: the workflows it triggers
+# run as apicurio-ci (reusable-notify.yaml).
+run-name: Release ${{ inputs.release-version }}
 on:
   workflow_dispatch:
     inputs:
@@ -9,9 +12,6 @@ on:
         description: Branch to release from (main for minor releases, X.Y.x for patches)
         required: true
         default: main
-      notice:
-        type: boolean
-        description: I will notify jsenko if the operator release workflow fails!
 
 permissions:
   contents: read
@@ -24,13 +24,6 @@ jobs:
     outputs:
       release-sha: ${{ steps.release-commit.outputs.sha }}
     steps:
-
-      - name: Check
-        run: |
-          if [ "${{ inputs.notice }}" != "true" ]; then
-            echo "Error: You must check the notice checkbox to proceed with the release!"
-            exit 1
-          fi
 
       - name: Calculate Versions
         run: |
@@ -48,7 +41,7 @@ jobs:
 
       # JDK is only needed here for mvn versions:set
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -56,7 +49,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: 24.21.0
+          node-version: 24.22.1
 
       - name: Set up json CLI
         run: npm install -g json
@@ -146,15 +139,6 @@ jobs:
           git push
           echo "sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
 
-      - name: Slack Notification (Error)
-        if: failure()
-        run: |
-          MESSAGE="'${{ github.workflow }}/release-prepare' job FAILED!"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
-
   # Phase 2a: Build the registry app (Maven).
   # Runs in parallel with UI and CLI builds.
   release-build-app:
@@ -169,7 +153,7 @@ jobs:
           ref: ${{ needs.release-prepare.outputs.release-sha }}
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -214,7 +198,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: 24.21.0
+          node-version: 24.22.1
 
       - name: Build Registry UI
         working-directory: ui
@@ -346,7 +330,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: 24.21.0
+          node-version: 24.22.1
 
       - name: Set up json CLI
         run: npm install -g json
@@ -431,20 +415,22 @@ jobs:
           git commit -m "Automated update to next Snapshot Version: ${{ env.SNAPSHOT_VERSION }}"
           git push
 
-      - name: Slack Notification (Always)
-        if: always()
-        run: |
-          MESSAGE="'${{ github.workflow }}' completed with status: ${{ job.status }}"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}
-
-      - name: Slack Notification (Error)
-        if: failure()
-        run: |
-          MESSAGE="'${{ github.workflow }}' FAILED!"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" ${{ secrets.SLACK_ERROR_WEBHOOK }}
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
+    needs: [release-prepare, release-build-app, release-build-ui, release-build-cli, release-publish]
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
+    with:
+      results: ${{ toJSON(needs) }}
+      version: ${{ inputs.release-version }}
+      # The release's one success message: the workflows the release sets off
+      # report only their failures.
+      notify-success: true
+      success-text: ":rocket: Apicurio Registry ${{ inputs.release-version }} release created. Maven artifacts, images, SDKs, the operator and the website are being published; a failure there is reported in the team channel."
+    secrets:
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+      SLACK_GENERAL_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

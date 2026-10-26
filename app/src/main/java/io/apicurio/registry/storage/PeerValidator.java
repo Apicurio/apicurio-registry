@@ -9,7 +9,9 @@ import java.util.regex.Pattern;
 
 /**
  * Validates a peer registry definition before it is persisted. Covers structural invariants
- * only; scheme/address policy belongs to #8574 and #8575.
+ * only. Scheme and address policy depends on configuration, so it is applied at the API boundary
+ * by {@code PeerAddressPolicy} and never here: this validator also runs when the KafkaSQL journal
+ * is replayed, and a replay must not fail because configuration changed after the original write.
  * <p>
  * Peer ids are restricted to lowercase so that identity is consistent across SQL dialects:
  * MySQL's peers table collates with {@code ascii_general_ci} (case-insensitive), so it treats
@@ -80,8 +82,16 @@ public final class PeerValidator {
         if (uri.getUserInfo() != null) {
             throw new InvalidPeerException("Peer url must not contain userinfo.");
         }
+        // java.net.URI accepts any number as a port, but no client can connect outside the TCP range.
+        int port = uri.getPort();
+        if (port != -1 && (port < 1 || port > 65535)) {
+            throw new InvalidPeerException("Peer url port must be between 1 and 65535.");
+        }
         if (uri.getFragment() != null) {
             throw new InvalidPeerException("Peer url must not contain a fragment.");
+        }
+        if (uri.getRawQuery() != null) {
+            throw new InvalidPeerException("Peer url must not contain a query.");
         }
     }
 
@@ -92,7 +102,9 @@ public final class PeerValidator {
         if (!CREDENTIAL_SECRET_REF_PATTERN.matcher(credentialSecretRef).matches()) {
             throw new InvalidPeerException("Peer credential secret reference is invalid.");
         }
-        if (".".equals(credentialSecretRef) || "..".equals(credentialSecretRef)) {
+        // Kubernetes reserves names starting with ".." inside a mounted Secret (..data and the
+        // timestamped directories behind it), and never allows a Secret key to start with "..".
+        if (".".equals(credentialSecretRef) || credentialSecretRef.startsWith("..")) {
             throw new InvalidPeerException("Peer credential secret reference is invalid.");
         }
     }

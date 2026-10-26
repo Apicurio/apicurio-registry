@@ -65,6 +65,10 @@ const LABEL_DEFS = {
 
 const BOT_LOGIN = 'github-actions[bot]';
 
+// GitHub App accounts (Copilot's reviewer, Renovate, ...) leave reviews and
+// can be requested as reviewers, but they are not people a ping can reach.
+const isBotLogin = login => login.endsWith('[bot]');
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -589,10 +593,13 @@ async function resolveRunPrs(github, owner, repo, workflowRun, core) {
   });
   prRefs = prs.filter(p => p.head.sha === workflowRun.head_sha);
   if (!prRefs.length) {
-    // Last resort: scan all open PRs by head SHA (covers edge cases where
-    // the head-branch filter above misses, e.g. a stale/renamed branch).
-    const { data: openPrs } = await github.rest.pulls.list({
-      owner, repo, state: 'open', per_page: 50,
+    // Last resort: scan every open PR by head SHA. The head-branch filter
+    // above misses a stale/renamed branch, and always misses a fork PR on a
+    // Review Relay run: for pull_request_review, head_repository is the base
+    // repository, not the fork. Every page, or a fork PR older than the
+    // newest page of open PRs is never found (#10605).
+    const openPrs = await github.paginate(github.rest.pulls.list, {
+      owner, repo, state: 'open', per_page: 100,
     });
     prRefs = openPrs.filter(p => p.head.sha === workflowRun.head_sha);
   }
@@ -838,7 +845,7 @@ async function checkAndTransitionToReady(api, pr, core, reviews) {
     const requestedLogins = (pr.requested_reviewers || []).map(r => r.login);
     const allReviewers = [...new Set([...reviewerLogins, ...requestedLogins])];
     const mentions = allReviewers
-      .filter(login => login !== pr.user.login)
+      .filter(login => login !== pr.user.login && !isBotLogin(login))
       .map(login => `@${login}`)
       .join(' ');
     const mentionSuffix = mentions ? ` ${mentions}` : '';
@@ -1991,7 +1998,7 @@ async function handleReviewOverdue(github, api, config, core, owner, repo, pr, n
   const responsible = [...new Set([
     ...(pr.assignees || []).map(a => a.login),
     ...(pr.requested_reviewers || []).map(r => r.login),
-  ])].filter(login => login !== pr.user.login);
+  ])].filter(login => login !== pr.user.login && !isBotLogin(login));
   const mentions = responsible.length
     ? `\n\ncc ${responsible.map(login => `@${login}`).join(' ')}`
     : '';

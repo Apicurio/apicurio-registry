@@ -880,6 +880,8 @@ Verify the following conditions:
 .Additional resources
 * xref:getting-started/assembly-llm-artifact-types-implementation.adoc[LLM Artifact Types]
 * xref:getting-started/assembly-agent-discovery-patterns.adoc[Agent discovery and multi-agent orchestration]
+ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-ai-catalog-ard.adoc[AI Catalog and ARD discovery]
+endif::[]
 * link:https://google.github.io/A2A/[A2A Protocol Specification]
 * xref:getting-started/assembly-configuring-the-registry.adoc[{registry} configuration]

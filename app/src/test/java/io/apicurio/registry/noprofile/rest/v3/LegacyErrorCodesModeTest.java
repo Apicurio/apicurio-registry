@@ -2,6 +2,7 @@ package io.apicurio.registry.noprofile.rest.v3;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
+import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleType;
@@ -73,8 +74,9 @@ public class LegacyErrorCodesModeTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(error.getRuleViolation().getCauses());
         Assertions.assertFalse(error.getRuleViolation().getCauses().isEmpty());
         Assertions.assertTrue(
-                error.getRuleViolation().getCauses().stream().anyMatch(c -> c.getContext() != null && c.getContext().contains("paths")),
-                "Expected causes to include context referring to /paths"
+                error.getRuleViolation().getCauses().stream().anyMatch(c -> "/".equals(c.getContext()) && c.getDescription() != null
+                        && c.getDescription().contains("'paths'")),
+                "Expected a cause at context / about the missing 'paths' property"
         );
     }
 
@@ -82,6 +84,10 @@ public class LegacyErrorCodesModeTest extends AbstractResourceTestBase {
     public void testLegacy409RuleViolationExposesCausesOnCreateArtifact() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
+
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        clientV3.groups().post(createGroup);
 
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.VALIDITY);
@@ -101,8 +107,9 @@ public class LegacyErrorCodesModeTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(error.getRuleViolation().getCauses());
         Assertions.assertFalse(error.getRuleViolation().getCauses().isEmpty());
         Assertions.assertTrue(
-                error.getRuleViolation().getCauses().stream().anyMatch(c -> c.getContext() != null && c.getContext().contains("paths")),
-                "Expected causes to include context referring to /paths"
+                error.getRuleViolation().getCauses().stream().anyMatch(c -> "/".equals(c.getContext()) && c.getDescription() != null
+                        && c.getDescription().contains("'paths'")),
+                "Expected a cause at context / about the missing 'paths' property"
         );
     }
 }

@@ -199,8 +199,9 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         Assertions.assertFalse(error.getRuleViolation().getCauses().isEmpty(),
                 "Causes must be populated on draft finalize rule violation");
         Assertions.assertTrue(
-                error.getRuleViolation().getCauses().stream().anyMatch(c -> c.getContext() != null && c.getContext().contains("paths")),
-                "Expected causes to include context referring to /paths"
+                error.getRuleViolation().getCauses().stream().anyMatch(c -> "/".equals(c.getContext()) && c.getDescription() != null
+                        && c.getDescription().contains("'paths'")),
+                "Expected a cause at context / about the missing 'paths' property"
         );
         Assertions.assertEquals(400, error.getStatus());
     }
@@ -209,6 +210,10 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
     public void testCreateArtifactRuleViolationExposesBothTopLevelAndNestedCauses() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
+
+        CreateGroup createGroup = new CreateGroup();
+        createGroup.setGroupId(groupId);
+        clientV3.groups().post(createGroup);
 
         CreateRule createRule = new CreateRule();
         createRule.setRuleType(RuleType.VALIDITY);
@@ -247,8 +252,9 @@ public class ValidityRuleApplicationTest extends AbstractResourceTestBase {
         }
         // Assert specific cause context
         Assertions.assertTrue(
-                error.getRuleViolation().getCauses().stream().anyMatch(c -> c.getContext() != null && c.getContext().contains("paths")),
-                "Expected causes to include context referring to /paths"
+                error.getRuleViolation().getCauses().stream().anyMatch(c -> "/".equals(c.getContext()) && c.getDescription() != null
+                        && c.getDescription().contains("'paths'")),
+                "Expected a cause at context / about the missing 'paths' property"
         );
     }
 

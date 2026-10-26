@@ -37,4 +37,9 @@ public class PeersFeatureGateTest extends AbstractResourceTestBase {
                 .pathParam("peerId", "gate-peer").put(PEER_PATH).then());
         assertDisabled(given().when().pathParam("peerId", "gate-peer").delete(PEER_PATH).then());
     }
+
+    @Test
+    void federatedSearchIsRejectedWhenFederationIsDisabled() {
+        assertDisabled(given().when().get("/registry/v3/search/federated").then());
+    }
 }

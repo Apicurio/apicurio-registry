@@ -6,6 +6,7 @@ import io.apicurio.registry.agents.a2a.A2AConfig;
 import io.apicurio.registry.agents.a2a.RegistryAgentCardBuilder;
 import io.apicurio.registry.agents.aicatalog.AiCatalogConstants;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.extensions.AgentSearchHandler;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.GroupId;
@@ -41,11 +42,14 @@ import org.slf4j.LoggerFactory;
  * A2A Agent Card endpoints: the registry's own card, registered cards and agent search.
  */
 @ApplicationScoped
-public class AgentCardDiscovery {
+public class AgentCardDiscovery implements AgentSearchHandler {
 
     private static final Logger log = LoggerFactory.getLogger(AgentCardDiscovery.class);
 
     static final ObjectMapper mapper = new ObjectMapper();
+
+    private static final Runnable NO_CHECKPOINT = () -> {
+    };
 
     @Inject
     A2AConfig a2aConfig;
@@ -111,11 +115,26 @@ public class AgentCardDiscovery {
     }
 
     public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
-            List<String> inputModes, List<String> outputModes, Integer offset, Integer limit) {
+            List<String> inputModes, List<String> outputModes, Integer offset, Integer limit,
+            Boolean publicOnly) {
+        return searchAgents(name, skills, capabilities, inputModes, outputModes, offset, limit, publicOnly,
+                NO_CHECKPOINT);
+    }
+
+    /**
+     * {@code checkpoint} runs before each candidate is read and converted, which is where the time
+     * goes, so that a caller with a deadline can stop the search by throwing from it. A query that
+     * is already running in the storage is not interrupted.
+     */
+    @Override
+    public AgentSearchResults searchAgents(String name, List<String> skills, List<String> capabilities,
+            List<String> inputModes, List<String> outputModes, Integer offset, Integer limit,
+            Boolean publicOnly, Runnable checkpoint) {
         if (!a2aConfig.isEnabled()) {
             throw new NotFoundException("A2A support is disabled");
         }
 
+        boolean publicOnlyMode = Boolean.TRUE.equals(publicOnly);
         String baseUrl = wellKnownRequestSupport.getBaseUrl();
         String publisherDomain = wellKnownRequestSupport.resolvePublisherDomain();
 
@@ -141,10 +160,12 @@ public class AgentCardDiscovery {
         // AiCatalogEntry, so they are evaluated afterwards against each surviving candidate's
         // Agent Card content.
         List<SearchedArtifactDto> matched = new ArrayList<>();
-        for (AiCatalogDiscovery.AiCatalogCandidate candidate : aiCatalogDiscovery.collectAiCatalogCandidates(baseUrl, publisherDomain, name, structureFilters)) {
+        for (AiCatalogDiscovery.AiCatalogCandidate candidate : aiCatalogDiscovery.collectAiCatalogCandidates(baseUrl,
+                publisherDomain, name, structureFilters, publicOnlyMode, checkpoint)) {
             if (!AiCatalogConstants.MEDIA_TYPE_AGENT_CARD.equals(candidate.entry.getType())) {
                 continue;
             }
+            checkpoint.run();
             if (matchesAgentStructuredFilters(candidate.artifact, skills, capabilities, inputModes, outputModes)) {
                 matched.add(candidate.artifact);
             }
@@ -158,12 +179,14 @@ public class AgentCardDiscovery {
 
         List<AgentSearchResult> agents = new ArrayList<>();
         for (SearchedArtifactDto artifact : page) {
+            checkpoint.run();
             agents.add(convertToAgentSearchResult(artifact));
         }
 
         return AgentSearchResults.builder()
                 .count(total)
                 .agents(agents)
+                .publicOnly(publicOnlyMode ? Boolean.TRUE : null)
                 .build();
     }
 

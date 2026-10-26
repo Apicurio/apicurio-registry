@@ -87,6 +87,8 @@ public interface WellKnownResource {
      * @param outputMode filter by output mode
      * @param offset pagination offset
      * @param limit pagination limit
+     * @param publicOnly when true, return only agent cards whose effective visibility is public,
+     *            whoever the caller is and whether or not authentication is enabled
      * @return search results containing matching agent cards
      */
     @GET
@@ -99,7 +101,8 @@ public interface WellKnownResource {
             @QueryParam("inputMode") List<String> inputModes,
             @QueryParam("outputMode") List<String> outputModes,
             @QueryParam("offset") @DefaultValue("0") Integer offset,
-            @QueryParam("limit") @DefaultValue("20") Integer limit);
+            @QueryParam("limit") @DefaultValue("20") Integer limit,
+            @QueryParam("publicOnly") @DefaultValue("false") Boolean publicOnly);
 
     /**
      * Returns a specific registered MCP tool definition by group and artifact ID.

@@ -37,6 +37,9 @@ jobs:
           - { storage: h2, groups: migration, remote-profile: remote-mem }
           - { storage: h2, name: debezium, groups: 'debezium,debezium-snapshot,debezium-mysql,debezium-mysql-snapshot', remote-profile: remote-mem }
           - { storage: h2, groups: iceberg, remote-profile: remote-mem }
+          # Federated agent search across two registries deploys its own registry
+          # containers on a private network; it does not use the deployed one.
+          - { storage: h2, groups: federation, remote-profile: remote-mem }
           # postgresql storage
           - { storage: postgresql, name: default, remote-profile: remote-sql }
           - { storage: postgresql, groups: auth, remote-profile: remote-sql }

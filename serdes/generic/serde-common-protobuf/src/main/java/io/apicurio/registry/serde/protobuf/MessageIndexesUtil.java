@@ -6,13 +6,18 @@ import com.squareup.wire.schema.internal.parser.TypeElement;
 import io.apicurio.registry.resolver.ParsedSchema;
 import io.apicurio.registry.utils.protobuf.schema.ProtobufSchema;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MessageIndexesUtil {
+
+    // Mirrors Confluent's MessageIndexes.DEFAULT_INDEX: the index of the first message type.
+    public static final List<Integer> DEFAULT_INDEX = Collections.singletonList(0);
 
     private static IllegalArgumentException illegalVarintException(int value) {
         throw new IllegalArgumentException("Varint is too long, the most significant bit in the 5th byte is set, " +
@@ -53,31 +58,46 @@ public class MessageIndexesUtil {
     }
 
     public static void writeTo(List<Integer> indexes, OutputStream out) throws IOException {
+        if (indexes.equals(DEFAULT_INDEX)) {
+            // Confluent-compatible optimization: the default index [0] (the first message
+            // type) is encoded as a single 0x00 var-int instead of [size][indexes].
+            writeVarInt(0, out);
+            return;
+        }
         writeVarInt(indexes.size(), out);
 
         for (Integer index : indexes) {
             writeVarInt(index, out);
         }
     }
+
+    private static byte readByte(InputStream in) throws IOException {
+        int b = in.read();
+        if (b == -1) {
+            throw new EOFException("Unexpected end of stream while reading protobuf message indexes varint");
+        }
+        return (byte) b;
+    }
+
     static int readUnsignedVarInt(InputStream in) throws IOException {
-        byte tmp = (byte) in.read();
+        byte tmp = readByte(in);
         if (tmp >= 0) {
             return tmp;
         } else {
             int result = tmp & 127;
-            if ((tmp = (byte) in.read()) >= 0) {
+            if ((tmp = readByte(in)) >= 0) {
                 result |= tmp << 7;
             } else {
                 result |= (tmp & 127) << 7;
-                if ((tmp = (byte) in.read()) >= 0) {
+                if ((tmp = readByte(in)) >= 0) {
                     result |= tmp << 14;
                 } else {
                     result |= (tmp & 127) << 14;
-                    if ((tmp = (byte) in.read()) >= 0) {
+                    if ((tmp = readByte(in)) >= 0) {
                         result |= tmp << 21;
                     } else {
                         result |= (tmp & 127) << 21;
-                        result |= (tmp = (byte) in.read()) << 28;
+                        result |= (tmp = readByte(in)) << 28;
                         if (tmp < 0) {
                             throw illegalVarintException(result);
                         }
@@ -96,6 +116,8 @@ public class MessageIndexesUtil {
     public static List<Integer> readFrom(InputStream in) throws IOException {
         int size = readVarInt(in);
         if (size == 0) {
+            // A bare 0x00 var-int is Confluent's optimized encoding for the default
+            // index [0] (the first message type), so it must map to [0], not an empty list.
             return List.of(0);
         }
         List<Integer> indexes = new ArrayList<>(size);

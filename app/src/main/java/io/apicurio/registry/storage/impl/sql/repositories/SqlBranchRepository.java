@@ -290,6 +290,10 @@ public class SqlBranchRepository {
                             .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
                             .bind(3, branchOrder++).bind(4, version.getRawVersionId()).execute();
                 } catch (Exception ex) {
+                    if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                        throw new VersionAlreadyExistsOnBranchException(ga.getRawGroupIdWithDefaultString(),
+                                ga.getRawArtifactId(), version.getRawVersionId(), branchId.getRawBranchId());
+                    }
                     if (sqlStatements.isForeignKeyViolation(ex)) {
                         throw new VersionNotFoundException(ga.getRawGroupIdWithDefaultString(),
                                 ga.getRawArtifactId(), version.getRawVersionId());

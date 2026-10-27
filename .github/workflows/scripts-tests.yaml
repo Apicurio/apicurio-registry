@@ -52,7 +52,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
         with:
-          python-version: '3.15.1'
+          python-version: '3.15.2'
 
       # classify.py's unit tests need only these two. sentence-transformers is
       # deliberately not installed: classify.py imports it lazily, so the

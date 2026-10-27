@@ -312,7 +312,7 @@
     <flink.version>1.20.5</flink.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.10.3</kiota.libs.version>
+    <kiota.libs.version>1.10.4</kiota.libs.version>
     <kiota.community.version>0.0.39</kiota.community.version>
     <!-- 0.0.39 retries transient ETXTBSY during process startup
          (https://bugs.openjdk.org/browse/JDK-8068370) and publishes

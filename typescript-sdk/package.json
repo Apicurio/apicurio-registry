@@ -41,6 +41,12 @@
     "uuid": "14.0.3",
     "vite": "7.3.7",
     "vite-plugin-dts": "4.5.4",
-    "vitest": "4.1.12"
+    "vitest": "4.1.12",
+    "decompress": "file:./.npm-shims/decompress"
+  },
+  "overrides": {
+    "decompress": "$decompress",
+    "follow-redirects": "1.16.1",
+    "brace-expansion@<2": "1.1.21"
   }
 }

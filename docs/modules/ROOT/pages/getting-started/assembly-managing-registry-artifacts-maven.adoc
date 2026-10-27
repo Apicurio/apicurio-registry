@@ -81,11 +81,16 @@ The most common use case for the Maven plug-in is adding artifacts during a buil
 
 . Build your Maven project, for example, by using the `mvn package` command.
 +
-You can also run the `register` goal directly from the command line without a Maven project by passing the artifact configuration as system properties. Use the same field names that you would use in the Maven plug-in configuration:
+You can also run the `register` goal directly from the command line without a Maven project by passing the artifact configuration as system properties. Use the same field names that you would use in the Maven plug-in configuration. Before you run the command, set the `APICURIO_VERSION` environment variable to the version of the Maven plug-in that you use:
 +
 [source,shell]
 ----
-mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
+export APICURIO_VERSION=MY-PLUGIN-VERSION
+----
++
+[source,shell]
+----
+mvn io.apicurio:apicurio-registry-maven-plugin:"$APICURIO_VERSION":register \
   -Dapicurio.url=MY-REGISTRY-URL/apis/registry/v3 \
   -Dartifacts.groupId=TestGroup \
   -Dartifacts.artifactId=FullNameRecord \
@@ -114,7 +119,7 @@ When registering a single artifact, you can omit the artifact index and use `art
 +
 [source,shell]
 ----
-mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
+mvn io.apicurio:apicurio-registry-maven-plugin:"$APICURIO_VERSION":register \
   -Dapicurio.url=MY-REGISTRY-URL/apis/registry/v3 \
   -Dartifacts.0.groupId=TestGroup \
   -Dartifacts.0.artifactId=ExampleAPI \
@@ -133,7 +138,7 @@ The following example derives the artifact version from an AsyncAPI or OpenAPI d
 +
 [source,shell]
 ----
-mvn io.apicurio:apicurio-registry-maven-plugin:${apicurio.version}:register \
+mvn io.apicurio:apicurio-registry-maven-plugin:"$APICURIO_VERSION":register \
   -Dapicurio.url=MY-REGISTRY-URL/apis/registry/v3 \
   -Dartifacts.groupId=TestGroup \
   -Dartifacts.artifactId=ExampleAPI \

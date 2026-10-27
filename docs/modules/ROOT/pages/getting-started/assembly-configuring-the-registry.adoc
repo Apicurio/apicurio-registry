@@ -605,7 +605,7 @@ The storage content cache has three configuration properties, three named caches
 |`contentById`
 |Content ID
 |None. {registry} evicts entries only when the cache exceeds its size limit.
-|Content and references by content ID, including the REST API `/ids/contentIds/\{contentId}` requests and reference resolution for Confluent-compatible responses.
+|Content and stored reference metadata by content ID, including the REST API `/ids/contentIds/\{contentId}` requests.
 
 |`contentByHash`
 |SHA-256 content hash
@@ -655,7 +655,8 @@ The storage content cache has three configuration properties, three named caches
 *Reading the metrics*
 
 * The hit ratio for a cache is `hit / (hit + miss)` from `cache_gets_total`. A high ratio means that most reads avoid a storage round trip.
-* When `cache_evictions_total` and `cache_gets_total{result="miss"}` both grow steadily, the working set exceeds the per-cache limit. Raise `apicurio.storage.content-cache.max-size` if memory allows.
+* For `contentById` and `contentByHash`, steadily increasing evictions and misses can indicate that the working set exceeds the per-cache limit. Consider increasing `apicurio.storage.content-cache.max-size` if memory allows.
+* For `contentAndTypeById`, TTL expirations also count as evictions and cause misses on subsequent requests. Confirm that the size limit causes the evictions before increasing `max-size`; more capacity does not prevent TTL expiry.
 * When the hit ratio stays high with few evictions, a smaller limit reclaims memory without affecting throughput.
 * When the cache is disabled, or when the TTL is `0` for the `contentAndTypeById` cache, {registry} does not register the corresponding series.
 

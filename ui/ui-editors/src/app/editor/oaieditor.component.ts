@@ -86,7 +86,8 @@ import {ApiEditorUser} from "./_models/editor-user.model";
     selector: "oai-editor",
     templateUrl: "oaieditor.component.html",
     styleUrls: ["oaieditor.component.css"],
-    encapsulation: ViewEncapsulation.None
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class OaiEditorComponent extends AbstractApiEditorComponent implements OnChanges, OnInit, OnDestroy,
     IEditorsProvider, IReferenceResolver {

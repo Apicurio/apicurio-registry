@@ -28,7 +28,8 @@ import {ApiEditorComponentFeatures} from "../../editor/_models/features.model";
 @Component({
     selector: "openapi-editor",
     templateUrl: "openapi-editor.component.html",
-    styleUrls: ["openapi-editor.component.css"]
+    styleUrls: ["openapi-editor.component.css"],
+    standalone: false
 })
 export class OpenApiEditorComponent implements EditorComponent {
 

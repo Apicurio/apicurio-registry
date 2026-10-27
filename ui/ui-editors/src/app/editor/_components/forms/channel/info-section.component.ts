@@ -28,7 +28,8 @@ import {ModelUtils} from "../../../_util/model.util";
     selector: "channel-info-section",
     templateUrl: "info-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ChannelInfoSectionComponent extends AbstractBaseComponent {
 

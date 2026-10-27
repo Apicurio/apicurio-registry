@@ -79,9 +79,10 @@ import {ComponentType} from "../_models/component-type.model";
 @Component({
     selector: "master",
     templateUrl: "master.component.html",
-    styleUrls: [ "master.component.css" ],
+    styleUrls: ["master.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class EditorMasterComponent extends AbstractBaseComponent {
 

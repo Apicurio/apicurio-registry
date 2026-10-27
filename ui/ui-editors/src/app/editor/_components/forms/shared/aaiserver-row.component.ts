@@ -50,7 +50,8 @@ import {ModelUtils} from "../../../_util/model.util";
     templateUrl: "aaiserver-row.component.html",
     styleUrls: ["server-row.component.css", "aaiserver-row.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class AaiServerRowComponent extends AbstractRowComponent<Aai20Server, string> {
 

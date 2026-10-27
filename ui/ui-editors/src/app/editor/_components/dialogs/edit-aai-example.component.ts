@@ -34,7 +34,8 @@ export interface EditExampleEvent {
 @Component({
     selector: "edit-aai-example-dialog",
     templateUrl: "edit-aai-example.component.html",
-    styleUrls: [ "edit-aai-example.component.css" ]
+    styleUrls: ["edit-aai-example.component.css"],
+    standalone: false
 })
 export class EditAsyncApiExampleDialogComponent {
 

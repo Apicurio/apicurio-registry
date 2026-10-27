@@ -86,7 +86,8 @@ export let DIVIDER: DropDownOption = new DropDownOptionDivider();
 @Component({
     selector: "drop-down",
     templateUrl: "drop-down.component.html",
-    styleUrls: [ "drop-down.component.css" ]
+    styleUrls: ["drop-down.component.css"],
+    standalone: false
 })
 export class DropDownComponent {
 

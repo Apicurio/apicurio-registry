@@ -33,7 +33,8 @@ import {KeypressUtils} from "../../_util/keypress.util";
 @Component({
     selector: "validation-problem",
     templateUrl: "validation-problem.component.html",
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ValidationProblemComponent extends AbstractBaseComponent {
 

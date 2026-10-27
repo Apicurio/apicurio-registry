@@ -34,9 +34,10 @@ import {AbstractRowComponent} from "../../common/item-row.abstract";
 @Component({
     selector: "header-row",
     templateUrl: "header-row.component.html",
-    styleUrls: [ "header-row.component.css" ],
+    styleUrls: ["header-row.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class HeaderRowComponent extends AbstractRowComponent<Oas30Header, SimplifiedType> {
 

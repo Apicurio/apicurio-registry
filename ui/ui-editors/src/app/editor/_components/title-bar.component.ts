@@ -46,9 +46,10 @@ import {KeypressUtils} from "../_util/keypress.util";
 @Component({
     selector: "title-bar",
     templateUrl: "title-bar.component.html",
-    styleUrls: [ "title-bar.component.css" ],
+    styleUrls: ["title-bar.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class EditorTitleBarComponent extends AbstractBaseComponent implements AfterViewInit {
 

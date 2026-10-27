@@ -34,7 +34,8 @@ import {SelectionService} from "../../_services/selection.service";
     templateUrl: "undo-icon.component.html",
     styleUrls: ["undo-icon.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class UndoIconComponent extends AbstractBaseComponent {
 

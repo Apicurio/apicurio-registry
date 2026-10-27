@@ -26,8 +26,9 @@ import {CodeEditorComponent, CodeEditorMode} from "./code-editor.component";
 @Component({
     selector: "inline-example-editor",
     templateUrl: "inline-example-editor.component.html",
-    styleUrls: [ "inline-example-editor.component.css" ],
-    encapsulation: ViewEncapsulation.None
+    styleUrls: ["inline-example-editor.component.css"],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class InlineExampleEditorComponent extends TextAreaEditorComponent implements AfterViewInit {
 

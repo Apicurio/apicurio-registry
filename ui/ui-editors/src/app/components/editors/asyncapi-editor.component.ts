@@ -26,7 +26,8 @@ import {AaiEditorComponent} from "../../editor/aaieditor.component";
 @Component({
     selector: "asyncapi-editor",
     templateUrl: "asyncapi-editor.component.html",
-    styleUrls: ["asyncapi-editor.component.css"]
+    styleUrls: ["asyncapi-editor.component.css"],
+    standalone: false
 })
 export class AsyncApiEditorComponent implements EditorComponent {
 

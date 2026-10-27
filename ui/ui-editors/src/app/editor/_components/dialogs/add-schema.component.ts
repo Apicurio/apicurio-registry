@@ -28,7 +28,8 @@ export class AddSchemaDialogData {
 
 @Component({
     selector: "add-schema-dialog",
-    templateUrl: "add-schema.component.html"
+    templateUrl: "add-schema.component.html",
+    standalone: false
 })
 export class AddSchemaDialogComponent {
 

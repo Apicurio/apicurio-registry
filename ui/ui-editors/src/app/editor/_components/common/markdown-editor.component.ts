@@ -21,7 +21,8 @@ import {CodeEditorMode} from "./code-editor.component";
 @Component({
     selector: "markdown-editor",
     templateUrl: "markdown-editor.component.html",
-    encapsulation: ViewEncapsulation.None
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class MarkdownEditorComponent {
 

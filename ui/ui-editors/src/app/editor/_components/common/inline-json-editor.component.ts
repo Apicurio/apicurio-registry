@@ -23,8 +23,9 @@ import {CodeEditorComponent, CodeEditorMode} from "./code-editor.component";
 @Component({
     selector: "inline-json-editor",
     templateUrl: "inline-json-editor.component.html",
-    styleUrls: [ "inline-json-editor.component.css" ],
-    encapsulation: ViewEncapsulation.None
+    styleUrls: ["inline-json-editor.component.css"],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class InlineJsonEditorComponent extends TextAreaEditorComponent implements AfterViewInit {
 

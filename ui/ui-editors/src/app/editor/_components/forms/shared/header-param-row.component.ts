@@ -48,9 +48,10 @@ import {DropDownOption, DropDownOptionValue} from "../../common/drop-down.compon
 @Component({
     selector: "header-param-row",
     templateUrl: "header-param-row.component.html",
-    styleUrls: [ "header-param-row.component.css" ],
+    styleUrls: ["header-param-row.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class HeaderParamRowComponent extends AbstractRowComponent<OasParameter, SimplifiedParameterType> {
 

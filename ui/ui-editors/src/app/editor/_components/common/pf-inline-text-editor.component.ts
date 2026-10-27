@@ -23,8 +23,9 @@ import {KeypressUtils} from "../../_util/keypress.util";
 @Component({
     selector: "pf-inline-text-editor",
     templateUrl: "pf-inline-text-editor.component.html",
-    styleUrls: [ "pf-inline-text-editor.component.css" ],
-    encapsulation: ViewEncapsulation.None
+    styleUrls: ["pf-inline-text-editor.component.css"],
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class PfInlineTextEditorComponent extends TextInputEditorComponent {
 

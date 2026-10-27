@@ -58,7 +58,8 @@ import {RenameEntityDialogComponent, RenameEntityEvent} from "../../dialogs/rena
     selector: "security-schemes-section",
     templateUrl: "security-schemes-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class SecuritySchemesSectionComponent extends AbstractBaseComponent {
 

@@ -30,7 +30,8 @@ export class AddResponseDialogData {
 
 @Component({
     selector: "add-response-dialog",
-    templateUrl: "add-response.component.html"
+    templateUrl: "add-response.component.html",
+    standalone: false
 })
 export class AddResponseDialogComponent {
 

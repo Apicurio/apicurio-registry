@@ -25,7 +25,8 @@ import {ObjectUtils} from "../../_util/object.util";
 @Component({
     selector: "schema-type",
     templateUrl: "schema-type.component.html",
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class SchemaTypeComponent extends AbstractBaseComponent {
 

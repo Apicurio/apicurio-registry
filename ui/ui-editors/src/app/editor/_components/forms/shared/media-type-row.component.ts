@@ -36,9 +36,10 @@ import {AbstractBaseComponent} from "../../common/base-component";
 @Component({
     selector: "media-type-row",
     templateUrl: "media-type-row.component.html",
-    styleUrls: [ "media-type-row.component.css" ],
+    styleUrls: ["media-type-row.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class MediaTypeRowComponent extends AbstractRowComponent<Oas30MediaType, SimplifiedType> {
 

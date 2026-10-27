@@ -34,8 +34,9 @@ import {KeypressUtils} from "../../_util/keypress.util";
 @Component({
     selector: "validation-aggregate",
     templateUrl: "validation-aggregate.component.html",
-    styleUrls: [ "validation-aggregate.component.css" ],
-    changeDetection: ChangeDetectionStrategy.OnPush
+    styleUrls: ["validation-aggregate.component.css"],
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ValidationAggregateComponent extends AbstractBaseComponent {
 

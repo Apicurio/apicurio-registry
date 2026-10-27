@@ -38,9 +38,10 @@ import {ModelUtils} from "../../../../_util/model.util";
 @Component({
     selector: "channel-operation-info-section",
     templateUrl: "info-section.component.html",
-    styleUrls: [ "info-section.component.css" ],
+    styleUrls: ["info-section.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ChannelOperationInfoSectionComponent extends AbstractBaseComponent {
 

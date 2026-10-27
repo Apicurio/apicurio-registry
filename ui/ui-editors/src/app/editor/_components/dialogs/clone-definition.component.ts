@@ -32,7 +32,8 @@ import {FindSchemaDefinitionsVisitor, FindAaiSchemaDefinitionsVisitor} from "../
 
 @Component({
     selector: "clone-definition-dialog",
-    templateUrl: "clone-definition.component.html"
+    templateUrl: "clone-definition.component.html",
+    standalone: false
 })
 export class CloneDefinitionDialogComponent {
 

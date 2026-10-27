@@ -103,7 +103,8 @@ export interface ISecuritySchemeEditorHandler extends IEntityEditorHandler<Secur
     selector: "security-scheme-editor",
     templateUrl: "security-scheme-editor.component.html",
     styleUrls: ["security-scheme-editor.component.css"],
-    encapsulation: ViewEncapsulation.None
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class SecuritySchemeEditorComponent extends EntityEditor<SecurityScheme, SecuritySchemeEditorEvent> {
 

@@ -24,5 +24,6 @@ import { FieldArrayType } from "@ngx-formly/core";
     </div>
   </div>
   `,
+    standalone: false
 })
 export class ArrayTypeComponent extends FieldArrayType {}

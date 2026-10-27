@@ -36,9 +36,10 @@ import {EditExampleEvent} from "../../../dialogs/edit-aai-example.component";
 @Component({
     selector: "payload-tab",
     templateUrl: "payload-tab.component.html",
-    styleUrls: [ "payload-tab.component.css" ],
+    styleUrls: ["payload-tab.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class PayloadTabComponent extends AbstractBaseComponent {
 

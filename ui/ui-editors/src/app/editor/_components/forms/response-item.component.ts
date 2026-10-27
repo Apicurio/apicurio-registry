@@ -26,9 +26,10 @@ import {ModelUtils} from "../../_util/model.util";
 @Component({
     selector: "[response-item]",
     templateUrl: "response-item.component.html",
-    styleUrls: [ "response-item.component.css" ],
+    styleUrls: ["response-item.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ResponseItemComponent extends AbstractBaseComponent {
 

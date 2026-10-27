@@ -40,9 +40,10 @@ import {EditorsService} from "../../_services/editors.service";
 @Component({
     selector: "channel-form",
     templateUrl: "channel-form.component.html",
-    styleUrls: [ "channel-form.component.css" ],
+    styleUrls: ["channel-form.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ChannelFormComponent extends SourceFormComponent<AaiChannelItem> {
 

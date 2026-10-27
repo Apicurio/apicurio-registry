@@ -49,9 +49,10 @@ import {ModelUtils} from "../../../../_util/model.util";
 @Component({
     selector: "responses-section",
     templateUrl: "responses-section.component.html",
-    styleUrls: [ "responses-section.component.css" ],
+    styleUrls: ["responses-section.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ResponsesSectionComponent extends AbstractBaseComponent {
 

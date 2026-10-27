@@ -28,7 +28,8 @@ import {SelectionService} from "../../../_services/selection.service";
     selector: "license-section",
     templateUrl: "license-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class LicenseSectionComponent extends AbstractBaseComponent {
 

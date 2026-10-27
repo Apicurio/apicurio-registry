@@ -26,9 +26,10 @@ import {ModelUtils} from "../../_util/model.util";
 @Component({
     selector: "[messagetrait-item]",
     templateUrl: "messagetrait-item.component.html",
-    styleUrls: [ "messagetrait-item.component.css" ],
+    styleUrls: ["messagetrait-item.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class MessageTraitItemComponent extends AbstractBaseComponent {
 

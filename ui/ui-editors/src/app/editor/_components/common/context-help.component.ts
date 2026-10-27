@@ -21,7 +21,8 @@ import {KeypressUtils} from "../../_util/keypress.util";
 @Component({
     selector: "context-help",
     templateUrl: "context-help.component.html",
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ContextHelpComponent {
 

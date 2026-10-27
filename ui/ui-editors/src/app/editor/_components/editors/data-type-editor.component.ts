@@ -51,7 +51,8 @@ export interface IDataTypeEditorHandler extends IEntityEditorHandler<Oas20Schema
 @Component({
     selector: "data-type-editor",
     templateUrl: "data-type-editor.component.html",
-    styleUrls: ["data-type-editor.component.css"]
+    styleUrls: ["data-type-editor.component.css"],
+    standalone: false
 })
 export class DataTypeEditorComponent extends EntityEditor<Oas20SchemaDefinition | Oas30SchemaDefinition | Aai20SchemaDefinition, DataTypeEditorEvent> {
 

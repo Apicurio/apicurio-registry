@@ -22,7 +22,8 @@ import {OasDocument, OasPathItem} from "@apicurio/data-models";
 
 @Component({
     selector: "clone-path-dialog",
-    templateUrl: "clone-path.component.html"
+    templateUrl: "clone-path.component.html",
+    standalone: false
 })
 export class ClonePathDialogComponent {
 

@@ -13,6 +13,7 @@ import { FieldType } from "@ngx-formly/core";
             <formly-field *ngFor="let f of field.fieldGroup" [field]="f"></formly-field>
         </div>
     `,
+    standalone: false
 })
 export class ObjectTypeComponent extends FieldType {
     defaultOptions = {

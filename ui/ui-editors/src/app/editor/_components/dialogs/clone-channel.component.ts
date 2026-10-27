@@ -22,7 +22,8 @@ import {AaiChannelItem, AaiDocument} from "@apicurio/data-models";
 
 @Component({
     selector: "clone-channel-dialog",
-    templateUrl: "clone-channel.component.html"
+    templateUrl: "clone-channel.component.html",
+    standalone: false
 })
 export class CloneChannelDialogComponent {
 

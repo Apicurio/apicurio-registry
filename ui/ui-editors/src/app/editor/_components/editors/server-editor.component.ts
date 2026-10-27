@@ -45,7 +45,8 @@ export interface IServerEditorHandler extends IEntityEditorHandler<Oas30Server, 
 @Component({
     selector: "server-editor",
     templateUrl: "server-editor.component.html",
-    styleUrls: ["server-editor.component.css"]
+    styleUrls: ["server-editor.component.css"],
+    standalone: false
 })
 export class ServerEditorComponent extends EntityEditor<Oas30Server, ServerEditorEvent> {
 

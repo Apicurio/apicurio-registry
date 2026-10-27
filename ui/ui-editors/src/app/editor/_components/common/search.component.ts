@@ -24,7 +24,8 @@ import {Debouncer} from "../../_messaging/debouncer";
 @Component({
     selector: "search",
     templateUrl: "search.component.html",
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class SearchComponent extends AbstractBaseComponent {
 

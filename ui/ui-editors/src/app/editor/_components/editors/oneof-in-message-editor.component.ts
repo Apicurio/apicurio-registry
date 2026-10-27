@@ -47,7 +47,8 @@ export interface IOneOfInMessageEditorHandler extends IEntityEditorHandler<AaiMe
 @Component({
     selector: "oneOfMessage-editor",
     templateUrl: "oneof-in-message-editor.component.html",
-    styleUrls: ["oneof-in-message-editor.component.css"]
+    styleUrls: ["oneof-in-message-editor.component.css"],
+    standalone: false
 })
 export class OneOfInMessageEditorComponent extends EntityEditor<AaiMessage, OneOfInMessageEditorEvent> {
 

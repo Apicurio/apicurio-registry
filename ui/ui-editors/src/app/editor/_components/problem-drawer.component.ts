@@ -39,9 +39,10 @@ import {FeaturesService} from "../_services/features.service";
 @Component({
     selector: "problem-drawer",
     templateUrl: "problem-drawer.component.html",
-    styleUrls: [ "problem-drawer.component.css" ],
+    styleUrls: ["problem-drawer.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class EditorProblemDrawerComponent extends AbstractBaseComponent {
 

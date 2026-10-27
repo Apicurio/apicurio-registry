@@ -34,9 +34,10 @@ import {DropDownOption, DropDownOptionValue} from "../../../common/drop-down.com
 @Component({
     selector: "formData-param-row",
     templateUrl: "formData-param-row.component.html",
-    styleUrls: [ "formData-param-row.component.css" ],
+    styleUrls: ["formData-param-row.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class FormDataParamRowComponent extends AbstractRowComponent<OasParameter, SimplifiedParameterType> {
 

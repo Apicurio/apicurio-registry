@@ -36,7 +36,8 @@ import {AbstractRowComponent} from "../../common/item-row.abstract";
     templateUrl: "extension-row.component.html",
     styleUrls: ["extension-row.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ExtensionRowComponent extends AbstractRowComponent<Extension, string> {
 

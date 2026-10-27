@@ -48,9 +48,10 @@ import {ModelUtils} from "../../../_util/model.util";
 @Component({
     selector: "aaisecurity-requirement-row",
     templateUrl: "aaisecurity-requirement-row.component.html",
-    styleUrls: [ "security-requirements-section.component.css" ],
+    styleUrls: ["security-requirements-section.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class AaiSecurityRequirementRowComponent extends AbstractBaseComponent {
 

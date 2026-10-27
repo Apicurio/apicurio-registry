@@ -8,7 +8,8 @@ import {LoggerService} from "../../../services/logger.service";
     selector: "dynamic-form",
     templateUrl: "./dynamic-form.component.html",
     styleUrls: ["./dynamic-form.component.css"],
-    encapsulation: ViewEncapsulation.None
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class DynamicFormComponent implements OnChanges {
     @Input() schema: any;

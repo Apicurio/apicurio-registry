@@ -28,7 +28,8 @@ import {CodeEditorComponent, CodeEditorMode, CodeEditorTheme} from "../common/co
 @Component({
     selector: "add-aai-example-dialog",
     templateUrl: "add-aai-example.component.html",
-    styleUrls: [ "add-aai-example.component.css" ]
+    styleUrls: ["add-aai-example.component.css"],
+    standalone: false
 })
 export class AddAsyncApiExampleDialogComponent {
 

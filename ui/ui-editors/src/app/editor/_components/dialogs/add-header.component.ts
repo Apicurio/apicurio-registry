@@ -23,7 +23,8 @@ const STANDARD_HEADERS = ["string", "integer"];
 
 @Component({
     selector: "add-header-dialog",
-    templateUrl: "add-header.component.html"
+    templateUrl: "add-header.component.html",
+    standalone: false
 })
 export class AddHeaderDialogComponent {
 

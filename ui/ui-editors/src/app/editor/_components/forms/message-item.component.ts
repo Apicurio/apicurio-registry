@@ -26,9 +26,10 @@ import {ModelUtils} from "../../_util/model.util";
 @Component({
     selector: "[message-item]",
     templateUrl: "message-item.component.html",
-    styleUrls: [ "message-item.component.css" ],
+    styleUrls: ["message-item.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class MessageItemComponent extends AbstractBaseComponent {
 

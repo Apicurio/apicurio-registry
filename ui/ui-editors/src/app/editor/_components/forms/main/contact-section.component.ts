@@ -27,7 +27,8 @@ import {SelectionService} from "../../../_services/selection.service";
     selector: "contact-section",
     templateUrl: "contact-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ContactSectionComponent extends AbstractBaseComponent {
 

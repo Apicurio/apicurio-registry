@@ -29,7 +29,8 @@ import {EditorsService} from "../../_services/editors.service";
     selector: "aaimain-form",
     templateUrl: "aaimain-form.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class AsyncApiMainFormComponent extends SourceFormComponent<AaiDocument> {
 

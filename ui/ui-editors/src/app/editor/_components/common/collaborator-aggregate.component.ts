@@ -24,9 +24,10 @@ import {AbstractCollaboratorComponent} from "./collaborator-overlay.component";
 @Component({
     selector: "collaborator-aggregate",
     templateUrl: "collaborator-aggregate.component.html",
-    styleUrls: [ "collaborator-aggregate.component.css" ],
+    styleUrls: ["collaborator-aggregate.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class CollaboratorAggregateComponent extends AbstractCollaboratorComponent {
 

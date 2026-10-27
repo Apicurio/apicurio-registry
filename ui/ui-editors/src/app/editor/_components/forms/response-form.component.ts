@@ -61,7 +61,8 @@ import {ApiCatalogService} from "../../_services/api-catalog.service";
     selector: "response-form",
     templateUrl: "response-form.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ResponseFormComponent extends SourceFormComponent<OasResponse> {
 

@@ -31,7 +31,8 @@ export enum CodeEditorMode {
 @Component({
     selector: "code-editor",
     templateUrl: "code-editor.component.html",
-    encapsulation: ViewEncapsulation.None
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class CodeEditorComponent {
 

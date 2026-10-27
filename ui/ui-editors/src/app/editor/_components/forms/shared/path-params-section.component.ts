@@ -48,7 +48,8 @@ import {ModelUtils} from "../../../_util/model.util";
     selector: "path-params-section",
     templateUrl: "path-params-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class PathParamsSectionComponent extends AbstractBaseComponent {
 

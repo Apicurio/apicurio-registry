@@ -39,7 +39,8 @@ import {ComponentType} from "../../../_models/component-type.model";
     selector: "extensions-section",
     templateUrl: "extensions-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ExtensionsSectionComponent extends AbstractBaseComponent {
 

@@ -18,7 +18,8 @@
 import {AfterContentChecked, AfterViewChecked, Directive, ElementRef, HostListener, Input} from "@angular/core";
 
 @Directive({
-    selector: "textarea[autosize]"
+    selector: "textarea[autosize]",
+    standalone: false
 })
 export class TextAreaAutosize implements AfterContentChecked {
 
@@ -42,7 +43,8 @@ export class TextAreaAutosize implements AfterContentChecked {
 
 
 @Directive({
-    selector: "div[autoheight]"
+    selector: "div[autoheight]",
+    standalone: false
 })
 export class DivAutoHeight implements AfterViewChecked {
 
@@ -76,7 +78,8 @@ export class DivAutoHeight implements AfterViewChecked {
 
 
 @Directive({
-    selector: "input[autosize]"
+    selector: "input[autosize]",
+    standalone: false
 })
 export class TextBoxAutosize implements AfterContentChecked {
 

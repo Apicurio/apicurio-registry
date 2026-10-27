@@ -21,9 +21,10 @@ import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output, ViewEnc
 @Component({
     selector: "no-operation",
     templateUrl: "no-operation.component.html",
-    styleUrls: [ "no-operation.component.css" ],
+    styleUrls: ["no-operation.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class NoOperationComponent {
 

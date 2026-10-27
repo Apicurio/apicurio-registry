@@ -30,7 +30,8 @@ import {SchemaUtil} from "../../_util/schema.util";
     templateUrl: "message-form.component.html",
     styleUrls: ["message-form.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class MessageFormComponent extends SourceFormComponent<AaiMessage> {
 

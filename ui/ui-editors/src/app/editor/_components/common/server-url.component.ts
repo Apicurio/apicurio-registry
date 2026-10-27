@@ -26,7 +26,8 @@ import {SelectionService} from "../../_services/selection.service";
     selector: "[server-url]",
     templateUrl: "server-url.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class ServerUrlComponent extends AbstractBaseComponent {
 

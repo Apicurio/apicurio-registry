@@ -29,7 +29,8 @@ import {FindResponseDefinitionsVisitor} from "../../_visitors/response-definitio
 
 @Component({
     selector: "clone-response-definition-dialog",
-    templateUrl: "clone-response-definition.component.html"
+    templateUrl: "clone-response-definition.component.html",
+    standalone: false
 })
 export class CloneResponseDefinitionDialogComponent {
 

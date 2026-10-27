@@ -44,9 +44,10 @@ import {ComponentType} from "../../../_models/component-type.model";
 @Component({
     selector: "operations-section",
     templateUrl: "operations-section.component.html",
-    styleUrls: [ "operations-section.component.css" ],
+    styleUrls: ["operations-section.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class OperationsSectionComponent extends AbstractBaseComponent {
 

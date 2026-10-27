@@ -66,7 +66,8 @@ const INHERITANCE_TYPES_20: DropDownOption[] = [
     selector: "definition-form",
     templateUrl: "definition-form.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class DefinitionFormComponent extends SourceFormComponent<OasSchema> {
 

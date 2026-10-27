@@ -43,9 +43,10 @@ const INHERITANCE_TYPES: DropDownOption[] = [
 @Component({
     selector: "message-section",
     templateUrl: "message-section.component.html",
-    styleUrls: [ "message-section.component.css" ],
+    styleUrls: ["message-section.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class MessageSectionComponent extends AbstractBaseComponent {
 

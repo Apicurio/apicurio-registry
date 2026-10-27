@@ -62,7 +62,8 @@ export interface IPropertyEditorHandler extends IEntityEditorHandler<Oas20Proper
     selector: "property-editor",
     templateUrl: "property-editor.component.html",
     styleUrls: ["property-editor.component.css"],
-    encapsulation: ViewEncapsulation.None
+    encapsulation: ViewEncapsulation.None,
+    standalone: false
 })
 export class PropertyEditorComponent extends EntityEditor<Oas20PropertySchema | Oas30PropertySchema | Aai20PropertySchema, PropertyEditorEvent> {
 

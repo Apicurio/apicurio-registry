@@ -30,7 +30,8 @@ import {ComponentType} from "../../_models/component-type.model";
     selector: "main-form",
     templateUrl: "main-form.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush
+    changeDetection: ChangeDetectionStrategy.OnPush,
+    standalone: false
 })
 export class MainFormComponent extends SourceFormComponent<OasDocument> {
 

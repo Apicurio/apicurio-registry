@@ -1,0 +1,6 @@
+{
+  "name": "io.github.example/weather",
+  "version": "1.0.0",
+  "description": "Weather MCP server",
+  "remotes": [ { "type": "streamable-http", "url": "https://example.com/mcp" } ]
+}

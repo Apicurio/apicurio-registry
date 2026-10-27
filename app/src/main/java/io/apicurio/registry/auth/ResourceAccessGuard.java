@@ -62,6 +62,9 @@ public class ResourceAccessGuard {
     @Inject
     GrantsAccessController grantsAc;
 
+    @Inject
+    AuthorizationLookups lookups;
+
     /**
      * @throws ForbiddenException if owner-only authorization or per-resource authorization denies
      *         {@code level} on {@code resource}
@@ -109,7 +112,9 @@ public class ResourceAccessGuard {
     public void requireGeneratedArtifactWrite(String groupId, String artifactId, boolean ownerOnly) {
         AuthorizedResource artifact = AuthorizedResource.artifact(groupId, artifactId);
         AuthorizedResource group = AuthorizedResource.group(groupId);
-        boolean exists = storage.isArtifactExists(new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+        // Through the per-request lookups: the owner check below reads the same artifact
+        boolean exists = lookups.artifact(storage, new GroupId(groupId).getRawGroupIdWithNull(), artifactId)
+                .isPresent();
         if (ownerOnly) {
             requireAccess(AuthorizedLevel.Write, artifact);
             if (!exists) {

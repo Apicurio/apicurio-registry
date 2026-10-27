@@ -13,6 +13,8 @@ import io.apicurio.registry.rules.validity.ContentValidator;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -22,6 +24,7 @@ import jakarta.inject.Inject;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 @ApplicationScoped
@@ -49,9 +52,11 @@ public class IntegrityRuleExecutor implements RuleExecutor {
             verifyAllReferencesHaveMappings(context);
         }
 
-        // Make sure that the included references all actually exist in the registry.
+        // Make sure that the included references all actually exist in the registry, and that they point to
+        // artifact types this type is allowed to reference.
         if (levels.contains(IntegrityLevel.FULL) || levels.contains(IntegrityLevel.REFS_EXIST)) {
             validateReferencesExist(context);
+            validateReferenceTargetTypes(context);
         }
 
         // Make sure that there are no duplicate mappings
@@ -100,6 +105,44 @@ public class IntegrityRuleExecutor implements RuleExecutor {
                     IntegrityLevel.REFS_EXIST.name(), causes);
         }
 
+    }
+
+    private void validateReferenceTargetTypes(RuleContext context) throws RuleViolationException {
+        List<ArtifactReference> references = context.getReferences();
+        if (references == null || references.isEmpty()) {
+            return;
+        }
+        Optional<Set<String>> allowedTypes = factory.getArtifactTypeProvider(context.getArtifactType())
+                .getContentValidator().getAllowedReferenceTargetTypes();
+        if (allowedTypes.isEmpty()) {
+            return;
+        }
+
+        RegistryStorage storageToUse = resolveStorage(context);
+        Set<RuleViolation> causes = new HashSet<>();
+        for (ArtifactReference ref : references) {
+            String targetType;
+            try {
+                targetType = storageToUse.getArtifactVersionMetaData(ref.getGroupId(), ref.getArtifactId(),
+                        ref.getVersion()).getArtifactType();
+            } catch (ArtifactNotFoundException | VersionNotFoundException e) {
+                // A missing target is reported by the existence check.
+                continue;
+            }
+            if (!allowedTypes.get().contains(targetType)) {
+                RuleViolation violation = new RuleViolation();
+                violation.setContext(ref.getName());
+                violation.setDescription(String.format(
+                        "Referenced artifact (%s/%s @ %s) is of type %s, which %s artifacts cannot reference.",
+                        ref.getGroupId(), ref.getArtifactId(), ref.getVersion(), targetType,
+                        context.getArtifactType()));
+                causes.add(violation);
+            }
+        }
+        if (!causes.isEmpty()) {
+            throw new RuleViolationException("Referenced artifact type is not allowed.", RuleType.INTEGRITY,
+                    IntegrityLevel.REFS_EXIST.name(), causes);
+        }
     }
 
     private void checkForDuplicateReferences(RuleContext context) throws RuleViolationException {

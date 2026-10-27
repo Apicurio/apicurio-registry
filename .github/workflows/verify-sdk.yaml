@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -32,7 +32,7 @@ jobs:
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
         with:
-          python-version: '3.15.0'
+          python-version: '3.15.1'
 
       - name: Install Poetry
         uses: snok/install-poetry@d45b6d76012debf457ab49dffc7fb7b2efe8071d
@@ -45,7 +45,7 @@ jobs:
         working-directory: python-sdk
         run: make lint-check
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'
@@ -71,7 +71,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK ${{ inputs.java-version }}
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: ${{ inputs.java-version }}
           distribution: 'temurin'
@@ -82,7 +82,7 @@ jobs:
         with:
           go-version: '1.27.2'
 
-      - uses: apicurio/apicurio-github-actions/load-docker-image@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         with:
           artifact-name: 'apicurio-registry-${{ inputs.image-tag }}.tar'
           image-file: '/tmp/apicurio-registry-${{ inputs.image-tag }}.tar'

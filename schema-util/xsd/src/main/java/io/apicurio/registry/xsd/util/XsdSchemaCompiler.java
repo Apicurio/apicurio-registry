@@ -54,7 +54,27 @@ public final class XsdSchemaCompiler {
      */
     public static void compile(Source[] sources, Map<String, TypedContent> resolvedReferences)
             throws UnresolvedReferencesException, SAXException {
-        MappedReferenceResourceResolver resolver = new MappedReferenceResourceResolver(resolvedReferences);
+        compile(sources, resolvedReferences, null, null);
+    }
+
+    /**
+     * Compiles the given schema sources together, resolving locations from the given in-memory inline
+     * documents first and otherwise only from the given references.
+     *
+     * @param sources schema sources (give each a systemId)
+     * @param resolvedReferences map of reference name to content; may be null
+     * @param inlineDocuments map of synthetic system id to schema text; may be null
+     * @param inlineNamespaces map of target namespace to synthetic system id of its inline document, used
+     *            for namespace-only imports; may be null
+     * @throws UnresolvedReferencesException if any location was not mapped (checked before schema errors)
+     * @throws SAXException if the schema is invalid
+     * @see MappedReferenceResourceResolver#MappedReferenceResourceResolver(Map, Map, Map)
+     */
+    public static void compile(Source[] sources, Map<String, TypedContent> resolvedReferences,
+            Map<String, String> inlineDocuments, Map<String, String> inlineNamespaces)
+            throws UnresolvedReferencesException, SAXException {
+        MappedReferenceResourceResolver resolver = new MappedReferenceResourceResolver(resolvedReferences,
+                inlineDocuments, inlineNamespaces);
         SchemaFactory factory = SchemaFactoryAccessor.newSchemaFactory();
         factory.setResourceResolver(resolver);
         SAXException schemaError = null;

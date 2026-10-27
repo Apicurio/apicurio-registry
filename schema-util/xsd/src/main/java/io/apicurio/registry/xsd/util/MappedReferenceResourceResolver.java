@@ -35,7 +35,16 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
      */
     private static final String NON_EMPTY_BLANK = " ";
 
+    /**
+     * Prefix of synthetic system ids used for in-memory (inline) schema documents. Locations with this
+     * prefix are never user references: they are never recorded as unresolved and never served from the
+     * user-mapped references.
+     */
+    public static final String INLINE_ID_PREFIX = "urn:apicurio:inline:";
+
     private final Map<String, TypedContent> resolvedReferences;
+    private final Map<String, String> inlineDocuments;
+    private final Map<String, String> inlineNamespaces;
     private final Set<String> unresolved = new LinkedHashSet<>();
 
     /**
@@ -44,7 +53,23 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
      * @param resolvedReferences map of reference name (literal location) to content; may be null
      */
     public MappedReferenceResourceResolver(Map<String, TypedContent> resolvedReferences) {
+        this(resolvedReferences, null, null);
+    }
+
+    /**
+     * Constructor supporting in-memory (inline) schema documents.
+     *
+     * @param resolvedReferences map of reference name (literal location) to content; may be null
+     * @param inlineDocuments map of synthetic system id (prefixed with {@link #INLINE_ID_PREFIX}) to schema
+     *            text; may be null
+     * @param inlineNamespaces map of target namespace to the synthetic system id of the inline document that
+     *            provides it, used for namespace-only imports; may be null
+     */
+    public MappedReferenceResourceResolver(Map<String, TypedContent> resolvedReferences,
+            Map<String, String> inlineDocuments, Map<String, String> inlineNamespaces) {
         this.resolvedReferences = resolvedReferences == null ? Map.of() : resolvedReferences;
+        this.inlineDocuments = inlineDocuments == null ? Map.of() : inlineDocuments;
+        this.inlineNamespaces = inlineNamespaces == null ? Map.of() : inlineNamespaces;
     }
 
     /**
@@ -55,12 +80,20 @@ public class MappedReferenceResourceResolver implements LSResourceResolver {
     @Override
     public LSInput resolveResource(String type, String namespaceURI, String publicId, String systemId,
             String baseURI) {
+        boolean schemaType = XMLConstants.W3C_XML_SCHEMA_NS_URI.equals(type);
         if (systemId == null) {
-            return null;
+            String inlineId = schemaType && namespaceURI != null ? inlineNamespaces.get(namespaceURI) : null;
+            String inline = inlineId == null ? null : inlineDocuments.get(inlineId);
+            return inline == null ? null : new StringInput(inlineId, publicId, inline);
         }
-        if (!XMLConstants.W3C_XML_SCHEMA_NS_URI.equals(type)) {
+        if (!schemaType) {
             // Non-schema resources (e.g. external DTDs) are never loaded and are not registry references.
             return new StringInput(systemId, publicId, NON_EMPTY_BLANK);
+        }
+        if (systemId.startsWith(INLINE_ID_PREFIX)) {
+            // Synthetic ids are served only from the in-memory map and never shadowed by user references.
+            String inline = inlineDocuments.get(systemId);
+            return new StringInput(systemId, publicId, inline == null ? EMPTY_SCHEMA : inline);
         }
         TypedContent found = resolvedReferences.get(systemId);
         if (found == null) {

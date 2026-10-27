@@ -50,6 +50,38 @@ public class WsdlContentValidatorTest extends ArtifactUtilProviderTestBase {
         Assertions.assertDoesNotThrow(() -> new WsdlContentValidator().validate(ValidityLevel.FULL, content,
                 Map.of()));
     }
+
+    @Test
+    public void testFullTwoInlineSchemasImporterFirst() {
+        TypedContent content = resourceToTypedContentHandle("wsdl-two-inline-schemas-importer-first.wsdl");
+        Assertions.assertDoesNotThrow(() -> new WsdlContentValidator().validate(ValidityLevel.FULL, content,
+                Map.of()));
+    }
+
+    @Test
+    public void testFullSameNamespaceLaterBlockInvalid() {
+        TypedContent content = resourceToTypedContentHandle("wsdl-same-ns-invalid-later.wsdl");
+        RuleViolationException ex = Assertions.assertThrows(RuleViolationException.class,
+                () -> new WsdlContentValidator().validate(ValidityLevel.FULL, content, Map.of()));
+        Assertions.assertEquals(RuleType.VALIDITY, ex.getRuleType());
+        Assertions.assertTrue(ex.getCause().getMessage().contains("noSuchType"), ex.getCause().getMessage());
+    }
+
+    @Test
+    public void testFullNoNamespaceLaterBlockInvalid() {
+        TypedContent content = resourceToTypedContentHandle("wsdl-no-ns-invalid-later.wsdl");
+        RuleViolationException ex = Assertions.assertThrows(RuleViolationException.class,
+                () -> new WsdlContentValidator().validate(ValidityLevel.FULL, content, Map.of()));
+        Assertions.assertTrue(ex.getCause().getMessage().contains("noSuchType"), ex.getCause().getMessage());
+    }
+
+    @Test
+    public void testFullSameNamespaceCrossBlockReference() {
+        TypedContent content = resourceToTypedContentHandle("wsdl-same-ns-cross-block.wsdl");
+        Assertions.assertDoesNotThrow(() -> new WsdlContentValidator().validate(ValidityLevel.FULL, content,
+                Map.of()));
+    }
+
     @Test
     public void testValidSyntax() throws Exception {
         TypedContent contentA = resourceToTypedContentHandle("wsdl-valid.wsdl");

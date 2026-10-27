@@ -37,8 +37,7 @@ import {KeypressUtils} from "../../../_util/keypress.util";
     templateUrl: "security-scheme-row.component.html",
     styleUrls: ["security-scheme-row.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SecuritySchemeRowComponent extends AbstractBaseComponent {
 

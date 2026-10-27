@@ -43,10 +43,9 @@ import {DropDownOption, DropDownOptionValue} from "../../common/drop-down.compon
 @Component({
     selector: "cookie-param-row",
     templateUrl: "cookie-param-row.component.html",
-    styleUrls: ["cookie-param-row.component.css"],
+    styleUrls: [ "cookie-param-row.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CookieParamRowComponent extends AbstractRowComponent<OasParameter, SimplifiedParameterType> {
 

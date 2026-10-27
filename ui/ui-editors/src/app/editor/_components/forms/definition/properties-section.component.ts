@@ -47,10 +47,9 @@ import Oas30PropertySchema = Oas30Schema.Oas30PropertySchema;
 @Component({
     selector: "properties-section",
     templateUrl: "properties-section.component.html",
-    styleUrls: ["properties-section.component.css"],
+    styleUrls: [ "properties-section.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PropertiesSectionComponent extends AbstractBaseComponent {
 

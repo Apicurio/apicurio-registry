@@ -33,10 +33,9 @@ import {DocumentType, NodePath, OasSchema} from "@apicurio/data-models";
 @Component({
     selector: "schema-row",
     templateUrl: "schema-row.component.html",
-    styleUrls: ["schema-row.component.css"],
+    styleUrls: [ "schema-row.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SchemaRowComponent extends AbstractRowComponent<OasSchema, any> {
 

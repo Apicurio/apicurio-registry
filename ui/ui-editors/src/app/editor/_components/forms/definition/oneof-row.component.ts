@@ -47,8 +47,7 @@ import {DropDownOption, DropDownOptionValue} from "../../common/drop-down.compon
     templateUrl: "oneof-row.component.html",
     styleUrls: ["oneof-row.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class OneOfRowComponent extends AbstractRowComponent<AaiMessage, SimplifiedPropertyType> {
 

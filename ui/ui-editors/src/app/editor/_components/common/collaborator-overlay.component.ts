@@ -125,10 +125,9 @@ export abstract class AbstractCollaboratorComponent extends AbstractBaseComponen
 @Component({
     selector: "collaborator-overlay",
     templateUrl: "collaborator-overlay.component.html",
-    styleUrls: ["collaborator-overlay.component.css"],
+    styleUrls: [ "collaborator-overlay.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CollaboratorOverlayComponent extends AbstractCollaboratorComponent {
 

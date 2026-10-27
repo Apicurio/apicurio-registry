@@ -28,8 +28,7 @@ import {ExampleTextValue, ModelUtils} from "../../../_util/model.util";
     selector: "definition-example-section",
     templateUrl: "example-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DefinitionExampleSectionComponent extends AbstractBaseComponent {
 

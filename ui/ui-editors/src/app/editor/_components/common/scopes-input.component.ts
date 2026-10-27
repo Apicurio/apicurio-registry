@@ -24,9 +24,8 @@ import {Scope} from "../../_models/scope.model";
 @Component({
     selector: "scopes-input",
     templateUrl: "scopes-input.component.html",
-    styleUrls: ["scopes-input.component.css"],
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    styleUrls: [ "scopes-input.component.css" ],
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ScopesInputComponent extends AbstractBaseComponent {
 

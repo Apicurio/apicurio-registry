@@ -35,8 +35,7 @@ import {AbstractRowComponent} from "../../common/item-row.abstract";
     templateUrl: "tag-row.component.html",
     styleUrls: ["tag-row.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TagRowComponent extends AbstractRowComponent<OasTag, string> {
 

@@ -33,10 +33,9 @@ import {ModelUtils} from "../../../_util/model.util";
 @Component({
     selector: "definition-info-section",
     templateUrl: "info-section.component.html",
-    styleUrls: ["info-section.component.css"],
+    styleUrls: [ "info-section.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DefinitionInfoSectionComponent extends AbstractBaseComponent {
 

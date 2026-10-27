@@ -34,8 +34,7 @@ import {SelectionService} from "../../_services/selection.service";
     templateUrl: "redo-icon.component.html",
     styleUrls: ["redo-icon.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RedoIconComponent extends AbstractBaseComponent {
 

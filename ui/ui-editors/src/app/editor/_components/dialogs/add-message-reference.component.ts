@@ -24,8 +24,7 @@ import {DropDownOption, DropDownOptionValue} from "../common/drop-down.component
 
 @Component({
     selector: "add-oneof-in-message-dialog",
-    templateUrl: "add-message-reference.component.html",
-    standalone: false
+    templateUrl: "add-message-reference.component.html"
 })
 export class AddOneOfInMessageDialogComponent {
 

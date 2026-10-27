@@ -40,10 +40,9 @@ import {ModelUtils} from "../../../_util/model.util";
 @Component({
     selector: "security-requirements-section",
     templateUrl: "security-requirements-section.component.html",
-    styleUrls: ["security-requirements-section.component.css"],
+    styleUrls: [ "security-requirements-section.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SecurityRequirementsSectionComponent extends AbstractBaseComponent {
 

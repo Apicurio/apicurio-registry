@@ -33,8 +33,7 @@ export interface EditExampleEvent {
 @Component({
     selector: "edit-example-dialog",
     templateUrl: "edit-example.component.html",
-    styleUrls: ["edit-example.component.css"],
-    standalone: false
+    styleUrls: [ "edit-example.component.css" ]
 })
 export class EditExampleDialogComponent {
 

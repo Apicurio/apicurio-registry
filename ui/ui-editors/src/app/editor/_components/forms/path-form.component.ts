@@ -51,10 +51,9 @@ import {ComponentType} from "../../_models/component-type.model";
 @Component({
     selector: "path-form",
     templateUrl: "path-form.component.html",
-    styleUrls: ["path-form.component.css"],
+    styleUrls: [ "path-form.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PathFormComponent extends SourceFormComponent<OasPathItem> {
 

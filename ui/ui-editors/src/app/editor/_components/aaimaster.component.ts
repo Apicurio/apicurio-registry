@@ -75,10 +75,9 @@ import {IMessageEditorHandler, MessageData, MessageEditorComponent} from "./edit
 @Component({
     selector: "aaimaster",
     templateUrl: "aaimaster.component.html",
-    styleUrls: ["aaimaster.component.css"],
+    styleUrls: [ "aaimaster.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AsyncApiEditorMasterComponent extends AbstractBaseComponent {
 

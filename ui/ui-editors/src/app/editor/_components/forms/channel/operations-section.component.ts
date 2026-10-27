@@ -40,10 +40,9 @@ import {TopicSubscription} from "../../../_messaging/topic";
 @Component({
     selector: "channel-operations-section",
     templateUrl: "operations-section.component.html",
-    styleUrls: ["operations-section.component.css"],
+    styleUrls: [ "operations-section.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChannelOperationsSectionComponent extends AbstractBaseComponent {
 

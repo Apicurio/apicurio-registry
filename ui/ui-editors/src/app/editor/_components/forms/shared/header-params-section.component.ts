@@ -57,8 +57,7 @@ import {RenameEntityDialogComponent, RenameEntityEvent} from "../../dialogs/rena
     selector: "header-params-section",
     templateUrl: "header-params-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HeaderParamsSectionComponent extends AbstractBaseComponent {
 

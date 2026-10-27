@@ -160,8 +160,7 @@ export abstract class EntityEditor<T extends Node, E extends EntityEditorEvent<T
     selector: "entity-editor",
     templateUrl: "entity-editor.component.html",
     styleUrls: ["entity-editor.component.css"],
-    encapsulation: ViewEncapsulation.None,
-    standalone: false
+    encapsulation: ViewEncapsulation.None
 })
 export class EntityEditorComponent implements OnChanges {
 

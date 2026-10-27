@@ -35,8 +35,7 @@ import {SelectionService} from "../../_services/selection.service";
     templateUrl: "validation-icon.component.html",
     styleUrls: ["validation-icon.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ValidationIconComponent extends AbstractBaseComponent {
 

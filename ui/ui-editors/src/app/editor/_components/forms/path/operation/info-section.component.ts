@@ -45,10 +45,9 @@ import {DropDownOptionValue} from "../../../common/drop-down.component";
 @Component({
     selector: "operation-info-section",
     templateUrl: "info-section.component.html",
-    styleUrls: ["info-section.component.css"],
+    styleUrls: [ "info-section.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class OperationInfoSectionComponent extends AbstractBaseComponent {
 

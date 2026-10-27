@@ -35,11 +35,10 @@ declare var ace: any;
     template: '',
     styles: [':host { display:block;width:100%; }'],
     providers: [{
-            provide: NG_VALUE_ACCESSOR,
-            useExisting: forwardRef(() => AceEditorComponent),
-            multi: true
-        }],
-    standalone: false
+        provide: NG_VALUE_ACCESSOR,
+        useExisting: forwardRef(() => AceEditorComponent),
+        multi: true
+    }]
 })
 export class AceEditorComponent implements ControlValueAccessor, OnInit, OnDestroy {
     @Output() textChanged = new EventEmitter();

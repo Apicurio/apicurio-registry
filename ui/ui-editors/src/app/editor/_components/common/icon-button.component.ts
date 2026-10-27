@@ -34,8 +34,7 @@ import {SelectionService} from "../../_services/selection.service";
     templateUrl: "icon-button.component.html",
     styleUrls: ["icon-button.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class IconButtonComponent extends AbstractBaseComponent {
 

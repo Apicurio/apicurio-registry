@@ -30,8 +30,7 @@ import {AddSchemaDialogData} from "../../dialogs/add-schema.component";
     selector: "schemas-section",
     templateUrl: "schemas-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class InheritanceSchemasSectionComponent extends AbstractBaseComponent {
 

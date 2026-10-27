@@ -45,8 +45,7 @@ import {ObjectUtils} from "../../../_util/object.util";
     selector: "tags-section",
     templateUrl: "tags-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TagsSectionComponent extends AbstractBaseComponent {
 

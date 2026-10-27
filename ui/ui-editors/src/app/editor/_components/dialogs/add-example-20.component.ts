@@ -28,8 +28,7 @@ import {CodeEditorComponent, CodeEditorMode, CodeEditorTheme} from "../common/co
 @Component({
     selector: "add-example-20-dialog",
     templateUrl: "add-example-20.component.html",
-    styleUrls: ["add-example.component.css"],
-    standalone: false
+    styleUrls: [ "add-example.component.css" ]
 })
 export class AddExample20DialogComponent {
 

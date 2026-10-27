@@ -24,10 +24,9 @@ import {SelectionService} from "../../_services/selection.service";
 @Component({
     selector: "counter",
     templateUrl: "counter.component.html",
-    styleUrls: ["counter.component.css"],
+    styleUrls: [ "counter.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CounterComponent extends AbstractBaseComponent {
 

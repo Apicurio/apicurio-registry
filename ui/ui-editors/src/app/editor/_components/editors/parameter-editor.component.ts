@@ -57,8 +57,7 @@ export interface IParameterEditorHandler extends IEntityEditorHandler<Oas20Param
     selector: "parameter-editor",
     templateUrl: "parameter-editor.component.html",
     styleUrls: ["parameter-editor.component.css"],
-    encapsulation: ViewEncapsulation.None,
-    standalone: false
+    encapsulation: ViewEncapsulation.None
 })
 export class ParameterEditorComponent extends EntityEditor<Oas20Parameter | Oas30Parameter, ParameterEditorEvent> {
 

@@ -35,10 +35,9 @@ import {ObjectUtils} from "../../../../_util/object.util";
 @Component({
     selector: "response-tab",
     templateUrl: "response-tab.component.html",
-    styleUrls: ["response-tab.component.css"],
+    styleUrls: [ "response-tab.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ResponseTabComponent extends AbstractBaseComponent {
 

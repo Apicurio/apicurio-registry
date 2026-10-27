@@ -21,8 +21,7 @@ import * as marked from "marked";
 @Component({
     selector: "markdown-summary",
     template: `<span class="md-summary" [innerHTML]="convertedData" [class.empty]="isEmpty()"></span>`,
-    encapsulation: ViewEncapsulation.None,
-    standalone: false
+    encapsulation: ViewEncapsulation.None
 })
 export class MarkdownSummaryComponent implements OnChanges {
     @Input("data")

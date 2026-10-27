@@ -23,9 +23,8 @@ import {CodeEditorComponent, CodeEditorMode} from "./code-editor.component";
 @Component({
     selector: "inline-markdown-editor",
     templateUrl: "inline-markdown-editor.component.html",
-    styleUrls: ["inline-markdown-editor.component.css"],
-    encapsulation: ViewEncapsulation.None,
-    standalone: false
+    styleUrls: [ "inline-markdown-editor.component.css" ],
+    encapsulation: ViewEncapsulation.None
 })
 export class InlineMarkdownEditorComponent extends TextAreaEditorComponent implements AfterViewInit {
 

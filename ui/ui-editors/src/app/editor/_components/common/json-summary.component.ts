@@ -20,8 +20,7 @@ import {Component, Input, OnChanges, SimpleChanges, ViewEncapsulation} from "@an
 @Component({
     selector: "json-summary",
     template: `<span class="json-summary" [textContent]="convertedData" [class.empty]="isEmpty()"></span>`,
-    encapsulation: ViewEncapsulation.None,
-    standalone: false
+    encapsulation: ViewEncapsulation.None
 })
 export class JsonSummaryComponent implements OnChanges {
     @Input("data")

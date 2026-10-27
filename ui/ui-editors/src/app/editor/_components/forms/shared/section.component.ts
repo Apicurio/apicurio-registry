@@ -39,8 +39,7 @@ import {KeypressUtils} from "../../../_util/keypress.util";
     templateUrl: "section.component.html",
     styleUrls: ["section.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SectionComponent extends AbstractBaseComponent {
 

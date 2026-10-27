@@ -60,10 +60,9 @@ import {DropDownOption, DropDownOptionValue} from "../../../common/drop-down.com
 @Component({
     selector: "requestBody-section",
     templateUrl: "requestBody-section.component.html",
-    styleUrls: ["requestBody-section.component.css"],
+    styleUrls: [ "requestBody-section.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class RequestBodySectionComponent  extends AbstractBaseComponent {
 

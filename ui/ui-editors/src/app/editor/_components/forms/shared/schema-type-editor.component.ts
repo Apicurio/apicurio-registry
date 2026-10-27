@@ -50,10 +50,9 @@ import {DIVIDER, DropDownOption, DropDownOptionValue} from "../../common/drop-do
 @Component({
     selector: "schema-type-editor",
     templateUrl: "schema-type-editor.component.html",
-    styleUrls: ["schema-type-editor.component.css"],
+    styleUrls: [ "schema-type-editor.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SchemaTypeEditorComponent extends AbstractBaseComponent {
 

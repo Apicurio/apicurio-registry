@@ -28,8 +28,7 @@ import {SelectionService} from "../../../_services/selection.service";
     selector: "aailicense-section",
     templateUrl: "aailicense-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AsyncApiLicenseSectionComponent extends AbstractBaseComponent {
 

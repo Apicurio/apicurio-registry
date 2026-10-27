@@ -50,10 +50,9 @@ import {DropDownOption, DropDownOptionValue} from "../../common/drop-down.compon
 @Component({
     selector: "query-param-row",
     templateUrl: "query-param-row.component.html",
-    styleUrls: ["query-param-row.component.css"],
+    styleUrls: [ "query-param-row.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class QueryParamRowComponent extends AbstractRowComponent<OasParameter, SimplifiedParameterType> {
 

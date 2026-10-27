@@ -24,8 +24,7 @@ import DOMPurify from "dompurify";
     selector: "markdown",
     template: `<div class="md-container" [innerHTML]="convertedData" [class.empty]="isEmpty()"></div>`,
     styleUrls: ["markdown.component.css"],
-    encapsulation: ViewEncapsulation.None,
-    standalone: false
+    encapsulation: ViewEncapsulation.None
 })
 export class MarkdownComponent implements OnChanges {
     @Input("data")

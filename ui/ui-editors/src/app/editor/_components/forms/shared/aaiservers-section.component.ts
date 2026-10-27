@@ -36,8 +36,7 @@ import {RenameEntityDialogComponent, RenameEntityEvent} from "../../dialogs/rena
     selector: "aaiservers-section",
     templateUrl: "aaiservers-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AaiServersSectionComponent extends AbstractBaseComponent {
 

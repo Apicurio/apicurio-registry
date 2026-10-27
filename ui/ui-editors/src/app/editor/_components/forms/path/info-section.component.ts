@@ -28,8 +28,7 @@ import {ModelUtils} from "../../../_util/model.util";
     selector: "path-info-section",
     templateUrl: "info-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PathInfoSectionComponent extends AbstractBaseComponent {
 

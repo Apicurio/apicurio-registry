@@ -22,8 +22,7 @@ import {AaiDocument} from "@apicurio/data-models";
 
 @Component({
     selector: "add-channel-dialog",
-    templateUrl: "add-channel.component.html",
-    standalone: false
+    templateUrl: "add-channel.component.html"
 })
 export class AddChannelDialogComponent {
 

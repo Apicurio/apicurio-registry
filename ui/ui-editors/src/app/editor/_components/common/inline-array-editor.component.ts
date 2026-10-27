@@ -41,8 +41,7 @@ import {KeypressUtils} from "../../_util/keypress.util";
     templateUrl: "inline-array-editor.component.html",
     styleUrls: ["inline-array-editor.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class InlineArrayEditorComponent extends AbstractBaseComponent implements AfterViewInit {
 

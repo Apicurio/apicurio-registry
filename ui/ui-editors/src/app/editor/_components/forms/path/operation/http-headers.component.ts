@@ -53,10 +53,9 @@ export interface ExamplePropertyChangeEvent {
 @Component({
     selector: "httpHeaders",
     templateUrl: "http-headers.component.html",
-    styleUrls: ["http-headers.component.css"],
+    styleUrls: [ "http-headers.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HttpHeadersComponent extends AbstractBaseComponent {
 

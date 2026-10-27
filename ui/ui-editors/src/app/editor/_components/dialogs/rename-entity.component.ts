@@ -31,8 +31,7 @@ export interface RenameEntityEvent {
 @Component({
     selector: "rename-entity-dialog",
     templateUrl: "rename-entity.component.html",
-    styleUrls: ["rename-entity.component.css"],
-    standalone: false
+    styleUrls: [ "rename-entity.component.css" ]
 })
 export class RenameEntityDialogComponent {
 

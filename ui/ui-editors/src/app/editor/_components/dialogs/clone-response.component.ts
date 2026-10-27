@@ -24,8 +24,7 @@ import {DropDownOption} from "../common/drop-down.component";
 
 @Component({
     selector: "clone-response-dialog",
-    templateUrl: "clone-response.component.html",
-    standalone: false
+    templateUrl: "clone-response.component.html"
 })
 export class CloneResponseDialogComponent {
 

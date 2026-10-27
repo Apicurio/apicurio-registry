@@ -26,8 +26,7 @@ import {SelectionService} from "../../_services/selection.service";
     selector: "[path-item]",
     templateUrl: "path-item.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PathItemComponent extends AbstractBaseComponent {
 

@@ -65,8 +65,7 @@ export interface ISecurityRequirementEditorHandler extends IEntityEditorHandler<
     selector: "security-requirement-editor",
     templateUrl: "security-requirement-editor.component.html",
     styleUrls: ["security-requirement-editor.component.css"],
-    encapsulation: ViewEncapsulation.None,
-    standalone: false
+    encapsulation: ViewEncapsulation.None
 })
 export class SecurityRequirementEditorComponent extends EntityEditor<SecurityRequirement, SecurityRequirementEditorEvent> {
 

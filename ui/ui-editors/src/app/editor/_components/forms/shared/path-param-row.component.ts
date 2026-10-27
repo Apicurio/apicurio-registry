@@ -49,10 +49,9 @@ import {AbstractRowComponent} from "../../common/item-row.abstract";
 @Component({
     selector: "path-param-row",
     templateUrl: "path-param-row.component.html",
-    styleUrls: ["path-param-row.component.css"],
+    styleUrls: [ "path-param-row.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PathParamRowComponent extends AbstractRowComponent<OasParameter, SimplifiedParameterType> {
 

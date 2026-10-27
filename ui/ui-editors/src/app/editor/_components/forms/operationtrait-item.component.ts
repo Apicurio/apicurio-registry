@@ -26,10 +26,9 @@ import {ModelUtils} from "../../_util/model.util";
 @Component({
     selector: "[operationtrait-item]",
     templateUrl: "operationtrait-item.component.html",
-    styleUrls: ["operationtrait-item.component.css"],
+    styleUrls: [ "operationtrait-item.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class OperationTraitItemComponent extends AbstractBaseComponent {
 

@@ -55,10 +55,9 @@ export interface ExamplePropertyChangeEvent {
 @Component({
     selector: "content",
     templateUrl: "content.component.html",
-    styleUrls: ["content.component.css"],
+    styleUrls: [ "content.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ContentComponent extends AbstractBaseComponent {
 

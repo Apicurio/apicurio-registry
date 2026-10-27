@@ -50,8 +50,7 @@ export interface IAaiServerEditorHandler extends IEntityEditorHandler<Aai20Serve
 @Component({
     selector: "aaiserver-editor",
     templateUrl: "aaiserver-editor.component.html",
-    styleUrls: ["server-editor.component.css", "aaiserver-editor.component.css"],
-    standalone: false
+    styleUrls: ["server-editor.component.css", "aaiserver-editor.component.css"]
 })
 export class AaiServerEditorComponent extends EntityEditor<Aai20Server, AaiServerEditorEvent> {
 

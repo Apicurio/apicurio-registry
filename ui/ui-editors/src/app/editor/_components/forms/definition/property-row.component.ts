@@ -44,10 +44,9 @@ import {ExampleTextValue, ModelUtils} from "../../../_util/model.util";
 @Component({
     selector: "property-row",
     templateUrl: "property-row.component.html",
-    styleUrls: ["property-row.component.css"],
+    styleUrls: [ "property-row.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PropertyRowComponent extends AbstractRowComponent<Oas20PropertySchema | Oas30PropertySchema, SimplifiedPropertyType> {
 

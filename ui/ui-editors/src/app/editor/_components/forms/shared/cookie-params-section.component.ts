@@ -56,8 +56,7 @@ import {RenameEntityDialogComponent, RenameEntityEvent} from "../../dialogs/rena
     selector: "cookie-params-section",
     templateUrl: "cookie-params-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CookieParamsSectionComponent extends AbstractBaseComponent {
 

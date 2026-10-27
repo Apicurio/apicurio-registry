@@ -44,8 +44,7 @@ import {AbstractRowComponent} from "../../common/item-row.abstract";
     templateUrl: "server-row.component.html",
     styleUrls: ["server-row.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ServerRowComponent extends AbstractRowComponent<Oas30Server, string> {
 

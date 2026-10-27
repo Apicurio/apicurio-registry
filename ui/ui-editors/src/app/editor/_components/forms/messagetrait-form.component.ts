@@ -47,8 +47,7 @@ import {ApiCatalogService} from "../../_services/api-catalog.service";
     selector: "messagetrait-form",
     templateUrl: "messagetrait-form.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class MessageTraitFormComponent extends SourceFormComponent<AaiMessageTraitDefinition> {
 

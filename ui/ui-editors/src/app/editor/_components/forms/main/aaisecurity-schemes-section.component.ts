@@ -54,8 +54,7 @@ import {RenameEntityDialogComponent, RenameEntityEvent} from "../../dialogs/rena
     selector: "aaisecurity-schemes-section",
     templateUrl: "security-schemes-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AaiSecuritySchemesSectionComponent extends AbstractBaseComponent {
 

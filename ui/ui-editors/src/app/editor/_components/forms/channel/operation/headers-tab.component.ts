@@ -38,10 +38,9 @@ import {SelectionService} from "../../../../_services/selection.service";
 @Component({
     selector: "headers-tab",
     templateUrl: "headers-tab.component.html",
-    styleUrls: ["headers-tab.component.css"],
+    styleUrls: [ "headers-tab.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class HeadersTabComponent extends AbstractBaseComponent {
 

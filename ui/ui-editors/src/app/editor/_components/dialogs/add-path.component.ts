@@ -21,8 +21,7 @@ import {OasDocument} from "@apicurio/data-models";
 
 @Component({
     selector: "add-path-dialog",
-    templateUrl: "add-path.component.html",
-    standalone: false
+    templateUrl: "add-path.component.html"
 })
 export class AddPathDialogComponent {
 

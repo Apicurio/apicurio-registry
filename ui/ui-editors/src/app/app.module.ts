@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-import {NgModule, provideZoneChangeDetection} from "@angular/core";
+import {NgModule} from "@angular/core";
 import {BrowserModule} from "@angular/platform-browser";
 import {BrowserAnimationsModule} from "@angular/platform-browser/animations";
 import {AppComponent} from "./app.component";
@@ -41,13 +41,11 @@ import {OpenApiEditorComponent} from "./components/editors/openapi-editor.compon
         BrowserAnimationsModule,
         FormsModule,
         HttpClientModule,
-        ModalModule,
-        BsDropdownModule,
+        ModalModule.forRoot(),
+        BsDropdownModule.forRoot(),
         ApicurioEditorModule
     ],
     providers: [
-        // Angular 21 defaults to zoneless change detection; this app relies on zone.js.
-        provideZoneChangeDetection(),
         WindowRef,
         LoggerService,
         ConfigService

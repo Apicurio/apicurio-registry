@@ -28,8 +28,7 @@ import {SelectionService} from "../../../../_services/selection.service";
     templateUrl: "response-tab-30.component.html",
     styleUrls: ["response-tab-30.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ResponseTab30Component extends AbstractBaseComponent {
 

@@ -29,8 +29,7 @@ import {ComponentType} from "../../_models/component-type.model";
 @Component({
     selector: "add-extension-dialog",
     templateUrl: "add-extension.component.html",
-    styleUrls: ["add-extension.component.css"],
-    standalone: false
+    styleUrls: ["add-extension.component.css"]
 })
 export class AddExtensionDialogComponent {
 

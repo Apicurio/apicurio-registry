@@ -23,8 +23,7 @@ import {OasDocument} from "@apicurio/data-models";
 @Component({
     selector: "add-tag-dialog",
     templateUrl: "add-tag.component.html",
-    styleUrls: ["add-tag.component.css"],
-    standalone: false
+    styleUrls: ["add-tag.component.css"]
 })
 export class AddTagDialogComponent {
 

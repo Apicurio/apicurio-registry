@@ -24,8 +24,7 @@ import {FindPathItemsVisitor} from "../../_visitors/path-items.visitor";
 @Component({
     selector: "rename-path-dialog",
     templateUrl: "rename-path.component.html",
-    styleUrls: ["rename-path.component.css"],
-    standalone: false
+    styleUrls: [ "rename-path.component.css" ]
 })
 export class RenamePathDialogComponent {
 

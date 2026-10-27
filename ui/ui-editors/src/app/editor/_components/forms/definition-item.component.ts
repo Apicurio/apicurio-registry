@@ -26,10 +26,9 @@ import {ModelUtils} from "../../_util/model.util";
 @Component({
     selector: "[definition-item]",
     templateUrl: "definition-item.component.html",
-    styleUrls: ["definition-item.component.css"],
+    styleUrls: [ "definition-item.component.css" ],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class DefinitionItemComponent extends AbstractBaseComponent {
 

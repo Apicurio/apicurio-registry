@@ -47,8 +47,7 @@ import {ApiCatalogService} from "../../_services/api-catalog.service";
     selector: "operationtrait-form",
     templateUrl: "operationtrait-form.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class OperationTraitFormComponent extends SourceFormComponent<AaiOperationTraitDefinition> {
 

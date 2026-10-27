@@ -21,8 +21,7 @@ import {NgModel} from "@angular/forms";
 
 @Component({
     selector: "form-error-message",
-    templateUrl: "form-error-message.component.html",
-    standalone: false
+    templateUrl: "form-error-message.component.html"
 })
 export class FormErrorMessageComponent {
 

@@ -22,8 +22,7 @@ import {ChangeDetectionStrategy, Component, ViewEncapsulation} from "@angular/co
     templateUrl: "signpost.component.html",
     styleUrls: ["signpost.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SignpostComponent {
 

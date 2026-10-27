@@ -39,8 +39,7 @@ import {ObjectUtils} from "../../../_util/object.util";
     selector: "servers-section",
     templateUrl: "servers-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ServersSectionComponent extends AbstractBaseComponent {
 

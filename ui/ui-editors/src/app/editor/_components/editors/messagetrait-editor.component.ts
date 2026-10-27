@@ -44,8 +44,7 @@ export interface IMessageTraitEditorHandler extends IEntityEditorHandler<AaiMess
 @Component({
     selector: "messagetrait-editor",
     templateUrl: "messagetrait-editor.component.html",
-    styleUrls: ["messagetrait-editor.component.css"],
-    standalone: false
+    styleUrls: ["messagetrait-editor.component.css"]
 })
 export class MessageTraitEditorComponent extends EntityEditor<AaiMessageTraitDefinition, MessageTraitEditorEvent> {
 

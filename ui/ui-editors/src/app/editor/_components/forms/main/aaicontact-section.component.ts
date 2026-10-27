@@ -27,8 +27,7 @@ import {SelectionService} from "../../../_services/selection.service";
     selector: "aaicontact-section",
     templateUrl: "aaicontact-section.component.html",
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AsyncApiContactSectionComponent extends AbstractBaseComponent {
 

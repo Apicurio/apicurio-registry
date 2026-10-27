@@ -12,8 +12,7 @@ import {AbstractInlineEditor} from "./inline-editor.base";
     templateUrl: "checkbox-input.component.html",
     styleUrls: ["checkbox-input.component.css"],
     encapsulation: ViewEncapsulation.None,
-    changeDetection: ChangeDetectionStrategy.OnPush,
-    standalone: false
+    changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CheckBoxInputComponent extends AbstractInlineEditor<boolean> {
 

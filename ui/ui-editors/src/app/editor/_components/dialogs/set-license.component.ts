@@ -23,8 +23,7 @@ import {SelectionService} from "../../_services/selection.service";
 
 @Component({
     selector: "set-license-dialog",
-    templateUrl: "set-license.component.html",
-    standalone: false
+    templateUrl: "set-license.component.html"
 })
 export class SetLicenseDialogComponent {
 

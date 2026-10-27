@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
@@ -13,6 +14,7 @@ import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.StringUtil;
+import io.quarkus.security.ForbiddenException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -96,6 +98,9 @@ public class RegistryContentUtils {
                                 );
                                 partialRecursivelyResolvedReferences.put(key, valueExtractor.apply(nested));
                             }
+                        } catch (ForbiddenException ex) {
+                            // The caller may not read the referenced artifact: fail, never skip
+                            throw ex;
                         } catch (Exception ex) {
                             log.error("Could not resolve reference {}.", reference, ex);
                         }
@@ -121,7 +126,7 @@ public class RegistryContentUtils {
                 () -> references,
                 ArtifactReferenceDto::getName,
                 loader,
-                cw -> TypedContent.create(cw.getContent(), cw.getArtifactType())
+                cw -> TypedContent.create(cw.getContent(), cw.getContentType())
         );
     }
 
@@ -208,11 +213,13 @@ public class RegistryContentUtils {
                                         nested.getArtifactType(), partialRecursivelyResolvedReferences,
                                         nested.getReferences(), loader, referencesRewrites);
                                 referencesRewrites.put(refName, newRefName);
-                                TypedContent rewrittenContent = typeUtilProvider.getContentDereferencer()
-                                        .rewriteReferences(rewrittenContentHolder.getRewrittenContent(),
-                                                referencesRewrites);
+                                TypedContent rewrittenContent = rewriteReferencesIfSupported(typeUtilProvider,
+                                        rewrittenContentHolder.getRewrittenContent(), referencesRewrites);
                                 partialRecursivelyResolvedReferences.put(newRefName, rewrittenContent);
                             }
+                        } catch (ForbiddenException ex) {
+                            // The caller may not read the referenced artifact: fail, never skip
+                            throw ex;
                         } catch (Exception ex) {
                             log.error("Could not resolve reference " + reference + ".", ex);
                         }
@@ -221,9 +228,29 @@ public class RegistryContentUtils {
             }
         }
         ArtifactTypeUtilProvider typeUtilProvider = artifactTypeUtilProviderFactory.getArtifactTypeProvider(schemaType);
-        TypedContent rewrittenContent = typeUtilProvider.getContentDereferencer()
-                .rewriteReferences(mainContent, referencesRewrites);
+        TypedContent rewrittenContent = rewriteReferencesIfSupported(typeUtilProvider, mainContent,
+                referencesRewrites);
         return new RewrittenContentHolder(rewrittenContent, partialRecursivelyResolvedReferences);
+    }
+
+    /**
+     * Rewrites the references in the given content, or returns the content unchanged when its artifact type
+     * cannot rewrite references (for example Avro and Protobuf, which reference other schemas by type or file
+     * name rather than by a rewritable location). The content is still usable as a resolved reference: the
+     * referencing document's dereferencer inlines it as-is.
+     *
+     * @param typeUtilProvider the provider for the content's artifact type
+     * @param content the content whose references should be rewritten
+     * @param referencesRewrites map of original reference names to their rewritten values
+     * @return the rewritten content, or the original content if rewriting is not supported
+     */
+    private static TypedContent rewriteReferencesIfSupported(ArtifactTypeUtilProvider typeUtilProvider,
+            TypedContent content, Map<String, String> referencesRewrites) {
+        try {
+            return typeUtilProvider.getContentDereferencer().rewriteReferences(content, referencesRewrites);
+        } catch (DereferencingNotSupportedException e) {
+            return content;
+        }
     }
 
     /**

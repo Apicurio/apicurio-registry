@@ -1076,7 +1076,14 @@ You can set the following environment variables to configure authentication for 
 |Boolean
 |False
 
+|`APICURIO_UI_AUTH_OIDC_USE_NONCE`
+|Whether to include a `nonce` parameter in OIDC authorization requests sent by the {registry} web console. Some identity providers, such as {keycloak} configured with a FAPI security profile or a secure-session client policy, reject authorization requests that do not include a `nonce` parameter and return an `invalid_request` error with the message `Missing parameter: nonce`. Enable this option if your {keycloak} realm enforces that policy.
+|Boolean
+|`false`
+
 |===
+
+NOTE: If you run the {registry} web console as a standalone container image (separate from the {registry} backend), set the `REGISTRY_AUTH_USE_NONCE` environment variable instead of `APICURIO_UI_AUTH_OIDC_USE_NONCE`.
 
 // ref-registry-security-authn-http
 [id="registry-security-authn-http_{context}"]

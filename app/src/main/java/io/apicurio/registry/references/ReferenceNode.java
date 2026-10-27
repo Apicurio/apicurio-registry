@@ -24,11 +24,12 @@ import java.util.stream.Collectors;
  * available (for example, one adapting an existing one-at-a-time loader that only returns content).
  * Callers that need it, such as the content-ID view used for ETags, must use a loader that supplies it.
  * <p>
- * {@link #getReferences()} returns a defensive, unmodifiable copy of both the list and its elements, taken
- * at construction time, not the loader's own list or {@link ArtifactReferenceDto} instances: a loader that
- * mutates or reuses what it handed to the builder — the list itself, or one of its elements, which {@link
- * ArtifactReferenceDto} leaves mutable via {@code @Setter} — must not be able to change a node already
- * stored in a {@link ResolvedReferences} out from under it.
+ * {@link #getReferences()} returns an unmodifiable list, of copies of each {@link ArtifactReferenceDto}
+ * rather than the loader's own instances, taken at construction time: a loader that mutates or reuses what
+ * it handed to the builder — the list itself, or one of its elements, which {@link ArtifactReferenceDto}
+ * leaves mutable via {@code @Setter} — must not be able to change a node already stored in a
+ * {@link ResolvedReferences} out from under it. The list itself cannot be added to or removed from; the
+ * copied elements, being plain mutable DTOs, are not further protected once obtained from the getter.
  */
 @Builder
 @Getter

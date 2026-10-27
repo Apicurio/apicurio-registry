@@ -12,10 +12,10 @@ import java.util.List;
 public class ReferenceNodeTest {
 
     /**
-     * Regression test (review of #10716 at 79061fc, optional finding O1): {@link ReferenceNode#getReferences()}
-     * must be immune to the caller mutating the list it passed to the builder after {@code build()}, and to
-     * the caller mutating one of that list's {@link ArtifactReferenceDto} elements, which stays mutable via
-     * {@code @Setter} unless the node copies the element too, not just the list.
+     * {@link ReferenceNode#getReferences()} must be immune to the caller mutating the list it passed to the
+     * builder after {@code build()}, and to the caller mutating one of that list's
+     * {@link ArtifactReferenceDto} elements, which stays mutable via {@code @Setter} unless the node copies
+     * the element too, not just the list.
      */
     @Test
     void referencesAreUnaffectedByMutatingTheSourceListOrItsElements() {

@@ -1570,7 +1570,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`100`
 |`3.0.6`
-|Maximum depth a reference graph may be resolved to. A graph deeper than this fails resolution instead of being silently truncated.
+|Maximum depth a reference graph may be resolved to. Most resolution fails when a graph is deeper than this. Resolution during content storage and lookup by content still truncates with a warning.
 |`apicurio.storage.snapshot.location`
 |`string`
 |`./`

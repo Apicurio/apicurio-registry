@@ -56,15 +56,15 @@ import java.util.Set;
  * stays open for a later occurrence, exactly as the walker this replaces behaved. Two different targets
  * sharing a name is already a bug (#9000 fixes it properly, by keying on coordinates instead of collapsing
  * by name); breadth-first order can pick a different winner than the old depth-first code did in that case,
- * and that is an accepted, deliberate behaviour change (#10635, open question 5) rather than an attempt to
- * preserve what was an arbitrary choice to begin with. Pinned by {@code
+ * and that is an accepted, deliberate behaviour change rather than an attempt to preserve what was an
+ * arbitrary choice to begin with. Pinned by {@code
  * ReferenceGraphWalkerTest#asNameMapPicksTheBreadthFirstWinnerForASharedName}.</li>
  * <li><b>What order the winning entries appear in the returned map.</b> Dependency-first (post-order): a
  * node appears only after every node it references. This is computed as a second, separate, in-memory-only
  * pass over the already-resolved graph — a depth-first walk from the root's direct references, which costs
  * nothing in I/O because every node it visits is already loaded. It matches the order the walker this
- * replaces produced (#10635, open question 4), which at least one content type handler historically
- * depended on. Pinned by {@code ReferenceGraphWalkerTest#dependencyFirstOrderPlacesDependenciesBeforeDependents}.</li>
+ * replaces produced, which at least one content type handler historically depended on. Pinned by {@code
+ * ReferenceGraphWalkerTest#dependencyFirstOrderPlacesDependenciesBeforeDependents}.</li>
  * </ul>
  *
  * <h2>Thread safety</h2>

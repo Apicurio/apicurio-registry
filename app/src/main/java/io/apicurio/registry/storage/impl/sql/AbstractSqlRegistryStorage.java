@@ -145,7 +145,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
     @ConfigProperty(name = ReferenceResolutionConfig.MAX_DEPTH_PROPERTY,
             defaultValue = ReferenceResolutionConfig.DEFAULT_MAX_DEPTH_STRING)
-    @Info(category = CATEGORY_STORAGE, description = "Maximum depth a reference graph may be resolved to. A graph deeper than this fails resolution instead of being silently truncated.", availableSince = "3.0.6")
+    @Info(category = CATEGORY_STORAGE, description = "Maximum depth a reference graph may be resolved to. Most resolution fails when a graph is deeper than this. Resolution during content storage and lookup by content still truncates with a warning.", availableSince = "3.0.6")
     int maxReferenceDepth;
 
     protected SqlStatements sqlStatements() {

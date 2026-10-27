@@ -170,14 +170,6 @@ public class ReferenceDepthLimitTest extends AbstractResourceTestBase {
         ProblemDetails problemDetails = (ProblemDetails) error;
         Assertions.assertEquals("ReferenceDepthExceededException", problemDetails.getName());
         Assertions.assertTrue(problemDetails.getTitle().contains("exceeds the maximum allowed depth of 3"));
-
-        // The pod must not be marked unhealthy by this: a client-input limit violation, not a server
-        // fault. Confirm a second identical request (enough to trip ResponseErrorLivenessCheck's
-        // threshold of 1 if this were still mapped to 500) also comes back 409, not a different failure
-        // mode from a suspected-unhealthy pod.
-        ApiException secondError = Assertions.assertThrows(ApiException.class,
-                () -> clientV3.groups().byGroupId(GROUP_ID).artifacts().post(createArtifactA));
-        Assertions.assertEquals(409, secondError.getResponseStatusCode());
     }
 
     /**

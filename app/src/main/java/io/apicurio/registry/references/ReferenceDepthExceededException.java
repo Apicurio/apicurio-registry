@@ -10,7 +10,7 @@ import io.apicurio.registry.types.RegistryException;
  * walker this replaces did. A truncated graph is a silently wrong graph: callers resolving references for
  * compatibility checking or canonicalization would see an incomplete set of dependencies with no
  * indication anything was cut off. Failing is the honest answer, even though it is a behaviour change for
- * graphs deeper than the configured limit (accepted in the design, #10635, open question 3).
+ * graphs deeper than the configured limit — an accepted, deliberate behaviour change.
  */
 public class ReferenceDepthExceededException extends RegistryException {
 

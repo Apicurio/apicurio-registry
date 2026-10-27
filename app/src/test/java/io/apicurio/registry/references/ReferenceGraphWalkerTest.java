@@ -77,11 +77,11 @@ public class ReferenceGraphWalkerTest {
     }
 
     /**
-     * Boundary test (review of #10716 at 79061fc, optional finding O2): a chain of exactly {@code maxDepth}
-     * levels must resolve, not throw. The walker is 1-based (root's direct references are depth 1,
-     * {@code depth > maxDepth} throws), unlike the pre-#10634 SQL resolver it replaces for this call site,
-     * which was 0-based and so allowed one level more than its configured limit; a chain that depended on
-     * that extra level is a behaviour change, not a bug in this walker.
+     * Boundary test: a chain of exactly {@code maxDepth} levels must resolve, not throw. The walker is
+     * 1-based (root's direct references are depth 1, {@code depth > maxDepth} throws), unlike the
+     * pre-#10634 SQL resolver it replaces for this call site, which was 0-based and so allowed one level
+     * more than its configured limit; a chain that depended on that extra level is a behaviour change, not
+     * a bug in this walker.
      */
     @Test
     void walkResolvesAChainOfExactlyMaximumDepth() {
@@ -247,7 +247,6 @@ public class ReferenceGraphWalkerTest {
     }
 
     /**
-     * Regression test for design question 4 (resolved 2026-10-23, pinned by review of #10716 at 79061fc):
      * {@link ResolvedReferences#asNameMap()} and {@link ResolvedReferences#dependencyFirstOrder()} must
      * order entries dependency-first (post-order), not in breadth-first discovery order. {@code root -> a
      * -> b}: {@code b} must appear before {@code a} in both.
@@ -276,8 +275,7 @@ public class ReferenceGraphWalkerTest {
     }
 
     /**
-     * Regression test for design question 5 (resolved 2026-10-23, pinned by review of #10716 at 79061fc):
-     * when two different targets share a reference name, {@link ResolvedReferences#asNameMap()} must pick
+     * When two different targets share a reference name, {@link ResolvedReferences#asNameMap()} must pick
      * the one discovered first in breadth-first order — the shallower one — over one reached later through
      * a deeper path. {@code "n"} is declared twice: directly from the root (depth 1, target {@code direct})
      * and, through {@code mid}, one level deeper (depth 2, target {@code deep}); {@code direct} must win.
@@ -310,9 +308,9 @@ public class ReferenceGraphWalkerTest {
 
     /**
      * Regression test for {@link ResolvedReferences#missing()} and the documented "name stays open"
-     * behaviour of {@link ResolvedReferences#asNameMap()} (pinned by review of #10716 at 79061fc): a first
-     * occurrence of a name whose target does not resolve (a deleted, or never-existing, version) must not
-     * block a later occurrence of the same name whose target does resolve.
+     * behaviour of {@link ResolvedReferences#asNameMap()}: a first occurrence of a name whose target does
+     * not resolve (a deleted, or never-existing, version) must not block a later occurrence of the same
+     * name whose target does resolve.
      */
     @Test
     void asNameMapLeavesANameOpenWhenItsFirstOccurrenceIsMissing() {

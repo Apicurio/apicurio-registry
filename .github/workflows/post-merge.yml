@@ -56,7 +56,7 @@ jobs:
       # Slack: see "Notifications" in .github/workflows/README.md.
       - name: Notify
         if: steps.handle.outputs.level != ''
-        uses: Apicurio/apicurio-github-actions/notify-slack@7d4b3b7b40dd45ac1ad2a725eedb565063366c28 # v2.3.0
+        uses: Apicurio/apicurio-github-actions/notify-slack@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2.4.0
         with:
           level: ${{ steps.handle.outputs.level }}
           text: ${{ steps.handle.outputs.text }}

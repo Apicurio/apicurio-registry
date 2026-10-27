@@ -564,6 +564,47 @@ When you version Agent Cards, {registry} enforces compatibility rules to ensure 
 * Removing security schemes
 * Removing input or output modes
 
+// ref-a2a-artifact-references
+[id="a2a-artifact-references_{context}"]
+== References between agents, MCP servers, and tools
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Artifact references record which tools, servers, models, and prompts an agent uses, and which tools an MCP server provides. The references are registry metadata: Agent Card and `server.json` content is not changed.
+
+.Allowed reference targets
+[cols="1,2,3"]
+|===
+|Artifact type |Can reference |Meaning
+
+|`AGENT_CARD`
+|`MCP_TOOL`, `MCP_SERVER`, `MODEL_SCHEMA`, `PROMPT_TEMPLATE`, `AGENT_CARD`
+|Tools, servers, models, and prompts the agent uses, and peer agents it delegates to.
+
+|`MCP_SERVER`
+|`MCP_TOOL`
+|Tools the server provides.
+
+|`MCP_TOOL`
+|None
+|
+|===
+
+The allowed target types are checked by the `INTEGRITY` rule at the `REFS_EXIST` or `FULL` level, together with the check that each referenced version exists. A reference to any other artifact type is rejected, and no version is created. Without an `INTEGRITY` rule, references are not checked, so enable `INTEGRITY` for groups that contain agent artifacts. Violations of this check report the `REFS_EXIST` level, also when the rule is configured as `FULL`. Other artifact types, including custom types, do not restrict the types they reference.
+
+Reference names are not interpreted by {registry}. Use the name of the referenced tool, server, model, or prompt.
+
+Versions are immutable, including their references. To change the tools that an MCP server provides, create a new version of the `MCP_SERVER` artifact. Creating a version with the number of an existing version is rejected.
+
+Disabling or deleting a referenced version does not change the versions that reference it. Their references remain, and point to a version that is disabled or no longer exists.
+
+To find the agents and servers that use a tool, query the inbound references of the tool version:
+
+[source,bash]
+----
+curl "http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/get-weather/versions/1/references?refType=INBOUND"
+----
 // ref-a2a-automatic-label-extraction
 [id="a2a-automatic-label-extraction_{context}"]
 == Automatic label extraction for Agent Cards

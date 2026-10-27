@@ -5,5 +5,4 @@ export * from "./AccessErrorPage";
 export * from "./RateLimitErrorPage";
 export * from "./ConnectionFailedErrorPage";
 export * from "./NotFoundErrorPage";
-export * from "./ReadOnlyErrorPage";
 

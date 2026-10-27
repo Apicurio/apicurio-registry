@@ -11,7 +11,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 
 @QuarkusTest
 public class SystemResourceTest extends AbstractResourceTestBase {
@@ -43,16 +42,12 @@ public class SystemResourceTest extends AbstractResourceTestBase {
     @Test
     public void testUiConfigReadOnlyReflectsStorageReadOnly() {
         given().when().contentType(CT_JSON).get("/registry/v3/system/uiConfig").then().statusCode(200)
-                .body("features.readOnly", equalTo(false))
-                .body("features.readOnlyReason", nullValue())
-                .body("features.storageName", nullValue());
+                .body("features.readOnly", equalTo(false));
 
         updateConfigProperty(STORAGE_READ_ONLY_PROPERTY_NAME, true);
 
         given().when().contentType(CT_JSON).get("/registry/v3/system/uiConfig").then().statusCode(200)
-                .body("features.readOnly", equalTo(true))
-                .body("features.readOnlyReason", equalTo("storage"))
-                .body("features.storageName", equalTo("sql"));
+                .body("features.readOnly", equalTo(true));
     }
 
     @Test
@@ -67,9 +62,7 @@ public class SystemResourceTest extends AbstractResourceTestBase {
 
         // Toggling it must take effect immediately, with no server restart.
         given().when().contentType(CT_JSON).get("/registry/v3/system/uiConfig").then().statusCode(200)
-                .body("features.readOnly", equalTo(true))
-                .body("features.readOnlyReason", equalTo("config"))
-                .body("features.storageName", nullValue());
+                .body("features.readOnly", equalTo(true));
     }
 
     // Runs twice: once flipping storage read-only, once flipping UI read-only -- the delete

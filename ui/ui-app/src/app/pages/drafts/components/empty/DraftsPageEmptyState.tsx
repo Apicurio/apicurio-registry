@@ -10,7 +10,6 @@ import {
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
 import { If } from "@apitomy/common-ui-components";
-import { IfFeature } from "@app/components";
 
 /**
  * Properties
@@ -37,14 +36,12 @@ export const DraftsPageEmptyState: FunctionComponent<DraftsPageEmptyStateProps> 
                     There are currently no drafts in the registry.  Create one or more draft to view them here.
                 </EmptyStateBody>
             </If>
-            <IfFeature feature="readOnly" isNot={true}>
-                <EmptyStateFooter>
-                    <EmptyStateActions>
-                        <Button className="empty-btn-create" variant="primary"
-                            data-testid="empty-btn-create" onClick={props.onCreateDraft}>Create draft</Button>
-                    </EmptyStateActions>
-                </EmptyStateFooter>
-            </IfFeature>
+            <EmptyStateFooter>
+                <EmptyStateActions>
+                    <Button className="empty-btn-create" variant="primary"
+                        data-testid="empty-btn-create" onClick={props.onCreateDraft}>Create draft</Button>
+                </EmptyStateActions>
+            </EmptyStateFooter>
         </EmptyState>
     );
 

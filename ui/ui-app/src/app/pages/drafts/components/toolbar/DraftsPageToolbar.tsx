@@ -1,7 +1,6 @@
 import { FunctionComponent } from "react";
 import "./DraftsPageToolbar.css";
 import { Button, Pagination, Toolbar, ToolbarContent, ToolbarGroup, ToolbarItem } from "@patternfly/react-core";
-import { IfFeature } from "@app/components";
 import {
     ChipFilterCriteria,
     ChipFilterInput,
@@ -173,12 +172,10 @@ export const DraftsPageToolbar: FunctionComponent<DraftsPageToolbarProps> = (pro
                         </ToolbarItem>
                     </ToolbarGroup>
                     <ToolbarGroup>
-                        <IfFeature feature="readOnly" isNot={true}>
-                            <ToolbarItem className="create-draft-item" style={{ paddingLeft: "20px" }} align={{ default: "alignEnd" }}>
-                                <Button className="btn-header-create-draft" data-testid="btn-toolbar-create-draft"
-                                    variant="primary" onClick={props.onCreateDraft}>Create draft</Button>
-                            </ToolbarItem>
-                        </IfFeature>
+                        <ToolbarItem className="create-draft-item" style={{ paddingLeft: "20px" }} align={{ default: "alignEnd" }}>
+                            <Button className="btn-header-create-draft" data-testid="btn-toolbar-create-draft"
+                                variant="primary" onClick={props.onCreateDraft}>Create draft</Button>
+                        </ToolbarItem>
                     </ToolbarGroup>
                 </ToolbarContent>
             </Toolbar>

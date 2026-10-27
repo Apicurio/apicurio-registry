@@ -28,7 +28,7 @@ import {
     FlexItem
 } from "@patternfly/react-core";
 import { SearchIcon, CubesIcon, ExternalLinkAltIcon } from "@patternfly/react-icons";
-import { IfFeature, RootPageHeader } from "@app/components";
+import { RootPageHeader } from "@app/components";
 import { AGENTS_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
 import {
     AgentSearchFilters,
@@ -337,18 +337,16 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                             Search
                         </Button>
                     </ToolbarItem>
-                    <IfFeature feature="readOnly" isNot={true}>
-                        <ToolbarItem>
-                            <Button variant="secondary" onClick={() => setIsCreateAgentModalOpen(true)}>
-                                Create Agent
-                            </Button>
-                        </ToolbarItem>
-                        <ToolbarItem>
-                            <Button variant="secondary" onClick={() => setIsImportAgentModalOpen(true)}>
-                                Import Agent
-                            </Button>
-                        </ToolbarItem>
-                    </IfFeature>
+                    <ToolbarItem>
+                        <Button variant="secondary" onClick={() => setIsCreateAgentModalOpen(true)}>
+                            Create Agent
+                        </Button>
+                    </ToolbarItem>
+                    <ToolbarItem>
+                        <Button variant="secondary" onClick={() => setIsImportAgentModalOpen(true)}>
+                            Import Agent
+                        </Button>
+                    </ToolbarItem>
                     <ToolbarItem variant="pagination" align={{ default: "alignEnd" }}>
                         <Pagination
                             itemCount={results.count}

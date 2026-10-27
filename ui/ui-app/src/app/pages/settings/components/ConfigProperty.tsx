@@ -1,11 +1,10 @@
 import React, { FunctionComponent, useState } from "react";
 import "./ConfigProperty.css";
-import { Button, Flex, FlexItem, Switch, Tooltip } from "@patternfly/react-core";
+import { Button, Flex, FlexItem, Switch } from "@patternfly/react-core";
 import { PropertyInput } from "@app/pages";
 import { If } from "@apitomy/common-ui-components";
 import { CheckIcon, CloseIcon, PencilAltIcon } from "@patternfly/react-icons";
 import { ConfigurationProperty } from "@sdk/lib/generated-client/models";
-import { useConfigService } from "@services/useConfigService.ts";
 
 /**
  * Properties
@@ -17,8 +16,6 @@ export interface ConfigPropertyProps {
 
 
 export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({ property, onChange }: ConfigPropertyProps) => {
-    const config = useConfigService();
-    const isReadOnly = config.featureReadOnly();
     const [ isEditing, setEditing ] = useState(false);
     const [ newPropertyValue, setNewPropertyValue ] = useState(property.value!);
     const [ isValid, setValid ] = useState(true);
@@ -63,13 +60,10 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({ propert
                     <div className="property-description">{property.description}</div>
                 </FlexItem>
                 <FlexItem className="actions" align={{ default: "alignRight" }}>
-                    <Tooltip content="Registry is in read-only mode" trigger={isReadOnly ? "mouseenter focus" : "manual"}>
-                        <Switch id={property.name || undefined} aria-label={property.label || undefined}
-                            className="action"
-                            isChecked={property.value === "true"}
-                            isDisabled={isReadOnly}
-                            onChange={onCheckboxChange} />
-                    </Tooltip>
+                    <Switch id={property.name || undefined} aria-label={property.label || undefined}
+                        className="action"
+                        isChecked={property.value === "true"}
+                        onChange={onCheckboxChange} />
                 </FlexItem>
             </Flex>
         );
@@ -101,9 +95,7 @@ export const ConfigProperty: FunctionComponent<ConfigPropertyProps> = ({ propert
                 </FlexItem>
                 <FlexItem className="actions" align={{ default: "alignRight" }}>
                     <If condition={!isEditing}>
-                        <Tooltip content="Registry is in read-only mode" trigger={isReadOnly ? "mouseenter focus" : "manual"}>
-                            <Button icon={<PencilAltIcon />} variant="plain" aria-label="Edit configuration property" className="action single" onClick={onStartEditing} isDisabled={isReadOnly} />
-                        </Tooltip>
+                        <Button icon={<PencilAltIcon />} variant="plain" aria-label="Edit configuration property" className="action single" onClick={onStartEditing} />
                     </If>
                     <If condition={isEditing}>
                         <Button icon={<CheckIcon />} variant="plain" aria-label="Save configuration property" className="action" onClick={onSavePropertyValue} isDisabled={!isValid} />

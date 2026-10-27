@@ -10,7 +10,6 @@ import {
 } from "@patternfly/react-core";
 import { PlusCircleIcon } from "@patternfly/react-icons";
 import { If } from "@apitomy/common-ui-components";
-import { IfFeature } from "@app/components";
 import { SearchType } from "@app/pages/search/SearchType.ts";
 
 /**
@@ -58,22 +57,20 @@ export const SearchPageEmptyState: FunctionComponent<SearchPageEmptyStateProps> 
                 </EmptyStateBody>
             </If>
             <EmptyStateFooter>
-                <IfFeature feature="readOnly" isNot={true}>
-                    <If condition={() => !props.isFiltered && props.searchType === SearchType.GROUP}>
-                        <EmptyStateActions>
-                            <Button variant="primary" data-testid="empty-btn-create-group" onClick={props.onAction}>
-                                Create group
-                            </Button>
-                        </EmptyStateActions>
-                    </If>
-                    <If condition={() => !!props.onCreateArtifact}>
-                        <EmptyStateActions>
-                            <Button className="empty-btn-create" variant="primary"
-                                icon={<PlusCircleIcon />}
-                                data-testid="empty-btn-create" onClick={props.onCreateArtifact}>Create artifact</Button>
-                        </EmptyStateActions>
-                    </If>
-                </IfFeature>
+                <If condition={() => !props.isFiltered && props.searchType === SearchType.GROUP}>
+                    <EmptyStateActions>
+                        <Button variant="primary" data-testid="empty-btn-create-group" onClick={props.onAction}>
+                            Create group
+                        </Button>
+                    </EmptyStateActions>
+                </If>
+                <If condition={() => !!props.onCreateArtifact}>
+                    <EmptyStateActions>
+                        <Button className="empty-btn-create" variant="primary"
+                            icon={<PlusCircleIcon />}
+                            data-testid="empty-btn-create" onClick={props.onCreateArtifact}>Create artifact</Button>
+                    </EmptyStateActions>
+                </If>
             </EmptyStateFooter>
         </EmptyState>
     );

@@ -24,16 +24,12 @@ type UserInterfaceConfigFeatures struct {
 	draftMutability *bool
 	// The readOnly property
 	readOnly *bool
-	// Why the registry is in read-only mode: storage (inherently read-only, e.g. GitOps), config (manual configuration), or absent when not read-only.
-	readOnlyReason *UserInterfaceConfigFeatures_readOnlyReason
 	// The roleManagement property
 	roleManagement *bool
 	// The searchIndex property
 	searchIndex *bool
 	// The settings property
 	settings *bool
-	// The active storage variant name (e.g. gitops, kubernetesops, sql). Populated when readOnlyReason is storage.
-	storageName *string
 	// Maximum content length (in bytes) for UI 'Import from URL' responses.
 	urlImportMaxContentLength *int64
 }
@@ -167,16 +163,6 @@ func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i8
 		}
 		return nil
 	}
-	res["readOnlyReason"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetEnumValue(ParseUserInterfaceConfigFeatures_readOnlyReason)
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetReadOnlyReason(val.(*UserInterfaceConfigFeatures_readOnlyReason))
-		}
-		return nil
-	}
 	res["roleManagement"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetBoolValue()
 		if err != nil {
@@ -207,16 +193,6 @@ func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i8
 		}
 		return nil
 	}
-	res["storageName"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
-		val, err := n.GetStringValue()
-		if err != nil {
-			return err
-		}
-		if val != nil {
-			m.SetStorageName(val)
-		}
-		return nil
-	}
 	res["urlImportMaxContentLength"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetInt64Value()
 		if err != nil {
@@ -236,12 +212,6 @@ func (m *UserInterfaceConfigFeatures) GetReadOnly() *bool {
 	return m.readOnly
 }
 
-// GetReadOnlyReason gets the readOnlyReason property value. Why the registry is in read-only mode: storage (inherently read-only, e.g. GitOps), config (manual configuration), or absent when not read-only.
-// returns a *UserInterfaceConfigFeatures_readOnlyReason when successful
-func (m *UserInterfaceConfigFeatures) GetReadOnlyReason() *UserInterfaceConfigFeatures_readOnlyReason {
-	return m.readOnlyReason
-}
-
 // GetRoleManagement gets the roleManagement property value. The roleManagement property
 // returns a *bool when successful
 func (m *UserInterfaceConfigFeatures) GetRoleManagement() *bool {
@@ -258,12 +228,6 @@ func (m *UserInterfaceConfigFeatures) GetSearchIndex() *bool {
 // returns a *bool when successful
 func (m *UserInterfaceConfigFeatures) GetSettings() *bool {
 	return m.settings
-}
-
-// GetStorageName gets the storageName property value. The active storage variant name (e.g. gitops, kubernetesops, sql). Populated when readOnlyReason is storage.
-// returns a *string when successful
-func (m *UserInterfaceConfigFeatures) GetStorageName() *string {
-	return m.storageName
 }
 
 // GetUrlImportMaxContentLength gets the urlImportMaxContentLength property value. Maximum content length (in bytes) for UI 'Import from URL' responses.
@@ -316,13 +280,6 @@ func (m *UserInterfaceConfigFeatures) Serialize(writer i878a80d2330e89d26896388a
 			return err
 		}
 	}
-	if m.GetReadOnlyReason() != nil {
-		cast := (*m.GetReadOnlyReason()).String()
-		err := writer.WriteStringValue("readOnlyReason", &cast)
-		if err != nil {
-			return err
-		}
-	}
 	{
 		err := writer.WriteBoolValue("roleManagement", m.GetRoleManagement())
 		if err != nil {
@@ -337,12 +294,6 @@ func (m *UserInterfaceConfigFeatures) Serialize(writer i878a80d2330e89d26896388a
 	}
 	{
 		err := writer.WriteBoolValue("settings", m.GetSettings())
-		if err != nil {
-			return err
-		}
-	}
-	{
-		err := writer.WriteStringValue("storageName", m.GetStorageName())
 		if err != nil {
 			return err
 		}
@@ -402,11 +353,6 @@ func (m *UserInterfaceConfigFeatures) SetReadOnly(value *bool) {
 	m.readOnly = value
 }
 
-// SetReadOnlyReason sets the readOnlyReason property value. Why the registry is in read-only mode: storage (inherently read-only, e.g. GitOps), config (manual configuration), or absent when not read-only.
-func (m *UserInterfaceConfigFeatures) SetReadOnlyReason(value *UserInterfaceConfigFeatures_readOnlyReason) {
-	m.readOnlyReason = value
-}
-
 // SetRoleManagement sets the roleManagement property value. The roleManagement property
 func (m *UserInterfaceConfigFeatures) SetRoleManagement(value *bool) {
 	m.roleManagement = value
@@ -420,11 +366,6 @@ func (m *UserInterfaceConfigFeatures) SetSearchIndex(value *bool) {
 // SetSettings sets the settings property value. The settings property
 func (m *UserInterfaceConfigFeatures) SetSettings(value *bool) {
 	m.settings = value
-}
-
-// SetStorageName sets the storageName property value. The active storage variant name (e.g. gitops, kubernetesops, sql). Populated when readOnlyReason is storage.
-func (m *UserInterfaceConfigFeatures) SetStorageName(value *string) {
-	m.storageName = value
 }
 
 // SetUrlImportMaxContentLength sets the urlImportMaxContentLength property value. Maximum content length (in bytes) for UI 'Import from URL' responses.
@@ -442,11 +383,9 @@ type UserInterfaceConfigFeaturesable interface {
 	GetDeleteVersion() *bool
 	GetDraftMutability() *bool
 	GetReadOnly() *bool
-	GetReadOnlyReason() *UserInterfaceConfigFeatures_readOnlyReason
 	GetRoleManagement() *bool
 	GetSearchIndex() *bool
 	GetSettings() *bool
-	GetStorageName() *string
 	GetUrlImportMaxContentLength() *int64
 	SetAgents(value *bool)
 	SetBreadcrumbs(value *bool)
@@ -455,10 +394,8 @@ type UserInterfaceConfigFeaturesable interface {
 	SetDeleteVersion(value *bool)
 	SetDraftMutability(value *bool)
 	SetReadOnly(value *bool)
-	SetReadOnlyReason(value *UserInterfaceConfigFeatures_readOnlyReason)
 	SetRoleManagement(value *bool)
 	SetSearchIndex(value *bool)
 	SetSettings(value *bool)
-	SetStorageName(value *string)
 	SetUrlImportMaxContentLength(value *int64)
 }

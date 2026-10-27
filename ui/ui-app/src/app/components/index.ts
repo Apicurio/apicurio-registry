@@ -5,6 +5,5 @@ export * from "./downloadArtifacts";
 export * from "./errorPage";
 export * from "./header";
 export * from "./modals";
-export * from "./readOnlyBanner";
 export * from "./ruleList";
 export * from "./contracts";

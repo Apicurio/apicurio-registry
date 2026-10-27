@@ -1,20 +1,13 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+// @vitest-environment jsdom
+import "@testing-library/jest-dom/vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { shash } from "@utils/string.utils.ts";
 
-let useStateValue: any = undefined;
-const setStateFn = vi.fn();
-
-vi.mock("react", async (importOriginal) => {
-    const actual = await importOriginal<typeof import("react")>();
-    return {
-        ...actual,
-        useState: vi.fn((init: any) => {
-            if (useStateValue === undefined) {
-                useStateValue = typeof init === "function" ? init() : init;
-            }
-            return [useStateValue, setStateFn];
-        }),
-    };
-});
+const DISMISSED_KEY_PREFIX = "readOnlyBanner.dismissed.";
+const GENERIC_MESSAGE = "This registry is in read-only mode.";
+const GITOPS_MESSAGE =
+    "This registry is in read-only mode. Changes are managed via GitOps — update your source Git repository.";
 
 const mockConfigService = {
     featureReadOnly: vi.fn(),
@@ -33,93 +26,97 @@ vi.mock("@services/useLocalStorageService.ts", () => ({
     useLocalStorageService: () => mockLocalStorage,
 }));
 
-vi.mock("@patternfly/react-core", () => ({
-    Alert: (props: any) => props,
-    AlertActionCloseButton: (props: any) => props,
-}));
-
 import { ReadOnlyBanner } from "./ReadOnlyBanner";
 
-describe("ReadOnlyBanner", () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        useStateValue = undefined;
-        mockLocalStorage.getConfigProperty.mockReturnValue(undefined);
-    });
+function setupConfig(readOnly: boolean, reason?: string, storageName?: string): void {
+    mockConfigService.featureReadOnly.mockReturnValue(readOnly);
+    mockConfigService.featureReadOnlyReason.mockReturnValue(reason);
+    mockConfigService.features.mockReturnValue({ storageName });
+}
 
+function dismissKeyFor(message: string): string {
+    return DISMISSED_KEY_PREFIX + String(shash(message));
+}
+
+afterEach(() => {
+    cleanup();
+    vi.resetAllMocks();
+});
+
+describe("ReadOnlyBanner", () => {
     it("returns null when registry is not read-only", () => {
-        mockConfigService.featureReadOnly.mockReturnValue(false);
-        mockConfigService.featureReadOnlyReason.mockReturnValue(undefined);
-        mockConfigService.features.mockReturnValue({});
-        const result = ReadOnlyBanner({});
-        expect(result).toBeNull();
+        setupConfig(false);
+        const { container } = render(<ReadOnlyBanner />);
+        expect(container.innerHTML).toBe("");
     });
 
     it("shows GitOps message when readOnlyReason is storage and storageName is gitops", () => {
-        mockConfigService.featureReadOnly.mockReturnValue(true);
-        mockConfigService.featureReadOnlyReason.mockReturnValue("storage");
-        mockConfigService.features.mockReturnValue({ storageName: "gitops" });
-
-        const result: any = ReadOnlyBanner({});
-        expect(result.props.title).toBe(
-            "This registry is in read-only mode. Changes are managed via GitOps — update your source Git repository."
-        );
-        expect(result.props.variant).toBe("info");
+        setupConfig(true, "storage", "gitops");
+        render(<ReadOnlyBanner />);
+        expect(screen.getByTestId("read-only-banner")).toBeInTheDocument();
+        expect(screen.getByText(GITOPS_MESSAGE)).toBeInTheDocument();
     });
 
     it("shows generic message when readOnlyReason is storage but storageName is sql", () => {
-        mockConfigService.featureReadOnly.mockReturnValue(true);
-        mockConfigService.featureReadOnlyReason.mockReturnValue("storage");
-        mockConfigService.features.mockReturnValue({ storageName: "sql" });
-
-        const result: any = ReadOnlyBanner({});
-        expect(result.props.title).toBe("This registry is in read-only mode.");
+        setupConfig(true, "storage", "sql");
+        render(<ReadOnlyBanner />);
+        expect(screen.getByText(GENERIC_MESSAGE)).toBeInTheDocument();
     });
 
     it("shows generic message when readOnlyReason is config", () => {
-        mockConfigService.featureReadOnly.mockReturnValue(true);
-        mockConfigService.featureReadOnlyReason.mockReturnValue("config");
-        mockConfigService.features.mockReturnValue({ storageName: undefined });
-
-        const result: any = ReadOnlyBanner({});
-        expect(result.props.title).toBe("This registry is in read-only mode.");
+        setupConfig(true, "config");
+        render(<ReadOnlyBanner />);
+        expect(screen.getByText(GENERIC_MESSAGE)).toBeInTheDocument();
     });
 
     it("returns null when banner was previously dismissed for the same message", () => {
-        mockConfigService.featureReadOnly.mockReturnValue(true);
-        mockConfigService.featureReadOnlyReason.mockReturnValue("config");
-        mockConfigService.features.mockReturnValue({ storageName: undefined });
+        setupConfig(true, "config");
         mockLocalStorage.getConfigProperty.mockReturnValue("true");
-
-        const result = ReadOnlyBanner({});
-        expect(result).toBeNull();
+        const { container } = render(<ReadOnlyBanner />);
+        expect(container.innerHTML).toBe("");
     });
 
-    it("shows banner when dismissed message differs from current message", () => {
-        mockConfigService.featureReadOnly.mockReturnValue(true);
-        mockConfigService.featureReadOnlyReason.mockReturnValue("storage");
-        mockConfigService.features.mockReturnValue({ storageName: "gitops" });
-        mockLocalStorage.getConfigProperty.mockReturnValue(undefined);
-
-        const result: any = ReadOnlyBanner({});
-        expect(result).not.toBeNull();
-        expect(result.props.title).toContain("GitOps");
+    it("shows banner when generic message is dismissed but GitOps message is not", () => {
+        setupConfig(true, "storage", "gitops");
+        const genericKey = dismissKeyFor(GENERIC_MESSAGE);
+        const gitopsKey = dismissKeyFor(GITOPS_MESSAGE);
+        mockLocalStorage.getConfigProperty.mockImplementation((key: string) =>
+            key === genericKey ? "true" : undefined
+        );
+        render(<ReadOnlyBanner />);
+        expect(mockLocalStorage.getConfigProperty).toHaveBeenCalledWith(gitopsKey, undefined);
+        expect(screen.getByText(GITOPS_MESSAGE)).toBeInTheDocument();
     });
 
-    it("persists dismissal to localStorage on close", () => {
-        mockConfigService.featureReadOnly.mockReturnValue(true);
-        mockConfigService.featureReadOnlyReason.mockReturnValue("config");
-        mockConfigService.features.mockReturnValue({ storageName: undefined });
-        mockLocalStorage.getConfigProperty.mockReturnValue(undefined);
+    it("uses different dismissal keys for different messages", () => {
+        const genericKey = dismissKeyFor(GENERIC_MESSAGE);
+        const gitopsKey = dismissKeyFor(GITOPS_MESSAGE);
+        expect(genericKey).not.toBe(gitopsKey);
 
-        const result: any = ReadOnlyBanner({});
-        const closeButton = result.props.actionClose;
-        closeButton.props.onClose();
+        setupConfig(true, "config");
+        render(<ReadOnlyBanner />);
+        fireEvent.click(screen.getByRole("button"));
+        expect(mockLocalStorage.setConfigProperty).toHaveBeenCalledWith(genericKey, "true");
+        cleanup();
+        vi.resetAllMocks();
+
+        setupConfig(true, "storage", "gitops");
+        render(<ReadOnlyBanner />);
+        fireEvent.click(screen.getByRole("button"));
+        expect(mockLocalStorage.setConfigProperty).toHaveBeenCalledWith(gitopsKey, "true");
+    });
+
+    it("hides banner and persists dismissal on close", () => {
+        setupConfig(true, "config");
+        render(<ReadOnlyBanner />);
+        expect(screen.getByText(GENERIC_MESSAGE)).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button"));
 
         expect(mockLocalStorage.setConfigProperty).toHaveBeenCalledWith(
-            expect.stringContaining("readOnlyBanner.dismissed."),
+            dismissKeyFor(GENERIC_MESSAGE),
             "true"
         );
-        expect(setStateFn).toHaveBeenCalledWith(true);
+        expect(screen.queryByText(GENERIC_MESSAGE)).not.toBeInTheDocument();
     });
 });

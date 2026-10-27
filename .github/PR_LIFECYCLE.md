@@ -131,6 +131,25 @@ PRs are merged using **rebase** by default (linear history via `/merge`, which e
 native GitHub auto-merge). This can be changed to **squash** in `.github/pr-lifecycle.yml`.
 Branches are deleted automatically after merge (a repository-level setting).
 
+### Docs-only PRs
+
+A PR that changes only documentation (the `docs_only` section of
+`.github/pr-lifecycle.yml`: `docs/` and `docs-playbook/`, minus the code and
+generated files under `docs/`) takes a shorter path:
+
+- Quick Check skips the Java and UI builds; Verify runs only the Docs Check,
+  an Antora build that fails on new broken xrefs, includes or attribute
+  references.
+- PR validation does not require a milestone, and a missing issue link is
+  only advisory. DCO sign-off is still required.
+- If the author is a maintainer, `github-actions[bot]` approves the PR once
+  Verify passes, so the author can merge it with `/merge` without waiting for a
+  second person. A push dismisses the approval; the next Verify run approves
+  again. PRs touching a file on `docs_only.review_required_paths` (security
+  and authentication guides) still need a human review.
+
+See "Docs-only PRs" in `.github/workflows/README.md` for the details.
+
 ### Label protection
 
 All `lifecycle/*` and `orchestrator/*` labels are managed exclusively by the orchestrator.
@@ -326,6 +345,9 @@ The orchestrator is configured in `.github/pr-lifecycle.yml`:
   commands, and who gets the full suite immediately per the CI section above)
 - **auto_accept** — GitHub usernames of additional trusted accounts that also get the
   full suite immediately (e.g. Renovate), without maintainer command access
+- **docs_only** — what counts as a docs-only PR (`paths`, `exclude`) and which docs
+  files still need a human review (`review_required_paths`); see
+  [Docs-only PRs](#docs-only-prs)
 - **max_contributor_prs** — maximum concurrent open PRs for a non-trusted author
   before further ones are closed automatically (default: 1)
 - **pr_limit_exempt** — GitHub usernames `max_contributor_prs` does not apply to,

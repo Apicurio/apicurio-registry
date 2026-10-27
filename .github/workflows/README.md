@@ -66,14 +66,43 @@ disagree with one that started after — Decide re-evaluates live, every time.
 
 | Flag | Paths | Phases |
 |------|-------|--------|
-| `java` | `app/`, `common/`, `schema-*/`, `serdes/`, `config-index/`, `java-sdk/`, `mcp/`, `distro/`, `pom.xml` | build, unit-tests, extras, sdk |
+| `java` | `app/`, `common/`, `schema-*/`, `serdes/`, `config-index/`, `java-sdk/`, `mcp/`, `distro/`, `pom.xml`, and the code or generated parts of `docs/` (`docs/pom.xml`, `docs/config-generator/`, `docs/rest-api/`, `ref-registry-all-configs.*`) | build, unit-tests, extras, sdk |
 | `ui` | `ui/` | build, extras |
 | `integration` | `app/`, `common/`, `integration-tests/`, `schema-*/`, `serdes/`, `distro/`, `pom.xml` | integration-tests |
 | `sdk` | `java-sdk/`, `go-sdk/`, `python-sdk/`, `typescript-sdk/` | build, sdk |
 | `cli` | `cli/`, `java-sdk/`, `verify-cli.yaml` | build, cli-verify |
 | `ci` | `.github/workflows/**` | all test phases except cli-verify |
+| `docs` | `docs/`, `docs-playbook/` | docs (Docs Check) |
 
 Docs-only or UI-only PRs skip Java unit tests and integration tests entirely.
+
+### Docs-only PRs
+
+A PR is **docs-only** when every file it changes matches the `docs_only.paths`
+in `.github/pr-lifecycle.yml` (`docs/**`, `docs-playbook/**`) and none matches
+`docs_only.exclude` (the code and generated output under `docs/`). The one
+implementation is `.github/scripts/docs-only.js`. For such a PR:
+
+- **Quick Check** skips Quick Verify and the fast UI build (its `Detect
+  Docs-Only` job decides). The gate still passes, so `lifecycle/tested` is set.
+- **Verify** runs only Lint and Validate and the **Docs Check**
+  (`verify-docs.yaml`), part of `Verify Result` and so of the `Verification
+  Gate`. It builds the docs of the commit and of its base with Antora 3, using
+  the published playbook's attributes and UI bundle with the checkout as the
+  content source (`docs-build.sh`), and fails on any error or warning the base
+  does not have (`docs-check.js`): broken xrefs and includes are errors,
+  unknown attribute references are warnings. Problems already on the base are
+  reported but do not fail it. Docs Check runs for every PR that touches
+  `docs/`, docs-only or not.
+- **PR validation** does not check the milestone, and a missing issue link is
+  advisory. DCO sign-off is still required.
+- **Auto-approval** (`docs-auto-approve.yml`): when the author is a maintainer
+  and the Verify run passed including Docs Check, `github-actions[bot]`
+  approves the PR for that commit, so the author can merge with `/merge`. Files
+  matching `docs_only.review_required_paths` (security and auth guides) still
+  need a human review; the bot says so in a comment. A push dismisses the
+  approval and the next Verify run decides again. Requires the repository
+  setting "Allow GitHub Actions to create and approve pull requests".
 Push to main always runs everything regardless of change detection.
 
 ### Verification Gate
@@ -543,9 +572,11 @@ re-measure rather than trusting it indefinitely.
 
 | Workflow | Trigger | Purpose | Duration |
 |----------|---------|---------|----------|
-| `validate-docs.yaml` | PR (docs/**), workflow_call | Runs `docs-playbook/_build-all.sh` to validate documentation builds | ~10 min |
+| `validate-docs.yaml` | PR (docs-playbook/**), workflow_call | Runs `docs-playbook/_build-all.sh`, the production site build. Its playbook takes content from the published branches, so it validates the playbook and build, not a PR's docs content (that is `verify-docs.yaml`) | ~10 min |
+| `verify-docs.yaml` | Called by verify (`run-docs`) | Docs Check: Antora build of the commit and its base, failing on new errors or warnings. See [Docs-only PRs](#docs-only-prs) | ~2 min |
+| `docs-auto-approve.yml` | `workflow_run` Verify completed | Approves docs-only PRs by maintainers whose Verify run passed. See [Docs-only PRs](#docs-only-prs) | seconds |
 | `validate-openapi.yaml` | PR (openapi.json), workflow_call | Lints OpenAPI spec with `@rhoas/spectral-ruleset` | ~5 min |
-| `pr-validation.yml` | `pull_request_target` opened/reopened/synchronize/edited/milestoned/demilestoned; `issues` milestoned/demilestoned/closed/reopened | Checks the PR body links an issue (closing keywords in code spans/blocks don't count), every commit is DCO signed, and the PR plus every *open* issue it closes carries an open milestone (a closed issue's milestone records when it shipped, so it isn't checked); that existing SQL upgrade scripts are never changed (on `main` they may only be added; on a maintenance branch nothing under `upgrades/`, nor `db-version`, may change; a maintainer can accept a change with the `db-upgrade/change-approved` label and `/retry`, see #10141); flags possible duplicate PRs by linked issue or overlapping files. The comment groups failures by who can fix them (author / maintainer). Independent of the lifecycle: a red check never blocks a merge, and PRs are not auto-closed. Uses `pull_request_target` (write token) instead of `pull_request` so it can comment/label on fork PRs; it never checks out the PR head, only the base branch and PR metadata via the API. The milestone activity types matter because setting a milestone is the only way to clear that check; for a linked issue's milestone (or the issue closing/reopening), the `revalidate` job re-runs the validation of each open PR closing it (the PR's check belongs to its own run). The `validate` job checks out the default branch's current head, so a re-run runs today's validator rather than the one from when the PR last changed. `/retry` also re-runs a failed validation run | <1 min |
+| `pr-validation.yml` | `pull_request_target` opened/reopened/synchronize/edited/milestoned/demilestoned; `issues` milestoned/demilestoned/closed/reopened | Checks the PR body links an issue (closing keywords in code spans/blocks don't count), every commit is DCO signed, and the PR plus every *open* issue it closes carries an open milestone (a closed issue's milestone records when it shipped, so it isn't checked; docs-only PRs are exempt from the milestone check and their issue link is advisory, see [Docs-only PRs](#docs-only-prs)); that existing SQL upgrade scripts are never changed (on `main` they may only be added; on a maintenance branch nothing under `upgrades/`, nor `db-version`, may change; a maintainer can accept a change with the `db-upgrade/change-approved` label and `/retry`, see #10141); flags possible duplicate PRs by linked issue or overlapping files. The comment groups failures by who can fix them (author / maintainer). Independent of the lifecycle: a red check never blocks a merge, and PRs are not auto-closed. Uses `pull_request_target` (write token) instead of `pull_request` so it can comment/label on fork PRs; it never checks out the PR head, only the base branch and PR metadata via the API. The milestone activity types matter because setting a milestone is the only way to clear that check; for a linked issue's milestone (or the issue closing/reopening), the `revalidate` job re-runs the validation of each open PR closing it (the PR's check belongs to its own run). The `validate` job checks out the default branch's current head, so a re-run runs today's validator rather than the one from when the PR last changed. `/retry` also re-runs a failed validation run | <1 min |
 
 ## Release Workflows
 

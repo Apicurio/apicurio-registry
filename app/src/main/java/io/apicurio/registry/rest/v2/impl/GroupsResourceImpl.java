@@ -1045,7 +1045,10 @@ public class GroupsResourceImpl implements GroupsResource {
                     ? RegistryHashAlgorithm.SHA256 : RegistryHashAlgorithm.valueOf(xRegistryHashAlgorithm);
                 switch (algorithm) {
                     case MD5:
-                        calculatedSha = Hashing.md5().hashString(content.content(), StandardCharsets.UTF_8)
+                        // MD5 is an explicit, client-selected option of the v2 API contract
+                        // (X-Registry-Hash-Algorithm) used only as a content checksum, never for
+                        // security decisions. SHA256 is the default. Kept for backward compatibility.
+                        calculatedSha = Hashing.md5().hashString(content.content(), StandardCharsets.UTF_8) // NOSONAR
                                 .toString();
                         break;
                     case SHA256:

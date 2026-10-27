@@ -654,6 +654,86 @@ public class PromptRenderingServiceTest {
     }
 
     @Test
+    public void testWholeNumberDecimalSuppliedValueIsAcceptedForIntegerType() {
+        String yamlContent = """
+            templateId: limits
+            template: "Limit: {{max_results}}"
+            variables:
+              max_results:
+                type: integer
+                default: 5
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of("max_results", 7.0),
+                "default", "limits", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Limit: 7", response.getRendered());
+    }
+
+    @Test
+    public void testFractionalSuppliedValueIsStillRejectedForIntegerType() {
+        String yamlContent = """
+            templateId: limits
+            template: "Limit: {{max_results}}"
+            variables:
+              max_results:
+                type: integer
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of("max_results", 7.5),
+                "default", "limits", "1.0");
+
+        Assertions.assertEquals(1, response.getValidationErrors().size());
+        Assertions.assertEquals("max_results", response.getValidationErrors().get(0).getVariableName());
+        Assertions.assertEquals("integer", response.getValidationErrors().get(0).getExpectedType());
+        Assertions.assertEquals("number", response.getValidationErrors().get(0).getActualType());
+    }
+
+    @Test
+    public void testOutOfRangeWholeNumberDecimalSuppliedValueIsRejectedForIntegerType() {
+        String yamlContent = """
+            templateId: limits
+            template: "Limit: {{max_results}}"
+            variables:
+              max_results:
+                type: integer
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of("max_results", 1e20),
+                "default", "limits", "1.0");
+
+        Assertions.assertEquals(1, response.getValidationErrors().size());
+        Assertions.assertEquals("max_results", response.getValidationErrors().get(0).getVariableName());
+        Assertions.assertEquals("number", response.getValidationErrors().get(0).getActualType());
+    }
+
+    @Test
+    public void testWholeNumberDecimalSuppliedValueUnaffectedForNumberType() {
+        String yamlContent = """
+            templateId: temp
+            template: "Temperature: {{temp}}"
+            variables:
+              temp:
+                type: number
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of("temp", 7.0),
+                "default", "temp", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Temperature: 7.0", response.getRendered());
+    }
+
+    @Test
     public void testWholeNumberDecimalDefaultUnaffectedForNumberType() {
         // A "number"-typed default should be unaffected by the integer-specific coercion
         // and keep its original decimal representation.

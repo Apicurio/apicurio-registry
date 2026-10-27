@@ -202,7 +202,11 @@ ValidationResult recordResult = validator.validate(record);
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can validate Avro `GenericRecord` objects or JSON-encoded Avro data against an Avro schema artifact that is stored in {registry} by using the `AvroValidator` class. The validator checks required fields, unions, nested records, enum symbols, arrays, and maps against the registered schema.
+You can validate Avro `GenericRecord` objects or JSON-encoded Avro data against an Avro schema artifact that is stored in {registry} by using the `AvroValidator` class.
+
+`GenericRecord` validation performs partial checks. It skips primitive type checks, accepts a union when any branch reports no errors, and does not reject a non-collection value for an array or a non-map value for a map. For example, a record whose own schema declares `time` as a string can pass against a registered `long` field. A successful result does not establish full schema conformance.
+
+The JSON `String` overload instead decodes the data against the registered schema and reports decoding failures, including primitive type mismatches.
 
 The examples in this procedure use the following Avro schema, saved as `message.avsc` in the working directory of the application and registered in the `default` group with the artifact ID `message-avro`:
 
@@ -434,11 +438,21 @@ import com.google.protobuf.Message;
 import io.apicurio.schema.validation.SchemaValidationMetadata;
 import io.apicurio.schema.validation.SchemaValidationRecord;
 
-SchemaValidationRecord<Message> record = new SchemaValidationRecord<>(
-        payload, new SchemaValidationMetadata(reference));
+ArtifactReference recordReference = ArtifactReference.builder()
+        .groupId("default")
+        .artifactId("message-proto")
+        .version("1")
+        .build();
 
-ValidationResult recordResult = validator.validate(record);
+ProtobufValidator recordValidator = new ProtobufValidator(config, Optional.empty());
+
+SchemaValidationRecord<Message> record = new SchemaValidationRecord<>(
+        payload, new SchemaValidationMetadata(recordReference));
+
+ValidationResult recordResult = recordValidator.validate(record);
 ----
++
+Replace `1` with the registered schema version. The explicit version lets this new validator fetch the schema without a prior fixed-reference lookup.
 
 .Verification
 * Run the application. The `MessageExample` message prints `ValidationResult [ success ]`, and the `MessageExample2` message prints the missing message type error.
@@ -489,13 +503,13 @@ All modules use the group ID `io.apicurio` and the same version as the {registry
 |Description
 
 |`ValidationResult.success()`
-|Returns `true` when the payload is valid and `false` otherwise.
+|Returns `true` when the validator reports no errors and `false` otherwise. The `GenericRecord` validation limitations still apply.
 
 |`ValidationResult.getValidationErrors()`
-|Returns the list of errors, or `null` when the payload is valid. Check `success()` before you read the list.
+|Returns the list of errors, or `null` when the validator reports no errors. Check `success()` before you read the list.
 
 |`ValidationResult.toString()`
-|Returns `+ValidationResult [ success ]+` for a valid payload, or `+ValidationResult [ errors = [...] ]+` with every error for an invalid payload.
+|Returns `+ValidationResult [ success ]+` for a successful result, or `+ValidationResult [ errors = [...] ]+` with every reported error for a failed result.
 
 |`ValidationError.getDescription()`
 |Returns the human-readable message for one violation.
@@ -528,9 +542,9 @@ All modules use the group ID `io.apicurio` and the same version as the {registry
 
 **Artifact references**
 
-Build an `ArtifactReference` with `ArtifactReference.builder()` and one of the following combinations of coordinates. When a reference carries more than one kind of coordinate, the resolver uses the first one in the order of the table.
+For `validateByArtifactReference`, build an `ArtifactReference` with `ArtifactReference.builder()` and one of the following combinations of coordinates, and pass it to the validator constructor. When a reference carries more than one kind of coordinate, the resolver uses the first one in the order of the table.
 
-.Ways to reference an artifact version
+.Artifact coordinates for validateByArtifactReference
 [options="header",cols="2,4"]
 |====
 |Builder methods
@@ -548,6 +562,10 @@ Build an `ArtifactReference` with `ArtifactReference.builder()` and one of the f
 |`groupId(String)`, `artifactId(String)`, `version(String)`
 |The named version of the artifact. When you omit `version`, the latest version of the artifact. The `artifactId` is required.
 |====
+
+For per-record `validate`, the resolver copies only the group ID, artifact ID, and version from the metadata reference. It discards `contentId`, `contentHash`, and `globalId`, so an ID-only metadata reference cannot select the schema by that ID and can produce `SCHEMA_RESOLUTION_ERROR`.
+
+Specify a version in the per-record reference, or set `SchemaResolverConfig.FIND_LATEST_ARTIFACT` to `true` to select the latest version by group ID and artifact ID. With the default `false` and no version, a cache miss uses schema-content lookup instead. The Protobuf validator cannot extract schema content through that lookup path, so it requires an explicit version or `FIND_LATEST_ARTIFACT=true` to work without a cached schema.
 
 **Configuration properties**
 
@@ -583,6 +601,10 @@ You pass configuration properties to the validator constructor as a `Map<String,
 |`apicurio.registry.cache-latest`
 |Whether the resolver caches lookups that do not specify a version. Set it to `false` to fetch the latest version on every validation.
 |`true`
+
+|`apicurio.registry.find-latest`
+|Whether per-record `validate` resolves by artifact coordinates instead of schema content when no version is specified. Set it to `true` to use the latest version. The fixed-reference `validateByArtifactReference` method uses the latest version when no version is specified, regardless of this setting.
+|`false`
 
 |`apicurio.registry.retry-count`, `apicurio.registry.retry-backoff-ms`
 |Number of times the resolver retries a failed schema lookup, and the delay between retries in milliseconds.

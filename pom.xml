@@ -248,7 +248,7 @@
     <commons-codec.version>1.22.1</commons-codec.version>
     <netty.version>4.1.136.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
-    <kafka-oauth-client.version>0.18.0</kafka-oauth-client.version>
+    <kafka-oauth-client.version>0.18.1</kafka-oauth-client.version>
     <debezium.version>3.7.0.Final</debezium.version>
     <pulsar-clients.version>4.2.5</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>

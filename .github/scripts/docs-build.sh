@@ -8,8 +8,8 @@
 # replaced with <checkout-dir> at its current commit (HEAD, attached or not), so
 # the build checks exactly what is checked out there rather than the published
 # branches. Antora itself must be on PATH (verify-docs.yaml installs a pinned
-# version). The build never fails on a warning or error here; docs-check.js
-# decides by comparing two logs. It exits non-zero only if Antora could not run.
+# version). This script never fails on Antora's result; docs-check.js decides
+# from the log, and fails on any fatal entry or plain-text (crash) line.
 set -euo pipefail
 
 CHECKOUT_DIR=$(cd "$1" && pwd)
@@ -31,10 +31,16 @@ CONTENT_URL="$CHECKOUT_DIR" WORK_DIR="$WORK_DIR" LOG_FILE="$LOG_FILE" yq '
 ' "$PLAYBOOK_SOURCE" > "$PLAYBOOK"
 
 # A fatal entry makes Antora exit non-zero; that entry is in the log, and
-# docs-check.js reports it, so the exit status is not used. A crash before the
-# logger is up goes to stderr instead, which is appended as plain text so that
-# docs-check.js reports it as an error too.
-antora --stacktrace "$PLAYBOOK" > /dev/null 2> "$WORK_DIR/stderr" || true
+# docs-check.js fails on it. A crash before the logger is up goes to stderr
+# instead, which is appended as plain text so that docs-check.js fails on it
+# too.
+# A non-zero exit is recorded as a plain-text line too, so that a failure
+# with nothing in the log or on stderr still fails the check.
+STATUS=0
+antora --stacktrace "$PLAYBOOK" > /dev/null 2> "$WORK_DIR/stderr" || STATUS=$?
 cat "$WORK_DIR/stderr" >> "$LOG_FILE"
+if [ "$STATUS" -ne 0 ]; then
+  echo "Antora exited with status $STATUS" >> "$LOG_FILE"
+fi
 
 echo "Antora build of $CHECKOUT_DIR finished: $(grep -c '' "$LOG_FILE" || true) log line(s) in $LOG_FILE"

@@ -21,8 +21,13 @@ function namesOf(file) {
   return [file.filename, file.previous_filename].filter(Boolean);
 }
 
-function matcher(globs) {
-  const patterns = (globs || []).map(globToRegExp);
+/**
+ * A predicate matching any of the globs. ignoreCase is for the lists that
+ * guard against something (exclude, review_required_paths): a file named
+ * Security.adoc or run.SH must not slip past them on its case.
+ */
+function matcher(globs, { ignoreCase = false } = {}) {
+  const patterns = (globs || []).map(globToRegExp).map(p => (ignoreCase ? new RegExp(p.source, 'i') : p));
   return name => patterns.some(p => p.test(name));
 }
 
@@ -39,20 +44,21 @@ function matcher(globs) {
 function isDocsOnly(files, settings) {
   if (!settings || !(settings.paths || []).length || !files.length) return false;
   const included = matcher(settings.paths);
-  const excluded = matcher(settings.exclude);
+  const excluded = matcher(settings.exclude, { ignoreCase: true });
   return files.every(f => namesOf(f).every(n => included(n) && !excluded(n)));
 }
 
 /**
  * The files (by current name) that need a human review even in a docs-only PR:
- * those whose current or previous name matches settings.review_required_paths.
+ * those whose current or previous name matches settings.review_required_paths,
+ * ignoring case.
  *
  * @param {Array<{filename: string, previous_filename?: string}>} files the PR's files
  * @param {{review_required_paths?: string[]}} settings the docs_only config section
  * @returns {string[]}
  */
 function reviewRequiredFiles(files, settings) {
-  const required = matcher(settings && settings.review_required_paths);
+  const required = matcher(settings && settings.review_required_paths, { ignoreCase: true });
   return files.filter(f => namesOf(f).some(required)).map(f => f.filename);
 }
 

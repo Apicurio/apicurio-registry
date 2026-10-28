@@ -8,11 +8,12 @@ const path = require('path');
 const docsOnly = require('./docs-only.js');
 
 const SETTINGS = {
-  paths: ['docs/**', 'docs-playbook/**'],
+  paths: ['docs/**', 'docs-playbook/*.yml'],
   exclude: [
     'docs/pom.xml',
     'docs/config-generator/**',
     'docs/modules/ROOT/partials/getting-started/ref-registry-all-configs.*',
+    'docs/**/*.sh',
   ],
   review_required_paths: ['docs/modules/**/*security*'],
 };
@@ -26,6 +27,14 @@ test('a PR changing only docs pages is docs-only', () => {
 
 test('a playbook change counts as docs', () => {
   assert.equal(docsOnly.isDocsOnly([file('docs-playbook/docs-playbook.yml')], SETTINGS), true);
+});
+
+test('a file outside the listed docs-playbook paths is not docs-only', () => {
+  assert.equal(docsOnly.isDocsOnly([file('docs-playbook/_build-all.sh')], SETTINGS), false);
+});
+
+test('exclude ignores case', () => {
+  assert.equal(docsOnly.isDocsOnly([file('docs/tools/Run.SH')], SETTINGS), false);
 });
 
 test('any file outside the docs paths makes the PR not docs-only', () => {
@@ -85,6 +94,11 @@ test('reviewRequiredFiles checks the previous name of a renamed file too', () =>
   assert.deepEqual(docsOnly.reviewRequiredFiles(files, SETTINGS), ['docs/modules/ROOT/pages/renamed.adoc']);
 });
 
+test('reviewRequiredFiles ignores case', () => {
+  const files = [file('docs/modules/ROOT/pages/Configuring-Security.adoc')];
+  assert.deepEqual(docsOnly.reviewRequiredFiles(files, SETTINGS), ['docs/modules/ROOT/pages/Configuring-Security.adoc']);
+});
+
 test('reviewRequiredFiles is empty without the setting', () => {
   assert.deepEqual(docsOnly.reviewRequiredFiles([file('docs/a-security.adoc')], { paths: ['docs/**'] }), []);
 });
@@ -136,4 +150,25 @@ test('shipped pr-lifecycle.yml classifies representative PRs', t => {
   ['docs/modules/ROOT/pages/getting-started/assembly-configuring-registry-security.adoc']);
   assert.deepEqual(docsOnly.reviewRequiredFiles(
     [file('docs/modules/ROOT/pages/getting-started/assembly-intro.adoc')], settings), []);
+
+  // docs-playbook/: the playbooks are docs, the build code is not.
+  assert.equal(docsOnly.isDocsOnly([file('docs-playbook/docs-playbook.yml')], settings), true);
+  assert.equal(docsOnly.isDocsOnly([file('docs-playbook/supplemental_ui/partials/header.hbs')], settings), true);
+  for (const name of ['docs-playbook/_build-all.sh', 'docs-playbook/build.sh', 'docs-playbook/Dockerfile',
+    'docs-playbook/package.json', 'docs-playbook/package-lock.json', 'docs/scripts/apicurio-export-registry-data.sh']) {
+    assert.equal(docsOnly.isDocsOnly([file(name)], settings), false, name);
+  }
+
+  // Security-related files anywhere under docs/, in any case.
+  for (const name of [
+    'docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc',
+    'docs/modules/ROOT/pages/getting-started/assembly-deploying-registry-secured-kafka.adoc',
+    'docs/guides/2025/securing-apicurio-registry-with-microsoft-entra-id-external-tenants.md',
+    'docs/guides/2025/securing-apicurio-registry-with-microsoft-entra-id-external-tenants/docker-compose.yaml',
+    'docs/modules/ROOT/assets/attachments/apicurio-registry-dex-cr.yaml',
+    'docs/modules/ROOT/partials/proc-configuring-RBAC.adoc',
+    'docs/modules/ROOT/partials/proc-configuring-tls.adoc',
+  ]) {
+    assert.deepEqual(docsOnly.reviewRequiredFiles([file(name)], settings), [name], name);
+  }
 });

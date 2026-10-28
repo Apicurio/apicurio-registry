@@ -5,6 +5,9 @@
 //   node docs-check.js <base.log> <head.log>
 // Exits 1 when the head has an error or warning (broken xref, missing include,
 // unknown attribute, ...) that the base does not have, and annotates each one.
+// A fatal entry in the head (Antora stopped, or could not start) always fails,
+// even when the base has the same one: an identical crash on both sides, such
+// as an unreachable UI bundle, means nothing was checked.
 // Comparing with the base rather than failing on every warning lets the check
 // hold the line on new problems while the existing ones (literal {placeholder}
 // text in code samples, mostly) are cleaned up separately.
@@ -31,8 +34,9 @@ function parseLog(text) {
     try {
       data = JSON.parse(line);
     } catch (e) {
-      // Antora prints a crash as plain text; that is a failure too.
-      entries.push({ level: 'error', file: '', msg: line.trim() });
+      // Antora prints a crash as plain text, and docs-build.sh appends a
+      // non-zero exit status the same way: the build did not complete.
+      entries.push({ level: 'fatal', file: '', msg: line.trim() });
       continue;
     }
     if (!REPORTED_LEVELS.has(data.level)) continue;
@@ -53,7 +57,8 @@ const keyOf = e => `${e.level}\u0000${e.file}\u0000${e.msg}`;
 /**
  * Splits the head's entries into those the base also has (counting
  * occurrences, so one more copy of an existing warning is new) and those it
- * does not.
+ * does not. Fatal entries are always in added: the base having the same one
+ * does not make a build that never completed a pass.
  *
  * @returns {{added: Array, existing: Array}}
  */
@@ -64,7 +69,7 @@ function compare(baseEntries, headEntries) {
   const existing = [];
   for (const e of headEntries) {
     const left = remaining.get(keyOf(e)) || 0;
-    if (left > 0) {
+    if (e.level !== 'fatal' && left > 0) {
       remaining.set(keyOf(e), left - 1);
       existing.push(e);
     } else {
@@ -89,6 +94,10 @@ function main(argv) {
     return 0;
   }
   for (const e of added) console.log(annotate(e));
+  if (added.some(e => e.level === 'fatal')) {
+    console.log('The docs build did not complete (Antora fatal), so the docs were not checked. '
+      + 'This fails even when the base build failed the same way.');
+  }
   console.log('Fix the problems above. Errors are broken xrefs or includes; warnings are usually an '
     + 'attribute reference with a typo, or a literal {placeholder} that needs escaping as \\{placeholder}.');
   return 1;

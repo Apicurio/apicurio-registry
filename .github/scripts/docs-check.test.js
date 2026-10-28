@@ -31,8 +31,26 @@ test('parseLog keeps messages that have no file', () => {
   assert.deepEqual(check.parseLog(log), [{ level: 'error', file: '', msg: 'ui bundle not found' }]);
 });
 
-test('parseLog reports non-JSON lines (e.g. a crash) as errors', () => {
-  assert.deepEqual(check.parseLog('TypeError: boom'), [{ level: 'error', file: '', msg: 'TypeError: boom' }]);
+test('parseLog reports non-JSON lines (e.g. a crash) as fatal', () => {
+  assert.deepEqual(check.parseLog('TypeError: boom'), [{ level: 'fatal', file: '', msg: 'TypeError: boom' }]);
+});
+
+test('a fatal entry in the head is new even when the base has the same one', () => {
+  const line = entry(BASE_ROOT, 'fatal', 'Failed to download UI bundle');
+  const result = check.compare(check.parseLog(line), check.parseLog(line));
+  assert.deepEqual(result.added, [{ level: 'fatal', file: '', msg: 'Failed to download UI bundle' }]);
+  assert.deepEqual(result.existing, []);
+});
+
+test('a crash in both builds is new: nothing was checked', () => {
+  const log = 'Antora exited with status 1';
+  const result = check.compare(check.parseLog(log), check.parseLog(log));
+  assert.deepEqual(result.added, [{ level: 'fatal', file: '', msg: 'Antora exited with status 1' }]);
+});
+
+test('a fatal entry only in the base does not fail the head', () => {
+  const base = check.parseLog('Antora exited with status 1');
+  assert.deepEqual(check.compare(base, []), { added: [], existing: [] });
 });
 
 test('parseLog ignores info and debug entries', () => {
@@ -84,6 +102,13 @@ test('CLI exits 0 when nothing is new', () => {
   const { status, stdout } = runCli(line, line.replace(BASE_ROOT, HEAD_ROOT).replace(BASE_ROOT, HEAD_ROOT));
   assert.equal(status, 0);
   assert.match(stdout, /no new errors or warnings/);
+});
+
+test('CLI exits 1 when both builds crashed the same way', () => {
+  const crash = 'Antora exited with status 1';
+  const { status, stdout } = runCli(crash, crash);
+  assert.equal(status, 1);
+  assert.match(stdout, /::error::Antora exited with status 1 \(Antora fatal\)/);
 });
 
 function runCli(baseLog, headLog) {

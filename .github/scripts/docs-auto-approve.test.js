@@ -36,9 +36,18 @@ function makePr(overrides = {}) {
   };
 }
 
+function makeCommit({ sha = SHA, author = 'eameh', committer = 'eameh' } = {}) {
+  return {
+    sha,
+    author: author ? { login: author } : null,
+    committer: committer ? { login: committer } : null,
+  };
+}
+
 function setup({ run = makeRun(), pr = makePr(), files = [PAGE], reviews = [],
                  jobs = [{ name: 'Docs Check / Antora', conclusion: 'success' }],
-                 reviewError = null, comments = [], prsForSha = null } = {}) {
+                 reviewError = null, comments = [], prsForSha = null,
+                 commits = [makeCommit()] } = {}) {
   const calls = { reviews: [], comments: [], updatedComments: [], dispatches: [] };
   const github = {
     paginate: async (fn, params) => (await fn(params)).data,
@@ -47,6 +56,7 @@ function setup({ run = makeRun(), pr = makePr(), files = [PAGE], reviews = [],
         get: async () => ({ data: pr }),
         listFiles: async () => ({ data: files.map(f => (typeof f === 'string' ? { filename: f } : f)) }),
         listReviews: async () => ({ data: reviews }),
+        listCommits: async () => ({ data: commits }),
         createReview: async params => {
           if (reviewError) throw reviewError;
           calls.reviews.push(params);
@@ -122,6 +132,9 @@ for (const [name, overrides] of [
   ['the PR touches an excluded docs file', { files: ['docs/pom.xml'] }],
   ['the docs check was skipped', { jobs: [{ name: 'Docs Check / Antora', conclusion: 'skipped' }] }],
   ['the docs check did not run at all', { jobs: [] }],
+  ['a commit was authored by a non-maintainer', { commits: [makeCommit(), makeCommit({ author: 'contributor' })] }],
+  ['a commit was committed by a non-maintainer', { commits: [makeCommit({ committer: 'contributor' })] }],
+  ['a commit author has no GitHub account', { commits: [makeCommit({ author: null })] }],
 ]) {
   test(`does not approve when ${name}`, async () => {
     const env = setup(overrides);
@@ -131,6 +144,21 @@ for (const [name, overrides] of [
     assert.equal(env.log.failed, null);
   });
 }
+
+test('approves commits by several maintainers, and web-flow commits of a maintainer', async () => {
+  const env = setup({ commits: [makeCommit(), makeCommit({ author: 'alice' }),
+    makeCommit({ author: 'alice', committer: 'web-flow' })] });
+  await run(env);
+  assert.equal(env.calls.reviews.length, 1);
+});
+
+test('names the commits that are not by a maintainer', async () => {
+  const env = setup({ commits: [makeCommit({ sha: '0123456789abcdef', author: 'contributor' })] });
+  await run(env);
+  assert.deepEqual(env.calls.reviews, []);
+  assert.ok(env.log.info.includes(
+    'Not approving: PR #7 has commits not authored and committed by a maintainer: 0123456789ab'));
+});
 
 test('does not approve twice for the same commit', async () => {
   const env = setup({ reviews: [{ state: 'APPROVED', commit_id: SHA, user: { login: 'github-actions[bot]' } }] });

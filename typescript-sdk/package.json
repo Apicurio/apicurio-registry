@@ -46,7 +46,7 @@
   },
   "overrides": {
     "decompress": "$decompress",
-    "follow-redirects": "1.16.1",
+    "follow-redirects": "1.16.2",
     "brace-expansion@<2": "1.1.21"
   }
 }

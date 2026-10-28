@@ -5,6 +5,9 @@
 - **Authors:** Carles Arnal
 - **PR:** [#7829](https://github.com/Apicurio/apicurio-registry/pull/7829)
 - **Issue:** [#7724](https://github.com/Apicurio/apicurio-registry/issues/7724)
+- **Amended:** 2026-10-27: Registry adopts the Kroxylicious ACL rules format
+  ([proposal 009](https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md))
+  in place of the JSON grants format. See "Amendment 1" below.
 
 ## Context
 
@@ -29,9 +32,99 @@ When a user calls `GET /search/artifacts?limit=20`, Registry needs to return exa
 
 The only approach that gives correct pagination is **translating authorization rules into SQL `WHERE` clauses before the query hits the database**. This requires the authorization data to be in-process, in a format that maps to SQL predicates.
 
+## Amendment 1 (2026-10-27): adopt the Kroxylicious ACL rules format
+
+**Decision.** The access rules file is shared with Kroxylicious and StreamsHub Console, and its
+format is the Kroxylicious ACL rules language defined by
+[proposal 009](https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md) and
+implemented by `AclAuthorizer` (`io.kroxylicious:kroxylicious-authorizer-acl`). Registry replaces
+its JSON grants format with it before 3.4.0. The JSON format was never released (the latest
+release is 3.3.3), so no migration is needed. This reverses the earlier rejection of `AclAuthorizer`
+(see "Kroxylicious Authorizer with ACL DSL" below). Issue
+[#10602](https://github.com/Apicurio/apicurio-registry/issues/10602), implemented in
+[#10746](https://github.com/Apicurio/apicurio-registry/pull/10746).
+
+The sections below that describe `GrantsAuthorizer`, `GrantsData` and the JSON grants file
+describe the original design, which #10746 replaces.
+
+**Example:**
+
+```
+from io.apicurio.authz import Artifact, Group, Role;
+
+deny User with name = "bob" to * Artifact with name = "team-a/secret";
+allow Role with name = "team-a-dev" to WRITE Group with name = "team-a";
+allow Role with name = "team-a-dev" to WRITE Artifact with name like "team-a/*";
+allow Role with name = "ops" to * Artifact with name *;
+otherwise deny;
+```
+
+**Mapping from the JSON grants format.**
+
+| JSON grants | ACL rules |
+|---|---|
+| `principal` / `principal_role` | `User with name = …` / `Role with name = …`. `User` is Kroxylicious's own `io.kroxylicious.proxy.authentication.User`, the default for `User` in rules files, so Kroxylicious rules work unchanged; `Role` is `io.apicurio.authz.Role` |
+| `operation`: read, write, admin | `READ`, `WRITE`, `ADMIN` of the resource type enum |
+| `resource_type`: artifact, group | `io.apicurio.authz.Artifact`, `io.apicurio.authz.Group`: top-level `ResourceType` enums (nested classes can't be imported) |
+| `exact` / `prefix` pattern | `with name = "…"` / `with name like "…*"`, plus `in {…}`, `*` and `matching /regex/` (RE2, full match) |
+| `deny: true` | `deny` rules, which must come before `allow` rules; the first matching rule applies |
+| `config.admin_roles` | explicit rules, e.g. `allow Role with name = "ops" to * Artifact with name *;` |
+| deny by default | explicit, mandatory `otherwise deny;` at the end of the file |
+| `grants.path`, `grants.reload-*` config | `rules.path`, `rules.reload-every`, `rules.reload-enabled` |
+
+Registry keeps what is outside the file: RBAC (evaluated first), the owner bypass, admin override,
+audit logging (the `Authorizer` does not audit) and hot reload (the authorizer is rebuilt when the
+file changes; an invalid file keeps the previous rules).
+
+**Semantics that differ from the JSON grants** (verified against `AclAuthorizer` 0.25.1):
+- A `deny` also denies the operations its operation implies: denying `WRITE` also denies `READ`. A
+  resource can't be made read-only by denying `WRITE`; instead, allow only `READ`.
+- A `deny` does not deny operations that imply it: denying `READ` leaves `WRITE` allowed if an
+  `allow` matches. To hide a resource completely, deny `*`.
+- Names are opaque strings. Registry's `group/artifact` naming, with `%` and `/` escaped in the group
+  ID, is a Registry convention, not part of the format.
+
+**How Registry reads the file.** `AclAuthorizerService` resolves imported classes with
+`Class.forName` in its own class loader. Under Quarkus test and dev class loading, that finds a second
+copy of Registry's resource types, which is not a `ResourceType` in its view, so it rejects every
+Registry rules file. Registry therefore parses the file once with the Kroxylicious parser
+(`AclRulesParser`), resolves classes in its own class loader, validates as `AclAuthorizerService`
+does, and builds the real `AclAuthorizer` through its public builder (`io.apicurio.authz.AccessRules`).
+Tests check, against `AclAuthorizerService`, that decisions are identical and that the same files are
+accepted and rejected.
+
+**Search.** Search pre-filtering needs the scope of the rules, not just point decisions. Until the
+shared resource scope API ([#10601](https://github.com/Apicurio/apicurio-registry/issues/10601)) is
+implemented by `AclAuthorizer`, Registry computes the scope from the same parse, following
+`AclAuthorizer`'s matching; a test checks that the scope selects exactly what point access allows. `=` and `in` map to exact names, `like` to prefixes, `*` to allow-all
+and `matching` to patterns. SQL and Elasticsearch can't evaluate RE2 patterns, so a grant-restricted
+search whose scope contains patterns fails closed. Use `=`, `in` or `like` for Registry resources
+where search matters.
+
+**Open points with Kroxylicious** (found while checking 0.25.1 against proposal 009):
+- `anonymous User` is in the proposal but not in the 0.25.1 grammar. Until it ships, Registry
+  gives unauthenticated callers a `Role` principal named `$anonymous`.
+- A rules file only loads if every imported principal and resource type class is on the classpath.
+  One file covering Registry and Kroxylicious resources can't load in either, so either each system
+  has its own file in the shared format, or loading must tolerate other systems' types.
+- Principal classes are imported by fully qualified name, so a file shared across systems needs
+  shared principal classes (e.g. `User` and `Role` in `kroxylicious-identity-api`).
+- `kroxylicious-authorizer-acl` depends on the whole `kroxylicious-api` (including native compression
+  libraries) only for the `@Plugin` annotation.
+- `AclAuthorizer.authorize()` still takes the deprecated `Identity`; the proposal uses `Subject`.
+- `AclAuthorizerService` resolves classes in its own class loader, which fails under Quarkus test
+  and dev class loading (see "How Registry reads the file"). A way to supply a class resolver would
+  let Registry use it directly.
+- The parser removes every backslash in a regex literal, so `/a\.b/` is the regex `a.b`.
+- The lexer reads a block comment (`/* … */`) as a regex literal, so block comments are syntax
+  errors; only `//` comments work.
+
 ## Design
 
 ### Grants file format
+
+> **Superseded by Amendment 1:** the file format is the Kroxylicious ACL rules format. The JSON
+> format below is the format of the current code until #10602 is merged.
 
 A JSON file defines who can access what. Each grant maps a principal (user or IdP role) to an operation on a resource pattern:
 
@@ -245,6 +338,9 @@ File polling was chosen over `WatchService` because `WatchService` is unreliable
 
 ### Cross-system sharing
 
+> **Superseded by Amendment 1:** systems share the Kroxylicious ACL rules format. Whether they also
+> share a single file depends on an open point with Kroxylicious (types must be on the classpath).
+
 The grants file supports multiple `resource_type` values. Each system defines its own resource types and reads only the grants relevant to it:
 
 ```json
@@ -257,7 +353,7 @@ The grants file supports multiple `resource_type` values. Each system defines it
 }
 ```
 
-One ConfigMap, one source of truth. Because `GrantsAuthorizer` implements the Kroxylicious `Authorizer` API, other projects (Kroxylicious, StreamsHub Console) can consume the `authz` module without Registry-specific dependencies.
+One ConfigMap, one source of truth. Because `GrantsAuthorizer` implements the Kroxylicious `Authorizer` API, other projects (Kroxylicious, StreamsHub Console) can consume the `authz` module without Registry-specific dependencies. Kroxylicious is building a unified authorizer that reads the same format.
 
 ### Observability
 
@@ -295,7 +391,10 @@ We prototyped using the Kroxylicious Authorizer interface together with its ACL 
 
 Kroxylicious 0.25 extracted `kroxylicious-authorizer-api` so it no longer depends on the rest of Kroxylicious core, which removed the dependency objection.
 
-**Decision:** the Kroxylicious `AclAuthorizer` implementation is rejected (policy/data mixing). The Kroxylicious Authorizer **API** is adopted as the contract, and `GrantsAuthorizer` implements it.
+**Decision (original):** the Kroxylicious `AclAuthorizer` implementation is rejected (policy/data mixing). The Kroxylicious Authorizer **API** is adopted as the contract, and `GrantsAuthorizer` implements it.
+
+**Reversed by Amendment 1:** Registry adopts `AclAuthorizer` and its rules format, so that the
+rules file format is shared with Kroxylicious and StreamsHub Console.
 
 ### Keycloak Authorization Services (UMA)
 
@@ -366,11 +465,16 @@ With hundreds of grants per user, the search `WHERE` clause becomes large (one `
 
 **Impact:** limits adoption to team-level, role-based deployments (5-50 grants). **Mitigation:** role-based grants (`principal_role`) keep the per-user count small. For enterprise scale, evolve to database-backed grants with ACL table JOINs.
 
-### 6. Grants format is not a standard
+### 6. Rules format is owned by Kroxylicious
 
-The JSON format is our own. Cross-system adoption depends on other projects agreeing to use it. The Kroxylicious `Authorizer` interface is pluggable for point-access checks — alternative implementations can be provided — but search pre-filtering currently depends on `GrantsData`, and the grants file format itself is not interchangeable with OPA/Rego, OpenFGA, or Kafka ACLs.
+The rules format is the Kroxylicious ACL rules language (Amendment 1). It is shared with Kroxylicious
+and StreamsHub Console but is not an industry standard, and it is not interchangeable with OPA/Rego,
+OpenFGA or Kafka ACLs. Registry can't change it on its own: grammar changes, new features (e.g.
+`anonymous`) and fixes come from Kroxylicious releases.
 
-**Impact:** organizational adoption challenge. **Mitigation:** format is intentionally simple (7 fields per grant), readable without tooling, and a JSON Schema can provide validation ([#10602](https://github.com/Apicurio/apicurio-registry/issues/10602)).
+**Impact:** Registry depends on Kroxylicious for format changes. **Mitigation:** the grammar is
+defined by an ANTLR grammar in Kroxylicious and validated at load, so the grammar itself is the
+specification; Registry contributes upstream ([#10602](https://github.com/Apicurio/apicurio-registry/issues/10602)).
 
 ### 7. RBAC constrains grants
 
@@ -402,12 +506,12 @@ behind. This predates per-resource authorization
 - Correct pagination: page sizes, total counts, and offsets are accurate
 - No external dependencies: no OPA sidecar, no Keycloak resource sync, no Zanzibar
 - Hot-reload: permission changes take effect within seconds without restart
-- Cross-system potential: same grants file can be shared with Kroxylicious, StreamsHub Console
+- Shared rules format: Registry, Kroxylicious and StreamsHub Console use the same Kroxylicious ACL rules language
 - Defense-in-depth: grants layer adds to RBAC + OBAC, does not replace them
 
 ### Negative
 
-- New JSON format to learn and manage (not a standard)
+- Rules format is owned by Kroxylicious; Registry depends on Kroxylicious releases for format changes
 - File-based grants have a scale ceiling (~500 grants)
 - Adds latency to every authorized request (grant evaluation) and globalId requests (storage lookup)
 - Search pre-filtering is tied to the grants implementation (`GrantsData`), not the Kroxylicious `Authorizer` API
@@ -415,7 +519,7 @@ behind. This predates per-resource authorization
 ### Neutral
 
 - Grants are managed as a file (GitOps or ConfigMap). The file can be shared across systems, so an editing UI belongs in a shared tool such as StreamsHub Console rather than in Registry
-- Grants format is versioned implicitly by the parser, not explicitly in the file
+- The rules format is versioned with Kroxylicious releases; its ANTLR grammar is the specification
 - The shared `authz` module is in the Registry repo, not a standalone project
 
 ## Implementation Status

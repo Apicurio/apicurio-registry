@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.microsoft.kiota.serialization.ValuedEnum;
 import io.apicurio.registry.rest.client.models.Labels;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
@@ -14,6 +15,7 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.spi.CDI;
 import jakarta.inject.Inject;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -78,6 +80,18 @@ public class Utils {
         return rawLabels.entrySet().stream()
                 .map(e -> e.getKey() + ":" + e.getValue())
                 .toArray(String[]::new);
+    }
+
+    public static <E extends Enum<E> & ValuedEnum> E parseEnum(Class<E> type, String value, String label) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return Arrays.stream(type.getEnumConstants())
+                .filter(e -> e.getValue().equalsIgnoreCase(value.trim()))
+                .findFirst()
+                .orElseThrow(() -> new ToolCallException("Invalid " + label + ": '" + value
+                        + "'. Accepted values (case-insensitive): "
+                        + Arrays.stream(type.getEnumConstants()).map(ValuedEnum::getValue).toList()));
     }
 
     public static <R> R handleError(Function0R<R> action) {

@@ -27,7 +27,7 @@ Per-resource authorization controls access to individual groups and artifacts, f
 
 A request must pass both layers. Access rules restrict within what RBAC allows; they never allow more than the user's role permits.
 
-The access rules file uses the https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md[Kroxylicious ACL rules format], and is evaluated by the Kroxylicious ACL authorizer. Kroxylicious and StreamsHub use the same format.
+The access rules file uses the https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md[Kroxylicious ACL rules format], also used by Kroxylicious and StreamsHub. {registry} reads it with the Kroxylicious rules parser and evaluates it itself, with the semantics described here.
 
 === How it works
 
@@ -171,10 +171,9 @@ Alice can read and write all artifacts in `team-a` except `team-a/secret-schema`
 
 A deny rule denies its operations and the operations they imply:
 
-* Denying `*` blocks all access, and hides the resource from search results. Use it to hide a resource.
-* Denying `WRITE` also denies `READ`, which `WRITE` implies, so it blocks all access too. A resource cannot be made read-only with a deny rule; allow only `READ` on it instead.
+* Denying `*` (or `ADMIN`, which implies the other two) blocks all access, and hides the resource from search results. Use it to hide a resource.
+* Denying `WRITE` also denies `READ`, which `WRITE` implies, but not `ADMIN`: a rule that allows `ADMIN` or `*` still allows `ADMIN` operations. A resource cannot be made read-only with a deny rule; allow only `READ` on it instead.
 * Denying `READ` blocks reads but not writes: `WRITE` implies `READ`, but `READ` does not imply `WRITE`. Use `*` to hide a resource.
-* Denying `ADMIN` denies all three operations.
 
 === Reloading the access rules file
 

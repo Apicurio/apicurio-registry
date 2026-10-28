@@ -6,9 +6,11 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
+import io.apicurio.authz.Artifact;
+import io.apicurio.authz.Group;
 import io.apicurio.authz.GrantsAuthorizer;
 import io.apicurio.authz.GrantsData;
-import io.apicurio.authz.RolePrincipal;
+import io.apicurio.authz.Role;
 import io.apicurio.authz.User;
 import io.apicurio.registry.auth.AbstractAccessController;
 import io.apicurio.registry.auth.Authorized;
@@ -222,17 +224,17 @@ public class GrantsAccessController extends AbstractAccessController {
 
     /**
      * Maps the current Quarkus {@link SecurityIdentity} to a Kroxylicious {@link Subject}: one
-     * {@link User} principal plus one {@link RolePrincipal} per role. Unauthenticated callers get
+     * {@link User} principal plus one {@link Role} per role. Unauthenticated callers get
      * only the {@link #ANONYMOUS_ROLE} role.
      */
     public Subject currentSubject() {
         if (securityIdentity == null || securityIdentity.isAnonymous()) {
-            return new Subject(Set.of(new RolePrincipal(ANONYMOUS_ROLE)));
+            return new Subject(Set.of(new Role(ANONYMOUS_ROLE)));
         }
         Set<Principal> principals = new HashSet<>();
         principals.add(new User(securityIdentity.getPrincipal().getName()));
         for (String role : securityIdentity.getRoles()) {
-            principals.add(new RolePrincipal(role));
+            principals.add(new Role(role));
         }
         return new Subject(principals);
     }
@@ -251,19 +253,19 @@ public class GrantsAccessController extends AbstractAccessController {
         return AuthorizationNames.group(groupId);
     }
 
-    private static RegistryResourceType.Artifact toArtifactOp(AuthorizedLevel level) {
+    private static Artifact toArtifactOp(AuthorizedLevel level) {
         return switch (level) {
-            case Read, None -> RegistryResourceType.Artifact.Read;
-            case Write -> RegistryResourceType.Artifact.Write;
-            case Admin, AdminOrOwner -> RegistryResourceType.Artifact.Admin;
+            case Read, None -> Artifact.READ;
+            case Write -> Artifact.WRITE;
+            case Admin, AdminOrOwner -> Artifact.ADMIN;
         };
     }
 
-    private static RegistryResourceType.Group toGroupOp(AuthorizedLevel level) {
+    private static Group toGroupOp(AuthorizedLevel level) {
         return switch (level) {
-            case Read, None -> RegistryResourceType.Group.Read;
-            case Write -> RegistryResourceType.Group.Write;
-            case Admin, AdminOrOwner -> RegistryResourceType.Group.Admin;
+            case Read, None -> Group.READ;
+            case Write -> Group.WRITE;
+            case Admin, AdminOrOwner -> Group.ADMIN;
         };
     }
 }

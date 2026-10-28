@@ -1,7 +1,9 @@
 package io.apicurio.registry.auth.grants;
 
+import io.apicurio.authz.Artifact;
+import io.apicurio.authz.Group;
 import io.apicurio.authz.GrantsAuthorizer;
-import io.apicurio.authz.RolePrincipal;
+import io.apicurio.authz.Role;
 import io.apicurio.authz.User;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
@@ -98,8 +100,8 @@ public class GrantsAccessControllerTest {
         Path grants = dir.resolve("grants.json");
         Files.writeString(grants, GRANTS);
         return GrantsAuthorizer.create(grants, Map.of(
-                RegistryResourceType.Artifact.class, "artifact",
-                RegistryResourceType.Group.class, "group"));
+                Artifact.class, "artifact",
+                Group.class, "group"));
     }
 
     // ==================== Resource naming ====================
@@ -123,10 +125,10 @@ public class GrantsAccessControllerTest {
 
     @Test
     void registryResourceTypeImplies() {
-        assertEquals(Set.of(RegistryResourceType.Artifact.Write, RegistryResourceType.Artifact.Read),
-                RegistryResourceType.Artifact.Admin.implies());
-        assertEquals(Set.of(RegistryResourceType.Artifact.Read), RegistryResourceType.Artifact.Write.implies());
-        assertTrue(RegistryResourceType.Artifact.Read.implies().isEmpty());
+        assertEquals(Set.of(Artifact.WRITE, Artifact.READ),
+                Artifact.ADMIN.implies());
+        assertEquals(Set.of(Artifact.READ), Artifact.WRITE.implies());
+        assertTrue(Artifact.READ.implies().isEmpty());
     }
 
     // ==================== Uninitialized controller fails closed ====================
@@ -148,8 +150,8 @@ public class GrantsAccessControllerTest {
         Subject subject = controller("alice", "sr-developer", "sr-readonly").currentSubject();
 
         assertEquals(Optional.of(new User("alice")), subject.uniquePrincipalOfType(User.class));
-        assertEquals(Set.of(new RolePrincipal("sr-developer"), new RolePrincipal("sr-readonly")),
-                subject.allPrincipalsOfType(RolePrincipal.class));
+        assertEquals(Set.of(new Role("sr-developer"), new Role("sr-readonly")),
+                subject.allPrincipalsOfType(Role.class));
         assertEquals(3, subject.principals().size());
     }
 
@@ -160,7 +162,7 @@ public class GrantsAccessControllerTest {
 
         Subject subject = controller.currentSubject();
 
-        assertEquals(Set.of(new RolePrincipal(GrantsAccessController.ANONYMOUS_ROLE)), subject.principals());
+        assertEquals(Set.of(new Role(GrantsAccessController.ANONYMOUS_ROLE)), subject.principals());
         assertEquals(Optional.empty(), subject.uniquePrincipalOfType(User.class));
     }
 

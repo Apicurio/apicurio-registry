@@ -74,7 +74,7 @@ class GrantsAuthorizerTest {
         var principals = new HashSet<Principal>();
         principals.add(new User(name));
         for (String role : roles) {
-            principals.add(new RolePrincipal(role));
+            principals.add(new Role(role));
         }
         return new Subject(principals);
     }
@@ -431,7 +431,7 @@ class GrantsAuthorizerTest {
                 for (Subject subject : subjects) {
                     String name = subject.uniquePrincipalOfType(User.class).map(User::name).orElse(null);
                     Set<String> roles = new HashSet<>();
-                    subject.allPrincipalsOfType(RolePrincipal.class).forEach(r -> roles.add(r.name()));
+                    subject.allPrincipalsOfType(Role.class).forEach(r -> roles.add(r.name()));
                     SearchFilterData filter = authz.getGrantsData().getSearchFilterData(name, roles, "artifact");
                     for (String resource : names) {
                         Decision pointAccess = authz.authorize(subject, List.of(new Action(Artifact.Read, resource)))
@@ -523,7 +523,7 @@ class GrantsAuthorizerTest {
     @Test
     void foreignPrincipalTypeIsNotTreatedAsRole() {
         // A principal contributed by another system whose name happens to equal a role
-        // must not satisfy a principal_role grant; only RolePrincipal counts as a role.
+        // must not satisfy a principal_role grant; only Role counts as a role.
         Subject subject = new Subject(Set.of(new User("readonly-client"), new ClientIdPrincipal("sr-readonly")));
         assertEquals(Decision.DENY, decide(subject, Artifact.Read, "shared/common"));
 

@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 
+import io.apicurio.authz.Artifact;
+import io.apicurio.authz.Group;
 import io.apicurio.authz.GrantsAuthorizer;
 import io.apicurio.registry.auth.AuthConfig;
 import io.kroxylicious.authorizer.service.ResourceType;
@@ -60,8 +62,8 @@ public class GrantsAccessControllerInitializer {
         logConfigurationWarnings();
 
         Map<Class<? extends ResourceType<?>>, String> resourceTypeNames = Map.of(
-                RegistryResourceType.Artifact.class, "artifact",
-                RegistryResourceType.Group.class, "group");
+                Artifact.class, "artifact",
+                Group.class, "group");
         GrantsAuthorizer authorizer;
         try {
             authorizer = GrantsAuthorizer.create(Path.of(dataPath), resourceTypeNames);

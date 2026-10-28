@@ -230,10 +230,10 @@ public class GrantsAuthorizer implements Authorizer, AutoCloseable {
     }
 
     private static Set<String> extractRoles(Identity subject) {
-        // Only RolePrincipal counts as a role. A shared Identity may carry principal types
+        // Only Role counts as a role. A shared Identity may carry principal types
         // contributed by other systems, which must not be able to satisfy principal_role grants.
         Set<String> roles = new HashSet<>();
-        for (RolePrincipal role : subject.allPrincipalsOfType(RolePrincipal.class)) {
+        for (Role role : subject.allPrincipalsOfType(Role.class)) {
             roles.add(role.name());
         }
         return roles;

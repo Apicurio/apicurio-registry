@@ -1,6 +1,5 @@
 package io.apicurio.registry.noprofile.storage;
 
-import io.apicurio.authz.SearchFilterData;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
@@ -17,6 +16,7 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.error.GroupAlreadyExistsException;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.scope.ResourceScope;
 import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
@@ -141,8 +141,8 @@ public class AuthorizationFilterStorageTest extends AbstractResourceTestBase {
     }
 
     private void assertArtifactsMatchReference(AuthorizationFilter filter) {
-        SearchFilterData reference = new SearchFilterData(filter.allowAll(), filter.allowExact(),
-                filter.allowPrefix(), filter.denyExact(), filter.denyPrefix());
+        ResourceScope reference = ResourceScope.of(filter.allowAll(), filter.allowExact(),
+                filter.allowPrefix(), Set.of(), filter.denyExact(), filter.denyPrefix(), Set.of());
         Set<String> expected = allKeys().stream()
                 .filter(k -> reference.matches(grantsName(k)) || (OWNER.equals(filter.owner()) && ownedByCarol(k)))
                 .collect(Collectors.toSet());

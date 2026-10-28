@@ -6,7 +6,6 @@ import java.util.Set;
 
 import io.apicurio.authz.Artifact;
 import io.apicurio.authz.Group;
-import io.apicurio.authz.SearchFilterData;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
@@ -18,6 +17,7 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.scope.ResourceScope;
 import io.kroxylicious.authorizer.service.ResourceType;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -91,34 +91,41 @@ public class GrantsSearchFilter {
         if (!guard.isEnforced(AuthorizedLevel.Read)) {
             return filters;
         }
-        SearchFilterData grants = grantsAc.readScope(readOperation);
-        if (grants == null) {
+        ResourceScope scope = grantsAc.readScope(readOperation);
+        if (scope == null) {
             // Enabled but not initialized: point access denies everything, and so must search
             LOG.error("Per-resource authorization is enabled but not initialized, denying search access.");
             return null;
         }
         String user = getUsername();
-        if (grants.hasPatterns()) {
-            // SQL and Elasticsearch can't evaluate RE2 patterns. Ignoring a denied pattern would
-            // expose resources and ignoring an allowed one would hide them, so fail closed.
-            LOG.warn("Search returns no results: the access rules of this caller use 'matching' for {} "
-                    + "resources, which search cannot evaluate. Use '=', 'in' or 'like' for resources that "
-                    + "must be searchable.", readOperation.getClass().getSimpleName());
-            return null;
-        }
-        if (grants.allowsEverything()) {
+        // Owners match in search exactly when they bypass the access rules in point access
+        String owner = config.isOwnerBypassEnabled() ? user : null;
+        AuthorizationFilter filter = switch (scope) {
+            case ResourceScope.Unrestricted unrestricted -> null;
+            case ResourceScope.Forbidden forbidden ->
+                    owner == null ? null : new AuthorizationFilter(false, Set.of(), Set.of(), Set.of(), Set.of(), owner);
+            case ResourceScope.Scoped scoped -> {
+                if (scoped.hasPatterns()) {
+                    // SQL and Elasticsearch can't evaluate RE2 patterns. Ignoring a denied pattern would
+                    // expose resources and ignoring an allowed one would hide them, so fail closed.
+                    LOG.warn("Search returns no results: the access rules of this caller use 'matching' for {} "
+                            + "resources, which search cannot evaluate. Use '=', 'in' or 'like' for resources "
+                            + "that must be searchable.", readOperation.getClass().getSimpleName());
+                    yield null;
+                }
+                yield new AuthorizationFilter(scoped.allowAll(), scoped.allowExact(), scoped.allowPrefix(),
+                        scoped.denyExact(), scoped.denyPrefix(), owner);
+            }
+        };
+        if (scope instanceof ResourceScope.Unrestricted) {
             return filters;
         }
-        // Owners match in search exactly when they bypass grants in point access
-        String owner = config.isOwnerBypassEnabled() ? user : null;
-        if (grants.allowsNothing() && owner == null) {
+        if (filter == null) {
             return null;
         }
         Set<SearchFilter> restricted = new HashSet<>(filters);
-        restricted.add(SearchFilter.ofAuthorization(new AuthorizationFilter(grants.allowAll(),
-                grants.allowedExact(), grants.allowedPrefix(), grants.deniedExact(),
-                grants.deniedPrefix(), owner)));
-        LOG.debug("Search restricted by access rules: user={}, operation={}, filter={}", user, readOperation, grants);
+        restricted.add(SearchFilter.ofAuthorization(filter));
+        LOG.debug("Search restricted by access rules: user={}, operation={}, scope={}", user, readOperation, scope);
         return restricted;
     }
 

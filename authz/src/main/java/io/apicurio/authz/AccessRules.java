@@ -24,6 +24,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 
+import io.apicurio.scope.ResourceScope;
 import io.kroxylicious.authorizer.provider.acl.parser.AclRulesLexer;
 import io.kroxylicious.authorizer.provider.acl.parser.AclRulesParser;
 import io.kroxylicious.authorizer.service.Action;
@@ -62,8 +63,6 @@ import io.kroxylicious.identity.Principal;
  *     {@code AclAuthorizerService}.</li>
  * </ul>
  *
- * <p>The scope is temporary: it is replaced by a resource scope API implemented upstream
- * (apicurio-registry#10601).</p>
  */
 final class AccessRules {
 
@@ -394,7 +393,7 @@ final class AccessRules {
      * @return the names of {@code operation}'s resource type that the rules allow {@code subject}
      *         to perform {@code operation} on
      */
-    SearchFilterData scope(Identity subject, ResourceType<?> operation) {
+    ResourceScope scope(Identity subject, ResourceType<?> operation) {
         Class<?> resourceType = ((Enum<?>) operation).getDeclaringClass();
         boolean allowAll = false;
         Set<String> allowedExact = new HashSet<>();
@@ -422,7 +421,7 @@ final class AccessRules {
                 case PATTERN -> (rule.deny() ? deniedPatterns : allowedPatterns).addAll(resources.values());
             }
         }
-        return new SearchFilterData(allowAll, allowedExact, allowedPrefix, allowedPatterns, deniedExact,
+        return ResourceScope.of(allowAll, allowedExact, allowedPrefix, allowedPatterns, deniedExact,
                 deniedPrefix, deniedPatterns);
     }
 

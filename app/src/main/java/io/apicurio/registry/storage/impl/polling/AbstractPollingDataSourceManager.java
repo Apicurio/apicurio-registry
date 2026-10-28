@@ -4,6 +4,7 @@ import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.content.util.ContentTypeUtil;
+import io.apicurio.registry.federation.PeerAddressPolicy;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.polling.model.Type;
 import io.apicurio.registry.storage.impl.polling.model.v0.Artifact;
@@ -56,6 +57,9 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
 
     @Inject
     RulesService rulesService;
+
+    @Inject
+    PeerAddressPolicy peerAddressPolicy;
 
     private PollingStorageConfig pollingConfig;
 
@@ -225,6 +229,9 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
                             .credentialSecretRef(peer.getCredentialSecretRef())
                             .build();
                     log.trace("Importing peer {}", dto);
+                    // The same outbound address policy as the admin API: a declarative peer must not
+                    // be able to reach an address that an API-created peer is refused.
+                    peerAddressPolicy.validateUrl(dto.getUrl());
                     state.getStorage().createPeer(dto);
                 } catch (Exception ex) {
                     state.recordError("Could not import peer %s: %s", peer.getPeerId(), ex.getMessage());

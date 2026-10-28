@@ -1,5 +1,6 @@
 package io.apicurio.registry.rest.v3.impl.shared;
 
+import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.RegistryException;
@@ -7,6 +8,7 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.utils.protobuf.schema.ProtoContent;
+import io.quarkus.security.ForbiddenException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
@@ -21,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -39,6 +42,9 @@ public class ProtobufExporter {
     @Current
     RegistryStorage storage;
 
+    @Inject
+    ResourceAccessGuard accessGuard;
+
     /**
      * Exports a Protobuf artifact version with all its transitive dependencies as a ZIP file.
      * The ZIP structure matches the package declarations in the proto files.
@@ -49,11 +55,11 @@ public class ProtobufExporter {
      * @return Response containing the ZIP file
      */
     public Response exportVersionAsZip(String groupId, String artifactId, String version) {
+        // Collect all proto files before streaming, so an unreadable reference is reported as an
+        // error response instead of failing after the response has been committed
+        Map<String, ProtoContent> protoFiles = collectAllProtoFiles(groupId, artifactId, version);
         StreamingOutput stream = os -> {
             try (ZipOutputStream zip = new ZipOutputStream(os, StandardCharsets.UTF_8)) {
-                // Collect all proto files with their content
-                Map<String, ProtoContent> protoFiles = collectAllProtoFiles(groupId, artifactId, version);
-
                 // Build a mapping from original import paths to canonical paths
                 Map<String, String> importPathMapping = buildImportPathMapping(protoFiles);
 
@@ -120,7 +126,7 @@ public class ProtobufExporter {
         visited.add(mainKey);
 
         // Recursively collect all references
-        collectReferences(mainArtifact.getReferences(), result, visited);
+        collectReferences(mainArtifact.getReferences(), result, visited, accessGuard.referenceLoader());
 
         return result;
     }
@@ -130,7 +136,8 @@ public class ProtobufExporter {
      */
     private void collectReferences(List<ArtifactReferenceDto> references,
                                    Map<String, ProtoContent> result,
-                                   Set<String> visited) {
+                                   Set<String> visited,
+                                   Function<ArtifactReferenceDto, ContentWrapperDto> referenceLoader) {
         if (references == null || references.isEmpty()) {
             return;
         }
@@ -144,7 +151,7 @@ public class ProtobufExporter {
             visited.add(key);
 
             try {
-                ContentWrapperDto content = storage.getContentByReference(ref);
+                ContentWrapperDto content = referenceLoader.apply(ref);
                 if (content != null && content.getContent() != null) {
                     String refContent = content.getContent().content();
                     // Use the reference name as the import path
@@ -153,10 +160,12 @@ public class ProtobufExporter {
                     result.put(importPath, protoContent);
 
                     // Recursively collect nested references
-                    collectReferences(content.getReferences(), result, visited);
+                    collectReferences(content.getReferences(), result, visited, referenceLoader);
                 } else {
                     throw new RegistryException("Could not resolve reference: " + ref.getName());
                 }
+            } catch (ForbiddenException e) {
+                throw e;
             } catch (Exception e) {
                 log.warn("Could not resolve reference: {} - {}", ref.getName(), e.getMessage());
                 throw new RegistryException("Could not resolve reference: " + ref.getName(), e);

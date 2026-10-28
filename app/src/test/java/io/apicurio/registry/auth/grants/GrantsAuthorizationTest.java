@@ -40,7 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 /**
  * End-to-end per-resource authorization with the grants-based Kroxylicious Authorizer enabled.
  * Every API surface that addresses or lists resources is covered with an allowed and a denied
- * (403 or filtered) case. See {@code grants/grants-auth-test.json} for the grants.
+ * (403 or filtered) case. See {@code grants/access-rules-auth-test.acl} for the access rules.
  */
 @QuarkusTest
 @TestProfile(GrantsAuthorizationTest.GrantsTestProfile.class)
@@ -72,15 +72,15 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
             map.put("apicurio.iceberg.enabled", "true");
             map.put("apicurio.mcp-registry.enabled", "true");
             map.put("apicurio.auth.resource-based-authorization.enabled", "true");
-            map.put("apicurio.auth.resource-based-authorization.grants.path", grantsFilePath());
-            map.put("apicurio.auth.resource-based-authorization.grants.reload-enabled", "false");
+            map.put("apicurio.auth.resource-based-authorization.rules.path", grantsFilePath());
+            map.put("apicurio.auth.resource-based-authorization.rules.reload-enabled", "false");
             return map;
         }
 
         private static String grantsFilePath() {
             try {
                 return Path.of(GrantsAuthorizationTest.class.getClassLoader()
-                        .getResource("grants/grants-auth-test.json").toURI()).toString();
+                        .getResource("grants/access-rules-auth-test.acl").toURI()).toString();
             } catch (URISyntaxException e) {
                 throw new IllegalStateException(e);
             }

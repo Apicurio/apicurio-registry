@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
@@ -48,22 +49,22 @@ public class GrantsInteractionsTest extends AbstractResourceTestBase {
     private static final String GROUP = "grants-interactions";
 
     /** No admin_roles: RBAC admins must bypass grants on their own. */
-    private static final String GRANTS_JSON = """
-            {"grants": [
-              {"principal_role": "$anonymous", "operation": "read", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%1$s/public-"},
-              {"principal": "eve", "operation": "read", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%1$s/eve-"},
-              {"principal": "bob", "operation": "read", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%1$s/bob-"}
-            ]}""".formatted(GROUP);
+    private static final String RULES = """
+            from io.apicurio.authz import Artifact, Role;
+            deny User with name = "rex" to * Artifact with name matching /%1$s.rex-secret-.*/;
+            allow Role with name = "$anonymous" to READ Artifact with name like "%1$s/public-*";
+            allow User with name = "eve" to READ Artifact with name like "%1$s/eve-*";
+            allow User with name = "bob" to READ Artifact with name like "%1$s/bob-*";
+            allow User with name = "rex" to READ Artifact with name like "%1$s/rex-*";
+            otherwise deny;
+            """.formatted(GROUP);
 
     static final Path GRANTS = createGrantsFile();
 
     private static Path createGrantsFile() {
         try {
-            Path file = Files.createTempFile("grants-interactions", ".json");
-            Files.writeString(file, GRANTS_JSON);
+            Path file = Files.createTempFile("grants-interactions", ".acl");
+            Files.writeString(file, RULES);
             file.toFile().deleteOnExit();
             return file;
         } catch (IOException e) {
@@ -85,13 +86,15 @@ public class GrantsInteractionsTest extends AbstractResourceTestBase {
             map.put("quarkus.security.users.embedded.users.alice", "alice");
             map.put("quarkus.security.users.embedded.users.bob", "bob");
             map.put("quarkus.security.users.embedded.users.eve", "eve");
+            map.put("quarkus.security.users.embedded.users.rex", "rex");
+            map.put("quarkus.security.users.embedded.roles.rex", "sr-developer");
             map.put("quarkus.security.users.embedded.roles.alice", "sr-admin");
             map.put("quarkus.security.users.embedded.roles.bob", "sr-developer");
             // eve has no RBAC role at all: only authenticated read access lets her read
             map.put("quarkus.security.users.embedded.roles.eve", "no-registry-role");
             map.put("apicurio.auth.resource-based-authorization.enabled", "true");
-            map.put("apicurio.auth.resource-based-authorization.grants.path", GRANTS.toString());
-            map.put("apicurio.auth.resource-based-authorization.grants.reload-enabled", "false");
+            map.put("apicurio.auth.resource-based-authorization.rules.path", GRANTS.toString());
+            map.put("apicurio.auth.resource-based-authorization.rules.reload-enabled", "false");
             map.put("apicurio.auth.resource-based-authorization.owner-bypass.enabled", "false");
             return map;
         }
@@ -116,6 +119,27 @@ public class GrantsInteractionsTest extends AbstractResourceTestBase {
 
     private static String path(String artifactId) {
         return "/registry/v3/groups/" + GROUP + "/artifacts/" + artifactId;
+    }
+
+    /**
+     * Storage can't evaluate 'matching' patterns, so search fails closed for a caller whose rules
+     * use them, while point access still follows the rules. Ignoring the pattern instead would show
+     * the denied artifact in search.
+     */
+    @Test
+    public void searchReturnsNothingForCallersWithPatternRules() {
+        String visible = create("rex-");
+        String secret = create("rex-secret-");
+        String other = create("bob-");
+
+        as("rex").get(path(visible)).then().statusCode(200);
+        as("rex").get(path(secret)).then().statusCode(403);
+        as("rex").get(path(other)).then().statusCode(403);
+        as("rex").queryParam("groupId", GROUP).queryParam("limit", 1000).get("/registry/v3/search/artifacts")
+                .then().statusCode(200).body("count", equalTo(0));
+        // Callers without pattern rules are unaffected
+        as("bob").queryParam("groupId", GROUP).queryParam("limit", 1000).get("/registry/v3/search/artifacts")
+                .then().statusCode(200).body("artifacts.artifactId", hasItem(other));
     }
 
     @Test

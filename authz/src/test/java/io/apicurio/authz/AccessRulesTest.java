@@ -97,6 +97,7 @@ class AccessRulesTest {
         AccessRulesAuthorizer rules = load();
         List<String> mismatches = new ArrayList<>();
         int allowed = 0;
+        int checked = 0;
         for (Subject subject : SUBJECTS) {
             for (ResourceType<?> op : OPERATIONS) {
                 SearchFilterData scope = rules.scope(subject, op);
@@ -104,6 +105,7 @@ class AccessRulesTest {
                     boolean pointAccess = rules.authorize(subject, List.of(new Action(op, name)))
                             .toCompletableFuture().join().decision(op, name) == Decision.ALLOW;
                     allowed += pointAccess ? 1 : 0;
+                    checked++;
                     if (pointAccess != scope.matches(name)) {
                         mismatches.add(subject.principals() + " " + op + " '" + name + "': point access "
                                 + pointAccess + ", scope " + !pointAccess);
@@ -114,6 +116,7 @@ class AccessRulesTest {
         assertEquals(List.of(), mismatches);
         // Guard against a vacuous check: plenty of combinations are allowed, plenty denied
         assertTrue(allowed > 50, "allowed: " + allowed);
+        assertTrue(checked - allowed > 50, "denied: " + (checked - allowed));
     }
 
     /** The authorizer {@code AclAuthorizerService} builds from a file, as Kroxylicious does. */
@@ -132,7 +135,8 @@ class AccessRulesTest {
 
     @Test
     void decisionsMatchTheKroxyliciousRulesService() throws Exception {
-        Authorizer ours = AccessRules.parse(RULES).toAuthorizer();
+        // Through the production entry point, which builds the authorizer from AccessRules
+        Authorizer ours = load();
         Authorizer theirs = kroxyliciousAuthorizer(RULES);
         List<String> mismatches = new ArrayList<>();
         for (Subject subject : SUBJECTS) {
@@ -168,9 +172,36 @@ class AccessRulesTest {
                 "from io.apicurio.authz import Artifact, Group;\n"
                         + "allow Group with name = \"u\" to READ Artifact with name = \"x\";\n" + end,
                 "from io.apicurio.authz import Artifact, Role;\n"
-                        + "allow User with name = \"u\" to READ Role with name = \"x\";\n" + end)) {
+                        + "allow User with name = \"u\" to READ Role with name = \"x\";\n" + end,
+                // The grammar lexes a block comment as a regex literal, so it is a syntax error
+                "/* comment */\n" + header + end)) {
             assertThrows(IllegalArgumentException.class, () -> AccessRules.parse(invalid), invalid);
-            assertThrows(RuntimeException.class, () -> kroxyliciousAuthorizer(invalid), invalid);
+            RuntimeException theirs = assertThrows(RuntimeException.class, () -> kroxyliciousAuthorizer(invalid),
+                    invalid);
+            assertFalse(theirs instanceof NullPointerException, invalid);
+        }
+    }
+
+    /** The valid neighbours of the invalid files above are accepted by both. */
+    @Test
+    void validFilesAreAcceptedAsTheKroxyliciousRulesServiceAcceptsThem() throws Exception {
+        String header = "from io.apicurio.authz import Artifact, Role;\n";
+        String end = "otherwise deny;\n";
+        for (String valid : List.of(
+                end,
+                header + "allow Role with name = \"r\" to READ Artifact with name = \"x\";\n" + end,
+                header + "deny Role with name = \"r\" to READ Artifact with name = \"y\";\n"
+                        + "allow Role with name = \"r\" to READ Artifact with name = \"x\";\n" + end,
+                header + "allow Role with name = \"r\" to {READ, WRITE, ADMIN} Artifact with name = \"x\";\n" + end,
+                header + "allow Role with name = \"r\" to READ Artifact with name matching /[(]/;\n" + end,
+                header + "allow Role with name = \"r\" to READ Artifact with name like \"a\\*b\";\n" + end,
+                header + "allow Role with name like \"r*\" to READ Artifact with name like \"a*\";\n" + end,
+                "from io.apicurio.authz import Artifact as A, Role as R;\n"
+                        + "allow R with name = \"r\" to READ A with name = \"x\";\n" + end,
+                "// a comment\n" + header
+                        + "allow User with name * to READ Artifact with name *;\n" + end)) {
+            AccessRules.parse(valid);
+            kroxyliciousAuthorizer(valid);
         }
     }
 

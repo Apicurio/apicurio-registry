@@ -153,13 +153,15 @@ class AccessRulesAuthorizerTest {
         write(HEADER + "allow User with name = \"dave\" to READ Artifact with name like \"d/*\";\notherwise deny;\n",
                 10_000);
         assertTrue(rules.checkForChanges());
+        assertEquals(Files.getLastModifiedTime(file), rules.getLastSeenModified());
         assertEquals(Decision.ALLOW, decide(rules, dave, Artifact.READ, "d/x"));
 
         FileTime invalidVersion = Files.getLastModifiedTime(write("allow nonsense;", 20_000));
         assertFalse(rules.checkForChanges());
         assertEquals(invalidVersion, rules.getLastSeenModified());
         assertEquals(Decision.ALLOW, decide(rules, dave, Artifact.READ, "d/x"));
-        // Reported once, not on every poll
+        // The rejected version is not processed again on the next poll
         assertFalse(rules.checkForChanges());
+        assertEquals(invalidVersion, rules.getLastSeenModified());
     }
 }

@@ -1,8 +1,8 @@
 package io.apicurio.registry.auth.grants;
 
+import io.apicurio.authz.AccessRulesAuthorizer;
 import io.apicurio.authz.Artifact;
 import io.apicurio.authz.Group;
-import io.apicurio.authz.AccessRulesAuthorizer;
 import io.apicurio.authz.Role;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
@@ -114,7 +114,7 @@ public class GrantsAccessControllerTest {
     }
 
     @Test
-    void registryResourceTypeImplies() {
+    void artifactOperationsImplyWeakerOperations() {
         assertEquals(Set.of(Artifact.WRITE, Artifact.READ),
                 Artifact.ADMIN.implies());
         assertEquals(Set.of(Artifact.READ), Artifact.WRITE.implies());

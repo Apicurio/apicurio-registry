@@ -48,7 +48,7 @@ public class GrantsInteractionsTest extends AbstractResourceTestBase {
 
     private static final String GROUP = "grants-interactions";
 
-    /** No admin_roles: RBAC admins must bypass grants on their own. */
+    /** The rules allow alice nothing: RBAC admins must bypass the access rules on their own. */
     private static final String RULES = """
             from io.apicurio.authz import Artifact, Role;
             deny User with name = "rex" to * Artifact with name matching /%1$s.rex-secret-.*/;

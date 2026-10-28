@@ -10,12 +10,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletionStage;
 
-import io.kroxylicious.authorizer.provider.acl.AclAuthorizerConfig;
-import io.kroxylicious.authorizer.provider.acl.AclAuthorizerService;
 import io.kroxylicious.authorizer.service.Action;
 import io.kroxylicious.authorizer.service.AuthorizeResult;
 import io.kroxylicious.authorizer.service.Authorizer;
-import io.kroxylicious.authorizer.service.AuthorizerException;
 import io.kroxylicious.authorizer.service.ResourceType;
 import io.kroxylicious.identity.Identity;
 
@@ -24,7 +21,8 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Authorizes against an access rules file in the Kroxylicious ACL rules format (see Kroxylicious
- * proposal 009), using the Kroxylicious {@code AclAuthorizer}.
+ * proposal 009), using the Kroxylicious {@code AclAuthorizer} built from the rules (see
+ * {@link AccessRules}).
  *
  * <p>On top of {@code AclAuthorizer}, this class:</p>
  * <ul>
@@ -43,7 +41,7 @@ public final class AccessRulesAuthorizer implements Authorizer {
     private final Path rulesFile;
     private final Set<Class<? extends ResourceType<?>>> supportedResourceTypes;
     /** The authorizer and scope of one version of the file, replaced together on reload. */
-    private record Rules(Authorizer authorizer, AccessRulesScope scope) {
+    private record Rules(Authorizer authorizer, AccessRules scope) {
     }
 
     private volatile Rules rules;
@@ -77,34 +75,26 @@ public final class AccessRulesAuthorizer implements Authorizer {
     }
 
     /**
-     * Builds the rules from the file content. The content is read once and loaded from a private
-     * copy, so the rules always come from one consistent version of the file.
+     * Builds the rules from the file content. The point decisions and the scope come from one
+     * parse of one version of the file.
      */
-    private static Rules load(String content, Set<Class<? extends ResourceType<?>>> supported) throws IOException {
-        Path copy = Files.createTempFile("access-rules", ".acl");
+    private static Rules load(String content, Set<Class<? extends ResourceType<?>>> supported) {
+        AccessRules rules;
         try {
-            Files.writeString(copy, content);
-            AclAuthorizerService service = new AclAuthorizerService();
-            Authorizer authorizer;
-            try {
-                service.initialize(new AclAuthorizerConfig(copy.toString()));
-                authorizer = service.build();
-            } catch (AuthorizerException e) {
-                throw new IllegalArgumentException("Invalid access rules file: " + e.getMessage(), e);
-            }
-            Set<Class<? extends ResourceType<?>>> unsupported = new HashSet<>(
-                    authorizer.supportedResourceTypes().orElse(Set.of()));
-            unsupported.removeAll(supported);
-            if (!unsupported.isEmpty()) {
-                // Fail closed: a rule for a type nobody enforces would look like an access control
-                throw new IllegalArgumentException("Access rules file refers to resource types that are not "
-                        + "enforced here: " + unsupported.stream().map(Class::getName).sorted().toList());
-            }
-            // Parsed after AclAuthorizer has validated the same content
-            return new Rules(authorizer, AccessRulesScope.parse(content));
-        } finally {
-            Files.deleteIfExists(copy);
+            rules = AccessRules.parse(content);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid access rules file: " + e.getMessage(), e);
         }
+        Authorizer authorizer = rules.toAuthorizer();
+        Set<Class<? extends ResourceType<?>>> unsupported = new HashSet<>(
+                authorizer.supportedResourceTypes().orElse(Set.of()));
+        unsupported.removeAll(supported);
+        if (!unsupported.isEmpty()) {
+            // Fail closed: a rule for a type nobody enforces would look like an access control
+            throw new IllegalArgumentException("Access rules file refers to resource types that are not "
+                    + "enforced here: " + unsupported.stream().map(Class::getName).sorted().toList());
+        }
+        return new Rules(authorizer, rules);
     }
 
     @Override

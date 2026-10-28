@@ -7,7 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import io.kroxylicious.authorizer.provider.acl.AclAuthorizerConfig;
+import io.kroxylicious.authorizer.provider.acl.AclAuthorizerService;
 import io.kroxylicious.authorizer.service.Action;
+import io.kroxylicious.authorizer.service.Authorizer;
 import io.kroxylicious.authorizer.service.Decision;
 import io.kroxylicious.authorizer.service.ResourceType;
 import io.kroxylicious.identity.Principal;
@@ -19,13 +22,16 @@ import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The scope used for search must select exactly the names that point access allows. Checked
- * against the Kroxylicious {@code AclAuthorizer} itself, for every subject, operation and name.
+ * {@link AccessRules} must read rules files exactly as Kroxylicious does: its authorizer must decide
+ * as the one {@code AclAuthorizerService} builds, it must reject the same files, and its search
+ * scope must select exactly the names that point access allows. Checked for every subject,
+ * operation and name of a fixture covering every selector.
  */
-class AccessRulesScopeTest {
+class AccessRulesTest {
 
     private static final String RULES = """
             from io.apicurio.authz import Artifact, Group, Role, ClientId;
@@ -108,6 +114,64 @@ class AccessRulesScopeTest {
         assertEquals(List.of(), mismatches);
         // Guard against a vacuous check: plenty of combinations are allowed, plenty denied
         assertTrue(allowed > 50, "allowed: " + allowed);
+    }
+
+    /** The authorizer {@code AclAuthorizerService} builds from a file, as Kroxylicious does. */
+    private Authorizer kroxyliciousAuthorizer(String rules) throws IOException {
+        Path file = dir.resolve("kroxylicious.acl");
+        Files.writeString(file, rules);
+        AclAuthorizerService service = new AclAuthorizerService();
+        service.initialize(new AclAuthorizerConfig(file.toString()));
+        return service.build();
+    }
+
+    private static boolean allowed(Authorizer authorizer, Subject subject, ResourceType<?> op, String name) {
+        return authorizer.authorize(subject, List.of(new Action(op, name))).toCompletableFuture().join()
+                .decision(op, name) == Decision.ALLOW;
+    }
+
+    @Test
+    void decisionsMatchTheKroxyliciousRulesService() throws Exception {
+        Authorizer ours = AccessRules.parse(RULES).toAuthorizer();
+        Authorizer theirs = kroxyliciousAuthorizer(RULES);
+        List<String> mismatches = new ArrayList<>();
+        for (Subject subject : SUBJECTS) {
+            for (ResourceType<?> op : OPERATIONS) {
+                for (String name : NAMES) {
+                    if (allowed(ours, subject, op, name) != allowed(theirs, subject, op, name)) {
+                        mismatches.add(subject.principals() + " " + op + " '" + name + "'");
+                    }
+                }
+            }
+        }
+        assertEquals(List.of(), mismatches);
+        assertEquals(theirs.supportedResourceTypes(), ours.supportedResourceTypes());
+    }
+
+    @Test
+    void invalidFilesAreRejectedAsTheKroxyliciousRulesServiceRejectsThem() {
+        String header = "from io.apicurio.authz import Artifact, Role;\n";
+        String end = "otherwise deny;\n";
+        for (String invalid : List.of(
+                header + "allow Role with name = \"r\" to READ Artifact with name = \"x\";\n",
+                header + "allow Role with name = \"r\" to READ Artifact with name = \"x\";\n"
+                        + "deny Role with name = \"r\" to READ Artifact with name = \"y\";\n" + end,
+                header + "allow Role with name = \"r\" to DELETE Artifact with name = \"x\";\n" + end,
+                header + "allow Role with name = \"r\" to READ Artifact with name matching /(/;\n" + end,
+                header + "allow Role with name = \"r\" to READ Artifact with name like \"a*b\";\n" + end,
+                header + "allow Role with name matching /r/ to READ Artifact with name = \"x\";\n" + end,
+                header + "allow Team with name = \"t\" to READ Artifact with name = \"x\";\n" + end,
+                header + "allow Role with name = \"r\" to READ Nope with name = \"x\";\n" + end,
+                "from io.apicurio.authz import Artifact, Role, Role;\n" + end,
+                "from io.apicurio.authz import Artifact, Missing;\n"
+                        + "allow User with name = \"u\" to READ Missing with name = \"x\";\n" + end,
+                "from io.apicurio.authz import Artifact, Group;\n"
+                        + "allow Group with name = \"u\" to READ Artifact with name = \"x\";\n" + end,
+                "from io.apicurio.authz import Artifact, Role;\n"
+                        + "allow User with name = \"u\" to READ Role with name = \"x\";\n" + end)) {
+            assertThrows(IllegalArgumentException.class, () -> AccessRules.parse(invalid), invalid);
+            assertThrows(RuntimeException.class, () -> kroxyliciousAuthorizer(invalid), invalid);
+        }
     }
 
     @Test

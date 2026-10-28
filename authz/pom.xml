@@ -49,11 +49,6 @@
             <groupId>com.google.re2j</groupId>
             <artifactId>re2j</artifactId>
         </dependency>
-        <!-- JSON parsing -->
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-        </dependency>
 
         <!-- Logging -->
         <dependency>

@@ -425,12 +425,13 @@ class WebhookSchemaMssqlMigrationTest {
     }
 
     private void assertNegativeAttemptCountRejected(Connection conn) throws Exception {
+        long now = System.currentTimeMillis();
+
         // Control: zero attemptCount must be accepted.
         String subId0 = UUID.randomUUID().toString();
         insertSubscription(conn, subId0);
         String eventRowId0 = UUID.randomUUID().toString();
         insertEvent(conn, eventRowId0);
-        long now = System.currentTimeMillis();
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO webhook_delivery_logs "
                 + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
@@ -438,6 +439,24 @@ class WebhookSchemaMssqlMigrationTest {
             ps.setString(1, UUID.randomUUID().toString());
             ps.setString(2, subId0);
             ps.setString(3, eventRowId0);
+            ps.setLong(4, now);
+            ps.setLong(5, now);
+            ps.executeUpdate(); // must not throw
+        }
+
+        // Control: attemptCount = 1 must also be accepted — CK_whdlogs_1 is >= 0, not = 0.
+        // This catches a regression where the CHECK was accidentally written as = 0.
+        String subId1 = UUID.randomUUID().toString();
+        insertSubscription(conn, subId1);
+        String eventRowId1 = UUID.randomUUID().toString();
+        insertEvent(conn, eventRowId1);
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_delivery_logs "
+                + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
+                + "VALUES (?, ?, ?, 'PENDING', 1, ?, ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, subId1);
+            ps.setString(3, eventRowId1);
             ps.setLong(4, now);
             ps.setLong(5, now);
             ps.executeUpdate(); // must not throw
@@ -563,7 +582,7 @@ class WebhookSchemaMssqlMigrationTest {
             }
         }
 
-        // Unique indexes (UQ_* only).
+        // Unique indexes (UQ_*): include ORDINAL_POSITION so column order is part of the contract.
         try (ResultSet rs = meta.getIndexInfo(null, "dbo", table, true, false)) {
             while (rs.next()) {
                 String idxName = rs.getString("INDEX_NAME");
@@ -577,11 +596,12 @@ class WebhookSchemaMssqlMigrationTest {
                 }
                 descriptors.add("UQ:"
                         + idxUpper + ":"
+                        + ordinal + ":"
                         + rs.getString("COLUMN_NAME").toUpperCase(Locale.ROOT));
             }
         }
 
-        // Non-unique indexes (IDX_*).
+        // Non-unique indexes (IDX_*): include ORDINAL_POSITION so column order is part of the contract.
         try (ResultSet rs = meta.getIndexInfo(null, "dbo", table, false, false)) {
             while (rs.next()) {
                 String idxName = rs.getString("INDEX_NAME");
@@ -595,13 +615,15 @@ class WebhookSchemaMssqlMigrationTest {
                 }
                 descriptors.add("IDX:"
                         + idxUpper + ":"
+                        + ordinal + ":"
                         + rs.getString("COLUMN_NAME").toUpperCase(Locale.ROOT));
             }
         }
 
-        // Check constraints via INFORMATION_SCHEMA.
+        // Check constraints: include the clause body so a regressed CHECK expression is detected.
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT UPPER(cc.CONSTRAINT_NAME) FROM INFORMATION_SCHEMA.CHECK_CONSTRAINTS cc "
+                "SELECT UPPER(cc.CONSTRAINT_NAME), UPPER(cc.CHECK_CLAUSE) "
+                + "FROM INFORMATION_SCHEMA.CHECK_CONSTRAINTS cc "
                 + "JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc "
                 + "  ON cc.CONSTRAINT_CATALOG = tc.CONSTRAINT_CATALOG "
                 + "  AND cc.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA "
@@ -613,7 +635,7 @@ class WebhookSchemaMssqlMigrationTest {
                 while (rs.next()) {
                     String name = rs.getString(1);
                     if (name.startsWith("CK_")) {
-                        descriptors.add("CK:" + name);
+                        descriptors.add("CK:" + name + ":" + rs.getString(2));
                     }
                 }
             }

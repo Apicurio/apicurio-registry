@@ -17,11 +17,14 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -183,23 +186,52 @@ class WebhookSchemaMysqlMigrationTest {
      */
     @Test
     void mysqlSchemaParity_freshMatchesUpgraded() throws Exception {
-        // Set up fresh DB.
-        try (Connection freshConn = openConnection()) {
-            applyStatements(freshConn, new MySQLSqlStatements().databaseInitialization());
-
-            // Rebuild for upgraded scenario in same container after a clean.
-            cleanDatabase();
-            try (Connection upgradedConn = openConnection()) {
-                setupScenario(upgradedConn, "upgraded");
-
-                for (String table : List.of("webhook_subscriptions", "webhook_events", "webhook_delivery_logs")) {
-                    List<String> freshMeta = collectMysqlSchemaMeta(freshConn, table);
-                    List<String> upgradedMeta = collectMysqlSchemaMeta(upgradedConn, table);
-                    assertEquals(freshMeta, upgradedMeta,
-                            "Schema parity failed for table " + table
-                            + ". Fresh: " + freshMeta + " Upgraded: " + upgradedMeta);
-                }
+        // Phase 1: capture fresh metadata BEFORE cleanup (both connections share the same DB
+        // in the single-container setup, so the fresh schema must be snapshotted first).
+        Map<String, List<String>> freshMetaMap = new LinkedHashMap<>();
+        try (Connection conn = openConnection()) {
+            applyStatements(conn, new MySQLSqlStatements().databaseInitialization());
+            for (String table : List.of("webhook_subscriptions", "webhook_events", "webhook_delivery_logs")) {
+                freshMetaMap.put(table, collectMysqlSchemaMeta(conn, table));
             }
+            dropAllTables(conn);
+        }
+
+        // Phase 2: upgraded scenario and comparison.
+        try (Connection conn = openConnection()) {
+            setupScenario(conn, "upgraded");
+            for (String table : List.of("webhook_subscriptions", "webhook_events", "webhook_delivery_logs")) {
+                List<String> upgradedMeta = collectMysqlSchemaMeta(conn, table);
+                assertEquals(freshMetaMap.get(table), upgradedMeta,
+                        "Schema parity failed for table " + table
+                        + ". Fresh: " + freshMetaMap.get(table) + " Upgraded: " + upgradedMeta);
+            }
+        }
+    }
+
+    /**
+     * Proves that the schema-metadata comparison helper actually detects differences.
+     * A deliberately added column must cause the comparison to fail, so parity-test
+     * passes are not vacuous.
+     */
+    @Test
+    void mysqlSchemaParity_mismatchIsDetected() throws Exception {
+        Map<String, List<String>> referenceMeta = new LinkedHashMap<>();
+        try (Connection conn = openConnection()) {
+            applyStatements(conn, new MySQLSqlStatements().databaseInitialization());
+            referenceMeta.put("webhook_events", collectMysqlSchemaMeta(conn, "webhook_events"));
+            dropAllTables(conn);
+        }
+
+        // Rebuild and add a deliberate schema drift: one extra column on webhook_events.
+        try (Connection conn = openConnection()) {
+            applyStatements(conn, new MySQLSqlStatements().databaseInitialization());
+            try (Statement st = conn.createStatement()) {
+                st.execute("ALTER TABLE webhook_events ADD COLUMN drift_col VARCHAR(1)");
+            }
+            List<String> driftMeta = collectMysqlSchemaMeta(conn, "webhook_events");
+            assertNotEquals(referenceMeta.get("webhook_events"), driftMeta,
+                    "Schema comparison helper must detect the deliberately added column");
         }
     }
 
@@ -385,12 +417,13 @@ class WebhookSchemaMysqlMigrationTest {
     }
 
     private void assertNegativeAttemptCountRejected(Connection conn) throws Exception {
+        long now = System.currentTimeMillis();
+
         // Control: zero attemptCount must be accepted.
         String subId0 = UUID.randomUUID().toString();
         insertSubscription(conn, subId0);
         String eventRowId0 = UUID.randomUUID().toString();
         insertEvent(conn, eventRowId0);
-        long now = System.currentTimeMillis();
         try (PreparedStatement ps = conn.prepareStatement(
                 "INSERT INTO webhook_delivery_logs "
                 + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
@@ -398,6 +431,24 @@ class WebhookSchemaMysqlMigrationTest {
             ps.setString(1, UUID.randomUUID().toString());
             ps.setString(2, subId0);
             ps.setString(3, eventRowId0);
+            ps.setLong(4, now);
+            ps.setLong(5, now);
+            ps.executeUpdate(); // must not throw
+        }
+
+        // Control: attemptCount = 1 must also be accepted — CK_whdlogs_1 is >= 0, not = 0.
+        // This catches a regression where the CHECK was accidentally written as = 0.
+        String subId1 = UUID.randomUUID().toString();
+        insertSubscription(conn, subId1);
+        String eventRowId1 = UUID.randomUUID().toString();
+        insertEvent(conn, eventRowId1);
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO webhook_delivery_logs "
+                + "(deliveryId, subscriptionId, eventRowId, status, attemptCount, createdOn, updatedOn) "
+                + "VALUES (?, ?, ?, 'PENDING', 1, ?, ?)")) {
+            ps.setString(1, UUID.randomUUID().toString());
+            ps.setString(2, subId1);
+            ps.setString(3, eventRowId1);
             ps.setLong(4, now);
             ps.setLong(5, now);
             ps.executeUpdate(); // must not throw
@@ -524,7 +575,7 @@ class WebhookSchemaMysqlMigrationTest {
             }
         }
 
-        // Unique indexes (UQ_* only).
+        // Unique indexes (UQ_*): include ORDINAL_POSITION so column order is part of the contract.
         try (ResultSet rs = meta.getIndexInfo(null, mysql.getDatabaseName(), tLower, true, false)) {
             while (rs.next()) {
                 String idxName = rs.getString("INDEX_NAME");
@@ -538,11 +589,12 @@ class WebhookSchemaMysqlMigrationTest {
                 }
                 descriptors.add("UQ:"
                         + idxLower + ":"
+                        + ordinal + ":"
                         + rs.getString("COLUMN_NAME").toLowerCase(Locale.ROOT));
             }
         }
 
-        // Non-unique indexes (IDX_*).
+        // Non-unique indexes (IDX_*): include ORDINAL_POSITION so column order is part of the contract.
         try (ResultSet rs = meta.getIndexInfo(null, mysql.getDatabaseName(), tLower, false, false)) {
             while (rs.next()) {
                 String idxName = rs.getString("INDEX_NAME");
@@ -556,21 +608,47 @@ class WebhookSchemaMysqlMigrationTest {
                 }
                 descriptors.add("IDX:"
                         + idxLower + ":"
+                        + ordinal + ":"
                         + rs.getString("COLUMN_NAME").toLowerCase(Locale.ROOT));
             }
         }
 
-        // Check constraints from information_schema.
+        // Check constraints: include the clause body so a regressed CHECK expression is detected.
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT LOWER(CONSTRAINT_NAME) FROM information_schema.TABLE_CONSTRAINTS "
-                + "WHERE LOWER(TABLE_NAME) = LOWER(?) AND TABLE_SCHEMA = DATABASE() "
-                + "AND CONSTRAINT_TYPE = 'CHECK' ORDER BY CONSTRAINT_NAME")) {
+                "SELECT LOWER(tc.CONSTRAINT_NAME), LOWER(cc.CHECK_CLAUSE) "
+                + "FROM information_schema.TABLE_CONSTRAINTS tc "
+                + "JOIN information_schema.CHECK_CONSTRAINTS cc "
+                + "  ON tc.CONSTRAINT_SCHEMA = cc.CONSTRAINT_SCHEMA "
+                + "  AND tc.CONSTRAINT_NAME = cc.CONSTRAINT_NAME "
+                + "WHERE LOWER(tc.TABLE_NAME) = LOWER(?) AND tc.TABLE_SCHEMA = DATABASE() "
+                + "AND tc.CONSTRAINT_TYPE = 'CHECK' ORDER BY tc.CONSTRAINT_NAME")) {
             ps.setString(1, tLower);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String name = rs.getString(1);
                     if (name.startsWith("ck_")) {
-                        descriptors.add("CK:" + name);
+                        descriptors.add("CK:" + name + ":" + rs.getString(2));
+                    }
+                }
+            }
+        }
+
+        // Charset and collation for text columns (catches collation drift between fresh and upgraded).
+        try (PreparedStatement ps = conn.prepareStatement(
+                "SELECT LOWER(COLUMN_NAME), LOWER(COALESCE(CHARACTER_SET_NAME, 'n/a')), "
+                + "LOWER(COALESCE(COLLATION_NAME, 'n/a')) "
+                + "FROM information_schema.COLUMNS "
+                + "WHERE LOWER(TABLE_NAME) = LOWER(?) AND TABLE_SCHEMA = DATABASE() "
+                + "ORDER BY ORDINAL_POSITION")) {
+            ps.setString(1, tLower);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String charset = rs.getString(2);
+                    if (!"n/a".equals(charset)) {
+                        descriptors.add("COL_CHARSET:"
+                                + rs.getString(1) + ":"
+                                + charset + ":"
+                                + rs.getString(3));
                     }
                 }
             }

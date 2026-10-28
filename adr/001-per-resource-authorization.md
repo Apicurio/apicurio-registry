@@ -40,17 +40,17 @@ format is the Kroxylicious ACL rules language defined by
 implemented by `AclAuthorizer` (`io.kroxylicious:kroxylicious-authorizer-acl`). Registry replaces
 its JSON grants format with it before 3.4.0. The JSON format was never released (the latest
 release is 3.3.3), so no migration is needed. This reverses the earlier rejection of `AclAuthorizer`
-(see "Kroxylicious Authorizer with ACL DSL" below). Implementation:
-[#10602](https://github.com/Apicurio/apicurio-registry/issues/10602).
+(see "Kroxylicious Authorizer with ACL DSL" below). Issue
+[#10602](https://github.com/Apicurio/apicurio-registry/issues/10602), implemented in
+[#10746](https://github.com/Apicurio/apicurio-registry/pull/10746).
 
-Until #10602 is merged, the sections below that describe `GrantsAuthorizer`, `GrantsData` and the
-JSON grants file describe the current code, not the target design.
+The sections below that describe `GrantsAuthorizer`, `GrantsData` and the JSON grants file
+describe the original design, which #10746 replaces.
 
-**Example** (Registry's class names are illustrative until #10602 settles them):
+**Example:**
 
 ```
-from io.apicurio.registry.auth.resources import Artifact, Group;
-from io.apicurio.registry.auth.principals import User, Role;
+from io.apicurio.authz import Artifact, Group, Role;
 
 deny User with name = "bob" to * Artifact with name = "team-a/secret";
 allow Role with name = "team-a-dev" to WRITE Group with name = "team-a";
@@ -63,13 +63,14 @@ otherwise deny;
 
 | JSON grants | ACL rules |
 |---|---|
-| `principal` / `principal_role` | `User with name = …` / `Role with name = …` (top-level `Principal` classes) |
+| `principal` / `principal_role` | `User with name = …` / `Role with name = …`. `User` is Kroxylicious's own `io.kroxylicious.proxy.authentication.User`, the default for `User` in rules files, so Kroxylicious rules work unchanged; `Role` is `io.apicurio.authz.Role` |
 | `operation`: read, write, admin | `READ`, `WRITE`, `ADMIN` of the resource type enum |
-| `resource_type`: artifact, group | `Artifact`, `Group`: top-level `ResourceType` enums, imported by class name |
+| `resource_type`: artifact, group | `io.apicurio.authz.Artifact`, `io.apicurio.authz.Group`: top-level `ResourceType` enums (nested classes can't be imported) |
 | `exact` / `prefix` pattern | `with name = "…"` / `with name like "…*"`, plus `in {…}`, `*` and `matching /regex/` (RE2, full match) |
 | `deny: true` | `deny` rules, which must come before `allow` rules; the first matching rule applies |
 | `config.admin_roles` | explicit rules, e.g. `allow Role with name = "ops" to * Artifact with name *;` |
 | deny by default | explicit, mandatory `otherwise deny;` at the end of the file |
+| `grants.path`, `grants.reload-*` config | `rules.path`, `rules.reload-every`, `rules.reload-enabled` |
 
 Registry keeps what is outside the file: RBAC (evaluated first), the owner bypass, admin override,
 audit logging (the `Authorizer` does not audit) and hot reload (the authorizer is rebuilt when the
@@ -83,9 +84,19 @@ file changes; an invalid file keeps the previous rules).
 - Names are opaque strings. Registry's `group/artifact` naming, with `%` and `/` escaped in the group
   ID, is a Registry convention, not part of the format.
 
-**Search.** Search pre-filtering needs the scope of the rules, not just point decisions. It uses the
-shared resource scope API ([#10601](https://github.com/Apicurio/apicurio-registry/issues/10601)),
-implemented by `AclAuthorizer`. `=` and `in` map to exact names, `like` to prefixes, `*` to allow-all
+**How Registry reads the file.** `AclAuthorizerService` resolves imported classes with
+`Class.forName` in its own class loader. Under Quarkus test and dev class loading, that finds a second
+copy of Registry's resource types, which is not a `ResourceType` in its view, so it rejects every
+Registry rules file. Registry therefore parses the file once with the Kroxylicious parser
+(`AclRulesParser`), resolves classes in its own class loader, validates as `AclAuthorizerService`
+does, and builds the real `AclAuthorizer` through its public builder (`io.apicurio.authz.AccessRules`).
+Tests check, against `AclAuthorizerService`, that decisions are identical and that the same files are
+accepted and rejected.
+
+**Search.** Search pre-filtering needs the scope of the rules, not just point decisions. Until the
+shared resource scope API ([#10601](https://github.com/Apicurio/apicurio-registry/issues/10601)) is
+implemented by `AclAuthorizer`, Registry computes the scope from the same parse, following
+`AclAuthorizer`'s matching; a test checks that the scope selects exactly what point access allows. `=` and `in` map to exact names, `like` to prefixes, `*` to allow-all
 and `matching` to patterns. SQL and Elasticsearch can't evaluate RE2 patterns, so a grant-restricted
 search whose scope contains patterns fails closed. Use `=`, `in` or `like` for Registry resources
 where search matters.
@@ -101,6 +112,12 @@ where search matters.
 - `kroxylicious-authorizer-acl` depends on the whole `kroxylicious-api` (including native compression
   libraries) only for the `@Plugin` annotation.
 - `AclAuthorizer.authorize()` still takes the deprecated `Identity`; the proposal uses `Subject`.
+- `AclAuthorizerService` resolves classes in its own class loader, which fails under Quarkus test
+  and dev class loading (see "How Registry reads the file"). A way to supply a class resolver would
+  let Registry use it directly.
+- The parser removes every backslash in a regex literal, so `/a\.b/` is the regex `a.b`.
+- The lexer reads a block comment (`/* … */`) as a regex literal, so block comments are syntax
+  errors; only `//` comments work.
 
 ## Design
 

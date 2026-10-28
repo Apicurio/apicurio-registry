@@ -6,7 +6,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -21,9 +24,10 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import com.google.re2j.Pattern;
 import com.google.re2j.PatternSyntaxException;
 
-import io.kroxylicious.authorizer.provider.acl.AclAuthorizer;
 import io.kroxylicious.authorizer.provider.acl.parser.AclRulesLexer;
 import io.kroxylicious.authorizer.provider.acl.parser.AclRulesParser;
+import io.kroxylicious.authorizer.service.Action;
+import io.kroxylicious.authorizer.service.AuthorizeResult;
 import io.kroxylicious.authorizer.service.Authorizer;
 import io.kroxylicious.authorizer.service.ResourceType;
 import io.kroxylicious.identity.Identity;
@@ -31,29 +35,37 @@ import io.kroxylicious.identity.Principal;
 
 /**
  * An access rules file in the Kroxylicious ACL rules format, parsed with the Kroxylicious rules
- * parser ({@code AclRulesParser}). It provides both the point decisions, from a Kroxylicious
- * {@link AclAuthorizer} built from the rules, and their scope for search pre-filtering, from the
- * same parse.
+ * parser ({@code AclRulesParser}). It provides both the point decisions ({@link #authorizer()})
+ * and their scope for search pre-filtering ({@link #scope}), from one parse and one matching
+ * logic, so search always selects exactly what point access allows.
  *
- * <p>Why not {@code AclAuthorizerService}: it resolves the imported classes with
- * {@code Class.forName} in its own class loader. Under Quarkus test and dev class loading, that
- * finds a second copy of Registry's resource types, which is not a {@code ResourceType} in its
- * view, so every rules file is rejected. Here classes are resolved in Registry's class loader and
- * passed to the public {@link AclAuthorizer.Builder}. Validation follows
- * {@code AclAuthorizerService} rule for rule; {@code AccessRulesTest} checks the two agree.</p>
- *
- * <p>The scope follows {@code AclAuthorizer}'s matching, so it selects exactly the names the
- * authorizer allows:</p>
+ * <p>Matching follows the semantics of Kroxylicious proposal 009:</p>
  * <ul>
  *     <li>a rule applies to a subject if one of its principals has exactly the rule's principal
  *     class and its name matches ({@code =}, {@code in}, {@code like} prefix or {@code *});</li>
+ *     <li>a rule applies to a resource name if the name matches ({@code =}, {@code in},
+ *     {@code like} prefix, {@code *}, or a full RE2 match of {@code matching});</li>
  *     <li>a rule's operations are expanded with the operations they imply, for allow and deny rules
  *     alike;</li>
- *     <li>deny rules take precedence over allow rules.</li>
+ *     <li>a matching deny rule takes precedence over every allow rule; without a matching allow
+ *     rule, access is denied.</li>
  * </ul>
  *
- * <p>The scope is temporary: it is replaced by a resource scope API implemented upstream by
- * {@code AclAuthorizer} (apicurio-registry#10601).</p>
+ * <p>Why not the Kroxylicious {@code AclAuthorizer}:</p>
+ * <ul>
+ *     <li>{@code AclAuthorizerService} resolves imported classes with {@code Class.forName} in its
+ *     own class loader. Under Quarkus test and dev class loading that finds a second copy of
+ *     Registry's resource types, so every rules file is rejected. Here classes are resolved in
+ *     Registry's class loader; validation follows {@code AclAuthorizerService} rule for rule.</li>
+ *     <li>{@code AclAuthorizer} 0.25.1 mis-evaluates prefixes: a principal {@code like} rule also
+ *     matches principals of other classes with that name prefix, and of several overlapping
+ *     resource prefixes only the lexicographically closest is checked, so access can be lost and a
+ *     deny bypassed. {@code AccessRulesTest} pins both against {@code AclAuthorizerService}, and
+ *     checks that decisions otherwise agree.</li>
+ * </ul>
+ *
+ * <p>The scope is temporary: it is replaced by a resource scope API implemented upstream
+ * (apicurio-registry#10601).</p>
  */
 final class AccessRules {
 
@@ -67,15 +79,22 @@ final class AccessRules {
         ANY, EXACT, PREFIX, PATTERN
     }
 
-    /** How a rule selects names: {@code values} are exact names, one prefix, or one regex. */
-    private record NameSelector(Match match, Set<String> values) {
+    /**
+     * How a rule selects names: {@code values} are exact names, one prefix, or one regex, compiled
+     * in {@code pattern}.
+     */
+    private record NameSelector(Match match, Set<String> values, Pattern pattern) {
+
+        NameSelector(Match match, Set<String> values) {
+            this(match, values, match == Match.PATTERN ? Pattern.compile(values.iterator().next()) : null);
+        }
 
         boolean matches(String name) {
             return switch (match) {
                 case ANY -> true;
                 case EXACT -> values.contains(name);
                 case PREFIX -> name.startsWith(values.iterator().next());
-                case PATTERN -> throw new IllegalStateException("Principals have no pattern selector");
+                case PATTERN -> pattern.matches(name);
             };
         }
     }
@@ -322,29 +341,55 @@ final class AccessRules {
         return unwrap(literal).replaceAll("\\\\(.)", "$1");
     }
 
-    /** @return a Kroxylicious {@link AclAuthorizer} with these rules */
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    Authorizer toAuthorizer() {
-        AclAuthorizer.Builder builder = new AclAuthorizer.Builder();
+    /**
+     * @return whether the rules allow {@code subject} to perform {@code operation} on the resource
+     *         named {@code resourceName}
+     */
+    boolean allows(Identity subject, ResourceType<?> operation, String resourceName) {
+        Class<?> resourceType = ((Enum<?>) operation).getDeclaringClass();
+        boolean allowed = false;
         for (Rule rule : rules) {
-            var principals = (rule.deny() ? builder.deny() : builder.allow())
-                    .subjectsHavingPrincipal(rule.principalClass());
-            var operations = switch (rule.principals().match()) {
-                case ANY -> principals.withAnyName();
-                case EXACT -> principals.withNameIn(rule.principals().values());
-                case PREFIX -> principals.withNameStartingWith(rule.principals().values().iterator().next());
-                case PATTERN -> throw new IllegalStateException("Principals have no pattern selector");
-            };
-            AclAuthorizer.ResourceBuilder resources = operations.operations((Set) rule.operations());
-            NameSelector names = rule.resources();
-            switch (names.match()) {
-                case ANY -> resources.onAllResources();
-                case EXACT -> resources.onResourcesWithNameIn(names.values());
-                case PREFIX -> resources.onResourcesWithNameStartingWith(names.values().iterator().next());
-                case PATTERN -> resources.onResourcesWithNameMatching(names.values().iterator().next());
+            if (rule.resourceType() == resourceType && rule.impliedOperations().contains(operation)
+                    && rule.resources().matches(resourceName) && appliesTo(rule, subject)) {
+                if (rule.deny()) {
+                    return false;
+                }
+                allowed = true;
             }
         }
-        return builder.build();
+        return allowed;
+    }
+
+    /** @return the resource types these rules refer to */
+    Set<Class<? extends ResourceType<?>>> resourceTypes() {
+        Set<Class<? extends ResourceType<?>>> types = new HashSet<>();
+        for (Rule rule : rules) {
+            @SuppressWarnings("unchecked")
+            Class<? extends ResourceType<?>> type = (Class<? extends ResourceType<?>>) rule.resourceType();
+            types.add(type);
+        }
+        return types;
+    }
+
+    /** @return a Kroxylicious {@link Authorizer} deciding with these rules ({@link #allows}) */
+    Authorizer authorizer() {
+        Set<Class<? extends ResourceType<?>>> types = Set.copyOf(resourceTypes());
+        return new Authorizer() {
+            @Override
+            public CompletionStage<AuthorizeResult> authorize(Identity subject, List<Action> actions) {
+                List<Action> allowed = new ArrayList<>();
+                List<Action> denied = new ArrayList<>();
+                for (Action action : actions) {
+                    (allows(subject, action.operation(), action.resourceName()) ? allowed : denied).add(action);
+                }
+                return CompletableFuture.completedStage(new AuthorizeResult(subject, allowed, denied));
+            }
+
+            @Override
+            public Optional<Set<Class<? extends ResourceType<?>>>> supportedResourceTypes() {
+                return Optional.of(types);
+            }
+        };
     }
 
     /**
@@ -385,7 +430,7 @@ final class AccessRules {
 
     private static boolean appliesTo(Rule rule, Identity subject) {
         for (Principal principal : subject.principals()) {
-            // Exact class, as AclAuthorizer keys rules by the principal's class
+            // Exact class: a Role rule must not match a User of the same name
             if (principal.getClass() == rule.principalClass() && rule.principals().matches(principal.name())) {
                 return true;
             }

@@ -112,6 +112,24 @@ class AccessRulesAuthorizerTest {
         assertEquals(Decision.ALLOW, decide(rules, bob, Artifact.WRITE, "a/hidden"));
     }
 
+    /** A WRITE deny leaves ADMIN to an ADMIN allow: ADMIN implies WRITE, not the reverse. */
+    @Test
+    void writeDenyDoesNotDenyAdmin() throws Exception {
+        AccessRulesAuthorizer rules = AccessRulesAuthorizer.create(write(HEADER + """
+                deny User with name = "bob" to WRITE Artifact with name = "a/x";
+                deny User with name = "bob" to * Artifact with name = "a/y";
+                allow User with name = "bob" to * Artifact with name *;
+                otherwise deny;
+                """, 0), REGISTRY_TYPES);
+        Subject bob = subject(new User("bob"));
+
+        assertEquals(Decision.DENY, decide(rules, bob, Artifact.READ, "a/x"));
+        assertEquals(Decision.DENY, decide(rules, bob, Artifact.WRITE, "a/x"));
+        assertEquals(Decision.ALLOW, decide(rules, bob, Artifact.ADMIN, "a/x"));
+        // '*' (or ADMIN) denies all three
+        assertEquals(Decision.DENY, decide(rules, bob, Artifact.ADMIN, "a/y"));
+    }
+
     @Test
     void invalidFilesAreRejected() throws IOException {
         for (String invalid : List.of(

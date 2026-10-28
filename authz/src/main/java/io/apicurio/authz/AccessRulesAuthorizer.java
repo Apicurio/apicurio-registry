@@ -21,10 +21,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Authorizes against an access rules file in the Kroxylicious ACL rules format (see Kroxylicious
- * proposal 009), using the Kroxylicious {@code AclAuthorizer} built from the rules (see
- * {@link AccessRules}).
+ * proposal 009), evaluated by {@link AccessRules}.
  *
- * <p>On top of {@code AclAuthorizer}, this class:</p>
+ * <p>On top of the rules, this class:</p>
  * <ul>
  *     <li>rejects a file that refers to resource types this system does not enforce, so a rule that
  *     looks like an access control cannot silently be ignored;</li>
@@ -85,7 +84,7 @@ public final class AccessRulesAuthorizer implements Authorizer {
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid access rules file: " + e.getMessage(), e);
         }
-        Authorizer authorizer = rules.toAuthorizer();
+        Authorizer authorizer = rules.authorizer();
         Set<Class<? extends ResourceType<?>>> unsupported = new HashSet<>(
                 authorizer.supportedResourceTypes().orElse(Set.of()));
         unsupported.removeAll(supported);

@@ -1466,6 +1466,16 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`3.0.0`
 |Enabled to set the UI to read-only mode
+|`apicurio.ui.features.read-only.banner.enabled`
+|`boolean [dynamic]`
+|`true`
+|`3.4.0`
+|Enabled to show the read-only banner in the UI
+|`apicurio.ui.features.read-only.banner.text`
+|`string [dynamic]`
+|
+|`3.4.0`
+|Custom text for the read-only banner
 |`apicurio.ui.features.settings`
 |`string`
 |`true`

@@ -87,6 +87,19 @@ public class SystemResourceImpl implements SystemResource {
             readOnlyReason = UserInterfaceConfigFeatures.ReadOnlyReason.config;
         }
 
+        boolean bannerEnabled = uiConfig.featureReadOnlyBannerEnabled == null || uiConfig.featureReadOnlyBannerEnabled.get();
+        String bannerText = null;
+        if (uiConfig.featureReadOnlyBannerText != null) {
+            try {
+                bannerText = uiConfig.featureReadOnlyBannerText.get();
+            } catch (java.util.NoSuchElementException ignored) {
+                bannerText = null;
+            }
+        }
+        if (bannerText != null && bannerText.isBlank()) {
+            bannerText = null;
+        }
+
         return UserInterfaceConfig.builder()
                 .ui(UserInterfaceConfigUi.builder().contextPath(uiConfig.contextPath)
                         .navPrefixPath(uiConfig.navPrefixPath)
@@ -98,6 +111,8 @@ public class SystemResourceImpl implements SystemResource {
                         .readOnly(readOnly)
                         .readOnlyReason(readOnlyReason)
                         .storageName(storageName)
+                        .readOnlyBannerEnabled(bannerEnabled)
+                        .readOnlyBannerText(bannerText)
                         .breadcrumbs("true".equals(uiConfig.featureBreadcrumbs))
                         .roleManagement(authConfig.isRbacEnabled() && "application".equals(authConfig.getRoleSource()))
                         .deleteGroup(restConfig.isGroupDeletionEnabled() && !readOnly)

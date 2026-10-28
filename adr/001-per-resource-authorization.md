@@ -8,6 +8,8 @@
 - **Amended:** 2026-10-27: Registry adopts the Kroxylicious ACL rules format
   ([proposal 009](https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md))
   in place of the JSON grants format. See "Amendment 1" below.
+- **Amended:** 2026-10-28: Apicurio publishes the resource scope API for search pre-filtering. See
+  "Amendment 2" below.
 
 ## Context
 
@@ -100,9 +102,8 @@ evaluator (`io.apicurio.authz.AccessRules`):
 
 **Search.** Search pre-filtering needs the scope of the rules, not just point decisions. Point
 decisions and the scope come from the same parse and the same matching, so search selects exactly
-what point access allows. A test checks this invariant. The scope moves to the shared resource scope API
-([#10601](https://github.com/Apicurio/apicurio-registry/issues/10601)) once an upstream evaluator
-implements it. `=` and `in` map to exact names, `like` to prefixes, `*` to allow-all
+what point access allows. A test checks this invariant. The scope is provided through Apicurio's
+resource scope API (Amendment 2). `=` and `in` map to exact names, `like` to prefixes, `*` to allow-all
 and `matching` to patterns. SQL and Elasticsearch can't evaluate RE2 patterns, so a grant-restricted
 search whose scope contains patterns fails closed. Use `=`, `in` or `like` for Registry resources
 where search matters.
@@ -125,6 +126,30 @@ where search matters.
 - The parser removes every backslash in a regex literal, so `/a\.b/` is the regex `a.b`.
 - The lexer reads a block comment (`/* … */`) as a regex literal, so block comments are syntax
   errors; only `//` comments work.
+
+## Amendment 2 (2026-10-28): Apicurio publishes the resource scope API
+
+**Decision.** The Kroxylicious `Authorizer` API answers point decisions only. Search pre-filtering
+needs the scope of the rules, so Apicurio defines and publishes the resource scope API itself
+([#10601](https://github.com/Apicurio/apicurio-registry/issues/10601)):
+
+- `io.apicurio:apicurio-scope-api`: `ResourceScopeProvider`, an optional companion to a Kroxylicious
+  `Authorizer` (`resolveScope(Subject, ResourceType)`), and the sealed `ResourceScope`
+  (`Unrestricted`, `Forbidden`, `Scoped` with allowed and denied exact names, prefixes and RE2
+  patterns). It depends only on the Kroxylicious authorizer and identity APIs and RE2/J.
+- `io.apicurio:apicurio-scope-api-tck`: conformance tests that check a provider's scope selects
+  exactly what its `Authorizer` allows.
+
+Both are modules of this repository, released with Registry. Registry's `AccessRulesAuthorizer` is
+the first implementation, and its search pre-filtering uses only the interface. The StreamsHub team
+plans a unified authorizer for Registry, Kroxylicious, StreamsHub Console and Kafka that implements
+the same API. Kroxylicious is not expected to implement it: pre-filtering isn't needed for Kafka
+resources.
+
+Matching rules are part of the contract: names are opaque and compared exactly and case-sensitively;
+exact names by equality, prefixes by `startsWith`, patterns by a full RE2 match (RE2 runs in linear
+time, so user-supplied patterns can't cause catastrophic backtracking); deny selectors take
+precedence. A store that can't evaluate patterns fails closed.
 
 ## Design
 
@@ -286,10 +311,7 @@ to a shared `Subject` cannot satisfy `principal_role` grants.
 
 **Search pre-filtering is outside the Kroxylicious API.** `Authorizer.authorize()` answers
 point-access questions only. To build the `WHERE`/query-DSL clauses for search and list endpoints,
-Registry uses `GrantsData.getSearchFilterData()`, which is specific to the grants implementation.
-If pre-filtering is later standardized (for example, as an optional resource-scope interface next
-to `Authorizer`), `SearchFilterData` is the shape Registry needs: allow-all flag, allowed exact and
-prefix names, and denied exact and prefix names.
+Registry uses Apicurio's resource scope API (Amendment 2).
 
 **Registry integration** — Registry-specific:
 
@@ -489,13 +511,12 @@ Grants restrict within what RBAC allows — they cannot override RBAC. A `sr-rea
 
 **Impact:** requires RBAC role awareness when configuring grants. **Mitigation:** document the interaction clearly. Consider a future option to let grants be the sole authority.
 
-### 8. Search pre-filtering is outside the Kroxylicious API
+### 8. Search pre-filtering needs a resource scope provider
 
-The Kroxylicious `Authorizer` answers point-access questions only. Search pre-filtering uses
-`GrantsData`, so replacing the grants implementation with another `Authorizer` requires an equivalent
-resource-scope provider. We expect to standardize this upstream as an optional interface returning
-the shape of `SearchFilterData`
-([#10601](https://github.com/Apicurio/apicurio-registry/issues/10601)).
+The Kroxylicious `Authorizer` answers point-access questions only. Replacing Registry's access rules
+with another `Authorizer` requires that it also implement Apicurio's `ResourceScopeProvider`
+(Amendment 2), or search can't be pre-filtered. The conformance tests check that a provider agrees
+with its `Authorizer`.
 
 ### 9. Rejected requests can leave extracted schemas behind
 
@@ -521,7 +542,7 @@ behind. This predates per-resource authorization
 - Rules format is owned by Kroxylicious; Registry depends on Kroxylicious releases for format changes
 - File-based grants have a scale ceiling (~500 grants)
 - Adds latency to every authorized request (grant evaluation) and globalId requests (storage lookup)
-- Search pre-filtering is tied to the grants implementation (`GrantsData`), not the Kroxylicious `Authorizer` API
+- Search pre-filtering needs Apicurio's resource scope API, which is not part of the Kroxylicious `Authorizer` API
 
 ### Neutral
 
@@ -532,7 +553,10 @@ behind. This predates per-resource authorization
 ## Implementation Status
 
 - **Contract:** Kroxylicious Authorizer API (`io.kroxylicious:kroxylicious-authorizer-api` 0.25.0)
-- **Grants implementation:** `authz/` — `GrantsAuthorizer`, `GrantsData`, `Grant`, `SearchFilterData`, `User`, `RolePrincipal`
+- **Resource scope API:** `scope-api/`, `scope-api-tck/` (Amendment 2)
+- **Access rules implementation:** `authz/` — `AccessRulesAuthorizer` (an `Authorizer` and `ResourceScopeProvider`),
+  `AccessRules`, `Artifact`, `Group`, `Role` (Amendment 1; originally `GrantsAuthorizer`, `GrantsData`, `Grant`,
+  `SearchFilterData`)
 - **Registry integration:** `app/.../auth/` — `AbstractAccessController.resolveResource`, `ResourceAccessGuard`,
   `AuthorizationLookups` (request-scoped metadata lookups),
   `ISearchAuthorizer`; `app/.../auth/grants/` — `GrantsAccessController`, `GrantsSearchFilter`, configuration

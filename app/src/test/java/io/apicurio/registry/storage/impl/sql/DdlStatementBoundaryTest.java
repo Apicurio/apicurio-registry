@@ -19,7 +19,7 @@ class DdlStatementBoundaryTest {
     private static final String[] DIALECTS = { "h2", "mssql", "mysql", "postgresql" };
 
     private static final Set<String> STATEMENT_KEYWORDS = Set.of("CREATE", "ALTER", "UPDATE", "INSERT", "DROP",
-            "DELETE");
+            "DELETE", "IF");
 
     private static final String UPGRADER_DIRECTIVE = "UPGRADER:";
 
@@ -56,6 +56,24 @@ class DdlStatementBoundaryTest {
         List<String> statements = parse(ddl);
         assertEquals(List.of("ALTER TABLE t ADD CONSTRAINT FK_1", "FOREIGN KEY (a) REFERENCES u(a)"),
                 statements);
+    }
+
+   
+    @Test
+    void ifGuardedStatements_areParsedComplete() throws Exception {
+        // Single-line IF NOT EXISTS guard (MSSQL CREATE INDEX style).
+        String singleLine = "IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IDX_1') CREATE INDEX IDX_1 ON t(col);\n";
+        List<String> single = parse(singleLine);
+        assertEquals(1, single.size(), "Single-line IF NOT EXISTS guard must parse as one statement");
+        assertTrue(single.get(0).startsWith("IF NOT EXISTS"),
+                "Statement must start with IF NOT EXISTS: " + single.get(0));
+
+        // Multi-line IF OBJECT_ID IS NULL guard (MSSQL CREATE TABLE style).
+        String multiLine = "IF OBJECT_ID(N't', N'U') IS NULL CREATE TABLE t (\n  col INT NOT NULL\n);\n";
+        List<String> multi = parse(multiLine);
+        assertEquals(1, multi.size(), "Multi-line IF OBJECT_ID guard must parse as one statement");
+        assertTrue(multi.get(0).startsWith("IF OBJECT_ID"),
+                "Statement must start with IF OBJECT_ID: " + multi.get(0));
     }
 
     private static List<String> parse(String ddl) throws Exception {

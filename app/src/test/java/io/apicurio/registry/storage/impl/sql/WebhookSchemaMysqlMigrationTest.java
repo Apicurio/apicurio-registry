@@ -29,6 +29,21 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
+/**
+ * <strong>Isolated webhook migration smoketest</strong> for MySQL (schema version 112).
+ *
+ * <p>Scope: verifies that the 111→112 upgrade DDL creates the three webhook tables with
+ * correct constraints, that the upgrade is retry-safe under MySQL's auto-commit DDL
+ * semantics, and that a fresh install and an upgrade produce identical schemas.</p>
+ *
+ * <p>Baseline limitation: the "upgraded" scenario starts from a synthetic
+ * {@code apicurio} marker table only — not a full v111 registry schema with peer tables.
+ * This is sufficient to verify the isolated webhook migration; real-baseline upgrade
+ * evidence (full v111 schema + upgrade) must be provided separately.</p>
+ *
+ * <p>Tests are skipped when Docker is unavailable
+ * ({@link Testcontainers#disabledWithoutDocker()}).</p>
+ */
 @Testcontainers(disabledWithoutDocker = true)
 class WebhookSchemaMysqlMigrationTest {
 
@@ -127,6 +142,8 @@ class WebhookSchemaMysqlMigrationTest {
      *   <li>Verifies {@code db_version} is still 111 (the marker is the last statement).</li>
      *   <li>Retries the full upgrade — must complete without error.</li>
      *   <li>Asserts all webhook tables exist and {@code db_version = 112}.</li>
+     *   <li>Runs the full constraint-invariant suite on the retried DB to confirm
+     *       constraints (FKs, UQ, CHECK) are intact, not just that the tables exist.</li>
      * </ol>
      */
     @ParameterizedTest(name = "partialUpgrade cutAt={0}")
@@ -159,6 +176,10 @@ class WebhookSchemaMysqlMigrationTest {
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
             assertDbVersion(conn, 112);
+
+            // Verify constraints are intact after retry, not just that tables exist.
+            // A partial-then-retry could leave tables present but constraints silently missing.
+            assertConstraintInvariants(conn);
         }
     }
 

@@ -29,17 +29,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 /**
- * SQL Server schema migration tests for the webhook tables (version 112).
+ * <strong>Isolated webhook migration smoketest</strong> for SQL Server (schema version 112).
  *
- * <p>Uses Testcontainers with a pinned SQL Server 2022 image.  If the Docker daemon is
- * not running, or the image cannot be pulled, all tests in this class are skipped via
- * {@link Testcontainers#disabledWithoutDocker()}.</p>
+ * <p>Scope: verifies that the 111→112 upgrade DDL creates the three webhook tables with
+ * correct constraints, that the upgrade is retry-safe (every {@code CREATE TABLE} is guarded
+ * by {@code IF OBJECT_ID IS NULL} and every {@code CREATE INDEX} by a {@code sys.indexes}
+ * lookup), and that a fresh install and an upgrade produce identical schemas.</p>
  *
- * <p>The 112 upgrade script is retry-safe: every {@code CREATE TABLE} is guarded by
- * {@code IF OBJECT_ID IS NULL} and every {@code CREATE INDEX} is guarded by a
- * {@code sys.indexes} lookup, so a partial failure followed by a retry succeeds
- * without "object already exists" errors.  This is exercised by
- * {@link #upgrade_partialApplication_isRetryable()}.</p>
+ * <p>Baseline limitation: the "upgraded" scenario starts from a synthetic
+ * {@code apicurio} marker table only — not a full v111 registry schema with peer tables.
+ * This is sufficient to verify the isolated webhook migration; real-baseline upgrade
+ * evidence (full v111 schema + upgrade) must be provided separately.</p>
+ *
+ * <p>Tests are skipped when Docker is unavailable
+ * ({@link Testcontainers#disabledWithoutDocker()}).</p>
  */
 @Testcontainers(disabledWithoutDocker = true)
 class WebhookSchemaMssqlMigrationTest {
@@ -140,15 +143,25 @@ class WebhookSchemaMssqlMigrationTest {
     // ------------------------------------------------------------
 
     /**
-     * Simulates a partial failure during the 112 (webhook) upgrade: {@code webhook_subscriptions}
-     * was created but the process died before {@code webhook_events}, {@code webhook_delivery_logs},
-     * and the version marker were written, leaving {@code db_version} at 111.  On the next start
-     * the upgrade runner re-runs the 112 script; every {@code CREATE TABLE} is guarded by
-     * {@code IF OBJECT_ID IS NULL} and every {@code CREATE INDEX} by a {@code sys.indexes} lookup,
-     * so the retry succeeds without "object already exists" errors.
+     * Two cut-point scenarios verify that the 112 upgrade script is fully retry-safe on SQL Server:
+     *
+     * <ol>
+     *   <li><strong>Pre-index cut</strong>: {@code webhook_subscriptions} table exists (no indexes
+     *       yet) but the script died before {@code webhook_events} and the version marker.
+     *       Exercises the {@code IF OBJECT_ID IS NULL} table guard.</li>
+     *   <li><strong>Post-index cut</strong>: {@code webhook_subscriptions} table AND its two
+     *       indexes ({@code IDX_whsubs_1}, {@code IDX_whsubs_2}) already exist, but
+     *       {@code webhook_events} and the version marker are absent.
+     *       Exercises the {@code sys.indexes} name-lookup guard.</li>
+     * </ol>
+     *
+     * <p>In both cases the full upgrade script is retried and must complete without errors.
+     * Constraint invariants are verified after each retry to confirm that constraints
+     * (FKs, UQ, CHECK) are intact, not just that the tables exist.</p>
      */
     @Test
     void upgrade_partialApplication_isRetryable() throws Exception {
+        // --- Cut point 1: table present, no indexes ---
         try (Connection conn = openConnection()) {
             // Minimal v111 state.
             try (Statement st = conn.createStatement()) {
@@ -158,7 +171,7 @@ class WebhookSchemaMssqlMigrationTest {
             assertDbVersion(conn, 111);
 
             // Simulate partial failure: webhook_subscriptions was committed but the script
-            // died before webhook_events, webhook_delivery_logs, and the version marker ran.
+            // died before its indexes, webhook_events, webhook_delivery_logs, and the version marker.
             try (Statement st = conn.createStatement()) {
                 st.execute(
                         "CREATE TABLE webhook_subscriptions ("
@@ -179,17 +192,70 @@ class WebhookSchemaMssqlMigrationTest {
                         + "PRIMARY KEY (subscriptionId)"
                         + ")");
             }
-            // Version is still 111: the marker had not been written yet (it is last in the script).
             assertDbVersion(conn, 111);
 
             // Retry: the full 112 upgrade script must succeed without errors.
             applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(111, 112));
 
-            // All three webhook tables must now exist and the version must be 112.
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
             assertDbVersion(conn, 112);
+
+            // Verify constraints are intact after retry, not just that tables exist.
+            assertConstraintInvariants(conn);
+        }
+
+        // --- Cut point 2: table + indexes present, webhook_events absent ---
+        // Reset to a blank state before the second cut-point scenario.
+        try (Connection conn = openConnection()) {
+            dropAllTables(conn);
+        }
+        try (Connection conn = openConnection()) {
+            // Minimal v111 state.
+            try (Statement st = conn.createStatement()) {
+                st.execute("CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL PRIMARY KEY, propValue NVARCHAR(512))");
+                st.execute("INSERT INTO apicurio VALUES ('db_version', '111')");
+            }
+            assertDbVersion(conn, 111);
+
+            // Simulate partial failure: webhook_subscriptions AND its two indexes were committed
+            // but the script died before webhook_events. This exercises the sys.indexes guard.
+            try (Statement st = conn.createStatement()) {
+                st.execute(
+                        "CREATE TABLE webhook_subscriptions ("
+                        + "subscriptionId     NVARCHAR(36)   NOT NULL,"
+                        + "name               NVARCHAR(512),"
+                        + "ownerId            NVARCHAR(256)  NOT NULL,"
+                        + "endpointUrl        NVARCHAR(2048) NOT NULL,"
+                        + "eventTypes         NVARCHAR(MAX)  NOT NULL,"
+                        + "groupFilter        NVARCHAR(512),"
+                        + "artifactIdFilter   NVARCHAR(512),"
+                        + "artifactTypeFilter NVARCHAR(32),"
+                        + "enabled            BIT            NOT NULL,"
+                        + "deletedOn          BIGINT,"
+                        + "revision           BIGINT         NOT NULL,"
+                        + "signingSecretRef   NVARCHAR(512),"
+                        + "createdOn          BIGINT         NOT NULL,"
+                        + "modifiedOn         BIGINT         NOT NULL,"
+                        + "PRIMARY KEY (subscriptionId)"
+                        + ")");
+                st.execute("CREATE INDEX IDX_whsubs_1 ON webhook_subscriptions(enabled, deletedOn)");
+                st.execute("CREATE INDEX IDX_whsubs_2 ON webhook_subscriptions(createdOn)");
+            }
+            assertDbVersion(conn, 111);
+
+            // Retry: the full 112 upgrade script must succeed — sys.indexes guards skip
+            // IDX_whsubs_1 and IDX_whsubs_2 that already exist.
+            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(111, 112));
+
+            assertTableExists(conn, "webhook_subscriptions");
+            assertTableExists(conn, "webhook_events");
+            assertTableExists(conn, "webhook_delivery_logs");
+            assertDbVersion(conn, 112);
+
+            // Verify constraints are intact after retry.
+            assertConstraintInvariants(conn);
         }
     }
 

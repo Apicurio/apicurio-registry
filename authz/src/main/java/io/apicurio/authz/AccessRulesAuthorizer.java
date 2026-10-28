@@ -31,7 +31,9 @@ import org.slf4j.LoggerFactory;
  *     <li>rejects a file that refers to resource types this system does not enforce, so a rule that
  *     looks like an access control cannot silently be ignored;</li>
  *     <li>reloads the file when it changes. A file that cannot be loaded leaves the previous rules
- *     in effect, so a bad edit never locks everyone out.</li>
+ *     in effect, so a bad edit never locks everyone out;</li>
+ *     <li>provides the scope of the rules for search pre-filtering ({@link #scope}), from the same
+ *     version of the file as the point decisions.</li>
  * </ul>
  */
 public final class AccessRulesAuthorizer implements Authorizer {
@@ -40,11 +42,15 @@ public final class AccessRulesAuthorizer implements Authorizer {
 
     private final Path rulesFile;
     private final Set<Class<? extends ResourceType<?>>> supportedResourceTypes;
-    private volatile Authorizer rules;
+    /** The authorizer and scope of one version of the file, replaced together on reload. */
+    private record Rules(Authorizer authorizer, AccessRulesScope scope) {
+    }
+
+    private volatile Rules rules;
     private volatile FileTime lastModified;
 
     private AccessRulesAuthorizer(Path rulesFile, Set<Class<? extends ResourceType<?>>> supportedResourceTypes,
-            Authorizer rules, FileTime lastModified) {
+            Rules rules, FileTime lastModified) {
         this.rulesFile = rulesFile;
         this.supportedResourceTypes = supportedResourceTypes;
         this.rules = rules;
@@ -66,7 +72,7 @@ public final class AccessRulesAuthorizer implements Authorizer {
         }
         FileTime lastModified = Files.getLastModifiedTime(rulesFile);
         Set<Class<? extends ResourceType<?>>> supported = Set.copyOf(supportedResourceTypes);
-        Authorizer rules = load(Files.readString(rulesFile), supported);
+        Rules rules = load(Files.readString(rulesFile), supported);
         return new AccessRulesAuthorizer(rulesFile, supported, rules, lastModified);
     }
 
@@ -74,7 +80,7 @@ public final class AccessRulesAuthorizer implements Authorizer {
      * Builds the rules from the file content. The content is read once and loaded from a private
      * copy, so the rules always come from one consistent version of the file.
      */
-    static Authorizer load(String content, Set<Class<? extends ResourceType<?>>> supported) throws IOException {
+    private static Rules load(String content, Set<Class<? extends ResourceType<?>>> supported) throws IOException {
         Path copy = Files.createTempFile("access-rules", ".acl");
         try {
             Files.writeString(copy, content);
@@ -94,7 +100,8 @@ public final class AccessRulesAuthorizer implements Authorizer {
                 throw new IllegalArgumentException("Access rules file refers to resource types that are not "
                         + "enforced here: " + unsupported.stream().map(Class::getName).sorted().toList());
             }
-            return authorizer;
+            // Parsed after AclAuthorizer has validated the same content
+            return new Rules(authorizer, AccessRulesScope.parse(content));
         } finally {
             Files.deleteIfExists(copy);
         }
@@ -102,7 +109,15 @@ public final class AccessRulesAuthorizer implements Authorizer {
 
     @Override
     public CompletionStage<AuthorizeResult> authorize(Identity subject, List<Action> actions) {
-        return rules.authorize(subject, actions);
+        return rules.authorizer().authorize(subject, actions);
+    }
+
+    /**
+     * @return the names of {@code operation}'s resource type that the rules allow {@code subject}
+     *         to perform {@code operation} on, exactly as {@link #authorize} decides them
+     */
+    public SearchFilterData scope(Identity subject, ResourceType<?> operation) {
+        return rules.scope().scope(subject, operation);
     }
 
     @Override

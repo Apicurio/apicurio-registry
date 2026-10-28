@@ -1,8 +1,9 @@
 package io.apicurio.registry.auth.grants;
 
-import io.apicurio.authz.GrantsAuthorizer;
-import io.apicurio.authz.RolePrincipal;
-import io.apicurio.authz.User;
+import io.apicurio.authz.AccessRulesAuthorizer;
+import io.apicurio.authz.Artifact;
+import io.apicurio.authz.Group;
+import io.apicurio.authz.Role;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
@@ -12,6 +13,7 @@ import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.kroxylicious.identity.Subject;
+import io.kroxylicious.proxy.authentication.User;
 import io.quarkus.security.runtime.QuarkusPrincipal;
 import io.quarkus.security.runtime.QuarkusSecurityIdentity;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,8 +23,6 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,22 +40,16 @@ import static org.mockito.Mockito.when;
  */
 public class GrantsAccessControllerTest {
 
-    private static final String GRANTS = """
-            {
-              "config": {"admin_roles": ["sr-admin"]},
-              "grants": [
-                {"principal_role": "team-a-dev", "operation": "write", "resource_type": "artifact",
-                 "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
-                {"principal_role": "team-a-dev", "operation": "read", "resource_type": "artifact",
-                 "resource_pattern_type": "exact", "resource_pattern": "team-a/victim", "deny": true},
-                {"principal_role": "team-a-dev", "operation": "read", "resource_type": "group",
-                 "resource_pattern_type": "exact", "resource_pattern": "TEAM-C"},
-                {"principal_role": "team-a-dev", "operation": "read", "resource_type": "group",
-                 "resource_pattern_type": "exact", "resource_pattern": "team-a"},
-                {"principal": "alice", "operation": "read", "resource_type": "artifact",
-                 "resource_pattern_type": "exact", "resource_pattern": "default/shared"}
-              ]
-            }""";
+    private static final String RULES = """
+            from io.apicurio.authz import Artifact, Group, Role;
+            deny Role with name = "team-a-dev" to * Artifact with name = "team-a/victim";
+            allow Role with name = "team-a-dev" to WRITE Artifact with name like "team-a/*";
+            allow Role with name = "team-a-dev" to READ Group with name in {"team-a", "TEAM-C"};
+            allow User with name = "alice" to READ Artifact with name = "default/shared";
+            allow Role with name = "rules-admin" to * Artifact with name *;
+            allow Role with name = "rules-admin" to * Group with name *;
+            otherwise deny;
+            """;
 
     @TempDir
     Path dir;
@@ -94,12 +88,10 @@ public class GrantsAccessControllerTest {
         return controller;
     }
 
-    private GrantsAuthorizer authorizer() throws Exception {
-        Path grants = dir.resolve("grants.json");
-        Files.writeString(grants, GRANTS);
-        return GrantsAuthorizer.create(grants, Map.of(
-                RegistryResourceType.Artifact.class, "artifact",
-                RegistryResourceType.Group.class, "group"));
+    private AccessRulesAuthorizer authorizer() throws Exception {
+        Path rules = dir.resolve("rules.acl");
+        Files.writeString(rules, RULES);
+        return AccessRulesAuthorizer.create(rules, Set.of(Artifact.class, Group.class));
     }
 
     // ==================== Resource naming ====================
@@ -122,11 +114,11 @@ public class GrantsAccessControllerTest {
     }
 
     @Test
-    void registryResourceTypeImplies() {
-        assertEquals(Set.of(RegistryResourceType.Artifact.Write, RegistryResourceType.Artifact.Read),
-                RegistryResourceType.Artifact.Admin.implies());
-        assertEquals(Set.of(RegistryResourceType.Artifact.Read), RegistryResourceType.Artifact.Write.implies());
-        assertTrue(RegistryResourceType.Artifact.Read.implies().isEmpty());
+    void artifactOperationsImplyWeakerOperations() {
+        assertEquals(Set.of(Artifact.WRITE, Artifact.READ),
+                Artifact.ADMIN.implies());
+        assertEquals(Set.of(Artifact.READ), Artifact.WRITE.implies());
+        assertTrue(Artifact.READ.implies().isEmpty());
     }
 
     // ==================== Uninitialized controller fails closed ====================
@@ -136,7 +128,7 @@ public class GrantsAccessControllerTest {
         GrantsAccessController uninit = controller("alice", "sr-admin");
 
         assertNull(uninit.getAuthorizer());
-        assertNull(uninit.getGrantsData());
+        assertNull(uninit.readScope(Artifact.READ));
         assertFalse(uninit.canReadArtifact("team-a", "x"));
         assertFalse(uninit.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("team-a")));
     }
@@ -147,9 +139,9 @@ public class GrantsAccessControllerTest {
     void currentSubjectMapsUserAndRoles() {
         Subject subject = controller("alice", "sr-developer", "sr-readonly").currentSubject();
 
-        assertEquals(Optional.of(new User("alice")), subject.uniquePrincipalOfType(User.class));
-        assertEquals(Set.of(new RolePrincipal("sr-developer"), new RolePrincipal("sr-readonly")),
-                subject.allPrincipalsOfType(RolePrincipal.class));
+        assertEquals(Set.of(new User("alice")), subject.allPrincipalsOfType(User.class));
+        assertEquals(Set.of(new Role("sr-developer"), new Role("sr-readonly")),
+                subject.allPrincipalsOfType(Role.class));
         assertEquals(3, subject.principals().size());
     }
 
@@ -160,8 +152,8 @@ public class GrantsAccessControllerTest {
 
         Subject subject = controller.currentSubject();
 
-        assertEquals(Set.of(new RolePrincipal(GrantsAccessController.ANONYMOUS_ROLE)), subject.principals());
-        assertEquals(Optional.empty(), subject.uniquePrincipalOfType(User.class));
+        assertEquals(Set.of(new Role(GrantsAccessController.ANONYMOUS_ROLE)), subject.principals());
+        assertEquals(Set.of(), subject.allPrincipalsOfType(User.class));
     }
 
     // ==================== Decisions per resource kind ====================
@@ -169,55 +161,51 @@ public class GrantsAccessControllerTest {
     @Test
     void artifactDecisionsFollowGrantsAndLevels() throws Exception {
         GrantsAccessController dev = controller("bob", "team-a-dev");
-        try (GrantsAuthorizer authorizer = authorizer()) {
-            dev.setAuthorizer(authorizer);
+        AccessRulesAuthorizer authorizer = authorizer();
+        dev.setAuthorizer(authorizer);
 
-            assertTrue(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.artifact("team-a", "orders")));
-            assertTrue(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.artifact("team-a", "orders")));
-            assertFalse(dev.isAllowed(AuthorizedLevel.Admin, AuthorizedResource.artifact("team-a", "orders")));
-            assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.artifact("team-b", "orders")));
-        }
+        assertTrue(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.artifact("team-a", "orders")));
+        assertTrue(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.artifact("team-a", "orders")));
+        assertFalse(dev.isAllowed(AuthorizedLevel.Admin, AuthorizedResource.artifact("team-a", "orders")));
+        assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.artifact("team-b", "orders")));
     }
 
     @Test
     void groupDecisionsUseGroupGrants() throws Exception {
         GrantsAccessController dev = controller("bob", "team-a-dev");
-        try (GrantsAuthorizer authorizer = authorizer()) {
-            dev.setAuthorizer(authorizer);
+        AccessRulesAuthorizer authorizer = authorizer();
+        dev.setAuthorizer(authorizer);
 
-            assertTrue(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("team-a")));
-            // An artifact prefix grant does not grant the group itself
-            assertFalse(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.group("team-a")));
-            assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("team-b")));
-        }
+        assertTrue(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("team-a")));
+        // An artifact prefix grant does not grant the group itself
+        assertFalse(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.group("team-a")));
+        assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("team-b")));
     }
 
     @Test
     void defaultGroupIsMatchedAsDefault() throws Exception {
         GrantsAccessController alice = controller("alice");
-        try (GrantsAuthorizer authorizer = authorizer()) {
-            alice.setAuthorizer(authorizer);
+        AccessRulesAuthorizer authorizer = authorizer();
+        alice.setAuthorizer(authorizer);
 
-            assertTrue(alice.canReadArtifact(null, "shared"));
-            assertTrue(alice.canReadArtifact("default", "shared"));
-            assertFalse(alice.canReadArtifact(null, "other"));
-        }
+        assertTrue(alice.canReadArtifact(null, "shared"));
+        assertTrue(alice.canReadArtifact("default", "shared"));
+        assertFalse(alice.canReadArtifact(null, "other"));
     }
 
     @Test
     void contentIsReadableIfAnyArtifactUsingItIsReadable() throws Exception {
         GrantsAccessController dev = controller("bob", "team-a-dev");
-        try (GrantsAuthorizer authorizer = authorizer()) {
-            dev.setAuthorizer(authorizer);
+        AccessRulesAuthorizer authorizer = authorizer();
+        dev.setAuthorizer(authorizer);
 
-            AuthorizedResource shared = AuthorizedResource.content(List.of(
-                    AuthorizedResource.artifact("team-b", "x"), AuthorizedResource.artifact("team-a", "y")));
-            AuthorizedResource foreign = AuthorizedResource.content(List.of(
-                    AuthorizedResource.artifact("team-b", "x")));
+        AuthorizedResource shared = AuthorizedResource.content(List.of(
+                AuthorizedResource.artifact("team-b", "x"), AuthorizedResource.artifact("team-a", "y")));
+        AuthorizedResource foreign = AuthorizedResource.content(List.of(
+                AuthorizedResource.artifact("team-b", "x")));
 
-            assertTrue(dev.isAllowed(AuthorizedLevel.Read, shared));
-            assertFalse(dev.isAllowed(AuthorizedLevel.Read, foreign));
-        }
+        assertTrue(dev.isAllowed(AuthorizedLevel.Read, shared));
+        assertFalse(dev.isAllowed(AuthorizedLevel.Read, foreign));
     }
 
     @Test
@@ -225,54 +213,50 @@ public class GrantsAccessControllerTest {
         GrantsAccessController owner = controller("owner");
         GrantsAccessController other = controller("other");
         AuthorizedResource content = AuthorizedResource.content(List.of(AuthorizedResource.artifact("team-b", "owned")));
-        try (GrantsAuthorizer authorizer = authorizer()) {
-            owner.setAuthorizer(authorizer);
-            other.setAuthorizer(authorizer);
+        AccessRulesAuthorizer authorizer = authorizer();
+        owner.setAuthorizer(authorizer);
+        other.setAuthorizer(authorizer);
 
-            assertTrue(owner.isAllowed(AuthorizedLevel.Read, content));
-            assertFalse(other.isAllowed(AuthorizedLevel.Read, content));
-        }
+        assertTrue(owner.isAllowed(AuthorizedLevel.Read, content));
+        assertFalse(other.isAllowed(AuthorizedLevel.Read, content));
     }
 
     @Test
-    void contentUsedByNoArtifactIsAllowedOnlyForGrantsAdmins() throws Exception {
-        GrantsAccessController admin = controller("root", "sr-admin");
-        try (GrantsAuthorizer authorizer = authorizer()) {
-            admin.setAuthorizer(authorizer);
+    void contentUsedByNoArtifactIsDeniedEvenWhenTheRulesAllowEverything() throws Exception {
+        GrantsAccessController admin = controller("root", "rules-admin");
+        AccessRulesAuthorizer authorizer = authorizer();
+        admin.setAuthorizer(authorizer);
 
-            assertTrue(admin.isAllowed(AuthorizedLevel.Read, AuthorizedResource.content(List.of())));
-        }
+        // There is no artifact the rules could allow; RBAC admins bypass this check entirely
+        assertFalse(admin.isAllowed(AuthorizedLevel.Read, AuthorizedResource.content(List.of())));
     }
 
     @Test
     void contentUsedByNoArtifactIsDenied() throws Exception {
         GrantsAccessController dev = controller("bob", "team-a-dev");
-        try (GrantsAuthorizer authorizer = authorizer()) {
-            dev.setAuthorizer(authorizer);
+        AccessRulesAuthorizer authorizer = authorizer();
+        dev.setAuthorizer(authorizer);
 
-            assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.content(List.of())));
-        }
+        assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.content(List.of())));
     }
 
     @Test
-    void adminRoleFromGrantsFileIsAllowedEverything() throws Exception {
-        GrantsAccessController admin = controller("root", "sr-admin");
-        try (GrantsAuthorizer authorizer = authorizer()) {
-            admin.setAuthorizer(authorizer);
+    void aRoleAllowedEveryOperationOnEveryResourceIsAllowedEverything() throws Exception {
+        GrantsAccessController admin = controller("root", "rules-admin");
+        AccessRulesAuthorizer authorizer = authorizer();
+        admin.setAuthorizer(authorizer);
 
-            assertTrue(admin.isAllowed(AuthorizedLevel.Admin, AuthorizedResource.artifact("any", "thing")));
-            assertTrue(admin.isAllowed(AuthorizedLevel.Admin, AuthorizedResource.group("any")));
-        }
+        assertTrue(admin.isAllowed(AuthorizedLevel.Admin, AuthorizedResource.artifact("any", "thing")));
+        assertTrue(admin.isAllowed(AuthorizedLevel.Admin, AuthorizedResource.group("any")));
     }
 
     @Test
     void levelNoneIsAlwaysAllowed() throws Exception {
         GrantsAccessController nobody = controller("nobody");
-        try (GrantsAuthorizer authorizer = authorizer()) {
-            nobody.setAuthorizer(authorizer);
+        AccessRulesAuthorizer authorizer = authorizer();
+        nobody.setAuthorizer(authorizer);
 
-            assertTrue(nobody.isAllowed(AuthorizedLevel.None, AuthorizedResource.artifact("team-b", "x")));
-        }
+        assertTrue(nobody.isAllowed(AuthorizedLevel.None, AuthorizedResource.artifact("team-b", "x")));
     }
 
     // ==================== Stored identity ====================
@@ -280,33 +264,31 @@ public class GrantsAccessControllerTest {
     @Test
     void aCaseOnlyChangeDoesNotEscapeADeny() throws Exception {
         GrantsAccessController dev = controller("dev", "team-a-dev");
-        try (GrantsAuthorizer authorizer = authorizer()) {
-            dev.setAuthorizer(authorizer);
+        AccessRulesAuthorizer authorizer = authorizer();
+        dev.setAuthorizer(authorizer);
 
-            // Storage resolves every spelling to team-a/victim, so the deny must apply to all of them
-            for (String artifactId : List.of("victim", "VICTIM", "Victim")) {
-                assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.artifact("team-a", artifactId)),
-                        artifactId);
-                assertFalse(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.artifact("TEAM-A", artifactId)),
-                        artifactId);
-            }
-            // Other artifacts in the group are still writable
-            assertTrue(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.artifact("team-a", "other")));
+        // Storage resolves every spelling to team-a/victim, so the deny must apply to all of them
+        for (String artifactId : List.of("victim", "VICTIM", "Victim")) {
+            assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.artifact("team-a", artifactId)),
+                    artifactId);
+            assertFalse(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.artifact("TEAM-A", artifactId)),
+                    artifactId);
         }
+        // Other artifacts in the group are still writable
+        assertTrue(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.artifact("team-a", "other")));
     }
 
     @Test
     void grantsApplyToTheStoredGroupSpelling() throws Exception {
         GrantsAccessController dev = controller("dev", "team-a-dev");
-        try (GrantsAuthorizer authorizer = authorizer()) {
-            dev.setAuthorizer(authorizer);
+        AccessRulesAuthorizer authorizer = authorizer();
+        dev.setAuthorizer(authorizer);
 
-            // TEAM-A resolves to the stored group team-a, also for an artifact not created yet
-            assertTrue(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("TEAM-A")));
-            assertTrue(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.artifact("TEAM-A", "new")));
-            // A group that does not exist keeps the requested spelling
-            assertTrue(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("TEAM-C")));
-            assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("team-c")));
-        }
+        // TEAM-A resolves to the stored group team-a, also for an artifact not created yet
+        assertTrue(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("TEAM-A")));
+        assertTrue(dev.isAllowed(AuthorizedLevel.Write, AuthorizedResource.artifact("TEAM-A", "new")));
+        // A group that does not exist keeps the requested spelling
+        assertTrue(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("TEAM-C")));
+        assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("team-c")));
     }
 }

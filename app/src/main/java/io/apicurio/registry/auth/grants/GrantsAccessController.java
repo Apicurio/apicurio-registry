@@ -6,10 +6,11 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 
-import io.apicurio.authz.GrantsAuthorizer;
-import io.apicurio.authz.GrantsData;
-import io.apicurio.authz.RolePrincipal;
-import io.apicurio.authz.User;
+import io.apicurio.authz.Artifact;
+import io.apicurio.authz.Group;
+import io.apicurio.authz.AccessRulesAuthorizer;
+import io.apicurio.authz.Role;
+import io.apicurio.authz.SearchFilterData;
 import io.apicurio.registry.auth.AbstractAccessController;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
@@ -24,6 +25,7 @@ import io.kroxylicious.authorizer.service.Decision;
 import io.kroxylicious.authorizer.service.ResourceType;
 import io.kroxylicious.identity.Principal;
 import io.kroxylicious.identity.Subject;
+import io.kroxylicious.proxy.authentication.User;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -34,9 +36,8 @@ import org.slf4j.LoggerFactory;
 import static io.apicurio.registry.utils.StringUtil.sanitizeForLog;
 
 /**
- * Per-resource authorization backed by a Kroxylicious {@link io.kroxylicious.authorizer.service.Authorizer}
- * (the grants-file based {@link GrantsAuthorizer}). Resources are named by
- * {@link AuthorizationNames}.
+ * Per-resource authorization backed by an access rules file in the Kroxylicious ACL rules format,
+ * evaluated by {@link AccessRulesAuthorizer}. Resources are named by {@link AuthorizationNames}.
  */
 @Singleton
 public class GrantsAccessController extends AbstractAccessController {
@@ -45,8 +46,8 @@ public class GrantsAccessController extends AbstractAccessController {
     private static final Logger AUDIT = LoggerFactory.getLogger("io.apicurio.registry.audit.authz");
 
     /**
-     * Role given to unauthenticated callers, so grants can allow anonymous access explicitly with
-     * {@code "principal_role": "$anonymous"}. Never matches a {@code principal} grant.
+     * Role given to unauthenticated callers, so access rules can allow anonymous access explicitly
+     * with {@code Role with name = "$anonymous"}. Never matches a {@code User} rule.
      */
     public static final String ANONYMOUS_ROLE = "$anonymous";
 
@@ -60,9 +61,9 @@ public class GrantsAccessController extends AbstractAccessController {
     @Inject
     GrantsAccessControllerConfig config;
 
-    private volatile GrantsAuthorizer authorizer;
+    private volatile AccessRulesAuthorizer authorizer;
 
-    void setAuthorizer(GrantsAuthorizer authorizer) {
+    void setAuthorizer(AccessRulesAuthorizer authorizer) {
         this.authorizer = authorizer;
     }
 
@@ -76,13 +77,17 @@ public class GrantsAccessController extends AbstractAccessController {
         this.storage = storage;
     }
 
-    public GrantsAuthorizer getAuthorizer() {
+    public AccessRulesAuthorizer getAuthorizer() {
         return authorizer;
     }
 
-    GrantsData getGrantsData() {
-        GrantsAuthorizer current = authorizer;
-        return current != null ? current.getGrantsData() : null;
+    /**
+     * @return the names the access rules allow the current caller to read, for search
+     *         pre-filtering; null if per-resource authorization is not initialized
+     */
+    SearchFilterData readScope(ResourceType<?> readOperation) {
+        AccessRulesAuthorizer current = authorizer;
+        return current != null ? current.scope(currentSubject(), readOperation) : null;
     }
 
     @Override
@@ -165,7 +170,7 @@ public class GrantsAccessController extends AbstractAccessController {
     /**
      * Content can be shared by many artifacts: access is allowed if the caller may access at least
      * one artifact using it, or owns one. Content no artifact uses (including unknown IDs) is
-     * denied, except for grants-file admins.
+     * denied: there is no artifact the access rules could allow.
      */
     private boolean decideContent(Subject subject, AuthorizedLevel level, List<AuthorizedResource> users) {
         ResourceType<?> operation = toArtifactOp(level);
@@ -173,20 +178,12 @@ public class GrantsAccessController extends AbstractAccessController {
                 .map(u -> new Action(operation, buildResourceName(u.groupId(), u.artifactId())))
                 .distinct()
                 .toList();
-        boolean allowed = actions.isEmpty()
-                ? isGrantsAdmin()
-                : !authorize(subject, actions).allowed().isEmpty()
+        boolean allowed = !actions.isEmpty()
+                && (!authorize(subject, actions).allowed().isEmpty()
                         // Owners bypass grants for their artifacts, so also for their content
-                        || users.stream().anyMatch(this::isStrictOwner);
+                        || users.stream().anyMatch(this::isStrictOwner));
         record(allowed, TYPE_CONTENT, level, "content used by " + actions.size() + " artifact(s)");
         return allowed;
-    }
-
-    /** Grants-file admins have access even when there is no artifact to evaluate. */
-    private boolean isGrantsAdmin() {
-        GrantsData data = getGrantsData();
-        return data != null && securityIdentity != null && !securityIdentity.isAnonymous()
-                && data.isAdmin(securityIdentity.getRoles());
     }
 
     private boolean decide(Subject subject, ResourceType<?> operation, String resourceType,
@@ -198,7 +195,7 @@ public class GrantsAccessController extends AbstractAccessController {
     }
 
     private AuthorizeResult authorize(Subject subject, List<Action> actions) {
-        // GrantsAuthorizer evaluates in-memory and always returns a completed stage
+        // The access rules are evaluated in memory, so the stage is always complete
         return authorizer.authorize(subject, actions).toCompletableFuture().join();
     }
 
@@ -222,17 +219,18 @@ public class GrantsAccessController extends AbstractAccessController {
 
     /**
      * Maps the current Quarkus {@link SecurityIdentity} to a Kroxylicious {@link Subject}: one
-     * {@link User} principal plus one {@link RolePrincipal} per role. Unauthenticated callers get
-     * only the {@link #ANONYMOUS_ROLE} role.
+     * {@link User} principal, the Kroxylicious user class that access rules use for {@code User}
+     * by default, plus one {@link Role} per role. Unauthenticated callers get only the
+     * {@link #ANONYMOUS_ROLE} role.
      */
     public Subject currentSubject() {
         if (securityIdentity == null || securityIdentity.isAnonymous()) {
-            return new Subject(Set.of(new RolePrincipal(ANONYMOUS_ROLE)));
+            return new Subject(Set.of(new Role(ANONYMOUS_ROLE)));
         }
         Set<Principal> principals = new HashSet<>();
         principals.add(new User(securityIdentity.getPrincipal().getName()));
         for (String role : securityIdentity.getRoles()) {
-            principals.add(new RolePrincipal(role));
+            principals.add(new Role(role));
         }
         return new Subject(principals);
     }
@@ -251,19 +249,19 @@ public class GrantsAccessController extends AbstractAccessController {
         return AuthorizationNames.group(groupId);
     }
 
-    private static RegistryResourceType.Artifact toArtifactOp(AuthorizedLevel level) {
+    private static Artifact toArtifactOp(AuthorizedLevel level) {
         return switch (level) {
-            case Read, None -> RegistryResourceType.Artifact.Read;
-            case Write -> RegistryResourceType.Artifact.Write;
-            case Admin, AdminOrOwner -> RegistryResourceType.Artifact.Admin;
+            case Read, None -> Artifact.READ;
+            case Write -> Artifact.WRITE;
+            case Admin, AdminOrOwner -> Artifact.ADMIN;
         };
     }
 
-    private static RegistryResourceType.Group toGroupOp(AuthorizedLevel level) {
+    private static Group toGroupOp(AuthorizedLevel level) {
         return switch (level) {
-            case Read, None -> RegistryResourceType.Group.Read;
-            case Write -> RegistryResourceType.Group.Write;
-            case Admin, AdminOrOwner -> RegistryResourceType.Group.Admin;
+            case Read, None -> Group.READ;
+            case Write -> Group.WRITE;
+            case Admin, AdminOrOwner -> Group.ADMIN;
         };
     }
 }

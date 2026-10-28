@@ -383,6 +383,7 @@
 
     <!-- Kroxylicious Authorizer API (shared authorization contract) -->
     <kroxylicious.version>0.25.1</kroxylicious.version>
+    <re2j.version>1.8</re2j.version>
   </properties>
 
   <dependencyManagement>
@@ -408,6 +409,33 @@
         <groupId>io.kroxylicious</groupId>
         <artifactId>kroxylicious-authorizer-api</artifactId>
         <version>${kroxylicious.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.kroxylicious</groupId>
+        <artifactId>kroxylicious-authorizer-acl</artifactId>
+        <version>${kroxylicious.version}</version>
+        <exclusions>
+          <!-- kroxylicious-api's Kafka record compression libraries; not used by the ACL authorizer -->
+          <exclusion>
+            <groupId>com.github.luben</groupId>
+            <artifactId>zstd-jni</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>at.yawk.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <!-- Regex engine of the ACL rules (kroxylicious-authorizer-acl); pinned so that an older
+             transitive test dependency doesn't win -->
+        <groupId>com.google.re2j</groupId>
+        <artifactId>re2j</artifactId>
+        <version>${re2j.version}</version>
       </dependency>
 
       <!-- This project -->

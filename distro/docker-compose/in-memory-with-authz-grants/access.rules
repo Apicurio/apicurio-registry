@@ -1,0 +1,21 @@
+// Access rules for this example, in the Kroxylicious ACL rules format. See README.md.
+// admin has the sr-admin role: RBAC admins bypass these rules.
+from io.apicurio.authz import Artifact, Group, Role;
+
+// developer owns team-a, but not its secret schema
+deny User with name = "developer" to * Artifact with name = "team-a/secret-schema";
+allow User with name = "developer" to WRITE Group with name = "team-a";
+allow User with name = "developer" to WRITE Artifact with name like "team-a/*";
+
+// developer can read one schema of team-b
+allow User with name = "developer" to READ Group with name = "team-b";
+allow User with name = "developer" to READ Artifact with name = "team-b/public-schema";
+
+// every developer and read-only user can read the shared group
+allow Role with name in {"sr-developer", "sr-readonly"} to READ Group with name = "shared";
+allow Role with name in {"sr-developer", "sr-readonly"} to READ Artifact with name like "shared/*";
+
+// unauthenticated callers can read one schema
+allow Role with name = "$anonymous" to READ Artifact with name = "shared/common-types";
+
+otherwise deny;

@@ -4,7 +4,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import io.apicurio.authz.GrantsData;
+import io.apicurio.authz.Artifact;
+import io.apicurio.authz.Group;
 import io.apicurio.authz.SearchFilterData;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.ResourceAccessGuard;
@@ -17,6 +18,7 @@ import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.kroxylicious.authorizer.service.ResourceType;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -28,9 +30,10 @@ import org.slf4j.LoggerFactory;
  * adding an {@link AuthorizationFilter} that storage translates into its query. Filtering in the
  * query (rather than after it) keeps pagination and total counts accurate.
  *
- * <p>The filter selects exactly what point access allows: the grants patterns are passed through
- * unchanged, admins and the same bypasses as point access see everything, and owners see
- * their own resources unless the owner bypass is disabled.</p>
+ * <p>The filter selects exactly what point access allows: the scope of the access rules is passed
+ * through unchanged, the same bypasses as point access see everything, and owners see their own
+ * resources unless the owner bypass is disabled. Rules with {@code matching} patterns cannot be
+ * evaluated by storage, so a caller whose scope has patterns gets no results (fail closed).</p>
  */
 @ApplicationScoped
 public class GrantsSearchFilter {
@@ -55,7 +58,7 @@ public class GrantsSearchFilter {
 
     public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDir, int offset, int limit, boolean skipCount) {
-        Set<SearchFilter> restricted = restrict(filters, "artifact");
+        Set<SearchFilter> restricted = restrict(filters, Artifact.READ);
         if (restricted == null) {
             return emptyArtifactResults();
         }
@@ -64,7 +67,7 @@ public class GrantsSearchFilter {
 
     public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDir, int offset, int limit) {
-        Set<SearchFilter> restricted = restrict(filters, "group");
+        Set<SearchFilter> restricted = restrict(filters, Group.READ);
         if (restricted == null) {
             return emptyGroupResults();
         }
@@ -73,7 +76,7 @@ public class GrantsSearchFilter {
 
     public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
             OrderDirection orderDir, int offset, int limit, boolean skipCount) {
-        Set<SearchFilter> restricted = restrict(filters, "artifact");
+        Set<SearchFilter> restricted = restrict(filters, Artifact.READ);
         if (restricted == null) {
             return emptyVersionResults();
         }
@@ -84,22 +87,25 @@ public class GrantsSearchFilter {
      * @return the filters, extended with the caller's authorization restriction; or null if the
      *         caller can read nothing (so the search can be skipped)
      */
-    Set<SearchFilter> restrict(Set<SearchFilter> filters, String resourceType) {
+    Set<SearchFilter> restrict(Set<SearchFilter> filters, ResourceType<?> readOperation) {
         if (!guard.isEnforced(AuthorizedLevel.Read)) {
             return filters;
         }
-        GrantsData data = grantsAc.getGrantsData();
-        if (data == null) {
+        SearchFilterData grants = grantsAc.readScope(readOperation);
+        if (grants == null) {
             // Enabled but not initialized: point access denies everything, and so must search
             LOG.error("Per-resource authorization is enabled but not initialized, denying search access.");
             return null;
         }
         String user = getUsername();
-        Set<String> roles = getRoles();
-        if (data.isAdmin(roles)) {
-            return filters;
+        if (grants.hasPatterns()) {
+            // SQL and Elasticsearch can't evaluate RE2 patterns. Ignoring a denied pattern would
+            // expose resources and ignoring an allowed one would hide them, so fail closed.
+            LOG.warn("Search returns no results: the access rules of this caller use 'matching' for {} "
+                    + "resources, which search cannot evaluate. Use '=', 'in' or 'like' for resources that "
+                    + "must be searchable.", readOperation.getClass().getSimpleName());
+            return null;
         }
-        SearchFilterData grants = data.getSearchFilterData(user, roles, resourceType);
         if (grants.allowsEverything()) {
             return filters;
         }
@@ -112,7 +118,7 @@ public class GrantsSearchFilter {
         restricted.add(SearchFilter.ofAuthorization(new AuthorizationFilter(grants.allowAll(),
                 grants.allowedExact(), grants.allowedPrefix(), grants.deniedExact(),
                 grants.deniedPrefix(), owner)));
-        LOG.debug("Search restricted by grants: user={}, type={}, filter={}", user, resourceType, grants);
+        LOG.debug("Search restricted by access rules: user={}, operation={}, filter={}", user, readOperation, grants);
         return restricted;
     }
 
@@ -122,13 +128,6 @@ public class GrantsSearchFilter {
         }
         // null rather than a sentinel string, so no named grant or owner can ever match it
         return null;
-    }
-
-    private Set<String> getRoles() {
-        if (securityIdentity != null && !securityIdentity.isAnonymous()) {
-            return securityIdentity.getRoles();
-        }
-        return Set.of(GrantsAccessController.ANONYMOUS_ROLE);
     }
 
     private static ArtifactSearchResultsDto emptyArtifactResults() {

@@ -4,8 +4,8 @@ name: Verify Docs (reusable)
 # (the PR changes docs/ or docs-playbook/, or CI workflows). Part of the Verify
 # Result gate, so a docs problem blocks merging like a failed test does.
 #
-# Builds the docs of this commit and of its base with Antora, using the
-# published playbook's AsciiDoc attributes and UI bundle but this checkout as
+# Builds the docs of this commit and of its base with Antora, each with its own
+# published playbook's AsciiDoc attributes and UI bundle but its checkout as
 # the content source (docs-build.sh), then fails on any error or warning the
 # base does not have (docs-check.js): broken xrefs and includes are Antora
 # errors, unknown attribute references are warnings. Problems already on the
@@ -54,9 +54,12 @@ jobs:
           git clone --quiet --no-tags --shared . "$RUNNER_TEMP/base"
           git -C "$RUNNER_TEMP/base" checkout --quiet --detach "$(git rev-parse "$BASE")"
 
+      # Each side is built with its own playbook. Building the base with the
+      # head's playbook would hide a playbook change that breaks the build:
+      # its warnings would show up on both sides and count as existing.
       - name: Build the docs
         run: |
-          .github/scripts/docs-build.sh "$RUNNER_TEMP/base" docs-playbook/docs-playbook.yml "$RUNNER_TEMP/base.log"
+          .github/scripts/docs-build.sh "$RUNNER_TEMP/base" "$RUNNER_TEMP/base/docs-playbook/docs-playbook.yml" "$RUNNER_TEMP/base.log"
           .github/scripts/docs-build.sh . docs-playbook/docs-playbook.yml "$RUNNER_TEMP/head.log"
 
       - name: Compare with the base

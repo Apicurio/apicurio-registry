@@ -151,9 +151,12 @@ test('shipped pr-lifecycle.yml classifies representative PRs', t => {
   assert.deepEqual(docsOnly.reviewRequiredFiles(
     [file('docs/modules/ROOT/pages/getting-started/assembly-intro.adoc')], settings), []);
 
-  // docs-playbook/: the playbooks are docs, the build code is not.
-  assert.equal(docsOnly.isDocsOnly([file('docs-playbook/docs-playbook.yml')], settings), true);
-  assert.equal(docsOnly.isDocsOnly([file('docs-playbook/supplemental_ui/partials/header.hbs')], settings), true);
+  // docs-playbook/: the playbooks are docs, the build code is not. Both still
+  // need a human review: the playbook and the UI supplements run as code.
+  for (const name of ['docs-playbook/docs-playbook.yml', 'docs-playbook/supplemental_ui/partials/header.hbs']) {
+    assert.equal(docsOnly.isDocsOnly([file(name)], settings), true, name);
+    assert.deepEqual(docsOnly.reviewRequiredFiles([file(name)], settings), [name], name);
+  }
   for (const name of ['docs-playbook/_build-all.sh', 'docs-playbook/build.sh', 'docs-playbook/Dockerfile',
     'docs-playbook/package.json', 'docs-playbook/package-lock.json', 'docs/scripts/apicurio-export-registry-data.sh']) {
     assert.equal(docsOnly.isDocsOnly([file(name)], settings), false, name);

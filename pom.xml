@@ -263,7 +263,7 @@
     <commons-codec.version>1.23.0</commons-codec.version>
     <netty.version>4.1.139.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
-    <kafka-oauth-client.version>0.18.0</kafka-oauth-client.version>
+    <kafka-oauth-client.version>0.18.1</kafka-oauth-client.version>
     <debezium.version>3.7.0.Final</debezium.version>
     <pulsar-clients.version>4.2.5</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
@@ -279,7 +279,7 @@
     <slf4j.version>2.0.17</slf4j.version>
 
     <!-- Kafka Connect -->
-    <connect.version>4.3.1</connect.version>
+    <connect.version>4.4.0</connect.version>
 
     <!-- Specifications -->
     <annotation-api.version>3.0.0</annotation-api.version>
@@ -323,7 +323,7 @@
     <flink.version>1.20.5</flink.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.10.3</kiota.libs.version>
+    <kiota.libs.version>1.10.4</kiota.libs.version>
     <kiota.community.version>0.0.39</kiota.community.version>
     <!-- 0.0.39 retries transient ETXTBSY during process startup
          (https://bugs.openjdk.org/browse/JDK-8068370) and publishes

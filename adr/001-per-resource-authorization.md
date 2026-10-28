@@ -79,24 +79,34 @@ file changes; an invalid file keeps the previous rules).
 **Semantics that differ from the JSON grants** (verified against `AclAuthorizer` 0.25.1):
 - A `deny` also denies the operations its operation implies: denying `WRITE` also denies `READ`. A
   resource can't be made read-only by denying `WRITE`; instead, allow only `READ`.
-- A `deny` does not deny operations that imply it: denying `READ` leaves `WRITE` allowed if an
-  `allow` matches. To hide a resource completely, deny `*`.
+- A `deny` does not deny operations that imply it: denying `READ` leaves `WRITE` allowed, and
+  denying `WRITE` leaves `ADMIN` allowed, if an `allow` matches. To hide a resource completely, deny
+  `*` (or `ADMIN`).
 - Names are opaque strings. Registry's `group/artifact` naming, with `%` and `/` escaped in the group
   ID, is a Registry convention, not part of the format.
 
-**How Registry reads the file.** `AclAuthorizerService` resolves imported classes with
-`Class.forName` in its own class loader. Under Quarkus test and dev class loading, that finds a second
-copy of Registry's resource types, which is not a `ResourceType` in its view, so it rejects every
-Registry rules file. Registry therefore parses the file once with the Kroxylicious parser
-(`AclRulesParser`), resolves classes in its own class loader, validates as `AclAuthorizerService`
-does, and builds the real `AclAuthorizer` through its public builder (`io.apicurio.authz.AccessRules`).
-Tests check, against `AclAuthorizerService`, that decisions are identical and that the same files are
-accepted and rejected.
+**How Registry reads and evaluates the file.** Registry uses the format, not (yet) the Kroxylicious
+evaluator (`io.apicurio.authz.AccessRules`):
+- **Reading.** `AclAuthorizerService` resolves imported classes with `Class.forName` in its own class
+  loader. Under Quarkus test and dev class loading, that finds a second copy of Registry's resource
+  types, which is not a `ResourceType` in its view, so it rejects every Registry rules file. Registry
+  parses the file with the Kroxylicious parser (`AclRulesParser`), resolves classes in its own class
+  loader, and validates as `AclAuthorizerService` does. Tests check that the same files are accepted
+  and rejected.
+- **Evaluating.** `AclAuthorizer` 0.25.1 mis-evaluates prefixes. A principal `like` rule also matches
+  principals of other classes with that name prefix, so `allow Role with name like "reader-*"`
+  allows a `User` named `reader-bob`. Of several overlapping resource prefixes, only the
+  lexicographically closest is checked, so an allow can be lost and **a deny bypassed**. Registry
+  therefore evaluates the parsed rules itself with the semantics above, and returns to `AclAuthorizer`
+  once these are fixed upstream. Tests check that decisions otherwise agree with `AclAuthorizer`, and
+  pin the upstream bugs so a fix is noticed.
 
-**Search.** Search pre-filtering needs the scope of the rules, not just point decisions. Until the
-shared resource scope API ([#10601](https://github.com/Apicurio/apicurio-registry/issues/10601)) is
-implemented by `AclAuthorizer`, Registry computes the scope from the same parse, following
-`AclAuthorizer`'s matching; a test checks that the scope selects exactly what point access allows. `=` and `in` map to exact names, `like` to prefixes, `*` to allow-all
+**Search.** Search pre-filtering needs the scope of the rules, not just point decisions. Point
+decisions and the scope come from the same parse and the same matching, so search selects exactly
+what point access allows. A test checks this invariant, including on overlapping and cross-class
+prefixes. The scope moves to the shared resource scope API
+([#10601](https://github.com/Apicurio/apicurio-registry/issues/10601)) once an upstream evaluator
+implements it. `=` and `in` map to exact names, `like` to prefixes, `*` to allow-all
 and `matching` to patterns. SQL and Elasticsearch can't evaluate RE2 patterns, so a grant-restricted
 search whose scope contains patterns fails closed. Use `=`, `in` or `like` for Registry resources
 where search matters.
@@ -113,8 +123,10 @@ where search matters.
   libraries) only for the `@Plugin` annotation.
 - `AclAuthorizer.authorize()` still takes the deprecated `Identity`; the proposal uses `Subject`.
 - `AclAuthorizerService` resolves classes in its own class loader, which fails under Quarkus test
-  and dev class loading (see "How Registry reads the file"). A way to supply a class resolver would
-  let Registry use it directly.
+  and dev class loading (see "How Registry reads and evaluates the file"). A way to supply a class
+  resolver would let Registry use it directly.
+- `AclAuthorizer` prefix matching: principal prefixes ignore the principal class, and overlapping
+  resource prefixes check only the closest one (an allow is lost, a deny bypassed).
 - The parser removes every backslash in a regex literal, so `/a\.b/` is the regex `a.b`.
 - The lexer reads a block comment (`/* … */`) as a regex literal, so block comments are syntax
   errors; only `//` comments work.

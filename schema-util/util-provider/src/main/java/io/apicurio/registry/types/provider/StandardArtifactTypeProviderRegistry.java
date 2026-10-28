@@ -78,6 +78,8 @@ import io.apicurio.registry.wsdl.content.WsdlContentAccepter;
 import io.apicurio.registry.wsdl.content.extract.WsdlOrXsdContentExtractor;
 import io.apicurio.registry.wsdl.content.extract.WsdlStructuredContentExtractor;
 import io.apicurio.registry.wsdl.rules.validity.WsdlContentValidator;
+import io.apicurio.registry.xml.content.dereference.XmlReferenceDereferencer;
+import io.apicurio.registry.xml.content.refs.XmlReferenceFinder;
 import io.apicurio.registry.xml.content.XmlContentAccepter;
 import io.apicurio.registry.xml.content.canon.XmlContentCanonicalizer;
 import io.apicurio.registry.xml.content.extract.XmlStructuredContentExtractor;
@@ -175,6 +177,8 @@ public class StandardArtifactTypeProviderRegistry {
                 .validator(WsdlContentValidator::new)
                 .extractor(WsdlOrXsdContentExtractor::new)
                 .structuredContentExtractor(WsdlStructuredContentExtractor::new)
+                .dereferencer(XmlReferenceDereferencer::new)
+                .referenceFinder(XmlReferenceFinder::new)
                 .build());
         PROVIDERS.put(ArtifactType.XSD, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_XML))
@@ -184,6 +188,8 @@ public class StandardArtifactTypeProviderRegistry {
                 .validator(XsdContentValidator::new)
                 .extractor(WsdlOrXsdContentExtractor::new)
                 .structuredContentExtractor(XsdStructuredContentExtractor::new)
+                .dereferencer(XmlReferenceDereferencer::new)
+                .referenceFinder(XmlReferenceFinder::new)
                 .build());
         PROVIDERS.put(ArtifactType.XML, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_XML))

@@ -12,7 +12,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
 
 /**
  * Tests MCP well-known endpoints when experimental/A2A are on but MCP tools are off.
@@ -67,7 +66,7 @@ public class McpToolsFeatureGateTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(404)
                 .body("status", equalTo(404))
-                .body("title", notNullValue());
+                .body("title", equalTo("MCP tools support is disabled"));
     }
 
     @Test

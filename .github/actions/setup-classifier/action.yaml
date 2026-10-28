@@ -16,7 +16,7 @@ runs:
     - name: Set up Python
       uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
       with:
-        python-version: '3.14.9'
+        python-version: '3.14.10'
 
     - name: Cache pip packages
       uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6

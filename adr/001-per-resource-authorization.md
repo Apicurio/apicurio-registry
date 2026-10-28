@@ -5,6 +5,8 @@
 - **Authors:** Carles Arnal
 - **PR:** [#7829](https://github.com/Apicurio/apicurio-registry/pull/7829)
 - **Issue:** [#7724](https://github.com/Apicurio/apicurio-registry/issues/7724)
+- **Amended:** 2026-10-26: the grants file format is shared with Kroxylicious and StreamsHub
+  Console, not specific to Registry (see "Grants file format" and "Cross-system sharing").
 
 ## Context
 
@@ -32,6 +34,14 @@ The only approach that gives correct pagination is **translating authorization r
 ## Design
 
 ### Grants file format
+
+The grants file format is **shared**: Registry, Kroxylicious and StreamsHub Console read the same
+format, so one file can describe access across all of them. The format is defined jointly with
+Kroxylicious rather than by Registry alone. The current Registry format below is the starting
+point. Changes are agreed together, such as pattern matching with RE2 syntax, which Kroxylicious
+already supports. The format is published as a shared contract with a JSON Schema
+([#10602](https://github.com/Apicurio/apicurio-registry/issues/10602)), alongside the shared
+resource scope API ([#10601](https://github.com/Apicurio/apicurio-registry/issues/10601)).
 
 A JSON file defines who can access what. Each grant maps a principal (user or IdP role) to an operation on a resource pattern:
 
@@ -245,6 +255,11 @@ File polling was chosen over `WatchService` because `WatchService` is unreliable
 
 ### Cross-system sharing
 
+The grants file format is shared across systems (see "Grants file format"). What is common is the
+format: fields, operations, pattern types and matching rules. How resource names are built is up
+to each system. Registry's `group/artifact` naming, with `%` and `/` escaped in the group ID, is a
+Registry convention, not part of the format. Names are opaque strings to the format.
+
 The grants file supports multiple `resource_type` values. Each system defines its own resource types and reads only the grants relevant to it:
 
 ```json
@@ -257,7 +272,7 @@ The grants file supports multiple `resource_type` values. Each system defines it
 }
 ```
 
-One ConfigMap, one source of truth. Because `GrantsAuthorizer` implements the Kroxylicious `Authorizer` API, other projects (Kroxylicious, StreamsHub Console) can consume the `authz` module without Registry-specific dependencies.
+One ConfigMap, one source of truth. Because `GrantsAuthorizer` implements the Kroxylicious `Authorizer` API, other projects (Kroxylicious, StreamsHub Console) can consume the `authz` module without Registry-specific dependencies. Kroxylicious is building a unified authorizer that reads the same format.
 
 ### Observability
 
@@ -366,11 +381,16 @@ With hundreds of grants per user, the search `WHERE` clause becomes large (one `
 
 **Impact:** limits adoption to team-level, role-based deployments (5-50 grants). **Mitigation:** role-based grants (`principal_role`) keep the per-user count small. For enterprise scale, evolve to database-backed grants with ACL table JOINs.
 
-### 6. Grants format is not a standard
+### 6. Grants format is shared, but not an industry standard
 
-The JSON format is our own. Cross-system adoption depends on other projects agreeing to use it. The Kroxylicious `Authorizer` interface is pluggable for point-access checks — alternative implementations can be provided — but search pre-filtering currently depends on `GrantsData`, and the grants file format itself is not interchangeable with OPA/Rego, OpenFGA, or Kafka ACLs.
+The grants format is shared with Kroxylicious and StreamsHub Console and defined jointly with
+Kroxylicious, but it is not an industry standard. It is not interchangeable with OPA/Rego, OpenFGA
+or Kafka ACLs. Changes to the format now need agreement across projects, and Registry can't change
+it on its own.
 
-**Impact:** organizational adoption challenge. **Mitigation:** format is intentionally simple (7 fields per grant), readable without tooling, and a JSON Schema can provide validation ([#10602](https://github.com/Apicurio/apicurio-registry/issues/10602)).
+**Impact:** format changes are coordinated across projects. **Mitigation:** the format is simple
+(7 fields per grant) and readable without tooling, and it is published with a JSON Schema and
+versioned as a shared contract ([#10602](https://github.com/Apicurio/apicurio-registry/issues/10602)).
 
 ### 7. RBAC constrains grants
 
@@ -402,12 +422,12 @@ behind. This predates per-resource authorization
 - Correct pagination: page sizes, total counts, and offsets are accurate
 - No external dependencies: no OPA sidecar, no Keycloak resource sync, no Zanzibar
 - Hot-reload: permission changes take effect within seconds without restart
-- Cross-system potential: same grants file can be shared with Kroxylicious, StreamsHub Console
+- Shared grants format: one grants file describes access across Registry, Kroxylicious and StreamsHub Console
 - Defense-in-depth: grants layer adds to RBAC + OBAC, does not replace them
 
 ### Negative
 
-- New JSON format to learn and manage (not a standard)
+- Grants format is shared but not an industry standard; changes must be agreed across projects
 - File-based grants have a scale ceiling (~500 grants)
 - Adds latency to every authorized request (grant evaluation) and globalId requests (storage lookup)
 - Search pre-filtering is tied to the grants implementation (`GrantsData`), not the Kroxylicious `Authorizer` API
@@ -415,7 +435,7 @@ behind. This predates per-resource authorization
 ### Neutral
 
 - Grants are managed as a file (GitOps or ConfigMap). The file can be shared across systems, so an editing UI belongs in a shared tool such as StreamsHub Console rather than in Registry
-- Grants format is versioned implicitly by the parser, not explicitly in the file
+- Grants format is versioned with its shared JSON Schema ([#10602](https://github.com/Apicurio/apicurio-registry/issues/10602)); today the parser defines it implicitly
 - The shared `authz` module is in the Registry repo, not a standalone project
 
 ## Implementation Status

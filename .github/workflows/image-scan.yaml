@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.repository_owner == 'Apicurio'
     strategy:
+      fail-fast: false
       matrix:
         snapshot-tag: ['latest-snapshot', '3.3.x-snapshot']
     steps:
@@ -29,6 +30,8 @@ jobs:
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
           vuln-type: 'os,library'
+          scanners: 'vuln'
+          trivyignores: '.github/trivy/trivyignore.yaml'
           ignore-unfixed: true
 
       - name: Upload Trivy scan results to GitHub Security tab
@@ -45,6 +48,8 @@ jobs:
           output: 'trivy-results-mutable.sarif'
           severity: 'CRITICAL,HIGH'
           vuln-type: 'os,library'
+          scanners: 'vuln'
+          trivyignores: '.github/trivy/trivyignore.yaml'
           ignore-unfixed: true
 
       - name: Upload Trivy scan results to GitHub Security tab (mutable image)

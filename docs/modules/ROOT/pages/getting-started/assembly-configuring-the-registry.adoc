@@ -230,7 +230,9 @@ To enable OpenTelemetry observability, configure the following environment varia
 |`QUARKUS_OTEL_SDK_DISABLED`
 |Set to `false` to enable the OpenTelemetry SDK and all telemetry signals. Default is `true` (disabled).
 |`QUARKUS_OTEL_EXPORTER_OTLP_ENDPOINT`
-|The endpoint URL of your OpenTelemetry collector. For example, `http://jaeger:4317` for gRPC or `http://jaeger:4318` for HTTP.
+|The endpoint URL of your OpenTelemetry collector. The port must match the exporter protocol: use `http://jaeger:4317` for the default `grpc` protocol, or `http://jaeger:4318` for the `http/protobuf` protocol.
+|`QUARKUS_OTEL_EXPORTER_OTLP_PROTOCOL`
+|The protocol that the OTLP exporter uses. Default is `grpc`, which matches collector port 4317. Set to `http/protobuf` when the endpoint uses HTTP port 4318.
 |===
 
 .Example: Enabling OpenTelemetry with Jaeger
@@ -264,13 +266,13 @@ environment:
   QUARKUS_OTEL_TRACES_SAMPLER_ARG: "0.1"
 ----
 
-When you use JSON logging format, {registry} automatically includes trace context (trace ID and span ID) in log entries. You can then correlate logs and traces.
+When you enable the OpenTelemetry SDK and use JSON logging format, {registry} automatically includes trace context (trace ID and span ID) in log entries. You can then correlate logs and traces.
 
 .Example: Enabling structured logging with trace context
 [source,yaml]
 ----
 environment:
-  QUARKUS_OTEL_TRACES_ENABLED: "true"
+  QUARKUS_OTEL_SDK_DISABLED: "false"
   QUARKUS_LOG_CONSOLE_JSON: "true"
 ----
 

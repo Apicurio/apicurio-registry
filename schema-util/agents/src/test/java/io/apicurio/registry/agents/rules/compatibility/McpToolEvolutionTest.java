@@ -176,6 +176,25 @@ class McpToolEvolutionTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"\"const\":\"a\"", "\"type\":\"number\",\"exclusiveMinimum\":true,\"minimum\":0",
+            "\"type\":\"number\",\"exclusiveMaximum\":true,\"maximum\":9"})
+    void draft4AssertionsOutsideTheSubsetAreUnprocessable(String assertion) {
+        String draft4 = "{\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"type\":\"object\","
+                + "\"properties\":{\"x\":{" + assertion + "}}}";
+        String withoutOutput = "{\"name\":\"tool\",\"inputSchema\":{\"type\":\"object\"}}";
+        // Review case: adding an outputSchema skips the output comparison, so validation alone must reject it.
+        var error = assertThrows(UnprocessableSchemaException.class,
+                () -> check(CompatibilityLevel.BACKWARD, withoutOutput, tool("outputSchema", draft4)));
+        assertTrue(error.getMessage().contains("/outputSchema/properties/x/"), error.getMessage());
+        assertThrows(UnprocessableSchemaException.class,
+                () -> check(CompatibilityLevel.BACKWARD, withoutOutput, tool("inputSchema", draft4)));
+        // The same keywords remain supported in later drafts.
+        String draft7 = draft4.replace("draft-04", "draft-07").replace("\"exclusiveMinimum\":true", "\"exclusiveMinimum\":0")
+                .replace("\"exclusiveMaximum\":true", "\"exclusiveMaximum\":9");
+        assertTrue(check(CompatibilityLevel.BACKWARD, withoutOutput, tool("outputSchema", draft7)).isCompatible());
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"items", "additionalProperties"})
     void unsupportedAssertionsInsideOtherSchemaPositions(String keyword) {
         String schema = property("{\"" + keyword + "\":{\"oneOf\":[{\"type\":\"string\"}]}}");

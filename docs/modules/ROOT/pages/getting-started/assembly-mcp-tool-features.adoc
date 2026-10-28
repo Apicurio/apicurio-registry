@@ -435,7 +435,7 @@ Adding an `outputSchema` where none existed is backward compatible but not forwa
 
 === Supported schema subset and limits
 
-The publication rule supports recursive `properties`, schema-valued or boolean `additionalProperties`, homogeneous `items`, boolean subschemas, `type` (including unions), `required`, `enum`, `const`, numeric bounds and `multipleOf`, string length bounds, array size and uniqueness, and object property counts. It recognizes drafts 4, 6, 7, 2019-09, and 2020-12; absent `$schema` uses draft 7. Keywords must be valid for the declared draft.
+The publication rule supports recursive `properties`, schema-valued or boolean `additionalProperties`, homogeneous `items`, boolean subschemas, `type` (including unions), `required`, `enum`, `const`, numeric bounds and `multipleOf`, string length bounds, array size and uniqueness, and object property counts. It recognizes drafts 4, 6, 7, 2019-09, and 2020-12; absent `$schema` uses draft 7. Keywords must be valid for the declared draft. In draft 4, `const` (which draft 4 does not define) and the boolean `exclusiveMinimum` and `exclusiveMaximum` modifiers are outside the supported subset.
 
 Schema annotations (`title`, `description`, `default`, `examples`, `$comment`, `deprecated`, `readOnly`, and `writeOnly`) do not enforce compatibility constraints. Default values do not fill missing inputs.
 

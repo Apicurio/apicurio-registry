@@ -12,6 +12,7 @@ import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
 import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.types.ContentTypes;
+import com.networknt.schema.SpecVersion.VersionFlag;
 
 import java.util.HashSet;
 import java.util.List;
@@ -33,6 +34,7 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
     private static final Set<String> SCALAR_KEYWORDS = Set.of("$schema", "type", "enum", "const", "required",
             "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
             "minLength", "maxLength", "minItems", "maxItems", "uniqueItems", "minProperties", "maxProperties");
+    private static final Set<String> DRAFT4_UNSUPPORTED = Set.of("const", "exclusiveMinimum", "exclusiveMaximum");
     private final ApitomyJsonSchemaCompatibilityChecker schemaChecker = new ApitomyJsonSchemaCompatibilityChecker();
 
     @Override
@@ -82,15 +84,18 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
         if (!VALIDATOR.validate(schema).isEmpty()) {
             throw new UnprocessableSchemaException("Invalid or unsupported JSON Schema at " + path);
         }
-        checkSupported(schema, path);
+        boolean draft4 = VALIDATOR.draftOf(schema).filter(VersionFlag.V4::equals).isPresent();
+        checkSupported(schema, path, draft4);
     }
 
     /**
      * Bound guarantees to the tested structural subset. Do not project away unknown assertions:
      * the publication rule has no 'indeterminate' success and must report them as 422.
      * Walk schema positions only, not instance-valued annotations, enums or property names.
+     * Draft 4 has no 'const' (an unknown keyword there asserts nothing, so the meta-schema accepts it)
+     * and uses boolean exclusive bounds; both are outside the tested subset for that draft.
      */
-    private void checkSupported(JsonNode schema, String path) {
+    private void checkSupported(JsonNode schema, String path, boolean draft4) {
         if (schema.isBoolean()) {
             return;
         }
@@ -101,13 +106,14 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
             String location = path + "/" + escape(keyword);
             if (keyword.equals("properties")) {
                 field.getValue().fields().forEachRemaining(property ->
-                        checkSupported(property.getValue(), location + "/" + escape(property.getKey())));
+                        checkSupported(property.getValue(), location + "/" + escape(property.getKey()), draft4));
             } else if (keyword.equals("items") || keyword.equals("additionalProperties")) {
                 if (field.getValue().isArray()) {
                     throw new UnprocessableSchemaException("Unsupported MCP tool compatibility construct at " + location);
                 }
-                checkSupported(field.getValue(), location);
-            } else if (!SCALAR_KEYWORDS.contains(keyword) && !ANNOTATIONS.contains(keyword)) {
+                checkSupported(field.getValue(), location, draft4);
+            } else if ((draft4 && DRAFT4_UNSUPPORTED.contains(keyword))
+                    || (!SCALAR_KEYWORDS.contains(keyword) && !ANNOTATIONS.contains(keyword))) {
                 throw new UnprocessableSchemaException("Unsupported MCP tool compatibility construct at " + location);
             }
         }

@@ -21,6 +21,10 @@ const VALIDATED_BASE_BRANCHES = ['main', '3.3.x'];
 const BOT_LOGIN = 'github-actions[bot]';
 const LIFECYCLE_WORKFLOW_FILE = 'pr-lifecycle.yml';
 
+// GitHub's own committer for commits made in the web UI (edits, suggestion
+// commits, "Update branch"); the author of such a commit is still checked.
+const WEB_FLOW_LOGIN = 'web-flow';
+
 const APPROVAL_MARKER = '<!-- docs-auto-approve -->';
 const REVIEW_REQUIRED_MARKER = '<!-- docs-auto-approve:review-required -->';
 
@@ -47,6 +51,26 @@ async function docsCheckPassed(github, owner, repo, runId) {
   const list = Array.isArray(jobs) ? jobs : jobs.jobs;
   const docsJobs = list.filter(j => j.name.startsWith(DOCS_CHECK_JOB_PREFIX));
   return docsJobs.length > 0 && docsJobs.every(j => j.conclusion === 'success');
+}
+
+/**
+ * The commits on the PR that a maintainer did not both author and commit. The
+ * PR author is not enough: a maintainer can open a PR from a branch that holds
+ * someone else's commits, and the bot approval would then skip the second
+ * person for content no maintainer wrote. A commit whose author or committer
+ * is not linked to a GitHub account cannot be attributed, so it counts too.
+ *
+ * @returns {Promise<string[]>} the short SHAs of those commits
+ */
+async function commitsNotByMaintainers(github, owner, repo, prNumber, maintainers) {
+  const commits = await github.paginate(github.rest.pulls.listCommits, {
+    owner, repo, pull_number: prNumber, per_page: 100,
+  });
+  const isMaintainer = user => Boolean(user) && maintainers.includes(user.login);
+  return commits
+    .filter(c => !isMaintainer(c.author)
+      || !(isMaintainer(c.committer) || (c.committer && c.committer.login === WEB_FLOW_LOGIN)))
+    .map(c => c.sha.slice(0, 12));
 }
 
 async function alreadyApproved(github, owner, repo, prNumber, sha) {
@@ -103,8 +127,13 @@ async function handleVerifyCompleted({ github, context, core, config }) {
   if (!VALIDATED_BASE_BRANCHES.includes(pr.base.ref)) return skip(`PR #${prNumber} targets ${pr.base.ref}`);
   // The run checked an older commit; the run for the current head decides.
   if (pr.head.sha !== run.head_sha) return skip(`PR #${prNumber} head is ${pr.head.sha}, run checked ${run.head_sha}`);
-  if (!(config.maintainers || []).includes(pr.user.login)) {
+  const maintainers = config.maintainers || [];
+  if (!maintainers.includes(pr.user.login)) {
     return skip(`PR #${prNumber} author ${pr.user.login} is not a maintainer`);
+  }
+  const foreign = await commitsNotByMaintainers(github, owner, repo, prNumber, maintainers);
+  if (foreign.length > 0) {
+    return skip(`PR #${prNumber} has commits not authored and committed by a maintainer: ${foreign.join(', ')}`);
   }
 
   const files = await github.paginate(github.rest.pulls.listFiles, {

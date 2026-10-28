@@ -88,7 +88,7 @@ jobs:
               - 'integration-tests/src/**'
               - 'integration-tests/pom.xml'
               - 'pom.xml'
-              # The parts of docs/ that are code or generated output (the
+              # The Maven parts of docs/: code or generated output (on the
               # docs_only exclude list in .github/pr-lifecycle.yml). build-java
               # builds the docs module and fails when the generated config
               # reference is out of sync with its template or the app.

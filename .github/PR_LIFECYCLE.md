@@ -134,19 +134,28 @@ Branches are deleted automatically after merge (a repository-level setting).
 ### Docs-only PRs
 
 A PR that changes only documentation (the `docs_only` section of
-`.github/pr-lifecycle.yml`: `docs/` and `docs-playbook/`, minus the code and
-generated files under `docs/`) takes a shorter path:
+`.github/pr-lifecycle.yml`: `docs/` and the playbooks and UI supplements in
+`docs-playbook/`, minus the code, scripts and generated files under `docs/`)
+takes a shorter path:
 
 - Quick Check skips the Java and UI builds; Verify runs only the Docs Check,
   an Antora build that fails on new broken xrefs, includes or attribute
   references.
 - PR validation does not require a milestone, and a missing issue link is
   only advisory. DCO sign-off is still required.
-- If the author is a maintainer, `github-actions[bot]` approves the PR once
-  Verify passes, so the author can merge it with `/merge` without waiting for a
-  second person. A push dismisses the approval; the next Verify run approves
-  again. PRs touching a file on `docs_only.review_required_paths` (security
-  and authentication guides) still need a human review.
+- If the author is a maintainer and every commit was authored and committed
+  by a maintainer, `github-actions[bot]` approves the PR once Verify passes, so
+  the author can merge it with `/merge` without waiting for a second person. A
+  push dismisses the approval; the next Verify run approves again. PRs touching
+  a file on `docs_only.review_required_paths` (security, auth, TLS and similar
+  guides, and YAML examples) still need a human review. That list matches file
+  names only, so it is a safety net: security content in a generically named
+  page is not caught.
+- Auto-approval relies on two repository settings: "Allow GitHub Actions to
+  create and approve pull requests" (Settings > Actions > General), and
+  "Dismiss stale pull request approvals when new commits are pushed" on the
+  branch protection rule of `main` and `3.3.x`. Without the second, a bot
+  approval would survive a push that adds non-docs changes.
 
 See "Docs-only PRs" in `.github/workflows/README.md` for the details.
 

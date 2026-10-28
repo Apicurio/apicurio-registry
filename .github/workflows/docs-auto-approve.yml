@@ -9,7 +9,10 @@ name: Docs Auto-Approve
 #
 # Requires the repository setting "Allow GitHub Actions to create and approve
 # pull requests" (Settings > Actions > General). Without it the approval is
-# refused and this job fails saying so.
+# refused and this job fails saying so. Also requires "Dismiss stale pull
+# request approvals when new commits are pushed" on the branch protection of
+# main and 3.3.x: the approval is for one commit, and only that setting stops
+# it from carrying over to a push that adds non-docs changes.
 #
 # workflow_run runs this file and the scripts from the default branch, never
 # from the PR, and the job never checks out the run's head commit (see the

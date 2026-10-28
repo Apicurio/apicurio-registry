@@ -28,6 +28,12 @@ const WEB_FLOW_LOGIN = 'web-flow';
 const APPROVAL_MARKER = '<!-- docs-auto-approve -->';
 const REVIEW_REQUIRED_MARKER = '<!-- docs-auto-approve:review-required -->';
 
+const REVIEW_RESOLVED_COMMENT = [
+  REVIEW_REQUIRED_MARKER,
+  '~~**Docs-only PR, but a human review is required.**~~ Resolved: this PR no longer changes a file on the '
+    + 'review-required list (`docs_only.review_required_paths` in `.github/pr-lifecycle.yml`).',
+].join('\n');
+
 const SETTING_HINT = 'Enable "Allow GitHub Actions to create and approve pull requests" under '
   + 'Settings > Actions > General > Workflow permissions.';
 
@@ -80,16 +86,31 @@ async function alreadyApproved(github, owner, repo, prNumber, sha) {
   return reviews.some(r => r.user && r.user.login === BOT_LOGIN && r.state === 'APPROVED' && r.commit_id === sha);
 }
 
-async function upsertComment(github, owner, repo, prNumber, body, marker) {
+async function findBotComment(github, owner, repo, prNumber, marker) {
   const comments = await github.paginate(github.rest.issues.listComments, {
     owner, repo, issue_number: prNumber, per_page: 100,
   });
-  const existing = comments.find(c => c.user && c.user.login === BOT_LOGIN && (c.body || '').includes(marker));
+  return comments.find(c => c.user && c.user.login === BOT_LOGIN && (c.body || '').includes(marker));
+}
+
+async function upsertComment(github, owner, repo, prNumber, body, marker) {
+  const existing = await findBotComment(github, owner, repo, prNumber, marker);
   if (existing) {
     await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
   } else {
     await github.rest.issues.createComment({ owner, repo, issue_number: prNumber, body });
   }
+}
+
+/**
+ * Rewrites an earlier review-required comment once the PR no longer changes a
+ * review-required file, so that it does not contradict the approval. Leaves
+ * the PR alone when there is no such comment or it already says so.
+ */
+async function resolveReviewRequiredComment(github, owner, repo, prNumber) {
+  const existing = await findBotComment(github, owner, repo, prNumber, REVIEW_REQUIRED_MARKER);
+  if (!existing || existing.body === REVIEW_RESOLVED_COMMENT) return;
+  await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: REVIEW_RESOLVED_COMMENT });
 }
 
 function reviewRequiredComment(files) {
@@ -149,6 +170,7 @@ async function handleVerifyCompleted({ github, context, core, config }) {
     await upsertComment(github, owner, repo, prNumber, reviewRequiredComment(sensitive), REVIEW_REQUIRED_MARKER);
     return skip(`PR #${prNumber} changes review-required files: ${sensitive.join(', ')}`);
   }
+  await resolveReviewRequiredComment(github, owner, repo, prNumber);
 
   if (await alreadyApproved(github, owner, repo, prNumber, run.head_sha)) {
     return skip(`PR #${prNumber} is already approved at ${run.head_sha}`);
@@ -176,4 +198,4 @@ async function handleVerifyCompleted({ github, context, core, config }) {
   return undefined;
 }
 
-module.exports = { handleVerifyCompleted, APPROVAL_MARKER, REVIEW_REQUIRED_MARKER };
+module.exports = { handleVerifyCompleted, APPROVAL_MARKER, REVIEW_REQUIRED_MARKER, REVIEW_RESOLVED_COMMENT };

@@ -53,11 +53,17 @@ docs_only:
     - "docs/**/*.sh"
   # Docs-only PRs by maintainers are approved by the bot once Verify passes
   # (docs-auto-approve.yml), so the author can merge without a second person.
-  # A PR touching any of these still needs a human review. Matched against the
+  # A PR touching any of these still needs a human review. docs-playbook/ is
+  # docs (the fast path applies) but runs as code: the playbook picks the UI
+  # bundle, whose helpers Antora executes, and can load extensions, and
+  # publish-docs.yaml builds with it next to the website push token;
+  # supplemental_ui/ is JavaScript and HTML served on every page of the site.
+  # Matched against the
   # whole path, case-insensitively. This is a filename heuristic: security
   # content in a page whose name has none of these words is not caught, so
   # treat the list as a safety net, not a guarantee.
   review_required_paths:
+    - "docs-playbook/**"
     - "docs/**/*secur*"
     - "docs/**/*auth*"
     - "docs/**/*oidc*"

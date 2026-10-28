@@ -3,7 +3,9 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 
-const { handleVerifyCompleted, APPROVAL_MARKER, REVIEW_REQUIRED_MARKER } = require('./docs-auto-approve.js');
+const {
+  handleVerifyCompleted, APPROVAL_MARKER, REVIEW_REQUIRED_MARKER, REVIEW_RESOLVED_COMMENT,
+} = require('./docs-auto-approve.js');
 
 const OWNER = 'Apicurio';
 const REPO = 'apicurio-registry';
@@ -190,6 +192,40 @@ test('the sensitive-file comment is updated rather than repeated', async () => {
   assert.deepEqual(env.calls.comments, []);
   assert.equal(env.calls.updatedComments.length, 1);
   assert.equal(env.calls.updatedComments[0].comment_id, 5);
+});
+
+test('an earlier review-required comment is marked resolved when the PR is approved', async () => {
+  const existing = { id: 5, body: `${REVIEW_REQUIRED_MARKER}\nold`, user: { login: 'github-actions[bot]' } };
+  const env = setup({ comments: [existing] });
+  await run(env);
+  assert.equal(env.calls.reviews.length, 1);
+  assert.deepEqual(env.calls.comments, []);
+  assert.deepEqual(env.calls.updatedComments.map(c => [c.comment_id, c.body]), [[5, REVIEW_RESOLVED_COMMENT]]);
+  assert.ok(!REVIEW_RESOLVED_COMMENT.includes('`docs/'), 'the resolved comment lists no files');
+});
+
+test('an already resolved comment is not rewritten', async () => {
+  const existing = { id: 5, body: REVIEW_RESOLVED_COMMENT, user: { login: 'github-actions[bot]' } };
+  const env = setup({ comments: [existing] });
+  await run(env);
+  assert.deepEqual(env.calls.updatedComments, []);
+  assert.equal(env.calls.reviews.length, 1);
+});
+
+test('a review-required comment by someone else is left alone', async () => {
+  const existing = { id: 5, body: `${REVIEW_REQUIRED_MARKER}\nquoted`, user: { login: 'alice' } };
+  const env = setup({ comments: [existing] });
+  await run(env);
+  assert.deepEqual(env.calls.updatedComments, []);
+});
+
+test('the comment is resolved even when the commit was already approved', async () => {
+  const existing = { id: 5, body: `${REVIEW_REQUIRED_MARKER}\nold`, user: { login: 'github-actions[bot]' } };
+  const env = setup({ comments: [existing],
+    reviews: [{ state: 'APPROVED', commit_id: SHA, user: { login: 'github-actions[bot]' } }] });
+  await run(env);
+  assert.deepEqual(env.calls.reviews, []);
+  assert.equal(env.calls.updatedComments.length, 1);
 });
 
 test('finds the PR by commit when the run payload lists none (fork PRs)', async () => {

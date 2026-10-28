@@ -90,9 +90,9 @@ them next to the website push token. The one implementation is
   Docs-Only` job decides). The gate still passes, so `lifecycle/tested` is set.
 - **Verify** runs only Lint and Validate and the **Docs Check**
   (`verify-docs.yaml`), part of `Verify Result` and so of the `Verification
-  Gate`. It builds the docs of the commit and of its base with Antora 3, using
-  the published playbook's attributes and UI bundle with the checkout as the
-  content source (`docs-build.sh`), and fails on any error or warning the base
+  Gate`. It builds the docs of the commit and of its base with Antora 3, each
+  with its own copy of the published playbook's attributes and UI bundle and
+  its checkout as the content source (`docs-build.sh`), and fails on any error or warning the base
   does not have (`docs-check.js`): broken xrefs and includes are errors,
   unknown attribute references are warnings. Problems already on the base are
   reported but do not fail it, except a fatal one: if Antora could not build
@@ -107,8 +107,11 @@ them next to the website push token. The one implementation is
   including Docs Check, `github-actions[bot]` approves the PR for that commit,
   so the author can merge with `/merge`. Files matching
   `docs_only.review_required_paths` (matched case-insensitively against file
-  names: security, auth, TLS and similar guides, and YAML examples) still need
-  a human review; the bot says so in a comment. The list is a filename
+  names: security, auth, TLS and similar guides, YAML examples, and all of
+  `docs-playbook/`, whose playbook and UI supplements run as code in the
+  publish job and on the site) still need a human review; the bot says so in a
+  comment, and marks that comment resolved once such files are gone from the
+  PR. The list is a filename
   heuristic, not a guarantee. A push dismisses the approval and the next Verify
   run decides again. Requires two repository settings: "Allow GitHub Actions
   to create and approve pull requests", and "Dismiss stale pull request

@@ -148,7 +148,8 @@ takes a shorter path:
   the author can merge it with `/merge` without waiting for a second person. A
   push dismisses the approval; the next Verify run approves again. PRs touching
   a file on `docs_only.review_required_paths` (security, auth, TLS and similar
-  guides, and YAML examples) still need a human review. That list matches file
+  guides, YAML examples, and everything in `docs-playbook/`) still need a
+  human review. That list matches file
   names only, so it is a safety net: security content in a generically named
   page is not caught.
 - Auto-approval relies on two repository settings: "Allow GitHub Actions to

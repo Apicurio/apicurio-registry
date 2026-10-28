@@ -330,11 +330,12 @@ public class McpToolDiscovery {
      * whose content is not JSON is evaluated as {@link CompatibilityVerdict#INDETERMINATE}.
      *
      * <p><b>Authorization note:</b> candidate identity and metadata, and the reasons and
-     * limitations of each comparison, are exposed at the same read-level scope as
-     * {@code searchMcpTools}, which also returns all MCP tools visible to the caller via
-     * {@link AuthorizedLevel#Read}.  No per-artifact visibility label is applied because MCP tools
-     * (unlike A2A agents) do not carry an {@code apicurio.agent.visibility} label; the caller's
-     * read-level authorization is the sole gate for these endpoints.
+     * limitations of each comparison, are exposed to a caller who may read the source tool
+     * ({@link AuthorizedLevel#Read}), but only for the candidates that caller may read: as in
+     * {@code searchMcpTools}, the search goes through {@link ISearchAuthorizer}, which with
+     * per-resource authorization leaves the other MCP tools out of the results and out of the
+     * count. No per-artifact visibility label is applied because MCP tools (unlike A2A agents) do
+     * not carry an {@code apicurio.agent.visibility} label.
      */
     private CandidateScan scanCandidates(String rawGroupId, String sourceArtifactId,
             PreparedProducer producer, int scanLimit) {

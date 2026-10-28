@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-Per-resource authorization controls access to individual groups and artifacts, for example "Alice can write artifacts in group `team-a` and read `shared`, but cannot see `team-b`". Access is defined in a grants file and applies to every {registry} API, including search and list results.
+Per-resource authorization controls access to individual groups and artifacts, for example "Alice can write artifacts in group `team-a` and read `shared`, but cannot see `team-b`". Access is defined in an access rules file and applies to every {registry} API, including search and list results.
 
 * xref:resource-authorization-overview_{context}[]
 * xref:resource-authorization-configuration_{context}[]
@@ -23,16 +23,16 @@ Per-resource authorization controls access to individual groups and artifacts, f
 {registry} applies two layers of authorization:
 
 * **Role-based access control (RBAC):** coarse-grained global roles (`sr-readonly`, `sr-developer`, `sr-admin`), typically assigned by an identity provider such as {keycloak}.
-* **Per-resource authorization:** fine-grained access to individual groups and artifacts, defined in a grants file and evaluated after RBAC.
+* **Per-resource authorization:** fine-grained access to individual groups and artifacts, defined in an access rules file and evaluated after RBAC.
 
-A request must pass both layers. Grants restrict within what RBAC allows; they never grant more than the user's role permits.
+A request must pass both layers. Access rules restrict within what RBAC allows; they never allow more than the user's role permits.
 
-Grants are evaluated by an implementation of the https://github.com/kroxylicious/kroxylicious/tree/main/kroxylicious-authorizer-api[Kroxylicious Authorizer API], the authorization contract shared with Kroxylicious and StreamsHub, so the same grants file can describe access across those systems.
+The access rules file uses the https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md[Kroxylicious ACL rules format], and is evaluated by the Kroxylicious ACL authorizer. Kroxylicious and StreamsHub use the same format.
 
 === How it works
 
-* **Point access** (reading, writing, or deleting a specific group or artifact): the user's identity and roles are matched against the grants for the addressed resource.
-* **Search and lists:** the user's grants are translated into the storage query, so results contain exactly the resources the user can read, and page sizes and total counts are accurate. A resource never appears in search results unless direct read access to it would also be allowed.
+* **Point access** (reading, writing, or deleting a specific group or artifact): the user's identity and roles are matched against the rules for the addressed resource.
+* **Search and lists:** the rules that apply to the user are translated into the storage query, so results contain exactly the resources the user can read, and page sizes and total counts are accurate. A resource never appears in search results unless direct read access to it would also be allowed.
 
 [id="resource-authorization-configuration_{context}"]
 == Configuration
@@ -47,21 +47,21 @@ Per-resource authorization requires authentication (OIDC, HTTP basic, or proxy h
 |`false`
 |Enables per-resource authorization.
 
-|`apicurio.auth.resource-based-authorization.grants.path`
+|`apicurio.auth.resource-based-authorization.rules.path`
 |_(none)_
-|Path to the JSON grants file. Required when per-resource authorization is enabled. {registry} fails to start if the file is missing or invalid.
+|Path to the access rules file. Required when per-resource authorization is enabled. {registry} fails to start if the file is missing or invalid.
 
-|`apicurio.auth.resource-based-authorization.grants.reload-every`
+|`apicurio.auth.resource-based-authorization.rules.reload-every`
 |`5s`
-|How often to check the grants file for changes. Must be a duration, for example `5s` or `1m`.
+|How often to check the access rules file for changes. Must be a duration, for example `5s` or `1m`.
 
-|`apicurio.auth.resource-based-authorization.grants.reload-enabled`
+|`apicurio.auth.resource-based-authorization.rules.reload-enabled`
 |`true`
-|Reloads the grants file when it changes. Set to `false` to load it only at startup.
+|Reloads the access rules file when it changes. Set to `false` to load it only at startup.
 
 |`apicurio.auth.resource-based-authorization.owner-bypass.enabled`
 |`true`
-|Lets the recorded owner of an artifact or group access it regardless of grants.
+|Lets the recorded owner of an artifact or group access it regardless of the access rules.
 |===
 
 .Example configuration
@@ -69,81 +69,60 @@ Per-resource authorization requires authentication (OIDC, HTTP basic, or proxy h
 ----
 environment:
   apicurio.auth.resource-based-authorization.enabled: "true"
-  apicurio.auth.resource-based-authorization.grants.path: "/opt/apicurio/authz/grants.json"
+  apicurio.auth.resource-based-authorization.rules.path: "/opt/apicurio/authz/access.rules"
 ----
 
-In Kubernetes, store the grants file in a ConfigMap and mount it as a volume. Mount the ConfigMap as a directory rather than with `subPath`, because `subPath` mounts do not receive ConfigMap updates.
+In Kubernetes, store the access rules file in a ConfigMap and mount it as a volume. Mount the ConfigMap as a directory rather than with `subPath`, because `subPath` mounts do not receive ConfigMap updates.
 
 A complete Docker Compose example with {keycloak}, including a script that verifies the expected access, is available in `distro/docker-compose/in-memory-with-authz-grants/`.
 
 [id="resource-authorization-grants_{context}"]
-== Grants file format
+== Access rules file format
 
-The grants file is a JSON object with an optional `config` section and a required `grants` array.
+The access rules file lists who may do what, one rule per line, and ends with `otherwise deny;`:
 
-[source,json]
+[source]
 ----
-{
-  "config": {
-    "admin_roles": ["sr-admin"]
-  },
-  "grants": [
-    {
-      "principal": "alice",
-      "operation": "write",
-      "resource_type": "artifact",
-      "resource_pattern_type": "prefix",
-      "resource_pattern": "team-a/"
-    },
-    {
-      "principal_role": "sr-developer",
-      "operation": "read",
-      "resource_type": "artifact",
-      "resource_pattern_type": "prefix",
-      "resource_pattern": "public/"
-    }
-  ]
-}
+from io.apicurio.authz import Artifact, Group, Role;
+
+deny User with name = "bob" to * Artifact with name = "team-a/secret-schema";
+allow User with name = "alice" to WRITE Artifact with name like "team-a/*";
+allow User with name = "alice" to WRITE Group with name = "team-a";
+allow Role with name = "sr-developer" to READ Artifact with name like "public/*";
+otherwise deny;
 ----
 
-`config.admin_roles` lists roles whose users have full access to all resources; no grants are evaluated for them. RBAC administrators (the `sr-admin` role, or the role configured as the RBAC admin role) always bypass grants, so `admin_roles` is only needed for additional roles. It must be an array of non-empty strings; any other value rejects the file, like an invalid grant.
+The format is the Kroxylicious ACL rules format, described in https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md[Kroxylicious proposal 009]. In {registry}:
 
-=== Grant fields
+* `from io.apicurio.authz import Artifact, Group, Role;` imports the {registry} resource types `Artifact` and `Group`, and the `Role` principal. `User` does not need to be imported.
+* `User with name ...` matches the authenticated user name. `Role with name ...` matches a role of the user, for example a role from the identity provider.
+* `deny` rules must come before `allow` rules, and the file must end with `otherwise deny;`. Lines starting with `//` are comments.
 
-[cols="2,1,3"]
+Names are selected with:
+
+[cols="1,3"]
 |===
-|Field |Required |Description
+|Selector |Matches
 
-|`principal`
-|One of `principal` or `principal_role`
-|User name to match, from the authenticated identity. Never matches unauthenticated requests.
+|`with name = "x"`
+|exactly `x`
 
-|`principal_role`
-|One of `principal` or `principal_role`
-|Role to match. Any user with this role receives the grant.
+|`with name in {"x", "y"}`
+|any of the listed names
 
-|`operation`
-|Yes
-|`read`, `write`, or `admin`.
+|`with name like "team-a/*"`
+|names starting with `team-a/`. `*` is only allowed at the end; `like "*"` matches every name.
 
-|`resource_type`
-|Yes
-|`artifact` or `group`.
+|`with name *`
+|every name
 
-|`resource_pattern_type`
-|No
-|`prefix` matches names that start with the pattern. `exact`, or omitting the field, matches the name exactly.
-
-|`resource_pattern`
-|Yes
-|The name or prefix to match. `*` matches every resource of the type, whatever the pattern type.
-
-|`deny`
-|No
-|`true` makes the grant deny the matched access. Deny rules take precedence over allow rules. Default: `false`.
+|`with name matching /regex/`
+|names that fully match the regular expression (RE2 syntax). Resources only. A backslash inside the expression is removed, so `/a\.b/` is the expression `a.b`.
 |===
 
-Every grant must be valid: exactly one of `principal` and `principal_role`, a known `operation` and `resource_pattern_type`, and a boolean `deny`. A file with an invalid grant is rejected as a whole, because skipping an invalid deny rule would grant access you meant to forbid: {registry} does not start, or keeps the previous grants on reload.
+The file is validated as a whole. A syntax error, an unknown type, principal or operation, an invalid regular expression, or a rule for a resource type that {registry} does not enforce (such as a Kroxylicious `Topic`) rejects the file: {registry} does not start, or keeps the previous rules on reload.
+
+NOTE: The `config.admin_roles` setting of earlier development versions has no equivalent. To give a role full access, allow it every operation on every resource: `allow Role with name = "ops" to * Artifact with name *;` and the same for `Group`.
 
 === Resource names
 
@@ -152,53 +131,54 @@ Every grant must be valid: exactly one of `principal` and `principal_role`, a kn
 
 In artifact names, the characters `%` and `/` in the group ID are written as `%25` and `%2F`, so the first `/` always separates the group from the artifact ID. For example, artifact `x` in group `team-a/sub` is named `team-a%2Fsub/x`, while artifact `sub/x` in group `team-a` is named `team-a/sub/x`. Artifact IDs and group names are not escaped.
 
-Patterns are matched against the complete name. For example, the prefix `team-a/` matches every artifact in group `team-a` (but not in group `team-a/sub`), and the prefix `team-a/internal-` matches only the artifacts in `team-a` whose ID starts with `internal-`.
+Names are matched in full. For example, `like "team-a/*"` matches every artifact in group `team-a` (but not in group `team-a/sub`), and `like "team-a/internal-*"` matches only the artifacts in `team-a` whose ID starts with `internal-`.
 
-Matching is case-sensitive on every storage variant, in direct access and in search results. Some databases, such as MySQL and SQL Server, look up group and artifact IDs case-insensitively, so a request for `TEAM-A/My-Schema` can address the stored artifact `team-a/my-schema`. Such a request is authorized against the stored IDs, so changing the case of an ID never gets around a grant or deny rule.
+Matching is case-sensitive on every storage variant, in direct access and in search results. Some databases, such as MySQL and SQL Server, look up group and artifact IDs case-insensitively, so a request for `TEAM-A/My-Schema` can address the stored artifact `team-a/my-schema`. Such a request is authorized against the stored IDs, so changing the case of an ID never gets around a rule.
 
 === Operations
 
-`admin` implies `write`, and `write` implies `read`. The operation required by each API operation matches its RBAC level: reads require `read`, and changes, including deletes, require `write`. A few operations require `admin`, such as dropping Iceberg namespaces, tables, and views.
+`ADMIN` implies `WRITE`, and `WRITE` implies `READ`; `*` means all three. The operation required by each API operation matches its RBAC level: reads require `READ`, and changes, including deletes, require `WRITE`. A few operations require `ADMIN`, such as dropping Iceberg namespaces, tables, and views.
 
-=== Group grants and artifact grants
+=== Group rules and artifact rules
 
-* **Group grants** control operations on the group itself: reading group metadata, listing artifacts in it, and creating, updating, or deleting the group.
-* **Artifact grants** control operations on artifacts and their versions, content, comments, and references.
+* **Group rules** control operations on the group itself: reading group metadata, listing artifacts in it, and creating, updating, or deleting the group.
+* **Artifact rules** control operations on artifacts and their versions, content, comments, and references.
 
 Some operations need both:
 
-* Creating an artifact requires `write` on the group and on the new artifact's name, so a deny on an artifact name also prevents creating it. This applies to every API that creates artifacts, including registering a new subject with the Confluent compatibility API, publishing a new MCP server, and renaming an Iceberg table.
-* Deleting a group, or all artifacts in a group, requires `write` on the group and on every artifact in it.
+* Creating an artifact requires `WRITE` on the group and on the new artifact's name, so a deny on an artifact name also prevents creating it. This applies to every API that creates artifacts, including registering a new subject with the Confluent compatibility API, publishing a new MCP server, and renaming an Iceberg table.
+* Deleting a group, or all artifacts in a group, requires `WRITE` on the group and on every artifact in it.
 
 Most deployments need both. For example, to give a user full access to `team-a`:
 
-[source,json]
+[source]
 ----
-{"principal": "alice", "operation": "write", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "team-a"},
-{"principal": "alice", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/"}
+allow User with name = "alice" to * Group with name = "team-a";
+allow User with name = "alice" to * Artifact with name like "team-a/*";
 ----
 
 === Deny rules
 
-Deny rules use the same fields with `"deny": true`. If a deny rule matches, access is denied even if an allow rule also matches. Deny rules apply to search results as well as direct access.
+If a deny rule matches, access is denied even if an allow rule also matches. Deny rules apply to search results as well as direct access.
 
-[source,json]
+[source]
 ----
-{"principal": "alice", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
-{"principal": "alice", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "exact", "resource_pattern": "team-a/secret-schema", "deny": true}
+deny User with name = "alice" to * Artifact with name = "team-a/secret-schema";
+allow User with name = "alice" to WRITE Artifact with name like "team-a/*";
 ----
 
 Alice can read and write all artifacts in `team-a` except `team-a/secret-schema`.
 
-A deny rule denies its operation and every operation that implies it:
+A deny rule denies its operations and the operations they imply:
 
-* Denying `read` blocks all access, and hides the resource from search results.
-* Denying `write` blocks changes but keeps read access, which makes the resource read-only for the user.
-* Denying `admin` blocks only operations that require `admin`.
+* Denying `*` blocks all access, and hides the resource from search results. Use it to hide a resource.
+* Denying `WRITE` also denies `READ`, which `WRITE` implies, so it blocks all access too. A resource cannot be made read-only with a deny rule; allow only `READ` on it instead.
+* Denying `READ` blocks reads but not writes: `WRITE` implies `READ`, but `READ` does not imply `WRITE`. Use `*` to hide a resource.
+* Denying `ADMIN` denies all three operations.
 
-=== Reloading the grants file
+=== Reloading the access rules file
 
-{registry} checks the grants file for changes at the interval set by `apicurio.auth.resource-based-authorization.grants.reload-every` and applies changes without a restart. If the changed file is not valid JSON, is not an object, or has no `grants` array, {registry} logs an error and keeps using the previously loaded grants.
+{registry} checks the access rules file for changes at the interval set by `apicurio.auth.resource-based-authorization.rules.reload-every` and applies changes without a restart. If the changed file is invalid, {registry} logs an error and keeps using the previously loaded rules.
 
 [id="resource-authorization-coverage_{context}"]
 === References and generated artifacts
@@ -240,59 +220,63 @@ Per-resource authorization applies to every API that addresses or lists groups a
 [id="resource-authorization-use-cases_{context}"]
 == Common use cases
 
+Each example is a complete rules file, or the rules to add before `otherwise deny;`.
+
 === Multi-team isolation
 
 Each team sees and modifies only its own schemas:
 
-[source,json]
+[source]
 ----
-{
-  "config": { "admin_roles": ["sr-admin"] },
-  "grants": [
-    {"principal_role": "team-a-developers", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
-    {"principal_role": "team-a-developers", "operation": "write", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "team-a"},
-    {"principal_role": "team-b-developers", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-b/"},
-    {"principal_role": "team-b-developers", "operation": "write", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "team-b"}
-  ]
-}
+from io.apicurio.authz import Artifact, Group, Role;
+
+allow Role with name = "team-a-developers" to WRITE Artifact with name like "team-a/*";
+allow Role with name = "team-a-developers" to WRITE Group with name = "team-a";
+allow Role with name = "team-b-developers" to WRITE Artifact with name like "team-b/*";
+allow Role with name = "team-b-developers" to WRITE Group with name = "team-b";
+otherwise deny;
 ----
 
 === Shared schemas with selective write access
 
-All developers read shared schemas; only the platform team modifies them:
+All developers can read the `shared` group; only the platform team can change it:
 
-[source,json]
+[source]
 ----
-{"principal_role": "sr-developer", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "shared/"},
-{"principal_role": "sr-developer", "operation": "read", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "shared"},
-{"principal_role": "platform-team", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "shared/"},
-{"principal_role": "platform-team", "operation": "write", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "shared"}
+allow Role with name = "sr-developer" to READ Artifact with name like "shared/*";
+allow Role with name = "sr-developer" to READ Group with name = "shared";
+allow Role with name = "platform-team" to WRITE Artifact with name like "shared/*";
+allow Role with name = "platform-team" to WRITE Group with name = "shared";
 ----
 
 === Read-only service account
 
-[source,json]
+[source]
 ----
-{"principal": "monitoring-service", "operation": "read", "resource_type": "artifact", "resource_pattern": "*"},
-{"principal": "monitoring-service", "operation": "read", "resource_type": "group", "resource_pattern": "*"}
+allow User with name = "monitoring-service" to READ Artifact with name *;
+allow User with name = "monitoring-service" to READ Group with name *;
 ----
 
 === CI/CD pipeline with scoped write access
 
-[source,json]
+[source]
 ----
-{"principal": "ci-pipeline", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "production/"},
-{"principal": "ci-pipeline", "operation": "write", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "production"}
+allow User with name = "ci-pipeline" to WRITE Artifact with name like "production/*";
+allow User with name = "ci-pipeline" to WRITE Group with name = "production";
 ----
 
 === Group access with excluded artifacts
 
-[source,json]
+[source]
 ----
-{"principal": "contractor", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
-{"principal": "contractor", "operation": "read", "resource_type": "group", "resource_pattern_type": "exact", "resource_pattern": "team-a"},
-{"principal": "contractor", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/internal-", "deny": true}
+deny User with name = "contractor" to * Artifact with name like "team-a/internal-*";
+allow User with name = "contractor" to READ Artifact with name like "team-a/*";
+allow User with name = "contractor" to READ Group with name = "team-a";
 ----
+
+=== Search and regular expressions
+
+`matching` rules work for direct access, but search cannot evaluate them. A user whose rules use `matching` for a resource type gets no search results for that type. Use `=`, `in` or `like` for resources that must be searchable.
 
 [id="resource-authorization-interactions_{context}"]
 == Interaction with other authorization features
@@ -311,13 +295,13 @@ Authentication
 
 === RBAC
 
-RBAC administrators bypass per-resource authorization. A user with the `sr-readonly` role can never write, whatever their grants. To control write access with grants, give users the `sr-developer` role and use grants to choose which resources they can change.
+RBAC administrators bypass per-resource authorization. A user with the `sr-readonly` role can never write, whatever the access rules say. To control write access with rules, give users the `sr-developer` role and use rules to choose which resources they can change.
 
 === Resource owners
 
-By default, the recorded owner of an artifact or group has access to it whatever the grants, whether or not owner-only authorization (`apicurio.auth.owner-only-authorization`) is enabled. Set `apicurio.auth.resource-based-authorization.owner-bypass.enabled` to `false` to make grants the only per-resource authority. Owners also see their own resources in search results and can read content used by their artifacts. With the Elasticsearch search index, searches that require the index (content and structure searches) include at most 1000 of the caller's owned artifacts that are not otherwise covered by grants. A resource without a recorded owner does not grant this exception to anyone.
+By default, the recorded owner of an artifact or group has access to it whatever the access rules, whether or not owner-only authorization (`apicurio.auth.owner-only-authorization`) is enabled. Set `apicurio.auth.resource-based-authorization.owner-bypass.enabled` to `false` to make the access rules the only per-resource authority. Owners also see their own resources in search results and can read content used by their artifacts. With the Elasticsearch search index, searches that require the index (content and structure searches) include at most 1000 of the caller's owned artifacts that are not otherwise covered by the rules. A resource without a recorded owner does not grant this exception to anyone.
 
-When owner-only authorization is enabled, it applies as well to resources named in a request body, such as Iceberg rename targets and published MCP servers: only the owner can change them, even if other users have matching grants.
+When owner-only authorization is enabled, it applies as well to resources named in a request body, such as Iceberg rename targets and published MCP servers: only the owner can change them, even if rules allow other users.
 
 The creator of an artifact becomes its owner, but creating it requires `write` on both the group and the artifact name, so the owner bypass cannot be used to get around a deny on that name.
 
@@ -325,23 +309,23 @@ The creator of an artifact becomes its owner, but creating it requires `write` o
 
 These settings skip the RBAC check for reads; per-resource authorization still applies:
 
-* With `apicurio.auth.authenticated-read-access.enabled`, any authenticated user can read, even without a registry role, but only the resources their grants allow.
-* With `apicurio.auth.anonymous-read-access.enabled`, unauthenticated callers get the role `$anonymous`. They can read only what grants allow to that role, for example:
+* With `apicurio.auth.authenticated-read-access.enabled`, any authenticated user can read, even without a registry role, but only the resources the rules allow them.
+* With `apicurio.auth.anonymous-read-access.enabled`, unauthenticated callers get the role `$anonymous`. They can read only what the rules allow to that role, for example:
 +
-[source,json]
+[source]
 ----
-{"principal_role": "$anonymous", "operation": "read", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "public/"}
+allow Role with name = "$anonymous" to READ Artifact with name like "public/*";
 ----
 +
 Other reads by unauthenticated callers are answered with `401`.
 
 === Registry-wide reports
 
-Reports that cover the whole registry and cannot be filtered per resource, such as the GitOps status and validation tasks, are available only to callers who are not restricted by grants (administrators).
+Reports that cover the whole registry and cannot be filtered per resource, such as the GitOps status and validation tasks, are available only to callers who are not restricted by the access rules (administrators).
 
 === Admin override and trusted proxy authorization
 
-Users identified as administrators by the admin override (`apicurio.auth.admin-override.*`) bypass per-resource authorization. When `apicurio.authn.proxy-header.trust-proxy-authorization` is `true`, requests authenticated by proxy headers bypass all local authorization, including grants.
+Users identified as administrators by the admin override (`apicurio.auth.admin-override.*`) bypass per-resource authorization. When `apicurio.authn.proxy-header.trust-proxy-authorization` is `true`, requests authenticated by proxy headers bypass all local authorization, including the access rules.
 
 [id="resource-authorization-monitoring_{context}"]
 == Monitoring and audit logging
@@ -378,28 +362,28 @@ To disable these messages, set `quarkus.log.category."io.apicurio.registry.audit
 [id="resource-authorization-troubleshooting_{context}"]
 == Troubleshooting
 
-=== A user is denied access although a grant matches
+=== A user is denied access although a rule matches
 
 Check, in order:
 
 . **RBAC:** does the user's role allow the operation? `sr-readonly` users cannot write.
-. **Operation:** does the grant's operation cover the request? Changes and deletes require `write`.
-. **Resource type:** operations on a group itself, such as listing its artifacts or creating an artifact in it, need a `group` grant.
-. **Deny rules:** does a deny rule match? Deny rules take precedence.
-. **Referenced and generated artifacts:** dereferencing, or registering content with references, requires `read` on every referenced artifact; writing an artifact that generates other artifacts requires `write` on them.
-. **Resource name:** artifacts are named `{groupId}/{artifactId}`; the default group is `default`. For the Confluent compatibility API, check which group the request addresses.
+. **Operation:** does the rule's operation cover the request? Changes and deletes require `WRITE`.
+. **Resource type:** operations on a group itself, such as listing its artifacts or creating an artifact in it, need a `Group` rule.
+. **Deny rules:** does a deny rule match? Deny rules take precedence, and denying `WRITE` also denies `READ`.
+. **Referenced and generated artifacts:** dereferencing, or registering content with references, requires `READ` on every referenced artifact; writing an artifact that generates other artifacts requires `WRITE` on them.
+. **Resource name and principal:** artifacts are named `{groupId}/{artifactId}`; the default group is `default`. For the Confluent compatibility API, check which group the request addresses. Roles are matched with `Role`, user names with `User`.
 . **Audit log:** the `authz.denied` message shows the exact resource name and operation that were evaluated.
 
 === A user can see more than expected
 
-Check whether the user is an RBAC administrator or has a role listed in `config.admin_roles`, whether the user owns the resources (see `owner-bypass.enabled`), and, for unauthenticated callers, what the `$anonymous` role is granted.
+Check whether the user is an RBAC administrator or has a role that the rules allow everything, whether the user owns the resources (see `owner-bypass.enabled`), and, for unauthenticated callers, what the rules allow the `$anonymous` role. A `READ` deny does not block writes: use `*` to hide a resource.
 
 === {registry} does not start
 
-{registry} fails to start when per-resource authorization is enabled and the grants file path is not set, the file does not exist, or the file is not valid grants data. The startup error names the file and the problem.
+{registry} fails to start when per-resource authorization is enabled and the access rules file path is not set, the file does not exist, or the file is not a valid rules file, including when it has rules for resource types {registry} does not enforce. The startup error names the file, and the line and problem of each error.
 
-=== Grants file changes do not take effect
+=== Access rules file changes do not take effect
 
-. Check that `apicurio.auth.resource-based-authorization.grants.reload-enabled` is not `false`.
-. Check the logs for `Grants data reloaded successfully` or for a reload error. If the new file is invalid, the previous grants stay in effect.
+. Check that `apicurio.auth.resource-based-authorization.rules.reload-enabled` is not `false`.
+. Check the logs for `Access rules reloaded successfully` or for a reload error. If the new file is invalid, the previous rules stay in effect.
 . In Kubernetes, check that the ConfigMap is not mounted with `subPath`.

@@ -319,7 +319,7 @@ public class PromptRenderingService {
         // Validate enum if specified
         JsonNode enumNode = varSchema.path("enum");
         if (!enumNode.isMissingNode() && enumNode.isArray()) {
-            RenderValidationError enumError = validateEnum(varName, value, enumNode);
+            RenderValidationError enumError = validateEnum(varName, value, enumNode, expectedType);
             if (enumError != null) {
                 errors.add(enumError);
             }
@@ -394,10 +394,16 @@ public class PromptRenderingService {
     /**
      * Validate that a value is within the allowed enum values.
      */
-    private RenderValidationError validateEnum(String varName, Object value, JsonNode enumNode) {
+    private RenderValidationError validateEnum(String varName, Object value, JsonNode enumNode,
+            String declaredType) {
         String strValue = String.valueOf(value);
         for (JsonNode enumValue : enumNode) {
-            if (enumValue.asText().equals(strValue)) {
+            // A whole-number decimal enum entry (7.0) on an integer variable matches the coerced
+            // value (7), the same way supplied values and defaults are coerced.
+            String enumText = enumValue.isFloatingPointNumber()
+                ? String.valueOf(coerceWholeNumberForInteger(enumValue.doubleValue(), declaredType))
+                : enumValue.asText();
+            if (enumText.equals(strValue)) {
                 return null; // Valid
             }
         }

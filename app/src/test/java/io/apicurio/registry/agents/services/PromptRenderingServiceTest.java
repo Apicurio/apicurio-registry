@@ -674,6 +674,46 @@ public class PromptRenderingServiceTest {
     }
 
     @Test
+    public void testWholeNumberDecimalSuppliedValueMatchesDecimalEnumForIntegerType() {
+        String yamlContent = """
+            templateId: limits
+            template: "Limit: {{max_results}}"
+            variables:
+              max_results:
+                type: integer
+                enum: [5.0, 7.0]
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of("max_results", 7.0),
+                "default", "limits", "1.0");
+
+        Assertions.assertTrue(response.getValidationErrors().isEmpty());
+        Assertions.assertEquals("Limit: 7", response.getRendered());
+    }
+
+    @Test
+    public void testSuppliedValueNotInDecimalEnumIsRejectedForIntegerType() {
+        String yamlContent = """
+            templateId: limits
+            template: "Limit: {{max_results}}"
+            variables:
+              max_results:
+                type: integer
+                enum: [5.0, 7.0]
+            """;
+
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse response = renderingService.render(content, Map.of("max_results", 9.0),
+                "default", "limits", "1.0");
+
+        Assertions.assertEquals(1, response.getValidationErrors().size());
+        Assertions.assertEquals("max_results", response.getValidationErrors().get(0).getVariableName());
+    }
+
+    @Test
     public void testFractionalSuppliedValueIsStillRejectedForIntegerType() {
         String yamlContent = """
             templateId: limits

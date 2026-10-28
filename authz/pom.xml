@@ -13,7 +13,7 @@
     <artifactId>apicurio-authz-core</artifactId>
     <packaging>jar</packaging>
     <name>apicurio-authz-core</name>
-    <description>Grants-based implementation of the Kroxylicious Authorizer API</description>
+    <description>Registry access rules: Kroxylicious ACL rules format, resource types and principals</description>
 
     <properties>
         <projectRoot>${project.basedir}/..</projectRoot>
@@ -35,6 +35,11 @@
             </exclusions>
         </dependency>
 
+        <!-- Access rules: the Kroxylicious ACL rules format and its authorizer -->
+        <dependency>
+            <groupId>io.kroxylicious</groupId>
+            <artifactId>kroxylicious-authorizer-acl</artifactId>
+        </dependency>
         <!-- JSON parsing -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>

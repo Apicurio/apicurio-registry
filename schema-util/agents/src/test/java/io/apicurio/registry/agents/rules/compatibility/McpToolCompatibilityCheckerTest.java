@@ -62,7 +62,7 @@ class McpToolCompatibilityCheckerTest {
     }
 
     @Test
-    void testBackwardCompatibleAddingOptionalProperty() {
+    void testBackwardIncompatibleTypingOpenProperty() {
         String existing = """
                 {
                     "name": "test_tool",
@@ -86,41 +86,6 @@ class McpToolCompatibilityCheckerTest {
                             "limit": { "type": "integer" }
                         },
                         "required": ["query"]
-                    }
-                }
-                """;
-
-        CompatibilityExecutionResult result = checker.testCompatibility(
-                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
-                createMcpTool(proposed), Map.of());
-
-        assertTrue(result.isCompatible(),
-                "Adding an optional property should be backward compatible");
-    }
-
-    @Test
-    void testBackwardIncompatibleRemovingProperty() {
-        String existing = """
-                {
-                    "name": "test_tool",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "query": { "type": "string" },
-                            "limit": { "type": "integer" }
-                        }
-                    }
-                }
-                """;
-
-        String proposed = """
-                {
-                    "name": "test_tool",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "query": { "type": "string" }
-                        }
                     }
                 }
                 """;
@@ -130,8 +95,42 @@ class McpToolCompatibilityCheckerTest {
                 createMcpTool(proposed), Map.of());
 
         assertFalse(result.isCompatible(),
-                "Removing a property should be backward incompatible");
-        assertHasDifferenceWithContext(result, "/inputSchema/properties");
+                "Typing a previously unconstrained additional property narrows accepted inputs");
+    }
+
+    @Test
+    void testBackwardCompatibleRemovingOpenPropertyConstraint() {
+        String existing = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" },
+                            "limit": { "type": "integer" }
+                        }
+                    }
+                }
+                """;
+
+        String proposed = """
+                {
+                    "name": "test_tool",
+                    "inputSchema": {
+                        "type": "object",
+                        "properties": {
+                            "query": { "type": "string" }
+                        }
+                    }
+                }
+                """;
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
+                createMcpTool(proposed), Map.of());
+
+        assertTrue(result.isCompatible(),
+                "Removing a property constraint from an open schema widens accepted inputs");
     }
 
     @Test
@@ -169,11 +168,11 @@ class McpToolCompatibilityCheckerTest {
 
         assertFalse(result.isCompatible(),
                 "Adding a required parameter should be backward incompatible");
-        assertHasDifferenceWithContext(result, "/inputSchema/required");
+        assertHasDifferenceWithContext(result, "/inputSchema/required/1");
     }
 
     @Test
-    void testBackwardIncompatibleRemovingRequiredParam() {
+    void testBackwardCompatibleRemovingRequiredParam() {
         String existing = """
                 {
                     "name": "test_tool",
@@ -206,9 +205,8 @@ class McpToolCompatibilityCheckerTest {
                 CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
                 createMcpTool(proposed), Map.of());
 
-        assertFalse(result.isCompatible(),
-                "Removing a required parameter should be backward incompatible");
-        assertHasDifferenceWithContext(result, "/inputSchema/required");
+        assertTrue(result.isCompatible(),
+                "Making an input optional preserves all previously accepted inputs");
     }
 
     @Test

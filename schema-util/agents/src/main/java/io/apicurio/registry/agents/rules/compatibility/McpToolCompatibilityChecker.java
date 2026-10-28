@@ -1,157 +1,138 @@
 package io.apicurio.registry.agents.rules.compatibility;
 
-import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
-import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.json.rules.compatibility.ApitomyJsonSchemaCompatibilityChecker;
+import io.apicurio.registry.json.rules.validity.JsonSchemaDocumentValidator;
+import io.apicurio.registry.rules.compatibility.AbstractCompatibilityChecker;
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.compatibility.SimpleCompatibilityDifference;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
+import io.apicurio.registry.types.ContentTypes;
 
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Compatibility checker for MCP tool definition artifacts.
- *
- * Compatibility rules for MCP tools:
- * - Adding optional input parameters: Always compatible
- * - Removing input parameters: Backward incompatible
- * - Adding required parameters: Backward incompatible
- * - Removing required parameters: Backward incompatible
- * - Changing inputSchema type: Backward incompatible
- * - Changing name, title, description, annotations: Always compatible
+ * Publication compatibility for versions of one MCP tool. BACKWARD accepts old inputs and
+ * preserves old output guarantees; FORWARD reverses both comparisons. This is distinct from
+ * comparing one tool's output to another tool's input for chaining.
  */
-public class McpToolCompatibilityChecker
-        extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
+public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
-    private static final String CONTEXT_REQUIRED = "/inputSchema/required";
-    private static final String CONTEXT_TYPE = "/inputSchema/type";
-    private static final String CONTEXT_PROPERTIES = "/inputSchema/properties";
-    private static final String CONTEXT_DOCUMENT = "/document";
-
-    private static final ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonSchemaDocumentValidator VALIDATOR = JsonSchemaDocumentValidator.builder()
+            .draftDetector(JsonSchemaDocumentValidator.dataModelsDraftDetector()).build();
+    private static final Set<String> ANNOTATIONS = Set.of("title", "description", "default", "examples",
+            "$comment", "deprecated", "readOnly", "writeOnly");
+    private static final Set<String> SCALAR_KEYWORDS = Set.of("$schema", "type", "enum", "const", "required",
+            "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
+            "minLength", "maxLength", "minItems", "maxItems", "uniqueItems", "minProperties", "maxProperties");
+    private final ApitomyJsonSchemaCompatibilityChecker schemaChecker = new ApitomyJsonSchemaCompatibilityChecker();
 
     @Override
     protected Set<SimpleCompatibilityDifference> isBackwardsCompatibleWith(String existing,
             String proposed, Map<String, TypedContent> resolvedReferences) {
-        Set<SimpleCompatibilityDifference> differences = new HashSet<>();
-
-        try {
-            JsonNode existingNode = mapper.readTree(existing);
-            JsonNode proposedNode = mapper.readTree(proposed);
-
-            // Check inputSchema type changes
-            checkInputSchemaTypeChange(existingNode, proposedNode, differences);
-
-            // Check removed properties
-            checkPropertyRemovals(existingNode, proposedNode, differences);
-
-            // Check added required parameters
-            checkRequiredParamAdditions(existingNode, proposedNode, differences);
-
-            // Check removed required parameters
-            checkRequiredParamRemovals(existingNode, proposedNode, differences);
-
-        } catch (Exception e) {
-            differences.add(new SimpleCompatibilityDifference(
-                    "Failed to parse MCP tool definition: " + e.getMessage(), CONTEXT_DOCUMENT));
+        JsonNode oldTool = parse(existing);
+        JsonNode newTool = parse(proposed);
+        // Check unchanged schemas too: unsupported assertions must not disappear through equality
+        // shortcuts or through a successful comparison of the other side.
+        for (JsonNode tool : List.of(oldTool, newTool)) {
+            validate(tool.get("inputSchema"), "/inputSchema");
+            if (tool.has("outputSchema")) {
+                validate(tool.get("outputSchema"), "/outputSchema");
+            }
         }
-
+        Set<SimpleCompatibilityDifference> differences = new HashSet<>();
+        compare(oldTool.get("inputSchema"), newTool.get("inputSchema"), CompatibilityLevel.BACKWARD,
+                "/inputSchema", differences);
+        if (oldTool.has("outputSchema")) {
+            if (!newTool.has("outputSchema")) {
+                differences.add(new SimpleCompatibilityDifference("The output schema guarantee was removed.",
+                        "/outputSchema"));
+            } else {
+                compare(oldTool.get("outputSchema"), newTool.get("outputSchema"), CompatibilityLevel.FORWARD,
+                        "/outputSchema", differences);
+            }
+        }
         return differences;
     }
 
-    private void checkInputSchemaTypeChange(JsonNode existing, JsonNode proposed,
-            Set<SimpleCompatibilityDifference> differences) {
-        String existingType = getInputSchemaType(existing);
-        String proposedType = getInputSchemaType(proposed);
-
-        if (existingType != null && proposedType != null && !existingType.equals(proposedType)) {
-            differences.add(new SimpleCompatibilityDifference(
-                    "inputSchema type changed from '" + existingType + "' to '" + proposedType + "'",
-                    CONTEXT_TYPE));
-        }
-    }
-
-    private void checkPropertyRemovals(JsonNode existing, JsonNode proposed,
-            Set<SimpleCompatibilityDifference> differences) {
-        Set<String> existingProps = extractPropertyNames(existing);
-        Set<String> proposedProps = extractPropertyNames(proposed);
-
-        for (String prop : existingProps) {
-            if (!proposedProps.contains(prop)) {
-                differences.add(new SimpleCompatibilityDifference(
-                        "Input property '" + prop + "' was removed", CONTEXT_PROPERTIES));
+    private JsonNode parse(String content) {
+        try {
+            JsonNode tool = MAPPER.readTree(content);
+            if (tool != null && tool.isObject()) {
+                return tool;
             }
+        } catch (JsonProcessingException e) {
+            throw new UnprocessableSchemaException("MCP tool compatibility requires a JSON object.", e);
         }
+        throw new UnprocessableSchemaException("MCP tool compatibility requires a JSON object.");
     }
 
-    private void checkRequiredParamAdditions(JsonNode existing, JsonNode proposed,
-            Set<SimpleCompatibilityDifference> differences) {
-        Set<String> existingRequired = extractRequiredParams(existing);
-        Set<String> proposedRequired = extractRequiredParams(proposed);
-
-        for (String param : proposedRequired) {
-            if (!existingRequired.contains(param)) {
-                differences.add(new SimpleCompatibilityDifference(
-                        "Required parameter '" + param + "' was added", CONTEXT_REQUIRED));
-            }
+    private void validate(JsonNode schema, String path) {
+        if (schema == null || !schema.isObject()) {
+            throw new UnprocessableSchemaException("MCP tool compatibility requires a schema object at " + path);
         }
+        if (!VALIDATOR.validate(schema).isEmpty()) {
+            throw new UnprocessableSchemaException("Invalid or unsupported JSON Schema at " + path);
+        }
+        checkSupported(schema, path);
     }
 
-    private void checkRequiredParamRemovals(JsonNode existing, JsonNode proposed,
-            Set<SimpleCompatibilityDifference> differences) {
-        Set<String> existingRequired = extractRequiredParams(existing);
-        Set<String> proposedRequired = extractRequiredParams(proposed);
-
-        for (String param : existingRequired) {
-            if (!proposedRequired.contains(param)) {
-                differences.add(new SimpleCompatibilityDifference(
-                        "Required parameter '" + param + "' was removed", CONTEXT_REQUIRED));
-            }
+    /**
+     * Bound guarantees to the tested structural subset. Do not project away unknown assertions:
+     * the publication rule has no 'indeterminate' success and must report them as 422.
+     * Walk schema positions only, not instance-valued annotations, enums or property names.
+     */
+    private void checkSupported(JsonNode schema, String path) {
+        if (schema.isBoolean()) {
+            return;
         }
-    }
-
-    private String getInputSchemaType(JsonNode node) {
-        JsonNode inputSchema = node.get("inputSchema");
-        if (inputSchema != null && inputSchema.isObject()) {
-            JsonNode type = inputSchema.get("type");
-            if (type != null && type.isTextual()) {
-                return type.asText();
-            }
-        }
-        return null;
-    }
-
-    private Set<String> extractPropertyNames(JsonNode node) {
-        Set<String> properties = new HashSet<>();
-        JsonNode inputSchema = node.get("inputSchema");
-        if (inputSchema != null && inputSchema.isObject()) {
-            JsonNode props = inputSchema.get("properties");
-            if (props != null && props.isObject()) {
-                Iterator<String> fieldNames = props.fieldNames();
-                while (fieldNames.hasNext()) {
-                    properties.add(fieldNames.next());
+        var fields = schema.fields();
+        while (fields.hasNext()) {
+            var field = fields.next();
+            String keyword = field.getKey();
+            String location = path + "/" + escape(keyword);
+            if (keyword.equals("properties")) {
+                field.getValue().fields().forEachRemaining(property ->
+                        checkSupported(property.getValue(), location + "/" + escape(property.getKey())));
+            } else if (keyword.equals("items") || keyword.equals("additionalProperties")) {
+                if (field.getValue().isArray()) {
+                    throw new UnprocessableSchemaException("Unsupported MCP tool compatibility construct at " + location);
                 }
+                checkSupported(field.getValue(), location);
+            } else if (!SCALAR_KEYWORDS.contains(keyword) && !ANNOTATIONS.contains(keyword)) {
+                throw new UnprocessableSchemaException("Unsupported MCP tool compatibility construct at " + location);
             }
         }
-        return properties;
     }
 
-    private Set<String> extractRequiredParams(JsonNode node) {
-        Set<String> required = new HashSet<>();
-        JsonNode inputSchema = node.get("inputSchema");
-        if (inputSchema != null && inputSchema.isObject()) {
-            JsonNode requiredNode = inputSchema.get("required");
-            if (requiredNode != null && requiredNode.isArray()) {
-                for (JsonNode item : requiredNode) {
-                    if (item.isTextual()) {
-                        required.add(item.asText());
-                    }
-                }
-            }
+    private void compare(JsonNode oldSchema, JsonNode newSchema, CompatibilityLevel direction,
+            String path, Set<SimpleCompatibilityDifference> differences) {
+        try {
+            var result = schemaChecker.testCompatibility(direction, List.of(content(oldSchema)),
+                    content(newSchema), Map.of());
+            result.getIncompatibleDifferences().forEach(difference -> {
+                var violation = difference.asRuleViolation();
+                differences.add(new SimpleCompatibilityDifference(violation.getDescription(),
+                        path + violation.getContext()));
+            });
+        } catch (RuntimeException e) {
+            throw new UnprocessableSchemaException("MCP tool compatibility could not be determined at " + path, e);
         }
-        return required;
+    }
+
+    private static TypedContent content(JsonNode schema) {
+        return TypedContent.create(ContentHandle.create(schema.toString()), ContentTypes.APPLICATION_JSON);
+    }
+
+    private static String escape(String segment) {
+        return segment.replace("~", "~0").replace("/", "~1");
     }
 }

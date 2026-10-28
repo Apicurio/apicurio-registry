@@ -8556,6 +8556,15 @@
           "readOnly": {
             "type": "boolean"
           },
+          "readOnlyReason": {
+            "description": "Why the registry is in read-only mode: storage (inherently read-only, e.g. GitOps), config (manual configuration), or absent when not read-only.",
+            "type": "string",
+            "enum": ["storage", "config"]
+          },
+          "storageName": {
+            "description": "The active storage variant name (e.g. gitops, kubernetesops, sql). Populated when readOnlyReason is storage.",
+            "type": "string"
+          },
           "breadcrumbs": {
             "type": "boolean"
           },

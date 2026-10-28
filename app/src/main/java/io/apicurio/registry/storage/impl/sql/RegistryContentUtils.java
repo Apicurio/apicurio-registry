@@ -14,6 +14,7 @@ import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.StringUtil;
+import io.quarkus.security.ForbiddenException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -97,6 +98,9 @@ public class RegistryContentUtils {
                                 );
                                 partialRecursivelyResolvedReferences.put(key, valueExtractor.apply(nested));
                             }
+                        } catch (ForbiddenException ex) {
+                            // The caller may not read the referenced artifact: fail, never skip
+                            throw ex;
                         } catch (Exception ex) {
                             log.error("Could not resolve reference {}.", reference, ex);
                         }
@@ -213,6 +217,9 @@ public class RegistryContentUtils {
                                         rewrittenContentHolder.getRewrittenContent(), referencesRewrites);
                                 partialRecursivelyResolvedReferences.put(newRefName, rewrittenContent);
                             }
+                        } catch (ForbiddenException ex) {
+                            // The caller may not read the referenced artifact: fail, never skip
+                            throw ex;
                         } catch (Exception ex) {
                             log.error("Could not resolve reference " + reference + ".", ex);
                         }

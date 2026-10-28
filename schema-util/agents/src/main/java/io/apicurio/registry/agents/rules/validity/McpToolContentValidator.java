@@ -16,7 +16,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Content validator for MCP (Model Context Protocol) tool definition artifacts.
@@ -215,9 +217,18 @@ public class McpToolContentValidator implements ContentValidator {
             throws RuleViolationException {
         // MCP tool definitions don't support references
         if (references != null && !references.isEmpty()) {
+            Set<RuleViolation> violations = references.stream()
+                    .map(reference -> new RuleViolation("References are not supported for MCP tool definitions",
+                            reference.getName()))
+                    .collect(Collectors.toSet());
             throw new RuleViolationException("MCP tool definitions do not support references",
-                    RuleType.INTEGRITY, "NONE", Collections.singleton(new RuleViolation(
-                            "References are not supported for MCP tool definitions", "")));
+                    RuleType.INTEGRITY, "NONE", violations);
         }
+    }
+
+    /** Tools don't reference other artifacts. */
+    @Override
+    public Optional<Set<String>> getAllowedReferenceTargetTypes() {
+        return Optional.of(Set.of());
     }
 }

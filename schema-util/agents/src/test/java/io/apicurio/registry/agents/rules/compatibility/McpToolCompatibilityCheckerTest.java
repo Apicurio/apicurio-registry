@@ -8,12 +8,16 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -61,9 +65,11 @@ class McpToolCompatibilityCheckerTest {
         assertTrue(result.isCompatible(), "Should be compatible when no existing artifacts");
     }
 
-    @Test
-    void testBackwardIncompatibleTypingOpenProperty() {
-        String existing = """
+    // Each row: existing version, proposed version, expected BACKWARD verdict, and the context
+    // of the reported difference when one is expected.
+    static Stream<Arguments> backwardCases() {
+        return Stream.of(
+                Arguments.of("testBackwardIncompatibleTypingOpenProperty", """
                 {
                     "name": "test_tool",
                     "inputSchema": {
@@ -74,9 +80,9 @@ class McpToolCompatibilityCheckerTest {
                         "required": ["query"]
                     }
                 }
-                """;
 
-        String proposed = """
+                        """,
+                        """
                 {
                     "name": "test_tool",
                     "inputSchema": {
@@ -88,19 +94,10 @@ class McpToolCompatibilityCheckerTest {
                         "required": ["query"]
                     }
                 }
-                """;
 
-        CompatibilityExecutionResult result = checker.testCompatibility(
-                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
-                createMcpTool(proposed), Map.of());
-
-        assertFalse(result.isCompatible(),
-                "Typing a previously unconstrained additional property narrows accepted inputs");
-    }
-
-    @Test
-    void testBackwardCompatibleRemovingOpenPropertyConstraint() {
-        String existing = """
+                        """,
+                        false, null),
+                Arguments.of("testBackwardCompatibleRemovingOpenPropertyConstraint", """
                 {
                     "name": "test_tool",
                     "inputSchema": {
@@ -111,9 +108,9 @@ class McpToolCompatibilityCheckerTest {
                         }
                     }
                 }
-                """;
 
-        String proposed = """
+                        """,
+                        """
                 {
                     "name": "test_tool",
                     "inputSchema": {
@@ -123,19 +120,10 @@ class McpToolCompatibilityCheckerTest {
                         }
                     }
                 }
-                """;
 
-        CompatibilityExecutionResult result = checker.testCompatibility(
-                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
-                createMcpTool(proposed), Map.of());
-
-        assertTrue(result.isCompatible(),
-                "Removing a property constraint from an open schema widens accepted inputs");
-    }
-
-    @Test
-    void testBackwardIncompatibleAddingRequiredParam() {
-        String existing = """
+                        """,
+                        true, null),
+                Arguments.of("testBackwardIncompatibleAddingRequiredParam", """
                 {
                     "name": "test_tool",
                     "inputSchema": {
@@ -146,9 +134,9 @@ class McpToolCompatibilityCheckerTest {
                         "required": ["query"]
                     }
                 }
-                """;
 
-        String proposed = """
+                        """,
+                        """
                 {
                     "name": "test_tool",
                     "inputSchema": {
@@ -160,20 +148,10 @@ class McpToolCompatibilityCheckerTest {
                         "required": ["query", "format"]
                     }
                 }
-                """;
 
-        CompatibilityExecutionResult result = checker.testCompatibility(
-                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
-                createMcpTool(proposed), Map.of());
-
-        assertFalse(result.isCompatible(),
-                "Adding a required parameter should be backward incompatible");
-        assertHasDifferenceWithContext(result, "/inputSchema/required/1");
-    }
-
-    @Test
-    void testBackwardCompatibleRemovingRequiredParam() {
-        String existing = """
+                        """,
+                        false, "/inputSchema/required/1"),
+                Arguments.of("testBackwardCompatibleRemovingRequiredParam", """
                 {
                     "name": "test_tool",
                     "inputSchema": {
@@ -185,9 +163,9 @@ class McpToolCompatibilityCheckerTest {
                         "required": ["query", "format"]
                     }
                 }
-                """;
 
-        String proposed = """
+                        """,
+                        """
                 {
                     "name": "test_tool",
                     "inputSchema": {
@@ -199,19 +177,10 @@ class McpToolCompatibilityCheckerTest {
                         "required": ["query"]
                     }
                 }
-                """;
 
-        CompatibilityExecutionResult result = checker.testCompatibility(
-                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
-                createMcpTool(proposed), Map.of());
-
-        assertTrue(result.isCompatible(),
-                "Making an input optional preserves all previously accepted inputs");
-    }
-
-    @Test
-    void testBackwardIncompatibleChangingSchemaType() {
-        String existing = """
+                        """,
+                        true, null),
+                Arguments.of("testBackwardIncompatibleChangingSchemaType", """
                 {
                     "name": "test_tool",
                     "inputSchema": {
@@ -221,9 +190,9 @@ class McpToolCompatibilityCheckerTest {
                         }
                     }
                 }
-                """;
 
-        String proposed = """
+                        """,
+                        """
                 {
                     "name": "test_tool",
                     "inputSchema": {
@@ -231,20 +200,10 @@ class McpToolCompatibilityCheckerTest {
                         "items": { "type": "string" }
                     }
                 }
-                """;
 
-        CompatibilityExecutionResult result = checker.testCompatibility(
-                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
-                createMcpTool(proposed), Map.of());
-
-        assertFalse(result.isCompatible(),
-                "Changing inputSchema type should be backward incompatible");
-        assertHasDifferenceWithContext(result, "/inputSchema/type");
-    }
-
-    @Test
-    void testBackwardCompatibleChangingNameAndDescription() {
-        String existing = """
+                        """,
+                        false, "/inputSchema/type"),
+                Arguments.of("testBackwardCompatibleChangingNameAndDescription", """
                 {
                     "name": "test_tool",
                     "description": "Old description",
@@ -255,9 +214,9 @@ class McpToolCompatibilityCheckerTest {
                         }
                     }
                 }
-                """;
 
-        String proposed = """
+                        """,
+                        """
                 {
                     "name": "renamed_tool",
                     "description": "New description",
@@ -268,19 +227,10 @@ class McpToolCompatibilityCheckerTest {
                         }
                     }
                 }
-                """;
 
-        CompatibilityExecutionResult result = checker.testCompatibility(
-                CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
-                createMcpTool(proposed), Map.of());
-
-        assertTrue(result.isCompatible(),
-                "Changing name and description should be compatible");
-    }
-
-    @Test
-    void testBackwardCompatibleChangingAnnotations() {
-        String existing = """
+                        """,
+                        true, null),
+                Arguments.of("testBackwardCompatibleChangingAnnotations", """
                 {
                     "name": "test_tool",
                     "inputSchema": {
@@ -294,9 +244,9 @@ class McpToolCompatibilityCheckerTest {
                         "priority": 0.5
                     }
                 }
-                """;
 
-        String proposed = """
+                        """,
+                        """
                 {
                     "name": "test_tool",
                     "inputSchema": {
@@ -310,14 +260,23 @@ class McpToolCompatibilityCheckerTest {
                         "priority": 0.9
                     }
                 }
-                """;
 
+                        """,
+                        true, null));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("backwardCases")
+    void testBackwardCompatibility(String name, String existing, String proposed, boolean compatible,
+            String expectedContext) {
         CompatibilityExecutionResult result = checker.testCompatibility(
                 CompatibilityLevel.BACKWARD, List.of(createMcpTool(existing)),
                 createMcpTool(proposed), Map.of());
 
-        assertTrue(result.isCompatible(),
-                "Changing annotations should be compatible");
+        assertEquals(compatible, result.isCompatible(), name);
+        if (expectedContext != null) {
+            assertHasDifferenceWithContext(result, expectedContext);
+        }
     }
 
     @Test

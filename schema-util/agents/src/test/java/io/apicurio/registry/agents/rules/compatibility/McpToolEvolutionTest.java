@@ -183,11 +183,13 @@ class McpToolEvolutionTest {
                 + "\"properties\":{\"x\":{" + assertion + "}}}";
         String withoutOutput = "{\"name\":\"tool\",\"inputSchema\":{\"type\":\"object\"}}";
         // Review case: adding an outputSchema skips the output comparison, so validation alone must reject it.
+        String addedOutput = tool("outputSchema", draft4);
         var error = assertThrows(UnprocessableSchemaException.class,
-                () -> check(CompatibilityLevel.BACKWARD, withoutOutput, tool("outputSchema", draft4)));
+                () -> check(CompatibilityLevel.BACKWARD, withoutOutput, addedOutput));
         assertTrue(error.getMessage().contains("/outputSchema/properties/x/"), error.getMessage());
+        String changedInput = tool("inputSchema", draft4);
         assertThrows(UnprocessableSchemaException.class,
-                () -> check(CompatibilityLevel.BACKWARD, withoutOutput, tool("inputSchema", draft4)));
+                () -> check(CompatibilityLevel.BACKWARD, withoutOutput, changedInput));
         // The same keywords remain supported in later drafts.
         String draft7 = draft4.replace("draft-04", "draft-07").replace("\"exclusiveMinimum\":true", "\"exclusiveMinimum\":0")
                 .replace("\"exclusiveMaximum\":true", "\"exclusiveMaximum\":9");
@@ -199,8 +201,9 @@ class McpToolEvolutionTest {
     void unsupportedAssertionsInsideOtherSchemaPositions(String keyword) {
         String schema = property("{\"" + keyword + "\":{\"oneOf\":[{\"type\":\"string\"}]}}");
         for (String side : List.of("inputSchema", "outputSchema")) {
+            String document = tool(side, schema);
             var error = assertThrows(UnprocessableSchemaException.class,
-                    () -> check(CompatibilityLevel.FULL, tool(side, schema), tool(side, schema)));
+                    () -> check(CompatibilityLevel.FULL, document, document));
             assertTrue(error.getMessage().endsWith("/" + keyword + "/oneOf"));
         }
     }

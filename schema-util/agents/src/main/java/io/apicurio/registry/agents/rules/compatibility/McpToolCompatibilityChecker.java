@@ -34,6 +34,10 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
     private static final Set<String> SCALAR_KEYWORDS = Set.of("$schema", "type", "enum", "const", "required",
             "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
             "minLength", "maxLength", "minItems", "maxItems", "uniqueItems", "minProperties", "maxProperties");
+    private static final String INPUT_SCHEMA = "inputSchema";
+    private static final String OUTPUT_SCHEMA = "outputSchema";
+    private static final String INPUT_PATH = "/" + INPUT_SCHEMA;
+    private static final String OUTPUT_PATH = "/" + OUTPUT_SCHEMA;
     private static final Set<String> DRAFT4_UNSUPPORTED = Set.of("const", "exclusiveMinimum", "exclusiveMaximum");
     private final ApitomyJsonSchemaCompatibilityChecker schemaChecker = new ApitomyJsonSchemaCompatibilityChecker();
 
@@ -45,21 +49,21 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
         // Check unchanged schemas too: unsupported assertions must not disappear through equality
         // shortcuts or through a successful comparison of the other side.
         for (JsonNode tool : List.of(oldTool, newTool)) {
-            validate(tool.get("inputSchema"), "/inputSchema");
-            if (tool.has("outputSchema")) {
-                validate(tool.get("outputSchema"), "/outputSchema");
+            validate(tool.get(INPUT_SCHEMA), INPUT_PATH);
+            if (tool.has(OUTPUT_SCHEMA)) {
+                validate(tool.get(OUTPUT_SCHEMA), OUTPUT_PATH);
             }
         }
         Set<SimpleCompatibilityDifference> differences = new HashSet<>();
-        compare(oldTool.get("inputSchema"), newTool.get("inputSchema"), CompatibilityLevel.BACKWARD,
-                "/inputSchema", differences);
-        if (oldTool.has("outputSchema")) {
-            if (!newTool.has("outputSchema")) {
+        compare(oldTool.get(INPUT_SCHEMA), newTool.get(INPUT_SCHEMA), CompatibilityLevel.BACKWARD,
+                INPUT_PATH, differences);
+        if (oldTool.has(OUTPUT_SCHEMA)) {
+            if (!newTool.has(OUTPUT_SCHEMA)) {
                 differences.add(new SimpleCompatibilityDifference("The output schema guarantee was removed.",
-                        "/outputSchema"));
+                        OUTPUT_PATH));
             } else {
-                compare(oldTool.get("outputSchema"), newTool.get("outputSchema"), CompatibilityLevel.FORWARD,
-                        "/outputSchema", differences);
+                compare(oldTool.get(OUTPUT_SCHEMA), newTool.get(OUTPUT_SCHEMA), CompatibilityLevel.FORWARD,
+                        OUTPUT_PATH, differences);
             }
         }
         return differences;

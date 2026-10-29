@@ -83,9 +83,164 @@ You can store and manage a wide range of schema and API artifact types in {regis
 |http://www.w3.org/2001/XMLSchema
 |===
 
-NOTE: The `AVRO`, `PROTOBUF`, `JSON`, `OPENAPI`, `ASYNCAPI`, `XSD`, and `WSDL` artifact types support artifact
-references. For `XSD` and `WSDL`, the reference name must equal the literal `schemaLocation` or `location`
-attribute value. The `XML` artifact type does not support artifact references.
+// ref-registry-artifact-type-reference-support
+[id="registry-artifact-type-reference-support_{context}"]
+== Artifact reference support by type
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Artifact references let one artifact content depend on another artifact already stored in
+{registry} (for example, an OpenAPI document that uses `$ref` to point at a shared JSON Schema
+artifact). Support for finding, validating, and resolving (dereferencing or rewriting) references
+varies by artifact type. The table below lists the reference support for every built-in artifact
+type.
+
+.Artifact reference support by type
+[%header,cols="2,1,1,1,3"]
+|===
+|Type
+|Finds references
+|Dereferences (`DEREFERENCE`)
+|Rewrites (`REWRITE`)
+|Notes
+
+|`AVRO`
+|Yes
+|Yes
+|Yes
+|References are named types (for example `com.example.Foo`) found in named-type fields.
+
+|`PROTOBUF`
+|Yes
+|Yes
+|Yes
+|References are resolved from `import` statements.
+
+|`JSON`
+|Yes
+|Yes
+|Yes
+|References are `$ref` pointers to external documents.
+
+|`OPENAPI`
+|Yes
+|Yes
+|Yes
+|References are `$ref` pointers to external documents.
+
+|`ASYNCAPI`
+|Yes
+|Yes
+|Yes
+|References are `$ref` pointers to external documents.
+
+|`OPENRPC`
+|Yes
+|Yes
+|Yes
+|References are `$ref` pointers to external documents.
+
+|`MODEL_SCHEMA`
+|Yes
+|Yes
+|Yes
+|AI/ML model input/output schemas may reference shared type definitions.
+
+|`PROMPT_TEMPLATE`
+|Yes
+|Yes
+|Yes
+|Prompt templates may reference shared variable schemas.
+
+|`ODCS_CONTRACT`
+|Yes
+|Yes
+|Yes
+|References are `schemas[].location` values pointing at the backing schema artifact (for example
+an `AVRO`, `JSON`, or `PROTOBUF` artifact). `DEREFERENCE` inlines the resolved schema content into
+an `x-apicurio-schemaDefinition` field alongside `location` (namespaced to avoid colliding with a
+schema entry that already defines its own property of that name, which is left untouched);
+`REWRITE` replaces the `location` value with a Registry API URL. Cross-artifact references
+*inside* the referenced schema content are not followed during ODCS projection; see the data
+contracts documentation for details.
+
+|`XSD`
+|Yes
+|No (throws an error)
+|Yes
+|The reference name must equal the literal `schemaLocation` attribute value. Only `REWRITE` is
+supported; requesting `DEREFERENCE` raises an error directing the caller to use `REWRITE` instead.
+
+|`WSDL`
+|Yes
+|No (throws an error)
+|Yes
+|The reference name must equal the literal `schemaLocation` or `location` attribute value. Only
+`REWRITE` is supported; requesting `DEREFERENCE` raises an error directing the caller to use
+`REWRITE` instead.
+
+|`GRAPHQL`
+|Yes (opt-in convention)
+|Yes
+|Yes
+|GraphQL has no standard import syntax. References are recognized only when the content uses the
+`#import "other.graphql"` leading-comment convention popularized by third-party tools such as
+graphql-tools / graphql-import. Content that does not use this convention has no references. The
+named-import form (`# import Foo, Bar from "other.graphql"`) is recognized for reference finding
+and `REWRITE`, but is intentionally left unresolved on `DEREFERENCE` (the directive is left
+unchanged), since inlining the whole referenced file would ignore the requested name list and
+risks introducing conflicting or duplicate type definitions. Text that merely resembles an
+`#import` line inside a `"""..."""` block-string description is never treated as a directive.
+
+|`XML`
+|No
+|No
+|No
+|Generic XML content has no defined reference mechanism in {registry}.
+
+|`KCONNECT`
+|No
+|No
+|No
+|Kafka Connect schema content has no defined reference mechanism in {registry}.
+
+|`ICEBERG_TABLE`
+|No
+|No
+|No
+|The content validator rejects artifact references outright.
+
+|`ICEBERG_VIEW`
+|No
+|No
+|No
+|The content validator rejects artifact references outright.
+
+|`MCP_TOOL`
+|No
+|No
+|No
+|The content validator rejects artifact references outright.
+
+|`MCP_SERVER`
+|No
+|No
+|No
+|`server.json` has no reference fields; there is nothing in the content to map to a reference.
+
+|`AGENT_CARD`
+|No
+|No
+|No
+|Agent card content has no defined reference mechanism in {registry}.
+
+|`THRIFT`
+|No
+|No
+|No
+|Not currently implemented.
+|===
 
 // ref-registry-ai-ml-artifact-types
 [id="registry-ai-ml-artifact-types_{context}"]

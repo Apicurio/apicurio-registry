@@ -3,6 +3,8 @@ package io.apicurio.registry.references;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -54,9 +56,17 @@ import java.util.Set;
  * walker itself loaded references in, level by level. The first occurrence of a name whose target actually
  * resolved (is not in {@link #missing()}) wins; if that occurrence's target is itself missing, the name
  * stays open for a later occurrence, exactly as the walker this replaces behaved. Two different targets
- * sharing a name is already a bug (#9000 fixes it properly, by keying on coordinates instead of collapsing
- * by name); breadth-first order can pick a different winner than the old depth-first code did in that case,
- * and that is an accepted, deliberate behaviour change rather than an attempt to preserve what was an
+ * sharing a name is a real bug, #9000: investigated fixing it by resolving bottom-up and keying on
+ * coordinates instead of collapsing by name, but that broke several content types whose handlers rely on
+ * this method's flattened, whole-graph shape (Protobuf's dereferencer needs raw, not pre-dereferenced,
+ * content; XSD/WSDL fall back to raw content that itself needs the full transitive name map; Avro's own
+ * parser cannot hold two conflicting definitions of the same type even when correctly disambiguated by
+ * coordinates — see #10766). A correct fix needs each content type's own handler — and for OpenAPI/AsyncAPI,
+ * the underlying Apitomy library — to resolve node-aware rather than by a flattened map; tracked as #10761.
+ * Until then, this method still silently picks a winner the same way it always has, now logging a warning
+ * the first time it sees a genuine collision, so operators can at least find and rename the colliding
+ * reference. Breadth-first order can pick a different winner than the old depth-first code did in that
+ * case, and that is an accepted, deliberate behaviour change rather than an attempt to preserve what was an
  * arbitrary choice to begin with. Pinned by {@code
  * ReferenceGraphWalkerTest#asNameMapPicksTheBreadthFirstWinnerForASharedName}.</li>
  * <li><b>What order the winning entries appear in the returned map.</b> Dependency-first (post-order): a
@@ -71,6 +81,8 @@ import java.util.Set;
  * Immutable and safe to share across threads once built.
  */
 public final class ResolvedReferences {
+
+    private static final Logger log = LoggerFactory.getLogger(ResolvedReferences.class);
 
     private final Map<GAV, ReferenceNode> nodes;
     private final Set<GAV> missing;

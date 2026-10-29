@@ -7314,6 +7314,10 @@
             "items": {
               "$ref": "#/components/schemas/RuleViolationCause"
             }
+          },
+          "ruleType": {
+            "description": "The type of rule that was violated.",
+            "$ref": "#/components/schemas/RuleType"
           }
         }
       },

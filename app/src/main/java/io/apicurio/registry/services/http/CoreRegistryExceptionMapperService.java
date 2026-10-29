@@ -89,6 +89,7 @@ public class CoreRegistryExceptionMapperService {
             rvpd.setCauses(restCauses);
             RuleViolationDetails rvd = new RuleViolationDetails();
             rvd.setCauses(restCauses);
+            rvd.setRuleType(rve.getRuleType());
             rvpd.setRuleViolation(rvd);
             // Note: type is intentionally left unset here.
             // Choosing stable type URI values (e.g. urn:apicurio:error:rule-violation) is a

@@ -128,7 +128,8 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
                     || (!SCALAR_KEYWORDS.contains(keyword) && !ANNOTATIONS.contains(keyword))) {
                 throw new UnprocessableSchemaException("Unsupported MCP tool compatibility construct at " + location);
             } else if (SCALAR_KEYWORDS.contains(keyword)) {
-                checkNumbersAreDoubleExact(field.getValue(), location);
+                boolean instanceValue = keyword.equals("enum") || keyword.equals("const");
+                checkNumbersAreDoubleExact(field.getValue(), location, instanceValue);
             }
         }
     }
@@ -137,10 +138,16 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
      * The shared checker compares numbers as doubles, so two values that round to the same double
      * (for example 9007199254740992.0 and 9007199254740993.0) would compare as equal and a breaking
      * change would pass. Such values cannot be compared reliably, so they are reported as 422.
+     * The exception is an integer inside an 'enum' or 'const' value, which the checker compares
+     * exactly; integers in bounds and 'multipleOf' are rounded like decimals
+     * (Apitomy/apitomy-data-models#1288).
      * Values such as 0.1 round-trip through a double unchanged and are accepted.
      */
-    private static void checkNumbersAreDoubleExact(JsonNode value, String location) {
+    private static void checkNumbersAreDoubleExact(JsonNode value, String location, boolean instanceValue) {
         if (value.isNumber()) {
+            if (instanceValue && value.isIntegralNumber()) {
+                return;
+            }
             BigDecimal exact = value.decimalValue();
             double rounded = exact.doubleValue();
             if (Double.isInfinite(rounded) || new BigDecimal(Double.toString(rounded)).compareTo(exact) != 0) {
@@ -151,11 +158,11 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
             int index = 0;
             for (var entries = value.fields(); entries.hasNext();) {
                 var entry = entries.next();
-                checkNumbersAreDoubleExact(entry.getValue(), location + "/" + escape(entry.getKey()));
+                checkNumbersAreDoubleExact(entry.getValue(), location + "/" + escape(entry.getKey()), instanceValue);
             }
             if (value.isArray()) {
                 for (JsonNode element : value) {
-                    checkNumbersAreDoubleExact(element, location + "/" + index++);
+                    checkNumbersAreDoubleExact(element, location + "/" + index++, instanceValue);
                 }
             }
         }

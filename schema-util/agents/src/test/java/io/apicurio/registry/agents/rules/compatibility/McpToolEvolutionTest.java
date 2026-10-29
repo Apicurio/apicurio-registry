@@ -223,11 +223,38 @@ class McpToolEvolutionTest {
         String high = low.replace("0.3", "0.4");
         assertTrue(check(CompatibilityLevel.BACKWARD, tool("inputSchema", low), tool("inputSchema", high)).isCompatible());
         assertFalse(check(CompatibilityLevel.BACKWARD, tool("inputSchema", high), tool("inputSchema", low)).isCompatible());
-        String nested = property("{\"enum\":[{\"a\":[9007199254740993]}]}");
+        String nested = property("{\"enum\":[{\"a\":[9007199254740993.0]}]}");
         String nestedTool = tool("outputSchema", nested);
         var error = assertThrows(UnprocessableSchemaException.class,
                 () -> check(CompatibilityLevel.BACKWARD, nestedTool, nestedTool));
         assertTrue(error.getMessage().endsWith("/enum/0/a/0"), error.getMessage());
+    }
+
+    // The shared checker compares integers inside enum and const values exactly, so changes there
+    // are compared rather than rejected. In bounds and multipleOf it rounds integers too.
+    @ParameterizedTest
+    @ValueSource(strings = {"\"enum\":[%s]", "\"const\":%s", "\"enum\":[{\"a\":[%s]}]"})
+    void largeIntegersInEnumAndConstValuesAreCompared(String keyword) {
+        String low = property("{" + keyword.formatted("9007199254740992") + "}");
+        String high = property("{" + keyword.formatted("9007199254740993") + "}");
+        for (String side : List.of("inputSchema", "outputSchema")) {
+            assertFalse(check(CompatibilityLevel.BACKWARD, tool(side, low), tool(side, high)).isCompatible(),
+                    keyword + " " + side);
+            assertTrue(check(CompatibilityLevel.FULL, tool(side, high), tool(side, high)).isCompatible(),
+                    keyword + " " + side);
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf"})
+    void largeIntegersInBoundsAreUnprocessable(String keyword) {
+        String schema = property("{\"type\":\"integer\",\"" + keyword + "\":9007199254740993}");
+        for (String side : List.of("inputSchema", "outputSchema")) {
+            String document = tool(side, schema);
+            var error = assertThrows(UnprocessableSchemaException.class,
+                    () -> check(CompatibilityLevel.BACKWARD, document, document));
+            assertTrue(error.getMessage().endsWith("/" + keyword), error.getMessage());
+        }
     }
 
     @ParameterizedTest

@@ -24,11 +24,14 @@ import io.apicurio.registry.avro.rules.compatibility.AvroCompatibilityChecker;
 import io.apicurio.registry.avro.rules.validity.AvroContentValidator;
 import io.apicurio.registry.content.OdcsContractContentAccepter;
 import io.apicurio.registry.content.canon.YamlContentCanonicalizer;
+import io.apicurio.registry.content.dereference.OdcsContractDereferencer;
 import io.apicurio.registry.content.refs.AvroReferenceArtifactIdentifierExtractor;
 import io.apicurio.registry.content.refs.OdcsContractReferenceFinder;
 import io.apicurio.registry.graphql.content.GraphQLContentAccepter;
 import io.apicurio.registry.graphql.content.canon.GraphQLContentCanonicalizer;
+import io.apicurio.registry.graphql.content.dereference.GraphQLContentDereferencer;
 import io.apicurio.registry.graphql.content.extract.GraphQLStructuredContentExtractor;
+import io.apicurio.registry.graphql.content.refs.GraphQLReferenceFinder;
 import io.apicurio.registry.graphql.rules.validity.GraphQLContentValidator;
 import io.apicurio.registry.iceberg.content.IcebergCompatibilityChecker;
 import io.apicurio.registry.iceberg.content.IcebergContentExtractor;
@@ -164,6 +167,8 @@ public class StandardArtifactTypeProviderRegistry {
                 .canonicalizer(GraphQLContentCanonicalizer::new)
                 .validator(GraphQLContentValidator::new)
                 .structuredContentExtractor(GraphQLStructuredContentExtractor::new)
+                .dereferencer(GraphQLContentDereferencer::new)
+                .referenceFinder(GraphQLReferenceFinder::new)
                 .build());
         PROVIDERS.put(ArtifactType.KCONNECT, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
@@ -232,6 +237,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .canonicalizer(YamlContentCanonicalizer::new)
                 .validator(OdcsContractContentValidator::new)
                 .referenceFinder(OdcsContractReferenceFinder::new)
+                .dereferencer(OdcsContractDereferencer::new)
                 .build());
         PROVIDERS.put(ArtifactType.THRIFT, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_THRIFT))

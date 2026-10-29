@@ -1,0 +1,10 @@
+#import "https://registry.example.com/apis/registry/v3/groups/g/artifacts/common-types/versions/1/content?references=REWRITE"
+
+type Query {
+    user(id: ID!): User
+}
+
+type User {
+    id: ID!
+    profile: Profile
+}

@@ -29,6 +29,8 @@ import java.util.Set;
  */
 public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
+    private static final String ENUM = "enum";
+    private static final String CONST = "const";
     // Numbers reach the shared checker as written, rather than rounded through a double: two
     // different high-precision enum values or bounds must not compare as one.
     private static final ObjectMapper MAPPER = new ObjectMapper()
@@ -38,7 +40,7 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
             .draftDetector(JsonSchemaDocumentValidator.dataModelsDraftDetector()).build();
     private static final Set<String> ANNOTATIONS = Set.of("title", "description", "default", "examples",
             "$comment", "deprecated", "readOnly", "writeOnly");
-    private static final Set<String> SCALAR_KEYWORDS = Set.of("$schema", "type", "enum", "const", "required",
+    private static final Set<String> SCALAR_KEYWORDS = Set.of("$schema", "type", ENUM, CONST, "required",
             "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "multipleOf",
             "minLength", "maxLength", "minItems", "maxItems", "uniqueItems", "minProperties", "maxProperties");
     private static final String INPUT_SCHEMA = "inputSchema";
@@ -46,7 +48,7 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
     // JSON Pointer prefixes for rule-violation contexts.
     private static final String INPUT_PATH = "/inputSchema";
     private static final String OUTPUT_PATH = "/outputSchema";
-    private static final Set<String> DRAFT4_UNSUPPORTED = Set.of("const", "exclusiveMinimum", "exclusiveMaximum");
+    private static final Set<String> DRAFT4_UNSUPPORTED = Set.of(CONST, "exclusiveMinimum", "exclusiveMaximum");
     private final ApitomyJsonSchemaCompatibilityChecker schemaChecker = new ApitomyJsonSchemaCompatibilityChecker();
 
     @Override
@@ -128,7 +130,7 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
                     || (!SCALAR_KEYWORDS.contains(keyword) && !ANNOTATIONS.contains(keyword))) {
                 throw new UnprocessableSchemaException("Unsupported MCP tool compatibility construct at " + location);
             } else if (SCALAR_KEYWORDS.contains(keyword)) {
-                boolean instanceValue = keyword.equals("enum") || keyword.equals("const");
+                boolean instanceValue = keyword.equals(ENUM) || keyword.equals(CONST);
                 checkNumbersAreDoubleExact(field.getValue(), location, instanceValue);
             }
         }

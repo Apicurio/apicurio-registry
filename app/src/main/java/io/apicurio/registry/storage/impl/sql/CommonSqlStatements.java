@@ -1180,6 +1180,71 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertWebhookSubscription()
+     */
+    @Override
+    public String insertWebhookSubscription() {
+        return "INSERT INTO webhook_subscriptions (subscriptionId, name, ownerId, endpointUrl, eventTypes, "
+                + "groupFilter, artifactIdFilter, artifactTypeFilter, enabled, deletedOn, revision, "
+                + "signingSecretRef, createdOn, modifiedOn) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 1, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectWebhookSubscriptionById()
+     */
+    @Override
+    public String selectWebhookSubscriptionById() {
+        return "SELECT ws.* FROM webhook_subscriptions ws WHERE ws.subscriptionId = ? AND ws.deletedOn IS NULL";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectActiveWebhookSubscriptionCountById()
+     */
+    @Override
+    public String selectActiveWebhookSubscriptionCountById() {
+        return "SELECT COUNT(ws.subscriptionId) FROM webhook_subscriptions ws "
+                + "WHERE ws.subscriptionId = ? AND ws.deletedOn IS NULL";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectWebhookSubscriptions()
+     */
+    @Override
+    public String selectWebhookSubscriptions() {
+        return "SELECT ws.* FROM webhook_subscriptions ws WHERE ws.deletedOn IS NULL "
+                + "ORDER BY ws.createdOn, ws.subscriptionId";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#countWebhookSubscriptions()
+     */
+    @Override
+    public String countWebhookSubscriptions() {
+        return "SELECT COUNT(ws.subscriptionId) FROM webhook_subscriptions ws WHERE ws.deletedOn IS NULL";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updateWebhookSubscription()
+     */
+    @Override
+    public String updateWebhookSubscription() {
+        return "UPDATE webhook_subscriptions SET name = ?, eventTypes = ?, groupFilter = ?, "
+                + "artifactIdFilter = ?, artifactTypeFilter = ?, enabled = ?, "
+                + "revision = revision + 1, modifiedOn = ? "
+                + "WHERE subscriptionId = ? AND revision = ? AND deletedOn IS NULL";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#softDeleteWebhookSubscription()
+     */
+    @Override
+    public String softDeleteWebhookSubscription() {
+        return "UPDATE webhook_subscriptions SET deletedOn = ?, enabled = ?, revision = revision + 1, "
+                + "modifiedOn = ? WHERE subscriptionId = ? AND revision = ? AND deletedOn IS NULL";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertDownload()
      */
     @Override

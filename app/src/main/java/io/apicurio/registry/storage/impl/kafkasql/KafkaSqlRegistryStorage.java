@@ -42,6 +42,7 @@ import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.RuleAlreadyExistsException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.storage.error.WebhookStorageNotSupportedException;
 import io.apicurio.registry.storage.impl.kafkasql.KafkaSqlFactory.KafkaAdminClient;
 import io.apicurio.registry.storage.impl.kafkasql.messages.*;
 import io.apicurio.registry.storage.impl.kafkasql.sql.KafkaSqlSink;
@@ -1142,6 +1143,46 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var message = new DeletePeer1Message(peerId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         coordinator.waitForResponse(uuid);
+    }
+
+    /*
+     * Webhook subscriptions are SQL-only. All five operations are overridden, reads included, so that
+     * nothing reaches the local SQL replica, which is not journaled and would diverge between nodes.
+     */
+
+    @Override
+    public boolean isWebhookManagementSupported() {
+        return false;
+    }
+
+    @Override
+    public WebhookSubscriptionDto createWebhookSubscription(WebhookSubscriptionDto subscription)
+            throws RegistryStorageException {
+        throw new WebhookStorageNotSupportedException();
+    }
+
+    @Override
+    public WebhookSubscriptionDto getWebhookSubscription(String subscriptionId)
+            throws RegistryStorageException {
+        throw new WebhookStorageNotSupportedException();
+    }
+
+    @Override
+    public WebhookSubscriptionSearchResultsDto searchWebhookSubscriptions(int offset, int limit)
+            throws RegistryStorageException {
+        throw new WebhookStorageNotSupportedException();
+    }
+
+    @Override
+    public WebhookSubscriptionDto updateWebhookSubscription(String subscriptionId, long expectedRevision,
+            WebhookSubscriptionDto subscription) throws RegistryStorageException {
+        throw new WebhookStorageNotSupportedException();
+    }
+
+    @Override
+    public void softDeleteWebhookSubscription(String subscriptionId, long expectedRevision)
+            throws RegistryStorageException {
+        throw new WebhookStorageNotSupportedException();
     }
 
     /**

@@ -3,6 +3,7 @@ package io.apicurio.registry.rest.v3.impl;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDef;
 import io.apicurio.common.apps.config.DynamicConfigPropertyDto;
 import io.apicurio.registry.contracts.ContractLabels;
+import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.v3.beans.ArtifactMetaData;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rest.v3.beans.ContractMetadata;
@@ -24,6 +25,9 @@ import io.apicurio.registry.rest.v3.beans.SearchedVersion;
 import io.apicurio.registry.rest.v3.beans.SortOrder;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.VersionSearchResults;
+import io.apicurio.registry.rest.v3.beans.WebhookEventType;
+import io.apicurio.registry.rest.v3.beans.WebhookSubscription;
+import io.apicurio.registry.rest.v3.beans.WebhookSubscriptionSearchResults;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
@@ -39,7 +43,10 @@ import io.apicurio.registry.storage.dto.PeerSearchResultsDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionSearchResultsDto;
 import io.apicurio.registry.types.RoleType;
+import io.apicurio.registry.webhooks.WebhookEventTypesJson;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -310,21 +317,33 @@ public final class V3ApiUtil {
         return results;
     }
 
-    public static Peer dtoToPeer(PeerDto dto) {
-        Peer peer = new Peer();
-        peer.setPeerId(dto.getPeerId());
-        peer.setUrl(dto.getUrl());
-        peer.setName(dto.getName());
-        peer.setDescription(dto.getDescription());
-        peer.setEnabled(dto.isEnabled());
-        peer.setCredentialSecretRef(dto.getCredentialSecretRef());
-        return peer;
+    public static WebhookSubscription dtoToWebhookSubscription(WebhookSubscriptionDto dto) {
+        WebhookSubscription subscription = new WebhookSubscription();
+        subscription.setSubscriptionId(dto.getSubscriptionId());
+        subscription.setName(dto.getName());
+        subscription.setOwnerId(dto.getOwnerId());
+        subscription.setEndpointUrl(dto.getEndpointUrl());
+        subscription.setEventTypes(WebhookEventTypesJson.fromJson(dto.getEventTypes()).stream()
+                .map(WebhookEventType::fromValue).collect(Collectors.toList()));
+        // Stored in raw form; show the default group as "default", as the rest of the v3 API does.
+        subscription.setGroupFilter(dto.getGroupFilter() == null ? null
+            : new GroupId(dto.getGroupFilter()).getRawGroupIdWithDefaultString());
+        subscription.setArtifactIdFilter(dto.getArtifactIdFilter());
+        subscription.setArtifactTypeFilter(dto.getArtifactTypeFilter());
+        subscription.setEnabled(dto.isEnabled());
+        subscription.setSigningSecretRef(dto.getSigningSecretRef());
+        subscription.setRevision(dto.getRevision());
+        subscription.setCreatedOn(new Date(dto.getCreatedOn()));
+        subscription.setModifiedOn(new Date(dto.getModifiedOn()));
+        return subscription;
     }
 
-    public static PeerSearchResults dtoToPeerSearchResults(PeerSearchResultsDto dto) {
-        PeerSearchResults results = new PeerSearchResults();
+    public static WebhookSubscriptionSearchResults dtoToWebhookSubscriptionSearchResults(
+            WebhookSubscriptionSearchResultsDto dto) {
+        WebhookSubscriptionSearchResults results = new WebhookSubscriptionSearchResults();
         results.setCount((int) dto.getCount());
-        results.setPeers(dto.getPeers().stream().map(V3ApiUtil::dtoToPeer).collect(Collectors.toList()));
+        results.setSubscriptions(dto.getSubscriptions().stream().map(V3ApiUtil::dtoToWebhookSubscription)
+                .collect(Collectors.toList()));
         return results;
     }
 

@@ -19,6 +19,8 @@ import io.apicurio.registry.storage.dto.EditableGroupMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.dto.PeerDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionDto;
+import io.apicurio.registry.storage.dto.WebhookSubscriptionSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.dto.SchemaUsageSummaryDto;
@@ -26,6 +28,7 @@ import io.apicurio.registry.storage.dto.ConsumerVersionEntryDto;
 import io.apicurio.registry.storage.dto.DeprecationReadinessDto;
 import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.WebhookStorageNotSupportedException;
 import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.impexp.EntityInputStream;
@@ -278,6 +281,41 @@ public abstract class AbstractReadOnlyRegistryStorage implements RegistryStorage
     @Override
     public void deletePeer(String peerId) throws RegistryStorageException {
         readOnlyViolation();
+    }
+
+    @Override
+    public boolean isWebhookManagementSupported() {
+        return false;
+    }
+
+    @Override
+    public WebhookSubscriptionDto createWebhookSubscription(WebhookSubscriptionDto subscription)
+            throws RegistryStorageException {
+        throw new WebhookStorageNotSupportedException();
+    }
+
+    @Override
+    public WebhookSubscriptionDto getWebhookSubscription(String subscriptionId)
+            throws RegistryStorageException {
+        throw new WebhookStorageNotSupportedException();
+    }
+
+    @Override
+    public WebhookSubscriptionSearchResultsDto searchWebhookSubscriptions(int offset, int limit)
+            throws RegistryStorageException {
+        throw new WebhookStorageNotSupportedException();
+    }
+
+    @Override
+    public WebhookSubscriptionDto updateWebhookSubscription(String subscriptionId, long expectedRevision,
+            WebhookSubscriptionDto subscription) throws RegistryStorageException {
+        throw new WebhookStorageNotSupportedException();
+    }
+
+    @Override
+    public void softDeleteWebhookSubscription(String subscriptionId, long expectedRevision)
+            throws RegistryStorageException {
+        throw new WebhookStorageNotSupportedException();
     }
 
     @Override

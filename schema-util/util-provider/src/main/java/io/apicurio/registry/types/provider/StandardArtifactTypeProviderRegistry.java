@@ -71,6 +71,7 @@ import io.apicurio.registry.rules.validity.OdcsContractContentValidator;
 import io.apicurio.registry.thrift.content.ThriftContentAccepter;
 import io.apicurio.registry.thrift.content.canon.ThriftContentCanonicalizer;
 import io.apicurio.registry.thrift.content.extract.ThriftStructuredContentExtractor;
+import io.apicurio.registry.thrift.content.refs.ThriftReferenceFinder;
 import io.apicurio.registry.thrift.rules.validity.ThriftContentValidator;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -238,6 +239,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .accepter(ThriftContentAccepter::new)
                 .canonicalizer(ThriftContentCanonicalizer::new)
                 .validator(ThriftContentValidator::new)
+                .referenceFinder(ThriftReferenceFinder::new)
                 .structuredContentExtractor(ThriftStructuredContentExtractor::new)
                 .build());
         PROVIDERS.putAll(loadContributedProviders(PROVIDERS));

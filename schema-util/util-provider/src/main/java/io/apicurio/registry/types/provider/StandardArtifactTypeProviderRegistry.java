@@ -103,6 +103,7 @@ public class StandardArtifactTypeProviderRegistry {
     static {
         PROVIDERS.put(ArtifactType.PROTOBUF, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_PROTOBUF))
+                .fileExtensions(Set.of(".proto"))
                 .accepter(ProtobufContentAccepter::new)
                 .compatibilityChecker(ProtobufCompatibilityChecker::new)
                 .canonicalizer(ProtobufContentCanonicalizer::new)
@@ -148,6 +149,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .build());
         PROVIDERS.put(ArtifactType.AVRO, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
+                .fileExtensions(Set.of(".avsc"))
                 .accepter(AvroContentAccepter::new)
                 .compatibilityChecker(AvroCompatibilityChecker::new)
                 .canonicalizer(EnhancedAvroContentCanonicalizer::new)
@@ -160,6 +162,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .build());
         PROVIDERS.put(ArtifactType.GRAPHQL, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_GRAPHQL))
+                .fileExtensions(Set.of(".graphql", ".gql"))
                 .accepter(GraphQLContentAccepter::new)
                 .canonicalizer(GraphQLContentCanonicalizer::new)
                 .validator(GraphQLContentValidator::new)
@@ -172,6 +175,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .build());
         PROVIDERS.put(ArtifactType.WSDL, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_XML))
+                .fileExtensions(Set.of(".wsdl"))
                 .accepter(WsdlContentAccepter::new)
                 .canonicalizer(XmlContentCanonicalizer::new)
                 .validator(WsdlContentValidator::new)
@@ -182,6 +186,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .build());
         PROVIDERS.put(ArtifactType.XSD, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_XML))
+                .fileExtensions(Set.of(".xsd"))
                 .accepter(XsdContentAccepter::new)
                 .compatibilityChecker(XsdCompatibilityChecker::new)
                 .canonicalizer(XmlContentCanonicalizer::new)
@@ -235,6 +240,7 @@ public class StandardArtifactTypeProviderRegistry {
                 .build());
         PROVIDERS.put(ArtifactType.THRIFT, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_THRIFT))
+                .fileExtensions(Set.of(".thrift"))
                 .accepter(ThriftContentAccepter::new)
                 .canonicalizer(ThriftContentCanonicalizer::new)
                 .validator(ThriftContentValidator::new)

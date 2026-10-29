@@ -5,6 +5,7 @@ import io.apicurio.registry.metrics.health.liveness.LivenessUtil;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.rest.v3.beans.ProblemDetails;
 import io.apicurio.registry.rest.v3.beans.RuleViolationCause;
+import io.apicurio.registry.rest.v3.beans.RuleViolationDetails;
 import io.apicurio.registry.rest.v3.beans.RuleViolationProblemDetails;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
@@ -81,10 +82,20 @@ public class CoreRegistryExceptionMapperService {
 
         if (t instanceof RuleViolationException) {
             RuleViolationException rve = (RuleViolationException) t;
-            details = new RuleViolationProblemDetails();
-            ((RuleViolationProblemDetails) details).setTitle(rve.getMessage());
-            ((RuleViolationProblemDetails) details).setDetail(rve.getDetailMessage());
-            ((RuleViolationProblemDetails) details).setCauses(toRestCauses(rve.getCauses()));
+            RuleViolationProblemDetails rvpd = new RuleViolationProblemDetails();
+            rvpd.setTitle(rve.getMessage());
+            rvpd.setDetail(rve.getDetailMessage());
+            List<RuleViolationCause> restCauses = toRestCauses(rve.getCauses());
+            rvpd.setCauses(restCauses);
+            RuleViolationDetails rvd = new RuleViolationDetails();
+            rvd.setCauses(restCauses);
+            rvpd.setRuleViolation(rvd);
+            // Note: type is intentionally left unset here.
+            // Choosing stable type URI values (e.g. urn:apicurio:error:rule-violation) is a
+            // separate sub-task tracked in #10488. Setting a value now would give clients
+            // something to depend on before that is decided. The presence of the ruleViolation
+            // extension field is sufficient for clients to identify a rule violation.
+            details = rvpd;
         } else {
             details = new ProblemDetails();
             details.setTitle(t.getLocalizedMessage());

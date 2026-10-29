@@ -38,7 +38,7 @@ import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ENTITY_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_REF_TYPE;
 import static io.apicurio.registry.rest.cache.HttpCaching.caching;
 import static io.apicurio.registry.rest.headers.Headers.checkIfDeprecated;
-import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.recursivelyResolveReferenceContentIds;
+import static io.apicurio.registry.references.ReferenceResolution.recursivelyResolveReferenceContentIds;
 import static io.apicurio.registry.utils.Cell.cellWithLoader;
 
 @ApplicationScoped

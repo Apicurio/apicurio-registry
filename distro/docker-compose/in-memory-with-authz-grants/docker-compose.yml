@@ -1,5 +1,5 @@
-# Per-resource authorization example: Keycloak for authentication and RBAC roles, and a grants file
-# for fine-grained access to groups and artifacts. See README.md; run ./demo.sh to verify.
+# Per-resource authorization example: Keycloak for authentication and RBAC roles, and an access rules
+# file (Kroxylicious ACL rules format) for fine-grained access to groups and artifacts. See README.md; run ./demo.sh to verify.
 #
 # For local demonstration only: TLS verification and the token issuer check are relaxed so the
 # browser (localhost) and the registry container (keycloak:8080) can share one Keycloak.
@@ -37,13 +37,13 @@ services:
       apicurio.ui.auth.oidc.redirect-uri: "http://localhost:${UI_PORT:-8888}/"
       QUARKUS_OIDC_TLS_VERIFICATION: "none"
       QUARKUS_OIDC_TOKEN_ISSUER: "any"
-      # Coarse-grained RBAC from Keycloak roles (grants restrict within what RBAC allows)
+      # Coarse-grained RBAC from Keycloak roles (access rules restrict within what RBAC allows)
       apicurio.auth.role-based-authorization: "true"
-      # Unauthenticated reads are allowed, but only for what grants allow to the "$anonymous" role
+      # Unauthenticated reads are allowed, but only for what the rules allow to the "$anonymous" role
       apicurio.auth.anonymous-read-access.enabled: "true"
       apicurio.auth.resource-based-authorization.enabled: "true"
-      apicurio.auth.resource-based-authorization.grants.path: "/opt/apicurio/authz/grants.json"
-      apicurio.auth.resource-based-authorization.grants.reload-every: "5s"
+      apicurio.auth.resource-based-authorization.rules.path: "/opt/apicurio/authz/access.rules"
+      apicurio.auth.resource-based-authorization.rules.reload-every: "5s"
       QUARKUS_HTTP_CORS_ORIGINS: "*"
       QUARKUS_PROFILE: "prod"
     ports:

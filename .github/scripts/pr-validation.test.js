@@ -1067,3 +1067,93 @@ test('validate(): a PR that does not touch the upgrade scripts does not list the
   assert.equal(getFailed(), null);
   assert.doesNotMatch(calls.createdComments[0].body, /Database upgrade scripts/);
 });
+
+// ---------------------------------------------------------------------------
+// Docs-only PRs (docs_only in pr-lifecycle.yml): the milestone is not checked
+// and the issue link is advisory. DCO sign-off still blocks.
+// ---------------------------------------------------------------------------
+
+const DOCS_ONLY_CONFIG = {
+  auto_accept: [],
+  docs_only: { paths: ['docs/**'], exclude: ['docs/pom.xml'] },
+};
+
+test('checkIssueLink: advisory when nothing is linked on a docs-only PR', () => {
+  const item = checkIssueLink(new Set(), { advisory: true });
+  assert.equal(item.status, 'not-checked');
+  assert.equal(item.summary, 'no linked issue (optional for docs-only PRs)');
+});
+
+test('checkIssueLink: a docs-only PR that links an issue still shows it as passed', () => {
+  const item = checkIssueLink(new Set([7]), { advisory: true });
+  assert.equal(item.status, 'passed');
+  assert.equal(item.summary, 'closes #7');
+});
+
+test('checkMilestone(): a docs-only PR gets one not-checked item, whatever it links', () => {
+  const items = checkMilestone({ milestone: null }, [{ number: 42, milestone: null }], { exempt: true });
+  assert.deepEqual(items.map(i => [i.label, i.status, i.summary]), [
+    ['Milestone', 'not-checked', 'docs-only PRs are exempt'],
+  ]);
+});
+
+test('validate(): a docs-only PR with no issue link and no milestone passes', async (t) => {
+  stubConfig(t, DOCS_ONLY_CONFIG);
+  const pr = { number: 1, user: { login: 'writer' }, body: 'Fixes a typo.', labels: [], draft: false, milestone: null };
+  const { github, calls } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'docs: a')] },
+    filesByPr: { 1: ['docs/modules/ROOT/pages/a.adoc'] },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), null);
+  assert.deepEqual(calls.addedLabels, []);
+  const body = calls.createdComments[0].body;
+  assert.match(body, /All validation checks passed\./);
+  assert.match(body, /- ➖ \*\*Issue link:\*\* no linked issue \(optional for docs-only PRs\)/);
+  assert.match(body, /- ➖ \*\*Milestone:\*\* docs-only PRs are exempt/);
+});
+
+test('validate(): a docs-only PR still fails on a missing sign-off', async (t) => {
+  stubConfig(t, DOCS_ONLY_CONFIG);
+  const pr = { number: 1, user: { login: 'writer' }, body: '', labels: [], draft: false, milestone: null };
+  const { github } = createFakeGithub({
+    commitsByPr: { 1: [UNSIGNED_COMMIT('aaaaaaaa1111', 'docs: a')] },
+    filesByPr: { 1: ['docs/modules/ROOT/pages/a.adoc'] },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), 'PR validation failed: DCO sign-off');
+});
+
+test('validate(): a PR touching an excluded docs file keeps the full checks', async (t) => {
+  stubConfig(t, DOCS_ONLY_CONFIG);
+  const pr = { number: 1, user: { login: 'writer' }, body: '', labels: [], draft: false, milestone: null };
+  const { github } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'docs: a')] },
+    filesByPr: { 1: ['docs/modules/ROOT/pages/a.adoc', 'docs/pom.xml'] },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), 'PR validation failed: Issue link, Milestone');
+});
+
+test('validate(): without a docs_only config section nothing is docs-only', async (t) => {
+  stubConfig(t, { auto_accept: [] });
+  const pr = { number: 1, user: { login: 'writer' }, body: '', labels: [], draft: false, milestone: null };
+  const { github } = createFakeGithub({
+    commitsByPr: { 1: [SIGNED_COMMIT('aaaaaaaa1111', 'docs: a')] },
+    filesByPr: { 1: ['docs/modules/ROOT/pages/a.adoc'] },
+  });
+  const { core, getFailed } = createFakeCore();
+
+  await validate({ github, context: makeContext(pr), core });
+
+  assert.equal(getFailed(), 'PR validation failed: Issue link, Milestone');
+});

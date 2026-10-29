@@ -4,6 +4,7 @@
 #
 # Prerequisites:
 #   - Registry running at http://localhost:8080 with:
+#     apicurio.features.experimental.enabled=true
 #     apicurio.usage.telemetry.enabled=true
 #
 # Usage:

@@ -47,54 +47,30 @@ public class GrantsIndirectAccessTest extends AbstractResourceTestBase {
     private static final String OPEN_MCP_NAMESPACE = "io.github.opengrp";
     private static final String GENERATED_LOCKED_GROUP = "lockedgen";
 
-    private static final String GRANTS_JSON = """
-            {"config": {"admin_roles": ["sr-admin"]}, "grants": [
-              {"principal": "bob", "operation": "write", "resource_type": "group",
-               "resource_pattern_type": "exact", "resource_pattern": "%1$s"},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%1$s/"},
-              {"principal": "bob", "operation": "read", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%1$s/private-", "deny": true},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "exact", "resource_pattern": "%1$s/denied-model-input-schema",
-               "deny": true},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "exact", "resource_pattern": "%1$s/locked-model-input-schema",
-               "deny": true},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "exact", "resource_pattern": "%1$s/denied-api-agent-card",
-               "deny": true},
-              {"principal": "bob", "operation": "write", "resource_type": "group",
-               "resource_pattern_type": "exact", "resource_pattern": "%2$s"},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%2$s/"},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%3$s/"},
-              {"principal": "bob", "operation": "write", "resource_type": "group",
-               "resource_pattern_type": "exact", "resource_pattern": "%3$s", "deny": true},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%4$s/"},
-              {"principal": "bob", "operation": "write", "resource_type": "group",
-               "resource_pattern_type": "exact", "resource_pattern": "%4$s", "deny": true},
-              {"principal": "bob", "operation": "write", "resource_type": "group",
-               "resource_pattern_type": "exact", "resource_pattern": "%5$s"},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%5$s/"},
-              {"principal": "bob", "operation": "read", "resource_type": "artifact",
-               "resource_pattern_type": "exact", "resource_pattern": "default/ccompat-open-target"},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%6$s/"},
-              {"principal": "bob", "operation": "write", "resource_type": "group",
-               "resource_pattern_type": "exact", "resource_pattern": "%6$s", "deny": true}
-            ]}""".formatted(GROUP, ICEBERG_SOURCE, LOCKED_GROUP, LOCKED_MCP_NAMESPACE, OPEN_MCP_NAMESPACE,
+    private static final String RULES = """
+            from io.apicurio.authz import Artifact, Group;
+            deny User with name = "bob" to * Artifact with name like "%1$s/private-*";
+            deny User with name = "bob" to WRITE Artifact with name in {"%1$s/denied-model-input-schema",
+                "%1$s/locked-model-input-schema", "%1$s/denied-api-agent-card"};
+            deny User with name = "bob" to WRITE Group with name in {"%3$s", "%4$s", "%6$s"};
+            allow User with name = "bob" to WRITE Group with name in {"%1$s", "%2$s", "%5$s"};
+            allow User with name = "bob" to WRITE Artifact with name like "%1$s/*";
+            allow User with name = "bob" to WRITE Artifact with name like "%2$s/*";
+            allow User with name = "bob" to WRITE Artifact with name like "%3$s/*";
+            allow User with name = "bob" to WRITE Artifact with name like "%4$s/*";
+            allow User with name = "bob" to WRITE Artifact with name like "%5$s/*";
+            allow User with name = "bob" to WRITE Artifact with name like "%6$s/*";
+            allow User with name = "bob" to READ Artifact with name = "default/ccompat-open-target";
+            otherwise deny;
+            """.formatted(GROUP, ICEBERG_SOURCE, LOCKED_GROUP, LOCKED_MCP_NAMESPACE, OPEN_MCP_NAMESPACE,
                     GENERATED_LOCKED_GROUP);
 
     static final Path GRANTS = createGrantsFile();
 
     private static Path createGrantsFile() {
         try {
-            Path file = Files.createTempFile("grants-indirect-access", ".json");
-            Files.writeString(file, GRANTS_JSON);
+            Path file = Files.createTempFile("grants-indirect-access", ".acl");
+            Files.writeString(file, RULES);
             file.toFile().deleteOnExit();
             return file;
         } catch (IOException e) {
@@ -116,8 +92,8 @@ public class GrantsIndirectAccessTest extends AbstractResourceTestBase {
             map.put("quarkus.security.users.embedded.roles.alice", "sr-admin");
             map.put("quarkus.security.users.embedded.roles.bob", "sr-developer");
             map.put("apicurio.auth.resource-based-authorization.enabled", "true");
-            map.put("apicurio.auth.resource-based-authorization.grants.path", GRANTS.toString());
-            map.put("apicurio.auth.resource-based-authorization.grants.reload-enabled", "false");
+            map.put("apicurio.auth.resource-based-authorization.rules.path", GRANTS.toString());
+            map.put("apicurio.auth.resource-based-authorization.rules.reload-enabled", "false");
             map.put("apicurio.auth.resource-based-authorization.owner-bypass.enabled", "false");
             map.put("apicurio.features.experimental.enabled", "true");
             map.put("apicurio.a2a.enabled", "true");

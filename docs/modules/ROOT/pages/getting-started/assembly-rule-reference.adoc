@@ -122,7 +122,7 @@ a| Mapping detection not supported
 |*WSDL*
 a| Full
 a| None
-a| Mapping detection not supported
+a| Full
 |*XML*
 a| Full
 a| None
@@ -130,8 +130,16 @@ a| Mapping detection not supported
 |*XSD*
 a| Full
 a| Full
-a| Mapping detection not supported
+a| Full
 |===
+
+NOTE: For XSD and WSDL artifacts, the `ALL_REFS_MAPPED` and `FULL` integrity levels check that every
+`schemaLocation` value (`xs:import`, `xs:include`, `xs:redefine`, `xs:override`) and every WSDL import or
+include `location` value is mapped to an artifact reference. An `xs:import` without a `schemaLocation` does
+not require a mapping. At the `FULL` validity level, {registry} resolves XSD imports and includes only from
+the mapped artifact references and never fetches them from the network or file system. An unmapped location
+fails with `Unresolved reference: <location>`. For WSDL 1.1, `FULL` validity also compiles the schemas
+embedded in `wsdl:types` by using the same resolution. For WSDL 2.0, `FULL` validity checks syntax only.
 
 
 

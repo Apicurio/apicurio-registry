@@ -3,7 +3,10 @@ package io.apicurio.registry.types.provider;
 import static io.apicurio.registry.types.provider.StandardArtifactTypeProviderRegistry.createStandardProviders;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -18,12 +21,15 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
 
     protected List<ArtifactTypeUtilProvider> providers = new ArrayList<>();
 
+    private Map<String, String> extensionToTypeMap = Collections.emptyMap();
+
     public DefaultArtifactTypeUtilProviderImpl() {
     }
 
     public DefaultArtifactTypeUtilProviderImpl(boolean initStandardProviders) {
         if (initStandardProviders) {
             loadStandardProviders();
+            validateFileExtensions();
         }
     }
 
@@ -46,6 +52,35 @@ public class DefaultArtifactTypeUtilProviderImpl implements ArtifactTypeUtilProv
     @Override
     public List<ArtifactTypeUtilProvider> getAllArtifactTypeProviders() {
         return providers;
+    }
+
+    @Override
+    public Map<String, String> getFileExtensionToTypeMap() {
+        return extensionToTypeMap;
+    }
+
+    /**
+     * Validates that no file extension is claimed by more than one provider and
+     * builds the normalized extension-to-type map used for lookups.
+     */
+    protected void validateFileExtensions() {
+        final Map<String, String> map = new HashMap<>();
+        for (ArtifactTypeUtilProvider provider : providers) {
+            for (String ext : provider.getFileExtensions()) {
+                final String normalized = normalizeExtension(ext);
+                final String existing = map.put(normalized, provider.getArtifactType());
+                if (existing != null) {
+                    throw new IllegalStateException("File extension '" + normalized
+                            + "' is claimed by both " + existing + " and " + provider.getArtifactType());
+                }
+            }
+        }
+        extensionToTypeMap = Collections.unmodifiableMap(map);
+    }
+
+    private static String normalizeExtension(String ext) {
+        final String lower = ext.toLowerCase(Locale.ROOT);
+        return lower.startsWith(".") ? lower : "." + lower;
     }
 
 }

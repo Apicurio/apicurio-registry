@@ -250,27 +250,27 @@ The following {registry} configuration options are available for each component 
 |`boolean`
 |`false`
 |`3.4.0`
-|Enable per-resource (fine-grained) authorization of groups and artifacts, evaluated from a grants file. Requires authentication.
-|`apicurio.auth.resource-based-authorization.grants.path`
-|`optional<string>`
-|
-|`3.4.0`
-|Path to the JSON grants file. Required when per-resource authorization is enabled; startup fails if it is missing or invalid.
-|`apicurio.auth.resource-based-authorization.grants.reload-enabled`
-|`boolean`
-|`true`
-|`3.4.0`
-|Enable periodic hot-reload of the grants file. Set to 'false' to disable polling for changes.
-|`apicurio.auth.resource-based-authorization.grants.reload-every`
-|`string`
-|`5s`
-|`3.4.0`
-|Interval for checking grants file changes. Must be a valid duration (e.g. '5s', '1m'). Use apicurio.auth.resource-based-authorization.grants.reload-enabled to disable hot-reload.
+|Enable per-resource (fine-grained) authorization of groups and artifacts, evaluated from an access rules file in the Kroxylicious ACL rules format. Requires authentication.
 |`apicurio.auth.resource-based-authorization.owner-bypass.enabled`
 |`boolean`
 |`true`
 |`3.4.0`
-|Let the recorded owner of an artifact or group access it regardless of grants. Set to 'false' to make grants the only per-resource authority.
+|Let the recorded owner of an artifact or group access it regardless of the access rules. Set to 'false' to make the access rules the only per-resource authority.
+|`apicurio.auth.resource-based-authorization.rules.path`
+|`optional<string>`
+|
+|`3.4.0`
+|Path to the access rules file, in the Kroxylicious ACL rules format. Required when per-resource authorization is enabled; startup fails if it is missing or invalid.
+|`apicurio.auth.resource-based-authorization.rules.reload-enabled`
+|`boolean`
+|`true`
+|`3.4.0`
+|Enable periodic hot-reload of the access rules file. Set to 'false' to disable polling for changes.
+|`apicurio.auth.resource-based-authorization.rules.reload-every`
+|`string`
+|`5s`
+|`3.4.0`
+|Interval for checking access rules file changes. Must be a valid duration (e.g. '5s', '1m'). Use apicurio.auth.resource-based-authorization.rules.reload-enabled to disable hot-reload.
 |`apicurio.auth.role-based-authorization`
 |`boolean`
 |`false`
@@ -1570,7 +1570,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`100`
 |`3.0.6`
-|Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.
+|Maximum depth a reference graph may be resolved to. Most resolution fails when a graph is deeper than this. Resolution during content storage and lookup by content still truncates with a warning.
 |`apicurio.storage.snapshot.location`
 |`string`
 |`./`
@@ -1935,11 +1935,6 @@ The following {registry} configuration options are available for each component 
 |`${apicurio.config.dynamic.allow-all}`
 |
 |
-|`apicurio.usage.flush.every`
-|`unknown`
-|`10s`
-|
-|
 |===
 
 == usage
@@ -1965,12 +1960,17 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`90`
 |`3.3.0`
-|Number of days after which a schema is classified as DEAD
+|Deprecated, has no effect, and will be removed in 4.0.0: a schema is classified as DEAD once its last fetch is older than the stale threshold
 |`apicurio.usage.drift-alert-threshold`
 |`int`
 |`2`
 |`3.3.0`
 |Number of versions behind latest before triggering a drift alert
+|`apicurio.usage.flush.every`
+|`string`
+|`10s`
+|`3.3.0`
+|How often buffered usage events are written to storage (Quarkus scheduler expression)
 |`apicurio.usage.retention-days`
 |`int`
 |`180`
@@ -1980,7 +1980,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`30`
 |`3.3.0`
-|Number of days after which a schema is classified as STALE
+|A schema whose last fetch is older than the active threshold and no older than this many days is classified as STALE. Older than this is DEAD.
 |`apicurio.usage.telemetry.enabled`
 |`boolean`
 |`false`

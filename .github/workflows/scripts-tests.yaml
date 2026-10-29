@@ -47,7 +47,7 @@ jobs:
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: 24.22.1
+          node-version: 24.22.2
 
       - name: Set up Python
         uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
@@ -72,7 +72,10 @@ jobs:
                       .github/scripts/pr-lifecycle.test.js \
                       .github/scripts/issue-assignment.test.js \
                       .github/scripts/pr-reviewer-assignment.test.js \
-                      .github/scripts/post-merge.test.js
+                      .github/scripts/post-merge.test.js \
+                      .github/scripts/docs-only.test.js \
+                      .github/scripts/docs-check.test.js \
+                      .github/scripts/docs-auto-approve.test.js
 
       # jq is preinstalled on ubuntu-latest, which is the same assumption the
       # scalpel-report job in verify.yaml makes.

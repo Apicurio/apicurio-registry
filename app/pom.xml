@@ -187,7 +187,7 @@
       <artifactId>quarkus-jdbc-mssql</artifactId>
     </dependency>
 
-    <!-- Per-resource authorization: grants-based implementation of the Kroxylicious Authorizer API -->
+    <!-- Per-resource authorization: access rules in the Kroxylicious ACL rules format -->
     <dependency>
       <groupId>io.apicurio</groupId>
       <artifactId>apicurio-authz-core</artifactId>

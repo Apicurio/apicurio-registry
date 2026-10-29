@@ -64,11 +64,11 @@ const mockRegistry = async (page: Page, violation: unknown, status: number = 400
     });
 };
 
-const submitNewVersion = async (page: Page): Promise<void> => {
+const submitNewVersion = async (page: Page, content: string = SUBMITTED): Promise<void> => {
     await page.goto(`${REGISTRY_UI_URL}/explore/default/test-artifact`);
     await expect(page).toHaveTitle(/Apicurio Registry/);
     await page.getByTestId("btn-create-version").click();
-    await page.getByTestId("form-version-content").locator("textarea").fill(SUBMITTED);
+    await page.getByTestId("form-version-content").locator("textarea").fill(content);
     await page.getByTestId("modal-btn-create").click();
 };
 
@@ -167,11 +167,14 @@ test("Compatibility report - a rejected new version lists the causes and shows t
     await report.getByTestId("compatibility-report-compare").click();
     await expect(content).toContainText("Submitted content compared with version 1");
     await expect(report.getByTestId("compatibility-report-compare")).toHaveText("Show submitted content only");
-    // Both documents are one line, so the diff editor is sized to two lines of 19px rather than collapsing.
+    // The diff fills the space below its toolbar rather than collapsing.
     const diffEditor = content.locator(".monaco-diff-editor");
     await expect(diffEditor.locator(".editor.original")).toContainText("\"name\":\"a\"");
     await expect(diffEditor.locator(".editor.modified")).toContainText("\"name\":\"b\"");
-    expect((await diffEditor.boundingBox())?.height).toBe(38);
+    const diffBox = await diffEditor.boundingBox();
+    const editorAreaBox = await content.locator(".compatibility-report-editor").boundingBox();
+    expect(diffBox!.height).toBeGreaterThan(200);
+    expect(Math.round(editorAreaBox!.y + editorAreaBox!.height - (diffBox!.y + diffBox!.height))).toBeLessThanOrEqual(2);
 });
 
 test("Compatibility report - each cause is highlighted in the submitted content and, when comparing, in both versions", async ({ page }) => {
@@ -312,4 +315,65 @@ test("Compatibility report - a draft that fails to finalize shows its content, c
     await report.getByTestId("compatibility-report-compare").click();
     await expect(content.locator(".monaco-diff-editor .editor.original")).toContainText("\"name\":\"a\"");
     await expect(content.locator(".monaco-diff-editor .editor.modified")).toContainText("\"name\":\"b\"");
+});
+
+const MANY_FIELDS = 20;
+
+/** A record that adds 20 fields with no default, one per line group, so the last ones are far down. */
+const LARGE_SUBMITTED: string = JSON.stringify({
+    type: "record",
+    name: "User",
+    fields: [{ name: "a", type: "string" }, ...Array.from({ length: MANY_FIELDS }, (_, i) => ({
+        name: `added${i + 1}`,
+        type: "string",
+        doc: `Field ${i + 1}, added without a default value.`
+    }))]
+}, null, 2);
+
+const MANY_CAUSES = Array.from({ length: MANY_FIELDS }, (_, i) => ({
+    description: `Field 'added${i + 1}' was added without a default value.`,
+    context: `/fields/${i + 1}`,
+    direction: "BACKWARD",
+    proposed: { pointer: `/fields/${i + 1}` },
+    existing: { pointer: "/fields", version: "1" }
+}));
+
+test("Compatibility report - with 20 causes, the list and the content stay side by side, and a location far down is shown next to it", async ({ page }) => {
+    await mockRegistry(page, {
+        status: 400,
+        title: "Incompatible artifact: test-artifact [AVRO]",
+        ruleViolation: { ruleType: "COMPATIBILITY", causes: MANY_CAUSES },
+        causes: MANY_CAUSES
+    });
+
+    await submitNewVersion(page, LARGE_SUBMITTED);
+
+    const report = page.getByTestId("compatibility-report");
+    const groups = report.getByTestId("compatibility-report-group");
+    await expect(groups).toHaveCount(MANY_FIELDS);
+    const causes = report.getByLabel("Compatibility violations by location");
+    const content = report.getByTestId("compatibility-report-content");
+    const editor = content.locator(".monaco-editor");
+    await expect(editor).toBeVisible();
+
+    // The causes are on the left and the content on the right, both starting at the top of the report
+    // (the causes panel has 8px of padding).
+    const causesBox = (await causes.boundingBox())!;
+    const contentBox = (await content.boundingBox())!;
+    expect(causesBox.x + causesBox.width).toBeLessThanOrEqual(contentBox.x);
+    expect(Math.round(causesBox.y - contentBox.y)).toBe(8);
+
+    // The editor fits in the viewport, and scrolling the causes to the last one does not move it.
+    const viewportHeight: number = page.viewportSize()!.height;
+    const editorBefore = (await editor.boundingBox())!;
+    expect(editorBefore.y + editorBefore.height).toBeLessThanOrEqual(viewportHeight);
+    await groups.last().scrollIntoViewIfNeeded();
+    expect((await editor.boundingBox())!.y).toBe(editorBefore.y);
+
+    // The last field is below the editor's first screen until its location is clicked.
+    const lastField = editor.locator(".view-line", { hasText: `"added${MANY_FIELDS}"` });
+    await expect(lastField).toHaveCount(0);
+    await groups.last().getByTestId("compatibility-report-location").click();
+    await expect(lastField).toBeVisible();
+    await expect(groups.last()).toBeInViewport();
 });

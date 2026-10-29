@@ -6,6 +6,10 @@ import {
     DataListCell,
     DataListItemCells,
     DataListItemRow,
+    Drawer,
+    DrawerContent,
+    DrawerContentBody,
+    DrawerPanelContent,
     Label,
     Title
 } from "@patternfly/react-core";
@@ -70,18 +74,14 @@ const existingIssueOf = (cause: ViolationCause): ContentIssue | undefined => {
 const issuesOf = (causes: ViolationCause[], issueOf: (cause: ViolationCause) => ContentIssue | undefined): ContentIssue[] =>
     causes.map(issueOf).filter((issue): issue is ContentIssue => issue !== undefined);
 
-const EDITOR_LINE_HEIGHT = 19;
-const EDITOR_MAX_HEIGHT = 300;
-
-/** Sizes an editor to the longest of its contents, up to a limit, so short content does not leave a large gap. */
-const editorHeight = (...contents: string[]): string => {
-    const lines: number = Math.max(...contents.map(content => content.split("\n").length));
-    return `${Math.min(EDITOR_MAX_HEIGHT, (lines + 1) * EDITOR_LINE_HEIGHT)}px`;
-};
+/** The narrowest either side of the report can be dragged to. */
+const MINIMUM_PANE_WIDTH = "300px";
 
 /**
  * Shows the causes of a compatibility violation grouped by location, with the content that was submitted.
  * With only `description` and `context` on each cause it shows the same rows as the plain cause list.
+ * With content, the causes and the content are side by side, each scrolling on its own, so a location
+ * clicked in a long list of causes is shown next to it.
  */
 export const CompatibilityReport: FunctionComponent<CompatibilityReportProps> = (props: CompatibilityReportProps) => {
     const groups: ViolationGroup[] = groupCausesByLocation(props.causes);
@@ -163,89 +163,116 @@ export const CompatibilityReport: FunctionComponent<CompatibilityReportProps> = 
             </div>
         ));
 
-    return (
-        <div className="compatibility-report" data-testid="compatibility-report">
-            <DataList aria-label="Compatibility violations by location" className="error-causes">
-                {groups.map((group, idx) => (
-                    <DataListItemRow key={idx} className="error-causes-item" data-testid="compatibility-report-group">
-                        <DataListItemCells
-                            dataListCells={[
-                                <DataListCell key="error icon" className="type-icon-cell">
-                                    <ExclamationCircleIcon />
-                                </DataListCell>,
-                                <DataListCell key="main content">
-                                    <div className="error-causes-item-title">
-                                        {group.location === undefined ? group.causes[0].description : groupMarkers[idx] !== undefined ? (
-                                            <Button variant="link" isInline={true} data-testid="compatibility-report-location"
-                                                onClick={() => revealLocation(groupMarkers[idx] as ContentMarker)}>
-                                                <b>{locationTitle(group.location)}</b>
-                                            </Button>
-                                        ) : <b>{locationTitle(group.location)}</b>}
+    const causeList = (
+        <DataList aria-label="Compatibility violations by location" className="error-causes">
+            {groups.map((group, idx) => (
+                <DataListItemRow key={idx} className="error-causes-item" data-testid="compatibility-report-group">
+                    <DataListItemCells
+                        dataListCells={[
+                            <DataListCell key="error icon" className="type-icon-cell">
+                                <ExclamationCircleIcon />
+                            </DataListCell>,
+                            <DataListCell key="main content">
+                                <div className="error-causes-item-title">
+                                    {group.location === undefined ? group.causes[0].description : groupMarkers[idx] !== undefined ? (
+                                        <Button variant="link" isInline={true} data-testid="compatibility-report-location"
+                                            onClick={() => revealLocation(groupMarkers[idx] as ContentMarker)}>
+                                            <b>{locationTitle(group.location)}</b>
+                                        </Button>
+                                    ) : <b>{locationTitle(group.location)}</b>}
+                                </div>
+                                {group.reference !== undefined && (
+                                    <div className="compatibility-report-reference">
+                                        In referenced artifact <code>{group.reference}</code>
                                     </div>
-                                    {group.reference !== undefined && (
-                                        <div className="compatibility-report-reference">
-                                            In referenced artifact <code>{group.reference}</code>
-                                        </div>
-                                    )}
-                                    <div className="error-causes-item-description">{causeRows(group)}</div>
-                                </DataListCell>
-                            ]}
-                        />
-                    </DataListItemRow>
-                ))}
-            </DataList>
-            {props.content !== undefined && (
-                <div className="compatibility-report-content" data-testid="compatibility-report-content">
-                    <div className="compatibility-report-content-header">
-                        <Title headingLevel="h3" size="md">
-                            {isShowingComparison ? `Submitted content compared with version ${comparedVersion}` : "Submitted content"}
-                        </Title>
-                        {comparedVersion !== undefined && props.loadComparedContent && (
-                            <Button variant="link" isInline={true} data-testid="compatibility-report-compare"
-                                onClick={toggleComparison}>
-                                {isComparing ? "Show submitted content only" : `Compare with version ${comparedVersion}`}
-                            </Button>
-                        )}
-                    </div>
-                    {compareError !== undefined && <p className="compatibility-report-compare-error">{compareError}</p>}
-                    {isLoadingComparison && (
-                        <p className="compatibility-report-compare-loading" data-testid="compatibility-report-compare-loading">
-                            Loading version {comparedVersion}...
-                        </p>
-                    )}
-                    {isShowingComparison && comparedContent !== undefined ? (
-                        <DiffView
-                            original={comparedContent}
-                            originalLabel={`Version ${comparedVersion}`}
-                            modified={props.content}
-                            modifiedLabel="Submitted"
-                            height={editorHeight(comparedContent, props.content)}
-                            originalMarkers={existingMarkers}
-                            modifiedMarkers={proposedMarkers}
-                            revealModified={revealInComparison}
-                        />
-                    ) : (
-                        <RegistryCodeEditor
-                            className="compatibility-report-editor"
-                            height={editorHeight(props.content)}
-                            language={language}
-                            value={props.content}
-                            onMount={(mountedEditor, monaco) => {
-                                monacoRef.current = monaco;
-                                setCodeEditor(mountedEditor);
-                            }}
-                            options={{
-                                readOnly: true,
-                                // Monaco hides markers in read-only editors unless told otherwise.
-                                renderValidationDecorations: "on",
-                                automaticLayout: true,
-                                minimap: { enabled: false },
-                                wordWrap: "on"
-                            }}
-                        />
-                    )}
-                </div>
-            )}
+                                )}
+                                <div className="error-causes-item-description">{causeRows(group)}</div>
+                            </DataListCell>
+                        ]}
+                    />
+                </DataListItemRow>
+            ))}
+        </DataList>
+    );
+
+    if (props.content === undefined) {
+        return (
+            <div className="compatibility-report" data-testid="compatibility-report">
+                {causeList}
+            </div>
+        );
+    }
+
+    return (
+        <div className="compatibility-report compatibility-report-split" data-testid="compatibility-report">
+            <Drawer isExpanded={true} isInline={true} position="start" onExpand={() => {}}>
+                <DrawerContent
+                    panelContent={
+                        <DrawerPanelContent
+                            className="compatibility-report-causes"
+                            isResizable={true}
+                            defaultSize="40%"
+                            minSize={MINIMUM_PANE_WIDTH}
+                            maxSize={`calc(100% - ${MINIMUM_PANE_WIDTH})`}
+                            resizeAriaLabel="Resize the causes and the content"
+                        >
+                            {causeList}
+                        </DrawerPanelContent>
+                    }
+                >
+                    <DrawerContentBody hasPadding={false}>
+                        <div className="compatibility-report-content" data-testid="compatibility-report-content">
+                            <div className="compatibility-report-content-header">
+                                <Title headingLevel="h3" size="md">
+                                    {isShowingComparison ? `Submitted content compared with version ${comparedVersion}` : "Submitted content"}
+                                </Title>
+                                {comparedVersion !== undefined && props.loadComparedContent && (
+                                    <Button variant="link" isInline={true} data-testid="compatibility-report-compare"
+                                        onClick={toggleComparison}>
+                                        {isComparing ? "Show submitted content only" : `Compare with version ${comparedVersion}`}
+                                    </Button>
+                                )}
+                            </div>
+                            {compareError !== undefined && <p className="compatibility-report-compare-error">{compareError}</p>}
+                            {isLoadingComparison && (
+                                <p className="compatibility-report-compare-loading" data-testid="compatibility-report-compare-loading">
+                                    Loading version {comparedVersion}...
+                                </p>
+                            )}
+                            <div className="compatibility-report-editor">
+                                {isShowingComparison && comparedContent !== undefined ? (
+                                    <DiffView
+                                        original={comparedContent}
+                                        originalLabel={`Version ${comparedVersion}`}
+                                        modified={props.content}
+                                        modifiedLabel="Submitted"
+                                        originalMarkers={existingMarkers}
+                                        modifiedMarkers={proposedMarkers}
+                                        revealModified={revealInComparison}
+                                    />
+                                ) : (
+                                    <RegistryCodeEditor
+                                        language={language}
+                                        value={props.content}
+                                        onMount={(mountedEditor, monaco) => {
+                                            monacoRef.current = monaco;
+                                            setCodeEditor(mountedEditor);
+                                        }}
+                                        options={{
+                                            readOnly: true,
+                                            // Monaco hides markers in read-only editors unless told otherwise.
+                                            renderValidationDecorations: "on",
+                                            automaticLayout: true,
+                                            minimap: { enabled: false },
+                                            wordWrap: "on"
+                                        }}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    </DrawerContentBody>
+                </DrawerContent>
+            </Drawer>
         </div>
     );
 };

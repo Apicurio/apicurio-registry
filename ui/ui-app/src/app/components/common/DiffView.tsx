@@ -18,8 +18,6 @@ export type DiffViewProps = {
     modifiedLabel: string;
     originalAriaLabel?: string;
     modifiedAriaLabel?: string;
-    /** A fixed editor height, for containers that don't give the editor one. */
-    height?: string;
     originalMarkers?: ContentMarker[];
     modifiedMarkers?: ContentMarker[];
     /** A range to scroll to in the modified side; pass a new object to scroll again. */
@@ -38,7 +36,6 @@ export const DiffView: FunctionComponent<DiffViewProps> = ({
     modifiedLabel,
     originalAriaLabel = "Original",
     modifiedAriaLabel = "Modified",
-    height,
     originalMarkers,
     modifiedMarkers,
     revealModified
@@ -129,7 +126,6 @@ export const DiffView: FunctionComponent<DiffViewProps> = ({
             <div className="diff-editor">
                 <RegistryDiffEditor
                     className="text-editor"
-                    height={height}
                     original={original}
                     modified={modified}
                     options={diffEditorContentOptions}

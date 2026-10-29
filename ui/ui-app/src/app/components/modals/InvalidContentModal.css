@@ -36,3 +36,22 @@
 .error-causes .error-causes-item .error-causes-item-description {
     font-size: 16px;
 }
+
+/* A compatibility report with content fills the viewport height, like the version compare modal, so the
+   causes and the content each get the room to scroll on their own. */
+.invalid-content-modal-report {
+    position: fixed;
+    top: 32px;
+    bottom: 32px;
+}
+
+.invalid-content-modal-report .pf-v6-c-modal-box__body {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.invalid-content-modal-report .compatibility-report {
+    flex: 1 1 0;
+    min-height: 0;
+}

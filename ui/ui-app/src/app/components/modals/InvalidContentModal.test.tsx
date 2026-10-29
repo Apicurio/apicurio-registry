@@ -282,6 +282,27 @@ describe("InvalidContentModal", () => {
         expect(groupTexts()).toEqual(["/fields/1b"]);
         expect(screen.queryByTestId("compatibility-report-content")).not.toBeInTheDocument();
     });
+
+    it("fills the viewport height, with the content next to the causes, only for a report with content", () => {
+        const violation: Partial<RuleViolationProblemDetails> = {
+            nameEscaped: "RuleViolationException",
+            causes: [{ description: "b", context: "/fields/1" }]
+        };
+
+        const { unmount } = render(modal(violation, SUBMITTED));
+        expect(screen.getByRole("dialog")).toHaveClass("invalid-content-modal-report");
+        expect(screen.getByTestId("compatibility-report")).toHaveClass("compatibility-report-split");
+        unmount();
+
+        render(modal(violation));
+        expect(screen.getByRole("dialog")).not.toHaveClass("invalid-content-modal-report");
+        expect(screen.getByTestId("compatibility-report")).not.toHaveClass("compatibility-report-split");
+        cleanup();
+
+        // A validity violation keeps the plain list, so it keeps the usual modal size.
+        render(modal({ ...violation, additionalData: { ruleViolation: { ruleType: "VALIDITY" } } }, SUBMITTED));
+        expect(screen.getByRole("dialog")).not.toHaveClass("invalid-content-modal-report");
+    });
     describe("highlighting", () => {
         it("marks each cause in the submitted content, using context when there is no proposed location", () => {
             render(modal({

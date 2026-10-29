@@ -196,6 +196,40 @@ class McpToolEvolutionTest {
         assertTrue(check(CompatibilityLevel.BACKWARD, withoutOutput, tool("outputSchema", draft7)).isCompatible());
     }
 
+    // 9007199254740993 is not representable as a double; it rounds to ...992. The shared checker
+    // compares numbers as doubles, so a change at that precision must be reported as 422, never
+    // accepted as two identical schemas.
+    @ParameterizedTest
+    @ValueSource(strings = {"\"enum\":[%s]", "\"type\":\"number\",\"minimum\":%s",
+            "\"type\":\"number\",\"maximum\":%s", "\"type\":\"number\",\"exclusiveMinimum\":%s",
+            "\"type\":\"number\",\"exclusiveMaximum\":%s", "\"const\":%s"})
+    void numbersBeyondDoublePrecisionAreCompared(String keyword) {
+        String low = property("{" + keyword.formatted("9007199254740992.0") + "}");
+        String high = property("{" + keyword.formatted("9007199254740993.0") + "}");
+        for (String side : List.of("inputSchema", "outputSchema")) {
+            String oldTool = tool(side, low);
+            String newTool = tool(side, high);
+            var error = assertThrows(UnprocessableSchemaException.class,
+                    () -> check(CompatibilityLevel.FULL, oldTool, newTool), keyword + " " + side);
+            assertTrue(error.getMessage().contains("/" + side + "/properties/x~1y~0z/"), error.getMessage());
+            // The exactly representable side alone is accepted.
+            assertTrue(check(CompatibilityLevel.FULL, oldTool, oldTool).isCompatible(), keyword + " " + side);
+        }
+    }
+
+    @Test
+    void ordinaryDecimalsAndNestedEnumNumbersAreCompared() {
+        String low = property("{\"type\":\"number\",\"maximum\":0.3,\"enum\":[0.1,{\"a\":[0.2]}]}");
+        String high = low.replace("0.3", "0.4");
+        assertTrue(check(CompatibilityLevel.BACKWARD, tool("inputSchema", low), tool("inputSchema", high)).isCompatible());
+        assertFalse(check(CompatibilityLevel.BACKWARD, tool("inputSchema", high), tool("inputSchema", low)).isCompatible());
+        String nested = property("{\"enum\":[{\"a\":[9007199254740993]}]}");
+        String nestedTool = tool("outputSchema", nested);
+        var error = assertThrows(UnprocessableSchemaException.class,
+                () -> check(CompatibilityLevel.BACKWARD, nestedTool, nestedTool));
+        assertTrue(error.getMessage().endsWith("/enum/0/a/0"), error.getMessage());
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {"items", "additionalProperties"})
     void unsupportedAssertionsInsideOtherSchemaPositions(String keyword) {

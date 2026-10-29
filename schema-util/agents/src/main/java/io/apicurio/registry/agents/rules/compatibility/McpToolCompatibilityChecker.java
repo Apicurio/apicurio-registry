@@ -2,7 +2,9 @@ package io.apicurio.registry.agents.rules.compatibility;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.rules.compatibility.ApitomyJsonSchemaCompatibilityChecker;
@@ -14,6 +16,7 @@ import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.types.ContentTypes;
 import com.networknt.schema.SpecVersion.VersionFlag;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +29,11 @@ import java.util.Set;
  */
 public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    // Numbers reach the shared checker as written, rather than rounded through a double: two
+    // different high-precision enum values or bounds must not compare as one.
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS)
+            .setNodeFactory(JsonNodeFactory.withExactBigDecimals(true));
     private static final JsonSchemaDocumentValidator VALIDATOR = JsonSchemaDocumentValidator.builder()
             .draftDetector(JsonSchemaDocumentValidator.dataModelsDraftDetector()).build();
     private static final Set<String> ANNOTATIONS = Set.of("title", "description", "default", "examples",
@@ -36,8 +43,9 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
             "minLength", "maxLength", "minItems", "maxItems", "uniqueItems", "minProperties", "maxProperties");
     private static final String INPUT_SCHEMA = "inputSchema";
     private static final String OUTPUT_SCHEMA = "outputSchema";
-    private static final String INPUT_PATH = "/" + INPUT_SCHEMA;
-    private static final String OUTPUT_PATH = "/" + OUTPUT_SCHEMA;
+    // JSON Pointer prefixes for rule-violation contexts.
+    private static final String INPUT_PATH = "/inputSchema";
+    private static final String OUTPUT_PATH = "/outputSchema";
     private static final Set<String> DRAFT4_UNSUPPORTED = Set.of("const", "exclusiveMinimum", "exclusiveMaximum");
     private final ApitomyJsonSchemaCompatibilityChecker schemaChecker = new ApitomyJsonSchemaCompatibilityChecker();
 
@@ -119,6 +127,36 @@ public class McpToolCompatibilityChecker extends AbstractCompatibilityChecker<Si
             } else if ((draft4 && DRAFT4_UNSUPPORTED.contains(keyword))
                     || (!SCALAR_KEYWORDS.contains(keyword) && !ANNOTATIONS.contains(keyword))) {
                 throw new UnprocessableSchemaException("Unsupported MCP tool compatibility construct at " + location);
+            } else if (SCALAR_KEYWORDS.contains(keyword)) {
+                checkNumbersAreDoubleExact(field.getValue(), location);
+            }
+        }
+    }
+
+    /**
+     * The shared checker compares numbers as doubles, so two values that round to the same double
+     * (for example 9007199254740992.0 and 9007199254740993.0) would compare as equal and a breaking
+     * change would pass. Such values cannot be compared reliably, so they are reported as 422.
+     * Values such as 0.1 round-trip through a double unchanged and are accepted.
+     */
+    private static void checkNumbersAreDoubleExact(JsonNode value, String location) {
+        if (value.isNumber()) {
+            BigDecimal exact = value.decimalValue();
+            double rounded = exact.doubleValue();
+            if (Double.isInfinite(rounded) || new BigDecimal(Double.toString(rounded)).compareTo(exact) != 0) {
+                throw new UnprocessableSchemaException(
+                        "MCP tool compatibility cannot compare a number beyond double precision at " + location);
+            }
+        } else if (value.isContainerNode()) {
+            int index = 0;
+            for (var entries = value.fields(); entries.hasNext();) {
+                var entry = entries.next();
+                checkNumbersAreDoubleExact(entry.getValue(), location + "/" + escape(entry.getKey()));
+            }
+            if (value.isArray()) {
+                for (JsonNode element : value) {
+                    checkNumbersAreDoubleExact(element, location + "/" + index++);
+                }
             }
         }
     }

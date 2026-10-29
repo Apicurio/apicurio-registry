@@ -30,6 +30,17 @@ class ResourceScopeTest {
                 ResourceScope.of(true, NONE, NONE, NONE, NONE, Set.of(""), NONE));
         assertInstanceOf(ResourceScope.Unrestricted.class,
                 ResourceScope.of(true, NONE, NONE, NONE, NONE, NONE, NONE));
+        // The empty allow prefix is allow-all
+        assertInstanceOf(ResourceScope.Unrestricted.class,
+                ResourceScope.of(false, NONE, Set.of(""), NONE, NONE, NONE, NONE));
+        ResourceScope.Scoped emptyPrefixWithDeny = scoped(
+                ResourceScope.of(false, NONE, Set.of("", "a/"), NONE, Set.of("x"), NONE, NONE));
+        assertTrue(emptyPrefixWithDeny.allowAll());
+        assertEquals(Set.of(), emptyPrefixWithDeny.allowPrefix());
+        // Not every empty scope is detected: the same name allowed and denied is a Scoped that
+        // selects nothing, which consumers evaluate
+        assertFalse(scoped(ResourceScope.of(false, Set.of("a"), NONE, NONE, Set.of("a"), NONE, NONE))
+                .matches("a"));
         // Allow-all with a deny is a scope, not unrestricted
         assertFalse(scoped(ResourceScope.of(true, NONE, NONE, NONE, Set.of("secret"), NONE, NONE))
                 .matches("secret"));

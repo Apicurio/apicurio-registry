@@ -11,8 +11,10 @@ import com.google.re2j.PatternSyntaxException;
  * The resources of one type that a subject may access with one operation.
  *
  * <p>Three cases, so consumers handle the short cuts first: {@link Unrestricted} (every name),
- * {@link Forbidden} (no name) and {@link Scoped} (some names). {@link Scoped} is never empty and
- * never everything; use {@link #of} to get the right case.</p>
+ * {@link Forbidden} (no name) and {@link Scoped} (selectors to evaluate). {@link #of} returns the
+ * short cuts whenever the selectors make them evident (see there), but a {@link Scoped} may still
+ * select every name or none, for example when the same name is both allowed and denied. Consumers
+ * must evaluate a {@link Scoped}, not assume it is non-empty.</p>
  *
  * <p>Matching rules, which every provider and consumer must follow:</p>
  * <ul>
@@ -57,14 +59,21 @@ public sealed interface ResourceScope permits ResourceScope.Unrestricted, Resour
     }
 
     /**
-     * Builds a scope, normalized: a scope that allows nothing is {@link Forbidden}, and one that
-     * allows everything without denying anything is {@link Unrestricted}.
+     * Builds a scope. Returns {@link Forbidden} when nothing is allowed or the empty prefix is
+     * denied, and {@link Unrestricted} when everything is allowed ({@code allowAll} or the empty
+     * prefix) and nothing is denied. Otherwise returns a {@link Scoped}, which is not otherwise
+     * checked for emptiness.
      *
      * @param allowAll allow every name that no deny selector matches
      * @throws IllegalArgumentException if a pattern is not a valid RE2 regular expression
      */
     static ResourceScope of(boolean allowAll, Set<String> allowExact, Set<String> allowPrefix,
             Set<String> allowPatterns, Set<String> denyExact, Set<String> denyPrefix, Set<String> denyPatterns) {
+        // The empty prefix matches every name
+        if (allowPrefix.contains("")) {
+            allowAll = true;
+            allowPrefix = Set.of();
+        }
         boolean deniesNothing = denyExact.isEmpty() && denyPrefix.isEmpty() && denyPatterns.isEmpty();
         boolean allowsNothing = !allowAll && allowExact.isEmpty() && allowPrefix.isEmpty()
                 && allowPatterns.isEmpty();

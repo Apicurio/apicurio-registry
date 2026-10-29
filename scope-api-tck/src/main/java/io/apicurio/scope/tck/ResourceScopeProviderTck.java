@@ -116,7 +116,9 @@ public abstract class ResourceScopeProviderTck<P extends Authorizer & ResourceSc
     @Test
     void unsupportedResourceTypesAreForbidden() throws Exception {
         P provider = provider();
-        for (Subject subject : subjects()) {
+        List<Subject> subjects = new ArrayList<>(subjects());
+        subjects.add(Subject.anonymous());
+        for (Subject subject : subjects) {
             assertInstanceOf(ResourceScope.Forbidden.class,
                     provider.resolveScope(subject, UnsupportedResource.READ).toCompletableFuture().join());
             for (String name : resourceNames()) {

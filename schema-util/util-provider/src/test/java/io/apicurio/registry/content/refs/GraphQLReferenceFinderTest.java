@@ -29,4 +29,11 @@ public class GraphQLReferenceFinderTest extends ArtifactUtilProviderTestBase {
                 .findExternalReferences(resourceToTypedContentHandle("graphql-no-import.graphql"));
         Assertions.assertTrue(refs.isEmpty());
     }
+
+    @Test
+    public void testImportLookingTextInsideDescriptionIsIgnored() {
+        Set<ExternalReference> refs = new GraphQLReferenceFinder().findExternalReferences(
+                resourceToTypedContentHandle("graphql-import-inside-description.graphql"));
+        Assertions.assertTrue(refs.isEmpty());
+    }
 }

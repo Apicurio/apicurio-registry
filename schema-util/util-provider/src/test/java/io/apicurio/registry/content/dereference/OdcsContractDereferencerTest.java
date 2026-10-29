@@ -28,7 +28,7 @@ public class OdcsContractDereferencerTest extends ArtifactUtilProviderTestBase {
         JsonNode tree = YAML_MAPPER.readTree(result.getContent().content());
         JsonNode schema = tree.get("schemas").get(0);
         Assertions.assertEquals("orders/OrderEvent:3", schema.get("location").asText());
-        JsonNode schemaDefinition = schema.get("schemaDefinition");
+        JsonNode schemaDefinition = schema.get("x-apicurio-schemaDefinition");
         Assertions.assertNotNull(schemaDefinition);
         Assertions.assertEquals("record", schemaDefinition.get("type").asText());
         Assertions.assertEquals("OrderEvent", schemaDefinition.get("name").asText());
@@ -44,9 +44,22 @@ public class OdcsContractDereferencerTest extends ArtifactUtilProviderTestBase {
                 Map.of("orders/OrderEvent:3", avroIdl));
 
         JsonNode tree = YAML_MAPPER.readTree(result.getContent().content());
-        JsonNode schemaDefinition = tree.get("schemas").get(0).get("schemaDefinition");
+        JsonNode schemaDefinition = tree.get("schemas").get(0).get("x-apicurio-schemaDefinition");
         Assertions.assertTrue(schemaDefinition.isTextual());
         Assertions.assertEquals("record OrderEvent { string orderId; }", schemaDefinition.asText());
+    }
+
+    @Test
+    public void testDereferenceDoesNotOverwriteExistingSchemaDefinition() throws Exception {
+        TypedContent content = resourceToTypedContentHandle("odcs-with-existing-schema-definition.yaml");
+        TypedContent avro = resourceToTypedContentHandle("order-event.avsc");
+        TypedContent result = new OdcsContractDereferencer().dereference(content,
+                Map.of("orders/OrderEvent:3", avro));
+
+        JsonNode tree = YAML_MAPPER.readTree(result.getContent().content());
+        JsonNode schemaDefinition = tree.get("schemas").get(0).get("x-apicurio-schemaDefinition");
+        Assertions.assertTrue(schemaDefinition.isTextual());
+        Assertions.assertEquals("user-supplied value, must not be overwritten", schemaDefinition.asText());
     }
 
     @Test
@@ -74,5 +87,33 @@ public class OdcsContractDereferencerTest extends ArtifactUtilProviderTestBase {
         Assertions.assertSame(content, new OdcsContractDereferencer().rewriteReferences(content,
                 Map.of("other/Schema:1", URL)));
         Assertions.assertSame(content, new OdcsContractDereferencer().rewriteReferences(content, Map.of()));
+    }
+
+    @Test
+    public void testDereferenceWithJsonContentTypeProducesParseableJson() throws Exception {
+        String json = "{\"apiVersion\":\"v3.1.0\",\"kind\":\"DataContract\",\"id\":\"orders-contract\","
+                + "\"schemas\":[{\"name\":\"OrderEvent\",\"type\":\"avro\",\"location\":\"orders/OrderEvent:3\"}]}";
+        TypedContent content = TypedContent.create(ContentHandle.create(json), ContentTypes.APPLICATION_JSON);
+        TypedContent avro = resourceToTypedContentHandle("order-event.avsc");
+        TypedContent result = new OdcsContractDereferencer().dereference(content,
+                Map.of("orders/OrderEvent:3", avro));
+
+        Assertions.assertEquals(ContentTypes.APPLICATION_JSON, result.getContentType());
+        JsonNode tree = new ObjectMapper().readTree(result.getContent().content());
+        JsonNode schemaDefinition = tree.get("schemas").get(0).get("x-apicurio-schemaDefinition");
+        Assertions.assertEquals("OrderEvent", schemaDefinition.get("name").asText());
+    }
+
+    @Test
+    public void testRewriteReferencesWithJsonContentTypeProducesParseableJson() throws Exception {
+        String json = "{\"apiVersion\":\"v3.1.0\",\"kind\":\"DataContract\",\"id\":\"orders-contract\","
+                + "\"schemas\":[{\"name\":\"OrderEvent\",\"type\":\"avro\",\"location\":\"orders/OrderEvent:3\"}]}";
+        TypedContent content = TypedContent.create(ContentHandle.create(json), ContentTypes.APPLICATION_JSON);
+        TypedContent result = new OdcsContractDereferencer().rewriteReferences(content,
+                Map.of("orders/OrderEvent:3", URL));
+
+        Assertions.assertEquals(ContentTypes.APPLICATION_JSON, result.getContentType());
+        JsonNode tree = new ObjectMapper().readTree(result.getContent().content());
+        Assertions.assertEquals(URL, tree.get("schemas").get(0).get("location").asText());
     }
 }

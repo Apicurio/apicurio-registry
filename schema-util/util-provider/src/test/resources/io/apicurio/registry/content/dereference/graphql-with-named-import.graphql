@@ -1,0 +1,10 @@
+# import Profile from "common-types.graphql"
+
+type Query {
+    user(id: ID!): User
+}
+
+type User {
+    id: ID!
+    profile: Profile
+}

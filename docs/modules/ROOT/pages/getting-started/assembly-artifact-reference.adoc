@@ -159,9 +159,11 @@ type.
 |Yes
 |References are `schemas[].location` values pointing at the backing schema artifact (for example
 an `AVRO`, `JSON`, or `PROTOBUF` artifact). `DEREFERENCE` inlines the resolved schema content into
-a `schemaDefinition` field alongside `location`; `REWRITE` replaces the `location` value with a
-Registry API URL. Cross-artifact references *inside* the referenced schema content are not
-followed during ODCS projection; see the data contracts documentation for details.
+an `x-apicurio-schemaDefinition` field alongside `location` (namespaced to avoid colliding with a
+schema entry that already defines its own property of that name, which is left untouched);
+`REWRITE` replaces the `location` value with a Registry API URL. Cross-artifact references
+*inside* the referenced schema content are not followed during ODCS projection; see the data
+contracts documentation for details.
 
 |`XSD`
 |Yes
@@ -184,7 +186,12 @@ supported; requesting `DEREFERENCE` raises an error directing the caller to use 
 |Yes
 |GraphQL has no standard import syntax. References are recognized only when the content uses the
 `#import "other.graphql"` leading-comment convention popularized by third-party tools such as
-graphql-tools / graphql-import. Content that does not use this convention has no references.
+graphql-tools / graphql-import. Content that does not use this convention has no references. The
+named-import form (`# import Foo, Bar from "other.graphql"`) is recognized for reference finding
+and `REWRITE`, but is intentionally left unresolved on `DEREFERENCE` (the directive is left
+unchanged), since inlining the whole referenced file would ignore the requested name list and
+risks introducing conflicting or duplicate type definitions. Text that merely resembles an
+`#import` line inside a `"""..."""` block-string description is never treated as a directive.
 
 |`XML`
 |No

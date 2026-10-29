@@ -50,4 +50,24 @@ public class GraphQLContentDereferencerTest extends ArtifactUtilProviderTestBase
                 Map.of("other.graphql", URL)));
         Assertions.assertSame(content, new GraphQLContentDereferencer().rewriteReferences(content, Map.of()));
     }
+
+    @Test
+    public void testDereferenceDoesNotInlineNamedImport() {
+        // Named imports (# import Foo from "file") are intentionally left unresolved on DEREFERENCE
+        // to avoid inlining unrequested/conflicting type definitions.
+        TypedContent content = resourceToTypedContentHandle("graphql-with-named-import.graphql");
+        TypedContent common = resourceToTypedContentHandle("common-types.graphql");
+        TypedContent result = new GraphQLContentDereferencer().dereference(content,
+                Map.of("common-types.graphql", common));
+        Assertions.assertSame(content, result);
+    }
+
+    @Test
+    public void testRewriteReferencesStillRewritesNamedImport() {
+        // REWRITE is safe for the named form too, since it only swaps the quoted file name/URL.
+        TypedContent content = resourceToTypedContentHandle("graphql-with-named-import.graphql");
+        TypedContent result = new GraphQLContentDereferencer().rewriteReferences(content,
+                Map.of("common-types.graphql", URL));
+        Assertions.assertTrue(result.getContent().content().contains("# import Profile from \"" + URL + "\""));
+    }
 }

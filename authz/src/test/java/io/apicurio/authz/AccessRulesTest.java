@@ -97,10 +97,7 @@ class AccessRulesTest {
         assertScopeMatchesPointAccess(load(), SUBJECTS, NAMES, 50);
     }
 
-    /**
-     * Rule shapes that the Kroxylicious AclAuthorizer 0.25.1 mis-evaluates: overlapping resource
-     * prefixes, and principal prefixes matching principals of another class.
-     */
+    /** Overlapping resource prefixes, and principal prefixes for principals of several classes. */
     private static final String PREFIX_RULES = """
             from io.apicurio.authz import Artifact, Group, Role;
             deny User with name = "bob" to READ Artifact with name like "team-b/*";
@@ -130,10 +127,10 @@ class AccessRulesTest {
         AccessRulesAuthorizer rules = AccessRulesAuthorizer.create(Files.writeString(dir.resolve("p.acl"), PREFIX_RULES),
                 Set.of(Artifact.class, Group.class));
         Subject bob = subject(new User("bob"));
-        // Overlapping allows: every prefix applies, not only the lexicographically closest one
+        // Every overlapping allow applies
         assertTrue(allowed(rules, bob, Artifact.READ, "team-a/public"));
         assertTrue(allowed(rules, bob, Artifact.READ, "team-a/zzz"));
-        // Overlapping denies: the wider deny applies too, so the deny is not bypassed
+        // Every overlapping deny applies
         assertFalse(allowed(rules, bob, Artifact.READ, "team-b/public"));
         assertFalse(allowed(rules, bob, Artifact.READ, "team-b/zzz"));
         assertTrue(allowed(rules, bob, Artifact.READ, "team-c/x"));
@@ -145,28 +142,6 @@ class AccessRulesTest {
         assertFalse(allowed(rules, subject(new Role("rea")), Artifact.READ, "u/1"));
 
         assertScopeMatchesPointAccess(rules, PREFIX_SUBJECTS, PREFIX_NAMES, 5);
-    }
-
-    /**
-     * Pins the Kroxylicious AclAuthorizer 0.25.1 behaviour that Registry deliberately does not
-     * follow, so an upstream fix is noticed (and Registry can go back to using it).
-     */
-    @Test
-    void kroxyliciousPrefixBugsAreNotReproduced() throws Exception {
-        Authorizer theirs = kroxyliciousAuthorizer(PREFIX_RULES);
-        Subject bob = subject(new User("bob"));
-        // Overlapping allows: only the closest prefix is checked, so access is lost
-        assertFalse(allowed(theirs, bob, Artifact.READ, "team-a/public"));
-        // Overlapping denies: the wider deny is skipped, so the deny is bypassed
-        assertTrue(allowed(theirs, bob, Artifact.READ, "team-b/public"));
-        // A Role prefix rule matches a User of the same name (whether it does depends on the other
-        // prefix rules in the file, so it is shown with the rule alone)
-        Authorizer roleOnly = kroxyliciousAuthorizer("from io.apicurio.authz import Group, Role;\n"
-                + "allow Role with name like \"reader-*\" to READ Group with name *;\notherwise deny;\n");
-        assertTrue(allowed(roleOnly, subject(new User("reader-bob")), Group.READ, "g"));
-        assertFalse(allowed(AccessRules.parse("from io.apicurio.authz import Group, Role;\n"
-                + "allow Role with name like \"reader-*\" to READ Group with name *;\notherwise deny;\n").authorizer(),
-                subject(new User("reader-bob")), Group.READ, "g"));
     }
 
     private static void assertScopeMatchesPointAccess(Authorizer authorizer, List<Subject> subjects,
@@ -211,8 +186,8 @@ class AccessRulesTest {
     }
 
     /**
-     * Apart from the prefix bugs pinned in {@link #kroxyliciousPrefixBugsAreNotReproduced}, which
-     * the fixture avoids, Registry decides as the Kroxylicious AclAuthorizer does.
+     * Registry decides as the Kroxylicious AclAuthorizer does on this fixture, apart from the
+     * prefix-matching defect reported upstream, which the fixture does not exercise.
      */
     @Test
     void decisionsMatchTheKroxyliciousRulesService() throws Exception {

@@ -127,13 +127,19 @@ export const DraftsPage: FunctionComponent<PageProperties> = () => {
                 setIsFinalizeDryRunSuccessModalOpen(true);
             }
         }).catch(error => {
-            setPleaseWaitModalOpen(false);
             if (error && (error.status === 400 || error.status === 409)) {
                 // The draft's content is what the rules checked; load it so it can be shown with the causes.
+                // The wait modal stays open meanwhile, so no other draft can be picked to finalize, which would
+                // point the report's comparison at that draft instead.
                 draftsService.getDraftContent(draft.groupId, draft.draftId, draft.version).then(content => {
+                    setPleaseWaitModalOpen(false);
                     handleInvalidContentError(error, { content: draftContentToString(content), contentType: content.contentType });
-                }).catch(() => handleInvalidContentError(error));
+                }).catch(() => {
+                    setPleaseWaitModalOpen(false);
+                    handleInvalidContentError(error);
+                });
             } else {
+                setPleaseWaitModalOpen(false);
                 setPageError(toPageError(error, "Error finalizing a draft."));
             }
         });

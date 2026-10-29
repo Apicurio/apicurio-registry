@@ -167,6 +167,11 @@ test("Compatibility report - a rejected new version lists the causes and shows t
     await report.getByTestId("compatibility-report-compare").click();
     await expect(content).toContainText("Submitted content compared with version 1");
     await expect(report.getByTestId("compatibility-report-compare")).toHaveText("Show submitted content only");
+    // Both documents are one line, so the diff editor is sized to two lines of 19px rather than collapsing.
+    const diffEditor = content.locator(".monaco-diff-editor");
+    await expect(diffEditor.locator(".editor.original")).toContainText("\"name\":\"a\"");
+    await expect(diffEditor.locator(".editor.modified")).toContainText("\"name\":\"b\"");
+    expect((await diffEditor.boundingBox())?.height).toBe(38);
 });
 
 test("Compatibility report - testing content from the version page shows the causes and the tested content", async ({ page }) => {
@@ -238,4 +243,53 @@ test("Compatibility report - without the new fields it shows the same rows as be
     await expect(groups.first()).toContainText("b");
     await expect(page.getByTestId("compatibility-report-compare")).toHaveCount(0);
     await expect(page.getByTestId("compatibility-report-content")).toContainText("\"name\":\"User\"");
+});
+
+test("Compatibility report - a draft that fails to finalize shows its content, compared with the version the causes name", async ({ page }) => {
+    await mockRegistry(page, undefined);
+    // Routes added later take precedence over the ones in mockRegistry.
+    await page.route("**/apis/registry/v3/system/uiConfig", route => json(route, 200, {
+        ui: { contextPath: "/", navPrefixPath: "/" },
+        auth: { type: "none", rbacEnabled: false, obacEnabled: false },
+        features: { readOnly: false, breadcrumbs: true, draftMutability: true }
+    }));
+    await page.route("**/apis/registry/v3/search/versions*", route => json(route, 200, {
+        count: 1,
+        versions: [{ groupId: "default", artifactId: "test-artifact", artifactType: "AVRO", version: "2", state: "DRAFT", owner: "", createdOn: "2026-10-01T00:00:00Z" }]
+    }));
+    await page.route(`**${ARTIFACT_PATH}/versions/2/state*`, route => json(route, 400, {
+        status: 400,
+        title: "Incompatible artifact: test-artifact [AVRO]",
+        name: "RuleViolationException",
+        ruleViolation: { ruleType: "COMPATIBILITY", causes: CAUSES },
+        causes: CAUSES
+    }));
+    // Holds the draft's content back until the test releases it.
+    let releaseContent: () => void = () => {};
+    const contentReleased = new Promise<void>(resolve => releaseContent = resolve);
+    await page.route(`**${ARTIFACT_PATH}/versions/2/content`, async route => {
+        await contentReleased;
+        await route.fulfill({ status: 200, contentType: "application/json", body: SUBMITTED });
+    });
+
+    await page.goto(`${REGISTRY_UI_URL}/drafts`);
+    await page.getByTestId("draft-actions-dropdown-0").click();
+    await page.getByTestId("finalize-draft-0").click();
+    await page.getByTestId("modal-btn-finalize").click();
+
+    // While the draft's content loads, the wait modal stays up, so no other draft can be picked to finalize.
+    await expect(page.getByText("Finalizing draft, please wait...")).toBeVisible();
+    await expect(page.getByTestId("compatibility-report")).toHaveCount(0);
+    releaseContent();
+
+    const report = page.getByTestId("compatibility-report");
+    await expect(report).toBeVisible();
+    await expect(page.getByText("Finalizing draft, please wait...")).toHaveCount(0);
+    const content = report.getByTestId("compatibility-report-content");
+    await expect(content).toContainText("\"name\":\"b\"");
+
+    // The comparison loads version 1 of the draft's own artifact.
+    await report.getByTestId("compatibility-report-compare").click();
+    await expect(content.locator(".monaco-diff-editor .editor.original")).toContainText("\"name\":\"a\"");
+    await expect(content.locator(".monaco-diff-editor .editor.modified")).toContainText("\"name\":\"b\"");
 });

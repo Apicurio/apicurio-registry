@@ -45,9 +45,9 @@ const DIRECTION_LABELS: Record<string, string> = {
 const EDITOR_LINE_HEIGHT = 19;
 const EDITOR_MAX_HEIGHT = 300;
 
-/** Sizes the read-only editor to its content, up to a limit, so short content does not leave a large gap. */
-const editorHeight = (content: string): string => {
-    const lines: number = content.split("\n").length;
+/** Sizes an editor to the longest of its contents, up to a limit, so short content does not leave a large gap. */
+const editorHeight = (...contents: string[]): string => {
+    const lines: number = Math.max(...contents.map(content => content.split("\n").length));
     return `${Math.min(EDITOR_MAX_HEIGHT, (lines + 1) * EDITOR_LINE_HEIGHT)}px`;
 };
 
@@ -149,6 +149,7 @@ export const CompatibilityReport: FunctionComponent<CompatibilityReportProps> = 
                             originalLabel={`Version ${comparedVersion}`}
                             modified={props.content}
                             modifiedLabel="Submitted"
+                            height={editorHeight(comparedContent, props.content)}
                         />
                     ) : (
                         <RegistryCodeEditor

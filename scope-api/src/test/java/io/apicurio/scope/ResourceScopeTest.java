@@ -74,11 +74,13 @@ class ResourceScopeTest {
 
     @Test
     void invalidAndBacktrackingPatternsAreHandled() {
+        Set<String> invalid = Set.of("(");
         assertThrows(IllegalArgumentException.class,
-                () -> ResourceScope.of(false, NONE, NONE, Set.of("("), NONE, NONE, NONE));
+                () -> ResourceScope.of(false, NONE, NONE, invalid, NONE, NONE, NONE));
         // RE2 has no backreferences, so a pattern that needs them is rejected rather than evaluated
+        Set<String> backreference = Set.of("(a)\\1");
         assertThrows(IllegalArgumentException.class,
-                () -> ResourceScope.of(false, NONE, NONE, Set.of("(a)\\1"), NONE, NONE, NONE));
+                () -> ResourceScope.of(false, NONE, NONE, backreference, NONE, NONE, NONE));
         // A pattern that backtracks catastrophically in java.util.regex runs in linear time
         ResourceScope scope = ResourceScope.of(false, NONE, NONE, Set.of("(a+)+b"), NONE, NONE, NONE);
         assertFalse(scope.matches("a".repeat(10_000) + "c"));

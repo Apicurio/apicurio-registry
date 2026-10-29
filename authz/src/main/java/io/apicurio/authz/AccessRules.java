@@ -395,34 +395,37 @@ final class AccessRules {
      */
     ResourceScope scope(Identity subject, ResourceType<?> operation) {
         Class<?> resourceType = ((Enum<?>) operation).getDeclaringClass();
-        boolean allowAll = false;
-        Set<String> allowedExact = new HashSet<>();
-        Set<String> allowedPrefix = new HashSet<>();
-        Set<String> allowedPatterns = new HashSet<>();
-        Set<String> deniedExact = new HashSet<>();
-        Set<String> deniedPrefix = new HashSet<>();
-        Set<String> deniedPatterns = new HashSet<>();
+        Selectors allowed = new Selectors();
+        Selectors denied = new Selectors();
         for (Rule rule : rules) {
-            if (rule.resourceType() != resourceType || !rule.impliedOperations().contains(operation)
-                    || !appliesTo(rule, subject)) {
-                continue;
-            }
-            NameSelector resources = rule.resources();
-            switch (resources.match()) {
-                case ANY -> {
-                    if (rule.deny()) {
-                        deniedPrefix.add("");
-                    } else {
-                        allowAll = true;
-                    }
-                }
-                case EXACT -> (rule.deny() ? deniedExact : allowedExact).addAll(resources.values());
-                case PREFIX -> (rule.deny() ? deniedPrefix : allowedPrefix).addAll(resources.values());
-                case PATTERN -> (rule.deny() ? deniedPatterns : allowedPatterns).addAll(resources.values());
+            if (rule.resourceType() == resourceType && rule.impliedOperations().contains(operation)
+                    && appliesTo(rule, subject)) {
+                (rule.deny() ? denied : allowed).add(rule.resources());
             }
         }
-        return ResourceScope.of(allowAll, allowedExact, allowedPrefix, allowedPatterns, deniedExact,
-                deniedPrefix, deniedPatterns);
+        // A deny of every name is the empty deny prefix
+        if (denied.all) {
+            denied.prefix.add("");
+        }
+        return ResourceScope.of(allowed.all, allowed.exact, allowed.prefix, allowed.patterns, denied.exact,
+                denied.prefix, denied.patterns);
+    }
+
+    /** The resource selectors of the allow or of the deny rules that apply. */
+    private static final class Selectors {
+        private boolean all;
+        private final Set<String> exact = new HashSet<>();
+        private final Set<String> prefix = new HashSet<>();
+        private final Set<String> patterns = new HashSet<>();
+
+        void add(NameSelector selector) {
+            switch (selector.match()) {
+                case ANY -> all = true;
+                case EXACT -> exact.addAll(selector.values());
+                case PREFIX -> prefix.addAll(selector.values());
+                case PATTERN -> patterns.addAll(selector.values());
+            }
+        }
     }
 
     private static boolean appliesTo(Rule rule, Identity subject) {

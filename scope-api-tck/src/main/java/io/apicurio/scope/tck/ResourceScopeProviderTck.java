@@ -31,6 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * @param <P> the provider, which is also the authorizer it must agree with
  */
+// Assertions are the purpose of this class: it is published so implementations can run it as tests
+@SuppressWarnings("java:S5960")
 public abstract class ResourceScopeProviderTck<P extends Authorizer & ResourceScopeProvider> {
 
     /** A resource type no provider supports. */
@@ -84,22 +86,31 @@ public abstract class ResourceScopeProviderTck<P extends Authorizer & ResourceSc
         int checked = 0;
         for (Subject subject : subjects) {
             for (ResourceType<?> op : operations()) {
-                ResourceScope scope = provider.resolveScope(subject, op).toCompletableFuture().join();
-                for (String name : names) {
-                    boolean pointAccess = allowed(provider, subject, op, name);
-                    allowed += pointAccess ? 1 : 0;
-                    checked++;
-                    if (pointAccess != scope.matches(name)) {
-                        mismatches.add(subject.principals() + " " + op + " '" + name + "': authorize "
-                                + (pointAccess ? "allows" : "denies") + ", scope " + scope);
-                    }
-                }
+                allowed += compare(provider, subject, op, names, mismatches);
+                checked += names.size();
             }
         }
         assertEquals(List.of(), mismatches);
         // A fixture where everything is allowed, or nothing is, proves nothing
         assertTrue(allowed > 0 && allowed < checked,
                 "the fixture must allow some names and deny others; allowed " + allowed + " of " + checked);
+    }
+
+    /** @return how many of {@code names} the authorizer allows; mismatches are added to the list */
+    private static int compare(Authorizer provider, Subject subject, ResourceType<?> op, List<String> names,
+            List<String> mismatches) {
+        ResourceScope scope = ((ResourceScopeProvider) provider).resolveScope(subject, op).toCompletableFuture()
+                .join();
+        int allowed = 0;
+        for (String name : names) {
+            boolean pointAccess = allowed(provider, subject, op, name);
+            allowed += pointAccess ? 1 : 0;
+            if (pointAccess != scope.matches(name)) {
+                mismatches.add(subject.principals() + " " + op + " '" + name + "': authorize "
+                        + (pointAccess ? "allows" : "denies") + ", scope " + scope);
+            }
+        }
+        return allowed;
     }
 
     @Test

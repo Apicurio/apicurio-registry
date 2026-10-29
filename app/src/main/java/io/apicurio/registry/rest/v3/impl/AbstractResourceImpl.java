@@ -74,7 +74,7 @@ public abstract class AbstractResourceImpl {
                 } else {
                     content = artifactTypeProvider.getContentDereferencer().dereference(content,
                             ReferenceResolution.recursivelyResolveReferences(references,
-                                    accessGuard.referenceLoader()));
+                                    accessGuard.referenceLoader(), factory));
                 }
             } else if (referencesType == HandleReferencesType.REWRITE) {
                 ArtifactTypeUtilProvider artifactTypeProvider = factory.getArtifactTypeProvider(artifactType);

@@ -43,6 +43,11 @@ import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normali
  * explicit {@code "default": null} forms produce the same canonical hash.</li>
  * <li>db version 108 — resolved references are now seeded into the parser, so schemas that reference
  * another artifact canonicalize instead of silently falling back to their raw, uncanonicalized content.</li>
+ * <li>db version 112 — #9000's fix: resolving references for canonicalization now scopes each node's own
+ * reference map bottom-up instead of flattening the whole graph by name (see
+ * {@link io.apicurio.registry.references.ReferenceResolution}), so content whose reference tree had two
+ * different targets sharing a reference name gets a different, now-correct canonical hash than before,
+ * instead of silently canonicalizing against whichever target the old flattened map happened to keep.</li>
  * </ul>
  */
 @RegisterForReflection

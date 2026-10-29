@@ -118,7 +118,7 @@ public class SqlDataImporter extends AbstractDataImporter {
             if (entity.canonicalHash == null && entity.artifactType != null) {
                 TypedContent canonicalContent = utils.canonicalizeContent(entity.artifactType, typedContent,
                         ReferenceResolution.recursivelyResolveReferences(references,
-                                storage::getContentByReference));
+                                storage::getContentByReference, utils.getFactory()));
                 entity.canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());
             }
 

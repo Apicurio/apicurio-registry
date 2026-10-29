@@ -12,6 +12,7 @@ import io.apicurio.registry.storage.impl.polling.model.Type;
 import io.apicurio.registry.storage.impl.polling.model.v0.Artifact;
 import io.apicurio.registry.storage.impl.polling.model.v0.Version;
 import io.apicurio.registry.references.ReferenceResolution;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,10 +40,13 @@ public class PollingDataValidator {
     private static final Logger log = LoggerFactory.getLogger(PollingDataValidator.class);
 
     private final RulesService rulesService;
+    private final ArtifactTypeUtilProviderFactory typeProviderFactory;
 
-    public PollingDataValidator(RulesService rulesService) {
+    public PollingDataValidator(RulesService rulesService, ArtifactTypeUtilProviderFactory typeProviderFactory) {
         this.rulesService = rulesService;
+        this.typeProviderFactory = typeProviderFactory;
     }
+
 
     /**
      * Validates all loaded artifacts against their configured rules.
@@ -122,7 +126,7 @@ public class PollingDataValidator {
                         })
                         .toList();
                 resolvedReferences = ReferenceResolution.recursivelyResolveReferences(
-                        refDtos, storage::getContentByReference);
+                        refDtos, storage::getContentByReference, typeProviderFactory);
             } else {
                 references = Collections.emptyList();
                 resolvedReferences = Collections.emptyMap();

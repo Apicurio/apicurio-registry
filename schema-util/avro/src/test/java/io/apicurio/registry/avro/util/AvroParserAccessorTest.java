@@ -40,6 +40,10 @@ class AvroParserAccessorTest {
     private static final String PERSON_REFERENCING_ADDRESS = "{\"type\":\"record\",\"name\":\"Person\","
             + "\"namespace\":\"com.example\",\"fields\":[{\"name\":\"address\",\"type\":\"com.example.Address\"}]}";
 
+    /** Same fully-qualified Avro type name as {@link #ADDRESS}, but a genuinely different shape. */
+    private static final String ADDRESS_DIFFERENT_SHAPE = "{\"type\":\"record\",\"name\":\"Address\","
+            + "\"namespace\":\"com.example\",\"fields\":[{\"name\":\"zipCode\",\"type\":\"string\"}]}";
+
     private static TypedContent content(String schema) {
         return TypedContent.create(ContentHandle.create(schema), ContentTypes.APPLICATION_JSON);
     }
@@ -163,5 +167,58 @@ class AvroParserAccessorTest {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
+    }
+
+    /**
+     * Residual, narrower edge case found while fixing #9000: a resolved-reference map is scoped per
+     * declaring node (one call's own direct references, never flattened across the whole graph), which
+     * removes the registry-level name collision #9000 describes. But Avro's own {@link Schema.Parser}
+     * resolves by its fully-qualified type name, entirely independent of the registry reference name used
+     * to look an entry up in the map — so if two of one parent's own direct references declare the
+     * <em>same</em> Avro type name with genuinely different shapes, seeding one parser with both still
+     * collides, just on a different axis than #9000 (Avro identity, not registry reference name).
+     * <p>
+     * Raw {@code Schema.Parser} throws {@code SchemaParseException: Can't redefine} on this — loud, not
+     * silent. But {@link AvroParserAccessor#newParser(Map)}'s own retry-to-fixpoint loop (added for #9188,
+     * to tolerate references offered to the parser out of dependency order) catches every
+     * {@code AvroRuntimeException}, including this one, as "maybe it depends on something not parsed yet."
+     * The redefinition is retried, fails identically every time, and the loop simply gives up on it without
+     * raising anything: {@code b.avsc}'s definition is silently absent from the parser's final state, with
+     * no exception and no warning. This is a real, pre-existing gap in #9188's fix, not something #9000
+     * introduces — filed separately as #10766. Pinning the actual (silent) behaviour here, not the loud one
+     * raw {@code Schema.Parser} gives, so a future change to the retry loop's catch clause is a deliberate
+     * decision rather than an accidental behaviour change.
+     */
+    @Test
+    void sameAvroTypeNameWithDifferentShapesFromTwoReferencesIsSilentlyDropped() {
+        Map<String, TypedContent> references = new LinkedHashMap<>();
+        references.put("a.avsc", content(ADDRESS));
+        references.put("b.avsc", content(ADDRESS_DIFFERENT_SHAPE));
+
+        // No exception: the retry loop swallows the redefinition conflict the same way it tolerates a
+        // genuine ordering issue, and simply stops retrying the entry that never succeeds.
+        Schema.Parser parser = AvroParserAccessor.newParser(references);
+
+        // Whichever of the two insertion-ordered entries the parser happened to accept first wins; the
+        // other is silently absent — not present under any name, and no error was raised about it.
+        assertTrue(parser.getTypes().containsKey("com.example.Address"));
+        assertEquals("street",
+                parser.getTypes().get("com.example.Address").getFields().get(0).name(),
+                "expected the first entry (ADDRESS, field 'street') to have won silently; if this starts "
+                        + "failing, the retry loop's behaviour around redefinition has changed");
+    }
+
+    /**
+     * The same Avro type name declared identically by two different references is a harmless no-op, not a
+     * collision — this is the normal "two names, one shared file" alias case, not #9000's bug.
+     */
+    @Test
+    void sameAvroTypeNameWithIdenticalShapeFromTwoReferencesIsHarmless() {
+        Map<String, TypedContent> references = new LinkedHashMap<>();
+        references.put("a.avsc", content(ADDRESS));
+        references.put("b.avsc", content(ADDRESS));
+
+        Schema parsed = AvroParserAccessor.newParser(references).parse(PERSON_REFERENCING_ADDRESS);
+        assertEquals("Person", parsed.getName());
     }
 }

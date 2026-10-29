@@ -129,7 +129,7 @@ public abstract class AbstractResource {
                         .artifactId(dto.getArtifactId()).version(dto.getVersion()).build())
                 .collect(Collectors.toList());
         final Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                .recursivelyResolveReferences(parsedReferences, accessGuard.referenceLoader());
+                .recursivelyResolveReferences(parsedReferences, accessGuard.referenceLoader(), factory);
 
         String owner = securityIdentity.getPrincipal().getName();
 
@@ -263,7 +263,7 @@ public abstract class AbstractResource {
                         .create(artifactVersion.getContent(), artifactVersion.getContentType());
                 Map<String, TypedContent> artifactVersionReferences = ReferenceResolution
                         .recursivelyResolveReferences(artifactVersion.getReferences(),
-                                accessGuard.referenceLoader());
+                                accessGuard.referenceLoader(), factory);
                 String dereferencedExistingContentSha = DigestUtils
                         .sha256Hex(artifactTypeProvider.getContentDereferencer()
                                 .dereference(typedArtifactVersion, artifactVersionReferences)
@@ -307,7 +307,7 @@ public abstract class AbstractResource {
         Map<String, TypedContent> resolvedReferences = Collections.emptyMap();
         if (referencesAsDtos != null && !referencesAsDtos.isEmpty()) {
             resolvedReferences = ReferenceResolution.recursivelyResolveReferences(referencesAsDtos,
-                    accessGuard.referenceLoader());
+                    accessGuard.referenceLoader(), factory);
 
             if (referencesAsDtos.size() > resolvedReferences.size()) {
                 // There are unresolvable references, which is not allowed.

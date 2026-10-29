@@ -3,6 +3,9 @@ package io.apicurio.registry.references;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -29,6 +32,13 @@ import java.util.Set;
  * derived from the same data instead of each caller re-walking the graph its own way, which is what the
  * eight separate walkers this replaces used to do (see the milestone epic #10635 for the inventory of
  * those eight and the bugs that came from their disagreeing).
+ * <p>
+ * Most of these views are pure graph structure — no I/O, no external dependency, cheap regardless of
+ * whether a caller asks for them. {@link #dereferenceAll(ArtifactTypeUtilProviderFactory)} is the one
+ * exception: it executes real per-artifact-type dereferencing logic (schema parsing and the like) for
+ * every node, which is real work, not free. It costs nothing to a caller that never calls it — the content
+ * handed in when this type was built is never touched until something asks for the dereferenced view — but
+ * it is heavier than this type's other methods, and only worth calling once per use, not per node.
  *
  * <h2>Missing is not the same as failed</h2>
  * A reference whose target does not exist (an artifact version that was deleted, or never existed) is
@@ -54,9 +64,12 @@ import java.util.Set;
  * walker itself loaded references in, level by level. The first occurrence of a name whose target actually
  * resolved (is not in {@link #missing()}) wins; if that occurrence's target is itself missing, the name
  * stays open for a later occurrence, exactly as the walker this replaces behaved. Two different targets
- * sharing a name is already a bug (#9000 fixes it properly, by keying on coordinates instead of collapsing
- * by name); breadth-first order can pick a different winner than the old depth-first code did in that case,
- * and that is an accepted, deliberate behaviour change rather than an attempt to preserve what was an
+ * sharing a name is already a bug: fixed for every in-tree caller by {@link ReferenceResolution}'s
+ * three-argument {@code recursivelyResolveReferences} overload, which calls {@link #dereferenceAll} instead
+ * of ever building this flattened, whole-graph view (#9000) — this method's own winner-picking stays for
+ * whatever still calls {@link #asNameMap()} directly, logging a warning the first time it sees a genuine
+ * collision. Breadth-first order can pick a different winner than the old depth-first code did in that
+ * case, and that is an accepted, deliberate behaviour change rather than an attempt to preserve what was an
  * arbitrary choice to begin with. Pinned by {@code
  * ReferenceGraphWalkerTest#asNameMapPicksTheBreadthFirstWinnerForASharedName}.</li>
  * <li><b>What order the winning entries appear in the returned map.</b> Dependency-first (post-order): a
@@ -71,6 +84,8 @@ import java.util.Set;
  * Immutable and safe to share across threads once built.
  */
 public final class ResolvedReferences {
+
+    private static final Logger log = LoggerFactory.getLogger(ResolvedReferences.class);
 
     private final Map<GAV, ReferenceNode> nodes;
     private final Set<GAV> missing;
@@ -137,12 +152,34 @@ public final class ResolvedReferences {
      * and {@code b.proto} both referencing one shared file) — that is a normal alias, not the same-name
      * collision this method defers to #9000. Every such alias gets its own entry here, all mapped to that
      * target's content.
+     * <p>
+     * <b>This method keeps #9000's collision bug deliberately</b> — it is a whole-graph, flattened view by
+     * definition, so it cannot be node-aware the way {@link ReferenceResolution}'s own bottom-up
+     * orchestration is. No in-tree caller builds its reference map this way any more (see
+     * {@link ReferenceResolution#recursivelyResolveReferences(List, java.util.function.Function,
+     * io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory)} for the fix), but the method
+     * stays public for anything that genuinely wants the flattened view. A genuine collision — the same
+     * name resolving to two different, both-resolved targets anywhere in the graph — is logged at
+     * {@code WARN} the first time it is seen, so a caller that does use this method can find and rename the
+     * colliding reference.
      */
     public Map<String, TypedContent> asNameMap() {
         Map<String, GAV> winners = new LinkedHashMap<>();
+        Set<String> warnedNames = new HashSet<>();
         for (DiscoveredEdge edge : discoveryOrder) {
-            if (!winners.containsKey(edge.name()) && nodes.containsKey(edge.target())) {
-                winners.put(edge.name(), edge.target());
+            GAV existingWinner = winners.get(edge.name());
+            if (existingWinner == null) {
+                if (nodes.containsKey(edge.target())) {
+                    winners.put(edge.name(), edge.target());
+                }
+            } else if (!existingWinner.equals(edge.target()) && nodes.containsKey(edge.target())
+                    && warnedNames.add(edge.name())) {
+                log.warn(
+                        "Reference name '{}' resolves to more than one target ({} and {}) within the same "
+                                + "reference graph; keeping {} and silently ignoring the rest for now. "
+                                + "Rename one of the colliding references — this will become a hard "
+                                + "failure in a future release (see #9000).",
+                        edge.name(), existingWinner, edge.target(), existingWinner);
             }
         }
         Map<GAV, List<String>> namesByTarget = new LinkedHashMap<>();
@@ -160,6 +197,147 @@ public final class ResolvedReferences {
             }
         }
         return Collections.unmodifiableMap(result);
+    }
+
+    /**
+     * Dereferences every node in the graph, bottom-up, each using only its own direct references — the
+     * #9000 fix. This is a workaround, not the real fix: dereferencing a document properly belongs to the
+     * library that understands its format (JSON Schema, OpenAPI, Avro, ...), which can resolve a reference
+     * in the context of the specific node that declared it. Iterating node-by-node here, from outside those
+     * libraries, is what #10761 (and its companion, Apitomy/apitomy-data-models#1289) is meant to replace,
+     * once the libraries themselves can take node identity into account. Until then, this gets the same
+     * correctness result by construction, at the cost of calling each library once per node instead of once
+     * for the whole document.
+     *
+     * <h2>Worked example</h2>
+     * {@code Main} references two artifacts, {@code A} and {@code B}. Both of them — independently, in
+     * different branches of the graph — happen to name their own reference to a shared dependency
+     * {@code "common.avsc"}, but at different versions:
+     *
+     * <pre>{@code
+     * Main
+     * ├─ "a.avsc"      -> A
+     * │                   └─ "common.avsc" -> Common@1
+     * └─ "b.avsc"      -> B
+     *                     └─ "common.avsc" -> Common@2
+     * }</pre>
+     *
+     * Before #9000's fix, every node in this whole tree was dereferenced in one flat
+     * {@code Map<String, TypedContent>} ({@link #asNameMap()}): {@code A}'s and {@code B}'s own
+     * {@code "common.avsc"} entries landed in the <em>same</em> map under the <em>same</em> key, so
+     * whichever was resolved second silently overwrote the first — {@code B} would end up dereferenced
+     * using {@code Common@1}'s content, even though it correctly declared a reference to {@code Common@2}.
+     * <p>
+     * This method instead walks {@link #dependencyFirstOrder()} — {@code Common@1}, {@code A},
+     * {@code Common@2}, {@code B}, in that order — and builds one small map per node, scoped to only that
+     * node's own direct references, immediately dereferencing the node with it and remembering the result
+     * for whoever references it next:
+     *
+     * <pre>{@code
+     * result = {}                                                     // empty to start
+     *
+     * Common@1:  ownScoped = {}                                       // no references of its own
+     *            result[Common@1] = dereference(Common@1, {})
+     *
+     * A:         ownScoped = {"common.avsc" -> result[Common@1]}
+     *            result[A] = dereference(A, ownScoped)
+     *
+     * Common@2:  ownScoped = {}
+     *            result[Common@2] = dereference(Common@2, {})
+     *
+     * B:         ownScoped = {"common.avsc" -> result[Common@2]}
+     *            result[B] = dereference(B, ownScoped)
+     * }</pre>
+     *
+     * {@code A}'s {@code ownScoped} map and {@code B}'s are two different {@code Map} instances, built and
+     * consumed one call apart — the fact that both happen to use the key {@code "common.avsc"} is never
+     * visible to the other. There is no single map anywhere that holds both {@code Common@1} and
+     * {@code Common@2} entries at once, so there is nothing left for them to collide in.
+     * <p>
+     * This works for every artifact type, including ones (OpenAPI, AsyncAPI) whose dereferencing does its
+     * own whole-document traversal internally: each one is still called once per node, with that one node's
+     * small scoped map, never the whole tree's. A node's own direct references can never collide with each
+     * other in the first place — sibling-level duplicate names are already rejected at write time by the
+     * {@code content_references} table's primary key — so every one of these per-node maps is
+     * collision-free by construction.
+     * <p>
+     * <b>The result is keyed by coordinates, not names</b>, and covers every node in the graph — it is
+     * deliberately not the name-to-content shape {@code ContentDereferencer} and friends expect. A caller
+     * that needs that shape, scoped to one node's own reference names (the root's, typically), builds it
+     * from this result with {@link #scopedReferences}.
+     * <p>
+     * <b>Fallback for a type that cannot dereference.</b> A node whose artifact type has no
+     * {@code ContentDereferencer} support for this operation (for example {@code XmlReferenceDereferencer},
+     * which always throws {@code DereferencingNotSupportedException}), or whose dereferencing fails for any
+     * other reason, falls back to that node's own <em>raw</em> content in the result — not left out, not a
+     * propagated failure. One node's dereferencing trouble must not fail the whole resolution, the same
+     * conservative policy {@link ReferenceResolution} already applies to a loader error. A dependent that
+     * references such a node simply inlines its raw, undereferenced content, which is the best available
+     * answer when the node's own type cannot do better.
+     *
+     * @param typeProviderFactory resolves the {@code ContentDereferencer} for each node's own artifact type
+     * @return every resolved node's dereferenced content (or, on fallback, its raw content), keyed by
+     *         coordinates, in no particular order
+     */
+    public Map<GAV, TypedContent> dereferenceAll(ArtifactTypeUtilProviderFactory typeProviderFactory) {
+        Map<GAV, TypedContent> result = new LinkedHashMap<>();
+        for (GAV coordinates : dependencyFirstOrder()) {
+            ReferenceNode node = nodes.get(coordinates);
+            if (node == null) {
+                continue; // Missing: nothing to dereference.
+            }
+            Map<String, TypedContent> ownScoped = scopedReferences(node.getReferences(), result);
+            result.put(coordinates,
+                    dereferenceNode(typeProviderFactory, node.getArtifactType(), node.getContent(), ownScoped));
+        }
+        return Collections.unmodifiableMap(result);
+    }
+
+    /**
+     * Builds the {@code ownScoped} map from {@link #dereferenceAll}'s worked example: one node's own
+     * declared references — never a flattened view of the whole graph — each resolved to its target's
+     * content in {@code dereferencedByCoordinate} (typically {@link #dereferenceAll}'s own result, or a
+     * work-in-progress version of it). A reference whose target is missing, or not yet present in
+     * {@code dereferencedByCoordinate} (should not happen when walking {@link #dereferenceAll}'s own
+     * dependency-first order, but handled the same way for safety), is simply absent from the result,
+     * matching {@link #asNameMap()}'s existing "missing target, missing name" behaviour.
+     * <p>
+     * Also how {@link ReferenceResolution} takes the final step after {@link #dereferenceAll}: calling this
+     * once more with the <em>root's</em> own reference list (the root is never a node of this graph, so it
+     * cannot be looked up by {@link #get}) narrows the whole-graph result down to just the names the root
+     * itself declares.
+     */
+    static Map<String, TypedContent> scopedReferences(List<ArtifactReferenceDto> ownReferences,
+            Map<GAV, TypedContent> dereferencedByCoordinate) {
+        if (ownReferences == null || ownReferences.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, TypedContent> result = new LinkedHashMap<>();
+        for (ArtifactReferenceDto reference : ownReferences) {
+            TypedContent content = dereferencedByCoordinate.get(ReferenceGraphWalker.coordinatesOf(reference));
+            if (content != null) {
+                result.put(reference.getName(), content);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Dereferences one node — {@code A} or {@code B} in {@link #dereferenceAll}'s worked example — using
+     * only its own, already collision-free scoped map. See {@link #dereferenceAll}'s "Fallback for a type
+     * that cannot dereference" section for what happens when the node's own type does not support this or
+     * fails.
+     */
+    private static TypedContent dereferenceNode(ArtifactTypeUtilProviderFactory typeProviderFactory,
+            String artifactType, TypedContent content, Map<String, TypedContent> ownScopedReferences) {
+        try {
+            return typeProviderFactory.getArtifactTypeProvider(artifactType).getContentDereferencer()
+                    .dereference(content, ownScopedReferences);
+        } catch (Exception ex) {
+            log.debug("Could not dereference a node of type {} while resolving references; using its "
+                    + "raw content for dependents instead.", artifactType, ex);
+            return content;
+        }
     }
 
     /**

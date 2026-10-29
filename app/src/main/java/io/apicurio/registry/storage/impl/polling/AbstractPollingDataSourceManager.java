@@ -85,7 +85,7 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
 
         // Validate loaded data against configured rules (before blue-green swap)
         if (state.isSuccessful()) {
-            var validator = new PollingDataValidator(rulesService);
+            var validator = new PollingDataValidator(rulesService, utils.getFactory());
             validator.validate(state, storage, pollingConfig);
         }
 

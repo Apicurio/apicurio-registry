@@ -195,7 +195,8 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             // Try to recalculate the canonical hash - this may fail if the content has references
             try {
                 Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                        .recursivelyResolveReferences(references, storage::getContentByReference);
+                        .recursivelyResolveReferences(references, storage::getContentByReference,
+                                utils.getFactory());
                 entity.artifactType = utils.determineArtifactType(typedContent, null, resolvedReferences);
 
                 // First we have to recalculate both the canonical hash and the contentHash
@@ -326,7 +327,8 @@ public class SqlDataUpgrader extends AbstractDataImporter {
             TypedContent content = TypedContent.create(wrapperDto.getContent(), wrapperDto.getContentType());
             String artifactType = versions.get(0).getArtifactType();
             Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                    .recursivelyResolveReferences(references, storage::getContentByReference);
+                    .recursivelyResolveReferences(references, storage::getContentByReference,
+                            utils.getFactory());
             TypedContent canonicalContent = utils.canonicalizeContent(artifactType, content,
                     resolvedReferences);
             String canonicalHash = DigestUtils.sha256Hex(canonicalContent.getContent().bytes());

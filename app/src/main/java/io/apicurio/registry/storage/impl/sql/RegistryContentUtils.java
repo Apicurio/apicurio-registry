@@ -178,7 +178,8 @@ public class RegistryContentUtils {
         try {
             return canonicalizeContent(artifactTypeUtilProviderFactory, artifactType,
                     TypedContent.create(data.getContent(), data.getArtifactType()),
-                    ReferenceResolution.recursivelyResolveReferences(data.getReferences(), loader));
+                    ReferenceResolution.recursivelyResolveReferences(data.getReferences(), loader,
+                            artifactTypeUtilProviderFactory));
         } catch (Exception ex) {
             throw new RegistryException("Failed to canonicalize content.", ex);
         }

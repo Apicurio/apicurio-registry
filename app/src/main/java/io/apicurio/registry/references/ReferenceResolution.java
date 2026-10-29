@@ -5,6 +5,7 @@ import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.quarkus.security.ForbiddenException;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
@@ -22,14 +23,11 @@ import java.util.function.Function;
  * <p>
  * This class exists only because rewriting every caller to build its own batch {@link ReferenceLoader} and
  * handle errors itself, on the day the walker was introduced, would have been a much larger and riskier
- * change than #10634 is meant to be. It preserves two behaviours of the generic walker it replaces that are
- * themselves considered bugs, deliberately, rather than fixing them as a side effect here:
- * <ul>
- * <li>A reference that fails to load is logged and skipped, not failed — fixed by #9626, which also removes
- * this class once no caller still needs the old loader shape.</li>
- * <li>Two different targets sharing a reference name collapse to whichever the walk resolves first — fixed
- * properly by #9000, which keys on coordinates instead.</li>
- * </ul>
+ * change than #10634 is meant to be. It preserves one behaviour of the generic walker it replaces that is
+ * itself considered a bug, deliberately, rather than fixing it as a side effect here: a reference that fails
+ * to load is logged and skipped, not failed — fixed by #9626, which also removes this class once no caller
+ * still needs the old loader shape.
+ * <p>
  * A {@link ForbiddenException} is the one loader failure that is never swallowed: the caller lacking
  * permission to read a referenced artifact is not the same as the reference not existing, and must not be
  * reported as if it were.
@@ -42,17 +40,52 @@ public final class ReferenceResolution {
     }
 
     /**
-     * Resolves {@code references} to a name-to-content map, exactly as the generic walker this replaces
-     * did: see {@link ResolvedReferences#asNameMap()} for how same-named collisions and ordering are
-     * decided now. {@code loader} is called once per distinct target coordinate in the graph (not once per
-     * reference, and not once per occurrence of a name), via the batching {@link ReferenceGraphWalker}.
+     * Resolves {@code references} to a name-to-content map — the same contract the walker this class
+     * bridges to replaces, except without its #9000 bug: two different targets sharing a reference name no
+     * longer collapse to whichever the walk resolves first.
+     * <p>
+     * All the actual work — the bottom-up, node-by-node dereferencing that avoids the collision, with its
+     * worked example and the fallback for a type that cannot dereference — is
+     * {@link ResolvedReferences#dereferenceAll}. This method only walks the graph and then narrows that
+     * whole-graph result down to {@code references}' own names with
+     * {@link ResolvedReferences#scopedReferences}: the same per-node operation
+     * {@link ResolvedReferences#dereferenceAll} already uses for every other node, applied once more here
+     * for the root, which (unlike every other node) is never itself part of the resolved graph.
+     * <p>
+     * <b>This result is root-scoped, not whole-graph-flattened</b> — a real behaviour difference from
+     * {@link ResolvedReferences#asNameMap()}, not just a bug fix. {@code asNameMap()} returns one entry per
+     * distinct name discovered <em>anywhere</em> in the whole graph, root and every descendant together.
+     * This method returns only the names {@code references} (the root's own direct references) declares;
+     * a name used solely by some descendant — {@code "common.avsc"} in the worked example — is consumed
+     * while dereferencing that descendant and never appears as a top-level key here. That is intentional:
+     * the whole point is that such a name must never reach a caller through a single shared map in the
+     * first place.
+     * <p>
+     * The fix does not touch the {@code Map<String, TypedContent>} contract that
+     * {@code ContentDereferencer}/{@code ContentCanonicalizer}/{@code ContentValidator} take. As
+     * {@link ResolvedReferences#dereferenceAll} explains, that is deliberate for now, not a final answer:
+     * dereferencing one node at a time from outside the content-type libraries is a workaround, not where
+     * this should live long-term (tracked by #10761 and Apitomy/apitomy-data-models#1289).
      *
      * @param references the references to resolve; {@code null} or empty returns an empty map
      * @param loader loads one artifact version's content by its coordinates; a {@code null} return means
      *            "does not exist", recorded in the walk but not treated as an error
-     * @return the name-to-content map every content type handler's reference-resolution contract expects
+     * @param typeProviderFactory resolves the {@code ContentDereferencer} for each node's own artifact type
+     * @return the name-to-content map every content type handler's reference-resolution contract expects,
+     *         with every entry's content already dereferenced, scoped to {@code references}' own names
      */
     public static Map<String, TypedContent> recursivelyResolveReferences(List<ArtifactReferenceDto> references,
+            Function<ArtifactReferenceDto, ContentWrapperDto> loader,
+            ArtifactTypeUtilProviderFactory typeProviderFactory) {
+        if (references == null || references.isEmpty()) {
+            return Map.of();
+        }
+        ResolvedReferences resolved = walk(references, loader);
+        Map<GAV, TypedContent> dereferencedByCoordinate = resolved.dereferenceAll(typeProviderFactory);
+        return ResolvedReferences.scopedReferences(references, dereferencedByCoordinate);
+    }
+
+    private static ResolvedReferences walk(List<ArtifactReferenceDto> references,
             Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
         ReferenceLoader batchLoader = coordinates -> {
             Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
@@ -69,8 +102,7 @@ public final class ReferenceResolution {
             }
             return loaded;
         };
-        ResolvedReferences resolved = ReferenceGraphWalker.walk(references, batchLoader, maxDepth());
-        return resolved.asNameMap();
+        return ReferenceGraphWalker.walk(references, batchLoader, maxDepth());
     }
 
     /**

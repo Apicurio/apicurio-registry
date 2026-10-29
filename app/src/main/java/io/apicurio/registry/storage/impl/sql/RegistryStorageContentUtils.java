@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.impl.sql;
 
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -29,6 +30,17 @@ public class RegistryStorageContentUtils {
 
     @Inject
     Logger log;
+
+    /**
+     * The {@link ArtifactTypeUtilProviderFactory} this bean was injected with, for callers (such as
+     * {@code SqlDataUpgrader}/{@code SqlDataImporter}, constructed by hand rather than injected) that
+     * already receive this bean and need the factory too — for example to call
+     * {@link ReferenceResolution#recursivelyResolveReferences(List, Function, ArtifactTypeUtilProviderFactory)}
+     * themselves.
+     */
+    public ArtifactTypeUtilProviderFactory getFactory() {
+        return factory;
+    }
 
     /**
      * Canonicalize the given content.

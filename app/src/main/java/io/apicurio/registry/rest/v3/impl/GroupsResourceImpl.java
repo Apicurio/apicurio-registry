@@ -1071,7 +1071,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (Boolean.TRUE.equals(canonical)) {
             Map<String, TypedContent> resolvedReferences = ReferenceResolution
                     .recursivelyResolveReferences(artifactCell.get().getReferences(),
-                            accessGuard.referenceLoader());
+                            accessGuard.referenceLoader(), factory);
             contentToReturn = contentUtils.canonicalizeContent(metaData.getArtifactType(),
                     contentToReturn, resolvedReferences);
         }
@@ -1261,7 +1261,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),
                     gav.getRawArtifactId(), gav.getRawVersionId());
             final Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                    .recursivelyResolveReferences(artifact.getReferences(), accessGuard.referenceLoader());
+                    .recursivelyResolveReferences(artifact.getReferences(), accessGuard.referenceLoader(),
+                            factory);
             final List<ArtifactReference> references = V3ApiUtil
                     .referenceDtosToReferences(artifact.getReferences());
 
@@ -1574,7 +1575,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
                 // Try to resolve the references
                 final Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                        .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
+                        .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader(), factory);
 
                 // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
                 TypedContent effectiveTypedContent = TypedContent.create(effectiveContent, effectiveContentType);
@@ -1709,7 +1710,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
             // Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                    .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
+                    .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader(), factory);
 
             TypedContent typedContent = TypedContent.create(effectiveContent, effectiveContentType);
             rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
@@ -2027,7 +2028,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Apply rules only if not a draft version (unless draft production mode is enabled)
         if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {
             final Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                    .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
+                    .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader(), factory);
             final TypedContent typedContent = TypedContent.create(content, contentType);
             rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
                     typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
@@ -2096,7 +2097,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      */
     private void authorizeReferences(List<ArtifactReferenceDto> references) {
         if (references != null && !references.isEmpty() && accessGuard.isEnforced(AuthorizedLevel.Read)) {
-            ReferenceResolution.recursivelyResolveReferences(references, accessGuard.referenceLoader());
+            ReferenceResolution.recursivelyResolveReferences(references, accessGuard.referenceLoader(), factory);
         }
     }
 

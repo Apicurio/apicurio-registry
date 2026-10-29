@@ -6,6 +6,8 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
+import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -14,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 public class ReferenceResolutionTest {
+
+    private static final ArtifactTypeUtilProviderFactory FACTORY = new DefaultArtifactTypeUtilProviderImpl(true);
 
     /**
      * Verifies that resolved references keep the content type of the referenced content (for example
@@ -29,10 +33,11 @@ public class ReferenceResolutionTest {
                 .artifactId("common-api").version("1").name("common-api.yaml").build();
 
         Map<String, TypedContent> resolved = ReferenceResolution
-                .recursivelyResolveReferences(List.of(reference), ref -> yamlReference);
+                .recursivelyResolveReferences(List.of(reference), ref -> yamlReference, FACTORY);
 
         Assertions.assertEquals(1, resolved.size());
         Assertions.assertEquals(ContentTypes.APPLICATION_YAML,
                 resolved.get("common-api.yaml").getContentType());
     }
 }
+

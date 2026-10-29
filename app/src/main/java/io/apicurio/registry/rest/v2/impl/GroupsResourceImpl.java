@@ -173,7 +173,7 @@ public class GroupsResourceImpl implements GroupsResource {
                 } else {
                     contentToReturn = artifactTypeProvider.getContentDereferencer()
                             .dereference(contentToReturn, ReferenceResolution.recursivelyResolveReferences(
-                                    artifact.getReferences(), accessGuard.referenceLoader()));
+                                    artifact.getReferences(), accessGuard.referenceLoader(), factory));
                 }
             }
 
@@ -703,7 +703,7 @@ public class GroupsResourceImpl implements GroupsResource {
             } else {
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(contentToReturn,
                         ReferenceResolution.recursivelyResolveReferences(artifact.getReferences(),
-                                accessGuard.referenceLoader()));
+                                accessGuard.referenceLoader(), factory));
             }
         }
 
@@ -1106,7 +1106,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
             // Try to resolve the new artifact references and the nested ones (if any)
             final Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                    .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
+                    .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader(), factory);
 
             rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
                     RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
@@ -1253,7 +1253,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         // Try to resolve the new artifact references and the nested ones (if any)
         final Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
+                .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader(), factory);
 
         final String owner = securityIdentity.getPrincipal().getName();
 
@@ -1365,7 +1365,7 @@ public class GroupsResourceImpl implements GroupsResource {
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
         final Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
+                .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader(), factory);
 
         TypedContent typedContent = TypedContent.create(content, contentType);
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,

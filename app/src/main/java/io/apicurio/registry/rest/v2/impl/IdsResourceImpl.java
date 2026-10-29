@@ -113,7 +113,7 @@ public class IdsResourceImpl implements IdsResource {
             } else {
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(contentToReturn,
                         ReferenceResolution.recursivelyResolveReferences(artifact.getReferences(),
-                                accessGuard.referenceLoader()));
+                                accessGuard.referenceLoader(), factory));
             }
         }
 

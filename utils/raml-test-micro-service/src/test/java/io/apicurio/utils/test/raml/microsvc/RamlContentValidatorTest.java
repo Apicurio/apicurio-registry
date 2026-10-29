@@ -3,8 +3,10 @@ package io.apicurio.utils.test.raml.microsvc;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
+import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolationException;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.RuleType;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -26,6 +28,10 @@ public class RamlContentValidatorTest {
             + "types:\n"
             + "  Widget:\n"
             + "    type: object\n";
+
+    private static final String MALFORMED_RAML = "#%RAML 1.0\n"
+            + "title: Test API\n"
+            + "types: [\n";
 
     @Test
     public void testValidateReferencesWithMappedInclude() {
@@ -56,5 +62,27 @@ public class RamlContentValidatorTest {
         RamlContentValidator validator = new RamlContentValidator();
 
         Assertions.assertDoesNotThrow(() -> validator.validateReferences(content, null));
+    }
+
+    @Test
+    public void testValidateReferencesWithMalformedContentDoesNotThrowReferenceFinderException() {
+        // Malformed YAML must not escape validateReferences as a ReferenceFinderException (which has
+        // no HTTP status mapping); syntax errors are reported by validate() (VALIDITY) instead.
+        TypedContent content = TypedContent.create(ContentHandle.create(MALFORMED_RAML),
+                ContentTypes.APPLICATION_YAML);
+        RamlContentValidator validator = new RamlContentValidator();
+
+        Assertions.assertDoesNotThrow(() -> validator.validateReferences(content, Collections.emptyList()));
+    }
+
+    @Test
+    public void testValidateReportsMalformedContentAsValidityViolation() {
+        TypedContent content = TypedContent.create(ContentHandle.create(MALFORMED_RAML),
+                ContentTypes.APPLICATION_YAML);
+        RamlContentValidator validator = new RamlContentValidator();
+
+        RuleViolationException error = Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validate(ValidityLevel.FULL, content, Collections.emptyMap()));
+        Assertions.assertEquals(RuleType.VALIDITY, error.getRuleType());
     }
 }

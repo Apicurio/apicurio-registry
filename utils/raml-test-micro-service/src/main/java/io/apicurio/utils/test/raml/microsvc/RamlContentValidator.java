@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
+import io.apicurio.registry.content.refs.ReferenceFinderException;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
@@ -54,14 +55,25 @@ public class RamlContentValidator extends AbstractContentValidator {
     /**
      * Ensures that every {@code ~include} reference found in the RAML content is represented in the
      * supplied list of artifact references. Any include that is not mapped is reported as a rule
-     * violation.
+     * violation. Content that cannot be parsed as YAML at all is treated as having no discoverable
+     * references here (rather than propagating a {@link io.apicurio.registry.content.refs.ReferenceFinderException});
+     * syntax errors are reported by {@link #validate(ValidityLevel, TypedContent, Map)} instead, which
+     * runs as part of the VALIDITY rule and has a well-defined failure mode for malformed content.
      *
      * @see io.apicurio.registry.rules.validity.ContentValidator#validateReferences(TypedContent, List)
      */
     @Override
     public void validateReferences(TypedContent content, List<ArtifactReference> references) throws RuleViolationException {
-        Set<String> requiredReferences = referenceFinder.findExternalReferences(content).stream()
-                .map(ExternalReference::getFullReference).collect(Collectors.toSet());
+        Set<String> requiredReferences = findRequiredReferences(content);
         validateMappedReferences(references, requiredReferences, "Unmapped reference detected.");
+    }
+
+    private Set<String> findRequiredReferences(TypedContent content) {
+        try {
+            return referenceFinder.findExternalReferences(content).stream()
+                    .map(ExternalReference::getFullReference).collect(Collectors.toSet());
+        } catch (ReferenceFinderException e) {
+            return Set.of();
+        }
     }
 }

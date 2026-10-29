@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -484,6 +485,26 @@ public class WebhookSchemaMigrationTest {
         }
     }
 
+    /**
+     * Proves that the schema-metadata comparison helper actually detects differences.
+     * A deliberately added column must cause the comparison to fail, so parity-test
+     * passes are not vacuous.
+     */
+    @Test
+    void h2SchemaParity_mismatchIsDetected() throws Exception {
+        try (Connection ref = openScenarioH2("fresh");
+             Connection drift = openScenarioH2("fresh")) {
+            // Add a deliberate schema drift to the drift connection.
+            try (Statement st = drift.createStatement()) {
+                st.execute("ALTER TABLE webhook_events ADD COLUMN drift_col VARCHAR(1)");
+            }
+            List<String> refMeta = collectH2SchemaMeta(ref, "webhook_events");
+            List<String> driftMeta = collectH2SchemaMeta(drift, "webhook_events");
+            assertNotEquals(refMeta, driftMeta,
+                    "Schema comparison helper must detect the deliberately added column");
+        }
+    }
+
     // ------------------------------------------------------------
     // Helpers
     // ------------------------------------------------------------
@@ -903,6 +924,7 @@ public class WebhookSchemaMigrationTest {
                 }
                 descriptors.add("UQ:"
                         + idxName.toUpperCase(Locale.ROOT) + ":"
+                        + ordinal + ":"
                         + rs.getString("COLUMN_NAME").toUpperCase(Locale.ROOT));
             }
         }
@@ -924,21 +946,27 @@ public class WebhookSchemaMigrationTest {
                 }
                 descriptors.add("IDX:"
                         + idxNameUpper + ":"
+                        + ordinal + ":"
                         + rs.getString("COLUMN_NAME").toUpperCase(Locale.ROOT));
             }
         }
 
-        // Check constraints (CK_* only — filters out H2's auto-generated NOT NULL checks).
+        // Check constraints (CK_* only): include the clause body so a regressed CHECK
+        // expression is detected, not just that the constraint name is present.
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT CONSTRAINT_NAME FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS "
-                + "WHERE UPPER(TABLE_NAME) = ? AND CONSTRAINT_TYPE = 'CHECK' "
-                + "ORDER BY CONSTRAINT_NAME")) {
+                "SELECT tc.CONSTRAINT_NAME, cc.CHECK_CLAUSE "
+                + "FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc "
+                + "JOIN INFORMATION_SCHEMA.CHECK_CONSTRAINTS cc "
+                + "  ON tc.CONSTRAINT_SCHEMA = cc.CONSTRAINT_SCHEMA "
+                + "  AND tc.CONSTRAINT_NAME = cc.CONSTRAINT_NAME "
+                + "WHERE UPPER(tc.TABLE_NAME) = ? AND tc.CONSTRAINT_TYPE = 'CHECK' "
+                + "ORDER BY tc.CONSTRAINT_NAME")) {
             ps.setString(1, t);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String name = rs.getString(1).toUpperCase(Locale.ROOT);
                     if (name.startsWith("CK_")) {
-                        descriptors.add("CK:" + name);
+                        descriptors.add("CK:" + name + ":" + normalizeCheckClause(rs.getString(2)));
                     }
                 }
             }
@@ -953,6 +981,18 @@ public class WebhookSchemaMigrationTest {
             return "null";
         }
         return def.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private static String normalizeCheckClause(String clause) {
+        if (clause == null) {
+            return "NULL";
+        }
+        String s = clause.trim().toUpperCase(Locale.ROOT);
+        // Strip outer parentheses some databases add around the expression.
+        while (s.startsWith("(") && s.endsWith(")")) {
+            s = s.substring(1, s.length() - 1).trim();
+        }
+        return s;
     }
 
     private static final AtomicInteger DB_COUNTER = new AtomicInteger();

@@ -22,6 +22,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -142,6 +143,33 @@ class WebhookSchemaPostgresqlMigrationTest {
         } finally {
             pgFresh.close();
             pgUpgraded.close();
+        }
+    }
+
+    /**
+     * Proves that the schema-metadata comparison helper actually detects differences.
+     * A deliberately added column must cause the comparison to fail, so parity-test
+     * passes are not vacuous.
+     */
+    @Test
+    void pgSchemaParity_mismatchIsDetected() throws Exception {
+        EmbeddedPostgres pgRef = EmbeddedPostgres.start();
+        EmbeddedPostgres pgDrift = EmbeddedPostgres.start();
+        try (Connection ref = pgConnection(pgRef);
+             Connection drift = pgConnection(pgDrift)) {
+            applyStatements(ref, new PostgreSQLSqlStatements().databaseInitialization());
+            applyStatements(drift, new PostgreSQLSqlStatements().databaseInitialization());
+            // Add a deliberate schema drift to the second instance.
+            try (Statement st = drift.createStatement()) {
+                st.execute("ALTER TABLE webhook_events ADD COLUMN drift_col VARCHAR(1)");
+            }
+            List<String> refMeta = collectPgSchemaMeta(ref, "webhook_events");
+            List<String> driftMeta = collectPgSchemaMeta(drift, "webhook_events");
+            assertNotEquals(refMeta, driftMeta,
+                    "Schema comparison helper must detect the deliberately added column");
+        } finally {
+            pgRef.close();
+            pgDrift.close();
         }
     }
 
@@ -487,6 +515,7 @@ class WebhookSchemaPostgresqlMigrationTest {
                 }
                 descriptors.add("UQ:"
                         + idxLower + ":"
+                        + ordinal + ":"
                         + rs.getString("COLUMN_NAME").toLowerCase(Locale.ROOT));
             }
         }
@@ -505,13 +534,15 @@ class WebhookSchemaPostgresqlMigrationTest {
                 }
                 descriptors.add("IDX:"
                         + idxLower + ":"
+                        + ordinal + ":"
                         + rs.getString("COLUMN_NAME").toLowerCase(Locale.ROOT));
             }
         }
 
-        // Check constraints via INFORMATION_SCHEMA.
+        // Check constraints: include the clause body so a regressed CHECK expression is detected.
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT LOWER(cc.constraint_name) FROM information_schema.check_constraints cc "
+                "SELECT LOWER(cc.constraint_name), LOWER(cc.check_clause) "
+                + "FROM information_schema.check_constraints cc "
                 + "JOIN information_schema.table_constraints tc "
                 + "  ON cc.constraint_schema = tc.constraint_schema "
                 + "  AND cc.constraint_name = tc.constraint_name "
@@ -522,7 +553,7 @@ class WebhookSchemaPostgresqlMigrationTest {
                 while (rs.next()) {
                     String name = rs.getString(1);
                     if (name.startsWith("ck_")) {
-                        descriptors.add("CK:" + name);
+                        descriptors.add("CK:" + name + ":" + normalizePgCheckClause(rs.getString(2)));
                     }
                 }
             }
@@ -543,6 +574,18 @@ class WebhookSchemaPostgresqlMigrationTest {
             s = s.substring(0, castIdx).trim();
         }
         return s.toLowerCase(Locale.ROOT);
+    }
+
+    private static String normalizePgCheckClause(String clause) {
+        if (clause == null) {
+            return "null";
+        }
+        String s = clause.trim().toLowerCase(Locale.ROOT);
+        // Strip outer parentheses PostgreSQL wraps around the CHECK expression.
+        while (s.startsWith("(") && s.endsWith(")")) {
+            s = s.substring(1, s.length() - 1).trim();
+        }
+        return s;
     }
 
     // ------------------------------------------------------------

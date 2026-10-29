@@ -21,6 +21,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Locale;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,10 +38,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * by {@code IF OBJECT_ID IS NULL} and every {@code CREATE INDEX} by a {@code sys.indexes}
  * lookup), and that a fresh install and an upgrade produce identical schemas.</p>
  *
- * <p>Baseline limitation: the "upgraded" scenario starts from a synthetic
- * {@code apicurio} marker table only — not a full v111 registry schema with peer tables.
- * This is sufficient to verify the isolated webhook migration; real-baseline upgrade
- * evidence (full v111 schema + upgrade) must be provided separately.</p>
+ * <p><strong>Isolated smoke tests</strong>: the "upgraded" scenario in the parameterized
+ * tests starts from a synthetic {@code apicurio} marker table only — sufficient to verify
+ * the isolated webhook migration in isolation.  A separate real-baseline upgrade test
+ * ({@code upgrade_fromRealV111Baseline_*}) loads the actual v111 DDL from test resources.</p>
  *
  * <p>Tests are skipped when Docker is unavailable
  * ({@link Testcontainers#disabledWithoutDocker()}).</p>
@@ -306,6 +308,130 @@ class WebhookSchemaMssqlMigrationTest {
                         "Schema parity failed for table " + table
                         + ". Fresh: " + freshMeta.get(table) + " Upgraded: " + upgradedMeta);
             }
+        }
+    }
+
+    // ------------------------------------------------------------
+    // Real v111 baseline upgrade test
+    // ------------------------------------------------------------
+
+    /**
+     * Loads the real v111 DDL from test resources, seeds representative rows
+     * (an extra {@code apicurio} property, a group, an artifact, and a peers row),
+     * applies the 111 → 112 upgrade, then verifies:
+     * <ul>
+     *   <li>db_version = 112</li>
+     *   <li>all three webhook tables are present</li>
+     *   <li>every seeded row is unchanged</li>
+     *   <li>the full constraint-invariant suite passes</li>
+     *   <li>the schema is identical to a fresh 112 install (parity check)</li>
+     * </ul>
+     */
+    @Test
+    void upgrade_fromRealV111Baseline_preservesRepresentativeRowsAndPassesInvariants() throws Exception {
+        // Phase 1: capture fresh 112 metadata for parity comparison.
+        Map<String, List<String>> freshMetaMap = new LinkedHashMap<>();
+        try (Connection conn = openConnection()) {
+            applyStatements(conn, new SQLServerSqlStatements().databaseInitialization());
+            for (String table : List.of("webhook_subscriptions", "webhook_events", "webhook_delivery_logs")) {
+                freshMetaMap.put(table, collectMssqlSchemaMeta(conn, table));
+            }
+            dropAllTables(conn);
+        }
+
+        // Phase 2: real v111 baseline → seed → upgrade → assert.
+        try (Connection conn = openConnection()) {
+            executeDdlResource(conn, "pre-webhook-schema/mssql.ddl");
+            assertDbVersion(conn, 111);
+
+            // Seed representative rows that must survive the 111→112 upgrade.
+            try (Statement st = conn.createStatement()) {
+                st.execute("INSERT INTO apicurio (propName, propValue) VALUES ('extra_key', 'extra_value')");
+            }
+            insertRealGroup(conn, "test-group-v111");
+            insertRealArtifact(conn, "test-group-v111", "test-artifact-v111");
+            insertRealPeer(conn, "peer-v111-1");
+
+            // Apply 111 → 112 upgrade.
+            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(111, 112));
+            assertDbVersion(conn, 112);
+
+            assertTableExists(conn, "webhook_subscriptions");
+            assertTableExists(conn, "webhook_events");
+            assertTableExists(conn, "webhook_delivery_logs");
+
+            // Verify all seeded rows survived the upgrade.
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT propValue FROM apicurio WHERE propName = 'extra_key'")) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "extra apicurio property must survive the 111→112 upgrade");
+                    assertEquals("extra_value", rs.getString(1),
+                            "extra apicurio property value must be unchanged after upgrade");
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT groupId FROM groups WHERE groupId = ?")) {
+                ps.setString(1, "test-group-v111");
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "seeded group must survive the 111→112 upgrade");
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT artifactId FROM artifacts WHERE groupId = ? AND artifactId = ?")) {
+                ps.setString(1, "test-group-v111");
+                ps.setString(2, "test-artifact-v111");
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "seeded artifact must survive the 111→112 upgrade");
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT peerId FROM peers WHERE peerId = ?")) {
+                ps.setString(1, "peer-v111-1");
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "seeded peers row must survive the 111→112 upgrade");
+                }
+            }
+
+            // Full constraint invariant suite on the real-baseline-upgraded schema.
+            assertConstraintInvariants(conn);
+
+            // Schema parity with fresh 112.
+            for (String table : List.of("webhook_subscriptions", "webhook_events", "webhook_delivery_logs")) {
+                List<String> upgradedMeta = collectMssqlSchemaMeta(conn, table);
+                assertEquals(freshMetaMap.get(table), upgradedMeta,
+                        "Schema parity (real v111 baseline) failed for table " + table
+                        + ". Fresh: " + freshMetaMap.get(table) + " Upgraded: " + upgradedMeta);
+            }
+        }
+    }
+
+    // Representative-row helpers for the real-baseline test.
+
+    private static void insertRealGroup(Connection conn, String groupId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO groups (groupId, description, createdOn) "
+                + "VALUES (?, 'A real-baseline test group', SYSUTCDATETIME())")) {
+            ps.setString(1, groupId);
+            ps.executeUpdate();
+        }
+    }
+
+    private static void insertRealArtifact(Connection conn, String groupId, String artifactId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO artifacts (groupId, artifactId, type, createdOn) "
+                + "VALUES (?, ?, 'JSON', SYSUTCDATETIME())")) {
+            ps.setString(1, groupId);
+            ps.setString(2, artifactId);
+            ps.executeUpdate();
+        }
+    }
+
+    private static void insertRealPeer(Connection conn, String peerId) throws SQLException {
+        try (PreparedStatement ps = conn.prepareStatement(
+                "INSERT INTO peers (peerId, url, name, enabled) "
+                + "VALUES (?, 'https://peer.example.com/apis/registry/v3', 'Test Peer', 1)")) {
+            ps.setString(1, peerId);
+            ps.executeUpdate();
         }
     }
 
@@ -770,6 +896,32 @@ class WebhookSchemaMssqlMigrationTest {
     private static Connection openConnection() throws SQLException {
         return DriverManager.getConnection(
                 mssql.getJdbcUrl(), mssql.getUsername(), mssql.getPassword());
+    }
+
+    private static void executeDdlResource(Connection conn, String resourcePath) throws Exception {
+        String fullPath = "io/apicurio/registry/storage/impl/sql/" + resourcePath;
+        try (InputStream in = WebhookSchemaMssqlMigrationTest.class
+                .getClassLoader().getResourceAsStream(fullPath)) {
+            if (in == null) {
+                throw new IllegalStateException("DDL resource not found: " + fullPath);
+            }
+            String ddl = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            // Strip line comments BEFORE splitting on ';' so that a ';' inside a comment
+            // (e.g. "-- DROP TABLE foo; TODO: why?") does not produce a spurious SQL fragment.
+            StringBuilder strippedDdl = new StringBuilder();
+            for (String line : ddl.split("\n")) {
+                int commentIdx = line.indexOf("--");
+                strippedDdl.append(commentIdx >= 0 ? line.substring(0, commentIdx) : line).append('\n');
+            }
+            for (String stmt : strippedDdl.toString().split(";")) {
+                String sql = stmt.trim();
+                if (!sql.isEmpty()) {
+                    try (Statement st = conn.createStatement()) {
+                        st.execute(sql);
+                    }
+                }
+            }
+        }
     }
 
     private static void applyStatements(Connection conn, List<String> statements) throws SQLException {

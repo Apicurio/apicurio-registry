@@ -93,6 +93,8 @@
     <module>utils/protobuf-schema-utilities</module>
     <module>utils/tests</module>
     <module>authz</module>
+    <module>scope-api</module>
+    <module>scope-api-tck</module>
 
     <!-- modules for implementing ArtifactTypeUtilProvider -->
     <module>schema-util/agents</module>
@@ -439,6 +441,16 @@
       </dependency>
 
       <!-- This project -->
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-scope-api</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-scope-api-tck</artifactId>
+        <version>${project.version}</version>
+      </dependency>
       <dependency>
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-common</artifactId>

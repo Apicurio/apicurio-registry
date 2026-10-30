@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry</artifactId>
+        <version>3.4.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <artifactId>apicurio-scope-api</artifactId>
+    <packaging>jar</packaging>
+    <name>apicurio-scope-api</name>
+    <description>Resource scope API: the set of resources a subject may access, for search pre-filtering, as a companion to the Kroxylicious Authorizer API</description>
+    <properties>
+        <projectRoot>${project.basedir}/..</projectRoot>
+        <!-- kroxylicious-authorizer-api is compiled for Java 21 -->
+        <maven.compiler.release>21</maven.compiler.release>
+    </properties>
+    <dependencies>
+        <dependency>
+            <groupId>io.kroxylicious</groupId>
+            <artifactId>kroxylicious-authorizer-api</artifactId>
+            <exclusions>
+                <!-- Declared at compile scope upstream but only used by its tests -->
+                <exclusion>
+                    <groupId>org.assertj</groupId>
+                    <artifactId>assertj-core</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- Regex engine of resource name patterns: linear time, so user-supplied patterns can't
+             cause catastrophic backtracking -->
+        <dependency>
+            <groupId>com.google.re2j</groupId>
+            <artifactId>re2j</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

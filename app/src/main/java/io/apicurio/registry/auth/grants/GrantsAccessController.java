@@ -10,7 +10,6 @@ import io.apicurio.authz.Artifact;
 import io.apicurio.authz.Group;
 import io.apicurio.authz.AccessRulesAuthorizer;
 import io.apicurio.authz.Role;
-import io.apicurio.authz.SearchFilterData;
 import io.apicurio.registry.auth.AbstractAccessController;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
@@ -19,6 +18,8 @@ import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.AuthorizationNames;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
+import io.apicurio.scope.ResourceScope;
+import io.apicurio.scope.ResourceScopeProvider;
 import io.kroxylicious.authorizer.service.Action;
 import io.kroxylicious.authorizer.service.AuthorizeResult;
 import io.kroxylicious.authorizer.service.Decision;
@@ -85,9 +86,11 @@ public class GrantsAccessController extends AbstractAccessController {
      * @return the names the access rules allow the current caller to read, for search
      *         pre-filtering; null if per-resource authorization is not initialized
      */
-    SearchFilterData readScope(ResourceType<?> readOperation) {
-        AccessRulesAuthorizer current = authorizer;
-        return current != null ? current.scope(currentSubject(), readOperation) : null;
+    ResourceScope readScope(ResourceType<?> readOperation) {
+        ResourceScopeProvider current = authorizer;
+        // The access rules are evaluated in memory, so the stage is always complete
+        return current != null ? current.resolveScope(currentSubject(), readOperation).toCompletableFuture().join()
+                : null;
     }
 
     @Override

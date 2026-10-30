@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import io.apicurio.scope.ResourceScope;
 import io.kroxylicious.authorizer.provider.acl.AclAuthorizerConfig;
 import io.kroxylicious.authorizer.provider.acl.AclAuthorizerService;
 import io.kroxylicious.authorizer.service.Action;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -33,7 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class AccessRulesTest {
 
-    private static final String RULES = """
+    static final String RULES = """
             from io.apicurio.authz import Artifact, Group, Role, ClientId;
             deny User with name = "bob" to * Artifact with name = "team-a/secret";
             deny Role with name = "contractors" to READ Artifact with name like "team-a/internal-*";
@@ -54,7 +56,7 @@ class AccessRulesTest {
             otherwise deny;
             """;
 
-    private static final List<Subject> SUBJECTS = List.of(
+    static final List<Subject> SUBJECTS = List.of(
             subject(new User("bob"), new Role("team-a-dev")),
             subject(new User("carol"), new Role("contractors")),
             subject(new User("alice")),
@@ -62,6 +64,8 @@ class AccessRulesTest {
             subject(new User("al")),
             subject(new User("temp-joe")),
             subject(new User("dan"), new Role("auditors"), new Role("guests")),
+            // Every artifact allowed (auditors), except a denied prefix (contractors)
+            subject(new User("frank"), new Role("auditors"), new Role("contractors")),
             subject(new User("eve"), new ClientId("team-a-dev")),
             subject(new ClientId("svc")),
             subject(new Role("svc")),
@@ -69,10 +73,10 @@ class AccessRulesTest {
             subject(new Role("star")),
             Subject.anonymous());
 
-    private static final List<ResourceType<?>> OPERATIONS = List.of(
+    static final List<ResourceType<?>> OPERATIONS = List.of(
             Artifact.READ, Artifact.WRITE, Artifact.ADMIN, Group.READ, Group.WRITE, Group.ADMIN);
 
-    private static final List<String> NAMES = List.of(
+    static final List<String> NAMES = List.of(
             "team-a/schema", "team-a/secret", "team-a/internal-x", "team-a/internal-", "team-a", "team-a/",
             "team-ab/x", "TEAM-A/schema", "team-b/abc", "team-b/ABC", "team-c/x", "team-d/x", "team-b/abc/d",
             "x/1", "x/2", "x/\"quoted\"", "team-a%2Fsub/y", "team-a/sub/y", "public", "public-group", "pub",
@@ -82,7 +86,7 @@ class AccessRulesTest {
     @TempDir
     Path dir;
 
-    private static Subject subject(Principal... principals) {
+    static Subject subject(Principal... principals) {
         return new Subject(Set.of(principals));
     }
 
@@ -98,7 +102,7 @@ class AccessRulesTest {
     }
 
     /** Overlapping resource prefixes, and principal prefixes for principals of several classes. */
-    private static final String PREFIX_RULES = """
+    static final String PREFIX_RULES = """
             from io.apicurio.authz import Artifact, Group, Role;
             deny User with name = "bob" to READ Artifact with name like "team-b/*";
             deny User with name = "bob" to READ Artifact with name like "team-b/internal-*";
@@ -111,14 +115,14 @@ class AccessRulesTest {
             otherwise deny;
             """;
 
-    private static final List<Subject> PREFIX_SUBJECTS = List.of(
+    static final List<Subject> PREFIX_SUBJECTS = List.of(
             subject(new User("bob")),
             subject(new User("reader-bob")),
             subject(new Role("reader-bob")),
             subject(new Role("rea")),
             subject(new User("reader-bob"), new Role("other")));
 
-    private static final List<String> PREFIX_NAMES = List.of(
+    static final List<String> PREFIX_NAMES = List.of(
             "team-a/public", "team-a/internal-x", "team-a/a", "team-a/zzz", "team-b/public", "team-b/internal-x",
             "team-b/zzz", "team-c/x", "u/1", "u", "g");
 
@@ -152,7 +156,7 @@ class AccessRulesTest {
         int checked = 0;
         for (Subject subject : subjects) {
             for (ResourceType<?> op : OPERATIONS) {
-                SearchFilterData scope = rules.scope(subject, op);
+                ResourceScope scope = rules.resolveScope(subject, op).toCompletableFuture().join();
                 for (String name : names) {
                     boolean pointAccess = rules.authorize(subject, List.of(new Action(op, name)))
                             .toCompletableFuture().join().decision(op, name) == Decision.ALLOW;
@@ -178,6 +182,10 @@ class AccessRulesTest {
         AclAuthorizerService service = new AclAuthorizerService();
         service.initialize(new AclAuthorizerConfig(file.toString()));
         return service.build();
+    }
+
+    private static ResourceScope scope(AccessRulesAuthorizer rules, Subject subject, ResourceType<?> op) {
+        return rules.resolveScope(subject, op).toCompletableFuture().join();
     }
 
     private static boolean allowed(Authorizer authorizer, Subject subject, ResourceType<?> op, String name) {
@@ -265,23 +273,22 @@ class AccessRulesTest {
     void scopeReportsPatternsAndShortCuts() throws Exception {
         AccessRulesAuthorizer rules = load();
 
-        SearchFilterData bob = rules.scope(subject(new User("bob"), new Role("team-a-dev")), Artifact.READ);
-        assertEquals(Set.of("team-a/"), bob.allowedPrefix());
-        assertEquals(Set.of("team-a/secret"), bob.deniedExact());
+        ResourceScope.Scoped bob = assertInstanceOf(ResourceScope.Scoped.class,
+                scope(rules, subject(new User("bob"), new Role("team-a-dev")), Artifact.READ));
+        assertEquals(Set.of("team-a/"), bob.allowPrefix());
+        assertEquals(Set.of("team-a/secret"), bob.denyExact());
         // ADMIN implies READ, so the ADMIN pattern is part of the read scope
-        assertEquals(Set.of("team-(b|c)/[a-z]+", "dot.only"), bob.allowedPatterns());
+        assertEquals(Set.of("team-(b|c)/[a-z]+", "dot.only"), bob.allowPatterns());
         assertTrue(bob.hasPatterns());
 
         // The deny of WRITE on every group also denies READ, which WRITE implies
-        SearchFilterData auditors = rules.scope(subject(new Role("auditors")), Group.READ);
-        assertTrue(auditors.allowsNothing());
-        assertFalse(auditors.hasPatterns());
-        SearchFilterData anyUser = rules.scope(subject(new User("zed")), Group.READ);
-        assertEquals(Set.of("public"), anyUser.allowedPrefix());
-        assertFalse(anyUser.allowsEverything());
-        assertTrue(rules.scope(subject(new Role("auditors")), Artifact.READ).allowsEverything());
+        assertInstanceOf(ResourceScope.Forbidden.class, scope(rules, subject(new Role("auditors")), Group.READ));
+        ResourceScope.Scoped anyUser = assertInstanceOf(ResourceScope.Scoped.class,
+                scope(rules, subject(new User("zed")), Group.READ));
+        assertEquals(Set.of("public"), anyUser.allowPrefix());
+        assertInstanceOf(ResourceScope.Unrestricted.class, scope(rules, subject(new Role("auditors")), Artifact.READ));
 
-        assertTrue(rules.scope(Subject.anonymous(), Artifact.READ).allowsNothing());
+        assertInstanceOf(ResourceScope.Forbidden.class, scope(rules, Subject.anonymous(), Artifact.READ));
     }
 
     /**
@@ -293,7 +300,7 @@ class AccessRulesTest {
     void regexEscapesAreReadAsTheRulesParserReadsThem() throws Exception {
         AccessRulesAuthorizer rules = load();
         Subject bob = subject(new User("bob"));
-        SearchFilterData scope = rules.scope(bob, Artifact.READ);
+        ResourceScope scope = scope(rules, bob, Artifact.READ);
         for (String name : List.of("dot.only", "dotxonly")) {
             assertTrue(scope.matches(name), name);
             assertEquals(Decision.ALLOW, rules.authorize(bob, List.of(new Action(Artifact.READ, name)))

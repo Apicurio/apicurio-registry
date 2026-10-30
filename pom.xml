@@ -153,14 +153,14 @@
     <!--
     WARNING: The following group of dependencies has to be aligned with the best corresponding Quarkus version.
     -->
-    <quarkus.version>3.33.3.1</quarkus.version>
+    <quarkus.version>3.33.4.1</quarkus.version>
     <!--
     # QOSDK
 
     Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/operatorsdk/quarkus-operator-sdk-parent/7.1.4/quarkus-operator-sdk-parent-7.1.4.pom
     to check that the versions match as best as possible:
 
-    - QOSDK 7.7.3 -> Quarkus 3.33.1 (using 3.33.3.1 patch)
+    - QOSDK 7.7.3 -> Quarkus 3.33.1 (using 3.33.4.1 patch)
     - QOSDK 7.2.1 -> Quarkus 3.27.0 (using 3.27.2 patch)
     - QOSDK 7.2.0 -> Quarkus 3.23.2
     - QOSDK 7.1.4 -> Quarkus 3.20.1
@@ -174,7 +174,7 @@
     Go to the extension parent POM, e.g. https://repo1.maven.org/maven2/io/quarkiverse/mcp/quarkus-mcp-server-parent/1.6.0/quarkus-mcp-server-parent-1.6.0.pom
     to check that the versions match as best as possible:
 
-    - MCP Server 1.13.1 -> Quarkus 3.33.2 (using 3.33.3.1 patch)
+    - MCP Server 1.13.1 -> Quarkus 3.33.2 (using 3.33.4.1 patch)
     - MCP Server 1.11.0 -> Quarkus 3.33.0
     - MCP Server 1.7.0 -> Quarkus 3.27.0 (using 3.27.2 patch)
     - MCP Server 1.6.1 -> Quarkus 3.20.2.2
@@ -235,8 +235,15 @@
     <json-sKema.version>0.31.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250517</org.json.version>
-    <jackson-datatype-json-org.version>2.21.5</jackson-datatype-json-org.version>
-    <jackson-dataformat-yaml.version>2.21.5</jackson-dataformat-yaml.version>
+    <jackson-datatype-json-org.version>${jackson2.version}</jackson-datatype-json-org.version>
+    <jackson-dataformat-yaml.version>${jackson2.version}</jackson-dataformat-yaml.version>
+
+    <!-- Security overrides of Quarkus-managed transitive dependencies (CVE fixes) -->
+    <jackson2.version>2.21.8</jackson2.version>
+    <jackson3.version>3.1.8</jackson3.version>
+    <httpclient5.version>5.6.5</httpclient5.version>
+    <httpcore5.version>5.4.4</httpcore5.version>
+    <mssql-jdbc.version>13.4.0.jre11</mssql-jdbc.version>
 
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
@@ -246,7 +253,7 @@
     <!-- Dependency versions -->
     <lombok.version>1.18.48</lombok.version>
     <commons-codec.version>1.22.1</commons-codec.version>
-    <netty.version>4.1.136.Final</netty.version>
+    <netty.version>4.1.139.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
     <kafka-oauth-client.version>0.18.1</kafka-oauth-client.version>
     <debezium.version>3.7.0.Final</debezium.version>
@@ -609,6 +616,46 @@
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-distro-connect-converter</artifactId>
         <version>${project.version}</version>
+      </dependency>
+
+      <!--
+        Security overrides of transitive versions managed by the Quarkus BOM.
+        These BOMs MUST be imported before quarkus-bom (first import wins).
+        Re-check (and drop where possible) on every Quarkus upgrade.
+      -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson2.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>tools.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson3.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents.client5</groupId>
+        <artifactId>httpclient5</artifactId>
+        <version>${httpclient5.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents.core5</groupId>
+        <artifactId>httpcore5</artifactId>
+        <version>${httpcore5.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents.core5</groupId>
+        <artifactId>httpcore5-h2</artifactId>
+        <version>${httpcore5.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.sqlserver</groupId>
+        <artifactId>mssql-jdbc</artifactId>
+        <version>${mssql-jdbc.version}</version>
       </dependency>
 
       <!-- Quarkus Dependencies -->
@@ -1029,7 +1076,7 @@
         <version>${assertj.core.version}</version>
         <scope>test</scope>
       </dependency>
-      <!-- testcontainers core version now managed by Quarkus 3.33.3.1 BOM -->
+      <!-- testcontainers core version now managed by Quarkus 3.33.4.1 BOM -->
 
       <!-- Iceberg -->
       <dependency>

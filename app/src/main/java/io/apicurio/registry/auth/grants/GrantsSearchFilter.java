@@ -33,7 +33,8 @@ import org.slf4j.LoggerFactory;
  * <p>The filter selects exactly what point access allows: the scope of the access rules is passed
  * through unchanged, the same bypasses as point access see everything, and owners see their own
  * resources unless the owner bypass is disabled. Rules with {@code matching} patterns cannot be
- * evaluated by storage, so a caller whose scope has patterns gets no results (fail closed).</p>
+ * evaluated by storage, so for a caller whose scope has patterns the rules select nothing in search
+ * (fail closed); the owner bypass still applies, as when the rules allow nothing.</p>
  */
 @ApplicationScoped
 public class GrantsSearchFilter {
@@ -102,16 +103,17 @@ public class GrantsSearchFilter {
         String owner = config.isOwnerBypassEnabled() ? user : null;
         AuthorizationFilter filter = switch (scope) {
             case ResourceScope.Unrestricted unrestricted -> null;
-            case ResourceScope.Forbidden forbidden ->
-                    owner == null ? null : new AuthorizationFilter(false, Set.of(), Set.of(), Set.of(), Set.of(), owner);
+            case ResourceScope.Forbidden forbidden -> ownedOnly(owner);
             case ResourceScope.Scoped scoped -> {
                 if (scoped.hasPatterns()) {
                     // SQL and Elasticsearch can't evaluate RE2 patterns. Ignoring a denied pattern would
-                    // expose resources and ignoring an allowed one would hide them, so fail closed.
-                    LOG.warn("Search returns no results: the access rules of this caller use 'matching' for {} "
-                            + "resources, which search cannot evaluate. Use '=', 'in' or 'like' for resources "
-                            + "that must be searchable.", readOperation.getClass().getSimpleName());
-                    yield null;
+                    // expose resources and ignoring an allowed one would hide them, so the rules select
+                    // nothing (fail closed). The owner bypass applies as when the rules allow nothing.
+                    LOG.warn("Search only returns owned resources: the access rules of this caller use "
+                            + "'matching' for {} resources, which search cannot evaluate. Use '=', 'in' or "
+                            + "'like' for resources that must be searchable.",
+                            readOperation.getClass().getSimpleName());
+                    yield ownedOnly(owner);
                 }
                 yield new AuthorizationFilter(scoped.allowAll(), scoped.allowExact(), scoped.allowPrefix(),
                         scoped.denyExact(), scoped.denyPrefix(), owner);
@@ -127,6 +129,11 @@ public class GrantsSearchFilter {
         restricted.add(SearchFilter.ofAuthorization(filter));
         LOG.debug("Search restricted by access rules: user={}, operation={}, scope={}", user, readOperation, scope);
         return restricted;
+    }
+
+    /** @return a filter selecting only the owner's resources, or null (nothing) without an owner */
+    private static AuthorizationFilter ownedOnly(String owner) {
+        return owner == null ? null : new AuthorizationFilter(false, Set.of(), Set.of(), Set.of(), Set.of(), owner);
     }
 
     private String getUsername() {

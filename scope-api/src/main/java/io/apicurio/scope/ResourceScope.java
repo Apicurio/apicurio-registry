@@ -16,6 +16,11 @@ import com.google.re2j.PatternSyntaxException;
  * select every name or none, for example when the same name is both allowed and denied. Consumers
  * must evaluate a {@link Scoped}, not assume it is non-empty.</p>
  *
+ * <p>The three cases are fixed: consumers may switch over them exhaustively, so adding a case would
+ * break them, and is only possible in a major release. New kinds of selector belong inside
+ * {@link Scoped}, with a flag that consumers unable to evaluate them must fail closed on, as
+ * {@link Scoped#hasPatterns()} does.</p>
+ *
  * <p>Matching rules, which every provider and consumer must follow:</p>
  * <ul>
  *     <li>names are opaque, caller-defined strings, compared exactly and case-sensitively;</li>

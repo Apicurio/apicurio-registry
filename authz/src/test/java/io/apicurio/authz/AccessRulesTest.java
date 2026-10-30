@@ -64,6 +64,8 @@ class AccessRulesTest {
             subject(new User("al")),
             subject(new User("temp-joe")),
             subject(new User("dan"), new Role("auditors"), new Role("guests")),
+            // Every artifact allowed (auditors), except a denied prefix (contractors)
+            subject(new User("frank"), new Role("auditors"), new Role("contractors")),
             subject(new User("eve"), new ClientId("team-a-dev")),
             subject(new ClientId("svc")),
             subject(new Role("svc")),

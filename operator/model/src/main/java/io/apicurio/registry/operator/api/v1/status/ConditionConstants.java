@@ -5,6 +5,7 @@ public final class ConditionConstants {
     public static final String TYPE_OPERATOR_ERROR = "OperatorError";
     public static final String TYPE_VALIDATION_ERROR = "ValidationError";
     public static final String TYPE_READY = "Ready";
+    public static final String TYPE_CERTIFICATE_EXPIRING = "CertificateExpiring";
 
     private ConditionConstants() {
     }

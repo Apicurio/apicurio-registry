@@ -126,6 +126,41 @@ class PromptTemplateConverterTest {
     }
 
     @Test
+    void testIfElseBlockRender() {
+        Assertions.assertEquals("Welcome admin Alice!",
+                converter.renderTemplate("{{#if admin}}Welcome admin {{name}}!{{else}}Welcome guest!{{/if}}",
+                        Map.of("admin", true, "name", "Alice")));
+        Assertions.assertEquals("Welcome guest!",
+                converter.renderTemplate("{{#if admin}}Welcome admin {{name}}!{{else}}Welcome guest!{{/if}}",
+                        Map.of("admin", false, "name", "Alice")));
+    }
+
+    @Test
+    void testUnlessBlockRender() {
+        Assertions.assertEquals("Active item: Widget",
+                converter.renderTemplate("{{#unless archived}}Active item: {{name}}{{/unless}}",
+                        Map.of("archived", false, "name", "Widget")));
+        Assertions.assertEquals("",
+                converter.renderTemplate("{{#unless archived}}Active item: {{name}}{{/unless}}",
+                        Map.of("archived", true, "name", "Widget")));
+    }
+
+    @Test
+    void testComplexVariableJsonFormatting() {
+        Assertions.assertEquals("Tags: [\"alpha\",\"beta\"], Metadata: {\"env\":\"prod\"}",
+                converter.renderTemplate("Tags: {{tags}}, Metadata: {{meta}}",
+                        Map.of("tags", java.util.List.of("alpha", "beta"),
+                                "meta", Map.of("env", "prod"))));
+    }
+
+    @Test
+    void testConditionalWithUnresolvedPlaceholderInDiscardedBranch() {
+        Assertions.assertEquals("fallback",
+                converter.renderTemplate("{{#if flag}}{{missing_var}}{{else}}fallback{{/if}}",
+                        Map.of("flag", false)));
+    }
+
+    @Test
     void testParseAndRenderAutoDetectJsonWithWhitespaceVariable() {
         String json = """
                 {

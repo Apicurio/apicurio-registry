@@ -29,6 +29,7 @@ import jakarta.interceptor.Interceptors;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
@@ -78,6 +79,35 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
         }
     }
 
+    private List<String> extractViolationMessages(RuleViolationException ex) {
+        if (ex.getCauses() != null && !ex.getCauses().isEmpty()) {
+            return ex.getCauses().stream()
+                    .map(rv -> rv.getDescription() + (rv.getContext() != null && !rv.getContext().isBlank() ? " at " + rv.getContext() : ""))
+                    .collect(Collectors.toList());
+        } else if (ex.getMessage() != null && !ex.getMessage().isBlank()) {
+            return Collections.singletonList(ex.getMessage());
+        }
+        return Collections.emptyList();
+    }
+
+    private CompatibilityCheckResponse buildCompatibleResponse() {
+        CompatibilityCheckResponse response = new CompatibilityCheckResponse();
+        response.setIsCompatible(true);
+        response.setMessages(null);
+        return response;
+    }
+
+    private CompatibilityCheckResponse buildIncompatibleResponse(Boolean verbose, RuleViolationException ex) {
+        CompatibilityCheckResponse response = new CompatibilityCheckResponse();
+        response.setIsCompatible(false);
+        if (Boolean.TRUE.equals(verbose)) {
+            response.setMessages(extractViolationMessages(ex));
+        } else {
+            response.setMessages(null);
+        }
+        return response;
+    }
+
     @Override
     @Authorized(style = AuthorizedStyle.ArtifactOnly, level = AuthorizedLevel.Write)
     public CompatibilityCheckResponse checkAllCompatibility(String subject, Boolean verbose, Boolean normalize, String groupId, RegisterSchemaRequest request) {
@@ -110,16 +140,10 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                             Collections.emptyMap());
                 }
             }
-            CompatibilityCheckResponse response = new CompatibilityCheckResponse();
-            response.setIsCompatible(true);
-            return response;
-        }
-        catch (RuleViolationException ex) {
-            CompatibilityCheckResponse response = new CompatibilityCheckResponse();
-            response.setIsCompatible(false);
-            return response;
-        }
-        catch (UnprocessableSchemaException ex) {
+            return buildCompatibleResponse();
+        } catch (RuleViolationException ex) {
+            return buildIncompatibleResponse(verbose, ex);
+        } catch (UnprocessableSchemaException ex) {
             throw new UnprocessableEntityException(ex.getMessage());
         }
     }
@@ -157,22 +181,16 @@ public class CompatibilityResourceImpl extends AbstractResource implements Compa
                                         version, artifact.getArtifactType(), typedContent,
                                         Collections.emptyList(), Collections.emptyMap());
                             }
-                            CompatibilityCheckResponse response = new CompatibilityCheckResponse();
-                            response.setIsCompatible(true);
-                            return response;
+                            return buildCompatibleResponse();
                         } catch (RuleViolationException ex) {
-                            CompatibilityCheckResponse response = new CompatibilityCheckResponse();
-                            response.setIsCompatible(false);
-                            return response;
+                            return buildIncompatibleResponse(verbose, ex);
                         } catch (UnprocessableSchemaException ex) {
                             throw new UnprocessableEntityException(ex.getMessage());
                         }
                     });
         } catch (VersionNotFoundException vnfe) {
             if (BranchId.LATEST.getRawBranchId().equals(versionString)) {
-                CompatibilityCheckResponse response = new CompatibilityCheckResponse();
-                response.setIsCompatible(true);
-                return response;
+                return buildCompatibleResponse();
             } else {
                 throw vnfe;
             }

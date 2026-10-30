@@ -3,6 +3,8 @@ package io.apicurio.registry.references;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -54,11 +56,19 @@ import java.util.Set;
  * walker itself loaded references in, level by level. The first occurrence of a name whose target actually
  * resolved (is not in {@link #missing()}) wins; if that occurrence's target is itself missing, the name
  * stays open for a later occurrence, exactly as the walker this replaces behaved. Two different targets
- * sharing a name is already a bug (#9000 fixes it properly, by keying on coordinates instead of collapsing
- * by name); breadth-first order can pick a different winner than the old depth-first code did in that case,
- * and that is an accepted, deliberate behaviour change rather than an attempt to preserve what was an
+ * sharing a name is a real bug, #9000: investigated fixing it by resolving bottom-up and keying on
+ * coordinates instead of collapsing by name, but that broke several content types whose handlers rely on
+ * this method's flattened, whole-graph shape (Protobuf's dereferencer needs raw, not pre-dereferenced,
+ * content; XSD/WSDL fall back to raw content that itself needs the full transitive name map; Avro's own
+ * parser cannot hold two conflicting definitions of the same type even when correctly disambiguated by
+ * coordinates — see #10766). A correct fix needs each content type's own handler — and for OpenAPI/AsyncAPI,
+ * the underlying Apitomy library — to resolve node-aware rather than by a flattened map; tracked as #10761.
+ * Until then, this method still silently picks a winner the same way it always has, now logging a warning
+ * the first time it sees a genuine collision, so operators can at least find and rename the colliding
+ * reference. Breadth-first order can pick a different winner than the old depth-first code did in that
+ * case, and that is an accepted, deliberate behaviour change rather than an attempt to preserve what was an
  * arbitrary choice to begin with. Pinned by {@code
- * ReferenceGraphWalkerTest#asNameMapPicksTheBreadthFirstWinnerForASharedName}.</li>
+ * ReferenceGraphWalkerTest#asNameMapPicksTheBreadthFirstWinnerForASharedNameAndWarnsOnTheCollision}.</li>
  * <li><b>What order the winning entries appear in the returned map.</b> Dependency-first (post-order): a
  * node appears only after every node it references. This is computed as a second, separate, in-memory-only
  * pass over the already-resolved graph — a depth-first walk from the root's direct references, which costs
@@ -71,6 +81,8 @@ import java.util.Set;
  * Immutable and safe to share across threads once built.
  */
 public final class ResolvedReferences {
+
+    private static final Logger log = LoggerFactory.getLogger(ResolvedReferences.class);
 
     private final Map<GAV, ReferenceNode> nodes;
     private final Set<GAV> missing;
@@ -135,14 +147,31 @@ public final class ResolvedReferences {
      * <p>
      * Two different names can legitimately target the same resolved version (for example {@code a.proto}
      * and {@code b.proto} both referencing one shared file) — that is a normal alias, not the same-name
-     * collision this method defers to #9000. Every such alias gets its own entry here, all mapped to that
+     * collision this method defers to #10761. Every such alias gets its own entry here, all mapped to that
      * target's content.
+     * <p>
+     * A genuine collision — the same name resolving to two different, both-resolved targets anywhere in
+     * the graph — is logged at {@code WARN} the first time it is seen, so operators can find and rename the
+     * colliding reference. The winner and the output order are unchanged by this: see the class Javadoc's
+     * "Which target wins a shared name" for why resolving the collision itself is deferred to #10761.
      */
     public Map<String, TypedContent> asNameMap() {
         Map<String, GAV> winners = new LinkedHashMap<>();
+        Set<String> warnedNames = new HashSet<>();
         for (DiscoveredEdge edge : discoveryOrder) {
-            if (!winners.containsKey(edge.name()) && nodes.containsKey(edge.target())) {
-                winners.put(edge.name(), edge.target());
+            GAV existingWinner = winners.get(edge.name());
+            if (existingWinner == null) {
+                if (nodes.containsKey(edge.target())) {
+                    winners.put(edge.name(), edge.target());
+                }
+            } else if (!existingWinner.equals(edge.target()) && nodes.containsKey(edge.target())
+                    && warnedNames.add(edge.name())) {
+                log.warn(
+                        "Reference name '{}' resolves to more than one target ({} and {}) within the same "
+                                + "reference graph; keeping {} and silently ignoring the rest for now. "
+                                + "Rename one of the colliding references — this will become a hard "
+                                + "failure in a future release (see #10761).",
+                        edge.name(), existingWinner, edge.target(), existingWinner);
             }
         }
         Map<GAV, List<String>> namesByTarget = new LinkedHashMap<>();

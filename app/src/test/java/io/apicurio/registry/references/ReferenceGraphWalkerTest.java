@@ -12,6 +12,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Handler;
+import java.util.logging.LogManager;
+import java.util.logging.LogRecord;
 
 public class ReferenceGraphWalkerTest {
 
@@ -144,7 +147,7 @@ public class ReferenceGraphWalkerTest {
     /**
      * Regression test for a Copilot review finding on #10716: {@link ResolvedReferences#asNameMap()} used
      * to keep only one name per target, dropping legitimate aliases — two different reference names
-     * pointing at the same resolved version, which is not the same-name/different-target collision #9000
+     * pointing at the same resolved version, which is not the same-name/different-target collision #10761
      * defers. Both {@code a.proto} and {@code b.proto} here target the same version and must both appear.
      */
     @Test
@@ -279,10 +282,13 @@ public class ReferenceGraphWalkerTest {
      * the one discovered first in breadth-first order — the shallower one — over one reached later through
      * a deeper path. {@code "n"} is declared twice: directly from the root (depth 1, target {@code direct})
      * and, through {@code mid}, one level deeper (depth 2, target {@code deep}); {@code direct} must win.
-     * #9000 changes this collapsing behaviour, and must touch this test when it does.
+     * #10761 changes this collapsing behaviour, and must touch this test when it does.
+     * <p>
+     * This is also the genuine collision #9000 asks to be at least detected: pinning that it logs exactly
+     * one {@code WARN} naming the colliding reference and both targets.
      */
     @Test
-    void asNameMapPicksTheBreadthFirstWinnerForASharedName() {
+    void asNameMapPicksTheBreadthFirstWinnerForASharedNameAndWarnsOnTheCollision() {
         ArtifactReferenceDto directRef = reference("n", "direct");
         ArtifactReferenceDto midRef = reference("mid", "mid");
         ArtifactReferenceDto deepRef = reference("n", "deep");
@@ -303,17 +309,25 @@ public class ReferenceGraphWalkerTest {
 
         Assertions.assertEquals(1, resolved.depthOf(gav("direct")).orElseThrow());
         Assertions.assertEquals(2, resolved.depthOf(gav("deep")).orElseThrow());
-        Assertions.assertEquals("direct", resolved.asNameMap().get("n").getContent().content());
+
+        List<LogRecord> warnings = captureWarnings(() -> Assertions.assertEquals("direct",
+                resolved.asNameMap().get("n").getContent().content()));
+
+        Assertions.assertEquals(1, warnings.size(), "expected exactly one WARN for the genuine collision");
+        String message = warnings.get(0).getMessage();
+        Assertions.assertTrue(message.contains("'n'") && message.contains("direct") && message.contains("deep"),
+                "expected the colliding name and both targets in the warning, got: " + message);
     }
 
     /**
      * Regression test for {@link ResolvedReferences#missing()} and the documented "name stays open"
      * behaviour of {@link ResolvedReferences#asNameMap()}: a first occurrence of a name whose target does
      * not resolve (a deleted, or never-existing, version) must not block a later occurrence of the same
-     * name whose target does resolve.
+     * name whose target does resolve. Since only one occurrence ever actually resolves, this is not a
+     * genuine collision and must not warn.
      */
     @Test
-    void asNameMapLeavesANameOpenWhenItsFirstOccurrenceIsMissing() {
+    void asNameMapLeavesANameOpenWhenItsFirstOccurrenceIsMissingAndDoesNotWarn() {
         ArtifactReferenceDto danglingRef = reference("common", "dangling");
         ArtifactReferenceDto midRef = reference("mid", "mid");
         ArtifactReferenceDto resolvedRef = reference("common", "resolved");
@@ -337,7 +351,43 @@ public class ReferenceGraphWalkerTest {
         ResolvedReferences resolved = ReferenceGraphWalker.walk(List.of(danglingRef, midRef), loader, 100);
 
         Assertions.assertEquals(Set.of(gav("dangling")), resolved.missing());
-        Assertions.assertEquals("resolved", resolved.asNameMap().get("common").getContent().content());
+
+        List<LogRecord> warnings = captureWarnings(() -> Assertions.assertEquals("resolved",
+                resolved.asNameMap().get("common").getContent().content()));
+
+        Assertions.assertTrue(warnings.isEmpty(),
+                "a name whose only resolved occurrence is this one target must not warn, got: " + warnings);
+    }
+
+    /**
+     * Two different references under the same name that both resolve to the <em>same</em> target are a
+     * normal alias (see {@link ResolvedReferences#asNameMap()}'s Javadoc), not a collision, and must not
+     * warn even though the same name is discovered twice.
+     */
+    @Test
+    void asNameMapDoesNotWarnWhenTheSameNameRepeatsForTheSameTarget() {
+        ArtifactReferenceDto firstEdge = reference("common", "shared");
+        ArtifactReferenceDto secondEdge = reference("common", "shared");
+        Map<GAV, List<ArtifactReferenceDto>> referencesByCoordinates = Map.of(gav("shared"), List.of());
+
+        ReferenceLoader loader = coordinates -> {
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV target : coordinates) {
+                loaded.put(target, ReferenceNode.builder().coordinates(target)
+                        .content(TypedContent.create(target.getRawArtifactId(), "text/plain"))
+                        .references(referencesByCoordinates.get(target)).build());
+            }
+            return loaded;
+        };
+
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(List.of(firstEdge, secondEdge), loader, 100);
+
+        List<LogRecord> warnings = captureWarnings(() -> Assertions.assertEquals("shared",
+                resolved.asNameMap().get("common").getContent().content()));
+
+        Assertions.assertTrue(warnings.isEmpty(),
+                "the same name repeated for the same target is a normal alias, not a collision, got: "
+                        + warnings);
     }
 
     private static GAV gav(String artifactId) {
@@ -351,5 +401,42 @@ public class ReferenceGraphWalkerTest {
     private static ArtifactReferenceDto reference(String name, String artifactId) {
         return ArtifactReferenceDto.builder().groupId("default").artifactId(artifactId).version("1")
                 .name(name).build();
+    }
+
+    /**
+     * Captures every {@code WARNING}-level (SLF4J {@code WARN}) record logged by
+     * {@link ResolvedReferences} while {@code action} runs, regardless of which SLF4J binding is active:
+     * this project's logging ultimately goes through {@code java.util.logging}, which every binding
+     * (including JBoss LogManager) dispatches to, so attaching a plain {@link Handler} by logger name is
+     * binding-independent.
+     */
+    private static List<LogRecord> captureWarnings(Runnable action) {
+        java.util.logging.Logger julLogger = LogManager.getLogManager()
+                .getLogger(ResolvedReferences.class.getName());
+        if (julLogger == null) {
+            julLogger = java.util.logging.Logger.getLogger(ResolvedReferences.class.getName());
+        }
+        List<LogRecord> captured = new ArrayList<>();
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord record) {
+                captured.add(record);
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        julLogger.addHandler(handler);
+        try {
+            action.run();
+        } finally {
+            julLogger.removeHandler(handler);
+        }
+        return captured;
     }
 }

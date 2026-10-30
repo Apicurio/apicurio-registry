@@ -68,7 +68,7 @@ import java.util.Set;
  * reference. Breadth-first order can pick a different winner than the old depth-first code did in that
  * case, and that is an accepted, deliberate behaviour change rather than an attempt to preserve what was an
  * arbitrary choice to begin with. Pinned by {@code
- * ReferenceGraphWalkerTest#asNameMapPicksTheBreadthFirstWinnerForASharedName}.</li>
+ * ReferenceGraphWalkerTest#asNameMapPicksTheBreadthFirstWinnerForASharedNameAndWarnsOnTheCollision}.</li>
  * <li><b>What order the winning entries appear in the returned map.</b> Dependency-first (post-order): a
  * node appears only after every node it references. This is computed as a second, separate, in-memory-only
  * pass over the already-resolved graph — a depth-first walk from the root's direct references, which costs
@@ -147,14 +147,31 @@ public final class ResolvedReferences {
      * <p>
      * Two different names can legitimately target the same resolved version (for example {@code a.proto}
      * and {@code b.proto} both referencing one shared file) — that is a normal alias, not the same-name
-     * collision this method defers to #9000. Every such alias gets its own entry here, all mapped to that
+     * collision this method defers to #10761. Every such alias gets its own entry here, all mapped to that
      * target's content.
+     * <p>
+     * A genuine collision — the same name resolving to two different, both-resolved targets anywhere in
+     * the graph — is logged at {@code WARN} the first time it is seen, so operators can find and rename the
+     * colliding reference. The winner and the output order are unchanged by this: see the class Javadoc's
+     * "Which target wins a shared name" for why resolving the collision itself is deferred to #10761.
      */
     public Map<String, TypedContent> asNameMap() {
         Map<String, GAV> winners = new LinkedHashMap<>();
+        Set<String> warnedNames = new HashSet<>();
         for (DiscoveredEdge edge : discoveryOrder) {
-            if (!winners.containsKey(edge.name()) && nodes.containsKey(edge.target())) {
-                winners.put(edge.name(), edge.target());
+            GAV existingWinner = winners.get(edge.name());
+            if (existingWinner == null) {
+                if (nodes.containsKey(edge.target())) {
+                    winners.put(edge.name(), edge.target());
+                }
+            } else if (!existingWinner.equals(edge.target()) && nodes.containsKey(edge.target())
+                    && warnedNames.add(edge.name())) {
+                log.warn(
+                        "Reference name '{}' resolves to more than one target ({} and {}) within the same "
+                                + "reference graph; keeping {} and silently ignoring the rest for now. "
+                                + "Rename one of the colliding references — this will become a hard "
+                                + "failure in a future release (see #10761).",
+                        edge.name(), existingWinner, edge.target(), existingWinner);
             }
         }
         Map<GAV, List<String>> namesByTarget = new LinkedHashMap<>();

@@ -51,6 +51,15 @@ public class SearchFilter {
     }
 
     /**
+     * Creates a name filter that matches names and artifact IDs without regard to letter case.
+     *
+     * @param value the name or artifact ID to match
+     */
+    public static SearchFilter ofNameCaseInsensitive(String value) {
+        return new SearchFilter(SearchFilterType.nameCaseInsensitive, value);
+    }
+
+    /**
      * Creates a name filter for a partial (substring) match. The value is wrapped in wildcards unless the
      * caller already supplied one, so that a caller-provided prefix ("weather*") or suffix ("*weather")
      * search is preserved as-is.

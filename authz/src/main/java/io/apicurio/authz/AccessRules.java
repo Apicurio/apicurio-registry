@@ -57,11 +57,9 @@ import io.kroxylicious.identity.Principal;
  *     own class loader. Under Quarkus test and dev class loading that finds a second copy of
  *     Registry's resource types, so every rules file is rejected. Here classes are resolved in
  *     Registry's class loader; validation follows {@code AclAuthorizerService} rule for rule.</li>
- *     <li>{@code AclAuthorizer} 0.25.1 mis-evaluates prefixes: a principal {@code like} rule also
- *     matches principals of other classes with that name prefix, and of several overlapping
- *     resource prefixes only the lexicographically closest is checked, so access can be lost and a
- *     deny bypassed. {@code AccessRulesTest} pins both against {@code AclAuthorizerService}, and
- *     checks that decisions otherwise agree.</li>
+ *     <li>{@code AclAuthorizer} 0.25.1 has a prefix-matching defect (reported to Kroxylicious), so
+ *     decisions are evaluated here. {@code AccessRulesTest} checks that they otherwise agree with
+ *     {@code AclAuthorizerService}.</li>
  * </ul>
  *
  * <p>The scope is temporary: it is replaced by a resource scope API implemented upstream

@@ -93,18 +93,14 @@ evaluator (`io.apicurio.authz.AccessRules`):
   parses the file with the Kroxylicious parser (`AclRulesParser`), resolves classes in its own class
   loader, and validates as `AclAuthorizerService` does. Tests check that the same files are accepted
   and rejected.
-- **Evaluating.** `AclAuthorizer` 0.25.1 mis-evaluates prefixes. A principal `like` rule also matches
-  principals of other classes with that name prefix, so `allow Role with name like "reader-*"`
-  allows a `User` named `reader-bob`. Of several overlapping resource prefixes, only the
-  lexicographically closest is checked, so an allow can be lost and **a deny bypassed**. Registry
-  therefore evaluates the parsed rules itself with the semantics above, and returns to `AclAuthorizer`
-  once these are fixed upstream. Tests check that decisions otherwise agree with `AclAuthorizer`, and
-  pin the upstream bugs so a fix is noticed.
+- **Evaluating.** `AclAuthorizer` 0.25.1 has a prefix-matching defect, reported to Kroxylicious
+  privately. Registry therefore evaluates the parsed rules itself with the semantics above, and can
+  return to `AclAuthorizer` once it is fixed upstream. Tests check that decisions otherwise agree
+  with `AclAuthorizer`.
 
 **Search.** Search pre-filtering needs the scope of the rules, not just point decisions. Point
 decisions and the scope come from the same parse and the same matching, so search selects exactly
-what point access allows. A test checks this invariant, including on overlapping and cross-class
-prefixes. The scope moves to the shared resource scope API
+what point access allows. A test checks this invariant. The scope moves to the shared resource scope API
 ([#10601](https://github.com/Apicurio/apicurio-registry/issues/10601)) once an upstream evaluator
 implements it. `=` and `in` map to exact names, `like` to prefixes, `*` to allow-all
 and `matching` to patterns. SQL and Elasticsearch can't evaluate RE2 patterns, so a grant-restricted
@@ -125,8 +121,7 @@ where search matters.
 - `AclAuthorizerService` resolves classes in its own class loader, which fails under Quarkus test
   and dev class loading (see "How Registry reads and evaluates the file"). A way to supply a class
   resolver would let Registry use it directly.
-- `AclAuthorizer` prefix matching: principal prefixes ignore the principal class, and overlapping
-  resource prefixes check only the closest one (an allow is lost, a deny bypassed).
+- `AclAuthorizer` prefix matching (reported privately).
 - The parser removes every backslash in a regex literal, so `/a\.b/` is the regex `a.b`.
 - The lexer reads a block comment (`/* … */`) as a regex literal, so block comments are syntax
   errors; only `//` comments work.

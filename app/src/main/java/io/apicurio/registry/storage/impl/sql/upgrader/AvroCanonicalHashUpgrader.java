@@ -1,6 +1,12 @@
 package io.apicurio.registry.storage.impl.sql.upgrader;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.TypedContent;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.references.ReferenceGraphWalker;
+import io.apicurio.registry.references.ReferenceLoader;
+import io.apicurio.registry.references.ReferenceNode;
+import io.apicurio.registry.references.ReferenceResolutionConfig;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.impl.sql.IDbUpgrader;
@@ -14,12 +20,15 @@ import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
+import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
@@ -114,14 +123,45 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
         return 0;
     }
 
+    /**
+     * Checks every reference in the tree resolves to existing content, failing loudly (propagating
+     * whatever {@link #resolveReference} throws) rather than silently treating a missing version as
+     * resolved. Walked with {@link ReferenceGraphWalker} rather than recursed by hand, specifically to fix
+     * the bug this upgrader used to have: a reference cycle recursing without a visited set until the
+     * stack overflowed, past the {@code catch (Exception)} in {@link #upgrade}, which does not catch
+     * {@link StackOverflowError}. The walker marks a coordinate visited the moment it is queued, so a cycle
+     * simply stops re-querying the same coordinate instead of recursing forever.
+     */
     private void validateReferencesResolvable(Handle handle, List<ArtifactReferenceDto> references) {
         if (references == null || references.isEmpty()) {
             return;
         }
-        for (ArtifactReferenceDto reference : references) {
-            ContentWrapperDto resolved = resolveReference(handle, reference);
-            validateReferencesResolvable(handle, resolved.getReferences());
-        }
+        ReferenceLoader loader = coordinates -> {
+            Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+            for (GAV coordinate : coordinates) {
+                ArtifactReferenceDto reference = ArtifactReferenceDto.builder()
+                        .groupId(coordinate.getRawGroupIdWithNull()).artifactId(coordinate.getRawArtifactId())
+                        .version(coordinate.getRawVersionId()).build();
+                // Fails on a missing version, by design: an upgrade must not silently treat a dangling
+                // reference as resolvable. resolveReference's .one() throws if there is no such row.
+                ContentWrapperDto resolved = resolveReference(handle, reference);
+                loaded.put(coordinate,
+                        ReferenceNode.builder().coordinates(coordinate)
+                                .content(TypedContent.create(resolved.getContent(), resolved.getContentType()))
+                                .artifactType(resolved.getArtifactType()).references(resolved.getReferences())
+                                .build());
+            }
+            return loaded;
+        };
+        ReferenceGraphWalker.walk(references, loader, maxReferenceDepth());
+    }
+
+    private static int maxReferenceDepth() {
+        // Read directly rather than injected: this upgrader is constructed with `new`, outside CDI. See
+        // the same pattern in io.apicurio.registry.references.ReferenceResolution.
+        return ConfigProvider.getConfig()
+                .getOptionalValue(ReferenceResolutionConfig.MAX_DEPTH_PROPERTY, Integer.class)
+                .orElse(ReferenceResolutionConfig.DEFAULT_MAX_DEPTH);
     }
 
     private ContentWrapperDto resolveReference(Handle handle, ArtifactReferenceDto reference) {

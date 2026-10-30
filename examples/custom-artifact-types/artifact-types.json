@@ -9,6 +9,9 @@
         "text/markdown",
         "text/plain"
       ],
+      "fileExtensions": [
+        ".md"
+      ],
       "contentAccepter": {
         "type": "java",
         "classname": "io.apicurio.registry.examples.customtypes.MarkdownContentAccepter"

@@ -15,9 +15,15 @@
 //
 // Advisory only (reported, never blocking):
 //   - duplicate PRs, matched by linked issue or by overlapping files
+//
+// Docs-only PRs (docs_only in pr-lifecycle.yml, see docs-only.js) skip the
+// milestone check and get the issue link as advisory: docs work is often
+// tracked outside GitHub issues, and the release notes are built from code
+// changes. DCO sign-off still blocks.
 
 const fs = require('fs');
 const path = require('path');
+const { isDocsOnly } = require('./docs-only.js');
 
 const VALIDATION_FAILED_LABEL = 'lifecycle/validation-failed';
 const LABEL_COLOR = 'E8836B';
@@ -237,11 +243,19 @@ function firstLine(message) {
   return message.split('\n')[0];
 }
 
-function checkIssueLink(linkedIssues) {
+/**
+ * @param {Set<number>} linkedIssues the issues the PR closes
+ * @param {{advisory?: boolean}} options advisory: a missing link is reported
+ *   but does not block (docs-only PRs)
+ */
+function checkIssueLink(linkedIssues, { advisory = false } = {}) {
   const item = { name: 'Issue link', label: 'Issue link', audience: AUTHOR };
   if (linkedIssues.size > 0) {
     const numbers = [...linkedIssues].sort((a, b) => a - b).map(n => `#${n}`);
     return { ...item, status: PASSED, summary: `closes ${numbers.join(', ')}` };
+  }
+  if (advisory) {
+    return { ...item, status: NOT_CHECKED, summary: 'no linked issue (optional for docs-only PRs)' };
   }
   return {
     ...item,
@@ -320,9 +334,15 @@ async function fetchLinkedIssues(github, owner, repo, linkedIssues, core) {
  *
  * Setting a milestone needs triage permission, so this is the one blocking
  * check an outside contributor cannot clear themselves. The message says so.
+ *
+ * Docs-only PRs are exempt (options.exempt): they are not listed in the
+ * release notes, so a milestone would only be bookkeeping.
  */
-function checkMilestone(pr, issues) {
+function checkMilestone(pr, issues, { exempt = false } = {}) {
   const item = (label, status, summary) => ({ name: 'Milestone', label, audience: MAINTAINER, status, summary });
+  if (exempt) {
+    return [item('Milestone', NOT_CHECKED, 'docs-only PRs are exempt')];
+  }
   const milestoneItem = (label, milestone) => {
     if (!milestone) {
       return item(label, WAITING, 'not set');
@@ -600,13 +620,14 @@ async function validate({ github, context, core }) {
     owner, repo, pull_number: pr.number, per_page: 100,
   });
 
+  const docsOnly = isDocsOnly(files, config.docs_only);
   const linkedIssues = extractLinkedIssues(pr.body, owner, repo);
-  const issues = await fetchLinkedIssues(github, owner, repo, linkedIssues, core);
+  const issues = docsOnly ? [] : await fetchLinkedIssues(github, owner, repo, linkedIssues, core);
   const items = [
-    checkIssueLink(linkedIssues),
+    checkIssueLink(linkedIssues, { advisory: docsOnly }),
     checkDcoSignOff(commits),
     checkUpgradeScripts(pr, files),
-    ...checkMilestone(pr, issues),
+    ...checkMilestone(pr, issues, { exempt: docsOnly }),
   ].filter(Boolean);
   const violations = items.filter(isBlocking);
 

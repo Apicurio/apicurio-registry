@@ -1570,7 +1570,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`100`
 |`3.0.6`
-|Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.
+|Maximum depth a reference graph may be resolved to. Most resolution fails when a graph is deeper than this. Resolution during content storage and lookup by content still truncates with a warning.
 |`apicurio.storage.snapshot.location`
 |`string`
 |`./`
@@ -1935,11 +1935,6 @@ The following {registry} configuration options are available for each component 
 |`${apicurio.config.dynamic.allow-all}`
 |
 |
-|`apicurio.usage.flush.every`
-|`unknown`
-|`10s`
-|
-|
 |===
 
 == usage
@@ -1965,12 +1960,17 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`90`
 |`3.3.0`
-|Number of days after which a schema is classified as DEAD
+|Deprecated, has no effect, and will be removed in 4.0.0: a schema is classified as DEAD once its last fetch is older than the stale threshold
 |`apicurio.usage.drift-alert-threshold`
 |`int`
 |`2`
 |`3.3.0`
 |Number of versions behind latest before triggering a drift alert
+|`apicurio.usage.flush.every`
+|`string`
+|`10s`
+|`3.3.0`
+|How often buffered usage events are written to storage (Quarkus scheduler expression)
 |`apicurio.usage.retention-days`
 |`int`
 |`180`
@@ -1980,7 +1980,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`30`
 |`3.3.0`
-|Number of days after which a schema is classified as STALE
+|A schema whose last fetch is older than the active threshold and no older than this many days is classified as STALE. Older than this is DEAD.
 |`apicurio.usage.telemetry.enabled`
 |`boolean`
 |`false`

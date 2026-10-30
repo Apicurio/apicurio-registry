@@ -21,6 +21,7 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.types.ArtifactMediaTypes;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ReferenceType;
@@ -111,7 +112,7 @@ public class IdsResourceImpl implements IdsResource {
                         rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
             } else {
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(contentToReturn,
-                        RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(),
+                        ReferenceResolution.recursivelyResolveReferences(artifact.getReferences(),
                                 accessGuard.referenceLoader()));
             }
         }

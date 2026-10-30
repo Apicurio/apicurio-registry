@@ -33,6 +33,7 @@ import io.apicurio.registry.rules.validity.NoOpContentValidator;
 public final class ProviderConfig {
 
     private final Set<String> contentTypes;
+    private final Set<String> fileExtensions;
     private final boolean supportsReferencesWithContext;
     private final Supplier<ContentAccepter> accepter;
     private final Supplier<CompatibilityChecker> compatibilityChecker;
@@ -46,6 +47,7 @@ public final class ProviderConfig {
 
     private ProviderConfig(Builder builder) {
         this.contentTypes = builder.contentTypes;
+        this.fileExtensions = builder.fileExtensions;
         this.supportsReferencesWithContext = builder.supportsReferencesWithContext;
         this.accepter = builder.accepter;
         this.compatibilityChecker = builder.compatibilityChecker;
@@ -65,6 +67,15 @@ public final class ProviderConfig {
      */
     public Set<String> getContentTypes() {
         return contentTypes;
+    }
+
+    /**
+     * Returns the file extensions that unambiguously identify this artifact type.
+     *
+     * @return the file extensions (with leading dot, lowercase)
+     */
+    public Set<String> getFileExtensions() {
+        return fileExtensions;
     }
 
     /**
@@ -162,6 +173,7 @@ public final class ProviderConfig {
      */
     public static class Builder {
         private Set<String> contentTypes = Set.of();
+        private Set<String> fileExtensions = Set.of();
         private boolean supportsReferencesWithContext = false;
         private Supplier<ContentAccepter> accepter = () -> NoOpContentAccepter.INSTANCE;
         private Supplier<CompatibilityChecker> compatibilityChecker = () -> NoopCompatibilityChecker.INSTANCE;
@@ -181,6 +193,17 @@ public final class ProviderConfig {
          */
         public Builder contentTypes(Set<String> contentTypes) {
             this.contentTypes = (contentTypes != null) ? Set.copyOf(contentTypes) : Set.of();
+            return this;
+        }
+
+        /**
+         * Sets the file extensions that unambiguously identify this artifact type.
+         *
+         * @param fileExtensions the file extensions (with leading dot, lowercase)
+         * @return this builder
+         */
+        public Builder fileExtensions(Set<String> fileExtensions) {
+            this.fileExtensions = (fileExtensions != null) ? Set.copyOf(fileExtensions) : Set.of();
             return this;
         }
 

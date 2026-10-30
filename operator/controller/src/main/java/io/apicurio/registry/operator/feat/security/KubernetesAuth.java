@@ -7,6 +7,7 @@ import io.fabric8.kubernetes.api.model.EnvVar;
 
 import java.util.Map;
 
+import static io.apicurio.registry.operator.resource.app.AppDeploymentResource.addEnvVar;
 import static io.apicurio.registry.operator.utils.Utils.createEnvVar;
 import static io.apicurio.registry.operator.utils.Utils.putIfNotBlank;
 
@@ -19,6 +20,8 @@ public class KubernetesAuth {
 
         env.put(EnvironmentVariables.APICURIO_AUTHN_KUBERNETES_ENABLED,
                 createEnvVar(EnvironmentVariables.APICURIO_AUTHN_KUBERNETES_ENABLED, "true"));
+        // Kubernetes-native authentication is experimental, so it requires the feature gate
+        addEnvVar(env, EnvironmentVariables.APICURIO_FEATURES_EXPERIMENTAL_ENABLED, "true");
 
         if (!env.containsKey(EnvironmentVariables.APICURIO_AUTHN_MECHANISM_PRIORITY)) {
             env.put(EnvironmentVariables.APICURIO_AUTHN_MECHANISM_PRIORITY,

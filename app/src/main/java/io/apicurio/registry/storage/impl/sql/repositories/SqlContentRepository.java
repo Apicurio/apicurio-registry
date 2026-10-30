@@ -285,8 +285,9 @@ public class SqlContentRepository {
      */
     public void deleteAllOrphanedContentRaw(Handle handle) {
         log.debug("Deleting all orphaned content");
-        handle.createUpdate(sqlStatements.deleteOrphanedContentReferences()).execute();
-        handle.createUpdate(sqlStatements.deleteAllOrphanedContent()).execute();
+        int references = handle.createUpdate(sqlStatements.deleteOrphanedContentReferences()).execute();
+        int contents = handle.createUpdate(sqlStatements.deleteAllOrphanedContent()).execute();
+        log.debug("Deleted {} orphaned content references and {} orphaned content rows", references, contents);
     }
 
     /**

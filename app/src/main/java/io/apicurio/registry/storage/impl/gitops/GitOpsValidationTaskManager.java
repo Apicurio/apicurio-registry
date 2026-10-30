@@ -20,6 +20,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -72,6 +73,8 @@ public class GitOpsValidationTaskManager {
         }
         try (var files = Files.list(validateDir)) {
             files.filter(f -> f.toString().endsWith(".json"))
+                    .filter(f -> ValidationTaskId.isValid(
+                            f.getFileName().toString().replace(".json", "")))
                     .forEach(this::loadTaskFromFile);
         } catch (IOException e) {
             log.warn("Failed to scan validate directory for pending tasks: {}", e.getMessage());
@@ -133,15 +136,22 @@ public class GitOpsValidationTaskManager {
     }
 
     /**
-     * Gets a task by ID. Returns the last known state from memory.
-     * State transitions (sidecar polling, validation execution, cleanup) happen
-     * asynchronously in the scheduled poll — not in this method.
+     * Gets a task by ID. Checks the in-memory cache first, then falls back to loading
+     * from the shared volume. This allows any replica to serve task lookups even if
+     * the task was created by a different replica.
      *
      * @param taskId the task identifier
      * @return the task DTO, or null if not found or expired
      */
     public GitOpsValidateTask getTask(String taskId) {
-        var taskState = tasks.get(new ValidationTaskId(taskId));
+        if (!ValidationTaskId.isValid(taskId)) {
+            return null;
+        }
+        final var id = new ValidationTaskId(taskId);
+        var taskState = tasks.get(id);
+        if (taskState == null) {
+            taskState = loadTaskStateFromDisk(id);
+        }
         if (taskState == null) {
             return null;
         }
@@ -149,9 +159,11 @@ public class GitOpsValidationTaskManager {
     }
 
     /**
-     * Lists all active (non-expired) tasks.
+     * Lists all active (non-expired) tasks. Merges in-memory tasks with any
+     * disk-only tasks from the shared volume that this replica hasn't seen yet.
      */
     public List<GitOpsValidateTask> listTasks() {
+        loadDiskOnlyTasks();
         return tasks.values().stream()
                 .map(this::toDto)
                 .toList();
@@ -159,17 +171,23 @@ public class GitOpsValidationTaskManager {
 
     /**
      * Deletes a task and cleans up its files from the shared volume.
+     * Works across replicas — if the task is not in this replica's memory
+     * but exists on disk, it is still deleted.
      *
      * @param taskId the task identifier
      * @return true if the task existed and was deleted
      */
     public boolean deleteTask(String taskId) {
-        var taskState = tasks.remove(new ValidationTaskId(taskId));
-        if (taskState == null) {
+        if (!ValidationTaskId.isValid(taskId)) {
             return false;
         }
-        cleanupFiles(taskState);
-        return true;
+        final var id = new ValidationTaskId(taskId);
+        final var taskState = tasks.remove(id);
+        if (taskState != null) {
+            cleanupFiles(taskState);
+            return true;
+        }
+        return cleanupFilesById(id);
     }
 
     /**
@@ -262,7 +280,7 @@ public class GitOpsValidationTaskManager {
                 }
 
                 var pollingResult = PollingResult.withChanges(
-                        new GitOpsMarker(java.util.Map.of()),
+                        new GitOpsMarker(Map.of()),
                         pollResult.files(),
                         () -> { }
                 );
@@ -397,8 +415,45 @@ public class GitOpsValidationTaskManager {
     }
 
     /**
+     * Loads a task from the shared volume by ID and caches it in memory.
+     * Returns the loaded task state, or null if the file does not exist or is invalid.
+     */
+    private ValidationTaskState loadTaskStateFromDisk(ValidationTaskId taskId) {
+        final Path requestFile = getRequestFilePath(taskId);
+        if (!Files.exists(requestFile)) {
+            return null;
+        }
+        loadTaskFromFile(requestFile);
+        return tasks.get(taskId);
+    }
+
+    /**
+     * Scans the validate directory for request files that are not yet in the
+     * in-memory cache and loads them. Used by listTasks to include tasks
+     * created by other replicas.
+     */
+    private void loadDiskOnlyTasks() {
+        final Path validateDir = getValidateDir();
+        if (!Files.exists(validateDir)) {
+            return;
+        }
+        try (var files = Files.list(validateDir)) {
+            files.filter(f -> f.toString().endsWith(".json"))
+                    .filter(f -> {
+                        final String fileName = f.getFileName().toString().replace(".json", "");
+                        return ValidationTaskId.isValid(fileName)
+                                && !tasks.containsKey(new ValidationTaskId(fileName));
+                    })
+                    .forEach(this::loadTaskFromFile);
+        } catch (IOException e) {
+            log.warn("Failed to scan validate directory for disk-only tasks: {}", e.getMessage());
+        }
+    }
+
+    /**
      * Loads a task from an existing request file on the shared volume.
-     * Called during startup to recover tasks that survived a restart.
+     * Called during startup to recover tasks that survived a restart,
+     * and on cache misses to load tasks created by other replicas.
      */
     private void loadTaskFromFile(Path requestFile) {
         try {
@@ -485,16 +540,28 @@ public class GitOpsValidationTaskManager {
     }
 
     private boolean cleanupFiles(ValidationTaskState taskState) {
+        return deleteFilesForTask(taskState.getTaskId());
+    }
+
+    private boolean cleanupFilesById(ValidationTaskId taskId) {
+        final Path requestFile = getRequestFilePath(taskId);
+        final Path taskDir = getValidateDir().resolve(taskId.value());
+        if (!Files.exists(requestFile) && !Files.exists(taskDir)) {
+            return false;
+        }
+        return deleteFilesForTask(taskId);
+    }
+
+    private boolean deleteFilesForTask(ValidationTaskId taskId) {
         try {
-            Path requestFile = getRequestFilePath(taskState.getTaskId());
-            Files.deleteIfExists(requestFile);
-            Path taskDir = getValidateDir().resolve(taskState.getTaskId().value());
+            Files.deleteIfExists(getRequestFilePath(taskId));
+            final Path taskDir = getValidateDir().resolve(taskId.value());
             if (Files.exists(taskDir)) {
                 deleteRecursive(taskDir);
             }
             return true;
         } catch (IOException e) {
-            log.warn("[validate:{}] Failed to clean up files: {}", taskState.getTaskId(), e.getMessage());
+            log.warn("[validate:{}] Failed to clean up files: {}", taskId, e.getMessage());
             return false;
         }
     }

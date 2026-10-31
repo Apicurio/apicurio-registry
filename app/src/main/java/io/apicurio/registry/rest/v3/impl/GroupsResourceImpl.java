@@ -1254,8 +1254,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         List<Runnable> afterPublish = List.of();
-        // If the current state is DRAFT, apply rules.
-        if (currentState == VersionState.DRAFT) {
+        // If the current state is DRAFT, apply rules unless disabling it.
+        if (currentState == VersionState.DRAFT && data.getState() != VersionState.DISABLED) {
             VersionMetaData vmd = getArtifactVersionMetaData(gav.getRawGroupIdWithDefaultString(),
                     gav.getRawArtifactId(), gav.getRawVersionId());
             StoredArtifactVersionDto artifact = storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),

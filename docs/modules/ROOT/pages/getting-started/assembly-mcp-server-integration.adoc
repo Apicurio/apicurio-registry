@@ -7,7 +7,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can connect Large Language Model (LLM) clients such as Claude Desktop to {registry} by using the {registry} MCP server container. The MCP server acts as an adapter between LLM clients and {registry}. On the LLM side, it communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
+You can connect Large Language Model (LLM) clients such as Claude Desktop to {registry} by using the {registry} MCP server container, which acts as an adapter between LLM clients and {registry}.
+
+On the LLM side, the MCP server communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
 
 ifdef::service-registry-downstream[]
 WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
@@ -33,7 +35,9 @@ endif::[]
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-The {registry} MCP server container acts as an adapter between LLM clients and {registry}. On the LLM side, it communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
+The {registry} MCP server container acts as an adapter between LLM clients and {registry}.
+
+On the LLM side, it communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
 
 When an LLM client sends a request, the MCP server converts that request into {registry} REST API calls, runs the operation, and returns the results to the LLM client. The LLM client prompts you for confirmation before each tool call.
 
@@ -531,7 +535,9 @@ Replace `<your-client-secret>` with the client secret from your OIDC provider.
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can run the {registry} MCP server as an HTTP service for MCP clients that connect over the network, whether they run locally or remotely. Clients authenticate with the same Keycloak realm as {registry} and the UI. The MCP server validates the inbound bearer token and forwards it unchanged to {registry} REST API calls, so role-based access control applies per user.
+You can run the {registry} MCP server as an HTTP service for MCP clients that connect over the network, whether they run locally or remotely.
+
+Clients authenticate with the same Keycloak realm as {registry} and the UI. The MCP server validates the inbound bearer token and forwards it unchanged to {registry} REST API calls, so role-based access control applies per user.
 
 .Prerequisites
 * {registry} is configured with OIDC authentication.
@@ -588,7 +594,9 @@ For a complete local example, see the `examples/mcp-keycloak` directory in the {
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-By default, HTTP mode forwards each caller's bearer token to {registry}, so role-based access control applies per user. You can disable token forwarding so that all callers act as one shared service account, for example, in shared deployments where OIDC only controls access to the MCP endpoint.
+By default, HTTP mode forwards each caller's bearer token to {registry}, so role-based access control applies per user. You can disable token forwarding so that all callers act as one shared service account.
+
+Disabling token forwarding is useful, for example, in shared deployments where OIDC only controls access to the MCP endpoint.
 
 To disable token forwarding, set `apicurio.mcp.http.forward-token=false`. Callers still authenticate to the MCP server with OIDC, by using the same Keycloak realm and HTTP authentication settings as with token forwarding enabled. MCP tool calls then use the shared `apicurio.mcp.auth.*` service account against {registry}, not the caller's token.
 

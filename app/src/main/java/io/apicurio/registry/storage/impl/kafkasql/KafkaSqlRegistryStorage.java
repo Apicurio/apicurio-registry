@@ -93,7 +93,10 @@ import java.util.Objects;
 import java.util.HashMap;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.BOOTSTRAP_MESSAGE_TYPE;
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
@@ -110,6 +113,15 @@ import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
 @Logged
 @LookupIfProperty(name = "apicurio.storage.kind", stringValue = "kafkasql")
 public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implements RegistryStorage {
+
+    private static final long USAGE_SEND_WARNING_INTERVAL_NANOS = TimeUnit.MINUTES.toNanos(1);
+
+    /**
+     * A {@link System#nanoTime()} reading that is only ever compared by subtraction. It starts one interval in
+     * the past, so the first failure warns.
+     */
+    private final AtomicLong lastUsageSendWarning = new AtomicLong(
+            System.nanoTime() - USAGE_SEND_WARNING_INTERVAL_NANOS);
 
     @Inject
     Logger log;
@@ -1175,15 +1187,18 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     }
 
     /**
-     * Bypasses the Kafka journal and writes directly to SQL. This operation is triggered by a
-     * scheduled job that runs independently on every pod, so coordinating via the journal is
-     * unnecessary and would add bloat that slows down new-pod bootstrap.
+     * Must go through the Kafka journal. Content ID allocation deduplicates by content hash against
+     * the local SQL state, so deleting orphaned content only locally would make replicas (and
+     * replicas replaying the journal) assign different content IDs when identical content is
+     * re-registered. Journaling the deletion makes every replica apply it at the same position.
      *
      * @see io.apicurio.registry.storage.RegistryStorage#deleteAllOrphanedContent()
      */
     @Override
     public void deleteAllOrphanedContent() throws RegistryStorageException {
-        sqlStore.deleteAllOrphanedContent();
+        var message = new DeleteAllOrphanedContent0Message();
+        var uuid = blockOnResult(submitter.submitMessage(message));
+        coordinator.waitForResponse(uuid);
     }
 
     @Override
@@ -1468,13 +1483,37 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
     @Override
     public void recordUsageEvent(SchemaUsageEventDto event) {
-        submitter.submitMessage(new RecordUsageEvent1Message(
+        submitWithoutResponse(new RecordUsageEvent1Message(
                 event.getGlobalId(), event.getContentId(), event.getClientId(), event.getOperation(), event.getEventTimestamp()));
     }
 
     @Override
     public void deleteOldUsageEvents(long cutoffTimestamp) {
-        submitter.submitMessage(new DeleteOldUsageEvents1Message(cutoffTimestamp));
+        submitWithoutResponse(new DeleteOldUsageEvents1Message(cutoffTimestamp));
+    }
+
+    /**
+     * Usage writes are best effort and their callers never wait for the result, so they must not register a
+     * latch in the coordinator that nothing would ever remove. A broker outage fails every event of a flush,
+     * so the failure is logged at WARN at most once a minute and at DEBUG otherwise.
+     */
+    private void submitWithoutResponse(KafkaSqlMessage message) {
+        submitter.submitMessageWithoutResponse(message).whenComplete((requestId, error) -> {
+            if (error != null) {
+                Throwable cause = error instanceof CompletionException && error.getCause() != null
+                        ? error.getCause() : error;
+                long now = System.nanoTime();
+                long last = lastUsageSendWarning.get();
+                if (now - last >= USAGE_SEND_WARNING_INTERVAL_NANOS
+                        && lastUsageSendWarning.compareAndSet(last, now)) {
+                    log.warn("Failed to send {} to the KafkaSQL journal.", message.getKey().getMessageType(),
+                            cause);
+                } else {
+                    log.debug("Failed to send {} to the KafkaSQL journal.",
+                            message.getKey().getMessageType(), cause);
+                }
+            }
+        });
     }
 
 }

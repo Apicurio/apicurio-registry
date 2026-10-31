@@ -37,10 +37,16 @@
     "eslint": "9.39.5",
     "rimraf": "6.1.3",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.72.0",
+    "typescript-eslint": "8.72.1",
     "uuid": "14.0.3",
     "vite": "7.3.7",
     "vite-plugin-dts": "4.5.4",
-    "vitest": "4.1.12"
+    "vitest": "4.1.12",
+    "decompress": "file:./.npm-shims/decompress"
+  },
+  "overrides": {
+    "decompress": "$decompress",
+    "follow-redirects": "1.16.2",
+    "brace-expansion@<2": "1.1.21"
   }
 }

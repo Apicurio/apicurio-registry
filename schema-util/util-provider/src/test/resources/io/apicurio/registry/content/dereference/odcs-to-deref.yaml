@@ -1,0 +1,10 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: orders-contract
+info:
+  title: Orders Contract
+  version: 1.0.0
+schemas:
+  - name: OrderEvent
+    type: avro
+    location: orders/OrderEvent:3

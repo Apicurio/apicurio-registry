@@ -51,30 +51,24 @@ public class GrantsArtifactScopeTest extends AbstractResourceTestBase {
     private static final String DENIED_ARTIFACT = "no-write";
     private static final String DELETE_GROUP_PREFIX = "grants-delete";
 
-    private static final String GRANTS_JSON = """
-            {"config": {"admin_roles": ["sr-admin"]}, "grants": [
-              {"principal": "bob", "operation": "write", "resource_type": "group",
-               "resource_pattern_type": "exact", "resource_pattern": "%1$s"},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%1$s/"},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%1$s/%2$s", "deny": true},
-              {"principal": "bob", "operation": "read", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%1$s/hidden-", "deny": true},
-              {"principal": "bob", "operation": "write", "resource_type": "group",
-               "resource_pattern_type": "prefix", "resource_pattern": "%3$s"},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "%3$s"},
-              {"principal": "bob", "operation": "write", "resource_type": "artifact",
-               "resource_pattern_type": "exact", "resource_pattern": "%3$s-locked/locked", "deny": true}
-            ]}""".formatted(GROUP, DENIED_ARTIFACT, DELETE_GROUP_PREFIX);
+    private static final String RULES = """
+            from io.apicurio.authz import Artifact, Group;
+            deny User with name = "bob" to WRITE Artifact with name like "%1$s/%2$s*";
+            deny User with name = "bob" to * Artifact with name like "%1$s/hidden-*";
+            deny User with name = "bob" to WRITE Artifact with name = "%3$s-locked/locked";
+            allow User with name = "bob" to WRITE Group with name = "%1$s";
+            allow User with name = "bob" to WRITE Artifact with name like "%1$s/*";
+            allow User with name = "bob" to WRITE Group with name like "%3$s*";
+            allow User with name = "bob" to WRITE Artifact with name like "%3$s*";
+            otherwise deny;
+            """.formatted(GROUP, DENIED_ARTIFACT, DELETE_GROUP_PREFIX);
 
     static final Path GRANTS = createGrantsFile();
 
     private static Path createGrantsFile() {
         try {
-            Path file = Files.createTempFile("grants-artifact-scope", ".json");
-            Files.writeString(file, GRANTS_JSON);
+            Path file = Files.createTempFile("grants-artifact-scope", ".acl");
+            Files.writeString(file, RULES);
             file.toFile().deleteOnExit();
             return file;
         } catch (IOException e) {
@@ -96,8 +90,8 @@ public class GrantsArtifactScopeTest extends AbstractResourceTestBase {
             map.put("quarkus.security.users.embedded.roles.alice", "sr-admin");
             map.put("quarkus.security.users.embedded.roles.bob", "sr-developer");
             map.put("apicurio.auth.resource-based-authorization.enabled", "true");
-            map.put("apicurio.auth.resource-based-authorization.grants.path", GRANTS.toString());
-            map.put("apicurio.auth.resource-based-authorization.grants.reload-enabled", "false");
+            map.put("apicurio.auth.resource-based-authorization.rules.path", GRANTS.toString());
+            map.put("apicurio.auth.resource-based-authorization.rules.reload-enabled", "false");
             map.put("apicurio.rest.deletion.group.enabled", "true");
             map.put("apicurio.rest.deletion.artifact.enabled", "true");
             // ccompat schema IDs are global IDs in legacy mode

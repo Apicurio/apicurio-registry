@@ -31,7 +31,7 @@ import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
  * @deprecated This exception mapper logic is used for legacy v2 API support only.
  */
 @ApplicationScoped
-public class CoreV2RegistryExceptionMapperService {
+public class CoreV2RegistryExceptionMapperService implements ExceptionMapperService {
 
     @Inject
     Logger log;

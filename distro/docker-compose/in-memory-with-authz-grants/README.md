@@ -1,12 +1,12 @@
-# Per-resource authorization (grants) with Keycloak
+# Per-resource authorization (access rules) with Keycloak
 
 Two layers of authorization:
 
 - **Keycloak** authenticates users and provides coarse-grained roles (`sr-admin`, `sr-developer`,
   `sr-readonly`), enforced by Registry RBAC.
-- **A grants file** gives fine-grained access to individual groups and artifacts, evaluated by the
-  [Kroxylicious Authorizer API](https://github.com/kroxylicious/kroxylicious/tree/main/kroxylicious-authorizer-api)
-  implementation in Registry. Grants restrict within what RBAC allows; they never widen it.
+- **An access rules file** (`access.rules`) gives fine-grained access to individual groups and
+  artifacts. It uses the [Kroxylicious ACL rules format](https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md),
+  shared with Kroxylicious. The rules restrict within what RBAC allows; they never widen it.
 
 ## Services
 
@@ -20,13 +20,13 @@ Two layers of authorization:
 
 Passwords equal the user name, except `developer2` (password `developer`).
 
-| User        | Role         | Access granted by `grants.json`                                                         |
+| User        | Role         | Access allowed by `access.rules`                                                        |
 |-------------|--------------|-----------------------------------------------------------------------------------------|
-| `admin`     | sr-admin     | Everything (`sr-admin` is listed in `config.admin_roles`)                               |
-| `developer` | sr-developer | Write group `team-a` and `team-a/*` except read-denied `team-a/secret-schema`; read `team-b/public-schema`; read `shared/*` (role grant) |
-| `developer2`| sr-developer | Read `shared/*` only (role grant): same role as `developer`, different access          |
-| `user`      | sr-readonly  | Read `shared/*` (role grant)                                                            |
-| _anonymous_ | none         | Read `shared/common-types` only (`$anonymous` role grant)                               |
+| `admin`     | sr-admin     | Everything (RBAC admins bypass the rules)                                               |
+| `developer` | sr-developer | Write group `team-a` and `team-a/*` except denied `team-a/secret-schema`; read `team-b/public-schema`; read `shared/*` (role rule) |
+| `developer2`| sr-developer | Read `shared/*` only (role rule): same role as `developer`, different access           |
+| `user`      | sr-readonly  | Read `shared/*` (role rule)                                                             |
+| _anonymous_ | none         | Read `shared/common-types` only (`$anonymous` role rule)                                |
 
 ## Run it
 
@@ -47,7 +47,7 @@ KEYCLOAK=http://localhost:$KEYCLOAK_PORT API=http://localhost:$REGISTRY_PORT/api
 
 With Podman on macOS, run Compose from a path under your home directory or `/private/tmp`
 rather than `/tmp`: the `/tmp` symlink cannot be shared into the VM, and the registry then fails
-at startup with `Grants file not found`. To run against a
+at startup with `Access rules file not found`. To run against a
 locally built registry, build the image first
 (`./mvnw install -pl distro/docker -am -DskipTests`, then build `distro/docker/target/docker/Dockerfile.jvm`
 as `apicurio/apicurio-registry:latest-snapshot`).
@@ -58,8 +58,8 @@ Then log in to the UI as `developer`: the group and artifact lists only show `te
 ## What to look at
 
 **Point access** - every endpoint that addresses a group or artifact (REST v2/v3, Confluent
-compatibility API, Iceberg catalog, MCP Registry API, content and global IDs) checks grants after
-RBAC, and answers `403` when no grant matches:
+compatibility API, Iceberg catalog, MCP Registry API, content and global IDs) checks the rules
+after RBAC, and answers `403` when no rule allows the request:
 
 ```bash
 TOKEN=$(curl -s -X POST http://localhost:8080/realms/registry/protocol/openid-connect/token \
@@ -73,7 +73,7 @@ create an artifact named `team-a/secret-schema`, because that name is denied: ot
 would make them its owner and bypass the deny.
 
 **Anonymous access is opt-in per resource** - anonymous read access is enabled, but unauthenticated
-callers can read only what grants allow to the `$anonymous` role:
+callers can read only what the rules allow to the `$anonymous` role:
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8081/apis/registry/v3/groups/shared/artifacts/common-types  # 200
@@ -88,24 +88,23 @@ curl -s -H "Authorization: Bearer $TOKEN" 'http://localhost:8081/apis/registry/v
   | jq -r '.count, (.artifacts[] | "\(.groupId)/\(.artifactId)")'
 ```
 
-**Hot reload** - edit `grants.json`; the change applies within 5 seconds. For example, give
-`developer` read access to all of `team-b`:
+**Hot reload** - edit `access.rules`; the change applies within 5 seconds. For example, give
+`developer` read access to all of `team-b` by adding, before `otherwise deny;`:
 
-```json
-{"principal": "developer", "operation": "read", "resource_type": "artifact",
- "resource_pattern_type": "prefix", "resource_pattern": "team-b/"}
+```
+allow User with name = "developer" to READ Artifact with name like "team-b/*";
 ```
 
-If an edit leaves the file invalid, Registry logs an error and keeps the previous grants.
+If an edit leaves the file invalid, Registry logs an error and keeps the previous rules.
 
 ## Files
 
 | File                 | Purpose                                         |
 |----------------------|-------------------------------------------------|
 | `docker-compose.yml` | Services                                        |
-| `grants.json`        | Grants (the directory is mounted read-only)     |
+| `access.rules`       | Access rules (the directory is mounted read-only) |
 | `demo.sh`            | Seeds data and verifies the expected access     |
 
-The grants format, evaluation rules and all configuration options are documented in
+The rules format, evaluation and all configuration options are documented in
 *Configuring per-resource authorization* in the Registry documentation
 (`docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc`).

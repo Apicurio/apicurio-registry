@@ -172,7 +172,7 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
                 // TODO: Use RuntimeAssertionFailedException?
                 log.warn("Could not find timer sample in the context of request: {} {}",
                         requestContext.getMethod(),
-                        requestContext.getUriInfo().getPath());
+                        sanitizeForLog(requestContext.getUriInfo().getPath()));
             }
         }
     }
@@ -200,5 +200,16 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
 
         return path.map(p -> p + methodPath.orElse(""))
                 .orElse(methodPath.orElse(VALUE_UNSPECIFIED));
+    }
+
+    /**
+     * Neutralizes CR/LF and other control characters in user-controlled values (e.g. the request
+     * path) before logging them, to prevent log forging.
+     */
+    static String sanitizeForLog(String value) {
+        if (value == null) {
+            return null;
+        }
+        return value.replaceAll("\\p{Cntrl}", "_");
     }
 }

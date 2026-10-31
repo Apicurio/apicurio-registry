@@ -1,0 +1,66 @@
+name: Verify Docs (reusable)
+
+# The docs content check, called by verify.yaml when Decide's run-docs is true
+# (the PR changes docs/ or docs-playbook/, or CI workflows). Part of the Verify
+# Result gate, so a docs problem blocks merging like a failed test does.
+#
+# Builds the docs of this commit and of its base with Antora, each with its own
+# published playbook's AsciiDoc attributes and UI bundle but its checkout as
+# the content source (docs-build.sh), then fails on any error or warning the
+# base does not have (docs-check.js): broken xrefs and includes are Antora
+# errors, unknown attribute references are warnings. Problems already on the
+# base are reported in the log but do not fail the check.
+#
+# Antora 3 is used even though the published site (docs-playbook/Dockerfile)
+# is still built with Antora 2.3: only 3.x has a JSON log, which is what makes
+# the comparison with the base possible.
+
+on:
+  workflow_call: { }
+
+permissions:
+  contents: read
+
+jobs:
+  antora:
+    name: Antora
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 24.22.2
+
+      - name: Install Antora
+        run: npm install --global @antora/cli@3.1.15 @antora/site-generator@3.1.15
+
+      # On a pull_request run the checkout is the PR's merge commit, whose first
+      # parent is the base branch head. On a push, the base is the commit the
+      # branch pointed at before the push (a rebase merge can push several).
+      - name: Check out the base
+        env:
+          BEFORE: ${{ github.event_name == 'push' && github.event.before || '' }}
+        run: |
+          BASE=HEAD^1
+          if [ -n "$BEFORE" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            BASE=$BEFORE
+          fi
+          echo "Comparing $(git rev-parse HEAD) with base $(git rev-parse "$BASE")"
+          git clone --quiet --no-tags --shared . "$RUNNER_TEMP/base"
+          git -C "$RUNNER_TEMP/base" checkout --quiet --detach "$(git rev-parse "$BASE")"
+
+      # Each side is built with its own playbook. Building the base with the
+      # head's playbook would hide a playbook change that breaks the build:
+      # its warnings would show up on both sides and count as existing.
+      - name: Build the docs
+        run: |
+          .github/scripts/docs-build.sh "$RUNNER_TEMP/base" "$RUNNER_TEMP/base/docs-playbook/docs-playbook.yml" "$RUNNER_TEMP/base.log"
+          .github/scripts/docs-build.sh . docs-playbook/docs-playbook.yml "$RUNNER_TEMP/head.log"
+
+      - name: Compare with the base
+        run: node .github/scripts/docs-check.js "$RUNNER_TEMP/base.log" "$RUNNER_TEMP/head.log"

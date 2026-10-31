@@ -132,13 +132,15 @@ jobs:
       - name: Test performance test result parsers
         run: python3 -m unittest discover -s perf-tests/scripts -p 'test_*.py' -v
 
-      - name: Verify docs generation
+      # Unit tests for the docs-only fast path: the classifier (also used by
+      # Quick Check, PR validation and auto-approval), the docs check, and
+      # auto-approval. auto-approval runs with a write token, so like the
+      # lifecycle scripts it is tested in the Gate.
+      - name: Test docs fast path scripts
         run: |
-          if [ -n "$(git status --untracked-files=no --porcelain docs)" ]; then
-            echo "Docs needs to be regenerated. Run 'mvn clean install -pl docs -am -DskipTests' and commit the resulting files in the 'docs' folder."
-            git --no-pager diff docs
-            exit 1
-          fi
+          node --test .github/scripts/docs-only.test.js \
+                      .github/scripts/docs-check.test.js \
+                      .github/scripts/docs-auto-approve.test.js
 
   build-java:
     name: Build Java Application (no tests)
@@ -151,7 +153,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -244,7 +246,7 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: '24.22.1'
+          node-version: '24.22.2'
           cache: 'npm'
           cache-dependency-path: 'ui/**/package-lock.json'
 
@@ -327,7 +329,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -389,6 +391,14 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
+  # Antora build of the docs, compared with the base: no new broken xrefs,
+  # includes or attribute references. See verify-docs.yaml.
+  docs:
+    name: Docs Check
+    needs: [decide]
+    if: needs.decide.outputs.run-docs == 'true'
+    uses: ./.github/workflows/verify-docs.yaml
+
   cli-verify:
     name: CLI Verification
     needs: [decide, build-java]
@@ -418,7 +428,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.27.2'
+          go-version: '1.27.3'
 
       - name: Regenerate Go SDK
         run: |
@@ -503,7 +513,7 @@ jobs:
           || needs.decide.outputs.lifecycle-ready == 'true')
     needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
             cli-verify, ard-conformance, go-sdk-freshness, sdk, console-plugin,
-            integration-tests, extras, operator]
+            integration-tests, extras, operator, docs]
     runs-on: ubuntu-latest
     timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min
     steps:

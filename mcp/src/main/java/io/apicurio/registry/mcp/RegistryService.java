@@ -70,8 +70,8 @@ public class RegistryService {
     ) {
         var page = client().groups().get(r -> {
             r.queryParameters.limit = config.paging().limit() + 1;
-            r.queryParameters.order = SortOrder.forValue(order);
-            r.queryParameters.orderby = GroupSortBy.forValue(groupOrderBy);
+            r.queryParameters.order = parseSortOrder(order);
+            r.queryParameters.orderby = parseGroupSortBy(groupOrderBy);
         });
         checkPagingLimit(page.getCount());
         return page.getGroups();
@@ -128,8 +128,8 @@ public class RegistryService {
     ) {
         var page = client().groups().byGroupId(groupId).artifacts().get(r -> {
             r.queryParameters.limit = config.paging().limit() + 1;
-            r.queryParameters.order = SortOrder.forValue(order);
-            r.queryParameters.orderby = ArtifactSortBy.forValue(artifactOrderBy);
+            r.queryParameters.order = parseSortOrder(order);
+            r.queryParameters.orderby = parseArtifactSortBy(artifactOrderBy);
         });
         checkPagingLimit(page.getCount());
         return page.getArtifacts();
@@ -226,8 +226,8 @@ public class RegistryService {
                 .versions()
                 .get(r -> {
                     r.queryParameters.limit = config.paging().limit() + 1;
-                    r.queryParameters.order = SortOrder.forValue(order);
-                    r.queryParameters.orderby = VersionSortBy.forValue(versionOrderBy);
+                    r.queryParameters.order = parseSortOrder(order);
+                    r.queryParameters.orderby = parseVersionSortBy(versionOrderBy);
                 });
         checkPagingLimit(page.getCount());
         return page.getVersions();
@@ -347,8 +347,8 @@ public class RegistryService {
             r.queryParameters.labels = utils.toQueryLabels(labels);
 
             r.queryParameters.limit = config.paging().limit() + 1;
-            r.queryParameters.order = SortOrder.forValue(order);
-            r.queryParameters.orderby = GroupSortBy.forValue(groupOrderBy);
+            r.queryParameters.order = parseSortOrder(order);
+            r.queryParameters.orderby = parseGroupSortBy(groupOrderBy);
         });
         checkPagingLimit(page.getCount());
         return page.getGroups();
@@ -390,8 +390,8 @@ public class RegistryService {
             }
 
             r.queryParameters.limit = config.paging().limit() + 1;
-            r.queryParameters.order = SortOrder.forValue(order);
-            r.queryParameters.orderby = VersionSortBy.forValue(versionOrderBy);
+            r.queryParameters.order = parseSortOrder(order);
+            r.queryParameters.orderby = parseVersionSortBy(versionOrderBy);
         });
         checkPagingLimit(page.getCount());
         return page.getVersions();
@@ -416,8 +416,8 @@ public class RegistryService {
             r.queryParameters.labels = utils.toQueryLabels(jsonLabels);
 
             r.queryParameters.limit = config.paging().limit() + 1;
-            r.queryParameters.order = SortOrder.forValue(order);
-            r.queryParameters.orderby = ArtifactSortBy.forValue(artifactOrderBy);
+            r.queryParameters.order = parseSortOrder(order);
+            r.queryParameters.orderby = parseArtifactSortBy(artifactOrderBy);
         });
         checkPagingLimit(page.getCount());
         return page.getArtifacts();
@@ -548,5 +548,21 @@ public class RegistryService {
         createRule.setRuleType(RuleType.forValue(ruleType));
         createRule.setConfig(ruleConfig);
         client().groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).rules().post(createRule);
+    }
+
+    SortOrder parseSortOrder(String order) {
+        return Utils.parseEnum(SortOrder.class, order, "sort order");
+    }
+
+    GroupSortBy parseGroupSortBy(String orderBy) {
+        return Utils.parseEnum(GroupSortBy.class, orderBy, "group order-by");
+    }
+
+    ArtifactSortBy parseArtifactSortBy(String orderBy) {
+        return Utils.parseEnum(ArtifactSortBy.class, orderBy, "artifact order-by");
+    }
+
+    VersionSortBy parseVersionSortBy(String orderBy) {
+        return Utils.parseEnum(VersionSortBy.class, orderBy, "version order-by");
     }
 }

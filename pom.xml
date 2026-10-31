@@ -239,8 +239,19 @@
     <json-sKema.version>0.32.0</json-sKema.version>
     <!-- TODO unification -->
     <org.json.version>20250517</org.json.version>
-    <jackson-datatype-json-org.version>2.21.5</jackson-datatype-json-org.version>
-    <jackson-dataformat-yaml.version>2.21.5</jackson-dataformat-yaml.version>
+    <jackson-datatype-json-org.version>${jackson2.version}</jackson-datatype-json-org.version>
+    <jackson-dataformat-yaml.version>${jackson2.version}</jackson-dataformat-yaml.version>
+
+    <!-- Security overrides of Quarkus-managed transitive dependencies (CVE fixes) -->
+    <jackson2.version>2.21.8</jackson2.version>
+    <jackson3.version>3.1.8</jackson3.version>
+    <opentelemetry.version>1.62.0</opentelemetry.version>
+    <bouncycastle.version>1.85</bouncycastle.version>
+    <lz4-java.version>1.11.4</lz4-java.version>
+    <httpclient5.version>5.6.5</httpclient5.version>
+    <httpcore5.version>5.4.4</httpcore5.version>
+    <mssql-jdbc.version>13.4.0.jre11</mssql-jdbc.version>
+    <commons-configuration2.version>2.15.1</commons-configuration2.version>
 
     <!-- OpenAPI -->
     <openapi-diff.version>2.1.7</openapi-diff.version>
@@ -250,9 +261,9 @@
     <!-- Dependency versions -->
     <lombok.version>1.18.48</lombok.version>
     <commons-codec.version>1.23.0</commons-codec.version>
-    <netty.version>4.1.136.Final</netty.version>
+    <netty.version>4.1.139.Final</netty.version>
     <kafka-clients.version>3.9.2</kafka-clients.version>
-    <kafka-oauth-client.version>0.18.0</kafka-oauth-client.version>
+    <kafka-oauth-client.version>0.18.1</kafka-oauth-client.version>
     <debezium.version>3.7.0.Final</debezium.version>
     <pulsar-clients.version>4.2.5</pulsar-clients.version>
     <commons-beanutils.version>1.11.0</commons-beanutils.version>
@@ -268,7 +279,7 @@
     <slf4j.version>2.0.17</slf4j.version>
 
     <!-- Kafka Connect -->
-    <connect.version>4.3.1</connect.version>
+    <connect.version>4.4.0</connect.version>
 
     <!-- Specifications -->
     <annotation-api.version>3.0.0</annotation-api.version>
@@ -312,7 +323,7 @@
     <flink.version>1.20.5</flink.version>
 
     <!-- Kiota -->
-    <kiota.libs.version>1.10.3</kiota.libs.version>
+    <kiota.libs.version>1.10.4</kiota.libs.version>
     <kiota.community.version>0.0.39</kiota.community.version>
     <!-- 0.0.39 retries transient ETXTBSY during process startup
          (https://bugs.openjdk.org/browse/JDK-8068370) and publishes
@@ -372,6 +383,7 @@
 
     <!-- Kroxylicious Authorizer API (shared authorization contract) -->
     <kroxylicious.version>0.25.1</kroxylicious.version>
+    <re2j.version>1.8</re2j.version>
   </properties>
 
   <dependencyManagement>
@@ -397,6 +409,33 @@
         <groupId>io.kroxylicious</groupId>
         <artifactId>kroxylicious-authorizer-api</artifactId>
         <version>${kroxylicious.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.kroxylicious</groupId>
+        <artifactId>kroxylicious-authorizer-acl</artifactId>
+        <version>${kroxylicious.version}</version>
+        <exclusions>
+          <!-- kroxylicious-api's Kafka record compression libraries; not used by the ACL authorizer -->
+          <exclusion>
+            <groupId>com.github.luben</groupId>
+            <artifactId>zstd-jni</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>at.yawk.lz4</groupId>
+            <artifactId>lz4-java</artifactId>
+          </exclusion>
+          <exclusion>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+          </exclusion>
+        </exclusions>
+      </dependency>
+      <dependency>
+        <!-- Regex engine of the ACL rules (kroxylicious-authorizer-acl); pinned so that an older
+             transitive test dependency doesn't win -->
+        <groupId>com.google.re2j</groupId>
+        <artifactId>re2j</artifactId>
+        <version>${re2j.version}</version>
       </dependency>
 
       <!-- This project -->
@@ -686,6 +725,94 @@
         <groupId>io.apicurio</groupId>
         <artifactId>apicurio-registry-distro-connect-converter</artifactId>
         <version>${project.version}</version>
+      </dependency>
+
+      <!--
+        Security overrides of transitive versions managed by the Quarkus BOM.
+        These BOMs MUST be imported before quarkus-bom (first import wins).
+        Re-check (and drop where possible) on every Quarkus upgrade.
+      -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson2.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>tools.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson3.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${netty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- CVE-2026-45292 (baggage parsing) is fixed in opentelemetry-api 1.62.0. Only the API/context/common
+           artifacts are overridden: importing the full 1.62 BOM breaks the Quarkus 3.33 exporters. -->
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-api</artifactId>
+        <version>${opentelemetry.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-context</artifactId>
+        <version>${opentelemetry.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry</groupId>
+        <artifactId>opentelemetry-common</artifactId>
+        <version>${opentelemetry.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.squareup.wire</groupId>
+        <artifactId>wire-bom</artifactId>
+        <version>${wire-schema.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bc-jdk18on-bom</artifactId>
+        <version>${bouncycastle.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>at.yawk.lz4</groupId>
+        <artifactId>lz4-java</artifactId>
+        <version>${lz4-java.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents.client5</groupId>
+        <artifactId>httpclient5</artifactId>
+        <version>${httpclient5.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents.core5</groupId>
+        <artifactId>httpcore5</artifactId>
+        <version>${httpcore5.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.httpcomponents.core5</groupId>
+        <artifactId>httpcore5-h2</artifactId>
+        <version>${httpcore5.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.microsoft.sqlserver</groupId>
+        <artifactId>mssql-jdbc</artifactId>
+        <version>${mssql-jdbc.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-configuration2</artifactId>
+        <version>${commons-configuration2.version}</version>
       </dependency>
 
       <!-- Quarkus Dependencies -->

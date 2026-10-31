@@ -3514,6 +3514,13 @@
           "is_compatible": {
             "type": "boolean",
             "description": "True if the schema is compatible, false otherwise."
+          },
+          "messages": {
+            "type": "array",
+            "description": "Error messages explaining compatibility violations (only present when verbose=true).",
+            "items": {
+              "type": "string"
+            }
           }
         },
         "example": {

@@ -41,19 +41,21 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 public class GrantsHotReloadTest extends AbstractResourceTestBase {
 
     private static final String GROUP = "grants-reload";
-    private static final String NO_GRANTS = """
-            {"config": {"admin_roles": ["sr-admin"]}, "grants": []}""";
+    private static final String NO_RULES = """
+            otherwise deny;
+            """;
     private static final String BOB_READS = """
-            {"config": {"admin_roles": ["sr-admin"]}, "grants": [
-              {"principal": "bob", "operation": "read", "resource_type": "artifact",
-               "resource_pattern_type": "prefix", "resource_pattern": "grants-reload/"}]}""";
+            from io.apicurio.authz import Artifact;
+            allow User with name = "bob" to READ Artifact with name like "grants-reload/*";
+            otherwise deny;
+            """;
 
     static final Path GRANTS = createGrantsFile();
 
     private static Path createGrantsFile() {
         try {
-            Path file = Files.createTempFile("grants-reload", ".json");
-            Files.writeString(file, NO_GRANTS);
+            Path file = Files.createTempFile("grants-reload", ".acl");
+            Files.writeString(file, NO_RULES);
             file.toFile().deleteOnExit();
             return file;
         } catch (IOException e) {
@@ -75,8 +77,8 @@ public class GrantsHotReloadTest extends AbstractResourceTestBase {
             map.put("quarkus.security.users.embedded.roles.alice", "sr-admin");
             map.put("quarkus.security.users.embedded.roles.bob", "sr-developer");
             map.put("apicurio.auth.resource-based-authorization.enabled", "true");
-            map.put("apicurio.auth.resource-based-authorization.grants.path", GRANTS.toString());
-            map.put("apicurio.auth.resource-based-authorization.grants.reload-every", "1s");
+            map.put("apicurio.auth.resource-based-authorization.rules.path", GRANTS.toString());
+            map.put("apicurio.auth.resource-based-authorization.rules.reload-every", "1s");
             return map;
         }
     }
@@ -118,7 +120,7 @@ public class GrantsHotReloadTest extends AbstractResourceTestBase {
         write(BOB_READS, 10_000);
         await().atMost(Duration.ofSeconds(15)).untilAsserted(() -> assertEquals(200, bobStatus(artifactId)));
 
-        FileTime invalidVersion = write("{ not json", 20_000);
+        FileTime invalidVersion = write("allow everyone;", 20_000);
         // Wait until the reload job has processed (and rejected) the invalid version
         await().atMost(Duration.ofSeconds(15))
                 .untilAsserted(() -> assertEquals(invalidVersion, grantsAc.getAuthorizer().getLastSeenModified()));

@@ -187,6 +187,112 @@ are in a separate module and need to be explicitly enabled:
 See the [integration tests module](integration-tests/) for test groups, deployment
 modes, and detailed usage instructions.
 
+## Concurrency Considerations
+
+The storage variants handle concurrent writes in fundamentally different ways, and a
+number of past bugs in this codebase trace back to assuming the wrong model. Read this
+section before changing storage code or adding a write path.
+
+### How each storage variant serializes writes
+
+KafkaSQL serializes everything. Every storage mutation becomes a journal message sent
+to Kafka, and a single consumer thread in `KafkaSqlRegistryStorage` applies those
+messages one at a time. Storage mutations
+therefore never interleave, and races that exist in the plain SQL variant cannot happen
+there. Races between the request thread, which waits for its message to be applied, and
+the consumer thread that delivers the result through `KafkaSqlCoordinator` are a
+different class of bug, and that coordination is where the KafkaSQL-specific
+concurrency work lives.
+
+The plain SQL variant runs each write operation in its own request thread, in its own
+transaction, against the shared database, and in a multi-replica deployment from
+separate JVMs. Nothing in the application serializes writes. Correctness comes from
+database isolation plus explicit row locks, so every new write path needs to name the
+lock that makes it safe.
+
+### Row locking in the SQL variant
+
+Version creation takes a lock on the artifact's parent row. The version-creating entry
+points open the transaction and then call `lockArtifactForVersionWrite`, a no-op update
+of the artifact's `artifacts` row whose only effect is acquiring the row lock. It also
+fails with `ArtifactNotFoundException` when the artifact does not exist, so it doubles
+as the existence check. Concurrent creators for the same artifact therefore take turns,
+and the `MAX(versionOrder) + 1` computed inside the insert cannot run twice against the
+same state.
+
+The lock is taken on the `artifacts` row rather than on `versions` rows because a lock
+on existing version rows does not block the insert of a new version row; the comment in
+`createArtifactVersionIfLatest` carries the PostgreSQL-specific reasoning and is the
+source to keep in sync with the code.
+
+`createArtifactVersionIfLatest` additionally re-reads the current maximum `versionOrder`
+under lock and fails with `CommitFailedException` if it is not the value the caller read
+earlier.
+
+The database enforces `UNIQUE (groupId, artifactId, version)` (`UQ_versions_1`).
+`UQ_versions_2` includes `versionOrder`, but it is keyed on `globalId`, which is the
+primary key, so the constraint is satisfied by every row and cannot stop two versions
+of the same artifact from sharing a `versionOrder`. That guarantee comes from the
+parent-row lock, not from a constraint. If you ever see a duplicate `versionOrder`,
+treat it as a bug in the locking, not as something to deduplicate in application code.
+(#9775 proposes a database constraint as extra hardening; its lock-related premise
+predates the current parent-row lock.)
+
+`setConfigProperty` writes with an UPSERT rather than DELETE followed by INSERT,
+because runtime threads update config properties concurrently. Keep new write paths on
+UPSERT wherever the row may already exist.
+
+Known sharp edge: content is inserted by `ensureContentAndGetId` before the
+version-creating transaction opens, so a content row is briefly visible to the
+scheduled `OrphanedContentReaper` while no version points at it yet (#9571, fix tracked
+in #9777). The general rule this violates: writes that belong together go inside the
+same `withHandle` nesting.
+
+### The HandleFactory transaction model
+
+`AbstractHandleFactory` keeps one JDBC connection per thread per datasource in a
+`ThreadLocal`, with autocommit disabled. The first `withHandle` call on a thread opens
+the connection; nested `withHandle` calls reuse it and increment a level counter. Only
+the outermost call commits or rolls back, and any exception at any nesting level marks
+the whole handle for rollback.
+
+Consequences for new code:
+
+ - A `withHandle` opened inside another one on the same thread joins the same
+   transaction. Work done before the outermost `withHandle` starts, or on another
+   thread, runs in a different transaction.
+ - Row locks taken inside the nesting, such as `lockArtifactForVersionWrite`, are held
+   until the outermost `withHandle` finishes. Do not call external systems from inside
+   a `withHandle` unless holding the transaction and its locks for that long is
+   intended.
+
+### CDI scope is not a lock
+
+An `@ApplicationScoped` bean has one instance, and the CDI container does not serialize
+calls to it. Every mutable field on such a bean is shared by all concurrent request
+threads. Use a concurrent collection with atomic compound operations, or design the
+state away. The OIDC token cache stampede (#9776) was a check-then-act on a shared
+map, the coordinator races #9778 and #9780 were a lost update on a single-slot field
+and a map TOCTOU respectively, and all three lived on `@ApplicationScoped` beans. Note
+that `volatile`, which #9778's field already had, gives visibility, not atomicity; the
+pattern to look for is a compound operation, not a missing keyword.
+
+### Make check-and-update atomic on shared maps
+
+The most common concurrency bug in this codebase is check-then-act on a
+`ConcurrentHashMap`: `containsKey()` followed by `get()` followed by `put()`. Between
+the check and the update another thread wins, and the second `put()` overwrites the
+first thread's value. Fold the whole compound operation into `compute()`, `merge()`, or
+`computeIfAbsent()`. For request/response coordination across threads, prefer one map
+whose value carries the whole operation, such as `Map<UUID, CompletableFuture<...>>`,
+over two parallel maps that can disagree.
+
+Deployment tradeoffs between the two variants, including throughput under concurrent
+write load, are covered in the operator docs: see the
+[high availability guide](docs/modules/ROOT/pages/getting-started/assembly-registry-high-availability.adoc)
+and the
+[sizing guide](docs/modules/ROOT/pages/getting-started/assembly-registry-sizing-guide.adoc).
+
 ## Running with Postgres (docker-compose)
 
 Run Apicurio Registry with Postgres:

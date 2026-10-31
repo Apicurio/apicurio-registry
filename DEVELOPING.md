@@ -230,10 +230,11 @@ under lock and fails with `CommitFailedException` if it is not the value the cal
 earlier.
 
 The database enforces `UNIQUE (groupId, artifactId, version)` (`UQ_versions_1`).
-`UQ_versions_2` scopes `versionOrder` uniqueness by `globalId`, so it cannot stop two
-versions of the same artifact from sharing a `versionOrder`; that guarantee comes from
-the parent-row lock, not from a constraint (#9775 tracks adding one). If you ever see a
-duplicate `versionOrder`, treat it as a bug in the locking, not as something to
+`UQ_versions_2` includes `versionOrder`, but it is keyed on `globalId`, which is the
+primary key, so the constraint is satisfied by every row and cannot stop two versions
+of the same artifact from sharing a `versionOrder`. That guarantee comes from the
+parent-row lock, not from a constraint. If you ever see a duplicate `versionOrder`
+(#9775 documents this exposure), treat it as a bug in the locking, not as something to
 deduplicate in application code.
 
 `setConfigProperty` writes with an UPSERT rather than DELETE followed by INSERT,
@@ -270,7 +271,10 @@ An `@ApplicationScoped` bean has one instance, and the CDI container does not se
 calls to it. Every mutable field on such a bean is shared by all concurrent request
 threads. Use a concurrent collection with atomic compound operations, or design the
 state away. The OIDC token cache stampede (#9776) and the coordinator races #9778 and
-#9780 all started as unsynchronized state on `@ApplicationScoped` beans.
+#9780 all started as shared state on `@ApplicationScoped` beans that no single atomic
+operation protected. Note that `volatile`, which #9778's field already had, gives
+visibility, not atomicity; the pattern to look for is a compound operation, not a
+missing keyword.
 
 ### Make check-and-update atomic on shared maps
 

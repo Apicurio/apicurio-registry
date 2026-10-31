@@ -24,6 +24,8 @@ import { SortOrder } from "@models/SortOrder.ts";
 import { RuleViolationProblemDetails, SearchedVersion } from "@sdk/lib/generated-client/models";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { DraftsService, useDraftsService } from "@services/useDraftsService.ts";
+import { draftContentToString } from "@utils/content.utils.ts";
+import { SubmittedContent } from "@utils/ruleViolation.utils.ts";
 import { ListWithToolbar, PleaseWaitModal } from "@apitomy/common-ui-components";
 import {
     ConfirmFinalizeModal,
@@ -65,6 +67,7 @@ export const DraftsPage: FunctionComponent<PageProperties> = () => {
     const [isCreateDraftFromModalOpen, setIsCreateDraftFromModalOpen] = useState(false);
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState<boolean>(false);
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [invalidContent, setInvalidContent] = useState<SubmittedContent>();
     const [isFinalizeDryRunSuccessModalOpen, setIsFinalizeDryRunSuccessModalOpen] = useState(false);
 
     const draftsService: DraftsService = useDraftsService();
@@ -83,9 +86,10 @@ export const DraftsPage: FunctionComponent<PageProperties> = () => {
         setPleaseWaitMessage(message);
     };
 
-    const handleInvalidContentError = (error: any): void => {
+    const handleInvalidContentError = (error: any, content?: SubmittedContent): void => {
         console.info("[DraftsPage] Invalid content error:", error);
         setInvalidContentError(error);
+        setInvalidContent(content);
         setIsInvalidContentModalOpen(true);
     };
 
@@ -123,10 +127,19 @@ export const DraftsPage: FunctionComponent<PageProperties> = () => {
                 setIsFinalizeDryRunSuccessModalOpen(true);
             }
         }).catch(error => {
-            setPleaseWaitModalOpen(false);
             if (error && (error.status === 400 || error.status === 409)) {
-                handleInvalidContentError(error);
+                // The draft's content is what the rules checked; load it so it can be shown with the causes.
+                // The wait modal stays open meanwhile, so no other draft can be picked to finalize, which would
+                // point the report's comparison at that draft instead.
+                draftsService.getDraftContent(draft.groupId, draft.draftId, draft.version).then(content => {
+                    setPleaseWaitModalOpen(false);
+                    handleInvalidContentError(error, { content: draftContentToString(content), contentType: content.contentType });
+                }).catch(() => {
+                    setPleaseWaitModalOpen(false);
+                    handleInvalidContentError(error);
+                });
             } else {
+                setPleaseWaitModalOpen(false);
                 setPageError(toPageError(error, "Error finalizing a draft."));
             }
         });
@@ -325,9 +338,14 @@ export const DraftsPage: FunctionComponent<PageProperties> = () => {
                 isOpen={isConfirmFinalizeModalOpen} />
             <InvalidContentModal
                 error={invalidContentError}
+                content={invalidContent?.content}
+                contentType={invalidContent?.contentType}
+                groupId={draftToFinalize?.groupId}
+                artifactId={draftToFinalize?.draftId}
                 isOpen={isInvalidContentModalOpen}
                 onClose={() => {
                     setInvalidContentError(undefined);
+                    setInvalidContent(undefined);
                     setIsInvalidContentModalOpen(false);
                 }} />
             <NewDraftFromModal

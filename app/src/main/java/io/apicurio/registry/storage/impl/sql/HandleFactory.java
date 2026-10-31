@@ -28,4 +28,6 @@ public interface HandleFactory {
      * exceptions, and is suitable when no value is being returned.
      */
     <X extends Exception> void withHandleNoException(HandleAction<X> callback);
+
+    <R, X extends Exception> R withIsolatedHandleNoException(HandleCallback<R, X> callback);
 }

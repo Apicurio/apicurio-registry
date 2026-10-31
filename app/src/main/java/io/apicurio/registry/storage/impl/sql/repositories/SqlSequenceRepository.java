@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -37,10 +38,20 @@ public class SqlSequenceRepository {
 
     private final HandleFactory handles;
 
+    private final int blockSize;
+
+    private final Map<String, SequenceBlock> blocks = new ConcurrentHashMap<>();
+
     public SqlSequenceRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log) {
+        this(handles, sqlStatements, log, 1);
+    }
+
+    public SqlSequenceRepository(HandleFactory handles, SqlStatements sqlStatements, Logger log,
+            int blockSize) {
         this.handles = handles;
         this.sqlStatements = sqlStatements;
         this.log = log;
+        this.blockSize = Math.max(1, blockSize);
     }
 
     /**
@@ -91,7 +102,15 @@ public class SqlSequenceRepository {
     private long nextSequenceValueRaw(Handle handle, String sequenceName) {
         if (isH2()) {
             return sequenceCounters.get(sequenceName).incrementAndGet();
-        } else if (isMysql()) {
+        }
+        if (blockSize > 1) {
+            return blocks.computeIfAbsent(sequenceName, SequenceBlock::new).next();
+        }
+        return nextSequenceValueFromDatabase(handle, sequenceName);
+    }
+
+    private long nextSequenceValueFromDatabase(Handle handle, String sequenceName) {
+        if (isMysql()) {
             handle.createUpdate(sqlStatements.getNextSequenceValue())
                     .bind(0, sequenceName)
                     .execute();
@@ -135,6 +154,10 @@ public class SqlSequenceRepository {
     }
 
     private void resetSequenceRaw(Handle handle, String sequenceName, String sqlMaxIdFromTable) {
+        SequenceBlock discarded = blocks.remove(sequenceName);
+        if (discarded != null) {
+            discarded.invalidate();
+        }
         Optional<Long> maxIdTable = handle.createQuery(sqlMaxIdFromTable)
                 .mapTo(Long.class)
                 .findOne();
@@ -214,6 +237,56 @@ public class SqlSequenceRepository {
                 .mapTo(Long.class)
                 .findOne();
         return maxIdTable.orElse(1L);
+    }
+
+    private class SequenceBlock {
+
+        private final String sequenceName;
+
+        private long next = 1;
+
+        private long end = 0;
+
+        SequenceBlock(String sequenceName) {
+            this.sequenceName = sequenceName;
+        }
+
+        synchronized void invalidate() {
+            next = 1;
+            end = 0;
+        }
+
+        synchronized long next() {
+            if (next > end) {
+                long reservedEnd = reserveBlock(sequenceName);
+                next = reservedEnd - blockSize + 1;
+                end = reservedEnd;
+                log.debug("Reserved {} block [{}, {}]", sequenceName, next, end);
+            }
+            return next++;
+        }
+    }
+
+    private long reserveBlock(String sequenceName) {
+        return handles.withIsolatedHandleNoException(handle -> {
+            if (isMysql()) {
+                handle.createUpdate(sqlStatements.getNextSequenceValueBlock())
+                        .bind(0, sequenceName)
+                        .bind(1, (long) blockSize)
+                        .bind(2, (long) blockSize)
+                        .execute();
+                return handle.createQuery(sqlStatements.selectCurrentSequenceValue())
+                        .bind(0, sequenceName)
+                        .mapTo(Long.class)
+                        .one();
+            }
+            return handle.createQuery(sqlStatements.getNextSequenceValueBlock())
+                    .bind(0, sequenceName)
+                    .bind(1, (long) blockSize)
+                    .bind(2, (long) blockSize)
+                    .mapTo(Long.class)
+                    .one();
+        });
     }
 
     private boolean isH2() {

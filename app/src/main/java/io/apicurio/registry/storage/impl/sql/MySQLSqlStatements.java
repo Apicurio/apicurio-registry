@@ -44,6 +44,11 @@ public class MySQLSqlStatements extends CommonSqlStatements {
         return "INSERT INTO sequences (seqName, seqValue) VALUES (?, 1) ON DUPLICATE KEY UPDATE seqValue = seqValue + 1";
     }
 
+    @Override
+    public String getNextSequenceValueBlock() {
+        return "INSERT INTO sequences (seqName, seqValue) VALUES (?, ?) ON DUPLICATE KEY UPDATE seqValue = seqValue + ?";
+    }
+
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#resetSequenceValue()
      */

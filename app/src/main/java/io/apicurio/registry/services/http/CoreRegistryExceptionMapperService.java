@@ -89,6 +89,7 @@ public class CoreRegistryExceptionMapperService implements ExceptionMapperServic
             rvpd.setCauses(restCauses);
             RuleViolationDetails rvd = new RuleViolationDetails();
             rvd.setCauses(restCauses);
+            rvd.setRuleType(rve.getRuleType());
             rvpd.setRuleViolation(rvd);
             // Note: type is intentionally left unset here.
             // Choosing stable type URI values (e.g. urn:apicurio:error:rule-violation) is a
@@ -124,6 +125,10 @@ public class CoreRegistryExceptionMapperService implements ExceptionMapperServic
             RuleViolationCause cause = new RuleViolationCause();
             cause.setContext(violation.getContext());
             cause.setDescription(violation.getDescription());
+            cause.setCode(violation.getCode());
+            cause.setDirection(violation.getDirection());
+            cause.setProposed(violation.getProposed());
+            cause.setExisting(violation.getExisting());
             return cause;
         }).collect(Collectors.toList());
     }

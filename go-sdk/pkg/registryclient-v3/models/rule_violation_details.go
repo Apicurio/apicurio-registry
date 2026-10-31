@@ -13,6 +13,8 @@ type RuleViolationDetails struct {
 	additionalData map[string]any
 	// List of rule violation causes.
 	causes []RuleViolationCauseable
+	// The ruleType property
+	ruleType *RuleType
 }
 
 // NewRuleViolationDetails instantiates a new RuleViolationDetails and sets the default values.
@@ -60,7 +62,23 @@ func (m *RuleViolationDetails) GetFieldDeserializers() map[string]func(i878a80d2
 		}
 		return nil
 	}
+	res["ruleType"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetEnumValue(ParseRuleType)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetRuleType(val.(*RuleType))
+		}
+		return nil
+	}
 	return res
+}
+
+// GetRuleType gets the ruleType property value. The ruleType property
+// returns a *RuleType when successful
+func (m *RuleViolationDetails) GetRuleType() *RuleType {
+	return m.ruleType
 }
 
 // Serialize serializes information the current object
@@ -73,6 +91,13 @@ func (m *RuleViolationDetails) Serialize(writer i878a80d2330e89d26896388a3f487ee
 			}
 		}
 		err := writer.WriteCollectionOfObjectValues("causes", cast)
+		if err != nil {
+			return err
+		}
+	}
+	if m.GetRuleType() != nil {
+		cast := (*m.GetRuleType()).String()
+		err := writer.WriteStringValue("ruleType", &cast)
 		if err != nil {
 			return err
 		}
@@ -96,9 +121,16 @@ func (m *RuleViolationDetails) SetCauses(value []RuleViolationCauseable) {
 	m.causes = value
 }
 
+// SetRuleType sets the ruleType property value. The ruleType property
+func (m *RuleViolationDetails) SetRuleType(value *RuleType) {
+	m.ruleType = value
+}
+
 type RuleViolationDetailsable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetCauses() []RuleViolationCauseable
+	GetRuleType() *RuleType
 	SetCauses(value []RuleViolationCauseable)
+	SetRuleType(value *RuleType)
 }

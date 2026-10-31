@@ -236,14 +236,24 @@ section before changing storage code or adding a write path.
 
 ### How each storage variant serializes writes
 
-KafkaSQL serializes everything. Every storage mutation becomes a journal message sent
-to Kafka, and a single consumer thread in `KafkaSqlRegistryStorage` applies those
-messages one at a time. Storage mutations
-therefore never interleave, and races that exist in the plain SQL variant cannot happen
-there. Races between the request thread, which waits for its message to be applied, and
-the consumer thread that delivers the result through `KafkaSqlCoordinator` are a
-different class of bug, and that coordination is where the KafkaSQL-specific
-concurrency work lives.
+KafkaSQL serializes journaled mutations. Every storage mutation that goes through the
+journal becomes a message sent to Kafka, and a single consumer thread in
+`KafkaSqlRegistryStorage` applies those messages one at a time. Those mutations
+therefore never interleave, and the races between concurrent journaled writes that
+exist in the plain SQL variant cannot happen there.
+
+Two maintenance operations are the exception. `deleteAllOrphanedContent()` and
+`deleteAllExpiredDownloads()` bypass the journal and write directly to SQL from
+scheduled jobs that run independently on every pod. They can interleave with
+consumer-thread operations, so journal serialization does not protect against races
+between them and journaled writes. The orphaned content race described below applies to
+KafkaSQL for this reason. A third bypass would carry the same "Bypasses the Kafka
+journal" javadoc in `KafkaSqlRegistryStorage`, so search for that phrase when auditing.
+
+Races between the request thread, which waits for its message to be applied, and the
+consumer thread that delivers the result through `KafkaSqlCoordinator` are a different
+class of bug, and that coordination is where the KafkaSQL-specific concurrency work
+lives.
 
 The plain SQL variant runs each write operation in its own request thread, in its own
 transaction, against the shared database, and in a multi-replica deployment from
@@ -283,11 +293,11 @@ predates the current parent-row lock.)
 because runtime threads update config properties concurrently. Keep new write paths on
 UPSERT wherever the row may already exist.
 
-Known sharp edge: content is inserted by `ensureContentAndGetId` before the
-version-creating transaction opens, so a content row is briefly visible to the
-scheduled `OrphanedContentReaper` while no version points at it yet (#9571, fix tracked
-in #9777). The general rule this violates: writes that belong together go inside the
-same `withHandle` nesting.
+Known sharp edge, in both storage variants: content is inserted by
+`ensureContentAndGetId` before the version-creating transaction opens, so a content row
+is briefly visible to the scheduled `OrphanedContentReaper` while no version points at
+it yet (#9571, fix tracked in #9777). The general rule this violates: writes that belong
+together go inside the same `withHandle` nesting.
 
 ### The HandleFactory transaction model
 

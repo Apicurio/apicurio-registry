@@ -71,7 +71,7 @@ public class GitOpsValidationTaskManager {
             return;
         }
         try (var files = Files.list(validateDir)) {
-            files.filter(f -> f.toString().endsWith(".json"))
+            files.filter(this::isValidRequestFile)
                     .forEach(this::loadTaskFromFile);
         } catch (IOException e) {
             log.warn("Failed to scan validate directory for pending tasks: {}", e.getMessage());
@@ -141,6 +141,9 @@ public class GitOpsValidationTaskManager {
      * @return the task DTO, or null if not found or expired
      */
     public GitOpsValidateTask getTask(String taskId) {
+        if (!ValidationTaskId.isValid(taskId)) {
+            return null;
+        }
         var taskState = tasks.get(new ValidationTaskId(taskId));
         if (taskState == null) {
             return null;
@@ -164,6 +167,9 @@ public class GitOpsValidationTaskManager {
      * @return true if the task existed and was deleted
      */
     public boolean deleteTask(String taskId) {
+        if (!ValidationTaskId.isValid(taskId)) {
+            return false;
+        }
         var taskState = tasks.remove(new ValidationTaskId(taskId));
         if (taskState == null) {
             return false;
@@ -415,8 +421,16 @@ public class GitOpsValidationTaskManager {
                 return;
             }
 
-            var taskId = new ValidationTaskId(
-                    requestFile.getFileName().toString().replace(".json", ""));
+            String fileName = requestFile.getFileName().toString();
+            if (!fileName.endsWith(".json")) {
+                return;
+            }
+            String candidateId = fileName.substring(0, fileName.length() - ".json".length());
+            if (!ValidationTaskId.isValid(candidateId)) {
+                return;
+            }
+
+            var taskId = new ValidationTaskId(candidateId);
 
             var taskState = new ValidationTaskState();
             taskState.setTaskId(taskId);
@@ -451,6 +465,21 @@ public class GitOpsValidationTaskManager {
     }
 
     // ---- Helpers ----
+
+    static boolean isRequestFileName(String fileName) {
+        if (fileName == null || !fileName.endsWith(".json")) {
+            return false;
+        }
+        String candidateId = fileName.substring(0, fileName.length() - ".json".length());
+        return ValidationTaskId.isValid(candidateId);
+    }
+
+    private boolean isValidRequestFile(Path file) {
+        if (!Files.isRegularFile(file)) {
+            return false;
+        }
+        return isRequestFileName(file.getFileName().toString());
+    }
 
     private Path getValidateDir() {
         return Path.of(gitOpsConfig.getWorkspace()).resolve("validate");

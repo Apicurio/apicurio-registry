@@ -25,7 +25,11 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
@@ -33,6 +37,9 @@ public class GitOpsValidateTest {
 
     @Inject
     GitOpsConfig gitOpsConfig;
+
+    @Inject
+    GitOpsValidationTaskManager validationTaskManager;
 
     private String repoId() {
         return gitOpsConfig.getRepos().get(0).id();
@@ -341,6 +348,103 @@ public class GitOpsValidateTest {
                     .body("state", equalTo("failed"))
                     .body("errors.detail", hasItem("Invalid checkout path"));
         });
+    }
+
+    @Test
+    void startupSkipsInvalidRequestFilesWithoutBreakingLoading() throws Exception {
+        Path validateDir = Path.of(gitOpsConfig.getWorkspace()).resolve("validate");
+        Files.createDirectories(validateDir);
+
+        // Prepare a valid task request file
+        String validTaskId = ValidationTaskId.random().value();
+        Path validFile = validateDir.resolve(validTaskId + ".json");
+        writeValidationRequest(validFile, "main");
+
+        // Prepare well-formed request files with invalid task IDs in their names
+        Path invalidFile1 = validateDir.resolve("invalid-task-id.json");
+        writeValidationRequest(invalidFile1, "invalid-1");
+
+        Path invalidFile2 = validateDir.resolve("not-hex-12345.json");
+        writeValidationRequest(invalidFile2, "invalid-2");
+
+        Path invalidFile3 = validateDir.resolve("short.json");
+        writeValidationRequest(invalidFile3, "invalid-3");
+
+        try {
+            // Trigger startup loading
+            validationTaskManager.loadPendingTasks();
+
+            // Verify the valid task was loaded
+            var task = validationTaskManager.getTask(validTaskId);
+            assertNotNull(task, "Valid task should have been loaded into memory");
+            assertEquals(validTaskId, task.getTaskId());
+
+            // Verify invalid files were skipped and not loaded into manager
+            var loadedTaskIds = validationTaskManager.listTasks().stream()
+                    .map(loadedTask -> loadedTask.getTaskId())
+                    .toList();
+            assertFalse(loadedTaskIds.contains("invalid-task-id"));
+            assertFalse(loadedTaskIds.contains("not-hex-12345"));
+            assertFalse(loadedTaskIds.contains("short"));
+
+            // Verify invalid IDs return 404 from endpoints
+            given()
+                    .when()
+                    .get("/apis/registry/v3/admin/gitops/validate/invalid-task-id")
+                    .then()
+                    .statusCode(404);
+
+            given()
+                    .when()
+                    .delete("/apis/registry/v3/admin/gitops/validate/invalid-task-id")
+                    .then()
+                    .statusCode(404);
+        } finally {
+            Files.deleteIfExists(validFile);
+            Files.deleteIfExists(invalidFile1);
+            Files.deleteIfExists(invalidFile2);
+            Files.deleteIfExists(invalidFile3);
+            validationTaskManager.deleteTask(validTaskId);
+        }
+    }
+
+    private void writeValidationRequest(Path file, String ref) throws Exception {
+        var request = ValidationRequest.builder()
+                .apiVersion(ValidationRequest.CURRENT_API_VERSION)
+                .kind("ValidateRequest")
+                .spec(ValidationRequest.Spec.builder()
+                        .type("pull")
+                        .repoId(repoId())
+                        .ref(ref)
+                        .requestedAt(Instant.now().toString())
+                        .build())
+                .build();
+        JsonObjectMapper.MAPPER.writeValue(file.toFile(), request);
+    }
+
+    @Test
+    void getAndDeleteTaskRejectInvalidIds() {
+        assertNull(validationTaskManager.getTask("invalid-task-id"));
+        assertNull(validationTaskManager.getTask("../traversal"));
+        assertNull(validationTaskManager.getTask(null));
+        assertNull(validationTaskManager.getTask(""));
+
+        assertFalse(validationTaskManager.deleteTask("invalid-task-id"));
+        assertFalse(validationTaskManager.deleteTask("../traversal"));
+        assertFalse(validationTaskManager.deleteTask(null));
+        assertFalse(validationTaskManager.deleteTask(""));
+
+        given()
+                .when()
+                .get("/apis/registry/v3/admin/gitops/validate/malformed-id")
+                .then()
+                .statusCode(404);
+
+        given()
+                .when()
+                .delete("/apis/registry/v3/admin/gitops/validate/malformed-id")
+                .then()
+                .statusCode(404);
     }
 
     /**

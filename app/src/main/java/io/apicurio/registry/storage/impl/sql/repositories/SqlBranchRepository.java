@@ -285,9 +285,21 @@ public class SqlBranchRepository {
 
             int branchOrder = 0;
             for (VersionId version : versions) {
-                handle.createUpdate(sqlStatements.insertBranchVersion()).bind(0, ga.getRawGroupId())
-                        .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
-                        .bind(3, branchOrder++).bind(4, version.getRawVersionId()).execute();
+                try {
+                    handle.createUpdate(sqlStatements.insertBranchVersion()).bind(0, ga.getRawGroupId())
+                            .bind(1, ga.getRawArtifactId()).bind(2, branchId.getRawBranchId())
+                            .bind(3, branchOrder++).bind(4, version.getRawVersionId()).execute();
+                } catch (Exception ex) {
+                    if (sqlStatements.isPrimaryKeyViolation(ex)) {
+                        throw new VersionAlreadyExistsOnBranchException(ga.getRawGroupIdWithDefaultString(),
+                                ga.getRawArtifactId(), version.getRawVersionId(), branchId.getRawBranchId());
+                    }
+                    if (sqlStatements.isForeignKeyViolation(ex)) {
+                        throw new VersionNotFoundException(ga.getRawGroupIdWithDefaultString(),
+                                ga.getRawArtifactId(), version.getRawVersionId());
+                    }
+                    throw ex;
+                }
             }
 
             updateBranchModifiedTimeRaw(handle, ga, branchId);

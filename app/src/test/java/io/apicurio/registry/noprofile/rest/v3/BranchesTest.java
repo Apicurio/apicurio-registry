@@ -1,5 +1,6 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.AddVersionToBranch;
 import io.apicurio.registry.rest.client.models.BranchMetaData;
@@ -452,6 +453,25 @@ public class BranchesTest extends AbstractResourceTestBase {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId("invalid").branches()
                     .byBranchId("test-branch").versions().put(newVersions);
         });
+
+        // Replace versions with a version that does not exist
+        var error = Assertions.assertThrows(ProblemDetails.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
+                    .byBranchId("test-branch").versions().put(replaceVersions("1", "999"));
+        });
+        Assertions.assertEquals(404, error.getStatus());
+
+        // Replace versions with a duplicate version
+        var duplicateError = Assertions.assertThrows(ApiException.class, () -> {
+            clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
+                    .byBranchId("test-branch").versions().put(replaceVersions("1", "1"));
+        });
+        Assertions.assertEquals(409, duplicateError.getResponseStatusCode());
+
+        // The branch must be left unchanged
+        results = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
+                .byBranchId("test-branch").versions().get();
+        Assertions.assertEquals(3, results.getCount());
 
     }
 

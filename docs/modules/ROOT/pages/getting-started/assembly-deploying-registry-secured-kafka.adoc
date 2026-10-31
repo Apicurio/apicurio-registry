@@ -64,7 +64,7 @@ The security protocol that {registry} uses depends on which combination of TLS a
 [role="_abstract"]
 Before you deploy {registry} with a secured Kafka instance, verify that you have the required resources.
 
-* You have cluster administrator access to an {kubernetes} cluster.
+* You have cluster administrator access to {kubernetes-with-article} cluster.
 * You have installed the {operator}.
 * You have a Kafka cluster with security enabled (TLS, SASL, or both).
 ifdef::apicurio-registry[]
@@ -84,7 +84,7 @@ endif::[]
 When your Kafka cluster requires TLS encryption, you configure {registry} with the Kafka cluster CA certificate so that {registry} can verify the broker identity.
 
 .Prerequisites
-* The Kafka cluster CA certificate is available as a {kubernetes} Secret in PKCS12 format.
+* The Kafka cluster CA certificate is available as {kubernetes-with-article} Secret in PKCS12 format.
 ifdef::apicurio-registry[]
 ** {kafka-streams} creates a Secret named `<cluster-name>-cluster-ca-cert` that contains the CA certificate.
 endif::[]
@@ -161,7 +161,7 @@ IMPORTANT: The structured `auth` section of the custom resource supports only OA
 
 .Prerequisites
 * Your Kafka cluster is configured with a SASL listener that uses SCRAM-SHA-512.
-* You have created a {kubernetes} Secret that contains the JAAS configuration for your Kafka user.
+* You have created {kubernetes-with-article} Secret that contains the JAAS configuration for your Kafka user.
 ifdef::apicurio-registry[]
 ** {kafka-streams} automatically creates this Secret when you create a `KafkaUser` resource with `authentication.type: scram-sha-512`.
 endif::[]
@@ -243,11 +243,11 @@ When your Kafka cluster uses OAUTHBEARER authentication, you configure the OAuth
 .Prerequisites
 * Your Kafka cluster is configured with an OAuth-enabled listener.
 * You have the OAuth client ID, client secret, and token endpoint URL.
-* You have stored the client ID and client secret in a {kubernetes} Secret.
+* You have stored the client ID and client secret in {kubernetes-with-article} Secret.
 
 .Procedure
 
-. Create a {kubernetes} Secret that contains the OAuth client credentials:
+. Create {kubernetes-with-article} Secret that contains the OAuth client credentials:
 +
 [source,bash]
 ----

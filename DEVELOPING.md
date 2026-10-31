@@ -233,9 +233,10 @@ The database enforces `UNIQUE (groupId, artifactId, version)` (`UQ_versions_1`).
 `UQ_versions_2` includes `versionOrder`, but it is keyed on `globalId`, which is the
 primary key, so the constraint is satisfied by every row and cannot stop two versions
 of the same artifact from sharing a `versionOrder`. That guarantee comes from the
-parent-row lock, not from a constraint. If you ever see a duplicate `versionOrder`
-(#9775 documents this exposure), treat it as a bug in the locking, not as something to
-deduplicate in application code.
+parent-row lock, not from a constraint. If you ever see a duplicate `versionOrder`,
+treat it as a bug in the locking, not as something to deduplicate in application code.
+(#9775 proposes a database constraint as extra hardening; its lock-related premise
+predates the current parent-row lock.)
 
 `setConfigProperty` writes with an UPSERT rather than DELETE followed by INSERT,
 because runtime threads update config properties concurrently. Keep new write paths on
@@ -270,11 +271,11 @@ Consequences for new code:
 An `@ApplicationScoped` bean has one instance, and the CDI container does not serialize
 calls to it. Every mutable field on such a bean is shared by all concurrent request
 threads. Use a concurrent collection with atomic compound operations, or design the
-state away. The OIDC token cache stampede (#9776) and the coordinator races #9778 and
-#9780 all started as shared state on `@ApplicationScoped` beans that no single atomic
-operation protected. Note that `volatile`, which #9778's field already had, gives
-visibility, not atomicity; the pattern to look for is a compound operation, not a
-missing keyword.
+state away. The OIDC token cache stampede (#9776) was a check-then-act on a shared
+map, the coordinator races #9778 and #9780 were a lost update on a single-slot field
+and a map TOCTOU respectively, and all three lived on `@ApplicationScoped` beans. Note
+that `volatile`, which #9778's field already had, gives visibility, not atomicity; the
+pattern to look for is a compound operation, not a missing keyword.
 
 ### Make check-and-update atomic on shared maps
 

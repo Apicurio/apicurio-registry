@@ -194,7 +194,7 @@ Searches for registered Agent Cards with filtering support. This endpoint requir
 
 |`name`
 |string
-|Filter by artifact name or artifact ID. A value without `*` matches anywhere in the name or ID. Use `*` as a prefix or suffix wildcard, for example `weather*`.
+|Filter by artifact name or artifact ID. A value without `+*+` matches anywhere in the name or ID. Use `+*+` as a prefix or suffix wildcard, for example `weather*`.
 
 |`skill`
 |string (repeatable)
@@ -468,11 +468,11 @@ When {registry} publishes an OPENAPI artifact version with an `x-agent-card` ext
 
 Ordinary DRAFT creates/edits do not generate published companions. Transitioning a draft to a published state validates and generates from its edited content. Dry-run requests do not write companions. Published updates re-read the source tip, and conditional target-version writes prevent a concurrent manual version from being superseded.
 
-Required Agent Card fields with no OpenAPI equivalent — `capabilities`, `skills`, `defaultInputModes`, and `defaultOutputModes` — must always be supplied explicitly in the extension.
+In the extension, you must explicitly supply the required Agent Card fields that have no OpenAPI equivalent: `capabilities`, `skills`, `defaultInputModes`, and `defaultOutputModes`.
+
+{registry} marks the companion artifact and its source OpenAPI artifact with `apicurio.a2a.openapi-agent-card.*` labels:
 
 .Provenance and sync labels
-The companion artifact and its source OpenAPI artifact are marked with `apicurio.a2a.openapi-agent-card.*` labels:
-
 [cols="2,3"]
 |===
 |Label |Meaning
@@ -499,8 +499,8 @@ If an artifact already exists with the same name as the companion (`<artifactId>
 
 Labels are editable provenance/navigation hints, never authorization grants. Owner-only access is checked independently on the companion. Generation provenance is stored atomically with each version; failure updating the source navigation link can be repaired on a subsequent unchanged-content synchronization. A manually edited version without generation provenance is preserved. Regeneration after manual changes requires an explicit user decision, not deletion of its hash label.
 
-[role="_additional-resources"]
-.Known limitations
+**Known limitations**
+
 * REST publication paths trigger generation: first published version, new published version, `ifExists=UPDATE`/`FIND_OR_CREATE_VERSION`, and publication of an edited draft. KafkaSQL REST requests journal both writes; replay itself does not generate an extra companion. Confluent-compatible APIs and read-only GitOps/KubernetesOps imports do not trigger generation.
 * Source and companion are separate artifacts, not one transaction. Companion errors leave the source intact; repeated optimistic conflicts are bounded and logged. A later publication retries from current source content.
 * Deleting the source OpenAPI artifact does not delete its generated companion Agent Card.

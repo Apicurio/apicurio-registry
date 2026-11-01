@@ -37,6 +37,19 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
+     * InnoDB reads from the transaction's snapshot by default (REPEATABLE READ); a locking read sees the
+     * latest committed row. It takes a shared lock, which concurrent losers of the same race can hold
+     * together, so they do not deadlock on each other. LOCK IN SHARE MODE is the form that every
+     * supported MySQL version accepts (FOR SHARE needs 8.0.1).
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentIdByHashLatestCommitted()
+     */
+    @Override
+    public String selectContentIdByHashLatestCommitted() {
+        return selectContentIdByHash() + " LOCK IN SHARE MODE";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
      */
     @Override

@@ -208,6 +208,16 @@ public interface SqlStatements {
     public String selectContentIdByHash();
 
     /**
+     * Like {@link #selectContentIdByHash()}, but sees the latest committed row even when the transaction
+     * reads from an older snapshot. Used after an insert lost a race with another transaction storing the
+     * same content, when the winner's row may have been committed after this transaction's snapshot.
+     * Databases that read the latest committed row by default use the plain statement.
+     */
+    default String selectContentIdByHashLatestCommitted() {
+        return selectContentIdByHash();
+    }
+
+    /**
      * A statement used to select artifact rules by artifactId.
      */
     public String selectArtifactRules();

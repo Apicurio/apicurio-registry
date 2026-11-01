@@ -574,15 +574,26 @@ public class SqlContentRepository {
     // ==================== CONTENT CREATION ====================
 
     /**
-     * Make sure the content exists in the database (try to insert it). Regardless of whether it already
-     * existed or not, return the contentId of the content in the DB.
+     * The hashes and serialized references of a piece of content, computed by
+     * {@link #hashContent} so that the CPU work does not run inside the transaction that stores it.
+     */
+    public record HashedContent(TypedContent content, String contentHash, String canonicalContentHash,
+            String serializedReferences, List<ArtifactReferenceDto> references) {
+    }
+
+    /**
+     * Compute the content hash, the canonical content hash and the serialized references of the content,
+     * without writing anything. Resolving references reads through {@code handles.withHandle}, which joins
+     * the caller's transaction when one is open. Call this before opening the transaction that stores the
+     * content whenever the content is known up front, so the hashing does not run while that transaction
+     * holds locks.
      *
      * @param artifactType The type of artifact
      * @param contentDto The content wrapper containing the content and references
      * @param isDraft Whether this is draft content
      * @param draftProductionMode When true and isDraft is true, use real content hashes instead of draft: prefix
      */
-    public Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft,
+    public HashedContent hashContent(String artifactType, ContentWrapperDto contentDto, boolean isDraft,
             boolean draftProductionMode) {
         List<ArtifactReferenceDto> references = contentDto.getReferences();
 
@@ -626,52 +637,61 @@ public class SqlContentRepository {
             serializedReferences = null;
         }
 
-        // Ensure the content is in the DB.
-        final String finalContentHash = contentHash;
-        final String finalCanonicalContentHash = canonicalContentHash;
-        final String finalSerializedReferences = serializedReferences;
-        final List<ArtifactReferenceDto> finalReferences = references;
+        return new HashedContent(content, contentHash, canonicalContentHash, serializedReferences,
+                references);
+    }
 
-        handles.withHandleNoException(handle -> {
-            // Look the hash up BEFORE allocating: nextContentIdRaw locks the shared contentId
-            // sequence row until commit, and every concurrent content write queues on that lock,
-            // so no extra round trip may run while it is held. A row inserted concurrently after
-            // this check is still handled below by insertContentIfAbsent / the PK-violation path.
-            boolean exists = contentIdFromHashRaw(handle, finalContentHash).isPresent();
-            // Always allocate so contentId allocation is unchanged from the insert-and-catch-duplicate
-            // behavior; the check only avoids a failing INSERT.
-            long contentId = sequenceRepository.nextContentIdRaw(handle);
-            if (exists) {
-                return null;
+    /**
+     * Make sure the content exists in the database (try to insert it), using the caller's handle so the
+     * insert shares the caller's transaction. Regardless of whether it already existed or not, return the
+     * contentId of the content in the DB.
+     */
+    public long ensureContentAndGetIdRaw(Handle handle, HashedContent prepared) {
+        // Look the hash up BEFORE allocating: nextContentIdRaw locks the shared contentId
+        // sequence row until commit, and every concurrent content write queues on that lock,
+        // so no extra round trip may run while it is held. A row inserted concurrently after
+        // this check is still handled below by insertContentIfAbsent / the PK-violation path.
+        Optional<Long> existing = contentIdFromHashRaw(handle, prepared.contentHash());
+        // Always allocate so contentId allocation is unchanged from the insert-and-catch-duplicate
+        // behavior; the check only avoids a failing INSERT.
+        long contentId = sequenceRepository.nextContentIdRaw(handle);
+        if (existing.isPresent()) {
+            return existing.get();
+        }
+        TypedContent content = prepared.content();
+        try {
+            int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())
+                    .bind(0, contentId)
+                    .bind(1, prepared.canonicalContentHash())
+                    .bind(2, prepared.contentHash())
+                    .bind(3, content.getContentType())
+                    .bind(4, content.getContent().bytes())
+                    .bind(5, prepared.serializedReferences())
+                    .execute();
+            if (inserted == 0) {
+                return contentIdAfterLostRace(handle, prepared.contentHash());
             }
-            try {
-                int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())
-                        .bind(0, contentId)
-                        .bind(1, finalCanonicalContentHash)
-                        .bind(2, finalContentHash)
-                        .bind(3, content.getContentType())
-                        .bind(4, content.getContent().bytes())
-                        .bind(5, finalSerializedReferences)
-                        .execute();
-                if (inserted == 0) {
-                    return null;
-                }
-            } catch (Exception e) {
-                if (sqlStatements.isPrimaryKeyViolation(e)) {
-                    log.debug("Content with content hash {} already exists: {}", finalContentHash, content);
-                    return null;
-                } else {
-                    throw e;
-                }
+        } catch (Exception e) {
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                log.debug("Content with content hash {} already exists: {}", prepared.contentHash(), content);
+                return contentIdAfterLostRace(handle, prepared.contentHash());
+            } else {
+                throw e;
             }
+        }
 
-            // If we get here, then the content was inserted and we need to insert the references.
-            insertReferencesRaw(handle, contentId, finalReferences);
-            return null;
-        });
+        // If we get here, then the content was inserted and we need to insert the references.
+        insertReferencesRaw(handle, contentId, prepared.references());
+        return contentId;
+    }
 
-        // Get the contentId using the unique contentHash.
-        Optional<Long> contentId = contentIdFromHash(contentHash);
-        return contentId.orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
+    /**
+     * Another transaction stored the same content between the existence check and the insert. This
+     * transaction may read from a snapshot older than that commit, so read the latest committed row.
+     */
+    private long contentIdAfterLostRace(Handle handle, String contentHash) {
+        return handle.createQuery(sqlStatements.selectContentIdByHashLatestCommitted()).bind(0, contentHash)
+                .mapTo(Long.class).findOne()
+                .orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
     }
 }

@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-Per-resource authorization controls access to individual groups and artifacts. For example, Alice can write artifacts in group `team-a` and read `shared`, but cannot see `team-b`. You define access in an access rules file, and {registry} applies the rules to every API, including search and list results.
+Per-resource authorization controls access to individual groups and artifacts. For example, Alice can write artifacts in group `team-a` and read `shared`, but cannot see `team-b`. You define the rules in a file, and {registry} applies them to every API, including search and list results.
 
 // con-resource-authorization-overview
 [id="resource-authorization-overview_{context}"]
@@ -15,7 +15,7 @@ Per-resource authorization controls access to individual groups and artifacts. F
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-Per-resource authorization adds a fine-grained layer on top of role-based access control (RBAC), so that you can restrict which groups and artifacts each user or role can read, write, or administer. {registry} evaluates the access rules for direct requests and applies them to search and list results.
+Per-resource authorization adds a fine-grained layer on top of role-based access control (RBAC), so that you can restrict which groups and artifacts each user or role can read, write, or administer. {registry} applies the rules to direct requests and to search and list results.
 
 {registry} applies two layers of authorization:
 

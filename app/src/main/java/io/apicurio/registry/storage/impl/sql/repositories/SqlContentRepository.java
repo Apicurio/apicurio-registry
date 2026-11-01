@@ -669,20 +669,20 @@ public class SqlContentRepository {
         // so no extra round trip may run while it is held. A row inserted concurrently after
         // this check is still handled below by insertContentIfAbsent / the PK-violation path.
         Optional<Long> existing = contentIdFromHashRaw(handle, prepared.contentHash());
+        // Always allocate, also on a hit: contentIds must stay the same on every node that replays the
+        // same journal (KafkaSQL), including nodes running an older version during a rolling upgrade.
+        long contentId = sequenceRepository.nextContentIdRaw(handle);
         if (existing.isPresent()) {
             // The row may be an orphan that the cleanup is about to delete. Lock it so it stays until this
-            // transaction commits its version. The lock is taken only on a hit: on MySQL a locking read of
-            // a missing hash takes a gap lock, and two writers of new content would then deadlock on their
-            // inserts. If the row went away meanwhile, the insert below stores it again.
+            // transaction commits its version. The lock comes after the sequence, the same order as the
+            // insert below, and only on a hit: on MySQL a locking read of a missing hash takes a gap lock,
+            // and two writers of new content would then deadlock on their inserts. If the row went away
+            // meanwhile, the insert below stores it again.
             existing = lockedContentIdFromHashRaw(handle, prepared.contentHash());
+            if (existing.isPresent()) {
+                return existing;
+            }
         }
-        if (existing.isPresent()) {
-            // No id is allocated on a hit: allocating one would hold the contentId sequence lock until
-            // commit and queue every concurrent content write behind this one, and on MySQL it would make
-            // this transaction wait for the sequence while it holds a lock on the content row.
-            return existing;
-        }
-        long contentId = sequenceRepository.nextContentIdRaw(handle);
         TypedContent content = prepared.content();
         try {
             int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())

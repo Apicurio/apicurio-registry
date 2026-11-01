@@ -1,6 +1,7 @@
 package io.apicurio.registry.storage.impl.sql;
 
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
@@ -78,8 +79,12 @@ public class OrphanedContentReaperRaceTest {
     }
 
     private static ContentWrapperDto wrap(String json) {
+        return wrap(json, Collections.emptyList());
+    }
+
+    private static ContentWrapperDto wrap(String json, List<ArtifactReferenceDto> references) {
         return ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
-                .content(ContentHandle.create(json)).build();
+                .content(ContentHandle.create(json)).references(references).build();
     }
 
     /** Submits the action to the other thread, with a request context, so it runs in its own transaction. */
@@ -273,6 +278,49 @@ public class OrphanedContentReaperRaceTest {
         Assertions.assertEquals(orphanedContentId.get(), created.getContentId());
         Assertions.assertEquals(reusedContent,
                 sql.getContentById(created.getContentId()).getContent().content());
+    }
+
+    /** The references of an orphaned content row must survive when a write reuses the row. */
+    @Test
+    public void testReusedOrphanedContentKeepsItsReferences() throws Exception {
+        String targetArtifactId = createArtifactWithFirstVersion(openApi("target-" + UUID.randomUUID()));
+        List<ArtifactReferenceDto> references = List.of(ArtifactReferenceDto.builder().groupId(GROUP_ID)
+                .artifactId(targetArtifactId).version("1").name("target.json").build());
+        String reusedContent = openApi("reused-with-refs-" + UUID.randomUUID());
+        String donorArtifactId = "reaper-race-" + UUID.randomUUID();
+        sql.createArtifact(GROUP_ID, donorArtifactId, ArtifactType.OPENAPI, null, "1",
+                wrap(reusedContent, references), null, Collections.emptyList(), false, false, null);
+        sql.deleteArtifact(GROUP_ID, donorArtifactId);
+        runReaperAfterEveryContentInsert();
+
+        ArtifactVersionMetaDataDto created = sql.createArtifact(GROUP_ID, "reaper-race-" + UUID.randomUUID(),
+                ArtifactType.OPENAPI, null, "1", wrap(reusedContent, references), null,
+                Collections.emptyList(), false, false, null).getValue();
+        finishReaperRuns(false);
+
+        Assertions.assertEquals(List.of(created.getContentId()),
+                sql.getContentIdsReferencingArtifactVersion(GROUP_ID, targetArtifactId, "1"));
+    }
+
+    /** The cleanup no longer deletes references in a statement of its own, so the cascade must do it. */
+    @Test
+    public void testCleanupRemovesTheReferencesOfDeletedOrphanedContent() {
+        String targetArtifactId = createArtifactWithFirstVersion(openApi("target-" + UUID.randomUUID()));
+        List<ArtifactReferenceDto> references = List.of(ArtifactReferenceDto.builder().groupId(GROUP_ID)
+                .artifactId(targetArtifactId).version("1").name("target.json").build());
+        String orphanedContent = openApi("orphaned-with-refs-" + UUID.randomUUID());
+        String donorArtifactId = "reaper-race-" + UUID.randomUUID();
+        sql.createArtifact(GROUP_ID, donorArtifactId, ArtifactType.OPENAPI, null, "1",
+                wrap(orphanedContent, references), null, Collections.emptyList(), false, false, null);
+        Assertions.assertEquals(1, sql.getContentIdsReferencingArtifactVersion(GROUP_ID, targetArtifactId, "1")
+                .size());
+        sql.deleteArtifact(GROUP_ID, donorArtifactId);
+
+        sql.deleteAllOrphanedContent();
+
+        Assertions.assertEquals(Optional.empty(), contentIdOf(orphanedContent));
+        Assertions.assertEquals(List.of(),
+                sql.getContentIdsReferencingArtifactVersion(GROUP_ID, targetArtifactId, "1"));
     }
 
     @Test

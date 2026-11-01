@@ -289,13 +289,14 @@ public class SqlContentRepository {
     }
 
     /**
-     * Delete all orphaned content.
+     * Delete all orphaned content. The references of a content row go with it through the ON DELETE CASCADE
+     * of {@code content_references}. Deleting them in a statement of their own first would let a concurrent
+     * write reuse the content row in between and keep it without its references.
      */
     public void deleteAllOrphanedContentRaw(Handle handle) {
         log.debug("Deleting all orphaned content");
-        int references = handle.createUpdate(sqlStatements.deleteOrphanedContentReferences()).execute();
         int contents = handle.createUpdate(sqlStatements.deleteAllOrphanedContent()).execute();
-        log.debug("Deleted {} orphaned content references and {} orphaned content rows", references, contents);
+        log.debug("Deleted {} orphaned content rows", contents);
     }
 
     /**
@@ -705,8 +706,7 @@ public class SqlContentRepository {
      * transaction may read from a snapshot older than that commit, so read the latest committed row.
      */
     private long contentIdAfterLostRace(Handle handle, String contentHash) {
-        return handle.createQuery(sqlStatements.selectContentIdByHashAndLock()).bind(0, contentHash)
-                .mapTo(Long.class).findOne()
+        return lockedContentIdFromHashRaw(handle, contentHash)
                 .orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
     }
 }

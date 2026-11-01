@@ -37,6 +37,17 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
         return error.getMessage().contains("conflicted with the FOREIGN KEY constraint");
     }
 
+    /**
+     * HOLDLOCK keeps a shared lock until the transaction ends, so a DELETE of the row waits, and
+     * concurrent writers of the same content can hold it together.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentIdByHashAndLock()
+     */
+    @Override
+    public String selectContentIdByHashAndLock() {
+        return "SELECT c.contentId FROM content c WITH (HOLDLOCK, ROWLOCK) WHERE c.contentHash = ?";
+    }
+
     @Override
     public String upsertBranch() {
         return """

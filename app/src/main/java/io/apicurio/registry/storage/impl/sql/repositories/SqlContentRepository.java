@@ -168,6 +168,14 @@ public class SqlContentRepository {
     }
 
     /**
+     * Get contentId from hash and keep the content row from being deleted until the transaction ends.
+     */
+    public Optional<Long> lockedContentIdFromHashRaw(Handle handle, String contentHash) {
+        return handle.createQuery(sqlStatements.selectContentIdByHashAndLock()).bind(0, contentHash)
+                .mapTo(Long.class).findOne();
+    }
+
+    /**
      * Insert content into the database.
      */
     public void ensureContent(Handle handle, long contentId, TypedContent content, String contentHash,
@@ -652,6 +660,13 @@ public class SqlContentRepository {
         // so no extra round trip may run while it is held. A row inserted concurrently after
         // this check is still handled below by insertContentIfAbsent / the PK-violation path.
         Optional<Long> existing = contentIdFromHashRaw(handle, prepared.contentHash());
+        if (existing.isPresent()) {
+            // The row may be an orphan that the cleanup is about to delete. Lock it so it stays until this
+            // transaction commits its version. The lock is taken only on a hit: on MySQL a locking read of
+            // a missing hash takes a gap lock, and two writers of new content would then deadlock on their
+            // inserts. If the row went away meanwhile, the insert below stores it again.
+            existing = lockedContentIdFromHashRaw(handle, prepared.contentHash());
+        }
         // Always allocate so contentId allocation is unchanged from the insert-and-catch-duplicate
         // behavior; the check only avoids a failing INSERT.
         long contentId = sequenceRepository.nextContentIdRaw(handle);
@@ -690,7 +705,7 @@ public class SqlContentRepository {
      * transaction may read from a snapshot older than that commit, so read the latest committed row.
      */
     private long contentIdAfterLostRace(Handle handle, String contentHash) {
-        return handle.createQuery(sqlStatements.selectContentIdByHashLatestCommitted()).bind(0, contentHash)
+        return handle.createQuery(sqlStatements.selectContentIdByHashAndLock()).bind(0, contentHash)
                 .mapTo(Long.class).findOne()
                 .orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
     }

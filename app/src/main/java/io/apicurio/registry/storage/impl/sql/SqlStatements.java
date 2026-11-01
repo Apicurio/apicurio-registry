@@ -208,13 +208,15 @@ public interface SqlStatements {
     public String selectContentIdByHash();
 
     /**
-     * Like {@link #selectContentIdByHash()}, but sees the latest committed row even when the transaction
-     * reads from an older snapshot. Used after an insert lost a race with another transaction storing the
-     * same content, when the winner's row may have been committed after this transaction's snapshot.
-     * Databases that read the latest committed row by default use the plain statement.
+     * Like {@link #selectContentIdByHash()}, but takes a lock on the row that is held until the transaction
+     * ends, and sees the latest committed row even when the transaction reads from an older snapshot. The
+     * lock keeps the orphaned content cleanup from deleting a content row that the transaction is about to
+     * reference from a version. It is also the read to use after an insert lost a race with another
+     * transaction storing the same content, because the winner's row may have been committed after this
+     * transaction's snapshot. The default is the H2 form, the other dialects override it.
      */
-    default String selectContentIdByHashLatestCommitted() {
-        return selectContentIdByHash();
+    default String selectContentIdByHashAndLock() {
+        return selectContentIdByHash() + " FOR UPDATE";
     }
 
     /**

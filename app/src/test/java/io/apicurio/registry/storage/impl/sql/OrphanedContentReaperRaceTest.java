@@ -140,12 +140,20 @@ public class OrphanedContentReaperRaceTest {
      * exactly one ran. A run that was blocked behind the write may fail once it proceeds, in one of two ways
      * the database uses to protect the write: it refuses to delete a row that a version now references
      * (integrity constraint violation), or it picks the cleanup as the victim of a deadlock with the write
-     * (MySQL, SQL Server). Those are the only failures accepted; the tests assert on the outcome of the
-     * write.
+     * (MySQL, SQL Server), or it gives up waiting for the row lock the write holds (H2). Those are the
+     * only failures accepted; the tests assert on the outcome of the write.
      */
     private void finishReaperRuns() throws Exception {
+        finishReaperRuns(!cleanupBlocksOnUncommittedRows());
+    }
+
+    /**
+     * @param cleanupMustHaveFinishedFirst true when the cleanup is expected to complete while the write is
+     *            still open, which proves it really ran inside the window; false when it waits for a lock
+     */
+    private void finishReaperRuns(boolean cleanupMustHaveFinishedFirst) throws Exception {
         Assertions.assertEquals(1, reaperRuns.size(), "the cleanup must have run once per content insert");
-        if (!cleanupBlocksOnUncommittedRows()) {
+        if (cleanupMustHaveFinishedFirst) {
             Assertions.assertEquals(List.of(true), cleanupFinishedWithinGrace,
                     "the cleanup must have run before the write continued, or the test proves nothing");
         }
@@ -161,14 +169,15 @@ public class OrphanedContentReaperRaceTest {
     }
 
     /**
-     * SQLState class 23 is an integrity constraint violation and 40001 is a deadlock victim (a serialization
-     * failure), in every database the registry supports.
+     * SQLState class 23 is an integrity constraint violation, 40001 is a deadlock victim (a serialization
+     * failure) and HYT00 is the H2 lock timeout.
      */
     private static boolean isRefusedInFavorOfTheWrite(Throwable failure) {
         for (Throwable cause = failure; cause != null; cause = cause.getCause()) {
             if (cause instanceof SQLException sqlException && sqlException.getSQLState() != null
                     && (sqlException.getSQLState().startsWith("23")
-                            || sqlException.getSQLState().equals("40001"))) {
+                            || sqlException.getSQLState().equals("40001")
+                            || sqlException.getSQLState().equals("HYT00"))) {
                 return true;
             }
         }
@@ -241,6 +250,29 @@ public class OrphanedContentReaperRaceTest {
 
         Assertions.assertEquals(replacement,
                 sql.getArtifactVersionContent(GROUP_ID, artifactId, "1").getContent().content());
+    }
+
+    /**
+     * The content already exists as an orphan: its only version was deleted and the cleanup has not run
+     * yet. The new write reuses that row, so the row has to stay locked until the version references it.
+     */
+    @Test
+    public void testReusedOrphanedContentSurvivesTheCleanup() throws Exception {
+        String reusedContent = openApi("reused-" + UUID.randomUUID());
+        String donorArtifactId = createArtifactWithFirstVersion(reusedContent);
+        sql.deleteArtifact(GROUP_ID, donorArtifactId);
+        Optional<Long> orphanedContentId = contentIdOf(reusedContent);
+        Assertions.assertTrue(orphanedContentId.isPresent(), "the content must exist as an orphan");
+        String artifactId = "reaper-race-" + UUID.randomUUID();
+        runReaperAfterEveryContentInsert();
+
+        ArtifactVersionMetaDataDto created = sql.createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
+                null, "1", wrap(reusedContent), null, Collections.emptyList(), false, false, null).getValue();
+        finishReaperRuns(false);
+
+        Assertions.assertEquals(orphanedContentId.get(), created.getContentId());
+        Assertions.assertEquals(reusedContent,
+                sql.getContentById(created.getContentId()).getContent().content());
     }
 
     @Test

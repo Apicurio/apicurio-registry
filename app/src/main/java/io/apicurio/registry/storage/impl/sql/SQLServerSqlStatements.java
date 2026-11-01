@@ -38,14 +38,15 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     }
 
     /**
-     * HOLDLOCK keeps a shared lock until the transaction ends, so a DELETE of the row waits, and
-     * concurrent writers of the same content can hold it together.
+     * UPDLOCK holds an update lock on the row until the transaction ends, so a DELETE of the row waits.
+     * Unlike HOLDLOCK it takes no key-range lock when the row is missing, which two writers of the same
+     * new content could deadlock on.
      *
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentIdByHashAndLock()
      */
     @Override
     public String selectContentIdByHashAndLock() {
-        return "SELECT c.contentId FROM content c WITH (HOLDLOCK, ROWLOCK) WHERE c.contentHash = ?";
+        return "SELECT c.contentId FROM content c WITH (UPDLOCK, ROWLOCK) WHERE c.contentHash = ?";
     }
 
     @Override

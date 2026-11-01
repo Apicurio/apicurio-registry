@@ -9,6 +9,7 @@ import io.apicurio.registry.storage.impl.sql.jdb.Handle;
 import io.apicurio.registry.storage.impl.sql.repositories.SqlContentRepository;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.VersionState;
 import io.quarkus.arc.Arc;
 import io.quarkus.arc.ClientProxy;
 import io.quarkus.arc.ManagedContext;
@@ -69,9 +70,13 @@ public class OrphanedContentReaperRaceTest {
 
     @AfterEach
     void tearDown() throws InterruptedException {
-        otherThread.shutdownNow();
-        otherThread.awaitTermination(OTHER_THREAD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        sql.contentRepository = originalContentRepository;
+        try {
+            otherThread.shutdownNow();
+            Assertions.assertTrue(otherThread.awaitTermination(OTHER_THREAD_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    "the other thread must have finished");
+        } finally {
+            sql.contentRepository = originalContentRepository;
+        }
     }
 
     private static String openApi(String title) {
@@ -153,8 +158,9 @@ public class OrphanedContentReaperRaceTest {
     }
 
     /**
-     * @param cleanupMustHaveFinishedFirst true when the cleanup is expected to complete while the write is
-     *            still open, which proves it really ran inside the window; false when it waits for a lock
+     * @param cleanupMustHaveFinishedFirst true when the cleanup is expected to complete without error while
+     *            the write is still open, which proves it really ran inside the window; false when it waits
+     *            for a lock and may then be refused
      */
     private void finishReaperRuns(boolean cleanupMustHaveFinishedFirst) throws Exception {
         Assertions.assertEquals(1, reaperRuns.size(), "the cleanup must have run once per content insert");
@@ -166,7 +172,7 @@ public class OrphanedContentReaperRaceTest {
             try {
                 run.get(OTHER_THREAD_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             } catch (ExecutionException e) {
-                if (!isRefusedInFavorOfTheWrite(e)) {
+                if (cleanupMustHaveFinishedFirst || !isRefusedInFavorOfTheWrite(e)) {
                     throw e;
                 }
             }
@@ -189,8 +195,12 @@ public class OrphanedContentReaperRaceTest {
         return false;
     }
 
+    private static String newArtifactId() {
+        return "reaper-race-" + UUID.randomUUID();
+    }
+
     private String createArtifactWithFirstVersion(String firstContent) {
-        String artifactId = "reaper-race-" + UUID.randomUUID();
+        String artifactId = newArtifactId();
         sql.createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, null, null, wrap(firstContent), null,
                 Collections.emptyList(), false, false, null);
         return artifactId;
@@ -214,7 +224,7 @@ public class OrphanedContentReaperRaceTest {
 
     @Test
     public void testCreateArtifactWithFirstVersion() throws Exception {
-        String artifactId = "reaper-race-" + UUID.randomUUID();
+        String artifactId = newArtifactId();
         String content = openApi("only-" + UUID.randomUUID());
         runReaperAfterEveryContentInsert();
 
@@ -268,7 +278,7 @@ public class OrphanedContentReaperRaceTest {
         sql.deleteArtifact(GROUP_ID, donorArtifactId);
         Optional<Long> orphanedContentId = contentIdOf(reusedContent);
         Assertions.assertTrue(orphanedContentId.isPresent(), "the content must exist as an orphan");
-        String artifactId = "reaper-race-" + UUID.randomUUID();
+        String artifactId = newArtifactId();
         runReaperAfterEveryContentInsert();
 
         ArtifactVersionMetaDataDto created = sql.createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI,
@@ -280,6 +290,23 @@ public class OrphanedContentReaperRaceTest {
                 sql.getContentById(created.getContentId()).getContent().content());
     }
 
+    @Test
+    public void testPublishDraftVersion() throws Exception {
+        String artifactId = createArtifactWithFirstVersion(openApi("first-" + UUID.randomUUID()));
+        String draftContent = openApi("draft-" + UUID.randomUUID());
+        sql.createArtifactVersion(GROUP_ID, artifactId, "2", ArtifactType.OPENAPI, wrap(draftContent), null,
+                Collections.emptyList(), true, false, null);
+        runReaperAfterEveryContentInsert();
+
+        sql.updateArtifactVersionState(GROUP_ID, artifactId, "2", VersionState.ENABLED, false);
+        finishReaperRuns();
+
+        ArtifactVersionMetaDataDto published = sql.getArtifactVersionMetaData(GROUP_ID, artifactId, "2");
+        Assertions.assertEquals(VersionState.ENABLED, published.getState());
+        Assertions.assertEquals(draftContent,
+                sql.getContentById(published.getContentId()).getContent().content());
+    }
+
     /** The references of an orphaned content row must survive when a write reuses the row. */
     @Test
     public void testReusedOrphanedContentKeepsItsReferences() throws Exception {
@@ -287,13 +314,13 @@ public class OrphanedContentReaperRaceTest {
         List<ArtifactReferenceDto> references = List.of(ArtifactReferenceDto.builder().groupId(GROUP_ID)
                 .artifactId(targetArtifactId).version("1").name("target.json").build());
         String reusedContent = openApi("reused-with-refs-" + UUID.randomUUID());
-        String donorArtifactId = "reaper-race-" + UUID.randomUUID();
+        String donorArtifactId = newArtifactId();
         sql.createArtifact(GROUP_ID, donorArtifactId, ArtifactType.OPENAPI, null, "1",
                 wrap(reusedContent, references), null, Collections.emptyList(), false, false, null);
         sql.deleteArtifact(GROUP_ID, donorArtifactId);
         runReaperAfterEveryContentInsert();
 
-        ArtifactVersionMetaDataDto created = sql.createArtifact(GROUP_ID, "reaper-race-" + UUID.randomUUID(),
+        ArtifactVersionMetaDataDto created = sql.createArtifact(GROUP_ID, newArtifactId(),
                 ArtifactType.OPENAPI, null, "1", wrap(reusedContent, references), null,
                 Collections.emptyList(), false, false, null).getValue();
         finishReaperRuns(false);
@@ -309,7 +336,7 @@ public class OrphanedContentReaperRaceTest {
         List<ArtifactReferenceDto> references = List.of(ArtifactReferenceDto.builder().groupId(GROUP_ID)
                 .artifactId(targetArtifactId).version("1").name("target.json").build());
         String orphanedContent = openApi("orphaned-with-refs-" + UUID.randomUUID());
-        String donorArtifactId = "reaper-race-" + UUID.randomUUID();
+        String donorArtifactId = newArtifactId();
         sql.createArtifact(GROUP_ID, donorArtifactId, ArtifactType.OPENAPI, null, "1",
                 wrap(orphanedContent, references), null, Collections.emptyList(), false, false, null);
         Assertions.assertEquals(1, sql.getContentIdsReferencingArtifactVersion(GROUP_ID, targetArtifactId, "1")
@@ -362,15 +389,15 @@ public class OrphanedContentReaperRaceTest {
 
         SqlContentRepository spy = Mockito.spy(originalContentRepository);
         AtomicBoolean armed = new AtomicBoolean(true);
-        ArtifactVersionMetaDataDto[] winner = new ArtifactVersionMetaDataDto[1];
+        AtomicReference<ArtifactVersionMetaDataDto> winner = new AtomicReference<>();
         AtomicReference<Object> firstLookup = new AtomicReference<>();
         Mockito.doAnswer(invocation -> {
             Object existing = invocation.callRealMethod();
             if (armed.compareAndSet(true, false)) {
                 firstLookup.set(existing);
-                runOnOtherThread(() -> winner[0] = sql.createArtifact(GROUP_ID, otherArtifactId,
+                runOnOtherThread(() -> winner.set(sql.createArtifact(GROUP_ID, otherArtifactId,
                         ArtifactType.OPENAPI, null, "1", wrap(sharedContent), null, Collections.emptyList(),
-                        false, false, null).getValue());
+                        false, false, null).getValue()));
             }
             return existing;
         }).when(spy).contentIdFromHashRaw(any(Handle.class), any());
@@ -381,8 +408,8 @@ public class OrphanedContentReaperRaceTest {
 
         Assertions.assertEquals(Optional.empty(), firstLookup.get(),
                 "the existence check must have run before the other transaction committed");
-        Assertions.assertNotNull(winner[0], "the other transaction must have stored the content");
-        Assertions.assertEquals(winner[0].getContentId(), created.getContentId());
+        Assertions.assertNotNull(winner.get(), "the other transaction must have stored the content");
+        Assertions.assertEquals(winner.get().getContentId(), created.getContentId());
         Assertions.assertEquals(sharedContent,
                 sql.getContentById(created.getContentId()).getContent().content());
     }

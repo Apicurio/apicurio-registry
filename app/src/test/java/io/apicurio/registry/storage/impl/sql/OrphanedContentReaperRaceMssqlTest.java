@@ -13,6 +13,6 @@ import org.junit.jupiter.api.condition.OS;
 @Tag(ApicurioTestTags.SLOW)
 @TestProfile(MssqlTestProfile.class)
 @Typed(OrphanedContentReaperRaceMssqlTest.class)
-@DisabledOnOs(OS.MAC)
+@DisabledOnOs(value = OS.MAC, disabledReason = "the SQL Server container image crashes on Apple silicon")
 public class OrphanedContentReaperRaceMssqlTest extends OrphanedContentReaperRaceTest {
 }

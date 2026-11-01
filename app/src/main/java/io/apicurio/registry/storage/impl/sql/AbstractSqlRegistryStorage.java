@@ -746,11 +746,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 metaData, owner, createdOn, contentId, branches, isDraft);
     }
 
-    /**
-     * Hashes the content. Call it before opening the transaction that stores the content whenever the
-     * content is known up front, so the hashing does not run while that transaction holds locks, and store
-     * it with {@link SqlContentRepository#ensureContentAndGetIdRaw} on that transaction's handle.
-     */
+    /** Hashes the content before the transaction opens; see {@link SqlContentRepository#hashContent}. */
     private SqlContentRepository.HashedContent hashContent(String artifactType, ContentWrapperDto contentDto,
             boolean isDraft) {
         return contentRepository.hashContent(artifactType, contentDto, isDraft,
@@ -1262,8 +1258,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         SqlContentRepository.HashedContent preparedContent = hashContent(artifactType, content, true);
 
         // Update the version content and its structured-content index in a single transaction so the
-        // index can never be left pointing at a previous version's content. The new content is inserted in
-        // the same transaction, so the orphaned content cleanup cannot delete it first (#9777).
+        // index can never be left pointing at a previous version's content. The content goes in the same
+        // transaction (see createArtifactVersion). No globalId sequence is allocated here.
         handles.withHandleNoException(handle -> {
             lockArtifactForVersionWrite(handle, groupId, artifactId);
             long contentId = contentRepository.ensureContentAndGetIdRaw(handle, preparedContent);

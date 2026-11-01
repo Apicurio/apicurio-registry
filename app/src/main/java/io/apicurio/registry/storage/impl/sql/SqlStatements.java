@@ -213,7 +213,8 @@ public interface SqlStatements {
      * lock keeps the orphaned content cleanup from deleting a content row that the transaction is about to
      * reference from a version. It is also the read to use after an insert lost a race with another
      * transaction storing the same content, because the winner's row may have been committed after this
-     * transaction's snapshot. The default is the H2 form, the other dialects override it.
+     * transaction's snapshot. This assumes the default isolation (READ COMMITTED, REPEATABLE READ on
+     * MySQL). The default is the H2 form, the other dialects override it.
      */
     default String selectContentIdByHashAndLock() {
         return selectContentIdByHash() + " FOR UPDATE";
@@ -730,8 +731,6 @@ public interface SqlStatements {
     public String selectStaleConfigProperties();
 
     public String deleteAllContentReferences();
-
-    public String deleteOrphanedContentReferences();
 
     /*
      * The next statements relate to comments.

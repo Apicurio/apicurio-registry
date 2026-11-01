@@ -656,6 +656,14 @@ public class SqlContentRepository {
      * contentId of the content in the DB.
      */
     public long ensureContentAndGetIdRaw(Handle handle, HashedContent prepared) {
+        // A row that blocks the insert can be an orphan that the cleanup deletes before it is read back.
+        // Nothing stands in the way of storing the content then, so try once more.
+        return tryEnsureContentRaw(handle, prepared).or(() -> tryEnsureContentRaw(handle, prepared))
+                .orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
+    }
+
+    /** One attempt of {@link #ensureContentAndGetIdRaw}; empty when the conflicting row vanished. */
+    private Optional<Long> tryEnsureContentRaw(Handle handle, HashedContent prepared) {
         // Look the hash up BEFORE allocating: nextContentIdRaw locks the shared contentId
         // sequence row until commit, and every concurrent content write queues on that lock,
         // so no extra round trip may run while it is held. A row inserted concurrently after
@@ -668,12 +676,13 @@ public class SqlContentRepository {
             // inserts. If the row went away meanwhile, the insert below stores it again.
             existing = lockedContentIdFromHashRaw(handle, prepared.contentHash());
         }
-        // Always allocate so contentId allocation is unchanged from the insert-and-catch-duplicate
-        // behavior; the check only avoids a failing INSERT.
-        long contentId = sequenceRepository.nextContentIdRaw(handle);
         if (existing.isPresent()) {
-            return existing.get();
+            // No id is allocated on a hit: allocating one would hold the contentId sequence lock until
+            // commit and queue every concurrent content write behind this one, and on MySQL it would make
+            // this transaction wait for the sequence while it holds a lock on the content row.
+            return existing;
         }
+        long contentId = sequenceRepository.nextContentIdRaw(handle);
         TypedContent content = prepared.content();
         try {
             int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())
@@ -698,15 +707,14 @@ public class SqlContentRepository {
 
         // If we get here, then the content was inserted and we need to insert the references.
         insertReferencesRaw(handle, contentId, prepared.references());
-        return contentId;
+        return Optional.of(contentId);
     }
 
     /**
      * Another transaction stored the same content between the existence check and the insert. This
      * transaction may read from a snapshot older than that commit, so read the latest committed row.
      */
-    private long contentIdAfterLostRace(Handle handle, String contentHash) {
-        return lockedContentIdFromHashRaw(handle, contentHash)
-                .orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
+    private Optional<Long> contentIdAfterLostRace(Handle handle, String contentHash) {
+        return lockedContentIdFromHashRaw(handle, contentHash);
     }
 }

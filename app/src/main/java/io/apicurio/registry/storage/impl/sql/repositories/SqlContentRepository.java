@@ -661,8 +661,8 @@ public class SqlContentRepository {
         // so no extra round trip may run while it is held. A row inserted concurrently after
         // this check is still handled below by insertContentIfAbsent / the PK-violation path.
         boolean exists = contentIdFromHashRaw(handle, prepared.contentHash()).isPresent();
-        // Always allocate, also on a hit: contentIds must stay the same on every node that replays the
-        // same journal (KafkaSQL), including nodes running an older version during a rolling upgrade.
+        // Always allocate, also on a hit, as this code always did, so the contentId sequence advances the same
+        // way for every write that reaches this point on every node that replays the same journal (KafkaSQL).
         long contentId = sequenceRepository.nextContentIdRaw(handle);
         if (exists) {
             // The row may be an orphan that the cleanup is about to delete. Lock it so it stays until this

@@ -17,6 +17,19 @@ import java.util.UUID;
 class OrphanedContentSqlStatementsTest {
 
     @Test
+    void testLockingContentIdLookupPerDialect() {
+        String base = "SELECT c.contentId FROM content c WHERE c.contentHash = ?";
+        Assertions.assertEquals(base + " FOR UPDATE", new H2SqlStatements().selectContentIdByHashAndLock());
+        Assertions.assertEquals(base + " FOR KEY SHARE",
+                new PostgreSQLSqlStatements().selectContentIdByHashAndLock());
+        Assertions.assertEquals(base + " LOCK IN SHARE MODE",
+                new MySQLSqlStatements().selectContentIdByHashAndLock());
+        Assertions.assertEquals(
+                "SELECT c.contentId FROM content c WITH (UPDLOCK, ROWLOCK) WHERE c.contentHash = ?",
+                new SQLServerSqlStatements().selectContentIdByHashAndLock());
+    }
+
+    @Test
     void testCommonDeleteAllOrphanedContentCorrelatesWithOuterTable() {
         String sql = new H2SqlStatements().deleteAllOrphanedContent();
         Assertions.assertTrue(sql.contains("v.contentId = c.contentId"), sql);

@@ -656,33 +656,40 @@ public class SqlContentRepository {
      * contentId of the content in the DB.
      */
     public long ensureContentAndGetIdRaw(Handle handle, HashedContent prepared) {
-        // A row that blocks the insert can be an orphan that the cleanup deletes before it is read back.
-        // Nothing stands in the way of storing the content then, so try once more.
-        return tryEnsureContentRaw(handle, prepared).or(() -> tryEnsureContentRaw(handle, prepared))
-                .orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
-    }
-
-    /** One attempt of {@link #ensureContentAndGetIdRaw}; empty when the conflicting row vanished. */
-    private Optional<Long> tryEnsureContentRaw(Handle handle, HashedContent prepared) {
         // Look the hash up BEFORE allocating: nextContentIdRaw locks the shared contentId
         // sequence row until commit, and every concurrent content write queues on that lock,
         // so no extra round trip may run while it is held. A row inserted concurrently after
         // this check is still handled below by insertContentIfAbsent / the PK-violation path.
-        Optional<Long> existing = contentIdFromHashRaw(handle, prepared.contentHash());
+        boolean exists = contentIdFromHashRaw(handle, prepared.contentHash()).isPresent();
         // Always allocate, also on a hit: contentIds must stay the same on every node that replays the
         // same journal (KafkaSQL), including nodes running an older version during a rolling upgrade.
         long contentId = sequenceRepository.nextContentIdRaw(handle);
-        if (existing.isPresent()) {
+        if (exists) {
             // The row may be an orphan that the cleanup is about to delete. Lock it so it stays until this
-            // transaction commits its version. The lock comes after the sequence, the same order as the
-            // insert below, and only on a hit: on MySQL a locking read of a missing hash takes a gap lock,
-            // and two writers of new content would then deadlock on their inserts. If the row went away
-            // meanwhile, the insert below stores it again.
-            existing = lockedContentIdFromHashRaw(handle, prepared.contentHash());
-            if (existing.isPresent()) {
-                return existing;
+            // transaction commits its version. The lock comes after the sequence, the same order the insert
+            // below takes them in; locking the row first could deadlock with a writer that holds the
+            // sequence and waits for a lock the cleanup holds. The lock is taken only on a hit: on MySQL a
+            // locking read of a missing hash takes a gap lock, and two writers of new content would then
+            // deadlock on their inserts.
+            Optional<Long> locked = lockedContentIdFromHashRaw(handle, prepared.contentHash());
+            if (locked.isPresent()) {
+                return locked.get();
             }
+            // The cleanup deleted the row meanwhile, so store the content again.
         }
+        // A row that blocks the insert can be an orphan that the cleanup deletes before it is read back.
+        // Nothing stands in the way of storing the content then, so insert once more with the same id.
+        return insertContentRaw(handle, contentId, prepared)
+                .or(() -> insertContentRaw(handle, contentId, prepared))
+                .orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
+    }
+
+    /**
+     * Insert the content and its references. When another transaction stored the same content first, return
+     * the id of its row instead, read with a locking read because this transaction may read from a snapshot
+     * older than that commit. Empty when that row is gone again.
+     */
+    private Optional<Long> insertContentRaw(Handle handle, long contentId, HashedContent prepared) {
         TypedContent content = prepared.content();
         try {
             int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())
@@ -694,12 +701,12 @@ public class SqlContentRepository {
                     .bind(5, prepared.serializedReferences())
                     .execute();
             if (inserted == 0) {
-                return contentIdAfterLostRace(handle, prepared.contentHash());
+                return lockedContentIdFromHashRaw(handle, prepared.contentHash());
             }
         } catch (Exception e) {
             if (sqlStatements.isPrimaryKeyViolation(e)) {
                 log.debug("Content with content hash {} already exists: {}", prepared.contentHash(), content);
-                return contentIdAfterLostRace(handle, prepared.contentHash());
+                return lockedContentIdFromHashRaw(handle, prepared.contentHash());
             } else {
                 throw e;
             }
@@ -708,13 +715,5 @@ public class SqlContentRepository {
         // If we get here, then the content was inserted and we need to insert the references.
         insertReferencesRaw(handle, contentId, prepared.references());
         return Optional.of(contentId);
-    }
-
-    /**
-     * Another transaction stored the same content between the existence check and the insert. This
-     * transaction may read from a snapshot older than that commit, so read the latest committed row.
-     */
-    private Optional<Long> contentIdAfterLostRace(Handle handle, String contentHash) {
-        return lockedContentIdFromHashRaw(handle, contentHash);
     }
 }

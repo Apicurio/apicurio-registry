@@ -1259,7 +1259,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         // Update the version content and its structured-content index in a single transaction so the
         // index can never be left pointing at a previous version's content. The content goes in the same
-        // transaction (see createArtifactVersion). No globalId sequence is allocated here.
+        // transaction (see createArtifactVersion); no globalId is allocated here.
         handles.withHandleNoException(handle -> {
             lockArtifactForVersionWrite(handle, groupId, artifactId);
             long contentId = contentRepository.ensureContentAndGetIdRaw(handle, preparedContent);

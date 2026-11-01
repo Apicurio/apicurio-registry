@@ -151,7 +151,8 @@ public class OrphanedContentReaperRaceTest {
      * the database uses to protect the write: it refuses to delete a row that a version now references
      * (integrity constraint violation), or it picks the cleanup as the victim of a deadlock with the write
      * (MySQL, SQL Server), or it gives up waiting for the row lock the write holds (H2). Those are the
-     * only failures accepted; the tests assert on the outcome of the write.
+     * only failures accepted, and only when the cleanup is expected to wait for a lock (see
+     * {@link #finishReaperRuns(boolean)}); the tests assert on the outcome of the write.
      */
     private void finishReaperRuns() throws Exception {
         finishReaperRuns(!cleanupBlocksOnUncommittedRows());
@@ -305,6 +306,8 @@ public class OrphanedContentReaperRaceTest {
         Assertions.assertEquals(VersionState.ENABLED, published.getState());
         Assertions.assertEquals(draftContent,
                 sql.getContentById(published.getContentId()).getContent().content());
+        Assertions.assertFalse(sql.getContentById(published.getContentId()).getContentHash().startsWith("draft:"),
+                "the published version must point at the content stored with its real hash");
     }
 
     /** The references of an orphaned content row must survive when a write reuses the row. */

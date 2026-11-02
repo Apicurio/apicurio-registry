@@ -3,11 +3,14 @@ package io.apicurio.registry.storage.impl.gitops;
 import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.exception.ConfigurationException;
 import io.apicurio.registry.storage.impl.polling.AbstractPollingStorageConfig;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.Getter;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -64,6 +67,48 @@ public class GitOpsConfig extends AbstractPollingStorageConfig {
             exhaustion from too many concurrent checkouts.""", availableSince = "3.3.0")
     @Getter
     int validateMaxTasks;
+
+    @ConfigProperty(name = "apicurio.gitops.validate.hmac-key")
+    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+            Shared HMAC key for signing self-describing validation task IDs. \
+            Required for multi-replica deployments so all replicas can verify \
+            each other's task IDs. If unset, a random key is generated at startup \
+            (single-replica only).""", availableSince = "3.4.0")
+    Optional<String> validateHmacKeyConfig;
+
+    @ConfigProperty(name = "apicurio.gitops.validate.grace-period.seconds", defaultValue = "5")
+    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+            Grace period in seconds before a replica starts validation for a task ID \
+            it did not create. Gives the owning replica a chance to finish first, \
+            reducing redundant work.""", availableSince = "3.4.0")
+    @Getter
+    int validateGracePeriodSeconds;
+
+    private static final int MIN_HMAC_KEY_LENGTH = 32;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    private byte[] validateHmacKey;
+
+    @PostConstruct
+    void initHmacKey() {
+        if (validateHmacKeyConfig.isPresent()) {
+            final byte[] keyBytes = validateHmacKeyConfig.get().getBytes(StandardCharsets.UTF_8);
+            if (keyBytes.length < MIN_HMAC_KEY_LENGTH) {
+                throw new ConfigurationException(
+                        "apicurio.gitops.validate.hmac-key must be at least "
+                        + MIN_HMAC_KEY_LENGTH + " bytes");
+            }
+            validateHmacKey = keyBytes;
+        } else {
+            final byte[] randomKey = new byte[MIN_HMAC_KEY_LENGTH];
+            SECURE_RANDOM.nextBytes(randomKey);
+            validateHmacKey = randomKey;
+        }
+    }
+
+    public byte[] getValidateHmacKey() {
+        return validateHmacKey.clone();
+    }
 
     @ConfigProperty(name = "apicurio.gitops.validate.fetch.timeout.seconds", defaultValue = "120")
     @Info(category = CATEGORY_GITOPS, experimental = true, description = """

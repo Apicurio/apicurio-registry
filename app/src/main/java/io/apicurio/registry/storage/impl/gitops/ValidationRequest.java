@@ -36,6 +36,7 @@ public class ValidationRequest {
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class Spec {
+        private String taskId;
         private String type;
         private String repoId;
         private String ref;

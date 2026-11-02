@@ -23,6 +23,8 @@ import java.util.regex.Pattern;
 public final class WebhookSubscriptionValidator {
 
     public static final int MAX_ENDPOINT_URL_LENGTH = 2048;
+    public static final int MIN_PORT = 1;
+    public static final int MAX_PORT = 65535;
     public static final int MAX_EVENT_TYPES = 5;
     public static final int MAX_NAME_LENGTH = 512;
     public static final int MAX_GROUP_FILTER_LENGTH = 512;
@@ -38,8 +40,8 @@ public final class WebhookSubscriptionValidator {
     }
 
     /**
-     * Checks an endpoint URL: an absolute {@code https} URL with a host, no user information, no fragment,
-     * and a host that is not a forbidden IP literal. DNS is not consulted here.
+     * Checks an endpoint URL: an absolute {@code https} URL with a host, a port (when given) in 1-65535,
+     * no user information, no fragment, and a host that is not a forbidden IP literal. DNS is not consulted here.
      */
     public static void validateEndpointUrl(String endpointUrl) {
         if (endpointUrl == null) {
@@ -59,6 +61,11 @@ public final class WebhookSubscriptionValidator {
         }
         if (uri.getHost() == null) {
             throw invalid("endpointUrl", "must include a host");
+        }
+        // getPort() is -1 when the URL has no port, which means the https default.
+        int port = uri.getPort();
+        if (port != -1 && (port < MIN_PORT || port > MAX_PORT)) {
+            throw invalid("endpointUrl", "must use a port between " + MIN_PORT + " and " + MAX_PORT);
         }
         if (uri.getRawUserInfo() != null) {
             throw invalid("endpointUrl", "must not contain user information");

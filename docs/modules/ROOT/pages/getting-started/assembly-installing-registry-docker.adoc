@@ -349,7 +349,9 @@ $ docker compose up -d
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can install and run {registry} with Kafka storage from a container image. The `kafkasql` storage option uses Kafka as the primary data store. It uses an embedded H2 database as a local SQL store that the registry rebuilds from the Kafka journal on each startup. This storage option is suitable for production environments.
+You can install and run {registry} with Kafka storage from a container image. The `kafkasql` storage option uses Kafka as the primary data store and is suitable for production environments.
+
+KafkaSQL also keeps an embedded H2 database as a local SQL store that {registry} rebuilds from the Kafka journal on each startup.
 
 .Prerequisites
 

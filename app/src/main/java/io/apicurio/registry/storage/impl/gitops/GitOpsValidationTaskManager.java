@@ -47,6 +47,8 @@ public class GitOpsValidationTaskManager {
     @Inject
     GitOpsConfig gitOpsConfig;
 
+    private static final String JSON_EXTENSION = ".json";
+
     private final ConcurrentHashMap<ValidationTaskId, ValidationTaskState> tasks = new ConcurrentHashMap<>();
 
     /**
@@ -73,7 +75,16 @@ public class GitOpsValidationTaskManager {
             return;
         }
         try (var files = Files.list(validateDir)) {
-            files.filter(f -> f.toString().endsWith(JSON_EXTENSION))
+            files.filter(Files::isRegularFile)
+                    .filter(f -> f.toString().endsWith(JSON_EXTENSION))
+                    .filter(f -> {
+                        final String name = f.getFileName().toString().replace(JSON_EXTENSION, "");
+                        if (!ValidationTaskId.isValid(name)) {
+                            log.warn("Skipping file with invalid task ID format: {}", f.getFileName());
+                            return false;
+                        }
+                        return true;
+                    })
                     .forEach(this::loadTaskFromFile);
         } catch (IOException e) {
             log.warn("Failed to scan validate directory for pending tasks: {}", e.getMessage());
@@ -143,6 +154,9 @@ public class GitOpsValidationTaskManager {
      * @return the task DTO, or null if not found or expired
      */
     public GitOpsValidateTask getTask(String taskId) {
+        if (!ValidationTaskId.isValid(taskId)) {
+            return null;
+        }
         var taskState = tasks.get(new ValidationTaskId(taskId));
         if (taskState == null) {
             return null;
@@ -166,6 +180,9 @@ public class GitOpsValidationTaskManager {
      * @return true if the task existed and was deleted
      */
     public boolean deleteTask(String taskId) {
+        if (!ValidationTaskId.isValid(taskId)) {
+            return false;
+        }
         var taskState = tasks.remove(new ValidationTaskId(taskId));
         if (taskState == null) {
             return false;

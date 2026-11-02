@@ -25,7 +25,9 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
@@ -33,6 +35,9 @@ public class GitOpsValidateTest {
 
     @Inject
     GitOpsConfig gitOpsConfig;
+
+    @Inject
+    GitOpsValidationTaskManager taskManager;
 
     private String repoId() {
         return gitOpsConfig.getRepos().get(0).id();
@@ -161,6 +166,26 @@ public class GitOpsValidateTest {
                 .statusCode(200)
                 .body("taskId", equalTo(taskId))
                 .body("state", notNullValue());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"../etc/passwd", "ABCDEF012345", "not-a-valid-id", "abcdef0123456"})
+    void getTaskRejectsInvalidTaskId(String invalidId) {
+        given()
+                .when()
+                .get("/apis/registry/v3/admin/gitops/validate/" + invalidId)
+                .then()
+                .statusCode(404);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"../etc/passwd", "ABCDEF012345", "not-a-valid-id", "abcdef0123456"})
+    void deleteTaskRejectsInvalidTaskId(String invalidId) {
+        given()
+                .when()
+                .delete("/apis/registry/v3/admin/gitops/validate/" + invalidId)
+                .then()
+                .statusCode(404);
     }
 
     @Test
@@ -293,6 +318,41 @@ public class GitOpsValidateTest {
                     .body("result", equalTo("failure"))
                     .body("errors", not(empty()));
         });
+    }
+
+    @Test
+    void loadPendingTasksSkipsInvalidButLoadsValidFiles() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+        final Path validateDir = Path.of(testRepository.getGitRepoUrl()).getParent().resolve("validate");
+        Files.createDirectories(validateDir);
+
+        final String validId = ValidationTaskId.random().value();
+        final Path validFile = validateDir.resolve(validId + ".json");
+        final Path invalidFile = validateDir.resolve("not-a-valid-id.json");
+        try {
+            final String requestJson = """
+                    {"apiVersion": "v1", "kind": "ValidateRequest",
+                     "spec": {"type": "pull", "repoId": "%s", "ref": "main"}}
+                    """.formatted(repoId());
+            Files.writeString(validFile, requestJson);
+            Files.writeString(invalidFile, requestJson);
+
+            taskManager.loadPendingTasks();
+
+            final var tasks = given()
+                    .when()
+                    .get("/apis/registry/v3/admin/gitops/validate")
+                    .then()
+                    .statusCode(200)
+                    .extract().jsonPath().getList("taskId", String.class);
+
+            assertTrue(tasks.contains(validId));
+            assertFalse(tasks.contains("not-a-valid-id"));
+        } finally {
+            Files.deleteIfExists(validFile);
+            Files.deleteIfExists(invalidFile);
+            taskManager.deleteTask(validId);
+        }
     }
 
     @ParameterizedTest

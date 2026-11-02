@@ -241,6 +241,21 @@ test('fast gate pass with an approved review promotes to ready-to-merge', async 
   assert.ok(w.calls.comments.some(c => c.includes('is the remaining merge gate')));
 });
 
+test('ready-to-merge ping mentions human reviewers but not bot reviewers', async () => {
+  const w = makeWorld([LABELS.READY_FOR_REVIEW], { approved: true });
+  w.github.paginate = async (fn) => fn === w.github.rest.pulls.listReviews
+    ? [
+      { state: 'COMMENTED', user: { login: 'copilot-pull-request-reviewer[bot]' } },
+      { state: 'APPROVED', user: { login: 'maintainer-jane' } },
+    ]
+    : [];
+  await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
+
+  const ping = w.calls.comments.find(c => c.includes('is the remaining merge gate'));
+  assert.match(ping, /@maintainer-jane/);
+  assert.doesNotMatch(ping, /\[bot\]/, 'a bot reviewer must not be mentioned');
+});
+
 test('fast gate pass without a review stays in ready-for-review (waiting on maintainer)', async () => {
   const w = makeWorld([LABELS.READY_FOR_REVIEW]);
   await lifecycle.handleTestResult({ github: w.github, context: runPayload('Quick Check', 'success'), core: w.core });
@@ -927,6 +942,23 @@ test('review relay: a fork PR (no pull_requests in the event) is found by its he
   assert.deepEqual(await relay(w, { pullRequests: [] }), [7]);
 });
 
+test('review relay: a fork PR past the first page of open PRs is found by its head commit', async () => {
+  // As GitHub sends it: a pull_request_review run reports the base repository
+  // as head_repository, so the head-branch lookup asks for Apicurio:feature-x
+  // and misses the fork's contributor:feature-x. Only the scan of every open
+  // PR finds it, here on its second page (#10605).
+  const w = rerunWorld({ runs: [skippedRun()], jobs: skippedJobs });
+  const forkPr = (await w.github.rest.pulls.get()).data;
+  w.github.rest.pulls.list = async ({ head }) => ({ data: head === 'contributor:feature-x' ? [forkPr] : [] });
+  const firstPage = Array.from({ length: 100 }, (_, i) => ({ number: 1000 + i, head: { sha: `other${i}` } }));
+  w.github.paginate = async (fn, params) => {
+    assert.equal(fn, w.github.rest.pulls.list);
+    assert.equal(params.head, undefined, 'the scan is not filtered by head branch');
+    return [...firstPage, forkPr];
+  };
+  assert.deepEqual(await relay(w, { pullRequests: [] }), [7]);
+});
+
 test('review relay: a review of a commit that is no longer the head does nothing', async () => {
   const w = rerunWorld({ headSha: 'newer0000000000', runs: [skippedRun()], jobs: skippedJobs });
   assert.deepEqual(await relay(w), []);
@@ -1366,7 +1398,7 @@ test('review overdue: pings past 30 days, ccing assignees and requested reviewer
       labels: [LABELS.READY_FOR_REVIEW, LABELS.WAITING_ON_MAINTAINER],
       updatedDaysAgo: 40,
       assignees: ['maintainer-jane', 'contributor'],
-      reviewers: ['maintainer-bob'],
+      reviewers: ['maintainer-bob', 'copilot-pull-request-reviewer[bot]'],
       timelinePages: [[blockedLabelEvent(40)]],
     });
     await lifecycle.handleStale({ github: w.github, context: staleContext(), core: w.core });
@@ -1374,6 +1406,7 @@ test('review overdue: pings past 30 days, ccing assignees and requested reviewer
     assert.equal(w.calls.comments.length, 1);
     assert.match(w.calls.comments[0], /Waiting on review for 40 days/);
     assert.match(w.calls.comments[0], /cc @maintainer-jane @maintainer-bob/);
+    assert.doesNotMatch(w.calls.comments[0], /\[bot\]/, 'a requested bot reviewer must not be cc-ed');
     assert.equal((w.calls.comments[0].match(/@contributor/g) || []).length, 1,
       'the author is addressed by the message and must not also be cc-ed');
   });

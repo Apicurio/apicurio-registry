@@ -22,6 +22,8 @@ final class DifferenceAttributor {
     private static final String REQUIRED = "required";
     private static final String ADDITIONAL_PROPERTIES = "additionalProperties";
     private static final String TYPE = "type";
+    private static final String NUMBER = "number";
+    private static final String INTEGER = "integer";
 
     private final SchemaProjection producer;
     private final SchemaProjection consumer;
@@ -69,6 +71,65 @@ final class DifferenceAttributor {
             return Optional.empty();
         }
         return Optional.of(outputTypeNotAccepted());
+    }
+
+    /**
+     * A producer that may emit a number such as {@code 1.5} is not accepted where the consumer's
+     * {@code type} names {@code integer} but not {@code number}. The engine misses this when the
+     * consumer's list also names a type the producer's does not, so these reasons are derived for
+     * every such place, the same reasons an attributed difference gives.
+     */
+    List<CompatibilityReason> numbersNotAccepted() {
+        List<CompatibilityReason> reasons = new ArrayList<>();
+        JsonNode producerAdditional = producer.additionalProperties();
+        for (String name : consumer.propertyNames()) {
+            if (!acceptsIntegerNotNumber(consumer.projectedProperty(name))) {
+                continue;
+            }
+            if (producer.declaresProperty(name)) {
+                if (mayEmitNumber(producer.projectedProperty(name))) {
+                    propertyInBoth(name).ifPresent(reasons::addAll);
+                }
+            } else if (mayEmitNumber(producerAdditional)) {
+                reasons.add(undeclaredValueNotAccepted(name));
+            }
+        }
+        if (acceptsIntegerNotNumber(consumer.additionalProperties())) {
+            for (String name : producer.propertyNames()) {
+                if (!consumer.declaresProperty(name) && mayEmitNumber(producer.projectedProperty(name))) {
+                    reasons.add(propertyNotAccepted(name));
+                }
+            }
+            if (mayEmitNumber(producerAdditional)) {
+                undeclaredProperties().ifPresent(reasons::addAll);
+            }
+        }
+        return reasons;
+    }
+
+    private static boolean acceptsIntegerNotNumber(JsonNode schema) {
+        List<String> types = typeNames(schema);
+        return types.contains(INTEGER) && !types.contains(NUMBER);
+    }
+
+    private static boolean mayEmitNumber(JsonNode schema) {
+        return typeNames(schema).contains(NUMBER);
+    }
+
+    /** The names a subschema's {@code type} lists, empty when it declares none. */
+    private static List<String> typeNames(JsonNode schema) {
+        JsonNode type = schema == null ? null : schema.get(TYPE);
+        if (type == null) {
+            return List.of();
+        }
+        if (type.isTextual()) {
+            return List.of(type.textValue());
+        }
+        List<String> names = new ArrayList<>();
+        if (type.isArray()) {
+            type.forEach(name -> names.add(name.asText()));
+        }
+        return names;
     }
 
     private CompatibilityReason outputTypeNotAccepted() {
@@ -139,9 +200,7 @@ final class DifferenceAttributor {
                 return Optional.empty();
             }
             if (!accepted.get()) {
-                reasons.add(new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
-                        producer.propertyPointer(name), consumer.additionalPropertiesPointer(),
-                        "The producer may emit '" + name + "', which the consumer does not accept"));
+                reasons.add(propertyNotAccepted(name));
             }
         }
         return Optional.of(reasons);
@@ -166,12 +225,22 @@ final class DifferenceAttributor {
                 return Optional.empty();
             }
             if (!accepted.get()) {
-                reasons.add(new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
-                        producer.additionalPropertiesPointer(), consumer.propertyTypePointer(name),
-                        "The producer may emit '" + name + "' with a value the consumer does not accept"));
+                reasons.add(undeclaredValueNotAccepted(name));
             }
         }
         return Optional.of(reasons);
+    }
+
+    private CompatibilityReason propertyNotAccepted(String name) {
+        return new CompatibilityReason(ReasonCode.ADDITIONAL_PROPERTY_NOT_ACCEPTED,
+                producer.propertyPointer(name), consumer.additionalPropertiesPointer(),
+                "The producer may emit '" + name + "', which the consumer does not accept");
+    }
+
+    private CompatibilityReason undeclaredValueNotAccepted(String name) {
+        return new CompatibilityReason(ReasonCode.TYPE_NOT_ACCEPTED,
+                producer.additionalPropertiesPointer(), consumer.propertyTypePointer(name),
+                "The producer may emit '" + name + "' with a value the consumer does not accept");
     }
 
     private Optional<List<CompatibilityReason>> propertyInBoth(String name) {

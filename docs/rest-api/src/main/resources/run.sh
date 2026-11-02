@@ -1,6 +1,6 @@
 #!/bin/bash
 
-npm install http-server
+npm install --ignore-scripts http-server
 
 ./node_modules/http-server/bin/http-server
 

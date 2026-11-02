@@ -75,7 +75,8 @@ const searchArtifacts = async (config: ConfigService, auth: AuthService, filters
         if (filter.by === FilterBy.globalId || filter.by === FilterBy.contentId) {
             queryParams[filter.by] = Number(filter.value);
         } else if (filter.by === FilterBy.name) {
-            queryParams[filter.by] = toPartialNameFilter(filter.value);
+            queryParams.name = toPartialNameFilter(filter.value);
+            queryParams.nameCaseInsensitive = true;
         } else {
             queryParams[filter.by] = filter.value;
         }
@@ -104,7 +105,8 @@ const searchVersions = async (config: ConfigService, auth: AuthService, filters:
         } else if (filter.by === FilterBy.state) {
             queryParams[filter.by] = filter.value.toUpperCase();
         } else if (filter.by === FilterBy.name) {
-            queryParams[filter.by] = toPartialNameFilter(filter.value);
+            queryParams.name = toPartialNameFilter(filter.value);
+            queryParams.nameCaseInsensitive = true;
         } else {
             queryParams[filter.by] = filter.value;
         }

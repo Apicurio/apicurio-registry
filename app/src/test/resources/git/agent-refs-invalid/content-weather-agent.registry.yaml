@@ -1,0 +1,7 @@
+$type: content-v0
+content: ./content/weather-agent.json
+references:
+  - groupId: com.example.agents
+    artifactId: weather-tool
+    version: "1"
+    name: get_weather

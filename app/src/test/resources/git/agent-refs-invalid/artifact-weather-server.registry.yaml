@@ -1,0 +1,10 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: com.example.agents
+artifactId: weather-server
+artifactType: MCP_SERVER
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/weather-server.json
+    contentMetadata: ./content-weather-server.registry.yaml

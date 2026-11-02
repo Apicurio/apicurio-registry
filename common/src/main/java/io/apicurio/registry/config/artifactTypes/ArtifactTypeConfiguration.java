@@ -16,6 +16,7 @@ import java.util.List;
     "name",
     "description",
     "contentTypes",
+    "fileExtensions",
     "contentAccepter",
     "compatibilityChecker",
     "contentCanonicalizer",
@@ -38,6 +39,10 @@ public class ArtifactTypeConfiguration {
 
     @JsonProperty("contentTypes")
     private List<String> contentTypes = new ArrayList<String>();
+
+    @JsonProperty("fileExtensions")
+    @JsonPropertyDescription("File extensions that unambiguously identify this artifact type (e.g. [\".avsc\"])")
+    private List<String> fileExtensions = new ArrayList<String>();
 
     @JsonProperty("contentAccepter")
     @JsonPropertyDescription("")
@@ -105,6 +110,16 @@ public class ArtifactTypeConfiguration {
     @JsonProperty("contentTypes")
     public void setContentTypes(List<String> contentTypes) {
         this.contentTypes = contentTypes;
+    }
+
+    @JsonProperty("fileExtensions")
+    public List<String> getFileExtensions() {
+        return fileExtensions;
+    }
+
+    @JsonProperty("fileExtensions")
+    public void setFileExtensions(List<String> fileExtensions) {
+        this.fileExtensions = fileExtensions;
     }
 
     @JsonProperty("contentAccepter")

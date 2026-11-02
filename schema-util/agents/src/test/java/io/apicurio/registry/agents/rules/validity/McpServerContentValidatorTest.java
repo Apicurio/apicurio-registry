@@ -14,12 +14,15 @@ import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.validity.ArtifactUtilProviderTestBase;
 import io.apicurio.registry.rules.validity.ValidityLevel;
 import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Tests the MCP server definition content validator, accepter, and extractors.
@@ -107,14 +110,15 @@ public class McpServerContentValidatorTest extends ArtifactUtilProviderTestBase 
     }
 
     @Test
-    public void testReferencesAreNotSupported() throws Exception {
+    public void testToolReferencesAreAccepted() throws Exception {
         TypedContent content = resourceToTypedContentHandle("mcpserver-valid.json");
         McpServerContentValidator validator = new McpServerContentValidator();
 
         ArtifactReference reference = new ArtifactReference();
-        reference.setName("ref");
-        Assertions.assertThrows(RuleViolationException.class,
-                () -> validator.validateReferences(content, List.of(reference)));
+        reference.setName("get_weather");
+        Assertions.assertDoesNotThrow(() -> validator.validateReferences(content, List.of(reference)));
+        Assertions.assertEquals(Optional.of(Set.of(ArtifactType.MCP_TOOL)),
+                validator.getAllowedReferenceTargetTypes());
     }
 
     @Test

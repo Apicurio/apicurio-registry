@@ -104,7 +104,8 @@ public class SearchResourceImpl implements SearchResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ArtifactSearchResults searchArtifacts(String name, BigInteger offset, BigInteger limit,
             SortOrder order, ArtifactSortBy orderby, List<String> labels, String description, String groupId,
-            Long globalId, Long contentId, String artifactId, String artifactType, Boolean skipCount) {
+            Long globalId, Long contentId, String artifactId, String artifactType, Boolean nameCaseInsensitive,
+            Boolean skipCount) {
         if (orderby == null) {
             orderby = ArtifactSortBy.name;
         }
@@ -121,7 +122,8 @@ public class SearchResourceImpl implements SearchResource {
 
         Set<SearchFilter> filters = new HashSet<SearchFilter>();
         if (!StringUtil.isEmpty(name)) {
-            filters.add(SearchFilter.ofName(name));
+            filters.add(Boolean.TRUE.equals(nameCaseInsensitive) ? SearchFilter.ofNameCaseInsensitive(name)
+                    : SearchFilter.ofName(name));
         }
         if (!StringUtil.isEmpty(description)) {
             filters.add(SearchFilter.ofDescription(description));
@@ -247,7 +249,8 @@ public class SearchResourceImpl implements SearchResource {
     public VersionSearchResults searchVersions(String version, BigInteger offset, BigInteger limit,
             SortOrder order, VersionSortBy orderby, List<String> labels, String description, String groupId,
             Long globalId, Long contentId, String artifactId, String name, VersionState state,
-            String artifactType, String content, String structure, Boolean skipCount) {
+            String artifactType, String content, String structure, Boolean nameCaseInsensitive,
+            Boolean skipCount) {
         if (orderby == null) {
             orderby = VersionSortBy.globalId;
         }
@@ -273,7 +276,8 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofVersion(version));
         }
         if (!StringUtil.isEmpty(name)) {
-            filters.add(SearchFilter.ofName(name));
+            filters.add(Boolean.TRUE.equals(nameCaseInsensitive) ? SearchFilter.ofNameCaseInsensitive(name)
+                    : SearchFilter.ofName(name));
         }
         if (!StringUtil.isEmpty(description)) {
             filters.add(SearchFilter.ofDescription(description));

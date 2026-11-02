@@ -23,8 +23,9 @@ Deploy and configure {registry} instances by using the {operator} on
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-The {operator} installs the `ApicurioRegistry3` custom resource definition (CRD). You use the `ApicurioRegistry3` CR to deploy and manage {registry} instances on {kubernetes}. The custom resource enables you to declaratively configure all aspects of your {registry} deployment,
-including storage, authentication, networking, and component-specific settings.
+The {operator} installs the `ApicurioRegistry3` custom resource definition (CRD). You use the `ApicurioRegistry3` CR to deploy and manage {registry} instances on {kubernetes}.
+
+The custom resource enables you to declaratively configure all aspects of your {registry} deployment, including storage, authentication, networking, and component-specific settings.
 
 NOTE: Additional `ApicurioRegistry3` custom resource examples are available in the {registry} upstream repository.
 
@@ -66,10 +67,12 @@ IMPORTANT: The default embedded H2 configuration is not suitable for production 
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can deploy a basic {registry} instance by using the default storage configuration (SQL with an embedded H2 database). You do not need to specify a storage type in the CR. When omitted, {registry} defaults to an embedded H2 database. This configuration is suitable for development and testing environments only.
+You can deploy a basic {registry} instance by using the default storage configuration (SQL with an embedded H2 database). This configuration is suitable for development and testing environments only.
+
+You do not need to specify a storage type in the CR. When omitted, {registry} defaults to an embedded H2 database.
 
 .Prerequisites
-* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have cluster administrator access to {kubernetes-with-article} cluster.
 * You must have already installed the {operator}. See {installing-the-registry-openshift}.
 
 .Procedure
@@ -119,7 +122,7 @@ Deploy {registry} with PostgreSQL database storage. This configuration is suitab
 for production environments.
 
 .Prerequisites
-* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have cluster administrator access to {kubernetes-with-article} cluster.
 * You must have already installed the {operator}. See {installing-the-registry-openshift}.
 * You must have a PostgreSQL database available with a database created for {registry}.
 * You must have created a Kubernetes Secret containing the PostgreSQL database password.
@@ -200,7 +203,7 @@ Deploy {registry} with MySQL database storage. This configuration is suitable
 for production environments.
 
 .Prerequisites
-* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have cluster administrator access to {kubernetes-with-article} cluster.
 * You must have already installed the {operator}. See {installing-the-registry-openshift}.
 * You must have a MySQL database available with a database created for {registry}.
 * You must have created a Kubernetes Secret containing the MySQL database password.
@@ -267,12 +270,12 @@ the database.
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can deploy {registry} with KafkaSQL storage. KafkaSQL uses Apache Kafka as the primary
-data store, with an embedded H2 database as a local SQL store that {registry} rebuilds from the Kafka journal on each startup. This configuration is suitable for production environments
-when you configure persistent Kafka storage.
+You can deploy {registry} with KafkaSQL storage, which uses Apache Kafka as the primary data store. This configuration is suitable for production environments when you configure persistent Kafka storage.
+
+KafkaSQL uses an embedded H2 database as a local SQL store that {registry} rebuilds from the Kafka journal on each startup.
 
 .Prerequisites
-* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have cluster administrator access to {kubernetes-with-article} cluster.
 * You must have already installed the {operator}. See {installing-the-registry-openshift}.
 * You must have a Kafka cluster available. For OpenShift, see {installing-the-registry-storage-openshift}.
 
@@ -454,7 +457,7 @@ managing schemas and APIs.
 IMPORTANT: KubernetesOps storage is an *experimental* feature. You must enable the experimental features gate to use it.
 
 .Prerequisites
-* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have cluster administrator access to {kubernetes-with-article} cluster.
 * You must have already installed the {operator}. See {installing-the-registry-openshift}.
 * You must have access to create ConfigMaps in your cluster. The {operator} creates the required RBAC resources automatically.
 
@@ -531,7 +534,7 @@ Configure {registry} with OIDC authentication and role-based authorization by us
 an identity provider such as {keycloak}.
 
 .Prerequisites
-* You must have cluster administrator access to an {kubernetes} cluster.
+* You must have cluster administrator access to {kubernetes-with-article} cluster.
 * You must have already deployed {registry}. See xref:deploying-registry-inmemory_{context}[].
 * You must have an OIDC identity provider configured with appropriate clients for {registry}.
 

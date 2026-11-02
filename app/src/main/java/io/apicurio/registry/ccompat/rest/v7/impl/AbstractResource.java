@@ -26,7 +26,7 @@ import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
 import com.google.protobuf.DescriptorProtos;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
-import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.auth.ISearchAuthorizer;
@@ -128,7 +128,7 @@ public abstract class AbstractResource {
                 .map(dto -> ArtifactReference.builder().name(dto.getName()).groupId(dto.getGroupId())
                         .artifactId(dto.getArtifactId()).version(dto.getVersion()).build())
                 .collect(Collectors.toList());
-        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+        final Map<String, TypedContent> resolvedReferences = ReferenceResolution
                 .recursivelyResolveReferences(parsedReferences, accessGuard.referenceLoader());
 
         String owner = securityIdentity.getPrincipal().getName();
@@ -261,7 +261,7 @@ public abstract class AbstractResource {
                         .getArtifactVersionContent(groupId, artifactId, version);
                 TypedContent typedArtifactVersion = TypedContent
                         .create(artifactVersion.getContent(), artifactVersion.getContentType());
-                Map<String, TypedContent> artifactVersionReferences = RegistryContentUtils
+                Map<String, TypedContent> artifactVersionReferences = ReferenceResolution
                         .recursivelyResolveReferences(artifactVersion.getReferences(),
                                 accessGuard.referenceLoader());
                 String dereferencedExistingContentSha = DigestUtils
@@ -306,7 +306,7 @@ public abstract class AbstractResource {
     protected Map<String, TypedContent> resolveReferenceDtos(List<ArtifactReferenceDto> referencesAsDtos) {
         Map<String, TypedContent> resolvedReferences = Collections.emptyMap();
         if (referencesAsDtos != null && !referencesAsDtos.isEmpty()) {
-            resolvedReferences = RegistryContentUtils.recursivelyResolveReferences(referencesAsDtos,
+            resolvedReferences = ReferenceResolution.recursivelyResolveReferences(referencesAsDtos,
                     accessGuard.referenceLoader());
 
             if (referencesAsDtos.size() > resolvedReferences.size()) {

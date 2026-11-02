@@ -225,9 +225,17 @@ public class IntegrityRuleExecutor implements RuleExecutor {
 
         visited.add(currentVersionKey);
 
+        // Backtrack on every exit path (success, missing reference, or a propagated failure), so a
+        // partial traversal never leaves a stale entry behind for a sibling reference to trip over.
         try {
-            StoredArtifactVersionDto content = storageToUse.getArtifactVersionContent(groupId, artifactId,
-                    version);
+            StoredArtifactVersionDto content;
+            try {
+                content = storageToUse.getArtifactVersionContent(groupId, artifactId, version);
+            } catch (ArtifactNotFoundException | VersionNotFoundException e) {
+                // The referenced artifact/version doesn't exist (yet): no cycle possible through this
+                // path. Any other failure (e.g. a storage outage) is not swallowed here - see below.
+                return null;
+            }
             List<ArtifactReferenceDto> refs = content.getReferences();
 
             if (refs != null) {
@@ -240,14 +248,11 @@ public class IntegrityRuleExecutor implements RuleExecutor {
                     }
                 }
             }
-        } catch (Exception e) {
-            // Artifact/version doesn't exist yet or is inaccessible, no cycle possible through this path
+
+            return null;
+        } finally {
+            visited.remove(currentVersionKey);
         }
-
-        // Remove from visited for other paths (backtracking)
-        visited.remove(currentVersionKey);
-
-        return null;
     }
 
     private String createVersionKey(String groupId, String artifactId, String version) {

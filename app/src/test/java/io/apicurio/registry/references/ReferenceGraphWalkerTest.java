@@ -405,10 +405,11 @@ public class ReferenceGraphWalkerTest {
 
     /**
      * Captures every {@code WARNING}-level (SLF4J {@code WARN}) record logged by
-     * {@link ResolvedReferences} while {@code action} runs, regardless of which SLF4J binding is active:
-     * this project's logging ultimately goes through {@code java.util.logging}, which every binding
-     * (including JBoss LogManager) dispatches to, so attaching a plain {@link Handler} by logger name is
-     * binding-independent.
+     * {@link ResolvedReferences} while {@code action} runs, by attaching a plain {@code java.util.logging}
+     * {@link Handler} by logger name. This only works because {@code app/pom.xml} configures
+     * {@code java.util.logging.manager=org.jboss.logmanager.LogManager}, which every SLF4J binding this
+     * project uses is routed through; a binding such as slf4j-simple or Logback would never reach a JUL
+     * handler.
      */
     private static List<LogRecord> captureWarnings(Runnable action) {
         java.util.logging.Logger julLogger = LogManager.getLogManager()
@@ -420,7 +421,9 @@ public class ReferenceGraphWalkerTest {
         Handler handler = new Handler() {
             @Override
             public void publish(LogRecord record) {
-                captured.add(record);
+                if (record.getLevel().equals(java.util.logging.Level.WARNING)) {
+                    captured.add(record);
+                }
             }
 
             @Override

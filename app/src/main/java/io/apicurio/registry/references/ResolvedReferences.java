@@ -151,9 +151,9 @@ public final class ResolvedReferences {
      * target's content.
      * <p>
      * A genuine collision — the same name resolving to two different, both-resolved targets anywhere in
-     * the graph — is logged at {@code WARN} the first time it is seen, so operators can find and rename the
-     * colliding reference. The winner and the output order are unchanged by this: see the class Javadoc's
-     * "Which target wins a shared name" for why resolving the collision itself is deferred to #10761.
+     * the graph — is logged at {@code WARN} the first time it is seen, so operators can at least find it.
+     * The winner and the output order are unchanged by this: see the class Javadoc's "Which target wins a
+     * shared name" for why resolving the collision itself is deferred to #10761.
      */
     public Map<String, TypedContent> asNameMap() {
         Map<String, GAV> winners = new LinkedHashMap<>();
@@ -168,9 +168,9 @@ public final class ResolvedReferences {
                     && warnedNames.add(edge.name())) {
                 log.warn(
                         "Reference name '{}' resolves to more than one target ({} and {}) within the same "
-                                + "reference graph; keeping {} and silently ignoring the rest for now. "
-                                + "Rename one of the colliding references — this will become a hard "
-                                + "failure in a future release (see #10761).",
+                                + "reference graph; keeping {} and ignoring the other target(s) for now. "
+                                + "Resolving such a collision correctly needs node-aware, whole-graph "
+                                + "resolution from the content type handler (see #10761).",
                         edge.name(), existingWinner, edge.target(), existingWinner);
             }
         }

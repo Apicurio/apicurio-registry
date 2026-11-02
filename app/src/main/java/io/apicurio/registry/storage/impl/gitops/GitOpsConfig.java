@@ -65,6 +65,44 @@ public class GitOpsConfig extends AbstractPollingStorageConfig {
     @Getter
     int validateMaxTasks;
 
+    @ConfigProperty(name = "apicurio.gitops.validate.hmac-key")
+    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+            Shared HMAC key for signing self-describing validation task IDs. \
+            Required for multi-replica deployments so all replicas can verify \
+            each other's task IDs. If unset, a random key is generated at startup \
+            (single-replica only).""", availableSince = "3.4.0")
+    Optional<String> validateHmacKeyConfig;
+
+    @ConfigProperty(name = "apicurio.gitops.validate.grace-period.seconds", defaultValue = "5")
+    @Info(category = CATEGORY_GITOPS, experimental = true, description = """
+            Grace period in seconds before a replica starts validation for a task ID \
+            it did not create. Gives the owning replica a chance to finish first, \
+            reducing redundant work.""", availableSince = "3.4.0")
+    @Getter
+    int validateGracePeriodSeconds;
+
+    private static final java.security.SecureRandom SECURE_RANDOM = new java.security.SecureRandom();
+
+    private volatile byte[] validateHmacKey;
+
+    public byte[] getValidateHmacKey() {
+        if (validateHmacKey == null) {
+            synchronized (this) {
+                if (validateHmacKey == null) {
+                    if (validateHmacKeyConfig.isPresent()) {
+                        validateHmacKey = validateHmacKeyConfig.get()
+                                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+                    } else {
+                        final byte[] randomKey = new byte[32];
+                        SECURE_RANDOM.nextBytes(randomKey);
+                        validateHmacKey = randomKey;
+                    }
+                }
+            }
+        }
+        return validateHmacKey.clone();
+    }
+
     @ConfigProperty(name = "apicurio.gitops.validate.fetch.timeout.seconds", defaultValue = "120")
     @Info(category = CATEGORY_GITOPS, experimental = true, description = """
             Timeout for the sidecar to fetch a git ref during dry-run validation, in seconds.""", availableSince = "3.3.0")

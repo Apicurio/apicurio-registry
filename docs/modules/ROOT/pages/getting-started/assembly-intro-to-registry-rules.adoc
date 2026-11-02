@@ -20,7 +20,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-To govern the evolution of artifact content added to {registry}, you can configure optional rules. All configured global rules, group-specific rules, or artifact-specific rules must pass before a new artifact version can be added to {registry}. Configured artifact-specific rules override any configured group-specific rules, which in turn override any configured global rules.
+To govern the evolution of artifact content added to {registry}, you can configure optional rules. All configured global rules, group-specific rules, or artifact-specific rules must pass before a new artifact version can be added to {registry}.
+
+Configured artifact-specific rules override any configured group-specific rules, which in turn override any configured global rules.
 
 The goal of these rules is to prevent invalid content from being added to {registry} and to control the evolution of an artifact (by e.g. checking the compatibility of a new artifact version against previous versions). For example, content can be invalid for the following reasons:
 

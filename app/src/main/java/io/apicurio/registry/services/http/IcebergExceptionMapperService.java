@@ -31,14 +31,9 @@ public class IcebergExceptionMapperService implements ExceptionMapperService {
     IcebergMetricsService metricsService;
 
     public Response mapException(Throwable t) {
-        if (t instanceof BadRequestException) {
-            return buildErrorResponse(400, "BadRequestException",
-                    t.getMessage() != null ? t.getMessage() : "Bad request");
-        }
-
-        if (t instanceof NotFoundException) {
-            return buildErrorResponse(404, "NotFoundException",
-                    t.getMessage() != null ? t.getMessage() : "Not found");
+        Response standardError = mapStandardException(t);
+        if (standardError != null) {
+            return standardError;
         }
 
         if (t instanceof GroupNotFoundException) {
@@ -82,18 +77,28 @@ public class IcebergExceptionMapperService implements ExceptionMapperService {
                     "Version already exists: " + ((VersionAlreadyExistsException) t).getVersion());
         }
 
+        // Default to internal server error
+        return buildErrorResponse(500, "InternalServerError",
+                t.getMessage() != null ? t.getMessage() : "An unexpected error occurred");
+    }
+
+    private Response mapStandardException(Throwable t) {
+        if (t instanceof BadRequestException) {
+            return buildErrorResponse(400, "BadRequestException",
+                    t.getMessage() != null ? t.getMessage() : "Bad request");
+        }
+        if (t instanceof NotFoundException) {
+            return buildErrorResponse(404, "NotFoundException",
+                    t.getMessage() != null ? t.getMessage() : "Not found");
+        }
         if (t instanceof ForbiddenException) {
             // Generic message: never reveal which resource or rule denied the request
             return buildErrorResponse(403, "ForbiddenException", AuthorizedInterceptor.FORBIDDEN_MESSAGE);
         }
-
         if (t instanceof IllegalArgumentException) {
             return buildErrorResponse(400, "BadRequestException", t.getMessage());
         }
-
-        // Default to internal server error
-        return buildErrorResponse(500, "InternalServerError",
-                t.getMessage() != null ? t.getMessage() : "An unexpected error occurred");
+        return null;
     }
 
     private Response buildErrorResponse(int code, String type, String message) {

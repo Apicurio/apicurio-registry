@@ -105,7 +105,11 @@ public class SqlSearchRepository {
                         break;
                     case name:
                         buildNameClause(where, "a.name", "a.artifactId", filter.getStringValue(),
-                                filter.isNot(), binders);
+                                filter.isNot(), false, binders);
+                        break;
+                    case nameCaseInsensitive:
+                        buildNameClause(where, "a.name", "a.artifactId", filter.getStringValue(),
+                                filter.isNot(), true, binders);
                         break;
                     case groupId:
                         buildWildcardClause(where, "a.groupId",
@@ -404,7 +408,11 @@ public class SqlSearchRepository {
                         break;
                     case name:
                         buildNameClause(where, "v.name", "v.artifactId", filter.getStringValue(),
-                                filter.isNot(), binders);
+                                filter.isNot(), false, binders);
+                        break;
+                    case nameCaseInsensitive:
+                        buildNameClause(where, "v.name", "v.artifactId", filter.getStringValue(),
+                                filter.isNot(), true, binders);
                         break;
                     case description:
                         op = filter.isNot() ? "NOT LIKE" : "LIKE";
@@ -587,7 +595,8 @@ public class SqlSearchRepository {
      * introduced in #6298 (see #8002).
      */
     private void buildNameClause(StringBuilder where, String nameColumn, String artifactIdColumn,
-            String value, boolean not, List<SqlStatementVariableBinder> binders) {
+            String value, boolean not, boolean caseInsensitive,
+            List<SqlStatementVariableBinder> binders) {
         boolean startsWithWildcard = value.startsWith("*");
         boolean endsWithWildcard = value.endsWith("*");
         boolean wildcard = startsWithWildcard || endsWithWildcard;
@@ -608,16 +617,21 @@ public class SqlSearchRepository {
         } else {
             op = not ? "!=" : "=";
         }
+        if (caseInsensitive) {
+            nameColumn = "LOWER(" + nameColumn + ")";
+            artifactIdColumn = "LOWER(" + artifactIdColumn + ")";
+        }
         where.append("(").append(nameColumn).append(" ").append(op).append(" ? OR ")
                 .append(artifactIdColumn).append(" ").append(op).append(" ?)");
 
         // Translate leading/trailing '*' into SQL '%' wildcards, else bind the literal for exact match
-        String bound;
+        String pattern = searchValue;
         if (wildcard) {
-            bound = (startsWithWildcard ? "%" : "") + searchValue + (endsWithWildcard ? "%" : "");
-        } else {
-            bound = searchValue;
+            String prefix = startsWithWildcard ? "%" : "";
+            String suffix = endsWithWildcard ? "%" : "";
+            pattern = prefix + searchValue + suffix;
         }
+        final String bound = caseInsensitive ? pattern.toLowerCase(Locale.ROOT) : pattern;
         binders.add((query, idx) -> {
             query.bind(idx, bound);
         });

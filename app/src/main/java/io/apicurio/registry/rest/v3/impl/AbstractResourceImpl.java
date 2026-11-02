@@ -9,6 +9,7 @@ import io.apicurio.registry.rest.v3.beans.HandleReferencesType;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
@@ -72,7 +73,7 @@ public abstract class AbstractResourceImpl {
                             rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
                 } else {
                     content = artifactTypeProvider.getContentDereferencer().dereference(content,
-                            RegistryContentUtils.recursivelyResolveReferences(references,
+                            ReferenceResolution.recursivelyResolveReferences(references,
                                     accessGuard.referenceLoader()));
                 }
             } else if (referencesType == HandleReferencesType.REWRITE) {

@@ -7,9 +7,9 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
-import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import static io.apicurio.registry.utils.CollectionsUtil.isEmpty;
-
 public class RegistryContentUtils {
 
     private static final Logger log = LoggerFactory.getLogger(RegistryContentUtils.class);
@@ -42,109 +40,6 @@ public class RegistryContentUtils {
     private RegistryContentUtils() {
     }
 
-
-    /**
-     * TODO: Find a better place for this interface.
-     */
-    @FunctionalInterface
-    public interface HasReferences {
-        List<ArtifactReferenceDto> getReferences();
-    }
-
-    /**
-     * Recursively resolve references.
-     * Generic version.
-     * <p>
-     * TODO: Use this also for recursivelyResolveReferencesWithContext(...)
-     */
-    public static <KEY, NODE extends HasReferences, VALUE> Map<KEY, VALUE> recursivelyResolveReferencesGeneric(
-            HasReferences root,
-            Function<ArtifactReferenceDto, KEY> keyExtractor,
-            Function<ArtifactReferenceDto, NODE> nodeLoader,
-            Function<NODE, VALUE> valueExtractor
-    ) {
-        if (root == null || isEmpty(root.getReferences())) {
-            return Map.of();
-        } else {
-            Map<KEY, VALUE> result = new LinkedHashMap<>();
-            recursivelyResolveReferencesGenericInternal(result, root.getReferences(), keyExtractor, nodeLoader, valueExtractor);
-            return result;
-        }
-    }
-
-    private static <KEY, NODE extends HasReferences, VALUE> void recursivelyResolveReferencesGenericInternal(
-            Map<KEY, VALUE> partialRecursivelyResolvedReferences,
-            List<ArtifactReferenceDto> references,
-            Function<ArtifactReferenceDto, KEY> keyExtractor,
-            Function<ArtifactReferenceDto, NODE> nodeLoader,
-            Function<NODE, VALUE> valueExtractor
-    ) {
-        if (references != null && !references.isEmpty()) {
-            for (ArtifactReferenceDto reference : references) {
-                if (reference.getArtifactId() == null || reference.getName() == null || reference.getVersion() == null) {
-                    throw new IllegalStateException("Invalid reference: " + reference);
-                } else {
-                    var key = keyExtractor.apply(reference);
-                    if (!partialRecursivelyResolvedReferences.containsKey(key)) {
-                        try {
-                            var nested = nodeLoader.apply(reference);
-                            if (nested != null) {
-                                recursivelyResolveReferencesGenericInternal(
-                                        partialRecursivelyResolvedReferences,
-                                        nested.getReferences(),
-                                        keyExtractor,
-                                        nodeLoader,
-                                        valueExtractor
-                                );
-                                partialRecursivelyResolvedReferences.put(key, valueExtractor.apply(nested));
-                            }
-                        } catch (ForbiddenException ex) {
-                            // The caller may not read the referenced artifact: fail, never skip
-                            throw ex;
-                        } catch (Exception ex) {
-                            log.error("Could not resolve reference {}.", reference, ex);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-
-    /**
-     * Recursively resolve the references.
-     * <p>
-     * TODO: Currently, we stop tree traversal only based on the reference name.
-     * But what happens if the same reference name is used to refer to two different artifacts in different branches of the tree?
-     * We should use the target GAV to stop the traversal.
-     */
-    public static Map<String, TypedContent> recursivelyResolveReferences(
-            List<ArtifactReferenceDto> references,
-            Function<ArtifactReferenceDto, ContentWrapperDto> loader
-    ) {
-        return recursivelyResolveReferencesGeneric(
-                () -> references,
-                ArtifactReferenceDto::getName,
-                loader,
-                cw -> TypedContent.create(cw.getContent(), cw.getContentType())
-        );
-    }
-
-    /**
-     * Collect the contentIds of all the references in the tree.
-     * The contentIds are distinct and sorted in natural order.
-     */
-    public static List<Long> recursivelyResolveReferenceContentIds(
-            StoredArtifactVersionDto root,
-            Function<ArtifactReferenceDto, StoredArtifactVersionDto> loader
-    ) {
-        return recursivelyResolveReferencesGeneric(
-                root,
-                ArtifactReferenceDto::getName,
-                loader,
-                StoredArtifactVersionDto::getContentId
-        ).values().stream().distinct().sorted().toList();
-    }
 
     /**
      * Recursively resolve the references. Instead of using the reference name as the key, it uses the full
@@ -283,7 +178,7 @@ public class RegistryContentUtils {
         try {
             return canonicalizeContent(artifactTypeUtilProviderFactory, artifactType,
                     TypedContent.create(data.getContent(), data.getArtifactType()),
-                    recursivelyResolveReferences(data.getReferences(), loader));
+                    ReferenceResolution.recursivelyResolveReferences(data.getReferences(), loader));
         } catch (Exception ex) {
             throw new RegistryException("Failed to canonicalize content.", ex);
         }

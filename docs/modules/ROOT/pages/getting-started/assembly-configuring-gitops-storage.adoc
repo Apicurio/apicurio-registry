@@ -81,7 +81,7 @@ Each metadata file declares its kind with a `$type` discriminator:
 | An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `rules`, and `createdOn`. Every group that an artifact references must be declared by a `group-v0` file; the registry does not create groups automatically.
 
 | `artifact-v0`
-| An artifact with its versions declared inline. Fields: `registryIds`, `groupId`, `artifactId`, `artifactType`, `name`, `description`, `createdOn`, `rules`, `validatedUpTo`, and `versions`. Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file.
+| An artifact with its versions declared inline. Fields: `registryIds`, `groupId`, `artifactId`, `artifactType` (optional), `name`, `description`, `createdOn`, `rules`, `validatedUpTo`, and `versions`. Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file.
 
 | `content-v0`
 | Optional content metadata, for explicit content identifiers and references.
@@ -116,30 +116,53 @@ versions:
     content: order-event-1.0.0.avsc
 ----
 
-Content files are plain schema files that metadata files reference by a path relative to the directory of the metadata file. The artifact type comes from the `artifactType` field of the artifact metadata, or from automatic content detection when you omit the field. The file extension determines only the media type that the registry stores with the content:
+Content files are plain schema files that metadata files reference by a path relative to the directory of the metadata file.
 
-.Content file extensions and stored media types
-[cols="1,2", options="header"]
+When `artifactType` is omitted, the registry determines the type in the following order:
+
+. *Unambiguous file extension* — extensions listed in the table below are mapped directly to a single artifact type. An explicit `artifactType` always takes precedence over the extension. A mapped extension is treated like a declared `artifactType`: the content is not checked against it, so an OpenAPI document saved as `api.avsc` is stored as AVRO unless a validity rule rejects it.
+. *Content-based detection* — for ambiguous extensions (`.json`, `.yaml`, `.yml`, `.xml`) where multiple artifact types are possible, the registry inspects the file content to determine the type.
+. *Error* — if neither the extension nor the content identifies a type, the load fails with an error listing the supported extensions.
+
+All versions of an artifact must share the same type. When `artifactType` is omitted and versions resolve to different types from their extensions, the load fails with an error asking you to set `artifactType` explicitly.
+
+.File extensions and artifact type detection
+[cols="1,2,2", options="header"]
 |===
 | Extension
+| Artifact type
 | Stored media type
 
-| `.yaml`, `.yml`
-| YAML
-
-| `.xml`, `.xsd`, `.wsdl`
-| XML
+| `.avsc`
+| AVRO
+| JSON
 
 | `.proto`
+| PROTOBUF
 | Protobuf
 
-| `.graphql`
+| `.graphql`, `.gql`
+| GRAPHQL
 | GraphQL
 
+| `.wsdl`
+| WSDL
+| XML
+
+| `.xsd`
+| XSD
+| XML
+
 | `.thrift`
+| THRIFT
 | Thrift
 
+| `.json`, `.yaml`, `.yml`, `.xml`
+| _(detected from content)_
+| _(matches extension)_
+
 | All other extensions
+| _(detected from content)_
 | JSON
 |===
 

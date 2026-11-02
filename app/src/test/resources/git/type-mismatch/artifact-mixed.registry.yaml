@@ -1,0 +1,12 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: default
+artifactId: mixed-type
+name: Mixed Type Artifact
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/v1.avsc
+  - version: "2"
+    state: ENABLED
+    content: ./content/v2.graphql

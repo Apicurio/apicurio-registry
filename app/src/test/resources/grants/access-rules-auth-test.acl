@@ -1,0 +1,12 @@
+// Access rules for GrantsAuthorizationTest. alice is an RBAC admin and bypasses the rules.
+from io.apicurio.authz import Artifact, Group;
+
+allow User with name = "bob1" to WRITE Artifact with name like "grants-team-a/*";
+allow User with name = "bob1" to WRITE Group with name = "grants-team-a";
+allow User with name = "bob1" to WRITE Group with name like "grants-new-*";
+allow User with name = "bob1" to WRITE Artifact with name like "io.github.grantsa*";
+allow User with name = "bob1" to WRITE Group with name like "io.github.grantsa*";
+allow User with name = "bob2" to READ Artifact with name like "grants-team-b/visible-*";
+allow User with name in {"bob1", "bob2"} to WRITE Artifact with name like "io.github.shared*";
+allow User with name in {"bob1", "bob2"} to WRITE Group with name like "io.github.shared*";
+otherwise deny;

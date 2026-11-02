@@ -76,6 +76,12 @@ When the file does not exist, only the built-in artifact types are available.
 |`contentTypes`
 |The content types (media types) accepted for this artifact type.
 
+|`fileExtensions`
+|Optional list of file extensions that unambiguously identify this artifact type (for example, `[".mytype"]`).
+Each extension must include the leading dot and must not be claimed by another type; duplicate extensions cause a startup failure.
+When a GitOps or Kubernetes-based data source imports a file whose extension matches, the registry uses this type without inspecting the content.
+Extensions are matched case-insensitively.
+
 |`contentAccepter`
 |Provider that determines whether content belongs to this type. {registry} uses this provider to detect the artifact type when a client does not specify one.
 

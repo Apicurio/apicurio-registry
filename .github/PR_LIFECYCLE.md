@@ -44,7 +44,7 @@ CI capacity. Marking it ready for review again re-enters the lifecycle the same 
 | `lifecycle/waiting-on-maintainer` | PR needs maintainer attention (ready to review or merge). |
 | `lifecycle/stale` | No activity for 4+ days (waiting on author) or 7+ days (otherwise). PR will be closed after further inactivity (see [Stale PRs](#stale-prs)). Never applied to a PR blocked on a maintainer. |
 | `lifecycle/review-overdue` | Blocked on a maintainer for 14+ days. Purely a visibility signal for us — it never leads to the PR being closed (see [Stale PRs](#stale-prs)). |
-| `ci/disable-scalpel` | Skips the non-blocking `scalpel-report` data-collection job for this PR. |
+| `ci/disable-scalpel` | Skips the non-blocking Scalpel data collection for this PR: the `scalpel-report` job, and Scalpel in the `non-app` unit-test shard. |
 
 ## For Contributors
 
@@ -88,7 +88,7 @@ still go stale.
 | Command | Description |
 |---------|-------------|
 | `/unstale` | Remove the stale label |
-| `/retry` | Re-run the lifecycle orchestrator and retry failed tests |
+| `/retry` | Re-run the lifecycle orchestrator, retry failed tests, and re-run a failed PR validation |
 | `/assign-me` | Self-assign an open issue to volunteer for implementation |
 | `/unassign-me` | Release an issue you are currently assigned to |
 
@@ -118,7 +118,7 @@ Contributors can self-assign open issues by commenting `/assign-me` (or `/claim`
 | `/reject [reason]` | Close a PR that should not be worked further |
 | `/merge` | Toggle native GitHub auto-merge — it merges automatically once required checks pass and the PR has an approving review |
 | `/unstale` | Remove the stale label |
-| `/retry` | Re-run the lifecycle orchestrator and retry failed tests |
+| `/retry` | Re-run the lifecycle orchestrator, retry failed tests, and re-run a failed PR validation |
 
 There is no `/accept` or `/skip-review` command any more: there is no triage stage to
 accept a PR into, and every author needs an actual approving review before a PR can
@@ -130,6 +130,35 @@ not something a maintainer can waive per PR.
 PRs are merged using **rebase** by default (linear history via `/merge`, which enables
 native GitHub auto-merge). This can be changed to **squash** in `.github/pr-lifecycle.yml`.
 Branches are deleted automatically after merge (a repository-level setting).
+
+### Docs-only PRs
+
+A PR that changes only documentation (the `docs_only` section of
+`.github/pr-lifecycle.yml`: `docs/` and the playbooks and UI supplements in
+`docs-playbook/`, minus the code, scripts and generated files under `docs/`)
+takes a shorter path:
+
+- Quick Check skips the Java and UI builds; Verify runs only the Docs Check,
+  an Antora build that fails on new broken xrefs, includes or attribute
+  references.
+- PR validation does not require a milestone, and a missing issue link is
+  only advisory. DCO sign-off is still required.
+- If the author is a maintainer and every commit was authored and committed
+  by a maintainer, `github-actions[bot]` approves the PR once Verify passes, so
+  the author can merge it with `/merge` without waiting for a second person. A
+  push dismisses the approval; the next Verify run approves again. PRs touching
+  a file on `docs_only.review_required_paths` (security, auth, TLS and similar
+  guides, YAML examples, and everything in `docs-playbook/`) still need a
+  human review. That list matches file
+  names only, so it is a safety net: security content in a generically named
+  page is not caught.
+- Auto-approval relies on two repository settings: "Allow GitHub Actions to
+  create and approve pull requests" (Settings > Actions > General), and
+  "Dismiss stale pull request approvals when new commits are pushed" on the
+  branch protection rule of `main` and `3.3.x`. Without the second, a bot
+  approval would survive a push that adds non-docs changes.
+
+See "Docs-only PRs" in `.github/workflows/README.md` for the details.
 
 ### Label protection
 
@@ -309,7 +338,8 @@ full technical description. In short:
   on every run:
   - author is a maintainer or in `auto_accept` (e.g. Renovate) → runs immediately
   - otherwise → runs once the PR has a current approving review (`reviewDecision ==
-    APPROVED`), re-evaluated automatically on every review submission
+    APPROVED`): the approval makes the orchestrator re-run the push's Verify run,
+    which skipped the suite, so the PR keeps a single set of Verify checks
   - `orchestrator/disabled` label → runs regardless (unless `DO NOT MERGE` is also
     present), the legacy escape hatch for PRs excluded from the lifecycle entirely
 
@@ -325,6 +355,9 @@ The orchestrator is configured in `.github/pr-lifecycle.yml`:
   commands, and who gets the full suite immediately per the CI section above)
 - **auto_accept** — GitHub usernames of additional trusted accounts that also get the
   full suite immediately (e.g. Renovate), without maintainer command access
+- **docs_only** — what counts as a docs-only PR (`paths`, `exclude`) and which docs
+  files still need a human review (`review_required_paths`); see
+  [Docs-only PRs](#docs-only-prs)
 - **max_contributor_prs** — maximum concurrent open PRs for a non-trusted author
   before further ones are closed automatically (default: 1)
 - **pr_limit_exempt** — GitHub usernames `max_contributor_prs` does not apply to,

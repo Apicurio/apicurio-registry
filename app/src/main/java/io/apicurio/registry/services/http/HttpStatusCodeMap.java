@@ -11,6 +11,7 @@ import io.apicurio.registry.ccompat.rest.error.SubjectSoftDeletedException;
 import io.apicurio.registry.ccompat.rest.error.UnprocessableEntityException;
 import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.limits.LimitExceededException;
+import io.apicurio.registry.references.ReferenceDepthExceededException;
 import io.apicurio.registry.rest.InvalidParameterValueException;
 import io.apicurio.registry.rest.MissingRequiredParameterException;
 import io.apicurio.registry.rest.ParametersConflictException;
@@ -37,10 +38,13 @@ import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidContentException;
 import io.apicurio.registry.storage.error.InvalidContractMetadataException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
+import io.apicurio.registry.storage.error.InvalidPeerException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.InvalidVersionStateException;
 import io.apicurio.registry.storage.error.NotAllowedException;
 import io.apicurio.registry.storage.error.NotFoundException;
+import io.apicurio.registry.storage.error.PeerAlreadyExistsException;
+import io.apicurio.registry.storage.error.PeerNotFoundException;
 import io.apicurio.registry.storage.error.ReadOnlyStorageException;
 import io.apicurio.registry.storage.error.RoleMappingAlreadyExistsException;
 import io.apicurio.registry.storage.error.RoleMappingNotFoundException;
@@ -108,9 +112,12 @@ public class HttpStatusCodeMap {
         map.put(InvalidContentException.class, HTTP_BAD_REQUEST);
         map.put(InvalidContractMetadataException.class, HTTP_CONFLICT);
         map.put(InvalidGroupIdException.class, HTTP_BAD_REQUEST);
+        map.put(InvalidPeerException.class, HTTP_BAD_REQUEST);
         map.put(InvalidPropertyValueException.class, HTTP_BAD_REQUEST);
         map.put(io.apicurio.registry.rest.ConflictException.class, HTTP_CONFLICT);
         map.put(LimitExceededException.class, HTTP_CONFLICT);
+        // Client input exceeding a configured limit, like LimitExceededException.
+        map.put(ReferenceDepthExceededException.class, HTTP_CONFLICT);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
         map.put(InvalidParameterValueException.class, HTTP_BAD_REQUEST);
         map.put(NotAllowedException.class, HTTP_CONFLICT); // We're using 409 instead of 403 to reserve the
@@ -119,6 +126,8 @@ public class HttpStatusCodeMap {
         map.put(io.quarkus.security.UnauthorizedException.class, HTTP_UNAUTHORIZED);
         map.put(io.quarkus.security.ForbiddenException.class, HTTP_FORBIDDEN);
         map.put(ParametersConflictException.class, HTTP_CONFLICT);
+        map.put(PeerAlreadyExistsException.class, HTTP_CONFLICT);
+        map.put(PeerNotFoundException.class, HTTP_NOT_FOUND);
         map.put(ReadOnlyStorageException.class, HTTP_CONFLICT);
         map.put(ReferenceExistsException.class, HTTP_UNPROCESSABLE_ENTITY);
         map.put(DereferencingNotSupportedException.class, HTTP_BAD_REQUEST);

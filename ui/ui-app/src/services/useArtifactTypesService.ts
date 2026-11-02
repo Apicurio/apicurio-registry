@@ -20,6 +20,7 @@ export class ArtifactTypes {
     public static THRIFT = "THRIFT";
     public static AGENT_CARD = "AGENT_CARD";
     public static MCP_TOOL = "MCP_TOOL";
+    public static MCP_SERVER = "MCP_SERVER";
     public static ICEBERG_TABLE = "ICEBERG_TABLE";
     public static ICEBERG_VIEW = "ICEBERG_VIEW";
     public static OPENRPC = "OPENRPC";
@@ -68,6 +69,9 @@ export class ArtifactTypes {
                 break;
             case "MCP_TOOL":
                 title = "MCP Tool Definition";
+                break;
+            case "MCP_SERVER":
+                title = "MCP Server Definition";
                 break;
             case "ICEBERG_TABLE":
                 title = "Iceberg Table";
@@ -133,6 +137,9 @@ export class ArtifactTypes {
             case "MCP_TOOL":
                 title = "MCP Tool";
                 break;
+            case "MCP_SERVER":
+                title = "MCP Server";
+                break;
             case "ICEBERG_TABLE":
                 title = "Iceberg Table";
                 break;
@@ -164,7 +171,8 @@ export class ArtifactTypes {
             ArtifactTypes.OPENAPI, ArtifactTypes.ASYNCAPI, ArtifactTypes.GRAPHQL,
             ArtifactTypes.KCONNECT, ArtifactTypes.WSDL, ArtifactTypes.XSD,
             ArtifactTypes.XML, ArtifactTypes.THRIFT, ArtifactTypes.AGENT_CARD,
-            ArtifactTypes.MCP_TOOL, ArtifactTypes.MODEL_SCHEMA, ArtifactTypes.PROMPT_TEMPLATE
+            ArtifactTypes.MCP_TOOL, ArtifactTypes.MCP_SERVER, ArtifactTypes.MODEL_SCHEMA,
+            ArtifactTypes.PROMPT_TEMPLATE
         ];
     }
 
@@ -208,6 +216,9 @@ export class ArtifactTypes {
                 classes += " agentcard-icon24";
                 break;
             case "MCP_TOOL":
+                classes += " mcp-tool-icon24";
+                break;
+            case "MCP_SERVER":
                 classes += " mcp-tool-icon24";
                 break;
             case "ICEBERG_TABLE":

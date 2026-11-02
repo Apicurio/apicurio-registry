@@ -30,9 +30,8 @@
     </dependency>
 
     <dependency>
-      <groupId>org.everit.json</groupId>
-      <artifactId>org.everit.json.schema</artifactId>
-      <version>1.5.1</version>
+      <groupId>com.networknt</groupId>
+      <artifactId>json-schema-validator</artifactId>
     </dependency>
 
     <dependency>

@@ -1,0 +1,13 @@
+// This schema predates the syntax statement, so it is proto2 by language default.
+// syntax = "proto3";
+/*
+ * An earlier draft of this file used:
+ * syntax = "proto3";
+ */
+
+package com.example;
+
+message LegacyRecord {
+    required string record_id = 1;
+    optional string description = 2;
+}

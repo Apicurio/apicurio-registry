@@ -7,10 +7,12 @@ import {
     Draft,
     DraftContent,
     DraftInfo,
+    DraftsFilterBy,
     DraftsSearchFilter,
     DraftsSearchResults,
     DraftsSortBy
 } from "@models/drafts";
+import { toPartialNameFilter } from "@services/useSearchService.ts";
 import { SortOrder } from "@models/SortOrder.ts";
 import { Paging } from "@models/Paging.ts";
 import {
@@ -77,7 +79,12 @@ async function searchDrafts(config: ConfigService, auth: AuthService, filters: D
 
     // Apply filters
     filters.forEach(filter => {
-        (queryParams as any)[filter.by] = filter.value;
+        if (filter.by === DraftsFilterBy.name) {
+            queryParams.name = toPartialNameFilter(filter.value);
+            queryParams.nameCaseInsensitive = true;
+        } else {
+            (queryParams as any)[filter.by] = filter.value;
+        }
     });
 
     return client.search.versions.get({

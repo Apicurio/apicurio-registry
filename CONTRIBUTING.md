@@ -173,7 +173,7 @@ Apicurio Registry uses [Semantic Versioning](https://semver.org/) with a clear s
 | Release type | Contains | Example |
 |--------------|----------|---------|
 | **Minor** (3.3.0 → 3.4.0) | New features, enhancements, bug fixes | Scheduled development milestones |
-| **Patch** (3.3.0 → 3.3.1) | CVE / security fixes only | Dependency upgrades, security patches |
+| **Patch** (3.3.0 → 3.3.1) | CVE / security fixes and important bug fixes | Dependency upgrades, security patches, backported bug fixes |
 
 ### Support window
 
@@ -189,8 +189,7 @@ We maintain the **latest two minor versions** with security patches. Once a new 
 ### Where to target your PR
 
 - **Features and bug fixes** → target `main`
-- **CVE / security backports for N-1** → target the maintenance branch (e.g., `3.3.x`), cherry-picked from the fix on `main`
-- Bug fix backports are **not** accepted on maintenance branches — patches are strictly CVE-only
+- **CVEs and important bug fixes** are backported to the maintenance branch (e.g., `3.3.x`) after the fix lands on `main`. Maintainers decide which bug fixes are important enough, and mark them with the `backport/3.3.x` label, which opens the backport PR automatically. If you think your fix should be backported, say so in the PR description.
 
 ## The small print
 

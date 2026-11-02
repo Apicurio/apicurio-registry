@@ -18,7 +18,6 @@ import io.apicurio.registry.rest.v3.beans.NewComment;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.beans.WrappedVersionState;
-import io.apicurio.registry.json.rules.compatibility.jsonschema.diff.DiffType;
 import io.apicurio.registry.rules.integrity.IntegrityLevel;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
 import io.apicurio.registry.types.ArtifactType;
@@ -28,12 +27,14 @@ import io.apicurio.registry.types.RuleType;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.tests.DeletionEnabledProfile;
 import io.apicurio.registry.utils.tests.TestUtils;
+import io.apitomy.datamodels.jsonschema.compat.DiffType;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.common.mapper.TypeRef;
 import io.restassured.http.ContentType;
 import io.restassured.parsing.Parser;
+import io.restassured.response.Response;
 import io.restassured.response.ValidatableResponse;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.hamcrest.Matchers;
@@ -934,9 +935,9 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .then().statusCode(400).body("status", equalTo(400))
                 .body("title", startsWith("Incompatible artifact: testCreateArtifact/ValidJson [JSON], num"
                         + " of incompatible diffs: {1}, list of diff types: ["
-                        + DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription() + " at /properties/age]"))
-                .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getDescription()))
-                .body("causes[0].context", equalTo("/properties/age"));
+                        + DiffType.SUBSCHEMA_TYPE_CHANGED.getShortDescription() + " at /properties/age/type]"))
+                .body("causes[0].description", equalTo(DiffType.SUBSCHEMA_TYPE_CHANGED.getShortDescription()))
+                .body("causes[0].context", equalTo("/properties/age/type"));
 
     }
 
@@ -1971,6 +1972,68 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 .body("components.schemas.Widget.properties.description.type", equalTo("string"));
     }
 
+    /**
+     * Verifies that DEREFERENCE inlines an external reference when the referenced OpenAPI artifact is
+     * stored as YAML (regression test for #10159).
+     */
+    @Test
+    public void testGetArtifactVersionWithReferencesToYamlArtifact() throws Exception {
+        String referencedTypesContent = """
+                openapi: 3.0.3
+                info:
+                  title: Common API
+                  version: 1.0.0
+                paths: {}
+                components:
+                  schemas:
+                    CommonResponse:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                """;
+        String withExternalRefContent = """
+                openapi: 3.0.3
+                info:
+                  title: Parent API
+                  version: 1.0.0
+                paths:
+                  /example:
+                    get:
+                      responses:
+                        '200':
+                          description: OK
+                          content:
+                            application/json:
+                              schema:
+                                $ref: "common-api.yaml#/components/schemas/CommonResponse"
+                """;
+
+        createArtifact(GROUP, "testGetArtifactVersionWithReferencesToYamlArtifact/Common",
+                ArtifactType.OPENAPI, referencedTypesContent, ContentTypes.APPLICATION_YAML);
+
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("common-api.yaml#/components/schemas/CommonResponse").groupId(GROUP)
+                .artifactId("testGetArtifactVersionWithReferencesToYamlArtifact/Common").version("1")
+                .build());
+        createArtifactWithReferences(GROUP, "testGetArtifactVersionWithReferencesToYamlArtifact/Parent",
+                ArtifactType.OPENAPI, withExternalRefContent, ContentTypes.APPLICATION_YAML, refs);
+
+        String dereferenced = given().when().pathParam("groupId", GROUP)
+                .pathParam("artifactId", "testGetArtifactVersionWithReferencesToYamlArtifact/Parent")
+                .queryParam("references", "DEREFERENCE")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content")
+                .then().statusCode(200)
+                .extract().asString();
+
+        JsonNode root = ContentTypeUtil.parseYaml(ContentHandle.create(dereferenced));
+        assertEquals("Parent API", root.at("/info/title").asText());
+        assertEquals("#/components/schemas/CommonResponse", root
+                .at("/paths/~1example/get/responses/200/content/application~1json/schema/$ref").asText());
+        assertEquals("object", root.at("/components/schemas/CommonResponse/type").asText());
+        assertEquals("string", root.at("/components/schemas/CommonResponse/properties/id/type").asText());
+    }
+
     @Test
     public void testGetArtifactVersionWithReferencesRewriteNotSupportedForAvro() throws Exception {
         String referencedAvroContent = resourceToString("../avro-referenced-type.json");
@@ -2148,6 +2211,204 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
                 "Reference should point to the Avro artifact but was: " + rewrittenRef);
         Assertions.assertTrue(rewrittenRef.contains("?references=REWRITE"),
                 "Reference should contain references=REWRITE parameter but was: " + rewrittenRef);
+    }
+
+
+    /**
+     * Test that dereferencing an AsyncAPI 3.0 document that references an Avro schema, and declares
+     * no schemaFormat of its own, inlines the schema under a wrapper carrying the Avro media type
+     * registered by AsyncAPI 3.0.0. The version parameter is what makes the output parseable: the
+     * AsyncAPI Avro schema parser registers only versioned media types, so a versionless value is
+     * rejected as an unknown schema format.
+     */
+    @Test
+    public void testDereferenceAsyncApiAvroSchemaFormat() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        JsonNode dereferenced = dereferenceAsyncApiWithAvroReference(groupId,
+                "asyncapi-shopping-cart-no-schema-format.yml");
+
+        JsonNode wrapper = multiFormatSchemaOf(dereferenced, "ShoppingCartCreated");
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
+                wrapper.get("schemaFormat").asText());
+
+        // Assert the Avro schema content was correctly inlined inside 'schema'
+        JsonNode schemaNode = wrapper.get("schema");
+        Assertions.assertNotNull(schemaNode, "Inlined schema wrapper must contain 'schema'");
+        Assertions.assertEquals("record", schemaNode.get("type").asText());
+        Assertions.assertEquals("ShoppingCartCreated", schemaNode.get("name").asText());
+    }
+
+    /**
+     * Test that dereferencing an AsyncAPI 3.0 document that pins its payload to an Avro version
+     * other than the default keeps that version on the generated wrapper. A document stating its
+     * own Avro version must not be silently rewritten to a different one, and the payload and the
+     * wrapper must agree.
+     */
+    @Test
+    public void testDereferenceAsyncApiAvroKeepsDeclaredSchemaFormat() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        JsonNode dereferenced = dereferenceAsyncApiWithAvroReference(groupId,
+                "asyncapi-shopping-cart-avro-1-11-0.yml");
+
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.11.0",
+                multiFormatSchemaOf(dereferenced, "ShoppingCartCreated").get("schemaFormat").asText());
+
+        JsonNode payload = dereferenced.get("components").get("messages")
+                .get("ShoppingCartCreatedMessage").get("payload");
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.11.0",
+                payload.get("schemaFormat").asText());
+        Assertions.assertEquals("#/components/schemas/ShoppingCartCreated",
+                payload.get("schema").get("$ref").asText());
+    }
+
+    /**
+     * Test that dereferencing an AsyncAPI 2.6 document inlines a referenced Avro schema into the message
+     * payload and gives the message the versioned Avro schemaFormat. AsyncAPI 2.x has no Multi-Format
+     * Schema Object, so the message's schemaFormat is what tells parsers the payload is Avro.
+     */
+    @Test
+    public void testDereferenceAsyncApi26AvroPayload() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        JsonNode dereferenced = dereferenceAsyncApiWithAvroReference(groupId, "asyncapi26-shopping-cart.yml");
+
+        JsonNode message = dereferenced.path("components").path("messages").path("ShoppingCartCreatedMessage");
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
+                message.path("schemaFormat").asText());
+        Assertions.assertEquals("record", message.path("payload").path("type").asText());
+        Assertions.assertEquals("ShoppingCartCreated", message.path("payload").path("name").asText());
+    }
+
+    /**
+     * Test that dereferencing an AsyncAPI 3.0 document works when the referenced Avro schema itself
+     * references another Avro schema. Avro content cannot have its references rewritten, which must not
+     * cause the nested schema to be dropped from the dereferenced document.
+     */
+    @Test
+    public void testDereferenceAsyncApiNestedAvroReference() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String addressSchema = """
+                {"type": "record", "name": "Address", "namespace": "io.example",
+                 "fields": [{"name": "street", "type": "string"}]}
+                """;
+        String customerSchema = """
+                {"type": "record", "name": "ShoppingCartCreated", "namespace": "io.example",
+                 "fields": [{"name": "address", "type": "io.example.Address"}]}
+                """;
+        createArtifact(groupId, "nestedAvro/Address", ArtifactType.AVRO, addressSchema,
+                ContentTypes.APPLICATION_JSON);
+        createArtifactWithReferences(groupId, "nestedAvro/ShoppingCartCreated", ArtifactType.AVRO,
+                customerSchema, ContentTypes.APPLICATION_JSON,
+                Collections.singletonList(ArtifactReference.builder().name("io.example.Address")
+                        .groupId(groupId).artifactId("nestedAvro/Address").version("1").build()));
+        createArtifactWithReferences(groupId, "nestedAvro/ShoppingCartAPI", ArtifactType.ASYNCAPI,
+                resourceToString("asyncapi-shopping-cart-no-schema-format.yml"), ContentTypes.APPLICATION_YAML,
+                Collections.singletonList(ArtifactReference.builder().name("./avro/ShoppingCartCreated.avsc")
+                        .groupId(groupId).artifactId("nestedAvro/ShoppingCartCreated").version("1").build()));
+
+        JsonNode dereferenced = getDereferencedContent(groupId, "nestedAvro/ShoppingCartAPI");
+
+        JsonNode wrapper = multiFormatSchemaOf(dereferenced, "ShoppingCartCreated");
+        Assertions.assertEquals("application/vnd.apache.avro+json;version=1.9.0",
+                wrapper.get("schemaFormat").asText());
+        Assertions.assertEquals("ShoppingCartCreated", wrapper.get("schema").get("name").asText());
+        Assertions.assertEquals("io.example.Address",
+                wrapper.get("schema").get("fields").get(0).get("type").asText());
+    }
+
+    /**
+     * Test that dereferencing an AsyncAPI 3.0 document that references a Protobuf schema emits the
+     * Protobuf media type registered by AsyncAPI 3.0.0, with the version taken from the referenced
+     * schema's syntax statement.
+     */
+    @Test
+    public void testDereferenceAsyncApiProtobufSchemaFormat() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String protobufContent = """
+                syntax = \"proto3\";
+
+                package io.example.asyncapi.shoppingcart.events.protobuf;
+
+                message ShoppingCartCreated {
+                  int64 customer_id = 1;
+                }
+                """;
+        String asyncApiContent = resourceToString("asyncapi-shopping-cart-protobuf.yml");
+
+        createArtifact(groupId, "testProtobufDereference/ShoppingCartCreated", ArtifactType.PROTOBUF,
+                protobufContent, ContentTypes.APPLICATION_PROTOBUF);
+
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("./protobuf/ShoppingCartCreated.proto").groupId(groupId)
+                .artifactId("testProtobufDereference/ShoppingCartCreated").version("1").build());
+        createArtifactWithReferences(groupId, "testProtobufDereference/ShoppingCartAPI",
+                ArtifactType.ASYNCAPI, asyncApiContent, ContentTypes.APPLICATION_YAML, refs);
+
+        JsonNode dereferenced = getDereferencedContent(groupId,
+                "testProtobufDereference/ShoppingCartAPI");
+
+        JsonNode wrapper = multiFormatSchemaOf(dereferenced, "ShoppingCartCreated");
+        Assertions.assertEquals("application/vnd.google.protobuf;version=3",
+                wrapper.get("schemaFormat").asText());
+        Assertions.assertTrue(wrapper.get("schema").asText().contains("message ShoppingCartCreated"),
+                "Protobuf schema should be inlined as text but was: " + wrapper.get("schema"));
+    }
+
+    /**
+     * Registers an Avro schema and an AsyncAPI document that references it, then returns the
+     * dereferenced document.
+     *
+     * @param groupId the group to register both artifacts in
+     * @param asyncApiResource the AsyncAPI test resource to register
+     */
+    private JsonNode dereferenceAsyncApiWithAvroReference(String groupId, String asyncApiResource)
+            throws Exception {
+        String avroSchemaContent = resourceToString("avro/ShoppingCartCreated.avsc");
+        String asyncApiContent = resourceToString(asyncApiResource);
+
+        createArtifact(groupId, "testAvroDereference/ShoppingCartCreated", ArtifactType.AVRO,
+                avroSchemaContent, ContentTypes.APPLICATION_JSON);
+
+        List<ArtifactReference> refs = Collections.singletonList(ArtifactReference.builder()
+                .name("./avro/ShoppingCartCreated.avsc").groupId(groupId)
+                .artifactId("testAvroDereference/ShoppingCartCreated").version("1").build());
+        createArtifactWithReferences(groupId, "testAvroDereference/ShoppingCartAPI",
+                ArtifactType.ASYNCAPI, asyncApiContent, ContentTypes.APPLICATION_YAML, refs);
+
+        return getDereferencedContent(groupId, "testAvroDereference/ShoppingCartAPI");
+    }
+
+    /**
+     * Retrieves the latest version of an artifact with references=DEREFERENCE and parses it.
+     *
+     * @param groupId the artifact's group
+     * @param artifactId the artifact to retrieve
+     */
+    private JsonNode getDereferencedContent(String groupId, String artifactId) throws Exception {
+        Response response = given().when().pathParam("groupId", groupId)
+                .pathParam("artifactId", artifactId).queryParam("references", "DEREFERENCE")
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/branch=latest/content");
+
+        Assertions.assertEquals(200, response.getStatusCode(),
+                "Expected 200 OK but got: " + response.getStatusCode() + " - " + response.asString());
+
+        JsonNode yamlNode = ContentTypeUtil.parseYaml(ContentHandle.create(response.asString()));
+        Assertions.assertNotNull(yamlNode, "Response body should be valid YAML");
+        return yamlNode;
+    }
+
+    /**
+     * Returns the Multi-Format Schema Object that dereferencing added under components/schemas.
+     *
+     * @param dereferenced the dereferenced document
+     * @param schemaName the name of the generated schema component
+     */
+    private JsonNode multiFormatSchemaOf(JsonNode dereferenced, String schemaName) {
+        JsonNode wrapper = dereferenced.path("components").path("schemas").path(schemaName);
+        Assertions.assertFalse(wrapper.isMissingNode(),
+                "No components/schemas entry named " + schemaName + " in: " + dereferenced);
+        Assertions.assertNotNull(wrapper.get("schemaFormat"),
+                "Inlined schema wrapper must contain 'schemaFormat' but was: " + wrapper);
+        return wrapper;
     }
 
     /**

@@ -160,6 +160,9 @@ public class ConfluentApiSimulation extends Simulation {
             }
             builder.method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body));
             return SETUP_CLIENT.send(builder.build(), HttpResponse.BodyHandlers.ofString());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted during request: " + method + " " + path, e);
         } catch (Exception e) {
             throw new IllegalStateException("Request failed: " + method + " " + path, e);
         }

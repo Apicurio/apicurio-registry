@@ -1,0 +1,73 @@
+{
+  "name": "Issue Analyzer Agent",
+  "description": "Intelligent issue analyzer that extracts entities, classifies problems, and recommends action items from customer complaints.",
+  "version": "1.0.0",
+  "protocolVersion": "1.0",
+  "supportedInterfaces": [
+    {
+      "url": "https://agents.example.com/analyzer-agent",
+      "protocolBinding": "http+json",
+      "protocolVersion": "1.0"
+    }
+  ],
+  "provider": {
+    "organization": "A2A Demo",
+    "url": "https://agents.example.com"
+  },
+  "capabilities": {
+    "streaming": false,
+    "pushNotifications": false
+  },
+  "skills": [
+    {
+      "id": "issue-classification",
+      "name": "Issue Classification",
+      "description": "Skill: issue-classification",
+      "tags": [
+        "issue-classification"
+      ],
+      "examples": [
+        "Classify this complaint about a billing error."
+      ]
+    },
+    {
+      "id": "entity-extraction",
+      "name": "Entity Extraction",
+      "description": "Skill: entity-extraction",
+      "tags": [
+        "entity-extraction"
+      ],
+      "examples": [
+        "Extract the order number and product from this complaint."
+      ]
+    },
+    {
+      "id": "priority-assessment",
+      "name": "Priority Assessment",
+      "description": "Skill: priority-assessment",
+      "tags": [
+        "priority-assessment"
+      ],
+      "examples": [
+        "What priority should this support issue get?"
+      ]
+    },
+    {
+      "id": "action-recommendation",
+      "name": "Action Recommendation",
+      "description": "Skill: action-recommendation",
+      "tags": [
+        "action-recommendation"
+      ],
+      "examples": [
+        "What actions should support take for this issue?"
+      ]
+    }
+  ],
+  "defaultInputModes": [
+    "text"
+  ],
+  "defaultOutputModes": [
+    "text"
+  ]
+}

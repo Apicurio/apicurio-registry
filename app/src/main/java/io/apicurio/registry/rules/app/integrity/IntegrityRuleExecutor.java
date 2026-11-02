@@ -26,7 +26,6 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.ConfigProvider;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -232,7 +231,8 @@ public class IntegrityRuleExecutor implements RuleExecutor {
         ReferenceLoader loader = coordinates -> loadBatch(storageToUse, coordinates);
         ArtifactReferenceDto rootReference = ArtifactReferenceDto.builder().groupId(ref.getGroupId())
                 .artifactId(ref.getArtifactId()).version(ref.getVersion()).name(ref.getName()).build();
-        ResolvedReferences resolved = ReferenceGraphWalker.walk(List.of(rootReference), loader, maxDepth());
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(List.of(rootReference), loader,
+                ReferenceResolutionConfig.maxDepth());
         return resolved.findCycle();
     }
 
@@ -253,12 +253,6 @@ public class IntegrityRuleExecutor implements RuleExecutor {
                             .build());
         }
         return loaded;
-    }
-
-    private static int maxDepth() {
-        return ConfigProvider.getConfig()
-                .getOptionalValue(ReferenceResolutionConfig.MAX_DEPTH_PROPERTY, Integer.class)
-                .orElse(ReferenceResolutionConfig.DEFAULT_MAX_DEPTH);
     }
 
     /**

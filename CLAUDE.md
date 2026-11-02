@@ -126,6 +126,10 @@ Full contribution guidelines are in [CONTRIBUTING.md](CONTRIBUTING.md).
 - UI has its own npm/Vite build system, separate from Maven
 - Integration tests need running infrastructure (use testcontainers or profiles)
 - `APICURIO_STORAGE_SQL_KIND` selects the SQL dialect (postgresql, mysql, mssql)
+- Agent registry code (A2A, MCP tools and MCP Registry, AI Catalog, ARD, prompt rendering) lives in
+  `io.apicurio.registry.agents..` (app) and `schema-util/agents`. Core must not reference it: reach it
+  through `io.apicurio.registry.extensions` instead. `AgentsBoundaryTest` (ArchUnit) fails the build
+  otherwise.
 - New components must be wired into the Verify → Decide → Verification Gate CI pipeline, not standalone workflows. A standalone workflow that doesn't block merges is an incomplete integration.
 
 ## Claude Code Configuration

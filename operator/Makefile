@@ -27,6 +27,9 @@ IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 ADDITIONAL_IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(ADDITIONAL_IMAGE_TAG)
 
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+# Commit the image is built from, in its org.opencontainers.image.revision label.
+# Verify's publish guard reads it from latest-snapshot.
+IMAGE_REVISION ?= $(shell git rev-parse HEAD 2>/dev/null)
 
 OPERAND_IMAGE_TAG ?= latest-snapshot
 
@@ -343,6 +346,8 @@ image-buildx-push: ## Build and push a multi-arch operator image
 		for i in 1 2 3; do \
 			docker buildx build --push -f controller/src/main/docker/Dockerfile.jvm \
 				--platform $(IMAGE_PLATFORMS) \
+				$(if $(IMAGE_REVISION),--label org.opencontainers.image.revision=$(IMAGE_REVISION),) \
+				--label org.opencontainers.image.source=https://github.com/Apicurio/apicurio-registry \
 				-t $(IMAGE) \
 				$(if $(and $(ADDITIONAL_IMAGE),$(ADDITIONAL_IMAGE_TAG)),-t $(ADDITIONAL_IMAGE),) \
 				controller/target && break; \

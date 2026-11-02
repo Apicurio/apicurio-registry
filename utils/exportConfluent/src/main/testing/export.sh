@@ -20,17 +20,17 @@ echo ""
 QUARKUS_APP_DIR="$PROJECT_DIR/target/quarkus-app"
 
 # Build the project if needed
-if [ ! -d "$QUARKUS_APP_DIR" ]; then
+if [[ ! -d "$QUARKUS_APP_DIR" ]]; then
     echo "Building export utility..."
     cd "$PROJECT_DIR"
     mvn clean package -Pprod -DskipTests
-    if [ $? -ne 0 ]; then
+    if [[ $? -ne 0 ]]; then
         echo "Build failed!"
         exit 1
     fi
 fi
 
-if [ ! -f "$QUARKUS_APP_DIR/quarkus-run.jar" ]; then
+if [[ ! -f "$QUARKUS_APP_DIR/quarkus-run.jar" ]]; then
     echo "Error: Could not find quarkus-run.jar in $QUARKUS_APP_DIR/"
     exit 1
 fi
@@ -43,7 +43,7 @@ echo ""
 # Run the export utility (now using v3 format by default)
 java -jar "$QUARKUS_APP_DIR/quarkus-run.jar" "$CONFLUENT_URL" --output "$OUTPUT_FILE"
 
-if [ $? -eq 0 ]; then
+if [[ $? -eq 0 ]]; then
     echo ""
     echo "==================================================================="
     echo "Export complete: $OUTPUT_FILE"

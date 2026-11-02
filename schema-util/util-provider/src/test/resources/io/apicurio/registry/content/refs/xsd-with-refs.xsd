@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:c="urn:common" targetNamespace="urn:order">
+  <xs:import namespace="urn:common" schemaLocation="common.xsd"/>
+  <xs:import namespace="urn:builtin"/>
+  <xs:include schemaLocation="order-parts.xsd"/>
+  <xs:element name="order" type="c:Address"/>
+</xs:schema>

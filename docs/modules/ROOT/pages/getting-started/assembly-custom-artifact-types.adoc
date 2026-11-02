@@ -8,6 +8,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 You can configure {registry} with custom artifact types at deployment time, in addition to the built-in types.
 Webhooks or Java classes provide content detection, validation, compatibility checking, canonicalization, and dereferencing for each custom type.
+
 You can add Java providers to a derived container image without rebuilding {registry}.
 
 // ref-custom-artifact-types-config
@@ -19,6 +20,7 @@ You can add Java providers to a derived container image without rebuilding {regi
 [role="_abstract"]
 At startup, {registry} reads the list of supported artifact types from a JSON file.
 The `apicurio.artifact-types.config-file` property specifies the file location, with `APICURIO_ARTIFACT_TYPES_CONFIG_FILE` as the corresponding environment variable.
+
 When the file does not exist, only the built-in artifact types are available.
 
 .Example configuration file
@@ -75,6 +77,12 @@ When the file does not exist, only the built-in artifact types are available.
 
 |`contentTypes`
 |The content types (media types) accepted for this artifact type.
+
+|`fileExtensions`
+|Optional list of file extensions that unambiguously identify this artifact type (for example, `[".mytype"]`).
+Each extension must include the leading dot and must not be claimed by another type; duplicate extensions cause a startup failure.
+When a GitOps or Kubernetes-based data source imports a file whose extension matches, the registry uses this type without inspecting the content.
+Extensions are matched case-insensitively.
 
 |`contentAccepter`
 |Provider that determines whether content belongs to this type. {registry} uses this provider to detect the artifact type when a client does not specify one.

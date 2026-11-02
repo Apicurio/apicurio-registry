@@ -9,6 +9,7 @@ import io.vertx.core.Vertx;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -16,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Locale;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -69,13 +71,25 @@ public class RegistryClientFacadeFactory {
 
         configureAuthentication(clientOptions, config);
 
+        // Defaults for CLIENT_RETRY_* must match RegistryClientOptions#retry()
+        // (3 / 250ms / 2.0 / 10000ms); pinned by RegistryClientOptionsRetryDefaultsTest.
         if (config.getClientRetryEnabled()) {
-            clientOptions.retry(true,
-                    (int) config.getClientRetryMaxAttempts(),
-                    config.getClientRetryDelayMs(),
-                    config.getClientRetryBackoffMultiplier(),
-                    config.getClientRetryMaxDelayMs());
+            int maxAttempts = (int) config.getClientRetryMaxAttempts();
+            long delayMs = config.getClientRetryDelayMs();
+            double backoff = config.getClientRetryBackoffMultiplier();
+            long maxDelayMs = config.getClientRetryMaxDelayMs();
+            if (logger.isLoggable(Level.INFO)) {
+                logger.log(Level.INFO,
+                        "Registry HTTP client retry enabled: url={0}, maxAttempts={1}, delayMs={2}, backoffMultiplier={3}, maxDelayMs={4}",
+                        new Object[]{sanitizeRegistryUrl(config.getRegistryUrl()), maxAttempts, delayMs, backoff,
+                                maxDelayMs});
+            }
+            clientOptions.retry(true, maxAttempts, delayMs, backoff, maxDelayMs);
         } else {
+            if (logger.isLoggable(Level.INFO)) {
+                logger.log(Level.INFO, "Registry HTTP client retry disabled: url={0}",
+                        sanitizeRegistryUrl(config.getRegistryUrl()));
+            }
             clientOptions.disableRetry();
         }
 
@@ -333,6 +347,26 @@ public class RegistryClientFacadeFactory {
             if (proxyUsername != null && proxyPassword != null) {
                 clientOptions.proxyAuth(proxyUsername, proxyPassword);
             }
+        }
+    }
+
+    /**
+     * Strip userinfo from registry URLs before logging to avoid leaking credentials.
+     * Returns {@code <invalid-url>} when the input cannot be parsed (never echoes the raw string).
+     */
+    static String sanitizeRegistryUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return url;
+        }
+        try {
+            URI uri = URI.create(url);
+            if (uri.getUserInfo() == null) {
+                return url;
+            }
+            return new URI(uri.getScheme(), null, uri.getHost(), uri.getPort(), uri.getPath(), uri.getQuery(),
+                    uri.getFragment()).toString();
+        } catch (Exception e) {
+            return "<invalid-url>";
         }
     }
 

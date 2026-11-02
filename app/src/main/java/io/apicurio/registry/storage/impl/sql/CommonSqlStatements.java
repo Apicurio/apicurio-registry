@@ -1116,6 +1116,70 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertPeer()
+     */
+    @Override
+    public String insertPeer() {
+        return "INSERT INTO peers (peerId, url, name, description, enabled, credentialSecretRef) VALUES (?, ?, ?, ?, ?, ?)";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deletePeer()
+     */
+    @Override
+    public String deletePeer() {
+        return "DELETE FROM peers WHERE peerId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteAllPeers()
+     */
+    @Override
+    public String deleteAllPeers() {
+        return "DELETE FROM peers ";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectPeerById()
+     */
+    @Override
+    public String selectPeerById() {
+        return "SELECT p.* FROM peers p WHERE p.peerId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectPeers()
+     */
+    @Override
+    public String selectPeers() {
+        return "SELECT p.* FROM peers p ORDER BY p.peerId";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#countPeers()
+     */
+    @Override
+    public String countPeers() {
+        return "SELECT count(p.peerId) FROM peers p ";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#updatePeer()
+     */
+    @Override
+    public String updatePeer() {
+        return "UPDATE peers SET url = ?, name = ?, description = ?, enabled = ?, credentialSecretRef = ? WHERE peerId = ?";
+    }
+
+    /**
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectPeerCountById()
+     */
+    @Override
+    public String selectPeerCountById() {
+        return "SELECT COUNT(p.peerId) FROM peers p WHERE p.peerId = ?";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#insertDownload()
      */
     @Override
@@ -1210,7 +1274,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String deleteOrphanedContentReferences() {
-        return "DELETE FROM content_references WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId)";
+        return "DELETE FROM content_references WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = content_references.contentId)";
     }
 
     @Override
@@ -1412,32 +1476,38 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String selectArtifactUsageMetrics() {
-        return "SELECT v.version, su.globalId, COUNT(*) AS totalFetches, "
-                + "COUNT(DISTINCT su.clientId) AS uniqueClients, "
-                + "MIN(su.eventTimestamp) AS firstFetchedOn, MAX(su.eventTimestamp) AS lastFetchedOn, "
-                + "STRING_AGG(DISTINCT su.clientId, ',') AS clientList "
+        // One row per (version, client). The per-version totals and the client list are folded in
+        // SqlUsageRepository, because string aggregation differs per database (STRING_AGG, LISTAGG,
+        // GROUP_CONCAT with a length cap) and DISTINCT inside it is not portable.
+        return "SELECT v.version, v.globalId, v.versionOrder, su.clientId, COUNT(*) AS fetches, "
+                + "MIN(su.eventTimestamp) AS firstFetchedOn, MAX(su.eventTimestamp) AS lastFetchedOn "
                 + "FROM schema_usage su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
                 + "WHERE v.groupId = ? AND v.artifactId = ? "
-                + "GROUP BY v.globalId, v.version, v.versionOrder ORDER BY v.versionOrder";
+                + "GROUP BY v.globalId, v.version, v.versionOrder, su.clientId "
+                + "ORDER BY v.versionOrder, su.clientId";
     }
 
     @Override
     public String selectUsageSummaryCounts() {
+        // A version can be fetched directly and also inherit liveness from a schema that references
+        // it, so the two sources are reduced to the latest timestamp per version before classifying.
         return "SELECT "
                 + "SUM(CASE WHEN (? - maxTs) <= ? THEN 1 ELSE 0 END) AS active, "
                 + "SUM(CASE WHEN (? - maxTs) > ? AND (? - maxTs) <= ? THEN 1 ELSE 0 END) AS stale, "
                 + "SUM(CASE WHEN (? - maxTs) > ? THEN 1 ELSE 0 END) AS dead "
                 + "FROM ("
+                + "SELECT globalId, MAX(maxTs) AS maxTs FROM ("
                 + "SELECT v.globalId, MAX(su.eventTimestamp) AS maxTs FROM schema_usage su "
                 + "JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
                 + "GROUP BY v.globalId "
-                + "UNION "
+                + "UNION ALL "
                 + "SELECT rv.globalId, MAX(su.eventTimestamp) AS maxTs "
                 + "FROM schema_usage su "
                 + "JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
                 + "JOIN content_references cr ON v.contentId = cr.contentId "
                 + "JOIN versions rv ON rv.groupId = cr.groupId AND rv.artifactId = cr.artifactId AND rv.version = cr.version "
                 + "GROUP BY rv.globalId"
+                + ") u GROUP BY globalId"
                 + ") agg";
     }
 

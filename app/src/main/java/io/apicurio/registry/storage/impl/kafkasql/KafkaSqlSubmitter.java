@@ -68,9 +68,9 @@ public class KafkaSqlSubmitter {
      *
      * @param key
      * @param value
+     * @param requestId the id written to the request header; only an id from the coordinator can be waited for
      */
-    private CompletableFuture<UUID> send(KafkaSqlMessageKey key, KafkaSqlMessage value) {
-        UUID requestId = coordinator.get().createUUID();
+    private CompletableFuture<UUID> send(KafkaSqlMessageKey key, KafkaSqlMessage value, UUID requestId) {
         RecordHeader requestIdHeader = new RecordHeader(REQUEST_ID_HEADER,
                 requestId.toString().getBytes(StandardCharsets.UTF_8));
         RecordHeader messageTypeHeader = new RecordHeader(MESSAGE_TYPE_HEADER,
@@ -88,12 +88,21 @@ public class KafkaSqlSubmitter {
     public void submitBootstrap(String bootstrapId) {
         KafkaSqlMessageKey key = KafkaSqlMessageKey.builder().messageType(BOOTSTRAP_MESSAGE_TYPE).uuid(bootstrapId)
                 .build();
-        blockOnResult(send(key, null));
+        blockOnResult(send(key, null, coordinator.get().createUUID()));
     }
 
     public CompletableFuture<UUID> submitMessage(KafkaSqlMessage message) {
         var key = message.getKey();
-        return send(key, message);
+        return send(key, message, coordinator.get().createUUID());
+    }
+
+    /**
+     * Submits a message whose result nobody waits for. The request id still goes into the journal header,
+     * but the coordinator never learns about it, so no latch or return value is kept for the message.
+     * Callers must handle a failed send themselves.
+     */
+    public CompletableFuture<UUID> submitMessageWithoutResponse(KafkaSqlMessage message) {
+        return send(message.getKey(), message, UUID.randomUUID());
     }
 
 }

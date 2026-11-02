@@ -92,7 +92,7 @@ public class ChannelValidationOLMITTest extends OLMITBase {
                     .startsWith(PACKAGE_NAME + ".v");
 
             var expectedMinorPrefix = PACKAGE_NAME + ".v"
-                    + projectVersion.toLowerCase().replaceAll("(\\d+\\.\\d+)\\..*", "$1.");
+                    + projectVersion.toLowerCase().replaceAll("(\\d++\\.\\d++)\\..*", "$1.");
             assertThat(minorHead)
                     .as("Minor channel " + minorChannel + " head should be from the "
                             + minorChannel + " stream")

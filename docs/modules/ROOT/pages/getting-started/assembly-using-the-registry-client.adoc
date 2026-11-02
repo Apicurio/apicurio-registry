@@ -115,7 +115,7 @@ public class ClientExample {
 +
 The registry URL:: If you specify an example {registry} URL of `\https://my-registry.my-domain.com`, the client automatically appends `/apis/registry/v3`.
 The Vertx object:: Create a new Vertx object that the client uses for HTTP requests, so that you control its lifecycle.
-The registry client:: For more options when creating a {registry} client, see xref:registry-sdk-config_registry[].
+The registry client:: For more options when creating a {registry} client, see xref:registry-sdk-config_{context}[].
 Closing the client:: When you are done with the client, close the Vertx object to free its resources.
 
 .Results

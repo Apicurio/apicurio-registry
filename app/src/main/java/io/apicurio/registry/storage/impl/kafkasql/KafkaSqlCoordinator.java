@@ -64,12 +64,20 @@ public class KafkaSqlCoordinator {
             }
             return rval;
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             throw new RegistryException(
                     "[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
         } finally {
             latches.remove(uuid);
             returnValues.remove(uuid);
         }
+    }
+
+    /**
+     * Number of latches and return values currently held for operations nobody has collected yet.
+     */
+    int pendingCount() {
+        return latches.size() + returnValues.size();
     }
 
     /**

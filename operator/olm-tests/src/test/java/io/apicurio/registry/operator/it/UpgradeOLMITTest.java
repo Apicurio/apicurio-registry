@@ -447,7 +447,7 @@ public class UpgradeOLMITTest implements OperatorTestContext {
                 "${PLACEHOLDER_UPGRADE_START_CSV}", "");
         var raw = loadRawResource("olmv0/subscription-upgrade.yaml");
         var subscriptionYaml = replaceVars(raw, namespace, extraVars)
-                .replaceAll("\\s*startingCSV:.*", "");
+                .replaceAll("\\R?+[ \\t]*+startingCSV:[^\\r\\n]*+", "");
         client.resource(subscriptionYaml).create();
 
         verifyUpgradeTo(minorHeadVersion);

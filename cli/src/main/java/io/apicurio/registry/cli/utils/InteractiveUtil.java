@@ -56,7 +56,7 @@ public final class InteractiveUtil {
     ) {
         final var initialResults = pageFetcher.apply(1);
         final var initialRows = Optional.ofNullable(initialResults.getArtifacts()).orElse(List.of());
-        final var initialHasNext = pageSize < initialResults.getCount();
+        final var initialHasNext = hasNextPage(initialResults.getCount(), 1, pageSize);
 
         var table = new InteractiveTable<SearchedArtifact>(
                 initialRows,
@@ -65,8 +65,7 @@ public final class InteractiveUtil {
                 page -> {
                     ArtifactSearchResults pageResults = pageFetcher.apply(page);
                     final var pageRows = Optional.ofNullable(pageResults.getArtifacts()).orElse(List.of());
-                    final var hasNext = ((long) page * pageSize) < pageResults.getCount();
-                    return new PageResult<>(pageRows, hasNext);
+                    return new PageResult<>(pageRows, hasNextPage(pageResults.getCount(), page, pageSize));
                 },
                 initialHasNext,
                 deleter
@@ -92,6 +91,16 @@ public final class InteractiveUtil {
         // Checked on every exit path, including quitting the TUI, so this must stay after the
         // selection handling above.
         table.failIfDeleteFailed();
+    }
+
+    /**
+     * Whether pages remain after {@code page}, given the total number of matches. {@code count} is
+     * the total across all pages, so the rows already shown are compared against it. A null count
+     * (the field is nullable in the REST beans) is treated as "no further pages" rather than
+     * throwing on unboxing.
+     */
+    static boolean hasNextPage(Integer count, int page, int pageSize) {
+        return count != null && ((long) page * pageSize) < count;
     }
 
     static void printArtifactDetails(SearchedArtifact a, StringBuilder stdout) {

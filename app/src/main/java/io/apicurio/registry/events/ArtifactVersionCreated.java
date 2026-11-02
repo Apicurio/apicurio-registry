@@ -4,6 +4,7 @@ import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.OutboxEvent;
 import org.json.JSONObject;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import static io.apicurio.registry.storage.StorageEventType.ARTIFACT_VERSION_CREATED;
@@ -17,6 +18,7 @@ public class ArtifactVersionCreated extends OutboxEvent {
     }
 
     public static ArtifactVersionCreated of(ArtifactVersionMetaDataDto versionMetaDataDto) {
+        Objects.requireNonNull(versionMetaDataDto, "Artifact version metadata must not be null");
         String id = UUID.randomUUID().toString();
         JSONObject jsonObject = new JSONObject();
         jsonObject.put("id", id).put("groupId", versionMetaDataDto.getGroupId())

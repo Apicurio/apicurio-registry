@@ -178,21 +178,23 @@ spec:
         value: "50"
 
       # Connection acquisition timeout (5 seconds)
-      - name: QUARKUS_DATASOURCE_JDBC_ACQUISITION-TIMEOUT
+      - name: QUARKUS_DATASOURCE_POSTGRESQL_JDBC_ACQUISITION_TIMEOUT
         value: "5S"
 
       # Background validation to detect stale connections (every 2 minutes)
-      - name: QUARKUS_DATASOURCE_JDBC_BACKGROUND-VALIDATION-INTERVAL
+      - name: QUARKUS_DATASOURCE_POSTGRESQL_JDBC_BACKGROUND_VALIDATION_INTERVAL
         value: "2M"
 
       # Foreground validation before use (every 1 minute)
-      - name: QUARKUS_DATASOURCE_JDBC_FOREGROUND-VALIDATION-INTERVAL
+      - name: QUARKUS_DATASOURCE_POSTGRESQL_JDBC_FOREGROUND_VALIDATION_INTERVAL
         value: "1M"
 
       # Maximum connection lifetime (30 minutes)
-      - name: QUARKUS_DATASOURCE_JDBC_MAX-LIFETIME
+      - name: QUARKUS_DATASOURCE_POSTGRESQL_JDBC_MAX_LIFETIME
         value: "30M"
 ----
++
+NOTE: {registry} defines a named datasource for each supported database. The `QUARKUS_DATASOURCE_POSTGRESQL_*` variables target the named PostgreSQL datasource. Generic `QUARKUS_DATASOURCE_JDBC_*` variables have no effect. For MySQL storage, replace `POSTGRESQL` with `MYSQL` in each of these variable names.
 +
 These settings ensure that:
 +
@@ -720,9 +722,11 @@ Alternatively, export and import topics using Kafka's console consumer or CLI to
 the topics might contain binary data, which might be affected by text file encoding, make sure they are exported
 correctly when using CLI tools.
 
+ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
 * xref:getting-started/guide-exporting-registry-kafka-topic-data.adoc[]
+endif::[]
 
 [id="ha-backup-restore-testing_{context}"]
 == Testing backup and restore

@@ -1,14 +1,52 @@
 name: 'Setup Maven Cache'
-description: 'Compute stable pom.xml hash (excluding target/) and restore Maven dependency cache'
+description: 'Restore the Maven wrapper distribution and the Maven dependency cache'
 
 outputs:
   cache-hit:
-    description: 'Whether an exact cache match was found'
+    description: 'Whether the dependency cache had an exact match'
     value: ${{ steps.cache.outputs.cache-hit }}
 
 runs:
   using: 'composite'
   steps:
+    # Fail loudly when the properties file is absent: hashFiles() would return the
+    # empty string and the key below would degrade to the constant
+    # mvnw-dist-${{ runner.os }}-, which always hits once saved and never re-saves.
+    # Mirrors the pom.xml guard further down this file.
+    - name: Verify Maven wrapper properties
+      shell: bash
+      run: |
+        if [ ! -f .mvn/wrapper/maven-wrapper.properties ]; then
+          echo "::error::No .mvn/wrapper/maven-wrapper.properties found, cannot key the wrapper distribution cache"
+          exit 1
+        fi
+
+    # mvnw extracts the Maven distribution into ~/.m2/wrapper/dists/<name>/<url-hash>
+    # before any Maven process exists, so -s ci-settings.xml cannot mirror it. On a
+    # runner with wget or curl (ubuntu-latest carries both) the download retries, so
+    # only a sustained Central outage fails the job, and it fails even when the
+    # dependency cache below is warm.
+    #
+    # Its own entry rather than a second path on that cache: poms change most weeks
+    # and the distribution does not, so folding it in would copy the distribution
+    # into every new dependency entry.
+    #
+    # Keyed on maven-wrapper.properties because mvnw takes distributionUrl (and
+    # distributionSha256Sum, when set; this repo pins only the URL today) from that
+    # file, and derives the extracted directory name from a hash of the URL (the
+    # hash_string call in mvnw). The key is freshness, not integrity: a cache hit
+    # skips the download, so no checksum ever runs against a restored distribution.
+    # MVNW_REPOURL rewrites the URL and therefore the directory name, so it would
+    # have to join this key as ${{ env.MVNW_REPOURL }}. MAVEN_USER_HOME relocates
+    # the whole wrapper directory, so setting it would mean changing path: here too.
+    # No restore-keys: after a version bump a prefix hit restores a distribution
+    # mvnw cannot use and the post-step re-saves it for nothing.
+    - name: Restore Maven wrapper distribution
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+      with:
+        path: ~/.m2/wrapper
+        key: mvnw-dist-${{ runner.os }}-${{ hashFiles('.mvn/wrapper/maven-wrapper.properties') }}
+
     - name: Compute Maven cache key
       id: maven-hash
       shell: bash

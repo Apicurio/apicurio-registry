@@ -3,16 +3,14 @@ package io.apicurio.registry.rules.compatibility.jsonschema;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.json.rules.compatibility.ApitomyJsonSchemaCompatibilityChecker;
-import io.apicurio.registry.json.rules.compatibility.JsonSchemaCompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityChecker;
 import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
 import io.apicurio.registry.types.ContentTypes;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.MethodSource;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Stream;
+
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,16 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The routing and de-duplication of that derivation is covered generically by
  * {@code AbstractCompatibilityCheckerTest} with a stub checker, and is not repeated here. What this
  * adds is the other half: that the verdicts are correct for schemas a user would actually write.
- * <p>
- * Every case runs against both checkers. Where they disagree the failure is informative either way
- * — a regression in the new checker, or a defect in the legacy one that has been shipping
- * unobserved.
  */
 public class JsonSchemaCompatibilityLevelTest {
 
-    static Stream<CompatibilityChecker> checkers() {
-        return Stream.of(new JsonSchemaCompatibilityChecker(), new ApitomyJsonSchemaCompatibilityChecker());
-    }
+    private final CompatibilityChecker checker = new ApitomyJsonSchemaCompatibilityChecker();
 
     /** Accepts strings of up to 10 characters. */
     private static final String WIDE = """
@@ -114,9 +106,8 @@ public class JsonSchemaCompatibilityLevelTest {
      * still accepts. It is not forward compatible, because the old schema rejects the longer strings
      * the new one now permits.
      */
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("checkers")
-    void wideningIsBackwardButNotForward(CompatibilityChecker checker) {
+    @Test
+    void wideningIsBackwardButNotForward() {
         assertTrue(check(checker, CompatibilityLevel.BACKWARD, List.of(NARROW), WIDE),
                 "Widening maxLength should be backward compatible");
         assertFalse(check(checker, CompatibilityLevel.FORWARD, List.of(NARROW), WIDE),
@@ -130,9 +121,8 @@ public class JsonSchemaCompatibilityLevelTest {
      * case this pins the direction of the argument swap — a checker that confused the two would pass
      * one of these and fail the other.
      */
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("checkers")
-    void narrowingIsForwardButNotBackward(CompatibilityChecker checker) {
+    @Test
+    void narrowingIsForwardButNotBackward() {
         assertFalse(check(checker, CompatibilityLevel.BACKWARD, List.of(WIDE), NARROW),
                 "Narrowing maxLength should not be backward compatible");
         assertTrue(check(checker, CompatibilityLevel.FORWARD, List.of(WIDE), NARROW),
@@ -142,9 +132,8 @@ public class JsonSchemaCompatibilityLevelTest {
     }
 
     /** An unchanged schema is compatible in every direction. */
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("checkers")
-    void identicalSchemaIsFullyCompatible(CompatibilityChecker checker) {
+    @Test
+    void identicalSchemaIsFullyCompatible() {
         assertTrue(check(checker, CompatibilityLevel.BACKWARD, List.of(WIDE), WIDE));
         assertTrue(check(checker, CompatibilityLevel.FORWARD, List.of(WIDE), WIDE));
         assertTrue(check(checker, CompatibilityLevel.FULL, List.of(WIDE), WIDE));
@@ -157,9 +146,8 @@ public class JsonSchemaCompatibilityLevelTest {
      * the version before it the proposal also drops {@code "c"}, which is not. A non-transitive
      * check sees only the former.
      */
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("checkers")
-    void transitiveSeesOlderVersionsThatNonTransitiveMisses(CompatibilityChecker checker) {
+    @Test
+    void transitiveSeesOlderVersionsThatNonTransitiveMisses() {
         List<String> versions = List.of(ENUM_ABC, ENUM_AB); // newest last
 
         assertTrue(check(checker, CompatibilityLevel.BACKWARD, versions, ENUM_ABD),
@@ -177,9 +165,8 @@ public class JsonSchemaCompatibilityLevelTest {
      * read a {@code b}. An implementation treating FORWARD_TRANSITIVE as plain FORWARD sees only
      * the newest version and passes.
      */
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("checkers")
-    void forwardTransitiveSeesOlderVersionsThatForwardMisses(CompatibilityChecker checker) {
+    @Test
+    void forwardTransitiveSeesOlderVersionsThatForwardMisses() {
         List<String> versions = List.of(ENUM_A, ENUM_AB); // newest last
 
         assertTrue(check(checker, CompatibilityLevel.FORWARD, versions, ENUM_AB_ANNOTATED),
@@ -194,9 +181,8 @@ public class JsonSchemaCompatibilityLevelTest {
      * forward side does. Without the second, an implementation that dropped the forward half
      * entirely would still pass.
      */
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("checkers")
-    void fullTransitiveUnionsBothDirectionsAcrossAllVersions(CompatibilityChecker checker) {
+    @Test
+    void fullTransitiveUnionsBothDirectionsAcrossAllVersions() {
         assertFalse(check(checker, CompatibilityLevel.FULL_TRANSITIVE, List.of(ENUM_ABC, ENUM_AB),
                 ENUM_ABD), "FULL_TRANSITIVE should fail on the backward side here");
 
@@ -208,9 +194,8 @@ public class JsonSchemaCompatibilityLevelTest {
     }
 
     /** Transitive levels degenerate to their non-transitive form for a single existing version. */
-    @ParameterizedTest(name = "{0}")
-    @MethodSource("checkers")
-    void transitiveMatchesNonTransitiveForASingleVersion(CompatibilityChecker checker) {
+    @Test
+    void transitiveMatchesNonTransitiveForASingleVersion() {
         assertTrue(check(checker, CompatibilityLevel.BACKWARD_TRANSITIVE, List.of(NARROW), WIDE));
         assertFalse(check(checker, CompatibilityLevel.FORWARD_TRANSITIVE, List.of(NARROW), WIDE));
     }

@@ -1,0 +1,9 @@
+$type: artifact-v0
+registryIds: [test]
+groupId: com.example.agents
+artifactId: weather-tool
+artifactType: MCP_TOOL
+versions:
+  - version: "1"
+    state: ENABLED
+    content: ./content/weather-tool.json

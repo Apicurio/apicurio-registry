@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:order">
+  <!-- common types -->
+  <xs:import namespace="urn:common" schemaLocation="https://registry.example.com/apis/registry/v3/groups/g/artifacts/common/versions/1/content?references=REWRITE"/>
+  <xs:include schemaLocation="unmapped.xsd"/>
+</xs:schema>

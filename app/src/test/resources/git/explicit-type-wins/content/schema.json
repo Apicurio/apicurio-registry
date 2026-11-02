@@ -1,0 +1,9 @@
+{
+  "type": "record",
+  "name": "Order",
+  "namespace": "com.example",
+  "fields": [
+    { "name": "orderId", "type": "long" },
+    { "name": "total", "type": "double" }
+  ]
+}

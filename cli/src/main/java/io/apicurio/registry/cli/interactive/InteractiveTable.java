@@ -239,12 +239,9 @@ public class InteractiveTable<T> {
             return;
         }
 
-        try {
-            refreshCurrentPage();
-        } catch (Exception e) {
-            log.warn("Error refreshing page after deletion", e);
-            errorMessage = "Deleted item, but failed to refresh page: " + e.getMessage();
-        }
+        // refreshCurrentPage reports its own failures in errorMessage, and statusMessage keeps the
+        // successful delete visible alongside one, so the user is not left thinking it failed.
+        refreshCurrentPage();
     }
 
     private String extractErrorMessage(Exception e) {
@@ -399,7 +396,9 @@ public class InteractiveTable<T> {
     void renderFooter(Terminal terminal) {
         terminal.writer().println();
         if (errorMessage != null) {
-            terminal.writer().println("Error: " + errorMessage);
+            // Keep any status beside the error: a delete can succeed and the refresh after it fail.
+            var statusInfo = statusMessage != null ? "  (" + statusMessage + ")" : "";
+            terminal.writer().println("Error: " + errorMessage + statusInfo);
         } else if (state.getMode() == InteractiveTableState.Mode.FILTER_INPUT) {
             terminal.writer().println("Filter (loaded rows): " + state.getFilterText() + "_  [Enter: apply, Esc: clear]");
         } else if (state.getMode() == InteractiveTableState.Mode.CONFIRM_DELETE) {
@@ -409,7 +408,12 @@ public class InteractiveTable<T> {
         } else {
             var pageInfo = pageFetcher != null ? "  [PgUp/PgDn: page " + currentPage + "]" : "";
             var statusInfo = statusMessage != null ? "  (" + statusMessage + ")" : "";
-            terminal.writer().println("[Enter: view, d: delete, /: filter loaded rows, q/Esc: exit]" + pageInfo + statusInfo);
+            // A committed filter stays applied to every page loaded afterwards, so it has to stay
+            // visible: otherwise an empty page looks like the artifacts have disappeared.
+            var filterText = state.getFilterText();
+            var filterInfo = filterText != null && !filterText.isEmpty()
+                    ? "  [Filter: " + filterText + " - / to edit, then Esc to clear]" : "";
+            terminal.writer().println("[Enter: view, d: delete, /: filter loaded rows, q/Esc: exit]" + pageInfo + filterInfo + statusInfo);
         }
         terminal.flush();
     }

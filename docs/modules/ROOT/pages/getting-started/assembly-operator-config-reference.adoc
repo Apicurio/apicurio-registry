@@ -886,9 +886,9 @@ Configure TLS for OIDC connections:
 |Default
 
 |`tlsVerificationType`
-|TLS verification type: `all`, `none`
+|TLS verification type. `required` validates the certificate chain and verifies the hostname. `certificate-validation` validates the certificate chain and, when a custom truststore is configured, skips hostname verification. Without a custom truststore, hostname verification stays enabled. `none` disables certificate and hostname verification.
 |String
-|`all`
+|`required`
 
 |`truststoreSecretRef`
 |Reference to a Secret containing the TLS truststore (PKCS12 format). Default key: `ca.p12`
@@ -908,7 +908,7 @@ spec:
   app:
     auth:
       tls:
-        tlsVerificationType: all
+        tlsVerificationType: required
         truststoreSecretRef:
           name: keycloak-ca-cert
           key: ca.p12

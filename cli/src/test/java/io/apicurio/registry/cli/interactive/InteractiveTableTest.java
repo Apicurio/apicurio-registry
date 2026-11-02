@@ -25,6 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InteractiveTableTest {
 
+    /** The normal-mode help text, asserted alongside the segments the footer appends to it. */
+    private static final String FOOTER_HELP = "[Enter: view, d: delete, /: filter loaded rows, q/Esc: exit]";
+
     @Test
     void testHandleNormalBinding_Quit() {
         var table = new InteractiveTable<>(List.of("A"), s -> s, s -> s, p -> new InteractiveTable.PageResult<>(List.of(), false), false, null);
@@ -238,9 +241,45 @@ class InteractiveTableTest {
     }
 
     @Test
-    void testHandleConfirmDeleteBinding_DeleteSuccess_RefreshFailure_ReportsBoth() {
+    void testHandleConfirmDeleteBinding_DeleteSuccess_RefreshFailure_ReportsBoth() throws IOException {
         var deleted = new AtomicBoolean(false);
-        var table = new InteractiveTable<String>(
+        var table = tableWithFailingRefresh(deleted);
+        table.state.startConfirmDelete();
+
+        var selection = table.handleBinding("CONFIRM_YES", InteractiveTableState.Mode.CONFIRM_DELETE);
+        assertNull(selection);
+        assertTrue(deleted.get());
+        // Both halves have to reach the footer: the delete worked, the refresh after it did not.
+        // Otherwise the user sees only a refresh error and assumes the delete failed.
+        assertEquals("Error: Failed to refresh page 1: Network timeout on refresh  (Deleted A)",
+                renderFooter(table));
+        // A failed refresh is not a failed delete, so the command still exits 0.
+        assertNull(table.getDeleteFailureMessage());
+    }
+
+    @Test
+    void testRenderFooter_ShowsCommittedFilterInNormalMode() throws IOException {
+        var table = new InteractiveTable<>(List.of("Alpha", "Beta"), s -> s, s -> s,
+                p -> new InteractiveTable.PageResult<>(List.of("Alpha"), false), true, null);
+        table.state.startFilterInput();
+        table.state.typeFilterChar('A');
+        table.state.commitFilter();
+
+        // The filter stays applied to pages loaded later, so the footer has to keep showing it.
+        assertEquals(FOOTER_HELP + "  [PgUp/PgDn: page 1]  [Filter: A - / to edit, then Esc to clear]",
+                renderFooter(table));
+    }
+
+    @Test
+    void testRenderFooter_NoFilterIndicatorWhenFilterEmpty() throws IOException {
+        var table = new InteractiveTable<>(List.of("Alpha"), s -> s, s -> s, null, false, null);
+
+        assertEquals(FOOTER_HELP, renderFooter(table));
+    }
+
+    /** A single-row table whose delete succeeds and whose subsequent page refresh always fails. */
+    private static InteractiveTable<String> tableWithFailingRefresh(AtomicBoolean deleted) {
+        return new InteractiveTable<>(
                 List.of("A"),
                 s -> s,
                 s -> s,
@@ -253,11 +292,6 @@ class InteractiveTableTest {
                 false,
                 item -> deleted.set(true)
         );
-        table.state.startConfirmDelete();
-
-        var selection = table.handleBinding("CONFIRM_YES", InteractiveTableState.Mode.CONFIRM_DELETE);
-        assertNull(selection);
-        assertTrue(deleted.get());
     }
 
     @Test

@@ -3,6 +3,8 @@ package io.apicurio.registry.agents.types;
 import io.apicurio.registry.agents.content.AgentCardContentAccepter;
 import io.apicurio.registry.agents.content.PromptTemplateContentAccepter;
 import io.apicurio.registry.agents.rules.validity.McpToolContentValidator;
+import io.apicurio.registry.agents.rules.validity.McpServerContentValidator;
+import io.apicurio.registry.agents.rules.compatibility.McpServerCompatibilityChecker;
 import io.apicurio.registry.agents.rules.validity.ModelSchemaContentValidator;
 import io.apicurio.registry.content.canon.YamlContentCanonicalizer;
 import io.apicurio.registry.types.ArtifactType;
@@ -40,6 +42,7 @@ class AgentArtifactTypeProviderContributorTest {
             ArtifactType.XML,
             ArtifactType.AGENT_CARD,
             ArtifactType.MCP_TOOL,
+            ArtifactType.MCP_SERVER,
             ArtifactType.ICEBERG_TABLE,
             ArtifactType.ICEBERG_VIEW,
             ArtifactType.OPENRPC,
@@ -50,8 +53,8 @@ class AgentArtifactTypeProviderContributorTest {
     );
 
     @Test
-    void testContributorDeclaresExactlyTheFourAgentTypes() {
-        assertEquals(List.of(ArtifactType.AGENT_CARD, ArtifactType.MCP_TOOL, ArtifactType.MODEL_SCHEMA,
+    void testContributorDeclaresExactlyTheFiveAgentTypes() {
+        assertEquals(List.of(ArtifactType.AGENT_CARD, ArtifactType.MCP_TOOL, ArtifactType.MCP_SERVER, ArtifactType.MODEL_SCHEMA,
                 ArtifactType.PROMPT_TEMPLATE),
                 List.copyOf(new AgentArtifactTypeProviderContributor().getProviderConfigs().keySet()));
     }
@@ -72,6 +75,10 @@ class AgentArtifactTypeProviderContributorTest {
                 factory.getArtifactTypeProvider(ArtifactType.AGENT_CARD).getContentAccepter());
         assertInstanceOf(McpToolContentValidator.class,
                 factory.getArtifactTypeProvider(ArtifactType.MCP_TOOL).getContentValidator());
+        assertInstanceOf(McpServerContentValidator.class,
+                factory.getArtifactTypeProvider(ArtifactType.MCP_SERVER).getContentValidator());
+        assertInstanceOf(McpServerCompatibilityChecker.class,
+                factory.getArtifactTypeProvider(ArtifactType.MCP_SERVER).getCompatibilityChecker());
         assertInstanceOf(ModelSchemaContentValidator.class,
                 factory.getArtifactTypeProvider(ArtifactType.MODEL_SCHEMA).getContentValidator());
 

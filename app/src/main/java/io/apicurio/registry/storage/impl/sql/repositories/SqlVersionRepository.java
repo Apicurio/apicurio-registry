@@ -599,7 +599,10 @@ public class SqlVersionRepository {
             });
         }
 
-        // Update system generated branches
+        // Update system generated branches. AbstractSqlRegistryStorage indexes structured content
+        // BEFORE calling this method and relies on this rule: every non-draft version becomes the
+        // ENABLED head of 'latest', a draft only joins 'drafts'. If that changes, update
+        // createArtifact/indexNewVersionBeforeGlobalIdRaw too (StructuredContentSearchTest fails).
         if (isDraft) {
             branchRepository.createOrUpdateBranchRaw(handle, gav, BranchId.DRAFTS, true);
         } else {

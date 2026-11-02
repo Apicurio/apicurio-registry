@@ -1,6 +1,7 @@
 package io.apicurio.registry.agents.types;
 
 import io.apicurio.registry.agents.content.AgentCardContentAccepter;
+import io.apicurio.registry.agents.content.McpServerContentAccepter;
 import io.apicurio.registry.agents.content.McpToolContentAccepter;
 import io.apicurio.registry.agents.content.ModelSchemaContentAccepter;
 import io.apicurio.registry.agents.content.PromptTemplateContentAccepter;
@@ -8,6 +9,8 @@ import io.apicurio.registry.agents.content.dereference.ModelSchemaDereferencer;
 import io.apicurio.registry.agents.content.dereference.PromptTemplateDereferencer;
 import io.apicurio.registry.agents.content.extract.AgentCardContentExtractor;
 import io.apicurio.registry.agents.content.extract.AgentCardStructuredContentExtractor;
+import io.apicurio.registry.agents.content.extract.McpServerContentExtractor;
+import io.apicurio.registry.agents.content.extract.McpServerStructuredContentExtractor;
 import io.apicurio.registry.agents.content.extract.McpToolContentExtractor;
 import io.apicurio.registry.agents.content.extract.McpToolStructuredContentExtractor;
 import io.apicurio.registry.agents.content.extract.ModelSchemaContentExtractor;
@@ -17,10 +20,12 @@ import io.apicurio.registry.agents.content.extract.PromptTemplateStructuredConte
 import io.apicurio.registry.agents.content.refs.ModelSchemaReferenceFinder;
 import io.apicurio.registry.agents.content.refs.PromptTemplateReferenceFinder;
 import io.apicurio.registry.agents.rules.compatibility.AgentCardCompatibilityChecker;
+import io.apicurio.registry.agents.rules.compatibility.McpServerCompatibilityChecker;
 import io.apicurio.registry.agents.rules.compatibility.McpToolCompatibilityChecker;
 import io.apicurio.registry.agents.rules.compatibility.ModelSchemaCompatibilityChecker;
 import io.apicurio.registry.agents.rules.compatibility.PromptTemplateCompatibilityChecker;
 import io.apicurio.registry.agents.rules.validity.AgentCardContentValidator;
+import io.apicurio.registry.agents.rules.validity.McpServerContentValidator;
 import io.apicurio.registry.agents.rules.validity.McpToolContentValidator;
 import io.apicurio.registry.agents.rules.validity.ModelSchemaContentValidator;
 import io.apicurio.registry.agents.rules.validity.PromptTemplateContentValidator;
@@ -36,7 +41,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Contributes the AI/agent artifact types (AGENT_CARD, MCP_TOOL, MODEL_SCHEMA, PROMPT_TEMPLATE) to the
+ * Contributes the AI/agent artifact types (AGENT_CARD, MCP_TOOL, MCP_SERVER, MODEL_SCHEMA, PROMPT_TEMPLATE) to the
  * standard artifact type registry. Discovered through {@link java.util.ServiceLoader}.
  */
 public class AgentArtifactTypeProviderContributor implements ArtifactTypeProviderContributor {
@@ -61,6 +66,15 @@ public class AgentArtifactTypeProviderContributor implements ArtifactTypeProvide
                 .validator(McpToolContentValidator::new)
                 .extractor(McpToolContentExtractor::new)
                 .structuredContentExtractor(McpToolStructuredContentExtractor::new)
+                .build());
+        providers.put(ArtifactType.MCP_SERVER, new ProviderConfig.Builder()
+                .contentTypes(Set.of(ContentTypes.APPLICATION_JSON))
+                .accepter(McpServerContentAccepter::new)
+                .canonicalizer(JsonContentCanonicalizer::new)
+                .validator(McpServerContentValidator::new)
+                .compatibilityChecker(McpServerCompatibilityChecker::new)
+                .extractor(McpServerContentExtractor::new)
+                .structuredContentExtractor(McpServerStructuredContentExtractor::new)
                 .build());
         providers.put(ArtifactType.MODEL_SCHEMA, new ProviderConfig.Builder()
                 .contentTypes(Set.of(ContentTypes.APPLICATION_JSON, ContentTypes.APPLICATION_YAML))

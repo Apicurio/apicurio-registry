@@ -2,6 +2,8 @@ package io.apicurio.registry.cli.utils;
 
 import io.apicurio.registry.rest.v3.beans.SearchedArtifact;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.time.Instant;
 import java.util.Date;
@@ -9,6 +11,7 @@ import java.util.Map;
 
 import static io.apicurio.registry.cli.utils.Conversions.convertToString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InteractiveUtilTest {
@@ -141,5 +144,30 @@ class InteractiveUtilTest {
         // Every optional field is null here; the searcher must still produce a usable string.
         // The trailing separators are the four empty fields.
         assertEquals("my-id" + " ".repeat(4), InteractiveUtil.ARTIFACT_ROW_SEARCHER.apply(artifact));
+    }
+
+    @ParameterizedTest(name = "count={0}, page={1}, size={2} -> {3}")
+    @CsvSource({
+            // 25 matches over pages of 10: pages remain until the rows shown cover the total.
+            "25, 1, 10, true",
+            "25, 2, 10, true",
+            "25, 3, 10, false",
+            // Exact multiples: the last full page is the last page.
+            "20, 2, 10, false",
+            "21, 2, 10, true",
+            // A single short page, and no results at all.
+            "1, 1, 20, false",
+            "0, 1, 20, false",
+            // A page number large enough to overflow int multiplication.
+            "2147483647, 300000000, 10, false",
+    })
+    void testHasNextPage(Integer count, int page, int pageSize, boolean expected) {
+        assertEquals(expected, InteractiveUtil.hasNextPage(count, page, pageSize));
+    }
+
+    @Test
+    void testHasNextPage_NullCountIsTreatedAsNoFurtherPages() {
+        // count is nullable in the REST beans, so unboxing it directly would throw here.
+        assertFalse(InteractiveUtil.hasNextPage(null, 1, 20));
     }
 }

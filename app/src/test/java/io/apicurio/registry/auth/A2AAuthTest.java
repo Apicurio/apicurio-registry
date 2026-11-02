@@ -43,6 +43,8 @@ public class A2AAuthTest extends AbstractResourceTestBase {
     private static final String DEVELOPER_PASSWORD = "bob1";
     private static final String READONLY_USERNAME = "duncan";
     private static final String READONLY_PASSWORD = "duncan";
+    private static final String NO_ROLE_USERNAME = "eve";
+    private static final String NO_ROLE_PASSWORD = "eve";
 
     private static final String AGENT_CARD_CONTENT = """
             {
@@ -206,6 +208,37 @@ public class A2AAuthTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200)
                 .body("agents.artifactId", not(hasItem(artifactId)));
+    }
+
+    @Test
+    public void testEntitledAgentHiddenFromUserWithoutReadAccess() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "entitled-agent-no-role-test";
+        createAgentCard(adminClient(), groupId, artifactId, AGENT_CARD_CONTENT);
+
+        // The user without a registry role cannot read the card through the regular API...
+        givenAtRoot().auth().preemptive().basic(NO_ROLE_USERNAME, NO_ROLE_PASSWORD)
+                .when()
+                .get("/apis/registry/v3/groups/" + groupId + "/artifacts/" + artifactId)
+                .then()
+                .statusCode(403);
+
+        // ...so discovery must not reveal it either: "entitled" means entitled to read it.
+        givenAtRoot().auth().preemptive().basic(NO_ROLE_USERNAME, NO_ROLE_PASSWORD)
+                .when()
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", not(hasItem(artifactId)));
+
+        // A public card stays discoverable by everyone, including this user.
+        setVisibility(adminClient(), groupId, artifactId, "public");
+        givenAtRoot().auth().preemptive().basic(NO_ROLE_USERNAME, NO_ROLE_PASSWORD)
+                .when()
+                .get("/.well-known/agents")
+                .then()
+                .statusCode(200)
+                .body("agents.artifactId", hasItem(artifactId));
     }
 
     // --- Admin can see private agents owned by other users ---

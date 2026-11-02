@@ -94,7 +94,7 @@ else
     echo "Warning: Apicurio Registry Operator not found"
 fi
 
-if [ "$ZIP_OUTPUT" = true ]; then
+if [[ "$ZIP_OUTPUT" = true ]]; then
     echo "Creating zip archive of kubedebug directory..."
     timestamp=$(date +"%Y%m%d-%H%M%S")
     zip_filename="kubedebug-$namespace-$cr_name-$timestamp.zip"

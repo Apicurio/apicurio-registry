@@ -3,6 +3,8 @@ import "@testing-library/jest-dom/vitest";
 import React from "react";
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup, act } from "@testing-library/react";
+import type { editor } from "monaco-editor";
+import YAML from "yaml";
 
 // Mock the artifact types service module: content.utils imports it only for the
 // ArtifactTypes constants, but loading the real module pulls PatternFly CSS into the test runner.
@@ -45,7 +47,6 @@ import { PROMPT_TEMPLATE_EDITOR_ARIA_LABEL, PromptTemplateEditor } from "./Promp
 import { contentToString } from "@utils/content.utils.ts";
 import {
     PROMPT_TEMPLATE_LANGUAGE_ID,
-    PROMPT_TEMPLATE_MARKER_OWNER,
     registerPromptTemplate
 } from "./PromptTemplateLanguage.ts";
 
@@ -121,17 +122,12 @@ mcp:
 
 /**
  * Creates a real Monaco text model in the prompt-template language and a minimal editor facade
- * exposing it, so synchronization, undo history and markers run against Monaco itself.
+ * exposing it, so synchronization and undo history run against Monaco itself.
  */
 function createEditorHarness(text: string) {
     const model = monaco.editor.createModel(text, PROMPT_TEMPLATE_LANGUAGE_ID);
     const editor = { getModel: () => model, getValue: () => model.getValue() };
     return { model, editor };
-}
-
-function markerMessages(model: any): string[] {
-    return monaco.editor.getModelMarkers({ resource: model.uri, owner: PROMPT_TEMPLATE_MARKER_OWNER })
-        .map(marker => marker.message);
 }
 
 function renderEditor(content: string, key?: string) {
@@ -145,6 +141,52 @@ function renderEditor(content: string, key?: string) {
 const RECOVERED_YAML = `templateId: greeting
 name: Greeting Template
 template: "Hi {{name}}, recovered edit."`;
+
+// Comments, blank lines, compact collections and literals such as 1.0e3 would not survive re-serialization.
+const SUPPORT_YAML = `# Customer support prompt
+templateId: support-reply
+name: Support Reply
+description: "Replies to {{customer}} tickets"
+
+template: |
+  You are a support agent for {{product}}.
+  Greet {{customer}} politely.
+  {{#if urgent}}Escalate immediately.{{/if}}
+variables:
+  product:
+    type: string
+  customer:
+    type: string   # shown in the UI
+  urgent:
+    type: boolean
+    default: false
+metadata:
+  tags: [support, email]`;
+
+const SUPPORT_JSON = `{
+  "templateId": "support-reply",
+  "description":"Replies to {{customer}} tickets",
+  "template": "You are a support agent for {{product}}.\\nGreet {{customer}} politely.",
+
+  "variables": {"product": {"type": "string"}, "customer": {"type": "string", "maxLength": 1.0e3}},
+  "temperature": 0.50
+}`;
+
+function renderDraft(draft: { content: string; contentType: string }, onChange: (value: string) => void) {
+    return React.createElement(PromptTemplateEditor, { content: draft as any, onChange });
+}
+
+/** Forwards model changes to the editor's onChange the way "@monaco-editor/react" does for each keystroke. */
+function forwardChanges(model: editor.ITextModel) {
+    model.onDidChangeContent(() => capturedEditorProps.onChange(model.getValue()));
+}
+
+/** Replaces the first match of `search` as one undoable edit, like typing over a selection. */
+function typeOver(model: editor.ITextModel, search: string, replacement: string) {
+    const [match] = model.findMatches(search, false, false, true, null, false);
+    model.pushEditOperations([], [{ range: match.range, text: replacement }], () => null);
+    model.pushStackElement();
+}
 
 describe("PromptTemplateEditor — Mounted Component Lifecycle & Synchronization", () => {
     const models: any[] = [];
@@ -163,7 +205,7 @@ describe("PromptTemplateEditor — Mounted Component Lifecycle & Synchronization
         const harness = createEditorHarness(text);
         models.push(harness.model);
         act(() => {
-            capturedEditorProps.onMount(harness.editor, monaco);
+            capturedEditorProps.onMount(harness.editor);
         });
         return harness;
     }
@@ -178,7 +220,6 @@ describe("PromptTemplateEditor — Mounted Component Lifecycle & Synchronization
 
         const { model } = mount(YAML_TEMPLATE);
         expect(model.getValue()).toBe(YAML_TEMPLATE);
-        expect(markerMessages(model)).toEqual([]);
     });
 
     it("does not touch the model or undo history when rerendered with unchanged content", () => {
@@ -244,28 +285,6 @@ template: "{{#unless premium}}Upgrade{{/unless}}"`;
         await second.model.undo();
         expect(second.model.getValue()).toBe(draftB);
         expect(first.model.getValue()).toBe(YAML_WITH_METADATA);
-
-        // The unmounted editor no longer publishes markers for draft A.
-        first.model.setValue("template: \"{{#if a}}\"");
-        expect(markerMessages(first.model)).toEqual([]);
-        expect(markerMessages(second.model)).toEqual([]);
-    });
-
-    it("publishes warning markers for unsupported constructs and refreshes them as the content changes", () => {
-        render(renderEditor(YAML_WITH_UNLESS));
-        const { model } = mount(YAML_WITH_UNLESS);
-        expect(markerMessages(model)).toEqual([]);
-
-        model.setValue("template: \"{{#if a}}{{#if b}}x{{/if}}\"");
-        expect(markerMessages(model)).toEqual([
-            "Nested conditional blocks are not supported by the prompt renderer.",
-            "Unclosed {{#if}} block; the prompt renderer leaves it as literal text."
-        ]);
-        expect(monaco.editor.getModelMarkers({ resource: model.uri, owner: PROMPT_TEMPLATE_MARKER_OWNER })
-            .map(marker => marker.severity)).toEqual([monaco.MarkerSeverity.Warning, monaco.MarkerSeverity.Warning]);
-
-        model.setValue("template: \"{{#if a}}x{{/if}}\"");
-        expect(markerMessages(model)).toEqual([]);
     });
 
     it("passes malformed intermediate input directly to props.onChange unchanged without throwing", () => {
@@ -318,6 +337,110 @@ template: "{{#unless premium}}Upgrade{{/unless}}"`;
         );
 
         expect(capturedEditorProps.defaultValue).toBe(JSON_TEMPLATE);
+    });
+
+    // EditorPage re-renders on every change but keeps the same draftContent object until it loads,
+    // recovers, saves or formats a draft, so these tests rerender with the same object.
+    describe("editing through the Monaco model", () => {
+        it("reports a YAML template edit without changing other fields, comments or blank lines", async () => {
+            const draft = { content: SUPPORT_YAML, contentType: "application/x-yaml" };
+            const onChange = vi.fn();
+            const { rerender } = render(renderDraft(draft, onChange));
+            const { model } = mount(SUPPORT_YAML);
+            forwardChanges(model);
+
+            typeOver(model, "politely", "by name");
+
+            const edited = SUPPORT_YAML.replace("politely", "by name");
+            expect(onChange).toHaveBeenCalledTimes(1);
+            expect(onChange).toHaveBeenLastCalledWith(edited);
+            const { template: templateBefore, ...fieldsBefore } = YAML.parse(SUPPORT_YAML);
+            const { template: templateAfter, ...fieldsAfter } = YAML.parse(edited);
+            expect(templateAfter).toBe(templateBefore.replace("politely", "by name"));
+            expect(fieldsAfter).toEqual(fieldsBefore);
+
+            act(() => {
+                rerender(renderDraft(draft, onChange));
+            });
+            expect(model.getValue()).toBe(edited);
+
+            await model.undo();
+            expect(onChange).toHaveBeenLastCalledWith(SUPPORT_YAML);
+            await model.redo();
+            expect(onChange).toHaveBeenLastCalledWith(edited);
+        });
+
+        it("reports a JSON template edit without reformatting the rest of the document", () => {
+            const draft = { content: SUPPORT_JSON, contentType: "application/json" };
+            const onChange = vi.fn();
+            const { rerender } = render(renderDraft(draft, onChange));
+            const { model } = mount(SUPPORT_JSON);
+            forwardChanges(model);
+
+            typeOver(model, "politely", "by name");
+
+            const edited = SUPPORT_JSON.replace("politely", "by name");
+            expect(onChange).toHaveBeenCalledTimes(1);
+            expect(onChange).toHaveBeenLastCalledWith(edited);
+            const { template: templateBefore, ...fieldsBefore } = JSON.parse(SUPPORT_JSON);
+            const { template: templateAfter, ...fieldsAfter } = JSON.parse(edited);
+            expect(templateAfter).toBe(templateBefore.replace("politely", "by name"));
+            expect(fieldsAfter).toEqual(fieldsBefore);
+
+            act(() => {
+                rerender(renderDraft(draft, onChange));
+            });
+            expect(model.getValue()).toBe(edited);
+        });
+
+        it.each([
+            ["YAML", SUPPORT_YAML, "application/x-yaml", "\"", (text: string) => YAML.parse(text)],
+            ["JSON", SUPPORT_JSON, "application/json", "\",", (text: string) => JSON.parse(text)]
+        ])("keeps invalid intermediate %s editable and never puts the stale draft back", (_format, source, contentType, closing, parse) => {
+            const draft = { content: source, contentType };
+            const onChange = vi.fn();
+            const { rerender } = render(renderDraft(draft, onChange));
+            const { model } = mount(source);
+            forwardChanges(model);
+
+            // Delete the description's closing quote, keep editing the template, then type the quote back.
+            typeOver(model, `tickets${closing}`, "tickets");
+            const broken = source.replace(`tickets${closing}`, "tickets");
+            expect(onChange).toHaveBeenLastCalledWith(broken);
+            expect(() => parse(broken)).toThrow();
+
+            act(() => {
+                rerender(renderDraft(draft, onChange));
+            });
+            expect(model.getValue()).toBe(broken);
+
+            typeOver(model, "politely", "by name");
+            typeOver(model, "tickets", `tickets${closing}`);
+
+            const fixed = source.replace("politely", "by name");
+            expect(onChange).toHaveBeenCalledTimes(3);
+            expect(onChange).toHaveBeenLastCalledWith(fixed);
+            expect(parse(fixed).template).toContain("Greet {{customer}} by name.");
+        });
+
+        it("keeps the edit and its undo history when EditorPage stores the saved text", async () => {
+            const draft = { content: SUPPORT_YAML, contentType: "application/x-yaml" };
+            const { rerender } = render(renderDraft(draft, vi.fn()));
+            const { model } = mount(SUPPORT_YAML);
+            typeOver(model, "politely", "by name");
+            const saved = SUPPORT_YAML.replace("politely", "by name");
+            const versionAfterEdit = model.getAlternativeVersionId();
+
+            // A successful save replaces draftContent with the text that was just saved.
+            act(() => {
+                rerender(renderDraft({ ...draft, content: saved }, vi.fn()));
+            });
+            expect(model.getValue()).toBe(saved);
+            expect(model.getAlternativeVersionId()).toBe(versionAfterEdit);
+
+            await model.undo();
+            expect(model.getValue()).toBe(SUPPORT_YAML);
+        });
     });
 });
 

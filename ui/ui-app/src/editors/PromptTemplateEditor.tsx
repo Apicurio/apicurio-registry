@@ -1,13 +1,9 @@
 import { useEffect, useRef } from "react";
-import type { editor, IDisposable } from "monaco-editor";
+import type { editor } from "monaco-editor";
 import type { Editor as DraftEditor, EditorProps } from "./editor-types";
 import { RegistryCodeEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
 import { draftContentToString } from "@utils/content.utils.ts";
-import {
-    findPromptTemplateIssues,
-    PROMPT_TEMPLATE_LANGUAGE_ID,
-    PROMPT_TEMPLATE_MARKER_OWNER
-} from "./PromptTemplateLanguage.ts";
+import { PROMPT_TEMPLATE_LANGUAGE_ID } from "./PromptTemplateLanguage.ts";
 
 type IStandaloneCodeEditor = editor.IStandaloneCodeEditor;
 
@@ -15,7 +11,6 @@ export const PROMPT_TEMPLATE_EDITOR_ARIA_LABEL = "Prompt template source editor"
 
 export const PromptTemplateEditor: DraftEditor = (props: EditorProps) => {
     const editorRef = useRef<IStandaloneCodeEditor | undefined>(undefined);
-    const contentListenerRef = useRef<IDisposable | undefined>(undefined);
 
     useEffect(() => {
         const model = editorRef.current?.getModel();
@@ -31,8 +26,6 @@ export const PromptTemplateEditor: DraftEditor = (props: EditorProps) => {
         model.pushStackElement();
     }, [props.content]);
 
-    useEffect(() => () => contentListenerRef.current?.dispose(), []);
-
     return (
         <RegistryCodeEditor
             className="text-editor"
@@ -45,22 +38,8 @@ export const PromptTemplateEditor: DraftEditor = (props: EditorProps) => {
                 automaticLayout: true,
                 wordWrap: "on"
             }}
-            onMount={(editor, monaco) => {
+            onMount={(editor) => {
                 editorRef.current = editor;
-                const model = editor.getModel();
-                if (!model) {
-                    return;
-                }
-
-                // Markers expose unsupported constructs to screen readers (F8), not just via color.
-                const updateMarkers = (): void => {
-                    const markers = findPromptTemplateIssues(monaco, model.getValue())
-                        .map(issue => ({ ...issue, severity: monaco.MarkerSeverity.Warning }));
-                    monaco.editor.setModelMarkers(model, PROMPT_TEMPLATE_MARKER_OWNER, markers);
-                };
-                updateMarkers();
-                contentListenerRef.current?.dispose();
-                contentListenerRef.current = model.onDidChangeContent(updateMarkers);
             }}
         />
     );

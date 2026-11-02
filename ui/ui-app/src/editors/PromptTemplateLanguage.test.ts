@@ -2,7 +2,6 @@
 import { describe, expect, it } from "vitest";
 import {
     createPromptTemplateLanguageConfiguration,
-    findPromptTemplateIssues,
     PROMPT_TEMPLATE_LANGUAGE_ID,
     registerPromptTemplate
 } from "./PromptTemplateLanguage";
@@ -729,84 +728,5 @@ describe("PromptTemplateLanguage — Language Configuration", () => {
         expect(["metadata:", "template: |", "template: >-", "template: |2 # body", "  vars:  "]
             .map(line => rule.beforeText.test(line))).toEqual([true, true, true, true, true]);
         expect(["name: value", "- item", "\"a\": 1,"].map(line => rule.beforeText.test(line))).toEqual([false, false, false]);
-    });
-});
-
-describe("PromptTemplateLanguage — Unsupported Construct Detection", () => {
-    const messagesOf = (text: string) => findPromptTemplateIssues(monaco, text).map(issue => issue.message);
-
-    it("reports nothing for supported if/else/unless blocks in YAML and JSON, including adjacent tags", () => {
-        expect(findPromptTemplateIssues(monaco, "template: \"{{#if a}}{{/if}}{{#if b}}x{{else}}y{{/if}}{{#unless c}}z{{/unless}} {{name}}\"")).toEqual([]);
-        expect(findPromptTemplateIssues(monaco, "{\"template\": \"{{#if a}}{{name}}{{/if}}\"}")).toEqual([]);
-    });
-
-    it("accepts a block whose tags sit on separate block scalar lines", () => {
-        const text = "template: |\n  {{#if a}}\n  body\n  {{/if}}";
-        expect(findPromptTemplateIssues(monaco, text)).toEqual([]);
-    });
-
-    it("reports nested blocks on the inner opening tag", () => {
-        expect(findPromptTemplateIssues(monaco, "template: \"{{#if a}}{{#unless b}}x{{/unless}}{{/if}}\"")).toEqual([
-            {
-                startLineNumber: 1, startColumn: 21, endLineNumber: 1, endColumn: 34,
-                message: "Nested conditional blocks are not supported by the prompt renderer."
-            }
-        ]);
-    });
-
-    it("reports unclosed blocks at their opening tag, including across lines", () => {
-        expect(findPromptTemplateIssues(monaco, "template: |\n  start\n  {{#unless premium}} upgrade")).toEqual([
-            {
-                startLineNumber: 3, startColumn: 3, endLineNumber: 3, endColumn: 22,
-                message: "Unclosed {{#unless}} block; the prompt renderer leaves it as literal text."
-            }
-        ]);
-    });
-
-    it("reports unmatched and mismatched closing tags", () => {
-        expect(messagesOf("template: \"x{{/if}} {{#if a}}y{{/unless}}{{/if}}\"")).toEqual([
-            "{{/if}} has no matching {{#if}}; it is left as literal text.",
-            "{{/unless}} has no matching {{#unless}}; it is left as literal text."
-        ]);
-    });
-
-    it("reports {{else}} outside a block, inside {{#unless}}, and repeated within one {{#if}}", () => {
-        expect(messagesOf("template: \"{{else}} {{#unless a}}x{{else}}y{{/unless}} {{#if b}}1{{else}}2{{else}}3{{/if}}\"")).toEqual([
-            "{{else}} is only supported inside an {{#if}} block; here it is left as literal text.",
-            "{{else}} is only supported inside an {{#if}} block; here it is left as literal text.",
-            "Only one {{else}} is supported per {{#if}} block; this one is left as literal text."
-        ]);
-    });
-
-    it("reports tags spanning multiple lines and still pairs a multi-line opening tag with its close", () => {
-        expect(findPromptTemplateIssues(monaco, "template: |\n  {{#if\n  active}}on{{/if}}\n  {{\n  name }}")).toEqual([
-            {
-                startLineNumber: 2, startColumn: 3, endLineNumber: 3, endColumn: 11,
-                message: "Template tag spans multiple lines. The editor only recognizes tags written on one line."
-            },
-            {
-                startLineNumber: 4, startColumn: 3, endLineNumber: 5, endColumn: 10,
-                message: "Template tag spans multiple lines. The editor only recognizes tags written on one line."
-            }
-        ]);
-    });
-
-    it("does not report an unterminated `{{` while the user is still typing", () => {
-        expect(findPromptTemplateIssues(monaco, "template: \"Hello {{name")).toEqual([]);
-        expect(findPromptTemplateIssues(monaco, "template: |\n  Hello {{na\n  later {{x}}")).toEqual([]);
-    });
-
-    it("ignores tags inside YAML comments", () => {
-        expect(findPromptTemplateIssues(monaco, "# {{#if a}} {{this}}\ntemplate: \"ok\" # {{/if}}")).toEqual([]);
-    });
-
-    it("explains each unsupported expression", () => {
-        expect(messagesOf("template: \"{{{raw}}} {{this}} {{ else }} {{#each items}} {{user.name}}\"")).toEqual([
-            "Triple-brace expressions are not supported by the prompt renderer.",
-            "{{this}} is not supported: the prompt renderer has no {{#each}} block, so it is left as literal text.",
-            "Write {{else}} without inner spaces; this form is left as literal text.",
-            "Unsupported block tag. Supported forms are {{#if name}}, {{#unless name}}, {{else}}, {{/if}} and {{/unless}}.",
-            "Unsupported template expression. Use a simple variable such as {{name}}."
-        ]);
     });
 });

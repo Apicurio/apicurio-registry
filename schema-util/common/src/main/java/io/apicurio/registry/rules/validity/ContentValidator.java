@@ -6,6 +6,8 @@ import io.apicurio.registry.rules.violation.RuleViolationException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Validates content. Syntax and semantic validations are possible based on configuration. An implementation
@@ -26,5 +28,15 @@ public interface ContentValidator {
      */
     public void validateReferences(TypedContent content, List<ArtifactReference> references)
             throws RuleViolationException;
+
+    /**
+     * Artifact types that versions of this type may reference. An empty optional means any type is allowed;
+     * an optional holding an empty set means no references are allowed. Checked by the INTEGRITY rule
+     * ({@code REFS_EXIST} or {@code FULL}) once the referenced versions are known to exist. Custom artifact
+     * types configured through {@code ConfiguredContentValidator} use this default.
+     */
+    default Optional<Set<String>> getAllowedReferenceTargetTypes() {
+        return Optional.empty();
+    }
 
 }

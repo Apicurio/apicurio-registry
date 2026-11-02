@@ -91,6 +91,9 @@ public class DeprecatedPropertiesCheck {
                 new DeprecatedPropertyDef("apicurio.compat.json-schema.use-apitomy", null, "3.4.0", "4.0.0", false,
                         "It no longer has any effect: JSON Schema compatibility is always checked with Apitomy Data Models,"
                                 + " because the legacy everit-based checker was removed."),
+                new DeprecatedPropertyDef("apicurio.usage.dead-threshold-days", null, "3.4.0", "4.0.0", false,
+                        "It has no effect: a schema version whose last fetch is older than the stale threshold"
+                                + " (apicurio.usage.stale-threshold-days) is classified as DEAD."),
                 new DeprecatedPropertyDef("apicurio.kafkasql.ssl.truststore.password", "apicurio.kafkasql.security.ssl.truststore.password", "3.1.0", "4.0.0", false),
                 new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.location", "apicurio.kafkasql.security.ssl.keystore.location", "3.1.0", "4.0.0", false),
                 new DeprecatedPropertyDef("apicurio.kafkasql.ssl.keystore.type", "apicurio.kafkasql.security.ssl.keystore.type", "3.1.0", "4.0.0", false),

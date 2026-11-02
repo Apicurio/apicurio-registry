@@ -67,21 +67,21 @@ done
 
 echo "Point access:"
 art() { echo "$API/registry/v3/groups/$1/artifacts/$2"; }
-expect "developer reads team-a/user-events (prefix grant)" 200 -H "Authorization: Bearer $DEV" "$(art team-a user-events)"
+expect "developer reads team-a/user-events (prefix rule)" 200 -H "Authorization: Bearer $DEV" "$(art team-a user-events)"
 expect "developer reads team-a/secret-schema (deny rule)" 403 -H "Authorization: Bearer $DEV" "$(art team-a secret-schema)"
-expect "developer reads team-b/public-schema (exact grant)" 200 -H "Authorization: Bearer $DEV" "$(art team-b public-schema)"
-expect "developer reads team-b/inventory-schema (no grant)" 403 -H "Authorization: Bearer $DEV" "$(art team-b inventory-schema)"
-expect "developer reads shared/common-types (role grant)" 200 -H "Authorization: Bearer $DEV" "$(art shared common-types)"
-expect "user reads shared/common-types (role grant)" 200 -H "Authorization: Bearer $USER" "$(art shared common-types)"
-expect "user reads team-a/user-events (no grant)" 403 -H "Authorization: Bearer $USER" "$(art team-a user-events)"
+expect "developer reads team-b/public-schema (exact rule)" 200 -H "Authorization: Bearer $DEV" "$(art team-b public-schema)"
+expect "developer reads team-b/inventory-schema (no rule)" 403 -H "Authorization: Bearer $DEV" "$(art team-b inventory-schema)"
+expect "developer reads shared/common-types (role rule)" 200 -H "Authorization: Bearer $DEV" "$(art shared common-types)"
+expect "user reads shared/common-types (role rule)" 200 -H "Authorization: Bearer $USER" "$(art shared common-types)"
+expect "user reads team-a/user-events (no rule)" 403 -H "Authorization: Bearer $USER" "$(art team-a user-events)"
 expect "admin reads team-b/inventory-schema (admin role)" 200 -H "Authorization: Bearer $ADMIN" "$(art team-b inventory-schema)"
-expect "developer creates group team-c (no group grant)" 403 -X POST -H "Authorization: Bearer $DEV" \
+expect "developer creates group team-c (no group rule)" 403 -X POST -H "Authorization: Bearer $DEV" \
   -H 'Content-Type: application/json' -d '{"groupId": "team-c"}' "$API/registry/v3/groups"
 expect "developer creates team-a/secret-schema (name denied)" 403 -X POST -H "Authorization: Bearer $DEV" \
   -H 'Content-Type: application/json' \
   -d '{"artifactId": "secret-schema", "artifactType": "JSON"}' "$API/registry/v3/groups/team-a/artifacts?ifExists=FAIL"
-expect "anonymous reads shared/common-types (\$anonymous grant)" 200 "$(art shared common-types)"
-expect "anonymous reads shared/error-schema (no grant)" 401 "$(art shared error-schema)"
+expect "anonymous reads shared/common-types (\$anonymous rule)" 200 "$(art shared common-types)"
+expect "anonymous reads shared/error-schema (no rule)" 401 "$(art shared error-schema)"
 
 echo "Search filtering:"
 check_search() {

@@ -33,6 +33,7 @@ The {operator} reconciles each CR into an independent set of {kubernetes} resour
 The {operator} watches for `ApicurioRegistry3` custom resources and creates the following {kubernetes} resources
 for each CR:
 
+.{kubernetes} resources the {operator} creates for each `ApicurioRegistry3` CR
 [cols="1,3", options="header"]
 |===
 | Component
@@ -572,6 +573,7 @@ With this configuration:
 
 The following table compares the advantages and limitations of this approach:
 
+.Advantages and limitations of group-based isolation
 [cols="1,1", options="header"]
 |===
 | Advantage | Limitation

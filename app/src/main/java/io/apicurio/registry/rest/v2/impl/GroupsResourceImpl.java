@@ -40,6 +40,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -171,7 +172,7 @@ public class GroupsResourceImpl implements GroupsResource {
                             rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
                 } else {
                     contentToReturn = artifactTypeProvider.getContentDereferencer()
-                            .dereference(contentToReturn, RegistryContentUtils.recursivelyResolveReferences(
+                            .dereference(contentToReturn, ReferenceResolution.recursivelyResolveReferences(
                                     artifact.getReferences(), accessGuard.referenceLoader()));
                 }
             }
@@ -701,7 +702,7 @@ public class GroupsResourceImpl implements GroupsResource {
                         rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
             } else {
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(contentToReturn,
-                        RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(),
+                        ReferenceResolution.recursivelyResolveReferences(artifact.getReferences(),
                                 accessGuard.referenceLoader()));
             }
         }
@@ -1045,7 +1046,10 @@ public class GroupsResourceImpl implements GroupsResource {
                     ? RegistryHashAlgorithm.SHA256 : RegistryHashAlgorithm.valueOf(xRegistryHashAlgorithm);
                 switch (algorithm) {
                     case MD5:
-                        calculatedSha = Hashing.md5().hashString(content.content(), StandardCharsets.UTF_8)
+                        // MD5 is an explicit, client-selected option of the v2 API contract
+                        // (X-Registry-Hash-Algorithm) used only as a content checksum, never for
+                        // security decisions. SHA256 is the default. Kept for backward compatibility.
+                        calculatedSha = Hashing.md5().hashString(content.content(), StandardCharsets.UTF_8) // NOSONAR
                                 .toString();
                         break;
                     case SHA256:
@@ -1101,7 +1105,7 @@ public class GroupsResourceImpl implements GroupsResource {
             final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
             // Try to resolve the new artifact references and the nested ones (if any)
-            final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+            final Map<String, TypedContent> resolvedReferences = ReferenceResolution
                     .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
             rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
@@ -1248,7 +1252,7 @@ public class GroupsResourceImpl implements GroupsResource {
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
         // Try to resolve the new artifact references and the nested ones (if any)
-        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+        final Map<String, TypedContent> resolvedReferences = ReferenceResolution
                 .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
         final String owner = securityIdentity.getPrincipal().getName();
@@ -1360,7 +1364,7 @@ public class GroupsResourceImpl implements GroupsResource {
         // passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
-        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
+        final Map<String, TypedContent> resolvedReferences = ReferenceResolution
                 .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
         TypedContent typedContent = TypedContent.create(content, contentType);

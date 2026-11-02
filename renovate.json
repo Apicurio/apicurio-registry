@@ -94,6 +94,7 @@
       ]
     },
     {
+      "description": "Quarkus, plus every Quarkus-BOM-managed dependency the root pom overrides (see 'Security overrides of Quarkus-managed transitive dependencies'). These must move in lockstep with Quarkus: bumping them independently can mismatch the Quarkus-managed siblings (e.g. opentelemetry-api vs opentelemetry-sdk, #10749).",
       "groupName": "Dependencies: Maven App: Quarkus",
       "matchFileNames": [
         "**/pom.xml"
@@ -104,9 +105,18 @@
         "io.javaoperatorsdk:*",
         "io.quarkiverse.mcp:*",
         "io.netty:*",
+        "com.fasterxml.jackson:*",
         "com.fasterxml.jackson.core:*",
         "com.fasterxml.jackson.dataformat:*",
         "com.fasterxml.jackson.datatype:*",
+        "tools.jackson:*",
+        "io.opentelemetry:*",
+        "org.bouncycastle:*",
+        "at.yawk.lz4:*",
+        "org.apache.httpcomponents.client5:*",
+        "org.apache.httpcomponents.core5:*",
+        "com.microsoft.sqlserver:mssql-jdbc",
+        "org.apache.commons:commons-configuration2",
         "org.slf4j:*"
       ],
       "enabled": true,
@@ -129,9 +139,18 @@
         "io.javaoperatorsdk:*",
         "io.quarkiverse.mcp:*",
         "io.netty:*",
+        "com.fasterxml.jackson:*",
         "com.fasterxml.jackson.core:*",
         "com.fasterxml.jackson.dataformat:*",
         "com.fasterxml.jackson.datatype:*",
+        "tools.jackson:*",
+        "io.opentelemetry:*",
+        "org.bouncycastle:*",
+        "at.yawk.lz4:*",
+        "org.apache.httpcomponents.client5:*",
+        "org.apache.httpcomponents.core5:*",
+        "com.microsoft.sqlserver:mssql-jdbc",
+        "org.apache.commons:commons-configuration2",
         "org.slf4j:*"
       ],
       "enabled": false,

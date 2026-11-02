@@ -9,6 +9,7 @@ import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 
 import java.util.Collections;
@@ -16,6 +17,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -435,5 +437,12 @@ public class AgentCardContentValidator extends AbstractContentValidator {
         if (!allRefs.isEmpty()) {
             validateMappedReferences(references, allRefs, "Unmapped reference detected.");
         }
+    }
+
+    /** Tools, servers, models and prompts the agent uses, and peer agents it delegates to. */
+    @Override
+    public Optional<Set<String>> getAllowedReferenceTargetTypes() {
+        return Optional.of(Set.of(ArtifactType.MCP_TOOL, ArtifactType.MCP_SERVER, ArtifactType.MODEL_SCHEMA,
+                ArtifactType.PROMPT_TEMPLATE, ArtifactType.AGENT_CARD));
     }
 }

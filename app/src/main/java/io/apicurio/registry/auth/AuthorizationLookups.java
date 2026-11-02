@@ -27,6 +27,12 @@ import java.util.function.Supplier;
  * request. Within a request, a lookup reflects the state when it was first made: authorization
  * runs before the operation, so this is the state the operation is authorized against. Without an
  * active request context (e.g. background jobs), every lookup reads storage.</p>
+ *
+ * <p><b>A missing resource stays missing for the rest of the request</b>, even if the request
+ * creates it afterwards. Owner-only authorization allows a missing resource, so code that creates a
+ * resource and then authorizes an operation on it within the same request must not rely on these
+ * lookups: it would be authorized as if the resource, and its owner, did not exist. Authorize
+ * everything before writing, as the existing write paths do.</p>
  */
 @ApplicationScoped
 public class AuthorizationLookups {

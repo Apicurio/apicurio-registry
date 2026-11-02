@@ -16,7 +16,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-{registry} is a datastore for sharing standard event schemas and API designs across event-driven and API architectures. You can use {registry} to decouple the structure of your data from your client applications, and to share and manage your data types and API descriptions at runtime using a REST interface.
+{registry} is a datastore for sharing standard event schemas and API designs across event-driven and API architectures. You can use {registry} to decouple the structure of your data from your client applications.
+
+You can also use {registry} to share and manage your data types and API descriptions at runtime by using a REST interface.
 
 Client applications can dynamically push or pull the latest schema updates to or from {registry} at runtime without needing to redeploy. Developer teams can query {registry} for existing schemas required for services already deployed in production, and can register new schemas required for new services in development.
 
@@ -104,7 +106,9 @@ And the following editable properties:
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Every artifact is composed of zero or more _artifact version_s. Only artifact versions have actual content (as well as metadata). These versions represent the evolution of the content of an artifact, and are immutable. You can think of an Artifact as an ordered sequence of Versions, typically with the most recent version representing the "current" schema or API design content.
+Every artifact is composed of zero or more _artifact version_s. Only artifact versions have actual content (as well as metadata). These versions represent the evolution of the content of an artifact, and are immutable.
+
+You can think of an Artifact as an ordered sequence of Versions, typically with the most recent version representing the "current" schema or API design content.
 
 Artifact Versions have metadata, both generated and editable. Standard metadata for an artifact version includes (but may not be limited to) the following generated or immutable properties:
 
@@ -165,7 +169,9 @@ NOTE: Specifying a group is optional when using the {registry} web console, and 
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API components, and then referencing them from multiple locations. For example, you can specify a reference in JSON Schema or OpenAPI using a `$ref` statement, or in Google Protobuf using an `import` statement, or in Apache Avro using a nested namespace.
+Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API components, and then referencing them from multiple locations.
+
+For example, you can specify a reference in JSON Schema or OpenAPI using a `$ref` statement, or in Google Protobuf using an `import` statement, or in Apache Avro using a nested namespace.
 
 The following example shows a simple Avro schema named `TradeKey` that includes a reference to another schema named `Exchange` using a nested namespace:
 
@@ -231,7 +237,9 @@ You can manage artifact references using the {registry} core REST API, Maven plu
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-You can use the {registry} web console to browse and search the schema and API artifacts and optional groups stored in the registry, and to add new schema and API artifacts, groups, and versions. You can search for artifacts by label, name, group, and description. You can view an artifact's content or its available versions, or download an artifact file locally.
+You can use the {registry} web console to browse and search the schema and API artifacts and optional groups stored in the registry, and to add new schema and API artifacts, groups, and versions.
+
+You can search for artifacts by label, name, group, and description. You can view an artifact's content or its available versions, or download an artifact file locally.
 
 You can also configure optional rules for registry content, globally, for groups, and for each schema and API artifact. These optional rules for content validation and compatibility are applied when new schema and API artifacts or versions are uploaded to the registry.
 
@@ -419,7 +427,9 @@ endif::[]
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-{registry} provides open source example applications that demonstrate how to use {registry} in different use case scenarios. For example, these include storing schemas used by Kafka serializer and deserializer (SerDes) Java classes. These classes fetch the schema from {registry} for use when producing or consuming operations to serialize, deserialize, or validate the Kafka message payload.
+{registry} provides open source example applications that demonstrate how to use {registry} in different use case scenarios, such as storing schemas used by Kafka serializer and deserializer (SerDes) Java classes.
+
+These classes fetch the schema from {registry} for use when producing or consuming operations to serialize, deserialize, or validate the Kafka message payload.
 
 These applications demonstrate use cases such as the following examples:
 

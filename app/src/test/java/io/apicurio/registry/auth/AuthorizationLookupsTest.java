@@ -2,6 +2,7 @@ package io.apicurio.registry.auth;
 
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.quarkus.arc.Arc;
@@ -68,6 +69,30 @@ public class AuthorizationLookupsTest {
         verify(storage, times(1)).getArtifactMetaData("g", "a");
         verify(storage, times(1)).getArtifactMetaData("g", "missing");
         verify(storage, times(1)).getGroupMetaData("missing");
+    }
+
+    @Test
+    void aMissingResourceStaysMissingForTheRestOfTheRequest() {
+        RegistryStorage storage = mock(RegistryStorage.class);
+        // The resource does not exist at the first lookup, and is created later in the request
+        when(storage.getArtifactMetaData("g", "created")).thenThrow(new ArtifactNotFoundException("created"))
+                .thenReturn(ArtifactMetaDataDto.builder().groupId("g").artifactId("created").owner("bob").build());
+        when(storage.getGroupMetaData("new-group")).thenThrow(new GroupNotFoundException("new-group"))
+                .thenReturn(GroupMetaDataDto.builder().groupId("new-group").owner("bob").build());
+        inRequest(() -> {
+            assertEquals(Optional.empty(), lookups.artifact(storage, "g", "created"));
+            assertEquals(Optional.empty(), lookups.group(storage, "new-group"));
+            // Still missing: the lookups are not refreshed after a write in the same request
+            assertEquals(Optional.empty(), lookups.artifact(storage, "g", "created"));
+            assertEquals(Optional.empty(), lookups.group(storage, "new-group"));
+        });
+        // The next request sees the created resources
+        inRequest(() -> {
+            assertEquals("bob", lookups.artifact(storage, "g", "created").map(ArtifactMetaDataDto::getOwner)
+                    .orElseThrow());
+            assertEquals("bob", lookups.group(storage, "new-group").map(GroupMetaDataDto::getOwner)
+                    .orElseThrow());
+        });
     }
 
     @Test

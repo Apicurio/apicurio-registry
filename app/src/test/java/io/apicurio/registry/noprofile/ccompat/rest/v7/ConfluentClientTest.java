@@ -74,7 +74,11 @@ import static io.confluent.kafka.schemaregistry.CompatibilityLevel.BACKWARD;
 import static io.confluent.kafka.schemaregistry.CompatibilityLevel.FORWARD;
 import static io.confluent.kafka.schemaregistry.CompatibilityLevel.FULL;
 import static io.confluent.kafka.schemaregistry.CompatibilityLevel.NONE;
+import static io.restassured.RestAssured.given;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -669,6 +673,135 @@ public class ConfluentClientTest extends AbstractResourceTestBase {
         boolean isCompatible = confluentClient
                 .testCompatibility(schema2, subject, String.valueOf(versionOfRegisteredSchema)).isEmpty();
         assertFalse(isCompatible, "Schema should be incompatible with specified version");
+    }
+
+    @Test
+    public void testCompatibilityVerbose() throws Exception {
+        String subject = "testCompatibilityVerbose";
+
+        String schema1String = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
+                + "[{\"type\":\"string\",\"name\":\"f\"}]}";
+        String schema1 = new AvroSchema(schema1String).canonicalString();
+
+        String schema2String = "{\"type\":\"record\"," + "\"name\":\"myrecord\"," + "\"fields\":"
+                + "[{\"type\":\"int\",\"name\":\"f\"}]}";
+        String schema2 = new AvroSchema(schema2String).canonicalString();
+
+        confluentClient.updateCompatibility(CompatibilityLevel.FULL.name, subject);
+        confluentClient.registerSchema(schema1, subject);
+        int version = confluentClient.lookUpSubjectVersion(schema1, subject).getVersion();
+
+        RegisterSchemaRequest request2 = new RegisterSchemaRequest();
+        request2.setSchema(schema2);
+
+        RegisterSchemaRequest request1 = new RegisterSchemaRequest();
+        request1.setSchema(schema1);
+
+        // 1. verbose=false: messages are omitted in response, so Confluent client falls back to generic message
+        List<String> messagesNonVerbose = confluentClient.testCompatibility(request2, subject, String.valueOf(version), false, false);
+        assertEquals(1, messagesNonVerbose.size());
+        assertEquals("Schemas are incompatible", messagesNonVerbose.get(0));
+
+        // 2. verbose=true: messages are populated from violation causes
+        List<String> messagesVerbose = confluentClient.testCompatibility(request2, subject, String.valueOf(version), false, true);
+        assertFalse(messagesVerbose.isEmpty());
+        assertNotEquals("Schemas are incompatible", messagesVerbose.get(0));
+        assertTrue(messagesVerbose.stream().anyMatch(msg -> msg.contains("reader type: INT not compatible with writer type: STRING")));
+
+        // 3. check all versions with verbose=true
+        List<String> allVersionsVerbose = confluentClient.testCompatibility(schema2, subject, true);
+        assertFalse(allVersionsVerbose.isEmpty());
+        assertNotEquals("Schemas are incompatible", allVersionsVerbose.get(0));
+        assertTrue(allVersionsVerbose.stream().anyMatch(msg -> msg.contains("reader type: INT not compatible with writer type: STRING")));
+
+        // 4. check compatible schema with verbose=true: messages should be empty
+        List<String> compatibleVerbose = confluentClient.testCompatibility(request1, subject, String.valueOf(version), false, true);
+        assertTrue(compatibleVerbose.isEmpty());
+
+        // 5. Raw JSON wire checks: messages must be omitted (null) unless verbose=true on incompatible check
+        // Incompatible without verbose parameter on v7
+        given().when()
+                .contentType(CT_JSON)
+                .body(request2.toJson())
+                .post("/ccompat/v7/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(false))
+                .body("$", not(hasKey("messages")));
+
+        // Incompatible with verbose=false on v7
+        given().when()
+                .contentType(CT_JSON)
+                .queryParam("verbose", false)
+                .body(request2.toJson())
+                .post("/ccompat/v7/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(false))
+                .body("$", not(hasKey("messages")));
+
+        // Incompatible without verbose across all versions on v7
+        given().when()
+                .contentType(CT_JSON)
+                .body(request2.toJson())
+                .post("/ccompat/v7/compatibility/subjects/{subject}/versions", subject)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(false))
+                .body("$", not(hasKey("messages")));
+
+        // Incompatible with verbose=true on v7: messages MUST be present
+        given().when()
+                .contentType(CT_JSON)
+                .queryParam("verbose", true)
+                .body(request2.toJson())
+                .post("/ccompat/v7/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(false))
+                .body("$", hasKey("messages"));
+
+        // Compatible check with verbose omitted: messages must be omitted
+        given().when()
+                .contentType(CT_JSON)
+                .body(request1.toJson())
+                .post("/ccompat/v7/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(true))
+                .body("$", not(hasKey("messages")));
+
+        // Compatible check with verbose=true: messages must also be omitted
+        given().when()
+                .contentType(CT_JSON)
+                .queryParam("verbose", true)
+                .body(request1.toJson())
+                .post("/ccompat/v7/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(true))
+                .body("$", not(hasKey("messages")));
+
+        // v8 compatibility check: messages must be omitted without verbose
+        given().when()
+                .contentType(CT_JSON)
+                .body(request2.toJson())
+                .post("/ccompat/v8/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(false))
+                .body("$", not(hasKey("messages")));
+
+        // v8 compatibility check with verbose=true: messages MUST be present
+        given().when()
+                .contentType(CT_JSON)
+                .queryParam("verbose", true)
+                .body(request2.toJson())
+                .post("/ccompat/v8/compatibility/subjects/{subject}/versions/{version}", subject, version)
+                .then()
+                .statusCode(200)
+                .body("is_compatible", equalTo(false))
+                .body("$", hasKey("messages"));
     }
 
     @Test

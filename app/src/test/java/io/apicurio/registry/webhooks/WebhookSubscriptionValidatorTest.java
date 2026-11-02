@@ -66,6 +66,23 @@ class WebhookSubscriptionValidatorTest {
                 () -> WebhookSubscriptionValidator.validateEndpointUrl("https:///path-only"));
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = { "https://hooks.example.com:0/x", "https://hooks.example.com:65536/x",
+            "https://hooks.example.com:99999/x" })
+    void endpointUrl_portOutOfRangeIsRejectedWithoutEchoingIt(String url) {
+        WebhookSubscriptionValidationException e = assertThrows(WebhookSubscriptionValidationException.class,
+                () -> WebhookSubscriptionValidator.validateEndpointUrl(url));
+        assertEquals("endpointUrl: must use a port between 1 and 65535", e.getMessage());
+        assertFalse(e.getMessage().contains("hooks.example.com"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "https://hooks.example.com:1/x", "https://hooks.example.com:443/x",
+            "https://hooks.example.com:65535/x", "https://hooks.example.com/x" })
+    void endpointUrl_portInRangeOrOmittedIsAccepted(String url) {
+        assertDoesNotThrow(() -> WebhookSubscriptionValidator.validateEndpointUrl(url));
+    }
+
     @Test
     void endpointUrl_mustNotContainUserInfo() {
         assertMessage("endpointUrl: must not contain user information",

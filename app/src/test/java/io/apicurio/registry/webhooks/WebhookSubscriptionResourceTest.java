@@ -37,7 +37,9 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -116,12 +118,6 @@ public class WebhookSubscriptionResourceTest extends AbstractResourceTestBase {
                 .body("endpointUrl", equalTo("https://hooks.example.com/registry"))
                 .body("signingSecretRef", equalTo("orders-key"))
                 .body("revision", equalTo(2));
-
-        // A stale revision is a conflict for both update and delete.
-        admin().contentType(ContentType.JSON)
-                .body(Map.of("eventTypes", List.of(), "enabled", false, "expectedRevision", 1))
-                .put(WEBHOOKS + "/" + id).then().statusCode(409);
-        admin().queryParam("expectedRevision", 1).delete(WEBHOOKS + "/" + id).then().statusCode(409);
 
         admin().queryParam("expectedRevision", 2).delete(WEBHOOKS + "/" + id).then().statusCode(204);
         admin().get(WEBHOOKS + "/" + id).then().statusCode(404);
@@ -275,28 +271,95 @@ public class WebhookSubscriptionResourceTest extends AbstractResourceTestBase {
     @Test
     void concurrentUpdatesWithTheSameRevisionLetExactlyOneWin() throws Exception {
         String id = createDisabled("https://hooks.example.com/race-update");
-        Supplier<Integer> update = () -> admin().contentType(ContentType.JSON)
-                .body(Map.of("eventTypes", List.of(), "enabled", false, "expectedRevision", 1))
-                .put(WEBHOOKS + "/" + id).statusCode();
 
-        assertEquals(List.of(200, 409), raceSorted(update, update));
-        admin().get(WEBHOOKS + "/" + id).then().statusCode(200).body("revision", equalTo(2));
+        List<Integer> statuses = race(updateAtRevision1(id, "race-A", CREATED),
+                updateAtRevision1(id, "race-B", VERSION_CREATED));
+
+        List<Integer> sorted = new ArrayList<>(statuses);
+        Collections.sort(sorted);
+        assertEquals(List.of(200, 409), sorted, statuses::toString);
+        // The stored state is exactly the winner's payload, written once.
+        boolean firstWon = statuses.get(0) == 200;
+        admin().get(WEBHOOKS + "/" + id).then().statusCode(200)
+                .body("name", equalTo(firstWon ? "race-A" : "race-B"))
+                .body("eventTypes", equalTo(List.of(firstWon ? CREATED : VERSION_CREATED)))
+                .body("revision", equalTo(2));
     }
 
     @Test
     void concurrentUpdateAndDeleteWithTheSameRevisionLetExactlyOneWin() throws Exception {
         String id = createDisabled("https://hooks.example.com/race-delete");
-        Supplier<Integer> update = () -> admin().contentType(ContentType.JSON)
-                .body(Map.of("eventTypes", List.of(), "enabled", false, "expectedRevision", 1))
-                .put(WEBHOOKS + "/" + id).statusCode();
         Supplier<Integer> delete = () -> admin().queryParam("expectedRevision", 1)
                 .delete(WEBHOOKS + "/" + id).statusCode();
 
-        List<Integer> statuses = raceSorted(update, delete);
-        // Exactly one wins: the update (200) or the delete (204). If the delete wins, the update finds the
-        // subscription gone (404); if the update wins, the delete finds a newer revision (409).
-        assertEquals(1, statuses.stream().filter(code -> code == 200 || code == 204).count(), statuses::toString);
-        assertEquals(1, statuses.stream().filter(code -> code == 404 || code == 409).count(), statuses::toString);
+        List<Integer> statuses = race(updateAtRevision1(id, "race-update", CREATED), delete);
+        int updateStatus = statuses.get(0);
+        int deleteStatus = statuses.get(1);
+
+        if (deleteStatus == 204) {
+            // The delete won: the update found the subscription gone, and it stays gone.
+            assertEquals(404, updateStatus, statuses::toString);
+            admin().get(WEBHOOKS + "/" + id).then().statusCode(404);
+        } else {
+            // The update won: the delete found a newer revision, and the update's payload persisted.
+            assertEquals(List.of(200, 409), statuses, statuses::toString);
+            admin().get(WEBHOOKS + "/" + id).then().statusCode(200)
+                    .body("name", equalTo("race-update"))
+                    .body("eventTypes", equalTo(List.of(CREATED)))
+                    .body("revision", equalTo(2));
+        }
+    }
+
+    // ---- stale revisions leave the stored state untouched ----
+
+    @Test
+    void staleUpdateWithDifferentValuesChangesNothing() {
+        String id = admin().contentType(ContentType.JSON)
+                .body(Map.of("name", "original", "endpointUrl", "https://hooks.example.com/stale-update",
+                        "eventTypes", List.of(CREATED), "groupFilter", "orders",
+                        "artifactIdFilter", "orders-value", "artifactTypeFilter", "AVRO"))
+                .post(WEBHOOKS).then().statusCode(201).extract().path("subscriptionId");
+        // Move to revision 2 so that revision 1 is genuinely stale.
+        admin().contentType(ContentType.JSON)
+                .body(Map.of("name", "current", "eventTypes", List.of(CREATED), "groupFilter", "orders",
+                        "artifactIdFilter", "orders-value", "artifactTypeFilter", "AVRO", "enabled", false,
+                        "expectedRevision", 1))
+                .put(WEBHOOKS + "/" + id).then().statusCode(200).body("revision", equalTo(2));
+        Map<String, Object> before = getState(id);
+
+        // Every mutable field differs from the stored value.
+        admin().contentType(ContentType.JSON)
+                .body(Map.of("name", "stale", "eventTypes", List.of(VERSION_CREATED), "groupFilter", "payments",
+                        "artifactIdFilter", "payments-value", "artifactTypeFilter", "JSON", "enabled", false,
+                        "expectedRevision", 1))
+                .put(WEBHOOKS + "/" + id).then().statusCode(409);
+
+        assertEquals(before, getState(id));
+        assertEquals("current", before.get("name"));
+        assertEquals(2, before.get("revision"));
+    }
+
+    @Test
+    void staleDeleteOfAnEnabledSubscriptionChangesNothing() {
+        when(runtime.isAvailable()).thenReturn(true);
+        when(runtime.signingKeyResolves("orders-key")).thenReturn(true);
+        String id = admin().contentType(ContentType.JSON)
+                .body(Map.of("name", "original", "endpointUrl", "https://hooks.example.com/stale-delete",
+                        "eventTypes", List.of(CREATED), "enabled", true, "signingSecretRef", "orders-key"))
+                .post(WEBHOOKS).then().statusCode(201).body("enabled", equalTo(true))
+                .extract().path("subscriptionId");
+        admin().contentType(ContentType.JSON)
+                .body(Map.of("name", "current", "eventTypes", List.of(CREATED), "enabled", true,
+                        "expectedRevision", 1))
+                .put(WEBHOOKS + "/" + id).then().statusCode(200).body("revision", equalTo(2));
+        Map<String, Object> before = getState(id);
+
+        admin().queryParam("expectedRevision", 1).delete(WEBHOOKS + "/" + id).then().statusCode(409);
+
+        // Starting enabled means an accidental disable would show up here, not only an accidental delete.
+        assertEquals(before, getState(id));
+        assertEquals(true, before.get("enabled"));
+        assertEquals(2, before.get("revision"));
     }
 
     // ---- disabled by default; activation gate ----
@@ -335,6 +398,62 @@ public class WebhookSubscriptionResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    void putEnablesASubscriptionWhoseStoredSigningKeyResolves() {
+        when(runtime.isAvailable()).thenReturn(true);
+        when(runtime.signingKeyResolves("orders-key")).thenReturn(true);
+        String id = createDisabled("https://hooks.example.com/put-activate", "orders-key");
+
+        admin().contentType(ContentType.JSON)
+                .body(Map.of("eventTypes", List.of(CREATED), "enabled", true, "expectedRevision", 1))
+                .put(WEBHOOKS + "/" + id)
+                .then().statusCode(200)
+                .body("enabled", equalTo(true))
+                .body("signingSecretRef", equalTo("orders-key"))
+                .body("revision", equalTo(2));
+
+        admin().get(WEBHOOKS + "/" + id).then().statusCode(200)
+                .body("enabled", equalTo(true)).body("revision", equalTo(2));
+        // The PUT body carries no key reference, so the decision used the stored one.
+        verify(runtime).signingKeyResolves("orders-key");
+    }
+
+    @Test
+    void putActivationIsRefusedWhenNoSigningKeyIsStored() {
+        when(runtime.isAvailable()).thenReturn(true);
+        String id = createDisabled("https://hooks.example.com/put-no-key");
+
+        admin().contentType(ContentType.JSON)
+                .body(Map.of("name", "renamed", "eventTypes", List.of(CREATED), "enabled", true,
+                        "expectedRevision", 1))
+                .put(WEBHOOKS + "/" + id).then().statusCode(409);
+
+        admin().get(WEBHOOKS + "/" + id).then().statusCode(200)
+                .body("enabled", equalTo(false))
+                .body("name", nullValue())
+                .body("signingSecretRef", nullValue())
+                .body("revision", equalTo(1));
+    }
+
+    @Test
+    void putActivationIsRefusedWhenTheStoredSigningKeyDoesNotResolve() {
+        when(runtime.isAvailable()).thenReturn(true);
+        when(runtime.signingKeyResolves("orders-key")).thenReturn(true);
+        String id = createDisabled("https://hooks.example.com/put-unknown-key", "unknown-key");
+
+        admin().contentType(ContentType.JSON)
+                .body(Map.of("name", "renamed", "eventTypes", List.of(CREATED), "enabled", true,
+                        "expectedRevision", 1))
+                .put(WEBHOOKS + "/" + id).then().statusCode(409);
+
+        admin().get(WEBHOOKS + "/" + id).then().statusCode(200)
+                .body("enabled", equalTo(false))
+                .body("name", nullValue())
+                .body("signingSecretRef", equalTo("unknown-key"))
+                .body("revision", equalTo(1));
+        verify(runtime).signingKeyResolves("unknown-key");
+    }
+
+    @Test
     void createdSubscriptionIsDisabledWhenEnabledIsOmitted() {
         Response created = admin().contentType(ContentType.JSON)
                 .body(validCreateBody("https://hooks.example.com/default-disabled")).post(WEBHOOKS);
@@ -344,30 +463,52 @@ public class WebhookSubscriptionResourceTest extends AbstractResourceTestBase {
 
     // ---- helpers ----
 
-    /** Starts both calls at the same moment and returns their status codes, sorted. */
-    private static List<Integer> raceSorted(Supplier<Integer> first, Supplier<Integer> second) throws Exception {
+    /**
+     * Runs both calls on separate threads, released together only once both threads are waiting, and returns
+     * their status codes in argument order. Unfinished calls are cancelled and awaited on any failure.
+     */
+    private static List<Integer> race(Supplier<Integer> first, Supplier<Integer> second) throws Exception {
         ExecutorService executor = Executors.newFixedThreadPool(2);
+        List<Future<Integer>> futures = new ArrayList<>();
         try {
+            CountDownLatch ready = new CountDownLatch(2);
             CountDownLatch start = new CountDownLatch(1);
-            List<Future<Integer>> futures = new ArrayList<>();
             for (Supplier<Integer> call : List.of(first, second)) {
                 futures.add(executor.submit(() -> {
+                    ready.countDown();
                     if (!start.await(30, TimeUnit.SECONDS)) {
                         throw new IllegalStateException("Race start signal was never given.");
                     }
                     return call.get();
                 }));
             }
+            assertTrue(ready.await(30, TimeUnit.SECONDS), "Both race workers must be waiting before the start.");
             start.countDown();
             List<Integer> statuses = new ArrayList<>();
             for (Future<Integer> future : futures) {
                 statuses.add(future.get(30, TimeUnit.SECONDS));
             }
-            Collections.sort(statuses);
             return statuses;
         } finally {
+            futures.forEach(future -> future.cancel(true));
             executor.shutdownNow();
+            if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                throw new IllegalStateException("Race workers did not stop.");
+            }
         }
+    }
+
+    /** A disabled-state PUT at revision 1 whose name and event type identify which request persisted. */
+    private static Supplier<Integer> updateAtRevision1(String id, String name, String eventType) {
+        return () -> admin().contentType(ContentType.JSON)
+                .body(Map.of("name", name, "eventTypes", List.of(eventType), "enabled", false,
+                        "expectedRevision", 1))
+                .put(WEBHOOKS + "/" + id).statusCode();
+    }
+
+    /** The full stored subscription as returned by GET. */
+    private static Map<String, Object> getState(String id) {
+        return admin().get(WEBHOOKS + "/" + id).then().statusCode(200).extract().jsonPath().getMap("$");
     }
 
     private static RequestSpecification admin() {
@@ -381,5 +522,13 @@ public class WebhookSubscriptionResourceTest extends AbstractResourceTestBase {
     private static String createDisabled(String endpointUrl) {
         return admin().contentType(ContentType.JSON).body(validCreateBody(endpointUrl)).post(WEBHOOKS)
                 .then().statusCode(201).extract().path("subscriptionId");
+    }
+
+    private static String createDisabled(String endpointUrl, String signingSecretRef) {
+        return admin().contentType(ContentType.JSON)
+                .body(Map.of("endpointUrl", endpointUrl, "eventTypes", List.of(VERSION_CREATED),
+                        "signingSecretRef", signingSecretRef))
+                .post(WEBHOOKS)
+                .then().statusCode(201).body("enabled", equalTo(false)).extract().path("subscriptionId");
     }
 }

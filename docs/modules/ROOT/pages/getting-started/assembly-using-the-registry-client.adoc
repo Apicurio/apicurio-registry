@@ -21,7 +21,9 @@ You can write a {registry} client application in Java, Typescript, Python, or Go
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-You can manage artifacts stored in {registry} by using one of the provided SDKs. You can perform any operation supported by the REST API, including create, read, update, or delete of artifacts. You can even use the {registry} SDKs to perform administrator functions, such as managing global rules or importing and exporting {registry} data.
+You can manage artifacts stored in {registry} by using one of the provided SDKs. You can perform any operation supported by the REST API, including create, read, update, or delete of artifacts.
+
+You can even use the {registry} SDKs to perform administrator functions, such as managing global rules or importing and exporting {registry} data.
 
 You can use any of the following SDKs provided as part of {registry}:
 

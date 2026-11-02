@@ -175,10 +175,9 @@ independently of the read capacity that you provision.
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-KafkaSQL storage applies writes asynchronously through a Kafka topic. Reads use a local,
-materialized copy of the data in an embedded database that replays the Kafka journal to stay
-current. Reads do not require a network round trip to a remote database.
-The separate measurements show how read and write throughput differ from SQL storage:
+KafkaSQL storage applies writes asynchronously through a Kafka topic and serves reads from a local, materialized copy of the data in an embedded database, so read and write throughput differ from SQL storage.
+
+The embedded database replays the Kafka journal to stay current, and reads do not require a network round trip to a remote database. The following measurements show the difference:
 
 Read throughput::
 The tests use the same conditions and methodology as the SQL storage tests: 200 concurrent

@@ -855,7 +855,7 @@ For a detailed comparison of all authentication changes, see the client migratio
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following tables summarize the configuration property changes between {registry} {registry-v2} and {registry} 3.x for SerDes applications, REST API clients, and authentication.
+Several configuration properties changed between {registry} {registry-v2} and {registry} 3.x for SerDes applications, REST API clients, and authentication. Compare the old and new property names when you migrate your client configuration.
 
 .SerDes configuration property changes
 
@@ -1612,7 +1612,7 @@ When enabled, users with the developer or admin role can create draft versions, 
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following tables list the configuration properties for the {registry} 3.x user interface. Configure most settings on the application (API) container. The UI container environment variables override application settings when set.
+You configure the {registry} 3.x user interface mostly through properties on the application (API) container. The UI container environment variables override application settings when set.
 
 Configure the following properties on the `apicurio-registry` (API) container:
 

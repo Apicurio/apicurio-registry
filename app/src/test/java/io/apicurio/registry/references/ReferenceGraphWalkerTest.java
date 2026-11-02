@@ -13,8 +13,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.LogManager;
 import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 public class ReferenceGraphWalkerTest {
 
@@ -412,16 +414,15 @@ public class ReferenceGraphWalkerTest {
      * handler.
      */
     private static List<LogRecord> captureWarnings(Runnable action) {
-        java.util.logging.Logger julLogger = LogManager.getLogManager()
-                .getLogger(ResolvedReferences.class.getName());
+        Logger julLogger = LogManager.getLogManager().getLogger(ResolvedReferences.class.getName());
         if (julLogger == null) {
-            julLogger = java.util.logging.Logger.getLogger(ResolvedReferences.class.getName());
+            julLogger = Logger.getLogger(ResolvedReferences.class.getName());
         }
         List<LogRecord> captured = new ArrayList<>();
         Handler handler = new Handler() {
             @Override
             public void publish(LogRecord record) {
-                if (record.getLevel().equals(java.util.logging.Level.WARNING)) {
+                if (record.getLevel().equals(Level.WARNING)) {
                     captured.add(record);
                 }
             }

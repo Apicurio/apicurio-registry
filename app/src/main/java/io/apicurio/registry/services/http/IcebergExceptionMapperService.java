@@ -15,6 +15,7 @@ import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.quarkus.security.ForbiddenException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -30,6 +31,11 @@ public class IcebergExceptionMapperService implements ExceptionMapperService {
     IcebergMetricsService metricsService;
 
     public Response mapException(Throwable t) {
+        if (t instanceof BadRequestException) {
+            return buildErrorResponse(400, "BadRequestException",
+                    t.getMessage() != null ? t.getMessage() : "Bad request");
+        }
+
         if (t instanceof NotFoundException) {
             return buildErrorResponse(404, "NotFoundException",
                     t.getMessage() != null ? t.getMessage() : "Not found");

@@ -1,6 +1,5 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
-import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.AddVersionToBranch;
 import io.apicurio.registry.rest.client.models.BranchMetaData;
@@ -462,11 +461,11 @@ public class BranchesTest extends AbstractResourceTestBase {
         Assertions.assertEquals(404, error.getStatus());
 
         // Replace versions with a duplicate version
-        var duplicateError = Assertions.assertThrows(ApiException.class, () -> {
+        var duplicateError = Assertions.assertThrows(ProblemDetails.class, () -> {
             clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()
                     .byBranchId("test-branch").versions().put(replaceVersions("1", "1"));
         });
-        Assertions.assertEquals(409, duplicateError.getResponseStatusCode());
+        Assertions.assertEquals(409, duplicateError.getStatus());
 
         // The branch must be left unchanged
         results = clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).branches()

@@ -1,5 +1,6 @@
 package io.apicurio.registry.client;
 
+import io.apicurio.registry.client.common.HttpAdapterType;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.vertx.core.Vertx;
@@ -42,20 +43,27 @@ class RegistryClientRequestTimeoutTest {
 
     @AfterAll
     static void stopServer() throws Exception {
-        if (server != null) {
-            server.close().toCompletionStage().toCompletableFuture().get(30, TimeUnit.SECONDS);
-        }
-        if (vertx != null) {
-            vertx.close().toCompletionStage().toCompletableFuture().get(30, TimeUnit.SECONDS);
+        try {
+            if (server != null) {
+                server.close().toCompletionStage().toCompletableFuture().get(30, TimeUnit.SECONDS);
+            }
+        } finally {
+            if (vertx != null) {
+                vertx.close().toCompletionStage().toCompletableFuture().get(30, TimeUnit.SECONDS);
+            }
         }
     }
 
     @Test
     @Timeout(value = 30, unit = TimeUnit.SECONDS)
     void requestFailsOnceTheReadIdleTimeoutPasses() {
+        // The Vert.x adapter is pinned because the closed connection is the expected failure. The JDK
+        // adapter ignores requestTimeout entirely, so under it this test would hang until the method
+        // timeout instead of failing on the read idle bound.
         RegistryClient client = RegistryClientFactory.create(RegistryClientOptions.create()
                 .registryUrl("http://127.0.0.1:" + port + "/apis/registry/v3")
                 .vertx(vertx)
+                .httpAdapter(HttpAdapterType.VERTX)
                 .requestTimeout(5_000, 1_000));
 
         long start = System.nanoTime();

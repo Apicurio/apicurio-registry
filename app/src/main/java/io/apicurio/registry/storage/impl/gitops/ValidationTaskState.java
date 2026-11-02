@@ -2,6 +2,8 @@ package io.apicurio.registry.storage.impl.gitops;
 
 import io.apicurio.registry.rest.v3.beans.GitOpsError;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.ToString;
 
 import java.time.Instant;
 import java.util.List;
@@ -10,14 +12,17 @@ import java.util.List;
  * Internal mutable state of a dry-run validation task. Tracks the task lifecycle
  * from creation through sidecar fetch, registry validation, and completion.
  *
- * <p>Note: individual fields are not synchronized. The {@link GitOpsValidationTaskManager}
- * ensures that only the scheduled poll thread mutates task state, while REST threads
- * only read via {@code toDto()}.
+ * <p>State transitions, deletion, and file cleanup are synchronized on
+ * {@link #getLock()} by {@link GitOpsValidationTaskManager}, so the poller
+ * and REST threads cannot interleave on the same task.
  */
 @Data
 public class ValidationTaskState {
 
-    /** Unique task identifier (12 hex chars). */
+    @EqualsAndHashCode.Exclude
+    @ToString.Exclude
+    private final Object lock = new Object();
+
     private ValidationTaskId taskId;
 
     /** Validation type: "pull" or "push". */

@@ -22,10 +22,11 @@ infrastructure and workload.
 == Prerequisites
 
 * You have installed {registry} as described in {installing-the-registry-openshift}.
-* You have reviewed xref:getting-started/assembly-registry-high-availability.adoc[].
+* You have reviewed the {registry} high availability guide listed in Additional resources.
 
 [role="_additional-resources"]
 .Additional resources
+* xref:getting-started/assembly-registry-high-availability.adoc[]
 * xref:registry-sizing-methodology_{context}[]
 
 //INCLUDES

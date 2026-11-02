@@ -1,8 +1,8 @@
 package io.apicurio.registry;
 
 import com.microsoft.kiota.ApiException;
-import com.microsoft.kiota.RequestAdapter;
 import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.RegistryV2ClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.rest.client.RegistryClient;
@@ -25,7 +25,6 @@ import io.apicurio.registry.utils.tests.ProblemDetailsWatcher;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.confluent.kafka.schemaregistry.client.rest.RestService;
 import io.confluent.kafka.schemaregistry.client.rest.exceptions.RestClientException;
-import io.kiota.http.vertx.VertXRequestAdapter;
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
 import io.restassured.response.ValidatableResponse;
@@ -113,10 +112,12 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     }
 
     protected io.apicurio.registry.rest.client.v2.RegistryClient createRestClientV2(Vertx vertx) {
-        RequestAdapter anonymousAdapter = new VertXRequestAdapter(vertx);
-        anonymousAdapter.setBaseUrl(registryV2ApiUrl);
-        var client = new io.apicurio.registry.rest.client.v2.RegistryClient(anonymousAdapter);
-        return client;
+        // The v2 factory is deprecated with the whole v2 API, and it is what the v2 tests target, so using
+        // it here keeps one translation of the timeout options for both test clients.
+        return RegistryV2ClientFactory.create(RegistryClientOptions.create()
+                .registryUrl(registryV2ApiUrl)
+                .vertx(vertx)
+                .requestTimeout(CLIENT_CONNECT_TIMEOUT_MS, CLIENT_READ_IDLE_TIMEOUT_MS));
     }
 
     protected RegistryClient createRestClientV3(Vertx vertx) {

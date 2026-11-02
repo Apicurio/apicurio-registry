@@ -125,6 +125,9 @@ When the client is created, you can use all of the operations available in the {
 .Additional resources
 * https://github.com/Apicurio/apicurio-registry/tree/main/examples[Apicurio Registry REST client demonstration]
 * {kafka-client-serdes}
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-using-schema-validation-library.adoc[Validating data with the {registry} schema validation library]
+endif::[]
 
 
 

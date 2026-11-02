@@ -200,7 +200,7 @@
     <icu4j.version>78.3</icu4j.version>
     <protobuf.version>4.36.2</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.78.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.79.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -316,7 +316,7 @@
     <!-- Plugin Deps -->
     <version.puppycrawl>13.11.0</version.puppycrawl>
     <!-- Protocol Buffers -->
-    <proto-plugin.version>5.1.11</proto-plugin.version>
+    <proto-plugin.version>5.1.12</proto-plugin.version>
     <os-maven-plugin.version>1.7.1</os-maven-plugin.version>
 
     <!-- Flink -->

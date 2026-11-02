@@ -15,7 +15,9 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -102,7 +104,13 @@ public class IntegrityRuleExecutorCircularReferenceTest {
         IntegrityRuleExecutor executor = newExecutor();
         RuleContext context = contextWithReferenceTo(storage, "a", "1");
 
-        assertThrows(RuleViolationException.class, () -> executor.execute(context));
+        RuleViolationException ex = assertThrows(RuleViolationException.class,
+                () -> executor.execute(context));
+        assertEquals(IntegrityLevel.NO_CIRCULAR_REFERENCES.name(), ex.getRuleConfiguration().orElse(null));
+        assertTrue(
+                ex.getCauses().stream().anyMatch(cause -> cause.getDescription()
+                        .contains("g1/a@1 -> g1/b@1 -> g1/a@1 (cycle)")),
+                "expected the cycle path to be reported, got: " + ex.getCauses());
     }
 
     @Test

@@ -4019,6 +4019,23 @@
             "$ref": "#/components/responses/Conflict"
           },
           "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                },
+                "examples": {
+                  "SearchDeadlineExceededExample": {
+                    "value": {
+                      "detail": "SearchDeadlineExceededException: The search did not finish within 5000 ms.",
+                      "title": "The search did not finish within 5000 ms.",
+                      "status": 503,
+                      "name": "SearchDeadlineExceededException"
+                    }
+                  }
+                }
+              }
+            },
             "description": "The search of this registry did not finish before the deadline."
           },
           "500": {

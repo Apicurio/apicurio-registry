@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useMemo, useRef, useState } from "react";
+import { FunctionComponent, ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import "./CompatibilityReport.css";
 import {
     Button,
@@ -163,6 +163,14 @@ export const CompatibilityReport: FunctionComponent<CompatibilityReportProps> = 
             </div>
         ));
 
+    /** A location's title, which scrolls the content to it when the location is found there. */
+    const locationLink = (location: string, marker: ContentMarker | undefined): ReactElement => marker === undefined ?
+        <b>{locationTitle(location)}</b> : (
+            <Button variant="link" isInline={true} data-testid="compatibility-report-location" onClick={() => revealLocation(marker)}>
+                <b>{locationTitle(location)}</b>
+            </Button>
+        );
+
     const causeList = (
         <DataList aria-label="Compatibility violations by location" className="error-causes">
             {groups.map((group, idx) => (
@@ -174,12 +182,7 @@ export const CompatibilityReport: FunctionComponent<CompatibilityReportProps> = 
                             </DataListCell>,
                             <DataListCell key="main content">
                                 <div className="error-causes-item-title">
-                                    {group.location === undefined ? group.causes[0].description : groupMarkers[idx] !== undefined ? (
-                                        <Button variant="link" isInline={true} data-testid="compatibility-report-location"
-                                            onClick={() => revealLocation(groupMarkers[idx] as ContentMarker)}>
-                                            <b>{locationTitle(group.location)}</b>
-                                        </Button>
-                                    ) : <b>{locationTitle(group.location)}</b>}
+                                    {group.location === undefined ? group.causes[0].description : locationLink(group.location, groupMarkers[idx])}
                                 </div>
                                 {group.reference !== undefined && (
                                     <div className="compatibility-report-reference">

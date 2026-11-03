@@ -300,7 +300,7 @@ describe("InvalidContentModal", () => {
         cleanup();
 
         // A validity violation keeps the plain list, so it keeps the usual modal size.
-        render(modal({ ...violation, additionalData: { ruleViolation: { ruleType: "VALIDITY" } } }, SUBMITTED));
+        render(modal({ ...violation, ruleViolation: { ruleType: "VALIDITY" } }, SUBMITTED));
         expect(screen.getByRole("dialog")).not.toHaveClass("invalid-content-modal-report");
     });
     describe("highlighting", () => {
@@ -308,10 +308,10 @@ describe("InvalidContentModal", () => {
             render(modal({
                 ruleViolation: { ruleType: "COMPATIBILITY" },
                 causes: [
-                    { description: "b has no default", context: "/fields/1/type", additionalData: { proposed: { pointer: "/fields/1" } } },
+                    { description: "b has no default", context: "/fields/1/type", proposed: { pointer: "/fields/1" } },
                     { description: "name changed", context: "/name" }
                 ]
-            } as unknown as Partial<RuleViolationProblemDetails>, SUBMITTED_LINES));
+            }, SUBMITTED_LINES));
 
             expect(lines(lastMarkers())).toEqual([[6, 6, "b has no default"], [3, 3, "name changed"]]);
             expect(lastMarkers()[0].severity).toBe(8);
@@ -321,11 +321,11 @@ describe("InvalidContentModal", () => {
             render(modal({
                 ruleViolation: { ruleType: "COMPATIBILITY" },
                 causes: [
-                    { description: "in the reference", additionalData: { proposed: { pointer: "/fields/1", reference: "common.json" } } },
+                    { description: "in the reference", proposed: { pointer: "/fields/1", reference: "common.json" } },
                     { description: "an OpenAPI path", context: "/pets/{petId}" },
                     { description: "a message name", context: "Person" }
                 ]
-            } as unknown as Partial<RuleViolationProblemDetails>, SUBMITTED_LINES));
+            }, SUBMITTED_LINES));
 
             expect(lastMarkers()).toEqual([]);
             expect(screen.queryAllByTestId("compatibility-report-location")).toHaveLength(0);
@@ -335,8 +335,8 @@ describe("InvalidContentModal", () => {
         it("scrolls the submitted content to a location when its title is clicked", () => {
             render(modal({
                 ruleViolation: { ruleType: "COMPATIBILITY" },
-                causes: [{ description: "b has no default", additionalData: { proposed: { pointer: "/fields/1" } } }]
-            } as unknown as Partial<RuleViolationProblemDetails>, SUBMITTED_LINES));
+                causes: [{ description: "b has no default", proposed: { pointer: "/fields/1" } }]
+            }, SUBMITTED_LINES));
 
             fireEvent.click(screen.getByTestId("compatibility-report-location"));
 
@@ -351,9 +351,10 @@ describe("InvalidContentModal", () => {
                 ruleViolation: { ruleType: "COMPATIBILITY" },
                 causes: [{
                     description: "b has no default",
-                    additionalData: { proposed: { pointer: "/fields/1" }, existing: { pointer: "/fields", version: "3" } }
+                    proposed: { pointer: "/fields/1" },
+                    existing: { pointer: "/fields", version: "3" }
                 }]
-            } as unknown as Partial<RuleViolationProblemDetails>, SUBMITTED_LINES));
+            }, SUBMITTED_LINES));
 
             await act(async () => {
                 fireEvent.click(screen.getByTestId("compatibility-report-compare"));

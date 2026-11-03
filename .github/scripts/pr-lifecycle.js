@@ -229,10 +229,11 @@ function createApi(github, owner, repo) {
     enableAutoMerge: async (prNumber, mergeMethod) => {
       const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
       await github.graphql(
-        `mutation($id: ID!, $method: PullRequestMergeMethod!) {
-          enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: $method }) { clientMutationId }
+        `mutation($id: ID!, $mergeMethod: PullRequestMergeMethod!) {
+          enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: $mergeMethod }) { clientMutationId }
         }`,
-        { id: pr.node_id, method: mergeMethod.toUpperCase() }
+        // Not "method": @octokit/graphql reserves it as a request option (#10623).
+        { id: pr.node_id, mergeMethod: mergeMethod.toUpperCase() }
       );
     },
 

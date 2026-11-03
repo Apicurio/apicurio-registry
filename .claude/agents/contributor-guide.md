@@ -40,7 +40,9 @@ These are agent-only — they go beyond the checklist items:
 - Auth/authz changes without positive+negative tests: BLOCKER.
 - API error response exposing internal state: BLOCKER.
   Wrong: `"User " + currentUser + " is not authorized"` — Correct: `"Not authorized"`.
-- Star imports, missing license header, missing DCO sign-off: BLOCKER.
+- Missing DCO sign-off: BLOCKER.
+- Star imports in new code: MAJOR (a staged checkstyle rule: reported, not yet enforced).
+- Never ask for a per-file license header: the project doesn't use them.
 - Hand-rolled logic that Quarkus/MicroProfile already provides: MAJOR.
 - `synchronized` in reactive/async code: MAJOR.
 - Changed default config values not the explicit goal of the PR: MAJOR.

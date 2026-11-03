@@ -40,7 +40,7 @@ public class FederationConfig {
     int searchMaxPeers;
 
     @ConfigProperty(name = "apicurio.federation.search.max-concurrent-calls", defaultValue = "64")
-    @Info(category = CATEGORY_FEDERATION, description = "Maximum number of peer registry calls being set up at once, across all federated searches. Calls beyond it are reported as capacity_exceeded", availableSince = "3.4.0")
+    @Info(category = CATEGORY_FEDERATION, description = "Maximum number of peer registry calls in progress at once, across all federated searches, from the name lookup until the answer has been read or the call cancelled. Calls beyond it are reported as capacity_exceeded", availableSince = "3.4.0")
     int searchMaxConcurrentCalls;
 
     @ConfigProperty(name = "apicurio.federation.search.max-response-bytes", defaultValue = "1048576")

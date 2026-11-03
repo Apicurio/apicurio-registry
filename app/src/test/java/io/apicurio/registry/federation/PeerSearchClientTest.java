@@ -2,6 +2,7 @@ package io.apicurio.registry.federation;
 
 import io.apicurio.registry.storage.dto.PeerDto;
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.net.SelfSignedCertificate;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,14 +14,17 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -84,6 +88,16 @@ class PeerSearchClientTest {
             return assertInstanceOf(PeerSearchException.class, ex.getCause());
         }
         return fail("Expected the call to fail.");
+    }
+
+    /** What the call failed with, or null when it succeeded. */
+    private static Throwable failureOf(PeerCall call) throws Exception {
+        try {
+            call.future().get(10, TimeUnit.SECONDS);
+            return null;
+        } catch (ExecutionException ex) {
+            return ex.getCause();
+        }
     }
 
     private PeerCall search(String url) {
@@ -312,29 +326,69 @@ class PeerSearchClientTest {
     }
 
     @Test
-    void refusesACallWhenNoThreadIsLeftToSetItUp() throws Exception {
+    void aCallKeepsItsSlotUntilItsAnswerIsReadOrItIsCancelled() throws Exception {
         config.searchMaxConcurrentCalls = 1;
+        BlockingQueue<HttpServerResponse> open = new LinkedBlockingQueue<>();
+        try (StubPeer holding = StubPeer.start(vertx, (request, response) -> open.add(response));
+                StubPeer answering = StubPeer.start(vertx, (request, response) -> StubPeer.publicAgents(response, 0))) {
+            // Once the peer holds the request, the name lookup and the setup are long over.
+            PeerCall first = search(holding.url());
+            HttpServerResponse held = open.poll(10, TimeUnit.SECONDS);
+            assertNotNull(held);
+
+            assertInstanceOf(PeerSearchException.CapacityExceeded.class, failed(search(holding.url())));
+            assertInstanceOf(PeerSearchException.CapacityExceeded.class, failed(search(answering.url())));
+            assertTrue(answering.requests().isEmpty(), "A refused call must not reach the peer.");
+
+            // Reading the answer gives the slot back.
+            StubPeer.publicAgents(held, 0);
+            succeeded(first);
+            succeeded(search(answering.url()));
+
+            // So does cancelling the call.
+            PeerCall second = search(holding.url());
+            assertNotNull(open.poll(10, TimeUnit.SECONDS));
+            assertInstanceOf(PeerSearchException.CapacityExceeded.class, failed(search(answering.url())));
+            second.cancel();
+            assertInstanceOf(PeerSearchException.Cancelled.class, failed(second));
+            succeeded(search(answering.url()));
+        }
+    }
+
+    @Test
+    void aNameLookupThatOutlivesItsCallKeepsTheSlotUntilTheLookupEnds() throws Exception {
+        config.searchMaxConcurrentCalls = 1;
+        config.searchPeerTimeoutMs = 200;
         CountDownLatch release = new CountDownLatch(1);
         CountDownLatch resolving = new CountDownLatch(1);
-        started(client);
-        client.resolver = host -> {
-            resolving.countDown();
-            try {
-                release.await(10, TimeUnit.SECONDS);
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-            }
-            throw new UnknownHostException(host);
-        };
+        try (StubPeer answering = StubPeer.start(vertx, (request, response) -> StubPeer.publicAgents(response, 0))) {
+            started(client);
+            client.resolver = host -> {
+                if (!"hanging.test".equals(host)) {
+                    return new InetAddress[] { InetAddress.getByAddress(new byte[] { 127, 0, 0, 1 }) };
+                }
+                resolving.countDown();
+                try {
+                    release.await(10, TimeUnit.SECONDS);
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                }
+                throw new UnknownHostException(host);
+            };
+            PeerDto other = peer("http://peer.test:" + answering.port());
 
-        PeerCall first = client.search(peer("http://peer.test:9"), QUERY);
-        assertTrue(resolving.await(10, TimeUnit.SECONDS));
-        PeerCall second = client.search(peer("http://other.test:9"), QUERY);
+            PeerCall hanging = client.search(peer("http://hanging.test:9"), QUERY);
+            assertTrue(resolving.await(10, TimeUnit.SECONDS));
+            assertInstanceOf(PeerSearchException.CapacityExceeded.class, failed(client.search(other, QUERY)));
 
-        assertInstanceOf(PeerSearchException.CapacityExceeded.class, failed(second));
-        assertFalse(first.future().isDone());
-        release.countDown();
-        assertInstanceOf(PeerSearchException.Unreachable.class, failed(first));
+            // The call times out, but its thread is still in the lookup, so the slot stays taken.
+            assertInstanceOf(PeerSearchException.Timeout.class, failed(hanging));
+            assertInstanceOf(PeerSearchException.CapacityExceeded.class, failed(client.search(other, QUERY)));
+
+            release.countDown();
+            await().atMost(10, TimeUnit.SECONDS)
+                    .untilAsserted(() -> assertNull(failureOf(client.search(other, QUERY))));
+        }
     }
 
     @Test

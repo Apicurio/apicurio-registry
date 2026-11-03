@@ -574,7 +574,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`64`
 |`3.4.0`
-|Maximum number of peer registry calls being set up at once, across all federated searches. Calls beyond it are reported as capacity_exceeded
+|Maximum number of peer registry calls in progress at once, across all federated searches, from the name lookup until the answer has been read or the call cancelled. Calls beyond it are reported as capacity_exceeded
 |`apicurio.federation.search.max-peers`
 |`int`
 |`16`

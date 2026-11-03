@@ -138,7 +138,7 @@ class FederatedSearchServiceTest {
                     cancelled.computeIfAbsent(peer.getPeerId(), id -> new AtomicInteger()).incrementAndGet();
                 }
             });
-            return new PeerCall(future);
+            return new PeerCall(future, future);
         }
     }
 

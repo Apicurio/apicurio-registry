@@ -1,0 +1,12 @@
+.ps_peers-header {
+    border-bottom: 1px solid #ddd;
+}
+
+.ps_peers-section {
+    height: fit-content;
+    min-height: 70vh;
+}
+
+.ps_peers-alert {
+    margin-bottom: 16px;
+}

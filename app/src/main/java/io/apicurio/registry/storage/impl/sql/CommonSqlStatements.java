@@ -50,6 +50,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
      */
     @Override
     public List<String> databaseUpgrade(int fromVersion, int toVersion) {
+        if (fromVersion > toVersion) {
+            throw new IllegalArgumentException(String.format(
+                    "Cannot upgrade database from version %d to version %d: target version is older than source version.",
+                    fromVersion, toVersion));
+        }
+
         List<String> statements = new ArrayList<>();
         DdlParser parser = new DdlParser();
 

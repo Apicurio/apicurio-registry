@@ -1,5 +1,8 @@
 package io.apicurio.registry.rest.v3.impl;
 
+import io.apicurio.registry.rest.v3.beans.McpToolImportResult;
+import io.apicurio.registry.rest.v3.beans.McpToolImportRequest;
+import io.apicurio.registry.agents.mcpimport.McpToolImportService;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
@@ -134,6 +137,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     RulesService rulesService;
+
+    @Inject
+    McpToolImportService mcpToolImportService;
 
     @Inject
     OTelMetricsProvider otelMetrics;
@@ -2067,6 +2073,21 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return references.stream()
                 .peek(r -> r.setGroupId(new GroupId(r.getGroupId()).getRawGroupIdWithNull()))
                 .map(V3ApiUtil::referenceToDto).collect(toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#importMcpTools(java.lang.String, java.lang.String,
+     *      io.apicurio.registry.rest.v3.beans.McpToolImportRequest)
+     */
+    @Override
+    // The request body is not extracted: its headers may carry credentials for the MCP server.
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID})
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public McpToolImportResult importMcpTools(String groupId, String artifactId, McpToolImportRequest data) {
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        return mcpToolImportService.importTools(groupId, artifactId, data);
     }
 
     /**

@@ -54,6 +54,8 @@ import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsOnBranchException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.smallrye.mutiny.TimeoutException;
+import io.apicurio.registry.agents.mcpimport.McpImportDeniedException;
+import io.apicurio.registry.agents.mcpimport.McpImportException;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
@@ -64,6 +66,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.net.HttpURLConnection.HTTP_BAD_GATEWAY;
 import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_FORBIDDEN;
@@ -118,6 +121,9 @@ public class HttpStatusCodeMap {
         map.put(LimitExceededException.class, HTTP_CONFLICT);
         // Client input exceeding a configured limit, like LimitExceededException.
         map.put(ReferenceDepthExceededException.class, HTTP_CONFLICT);
+        // An MCP server that cannot be reached or used is an upstream failure; a refused host is the client's.
+        map.put(McpImportException.class, HTTP_BAD_GATEWAY);
+        map.put(McpImportDeniedException.class, HTTP_BAD_REQUEST);
         map.put(MissingRequiredParameterException.class, HTTP_BAD_REQUEST);
         map.put(InvalidParameterValueException.class, HTTP_BAD_REQUEST);
         map.put(NotAllowedException.class, HTTP_CONFLICT); // We're using 409 instead of 403 to reserve the

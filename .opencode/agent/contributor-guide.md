@@ -25,7 +25,9 @@ against the current diff (`git diff main...HEAD`).
 1. **One PR at a time** (most common rejection — 31 PRs closed for this in July 2026).
    Run `gh pr list --author <login> --state open`. If any open PR exists: BLOCKER.
 
-2. **Issue approval.** The linked issue must have a maintainer comment.
+2. **Agreed scope.** A new feature or a significant change in behaviour needs a maintainer's agreement in the
+   linked issue: BLOCKER if there is none. Bug fixes and minor issues the maintainers already know about don't.
+   If it isn't clear which one the change is, say so and suggest asking in the issue.
    Check Discussion #8364 "Tried & Rejected" section for previously rejected approaches.
 
 3. **Walk the diff** against every Code / Tests / Submission item in the checklist.

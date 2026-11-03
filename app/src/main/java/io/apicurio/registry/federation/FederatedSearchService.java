@@ -49,9 +49,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  * so that one slow or failing peer shows up as a typed outcome and not as a failed or slow
  * response. The peers are called in parallel while this registry's own search runs on the calling
  * thread, all under one deadline: whatever has not answered when it passes is cancelled and
- * reported as {@code deadline_exceeded}. This registry's own search is stopped at its next
- * checkpoint once the deadline has passed. If it fails, or is stopped, the whole request fails and
- * the calls in flight are cancelled.
+ * reported as {@code deadline_exceeded}. This registry's own search must finish within the
+ * deadline: it is stopped at its next checkpoint once the deadline has passed, and checked again
+ * when it returns, so that a last unit of work, or a search that found nothing, cannot finish late
+ * and still be answered. If it fails, or is stopped, the whole request fails and the calls in
+ * flight are cancelled.
  * <p>
  * Peers are asked for public agents only and the caller's credentials are never sent to them.
  * Each peer has its own circuit breaker, so a peer that keeps failing is skipped without any
@@ -114,11 +116,14 @@ public class FederatedSearchService {
             for (PeerDto peer : peers) {
                 dispatches.add(dispatch(peer, query));
             }
-            AgentSearchResults local = localSearch.search(query.limit(), () -> {
+            Runnable checkpoint = () -> {
                 if (System.nanoTime() - deadlineNanos > 0) {
                     throw new SearchDeadlineExceededException(config.getSearchDeadlineMs());
                 }
-            });
+            };
+            checkpoint.run();
+            AgentSearchResults local = localSearch.search(query.limit(), checkpoint);
+            checkpoint.run();
             awaitUntil(dispatches, deadlineNanos);
             return assemble(local, dispatches);
         } finally {

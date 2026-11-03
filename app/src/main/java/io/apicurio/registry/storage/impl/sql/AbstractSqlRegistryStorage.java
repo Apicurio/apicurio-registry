@@ -18,6 +18,7 @@ import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
+import io.apicurio.registry.references.ReferenceResolutionConfig;
 import io.apicurio.registry.rest.RestConfig;
 import io.apicurio.registry.semver.SemVerConfigProperties;
 import io.apicurio.registry.storage.RegistryStorage;
@@ -102,6 +103,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     private static final int DB_VERSION = Integer
             .parseInt(IoUtil.toString(AbstractSqlRegistryStorage.class.getResourceAsStream("db-version")));
 
+    static int getDbVersion() {
+        return DB_VERSION;
+    }
+
     private static final ObjectMapper mapper = new ObjectMapper();
 
     static {
@@ -142,8 +147,9 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Inject
     MeterRegistry metrics;
 
-    @ConfigProperty(name = "apicurio.storage.references.max-depth", defaultValue = "100")
-    @Info(category = CATEGORY_STORAGE, description = "Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.", availableSince = "3.0.6")
+    @ConfigProperty(name = ReferenceResolutionConfig.MAX_DEPTH_PROPERTY,
+            defaultValue = ReferenceResolutionConfig.DEFAULT_MAX_DEPTH_STRING)
+    @Info(category = CATEGORY_STORAGE, description = "Maximum depth a reference graph may be resolved to. Most resolution fails when a graph is deeper than this. Resolution during content storage and lookup by content still truncates with a warning.", availableSince = "3.0.6")
     int maxReferenceDepth;
 
     protected SqlStatements sqlStatements() {
@@ -352,7 +358,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * @return true if the database has already been initialized
      */
-    private boolean isDatabaseCurrentRaw(Handle handle) {
+    protected boolean isDatabaseCurrentRaw(Handle handle) {
         log.info("Checking to see if the DB is up-to-date.");
         log.info("Build's DB version is {}", DB_VERSION);
         int version = this.getDatabaseVersionRaw(handle);
@@ -365,6 +371,18 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             log.error("--------------------------");
             throw new RuntimeException(message);
         }
+
+        // Fast-fail if we try to run an older Registry against a newer database schema.
+        if (version > DB_VERSION) {
+            String message = String.format(
+                    "Detected database schema version '%d' which is newer than the build's database version '%d'. Starting an older version of the registry against a newer database schema is not supported.",
+                    version, DB_VERSION);
+            log.error("--------------------------");
+            log.error(message);
+            log.error("--------------------------");
+            throw new RuntimeException(message);
+        }
+
         return version == DB_VERSION;
     }
 
@@ -385,11 +403,21 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * Upgrades the database by executing a number of DDL statements found in DB-specific DDL upgrade scripts.
      */
-    private void upgradeDatabaseRaw(Handle handle) {
+    protected void upgradeDatabaseRaw(Handle handle) {
         log.info("Upgrading the Apicurio Hub API database.");
 
         int fromVersion = this.getDatabaseVersionRaw(handle);
         int toVersion = DB_VERSION;
+
+        if (fromVersion > toVersion) {
+            String message = String.format(
+                    "Detected database schema version '%d' which is newer than the build's database version '%d'. Starting an older version of the registry against a newer database schema is not supported.",
+                    fromVersion, toVersion);
+            log.error("--------------------------");
+            log.error(message);
+            log.error("--------------------------");
+            throw new RuntimeException(message);
+        }
 
         log.info("\tDatabase type: {}", this.sqlStatements.dbType());
         log.info("\tFrom Version:  {}", fromVersion);
@@ -431,7 +459,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     /**
      * Reuturns the current DB version by selecting the value in the 'apicurio' table.
      */
-    private int getDatabaseVersionRaw(Handle handle) {
+    protected int getDatabaseVersionRaw(Handle handle) {
         try {
             int version = handle.createQuery(this.sqlStatements.getDatabaseVersion()).bind(0, "db_version")
                     .mapTo(Integer.class).one();

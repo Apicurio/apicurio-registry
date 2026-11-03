@@ -11,6 +11,7 @@ public enum ConfigPropertyCategory {
     CATEGORY_CCOMPAT("ccompat"),
     CATEGORY_CONTRACTS("contracts"),
     CATEGORY_DOWNLOAD("download"),
+    CATEGORY_FEDERATION("federation"),
     CATEGORY_GITOPS("gitops"),
     CATEGORY_HEALTH("health"), // TODO: Merge with CATEGORY_OBSERVABILITY.
     /**

@@ -39,4 +39,5 @@ $ARGUMENTS — GitHub Actions run ID or URL
    - Protobuf compilation: generated sources in `target/` may be stale — rebuild
    - KafkaSQL tests: timing-sensitive — may need `Awaitility` wrappers
    - UI tests: npm/node version mismatches
-   - Checkstyle: locale-sensitive methods, star imports, missing license headers
+   - Checkstyle: only `severity=error` rules fail the build (unused or redundant imports, tab characters,
+     several statements on one line); see the tiers in `.checkstyle/checkstyle.xml`

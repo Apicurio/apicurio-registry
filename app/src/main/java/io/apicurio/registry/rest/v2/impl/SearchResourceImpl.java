@@ -5,6 +5,7 @@ import io.apicurio.registry.rest.v2.SearchResource;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.canon.ContentCanonicalizer;
@@ -56,6 +57,9 @@ public class SearchResourceImpl implements SearchResource {
     @Inject
     @Current
     RegistryStorage storage;
+
+    @Inject
+    ISearchAuthorizer searchAuthorizer;
 
     @Inject
     ArtifactTypeUtilProviderFactory factory;
@@ -127,7 +131,7 @@ public class SearchResourceImpl implements SearchResource {
             filters.add(SearchFilter.ofContentId(contentId));
         }
 
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir,
+        ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, oBy, oDir,
                 ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimitUnbounded(limit), false);
         return V2ApiUtil.dtoToSearchResults(results);
@@ -179,7 +183,7 @@ public class SearchResourceImpl implements SearchResource {
         } else {
             throw new BadRequestException(CANONICAL_QUERY_PARAM_ERROR_MESSAGE);
         }
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, oBy, oDir,
+        ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, oBy, oDir,
                 ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimitUnbounded(limit), false);
         return V2ApiUtil.dtoToSearchResults(results);

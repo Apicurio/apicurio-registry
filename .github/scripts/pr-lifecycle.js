@@ -1596,10 +1596,10 @@ async function handleTestResult({ github, context, core }) {
 const DECISION_KEYS = new Set([
   'lifecycle-ready', 'run-build', 'run-unit-tests', 'run-scalpel-report',
   'run-integration', 'run-extras', 'run-sdk', 'run-cli',
-  'run-operator', 'run-console-plugin', 'run-go-sdk-freshness', 'scalpel-enabled',
+  'run-operator', 'run-console-plugin', 'run-go-sdk-freshness', 'run-docs', 'scalpel-enabled',
 ]);
 const CHANGES_KEYS = new Set([
-  'java', 'ui', 'integration', 'sdk', 'cli', 'go-sdk-gen', 'operator', 'console-plugin', 'ci',
+  'java', 'ui', 'integration', 'sdk', 'cli', 'go-sdk-gen', 'operator', 'console-plugin', 'docs', 'ci',
 ]);
 
 // One summary row per Verify phase: [label, decision key, job name prefix,
@@ -1621,6 +1621,7 @@ const SUMMARY_PHASES = [
   ['CLI Verification', 'run-cli', 'CLI Verification'],
   ['Operator Tests', 'run-operator', 'Operator Tests /'],
   ['Console Plugin', 'run-console-plugin', 'Console Plugin /'],
+  ['Docs Check', 'run-docs', 'Docs Check /'],
 ];
 
 function decisionSummaryRows(decisions, jobs) {

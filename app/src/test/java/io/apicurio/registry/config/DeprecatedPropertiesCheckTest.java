@@ -137,6 +137,7 @@ public class DeprecatedPropertiesCheckTest {
                 .map(DeprecatedPropertiesCheck.DeprecatedPropertyDef::getOldName).toList();
         assertEquals(List.of(
                 "apicurio.compat.json-schema.use-apitomy",
+                "apicurio.usage.dead-threshold-days",
                 "apicurio.kafkasql.ssl.truststore.password",
                 "apicurio.kafkasql.ssl.keystore.location",
                 "apicurio.kafkasql.ssl.keystore.type",
@@ -144,8 +145,9 @@ public class DeprecatedPropertiesCheckTest {
                 "apicurio.kafkasql.ssl.key.password"), oldNames);
         List<String> replacementNames = defaultCheck.getRegistry().stream()
                 .map(DeprecatedPropertiesCheck.DeprecatedPropertyDef::getReplacementName).toList();
-        // The JSON Schema checker property has no replacement: it no longer does anything.
+        // The JSON Schema checker and dead-threshold properties have no replacement: they do nothing.
         assertEquals(Arrays.asList(
+                null,
                 null,
                 "apicurio.kafkasql.security.ssl.truststore.password",
                 "apicurio.kafkasql.security.ssl.keystore.location",
@@ -170,5 +172,20 @@ public class DeprecatedPropertiesCheckTest {
 
         verify(log).warn("Property '{}' is deprecated since {} and will be removed in {}.{}",
                 "apicurio.example.inert", "3.4.0", "4.0.0", " It no longer has any effect.");
+    }
+
+    @Test
+    void testDeadThresholdDaysDeprecationWarnsThatItHasNoEffect() {
+        DeprecatedPropertiesCheck defaultCheck = new DeprecatedPropertiesCheck();
+        defaultCheck.config = config;
+        defaultCheck.log = log;
+        when(config.getOptionalValue("apicurio.usage.dead-threshold-days", String.class)).thenReturn(Optional.of("14"));
+
+        assertDoesNotThrow(() -> defaultCheck.validate());
+
+        verify(log).warn("Property '{}' is deprecated since {} and will be removed in {}.{}",
+                "apicurio.usage.dead-threshold-days", "3.4.0", "4.0.0",
+                " It has no effect: a schema version whose last fetch is older than the stale threshold"
+                        + " (apicurio.usage.stale-threshold-days) is classified as DEAD.");
     }
 }

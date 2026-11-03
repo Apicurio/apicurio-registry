@@ -244,4 +244,29 @@ public class JsonSchemaContentValidatorTest extends ArtifactUtilProviderTestBase
             validator.validateReferences(contentWithRefs, null);
         });
     }
+    /**
+     * ALL_REFS_MAPPED accepts a reference mapped under either the literal $ref value or the $ref resolved
+     * against the schema's $id, and still rejects an unmapped $ref.
+     */
+    @Test
+    public void testValidateReferencesResolvedAgainstId() {
+        TypedContent content = TypedContent.create(ContentHandle.create("""
+                {"$id": "https://example.com/schemas/customer/", "type": "object", "properties": {
+                  "address": {"$ref": "address.json"},
+                  "ssn": {"$ref": "ssn.json"}
+                }}
+                """), ContentTypes.APPLICATION_JSON);
+        JsonSchemaContentValidator validator = new JsonSchemaContentValidator();
+        ArtifactReference resolvedAddress = ArtifactReference.builder().groupId("default").artifactId("Address")
+                .version("1").name("https://example.com/schemas/customer/address.json").build();
+        ArtifactReference literalSsn = ArtifactReference.builder().groupId("default").artifactId("Ssn")
+                .version("1").name("ssn.json").build();
+
+        Assertions.assertDoesNotThrow(
+                () -> validator.validateReferences(content, List.of(resolvedAddress, literalSsn)));
+        RuleViolationException e = Assertions.assertThrows(RuleViolationException.class,
+                () -> validator.validateReferences(content, List.of(resolvedAddress)));
+        Assertions.assertEquals("ssn.json", e.getCauses().iterator().next().getContext());
+    }
+
 }

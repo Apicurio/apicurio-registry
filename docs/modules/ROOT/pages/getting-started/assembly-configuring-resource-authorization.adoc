@@ -1,0 +1,464 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+[id="configuring-resource-authorization_{context}"]
+= Configuring per-resource authorization
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+Per-resource authorization controls access to individual groups and artifacts. For example, Alice can write artifacts in group `team-a` and read `shared`, but cannot see `team-b`. You define the rules in a file, and {registry} applies them to every API, including search and list results.
+
+// con-resource-authorization-overview
+[id="resource-authorization-overview_{context}"]
+== Per-resource authorization overview
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+Per-resource authorization adds a fine-grained layer on top of role-based access control (RBAC), so that you can restrict which groups and artifacts each user or role can read, write, or administer. {registry} applies the rules to direct requests and to search and list results.
+
+{registry} applies two layers of authorization:
+
+* **Role-based access control (RBAC):** coarse-grained global roles (`sr-readonly`, `sr-developer`, `sr-admin`), typically assigned by an identity provider such as {keycloak}.
+* **Per-resource authorization:** fine-grained access to individual groups and artifacts, defined in an access rules file and evaluated after RBAC.
+
+A request must pass both layers. Access rules restrict within what RBAC allows and never allow more than the role of the user permits.
+
+The access rules file uses the Kroxylicious ACL rules format, which Kroxylicious and StreamsHub also use. {registry} reads the file with the Kroxylicious rules parser and evaluates it itself, with the semantics described in this guide.
+
+**How it works**
+
+* **Point access** (reading, writing, or deleting a specific group or artifact): {registry} matches the identity and roles of the user against the rules for the addressed resource.
+* **Search and lists:** {registry} translates the rules that apply to the user into the storage query, so results contain exactly the resources the user can read, and page sizes and total counts are accurate. A resource never appears in search results unless direct read access to it would also be allowed.
+
+[role="_additional-resources"]
+.Additional resources
+* link:https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md[Kroxylicious ACL rules format (proposal 009)]
+
+// proc-enabling-resource-authorization
+[id="enabling-resource-authorization_{context}"]
+== Enabling per-resource authorization
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You enable per-resource authorization by pointing {registry} at an access rules file. After you enable it, {registry} checks every request against the rules in that file, in addition to RBAC.
+
+A complete Docker Compose example with {keycloak}, including a script that verifies the expected access, is available in the `distro/docker-compose/in-memory-with-authz-grants/` directory of the {registry} source repository.
+
+.Prerequisites
+* You have enabled authentication in {registry} by using OpenID Connect (OIDC), HTTP basic authentication, or proxy header authentication.
+* You have an access rules file in the Kroxylicious ACL rules format that ends with `otherwise deny;`.
+
+.Procedure
+. Make the access rules file available to {registry}.
++
+In {kubernetes}, store the access rules file in a ConfigMap and mount it as a volume. Mount the ConfigMap as a directory rather than with `subPath`, because `subPath` mounts do not receive ConfigMap updates.
+
+. Set `apicurio.auth.resource-based-authorization.enabled` to `true`, and set `apicurio.auth.resource-based-authorization.rules.path` to the path of the file:
++
+[source,yaml]
+----
+environment:
+  apicurio.auth.resource-based-authorization.enabled: "true"
+  apicurio.auth.resource-based-authorization.rules.path: "/opt/apicurio/authz/access.rules"
+----
+
+. Start or restart {registry}.
++
+{registry} fails to start if the access rules file is missing or not valid.
+
+.Verification
+* Send a request that the rules deny, and check that {registry} rejects it with HTTP `403` and logs an `authz.denied` message to the `io.apicurio.registry.audit.authz` logger.
+
+// ref-resource-authorization-configuration
+[id="resource-authorization-configuration_{context}"]
+== Per-resource authorization configuration properties
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The following configuration properties control per-resource authorization. Per-resource authorization requires authentication (OIDC, HTTP basic, or proxy header authentication) to be enabled.
+
+.Per-resource authorization properties
+[cols="2,1,3",options="header"]
+|===
+|Property |Default |Description
+
+|`apicurio.auth.resource-based-authorization.enabled`
+|`false`
+|Enables per-resource authorization.
+
+|`apicurio.auth.resource-based-authorization.rules.path`
+|_(none)_
+|Path to the access rules file. Required when per-resource authorization is enabled. {registry} fails to start if the file is missing or not valid.
+
+|`apicurio.auth.resource-based-authorization.rules.reload-every`
+|`5s`
+|How often to check the access rules file for changes. Must be a duration, for example `5s` or `1m`.
+
+|`apicurio.auth.resource-based-authorization.rules.reload-enabled`
+|`true`
+|Reloads the access rules file when it changes. Set to `false` to load it only at startup.
+
+|`apicurio.auth.resource-based-authorization.owner-bypass.enabled`
+|`true`
+|Lets the recorded owner of an artifact or group access it regardless of the access rules.
+|===
+
+**Automatic reloading**
+
+{registry} checks the access rules file for changes at the interval set by `apicurio.auth.resource-based-authorization.rules.reload-every` and applies changes without a restart. If the changed file is not valid, {registry} logs an error and keeps using the previously loaded rules.
+
+// ref-resource-authorization-grants
+[id="resource-authorization-grants_{context}"]
+== Access rules file format
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The access rules file lists who can do what, one rule per line, in the Kroxylicious ACL rules format. {registry} validates the file as a whole and rejects it if any rule is not valid.
+
+The following example is a complete access rules file. The file ends with `otherwise deny;`:
+
+[source]
+----
+from io.apicurio.authz import Artifact, Group, Role;
+
+deny User with name = "bob" to * Artifact with name = "team-a/secret-schema";
+allow User with name = "alice" to WRITE Artifact with name like "team-a/*";
+allow User with name = "alice" to WRITE Group with name = "team-a";
+allow Role with name = "sr-developer" to READ Artifact with name like "public/*";
+otherwise deny;
+----
+
+The format is the Kroxylicious ACL rules format, described in https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md[Kroxylicious proposal 009]. In {registry}:
+
+* `from io.apicurio.authz import Artifact, Group, Role;` imports the {registry} resource types `Artifact` and `Group`, and the `Role` principal. `User` does not need to be imported.
+* `User with name ...` matches the authenticated user name. `Role with name ...` matches a role of the user, for example a role from the identity provider.
+* `deny` rules must come before `allow` rules, and the file must end with `otherwise deny;`. Lines starting with `//` are comments.
+
+You select names with the following selectors:
+
+.Name selectors
+[cols="1,3",options="header"]
+|===
+|Selector |Matches
+
+|`with name = "x"`
+|exactly `x`
+
+|`with name in {"x", "y"}`
+|any of the listed names
+
+|`with name like "team-a/*"`
+|names starting with `team-a/`. `+*+` is only allowed at the end; `+like "*"+` matches every name.
+
+|`with name *`
+|every name
+
+|`with name matching /regex/`
+|names that fully match the regular expression (RE2 syntax). Resources only. A backslash inside the expression is removed, so `/a\.b/` is the expression `a.b`.
+|===
+
+{registry} validates the file as a whole. A syntax error, an unknown type, principal, or operation, an invalid regular expression, or a rule for a resource type that {registry} does not enforce (such as a Kroxylicious `Topic`) rejects the file: {registry} does not start, or keeps the previous rules on reload.
+
+NOTE: The `config.admin_roles` setting of earlier development versions has no equivalent. To give a role full access, allow it every operation on every resource: `allow Role with name = "ops" to * Artifact with name *;` and the same for `Group`.
+
+**Resource names**
+
+* **Artifacts:** `\{groupId}/\{artifactId}`, for example `team-a/my-schema`. Artifacts in the default group are named `default/\{artifactId}`.
+* **Groups:** the group ID, for example `team-a`. The default group is named `default`.
+
+In artifact names, the characters `%` and `/` in the group ID are written as `%25` and `%2F`, so the first `/` always separates the group from the artifact ID. For example, artifact `x` in group `team-a/sub` is named `team-a%2Fsub/x`, while artifact `sub/x` in group `team-a` is named `team-a/sub/x`. Artifact IDs and group names are not escaped.
+
+{registry} matches names in full. For example, `+like "team-a/*"+` matches every artifact in group `team-a` (but not in group `team-a/sub`), and `+like "team-a/internal-*"+` matches only the artifacts in `team-a` whose ID starts with `internal-`.
+
+Matching is case-sensitive on every storage variant, in direct access and in search results. Some databases, such as MySQL and SQL Server, look up group and artifact IDs case-insensitively, so a request for `TEAM-A/My-Schema` can address the stored artifact `team-a/my-schema`. {registry} authorizes such a request against the stored IDs, so changing the case of an ID never gets around a rule.
+
+**Operations**
+
+`ADMIN` implies `WRITE`, and `WRITE` implies `READ`; `*` means all three. The operation required by each API operation matches its RBAC level: reads require `READ`, and changes, including deletes, require `WRITE`. A few operations require `ADMIN`, such as dropping Iceberg namespaces, tables, and views.
+
+**Group rules and artifact rules**
+
+* **Group rules** control operations on the group itself: reading group metadata, listing artifacts in it, and creating, updating, or deleting the group.
+* **Artifact rules** control operations on artifacts and their versions, content, comments, and references.
+
+Some operations need both:
+
+* Creating an artifact requires `WRITE` on the group and on the name of the new artifact, so a deny on an artifact name also prevents creating it. This applies to every API that creates artifacts, including registering a new subject with the Confluent compatibility API, publishing a new MCP server, and renaming an Iceberg table.
+* Deleting a group, or all artifacts in a group, requires `WRITE` on the group and on every artifact in it.
+
+Most deployments need both. For example, to give a user full access to `team-a`:
+
+[source]
+----
+allow User with name = "alice" to * Group with name = "team-a";
+allow User with name = "alice" to * Artifact with name like "team-a/*";
+----
+
+**Deny rules**
+
+If a deny rule matches, {registry} denies access even if an allow rule also matches. Deny rules apply to search results as well as direct access.
+
+[source]
+----
+deny User with name = "alice" to * Artifact with name = "team-a/secret-schema";
+allow User with name = "alice" to WRITE Artifact with name like "team-a/*";
+----
+
+Alice can read and write all artifacts in `team-a` except `team-a/secret-schema`.
+
+A deny rule denies its operations and the operations they imply:
+
+* Denying `*` (or `ADMIN`, which implies the other two) blocks all access, and hides the resource from search results. Use it to hide a resource.
+* Denying `WRITE` also denies `READ`, which `WRITE` implies, but not `ADMIN`: a rule that allows `ADMIN` or `*` still allows `ADMIN` operations. You cannot make a resource read-only with a deny rule; allow only `READ` on it instead.
+* Denying `READ` blocks reads but not writes: `WRITE` implies `READ`, but `READ` does not imply `WRITE`. Use `*` to hide a resource.
+
+// ref-resource-authorization-coverage
+[id="resource-authorization-coverage_{context}"]
+== APIs and operations covered by per-resource authorization
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Per-resource authorization applies to every API that addresses or lists groups and artifacts, and to operations that read or write artifacts other than the one addressed by the request.
+
+.Covered APIs
+[cols="1,3",options="header"]
+|===
+|API |Behavior
+
+|Core REST API v3 and v2
+|Group and artifact operations are checked against the addressed resource. Searches and lists, including group lists, artifact and version searches, and inbound references, return only readable resources. Creating a group requires `write` on that group.
+
+|Content and global IDs (`/ids/...`)
+|A global ID resolves to its artifact. Content can be shared by several artifacts, so a content ID or hash is readable if at least one artifact that uses it is readable.
+
+|Confluent Schema Registry compatibility API
+|A subject is an artifact in the group given by the `X-Registry-GroupId` header (or, with `apicurio.ccompat.group-concat.enabled`, in the group encoded in the subject name). Schema IDs resolve as content IDs, or as global IDs in legacy ID mode. Subject and schema lists, and `referencedby` lists, contain only readable subjects. Registering a schema under a new subject also requires `write` on its group.
+
+|Iceberg REST catalog
+|A namespace is a group and a table or view is an artifact in it. The catalog prefix in the URL does not affect authorization. Renaming requires `write` on the source, on the destination, and on the destination namespace.
+
+|MCP Registry API
+|A server name `namespace/server` is the artifact `namespace/server`. Publishing requires `write` on it, and publishing a new server also requires `write` on the `namespace` group. Server lists contain only readable servers.
+
+|Discovery endpoints (`/.well-known/...`)
+|Agent, AI catalog, and MCP tool listings contain only readable artifacts.
+|===
+
+**References and generated artifacts**
+
+Some operations read or write artifacts other than the one addressed by the request. {registry} authorizes these artifacts as if the caller accessed them directly:
+
+* **Resolving references:** dereferencing content (`references=DEREFERENCE`, or `dereference=true` in the v2 API), returning canonical content, exporting a Protobuf version as a ZIP file, and the Confluent `format=resolved` option all include the content of referenced artifacts. They require `read` on every referenced artifact, including references of references; otherwise the request fails with 403. Without these options, {registry} returns content as stored, with its references unresolved.
+* **Registering references:** creating an artifact or version whose content references other artifacts requires `read` on every referenced artifact, through any API, including draft versions.
+* **Listing references:** inbound reference lists, including the Confluent `referencedby` endpoint, contain only readable artifacts. The outbound reference graph shows that a reference exists but hides the metadata of unreadable targets.
+* **Generated artifacts:** some artifact types make {registry} write additional artifacts in the same group. Embedded schemas of `MODEL_SCHEMA` and `PROMPT_TEMPLATE` artifacts are registered as `\{artifactId}-input-schema` and `\{artifactId}-output-schema`, and an OpenAPI artifact with an `x-agent-card` extension generates `\{artifactId}-agent-card`. Writing the artifact requires `write` on each artifact it would generate and, if a generated artifact does not exist yet, `write` on the group, as for any artifact creation. Embedded schemas are also subject to owner-only authorization. These checks, and the preceding reference checks, run before anything is written, so a request rejected with 403 leaves no generated artifacts or versions behind.
+
+// ref-resource-authorization-use-cases
+[id="resource-authorization-use-cases_{context}"]
+== Access rules examples for common use cases
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The following examples show access rules for common deployment patterns. Each example is a complete rules file, or the rules to add before `otherwise deny;`.
+
+**Multi-team isolation**
+
+Each team sees and modifies only its own schemas:
+
+[source]
+----
+from io.apicurio.authz import Artifact, Group, Role;
+
+allow Role with name = "team-a-developers" to WRITE Artifact with name like "team-a/*";
+allow Role with name = "team-a-developers" to WRITE Group with name = "team-a";
+allow Role with name = "team-b-developers" to WRITE Artifact with name like "team-b/*";
+allow Role with name = "team-b-developers" to WRITE Group with name = "team-b";
+otherwise deny;
+----
+
+**Shared schemas with selective write access**
+
+All developers can read the `shared` group; only the platform team can change it:
+
+[source]
+----
+allow Role with name = "sr-developer" to READ Artifact with name like "shared/*";
+allow Role with name = "sr-developer" to READ Group with name = "shared";
+allow Role with name = "platform-team" to WRITE Artifact with name like "shared/*";
+allow Role with name = "platform-team" to WRITE Group with name = "shared";
+----
+
+**Read-only service account**
+
+A service account can read every artifact and group but cannot change anything:
+
+[source]
+----
+allow User with name = "monitoring-service" to READ Artifact with name *;
+allow User with name = "monitoring-service" to READ Group with name *;
+----
+
+**CI/CD pipeline with scoped write access**
+
+A pipeline user can write only to the `production` group:
+
+[source]
+----
+allow User with name = "ci-pipeline" to WRITE Artifact with name like "production/*";
+allow User with name = "ci-pipeline" to WRITE Group with name = "production";
+----
+
+**Group access with excluded artifacts**
+
+A contractor can read the `team-a` group, except for artifacts whose ID starts with `internal-`:
+
+[source]
+----
+deny User with name = "contractor" to * Artifact with name like "team-a/internal-*";
+allow User with name = "contractor" to READ Artifact with name like "team-a/*";
+allow User with name = "contractor" to READ Group with name = "team-a";
+----
+
+**Search and regular expressions**
+
+`matching` rules work for direct access, but search cannot evaluate them. A user whose rules use `matching` for a resource type gets no search results for that type. Use `=`, `in`, or `like` for resources that must be searchable.
+
+// con-resource-authorization-interactions
+[id="resource-authorization-interactions_{context}"]
+== Interaction with other authorization features
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+Per-resource authorization is one of several authorization features in {registry}. The order in which {registry} evaluates them determines which callers bypass the access rules, and how owner access, anonymous access, and administrator access interact with the rules.
+
+{registry} authorizes requests in the following order:
+
+[source]
+----
+Authentication
+  → Admin override                     (bypasses everything below)
+  → RBAC                                (role check; skipped for reads when anonymous or
+                                         authenticated read access applies)
+  → Owner-only authorization (OBAC)     (when enabled)
+  → Per-resource authorization          (RBAC admins, and by default resource owners, bypass it)
+----
+
+**RBAC**
+
+RBAC administrators bypass per-resource authorization. A user with the `sr-readonly` role can never write, whatever the access rules say. To control write access with rules, give users the `sr-developer` role and use rules to choose which resources they can change.
+
+**Resource owners**
+
+By default, the recorded owner of an artifact or group has access to it whatever the access rules, whether or not owner-only authorization (`apicurio.auth.owner-only-authorization`) is enabled. Set `apicurio.auth.resource-based-authorization.owner-bypass.enabled` to `false` to make the access rules the only per-resource authority. Owners also see their own resources in search results and can read content used by their artifacts. With the Elasticsearch search index, searches that require the index (content and structure searches) include at most 1000 of the owned artifacts of the caller that are not otherwise covered by the rules. A resource without a recorded owner does not grant this exception to anyone.
+
+When owner-only authorization is enabled, it applies as well to resources named in a request body, such as Iceberg rename targets and published MCP servers: only the owner can change them, even if rules allow other users.
+
+The creator of an artifact becomes its owner, but creating it requires `write` on both the group and the artifact name, so the owner bypass cannot be used to get around a deny on that name.
+
+**Anonymous and authenticated read access**
+
+These settings skip the RBAC check for reads; per-resource authorization still applies:
+
+* With `apicurio.auth.authenticated-read-access.enabled`, any authenticated user can read, even without a registry role, but only the resources the rules allow them.
+* With `apicurio.auth.anonymous-read-access.enabled`, unauthenticated callers get the role `$anonymous`. They can read only what the rules allow to that role, for example:
++
+[source]
+----
+allow Role with name = "$anonymous" to READ Artifact with name like "public/*";
+----
++
+{registry} answers other reads by unauthenticated callers with `401`.
+
+**Registry-wide reports**
+
+Reports that cover the whole registry and cannot be filtered per resource, such as the GitOps status and validation tasks, are available only to callers who are not restricted by the access rules (administrators).
+
+**Admin override and trusted proxy authorization**
+
+Users identified as administrators by the admin override (`apicurio.auth.admin-override.*`) bypass per-resource authorization. When `apicurio.authn.proxy-header.trust-proxy-authorization` is `true`, requests authenticated by proxy headers bypass all local authorization, including the access rules.
+
+// ref-resource-authorization-monitoring
+[id="resource-authorization-monitoring_{context}"]
+== Per-resource authorization metrics and audit log
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+When OpenTelemetry metrics are enabled, {registry} counts per-resource authorization decisions in a metric. {registry} also logs denied point-access decisions to a dedicated audit logger.
+
+**Metrics**
+
+When OpenTelemetry metrics are enabled, {registry} exports the counter `apicurio.authz.decisions`, with the following attributes:
+
+.Attributes of the `apicurio.authz.decisions` counter
+[cols="2,3",options="header"]
+|===
+|Attribute |Values
+
+|`apicurio.registry.result`
+|`allow` or `deny`
+
+|`apicurio.registry.entity_type`
+|`artifact`, `group`, or `content`
+
+|`apicurio.registry.operation`
+|`read`, `write`, or `admin`
+|===
+
+**Audit log**
+
+{registry} logs denied point-access decisions at `INFO` level to the `io.apicurio.registry.audit.authz` logger:
+
+[source]
+----
+authz.denied user="alice" operation="write" resource_type="artifact" resource="team-b/secret-schema"
+----
+
+To disable these messages, set `quarkus.log.category."io.apicurio.registry.audit.authz".level=OFF`.
+
+// ref-resource-authorization-troubleshooting
+[id="resource-authorization-troubleshooting_{context}"]
+== Common per-resource authorization problems
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Use the following checks to diagnose unexpected access decisions, startup failures, and access rules changes that do not take effect.
+
+**A user is denied access although a rule matches**
+
+Check the following conditions, in order:
+
+. **RBAC:** does the role of the user allow the operation? `sr-readonly` users cannot write.
+. **Operation:** does the operation of the rule cover the request? Changes and deletes require `WRITE`.
+. **Resource type:** operations on a group itself, such as listing its artifacts or creating an artifact in it, need a `Group` rule.
+. **Deny rules:** does a deny rule match? Deny rules take precedence, and denying `WRITE` also denies `READ`.
+. **Referenced and generated artifacts:** dereferencing, or registering content with references, requires `READ` on every referenced artifact; writing an artifact that generates other artifacts requires `WRITE` on them.
+. **Resource name and principal:** artifacts are named `\{groupId}/\{artifactId}`; the default group is `default`. For the Confluent compatibility API, check which group the request addresses. Roles are matched with `Role`, user names with `User`.
+. **Audit log:** the `authz.denied` message shows the exact resource name and operation that {registry} evaluated.
+
+**A user can see more than expected**
+
+Check the following conditions:
+
+* Whether the user is an RBAC administrator, or has a role to which the rules allow every operation.
+* Whether the user owns the resources. See `apicurio.auth.resource-based-authorization.owner-bypass.enabled`.
+* For unauthenticated callers, what the rules allow the `$anonymous` role.
+* Whether a `READ` deny is expected to hide the resource. A `READ` deny does not block writes; use `*` to hide a resource.
+
+**{registry} does not start**
+
+{registry} fails to start when per-resource authorization is enabled and the access rules file path is not set, the file does not exist, or the file is not a valid rules file, including when it has rules for resource types that {registry} does not enforce. The startup error names the file, and the line and problem of each error.
+
+**Access rules file changes do not take effect**
+
+. Check that `apicurio.auth.resource-based-authorization.rules.reload-enabled` is not `false`.
+. Check the logs for `Access rules reloaded successfully` or for a reload error. If the new file is not valid, the previous rules stay in effect.
+. In {kubernetes}, check that the ConfigMap is not mounted with `subPath`.

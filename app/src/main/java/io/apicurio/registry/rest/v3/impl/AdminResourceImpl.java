@@ -8,8 +8,11 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.federation.FederationConfig;
+import io.apicurio.registry.federation.PeerAddressPolicy;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -35,20 +38,26 @@ import io.apicurio.registry.rest.v3.beans.DownloadRef;
 import io.apicurio.registry.rest.v3.beans.GitOpsStatus;
 import io.apicurio.registry.rest.v3.beans.GitOpsValidateRequest;
 import io.apicurio.registry.rest.v3.beans.GitOpsValidateTask;
+import io.apicurio.registry.rest.v3.beans.NewPeer;
+import io.apicurio.registry.rest.v3.beans.Peer;
+import io.apicurio.registry.rest.v3.beans.PeerSearchResults;
 import io.apicurio.registry.rest.v3.beans.RoleMapping;
 import io.apicurio.registry.rest.v3.beans.RoleMappingSearchResults;
 import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.rest.v3.beans.SnapshotMetaData;
 import io.apicurio.registry.rest.v3.beans.UpdateConfigurationProperty;
+import io.apicurio.registry.rest.v3.beans.UpdatePeer;
 import io.apicurio.registry.rest.v3.beans.UpdateRole;
 import io.apicurio.registry.rest.v3.impl.shared.DataExporter;
 import io.apicurio.registry.rules.DefaultRuleDeletionException;
 import io.apicurio.registry.rules.RulesProperties;
+import io.apicurio.registry.storage.PeerValidator;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.UsageAggregationJob;
 import io.apicurio.registry.storage.UsageTelemetryConfig;
 import io.apicurio.registry.storage.dto.DownloadContextDto;
 import io.apicurio.registry.storage.dto.DownloadContextType;
+import io.apicurio.registry.storage.dto.PeerDto;
 import io.apicurio.registry.storage.dto.RoleMappingDto;
 import io.apicurio.registry.storage.dto.RoleMappingSearchResultsDto;
 import io.apicurio.registry.storage.dto.RuleConfigurationDto;
@@ -59,8 +68,10 @@ import io.apicurio.registry.storage.dto.UsageSummaryCountsDto;
 import io.apicurio.registry.storage.error.ConfigPropertyNotFoundException;
 import io.apicurio.registry.storage.error.InvalidPropertyValueException;
 import io.apicurio.registry.storage.error.RuleNotFoundException;
+import io.apicurio.registry.storage.impl.gitops.GitOpsConfig;
 import io.apicurio.registry.storage.impl.gitops.GitOpsRegistryStorage;
 import io.apicurio.registry.storage.impl.gitops.GitOpsValidationTaskManager;
+import io.apicurio.registry.storage.impl.gitops.GitRepoConfig;
 import io.apicurio.registry.storage.impl.polling.PollingStorageStatus;
 import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
 import io.apicurio.registry.types.RuleType;
@@ -106,11 +117,14 @@ import java.util.zip.ZipInputStream;
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_DOWNLOAD;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_FOR_BROWSER;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_NAME;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PEER;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PEER_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PRINCIPAL_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_PROPERTY_CONFIGURATION;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ROLE_MAPPING;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE_TYPE;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_UPDATE_PEER;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_UPDATE_ROLE;
 import static io.apicurio.registry.utils.DtoUtil.appAuthPropertyToRegistry;
 import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
@@ -121,8 +135,12 @@ import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
 public class AdminResourceImpl implements AdminResource {
 
     private static final String TELEMETRY_NOT_ENABLED = "Usage telemetry is not enabled on this registry instance.";
+    private static final String FEDERATION_NOT_ENABLED = "Federation is not enabled on this registry instance.";
     private static final String PARAM_GROUP_ID = "groupId";
     private static final String PARAM_ARTIFACT_ID = "artifactId";
+
+    @Inject
+    ResourceAccessGuard accessGuard;
 
     @Inject
     Logger log;
@@ -158,6 +176,9 @@ public class AdminResourceImpl implements AdminResource {
     @Inject
     Instance<GitOpsValidationTaskManager> validationTaskManager;
 
+    @Inject
+    GitOpsConfig gitOpsConfig;
+
     @Context
     HttpServletRequest request;
 
@@ -171,6 +192,12 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     UsageAggregationJob usageAggregationJob;
+
+    @Inject
+    FederationConfig federationConfig;
+
+    @Inject
+    PeerAddressPolicy peerAddressPolicy;
 
     /**
      * @see io.apicurio.registry.rest.v3.AdminResource#listArtifactTypes()
@@ -331,45 +358,15 @@ public class AdminResourceImpl implements AdminResource {
             throw new ConflictException("Registry is not empty.");
         }
 
-        // The input should be a ZIP file
-        // Unpack the ZIP file to the local file system (temp)
-        Path tempDirectory = null;
-        try (ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8)) {
-            tempDirectory = Files.createTempDirectory(Paths.get(importExportProps.workDir),
-                    "apicurio-import_");
-            IoUtil.unpackToDisk(zip, tempDirectory, importExportProps.zipMaxEntrySize,
-                    importExportProps.zipMaxTotalSize, importExportProps.zipMaxEntryCount);
-        } catch (IOException e) {
-            throw new BadRequestException("Error importing data: " + e.getMessage(), e);
-        }
-
+        // The input should be a ZIP file. Unpack it to the local file system (temp).
+        Path tempDirectory = unpackImportZip(data);
         try {
             // EntityReader reader reads all unpacked entities from the file system
             final EntityReader reader = new EntityReader(tempDirectory);
 
             // Check the manifest for the version of the ZIP. We either need to import
             // or import with upgrade depending on the version.
-            boolean upgrade = false;
-            try {
-                Entity entity = reader.readNextEntity();
-                if (entity.getEntityType() != EntityType.Manifest) {
-                    throw new BadRequestException("Invalid import file: missing Manifest file");
-                }
-                ManifestEntity manifestEntity = (ManifestEntity) entity;
-
-                // Version 2 or 1 requires an upgrade to v3.
-                if (manifestEntity.exportVersion.startsWith("3")) {
-                    upgrade = false;
-                } else if (manifestEntity.exportVersion.startsWith("2")
-                        || manifestEntity.exportVersion.startsWith("1")) {
-                    upgrade = true;
-                } else {
-                    throw new BadRequestException(
-                            "Invalid import file, unknown manifest version: " + manifestEntity.systemVersion);
-                }
-            } catch (IOException e) {
-                throw new BadRequestException("Error importing data: " + e.getMessage(), e);
-            }
+            boolean upgrade = isUpgradeRequired(reader);
 
             // Create an entity input stream to pass to the storage layer
             EntityInputStream stream = new EntityInputStreamImpl(reader);
@@ -381,10 +378,72 @@ public class AdminResourceImpl implements AdminResource {
                 this.storage.importData(stream, preserveGlobalId, preserveContentId);
             }
         } finally {
+            // Clean up the temp work directory whether the import succeeded or failed.
+            cleanupImportWorkDir(tempDirectory);
+        }
+    }
+
+    /**
+     * Unpacks the uploaded ZIP into a new temp directory under the import work directory.
+     * Cleans up the temp directory itself before rethrowing if extraction fails.
+     */
+    private Path unpackImportZip(InputStream data) {
+        Path tempDirectory = null;
+        try (ZipInputStream zip = new ZipInputStream(data, StandardCharsets.UTF_8)) {
+            tempDirectory = Files.createTempDirectory(Paths.get(importExportProps.workDir),
+                    "apicurio-import_");
+            IoUtil.unpackToDisk(zip, tempDirectory, importExportProps.zipMaxEntrySize,
+                    importExportProps.zipMaxTotalSize, importExportProps.zipMaxEntryCount);
+            return tempDirectory;
+        } catch (IOException e) {
+            cleanupImportWorkDir(tempDirectory);
+            throw new BadRequestException("Error importing data: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Reads the manifest entity to determine whether the import needs a v1/v2 -&gt; v3 upgrade.
+     */
+    private boolean isUpgradeRequired(EntityReader reader) {
+        Entity entity;
+        try {
+            entity = reader.readNextEntity();
+        } catch (IOException e) {
+            throw new BadRequestException("Error importing data: " + e.getMessage(), e);
+        } catch (RuntimeException e) {
+            // EntityReader.createEntityIndex() throws a plain RuntimeException("No manifest
+            // found") when the ZIP has no manifest entry, or wraps the IOException as the
+            // cause when the manifest entry exists but can't be parsed. Distinguish the two
+            // so a corrupt manifest isn't reported as a missing one.
+            if (e.getCause() != null) {
+                throw new BadRequestException("Invalid import file: the Manifest file could not be read", e);
+            }
+            throw new BadRequestException("Invalid import file: missing Manifest file", e);
+        }
+
+        if (entity == null || entity.getEntityType() != EntityType.Manifest) {
+            throw new BadRequestException("Invalid import file: missing Manifest file");
+        }
+        ManifestEntity manifestEntity = (ManifestEntity) entity;
+
+        // Version 2 or 1 requires an upgrade to v3.
+        if (manifestEntity.exportVersion.startsWith("3")) {
+            return false;
+        } else if (manifestEntity.exportVersion.startsWith("2")
+                || manifestEntity.exportVersion.startsWith("1")) {
+            return true;
+        } else {
+            throw new BadRequestException(
+                    "Invalid import file, unknown manifest version: " + manifestEntity.systemVersion);
+        }
+    }
+
+    private void cleanupImportWorkDir(Path tempDirectory) {
+        if (tempDirectory != null) {
             try {
                 FileUtils.deleteDirectory(tempDirectory.toFile());
             } catch (IOException e) {
-                // Best effort
+                log.warn("Failed to clean up import work directory: {}", tempDirectory, e);
             }
         }
     }
@@ -485,6 +544,90 @@ public class AdminResourceImpl implements AdminResource {
     @RoleBasedAccessApiOperation
     public void deleteRoleMapping(String principalId) {
         storage.deleteRoleMapping(principalId);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#listPeers(java.math.BigInteger, java.math.BigInteger)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public PeerSearchResults listPeers(BigInteger limit, BigInteger offset) {
+        requireFederationEnabled();
+        return V3ApiUtil.dtoToPeerSearchResults(storage.searchPeers(
+                ParameterValidationUtils.normalizeOffset(offset), ParameterValidationUtils.normalizeLimit(limit)));
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#createPeer(io.apicurio.registry.rest.v3.beans.NewPeer)
+     */
+    @Override
+    @MethodMetadata(extractParameters = {"0", MPK_PEER})
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public void createPeer(NewPeer data) {
+        requireFederationEnabled();
+        PeerDto peer = PeerDto.builder().peerId(data.getPeerId()).url(data.getUrl()).name(data.getName())
+                .description(data.getDescription()).enabled(data.getEnabled() == null || data.getEnabled())
+                .credentialSecretRef(data.getCredentialSecretRef()).build();
+        validatePeer(peer);
+        storage.createPeer(peer);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#getPeer(java.lang.String)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public Peer getPeer(String peerId) {
+        requireFederationEnabled();
+        PeerValidator.validatePeerId(peerId);
+        return V3ApiUtil.dtoToPeer(storage.getPeer(peerId));
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#updatePeer(java.lang.String,
+     *      io.apicurio.registry.rest.v3.beans.UpdatePeer)
+     */
+    @Override
+    @MethodMetadata(extractParameters = {"0", MPK_PEER_ID, "1", MPK_UPDATE_PEER})
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public void updatePeer(String peerId, UpdatePeer data) {
+        requireFederationEnabled();
+        ParameterValidationUtils.requireParameter("enabled", data.getEnabled());
+        PeerDto peer = PeerDto.builder().peerId(peerId).url(data.getUrl()).name(data.getName())
+                .description(data.getDescription()).enabled(data.getEnabled())
+                .credentialSecretRef(data.getCredentialSecretRef()).build();
+        validatePeer(peer);
+        storage.updatePeer(peer);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.AdminResource#deletePeer(java.lang.String)
+     */
+    @Override
+    @MethodMetadata(extractParameters = {"0", MPK_PEER_ID})
+    @Audited
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
+    public void deletePeer(String peerId) {
+        requireFederationEnabled();
+        PeerValidator.validatePeerId(peerId);
+        storage.deletePeer(peerId);
+    }
+
+    private void requireFederationEnabled() {
+        if (!federationConfig.isEnabled()) {
+            throw new ConflictException(FEDERATION_NOT_ENABLED);
+        }
+    }
+
+    /**
+     * Applies the structural checks every storage variant applies, then the outbound address
+     * policy, which depends on configuration and is therefore enforced here rather than in storage.
+     */
+    private void validatePeer(PeerDto peer) {
+        PeerValidator.validate(peer);
+        peerAddressPolicy.validateUrl(peer.getUrl());
     }
 
     /**
@@ -633,6 +776,8 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public GitOpsStatus getGitOpsStatus() {
+        // Reports name groups and artifacts, so only for callers not restricted by grants
+        accessGuard.requireUnrestrictedRead();
         var gitOps = requireGitOpsStorage();
         var status = gitOps.getStatus();
         return toGitOpsStatus(status);
@@ -652,12 +797,33 @@ public class AdminResourceImpl implements AdminResource {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     public GitOpsValidateTask createGitOpsValidateTask(GitOpsValidateRequest data) {
         requireGitOpsStorage();
+        validateRepoId(data.getRepoId());
         return requireValidationTaskManager().createTask(data);
+    }
+
+    /**
+     * Validates that the requested repoId matches one of the configured repositories.
+     * Rejects with a 400 that lists the known repository IDs so misconfigured CI/CD
+     * callers (typo'd or stale repoId) get an actionable error instead of a silent
+     * mismatch that surfaces later as a confusing validation failure.
+     */
+    private void validateRepoId(String repoId) {
+        var availableIds = gitOpsConfig.getRepos().stream().map(GitRepoConfig::id).toList();
+        if (repoId == null || repoId.isEmpty()) {
+            throw new BadRequestException(
+                    "Repository ID is required. Available repositories: " + availableIds);
+        }
+        if (!availableIds.contains(repoId)) {
+            throw new BadRequestException("Repository '" + repoId + "' is not configured. "
+                    + "Available repositories: " + availableIds);
+        }
     }
 
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<GitOpsValidateTask> listGitOpsValidateTasks() {
+        // Reports name groups and artifacts, so only for callers not restricted by grants
+        accessGuard.requireUnrestrictedRead();
         requireGitOpsStorage();
         return requireValidationTaskManager().listTasks();
     }
@@ -665,6 +831,8 @@ public class AdminResourceImpl implements AdminResource {
     @Override
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public GitOpsValidateTask getGitOpsValidateTask(String taskId) {
+        // Reports name groups and artifacts, so only for callers not restricted by grants
+        accessGuard.requireUnrestrictedRead();
         requireGitOpsStorage();
         var task = requireValidationTaskManager().getTask(taskId);
         if (task == null) {

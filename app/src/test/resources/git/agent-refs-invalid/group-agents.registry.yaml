@@ -1,0 +1,6 @@
+$type: group-v0
+registryIds: [test]
+groupId: com.example.agents
+rules:
+  - ruleType: INTEGRITY
+    config: REFS_EXIST

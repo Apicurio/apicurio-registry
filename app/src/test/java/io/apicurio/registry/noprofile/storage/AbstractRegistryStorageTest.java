@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBase {
@@ -1166,6 +1167,52 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
     }
 
     @Test
+    public void testCaseInsensitiveNameSearch() throws Exception {
+        String suffix = UUID.randomUUID().toString();
+        String artifactId = "CaseSensitiveArtifactId-" + suffix;
+        String artifactName = "MixedCaseArtifactName-" + suffix;
+        String versionName = "MixedCaseVersionName-" + suffix;
+        ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
+        EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
+                .name(artifactName).build();
+        EditableVersionMetaDataDto versionMetaData = EditableVersionMetaDataDto.builder()
+                .name(versionName).build();
+
+        boolean created = false;
+        try {
+            storage().createArtifact(GROUP_ID, artifactId, ArtifactType.OPENAPI, artifactMetaData,
+                    null, ContentWrapperDto.builder().contentType(ContentTypes.APPLICATION_JSON)
+                            .content(content).build(),
+                    versionMetaData, Collections.emptyList(), false, false, null).getValue();
+            created = true;
+
+            ArtifactSearchResultsDto artifactResults = storage().searchArtifacts(
+                    Set.of(SearchFilter.ofNameCaseInsensitive("*" + artifactName.toLowerCase(Locale.ROOT)
+                            + "*")), OrderBy.name, OrderDirection.asc, 0, 10, false);
+            Assertions.assertEquals(1, artifactResults.getCount());
+            Assertions.assertEquals(artifactId, artifactResults.getArtifacts().get(0).getArtifactId());
+            Assertions.assertEquals(artifactName, artifactResults.getArtifacts().get(0).getName());
+
+            artifactResults = storage().searchArtifacts(
+                    Set.of(SearchFilter.ofNameCaseInsensitive("*" + artifactId.toLowerCase(Locale.ROOT)
+                            + "*")), OrderBy.name, OrderDirection.asc, 0, 10, false);
+            Assertions.assertEquals(1, artifactResults.getCount());
+            Assertions.assertEquals(artifactId, artifactResults.getArtifacts().get(0).getArtifactId());
+
+            VersionSearchResultsDto versionResults = storage().searchVersions(
+                    Set.of(SearchFilter.ofNameCaseInsensitive("*" + versionName.toLowerCase(Locale.ROOT)
+                            + "*")), OrderBy.name, OrderDirection.asc, 0, 10, false);
+            Assertions.assertEquals(1, versionResults.getCount());
+            Assertions.assertEquals(artifactId, versionResults.getVersions().get(0).getArtifactId());
+            Assertions.assertEquals(versionName, versionResults.getVersions().get(0).getName());
+        } finally {
+            if (created) {
+                storage().deleteArtifact(GROUP_ID, artifactId);
+            }
+        }
+    }
+
+    @Test
     public void testSearchVersions() throws Exception {
         String artifactId = "testSearchVersions-1";
         ContentHandle content = ContentHandle.create(OPENAPI_CONTENT);
@@ -1661,4 +1708,62 @@ public abstract class AbstractRegistryStorageTest extends AbstractResourceTestBa
         }
     }
 
+    @Test
+    public void testPromoteDraftVersionDefaultAndNonDefaultGroup() throws Exception {
+        doTestPromoteDraftVersion(null);
+        doTestPromoteDraftVersion(GROUP_ID);
+    }
+
+    private void doTestPromoteDraftVersion(String groupId) throws Exception {
+        var content = ContentHandle.create(OPENAPI_CONTENT);
+        var contentWrapper = ContentWrapperDto.builder()
+                .contentType(ContentTypes.APPLICATION_JSON)
+                .content(content)
+                .build();
+
+        String artifactId = "test-promote-draft-" + (groupId == null ? "default" : "custom") + "-" + System.currentTimeMillis();
+        GA ga = new GA(groupId, artifactId);
+        try {
+            var dto = storage().createArtifact(
+                    groupId,
+                    artifactId,
+                    ArtifactType.OPENAPI,
+                    null,
+                    "1.0.0",
+                    contentWrapper,
+                    null,
+                    Collections.emptyList(),
+                    true, // versionIsDraft
+                    false,
+                    null
+            ).getValue();
+
+            Assertions.assertNotNull(dto);
+            Assertions.assertEquals(VersionState.DRAFT, dto.getState());
+
+            // Assert the version is on 'drafts' branch
+            var drafts = storage().getBranchVersions(ga, BranchId.DRAFTS, 0, 10);
+            Assertions.assertEquals(1, drafts.getCount());
+            Assertions.assertEquals(dto.getVersion(), drafts.getVersions().get(0).getVersion());
+
+            // Transition it to ENABLED
+            storage().updateArtifactVersionState(groupId, artifactId, dto.getVersion(), VersionState.ENABLED, false);
+
+            // Assert it is no longer on 'drafts' and is on 'latest'
+            var draftsAfter = storage().getBranchVersions(ga, BranchId.DRAFTS, 0, 10);
+            Assertions.assertEquals(0, draftsAfter.getCount());
+            Assertions.assertTrue(draftsAfter.getVersions().isEmpty());
+
+            var latest = storage().getBranchVersions(ga, BranchId.LATEST, 0, 10);
+            Assertions.assertEquals(1, latest.getCount());
+            Assertions.assertEquals(dto.getVersion(), latest.getVersions().get(0).getVersion());
+        } finally {
+            try {
+                storage().deleteArtifact(groupId, artifactId);
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
 }
+

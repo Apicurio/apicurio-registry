@@ -6,7 +6,6 @@ import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.quarkus.security.ForbiddenException;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +68,8 @@ public final class ReferenceResolution {
             }
             return loaded;
         };
-        ResolvedReferences resolved = ReferenceGraphWalker.walk(references, batchLoader, maxDepth());
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(references, batchLoader,
+                ReferenceResolutionConfig.maxDepth());
         return resolved.asNameMap();
     }
 
@@ -100,7 +100,8 @@ public final class ReferenceResolution {
             return loaded;
         };
         List<ArtifactReferenceDto> rootReferences = root == null ? List.of() : root.getReferences();
-        return ReferenceGraphWalker.walk(rootReferences, batchLoader, maxDepth()).contentIds();
+        return ReferenceGraphWalker.walk(rootReferences, batchLoader, ReferenceResolutionConfig.maxDepth())
+                .contentIds();
     }
 
     /**
@@ -120,19 +121,5 @@ public final class ReferenceResolution {
             log.error("Could not resolve reference {}.", coordinates, ex);
             return null;
         }
-    }
-
-    /**
-     * Reads {@link ReferenceResolutionConfig#MAX_DEPTH_PROPERTY} directly via {@link ConfigProvider} rather
-     * than injecting it, because this is a static utility called from about twenty places, not all of them
-     * CDI beans with that property already available. See {@code HttpCompressionWriterInterceptor} and
-     * {@code GitOpsConfig} for the same pattern elsewhere in this codebase. The value is re-read on every
-     * call rather than cached, matching how {@code @ConfigProperty}-injected fields pick up config changes
-     * only on redeploy anyway — this is not on a hot enough path for that to matter.
-     */
-    private static int maxDepth() {
-        return ConfigProvider.getConfig()
-                .getOptionalValue(ReferenceResolutionConfig.MAX_DEPTH_PROPERTY, Integer.class)
-                .orElse(ReferenceResolutionConfig.DEFAULT_MAX_DEPTH);
     }
 }

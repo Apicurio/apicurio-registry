@@ -121,7 +121,7 @@ public class McpToolsClient {
     }
 
     private static McpImportException translate(Throwable e) {
-        log.debug("MCP import could not list tools", e);
+        log.debug("MCP import could not list tools: {}", causeTypes(e));
         for (Throwable t = e; t != null; t = t.getCause()) {
             if (t instanceof McpTransportException && t.getMessage() != null
                     && t.getMessage().contains(SDK_MAX_SIZE_PHRASE)) {
@@ -136,11 +136,28 @@ public class McpToolsClient {
                 "The MCP server could not be reached, or did not answer as an MCP server over Streamable HTTP.");
     }
 
+    /**
+     * The exception types along the cause chain. Messages are left out: an exception raised while
+     * sending a request can repeat a header value, and one raised while reading can repeat what
+     * the server sent.
+     */
+    static String causeTypes(Throwable e) {
+        StringBuilder types = new StringBuilder();
+        Set<Throwable> seen = new HashSet<>();
+        for (Throwable t = e; t != null && seen.add(t); t = t.getCause()) {
+            if (types.length() > 0) {
+                types.append(" <- ");
+            }
+            types.append(t.getClass().getName());
+        }
+        return types.toString();
+    }
+
     private static void closeQuietly(McpSyncClient client) {
         try {
             client.closeGracefully();
         } catch (RuntimeException e) {
-            log.debug("Closing the MCP import client failed", e);
+            log.debug("Closing the MCP import client failed: {}", causeTypes(e));
         }
     }
 

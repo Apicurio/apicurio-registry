@@ -2,7 +2,7 @@ package io.apicurio.registry.rest.v3.impl;
 
 import io.apicurio.registry.rest.v3.beans.McpToolImportResult;
 import io.apicurio.registry.rest.v3.beans.McpToolImportRequest;
-import io.apicurio.registry.agents.mcpimport.McpToolImportService;
+import io.apicurio.registry.extensions.McpToolImportHandler;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
@@ -139,7 +139,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     RulesService rulesService;
 
     @Inject
-    McpToolImportService mcpToolImportService;
+    Instance<McpToolImportHandler> mcpToolImportHandler;
 
     @Inject
     OTelMetricsProvider otelMetrics;
@@ -2087,7 +2087,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     public McpToolImportResult importMcpTools(String groupId, String artifactId, McpToolImportRequest data) {
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
-        return mcpToolImportService.importTools(groupId, artifactId, data);
+        if (!mcpToolImportHandler.isResolvable()) {
+            throw new ConflictException("Importing tools from MCP servers is not available.");
+        }
+        return mcpToolImportHandler.get().importTools(groupId, artifactId, data);
     }
 
     /**

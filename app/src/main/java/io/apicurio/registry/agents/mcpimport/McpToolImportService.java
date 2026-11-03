@@ -5,6 +5,7 @@ import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.extensions.McpToolImportHandler;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -26,6 +27,7 @@ import io.apicurio.registry.rest.v3.beans.VersionMetaData;
 import io.apicurio.registry.rest.v3.impl.GroupsResourceImpl;
 import io.apicurio.registry.rules.violation.RuleViolation;
 import io.apicurio.registry.rules.violation.RuleViolationException;
+import io.apicurio.registry.rules.violation.UnprocessableSchemaException;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
@@ -63,7 +65,7 @@ import java.util.stream.Collectors;
  * stay stored, as they would after the same calls made one by one.
  */
 @ApplicationScoped
-public class McpToolImportService {
+public class McpToolImportService implements McpToolImportHandler {
 
     static final String METRIC_TOOLS = "apicurio.mcp.import.tools";
     static final String METRIC_FAILURES = "apicurio.mcp.import.failures";
@@ -101,6 +103,7 @@ public class McpToolImportService {
      * Everything is checked before the MCP server is contacted: the feature, the storage, the
      * server artifact, write access to the tool group, the headers and the URL.
      */
+    @Override
     public McpToolImportResult importTools(String groupId, String serverArtifactId, McpToolImportRequest request) {
         if (!config.isEnabled()) {
             throw new ConflictException("Importing tools from MCP servers is not enabled.");
@@ -223,8 +226,11 @@ public class McpToolImportService {
         version.setContent(content(toolDefinition(tool), List.of()));
         create.setFirstVersion(version);
         try {
+            // Exact matching, not canonical: the MCP_TOOL canonicalizer reads numbers as doubles, so
+            // two bounds that round to the same double would match and the change skip its rules.
+            // The definition is serialized the same way every time, so equal tools match exactly.
             CreateArtifactResponse response = groups.createArtifact(groupId,
-                    IfArtifactExists.FIND_OR_CREATE_VERSION, true, dryRun, create);
+                    IfArtifactExists.FIND_OR_CREATE_VERSION, false, dryRun, create);
             String stored = response.getVersion().getVersion();
             if (!exists) {
                 result.setStatus(McpToolImportStatus.CREATED);
@@ -239,6 +245,11 @@ public class McpToolImportService {
         } catch (RuleViolationException e) {
             result.setStatus(McpToolImportStatus.REJECTED);
             result.setCauses(e.getCauses().stream().map(McpToolImportService::cause).toList());
+        } catch (UnprocessableSchemaException e) {
+            // A rule could not evaluate this tool, for example a schema construct the compatibility
+            // check does not support. That rejects this tool only, as a violation would.
+            result.setStatus(McpToolImportStatus.REJECTED);
+            result.setCauses(List.of(cause(e.getMessage(), "")));
         }
         return result;
     }
@@ -316,7 +327,7 @@ public class McpToolImportService {
         Map<String, String> headers = new LinkedHashMap<>();
         for (var header : requested.getAdditionalProperties().entrySet()) {
             String name = header.getKey();
-            if (name == null || name.isBlank() || !name.chars().allMatch(c -> c > 32 && c < 127 && c != ':')
+            if (name == null || name.isEmpty() || !name.chars().allMatch(McpToolImportService::isTokenChar)
                     || RESERVED_HEADERS.contains(name.toLowerCase(Locale.ROOT))) {
                 // The name is safe to repeat; the value is never repeated.
                 throw new BadRequestException("Header '" + sanitize(name) + "' cannot be sent to the MCP server.");
@@ -328,6 +339,12 @@ public class McpToolImportService {
             headers.put(name, value);
         }
         return Map.copyOf(headers);
+    }
+
+    /** A character allowed in an HTTP field name: RFC 9110 {@code tchar}. */
+    private static boolean isTokenChar(int c) {
+        return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9'
+                || "!#$%&'*+-.^_`|~".indexOf(c) >= 0;
     }
 
     private static String sanitize(String name) {

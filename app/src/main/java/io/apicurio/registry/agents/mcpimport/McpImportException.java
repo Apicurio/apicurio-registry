@@ -1,6 +1,6 @@
 package io.apicurio.registry.agents.mcpimport;
 
-import io.apicurio.registry.types.RegistryException;
+import jakarta.ws.rs.WebApplicationException;
 
 import java.util.Locale;
 
@@ -11,8 +11,11 @@ import java.util.Locale;
  * <p>
  * It never carries a cause: the REST error mapper reports the root cause's message to the client,
  * and the cause of a connection failure can name the address or repeat the server's response.
+ * <p>
+ * It is a {@link WebApplicationException}, whose status the core error mapper uses as is, so core
+ * code needs no knowledge of this agent type: 400 when the target was refused, 502 otherwise.
  */
-public class McpImportException extends RegistryException {
+public class McpImportException extends WebApplicationException {
 
     private static final long serialVersionUID = -3108560431906442914L;
 
@@ -39,7 +42,7 @@ public class McpImportException extends RegistryException {
     private final Reason reason;
 
     public McpImportException(Reason reason, String message) {
-        super(message);
+        super(message, reason == Reason.HOST_DENIED ? 400 : 502);
         this.reason = reason;
     }
 

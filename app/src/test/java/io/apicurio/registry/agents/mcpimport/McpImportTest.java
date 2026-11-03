@@ -1,5 +1,6 @@
 package io.apicurio.registry.agents.mcpimport;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.apicurio.registry.AbstractResourceTestBase;
@@ -22,6 +23,7 @@ import org.junit.jupiter.api.parallel.Execution;
 import org.junit.jupiter.api.parallel.ExecutionMode;
 import org.junit.jupiter.api.parallel.ResourceLock;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,7 +52,8 @@ public class McpImportTest extends AbstractResourceTestBase {
 
     static final String LOCK = "mcp-import";
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final ObjectMapper MAPPER = new ObjectMapper()
+            .enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS);
     private static final String SERVER = "srv";
 
     McpTestServer mcp;
@@ -191,6 +194,55 @@ public class McpImportTest extends AbstractResourceTestBase {
         assertEquals("Searches better", content("srv.search", "2").get("description").asText());
         assertEquals(List.of("search=srv.search@2"), references("3"));
         assertEquals(List.of("search=srv.search@1"), references("2"));
+    }
+
+    /**
+     * Matching must compare the content exactly: these two bounds round to the same double, so a
+     * lossy comparison would report the changed tool as unchanged and skip its rules.
+     */
+    @Test
+    void decimalChangeBeyondDoublePrecisionIsANewVersion() throws Exception {
+        JsonObject first = McpTestServer.tool("search", "number");
+        first.getJsonObject("inputSchema").getJsonObject("properties").getJsonObject("query")
+                .put("maximum", new BigDecimal("1.00000000000000001"));
+        mcp.tools(first);
+        importTools().statusCode(200);
+
+        JsonObject second = McpTestServer.tool("search", "number");
+        second.getJsonObject("inputSchema").getJsonObject("properties").getJsonObject("query")
+                .put("maximum", new BigDecimal("1.00000000000000002"));
+        mcp.tools(second);
+        importTools().statusCode(200)
+                .body("tools[0].status", equalTo("NEW_VERSION")).body("tools[0].version", equalTo("2"));
+
+        assertEquals("1.00000000000000002", content("srv.search", "2").at("/inputSchema/properties/query/maximum")
+                .decimalValue().toPlainString());
+    }
+
+    /**
+     * A schema the compatibility rule cannot compare (here a pattern) rejects that tool only: the
+     * tools after it are still imported.
+     */
+    @Test
+    void schemaTheRuleCannotCompareRejectsOnlyThatTool() throws Exception {
+        JsonObject patterned = McpTestServer.tool("patterned", "string");
+        patterned.getJsonObject("inputSchema").getJsonObject("properties").getJsonObject("query")
+                .put("pattern", "^a.*");
+        mcp.tools(patterned, McpTestServer.tool("plain", "string"));
+        importTools().statusCode(200);
+        given().contentType(ContentTypes.APPLICATION_JSON)
+                .body(Map.of("ruleType", "COMPATIBILITY", "config", "BACKWARD"))
+                .post(registryV3ApiUrl + "/groups/" + group + "/rules").then().statusCode(204);
+
+        mcp.tools(patterned.copy().put("description", "Changed"),
+                McpTestServer.tool("plain", "string").put("description", "Changed"));
+        importTools().statusCode(200)
+                .body("tools[0].status", equalTo("REJECTED")).body("tools[0].version", nullValue())
+                .body("tools[0].causes[0].description", containsString("pattern"))
+                .body("tools[1].status", equalTo("NEW_VERSION")).body("tools[1].version", equalTo("2"));
+
+        assertEquals(1, versionCount("srv.patterned"));
+        assertEquals(List.of("plain=srv.plain@2"), references("3"));
     }
 
     @Test
@@ -354,6 +406,9 @@ public class McpImportTest extends AbstractResourceTestBase {
         importTools(Map.of("headers", Map.of("X-Test", "a\r\nInjected: b"))).statusCode(400)
                 .body("title", not(containsString("Injected")));
         importTools(Map.of("headers", Map.of("X-Count", 5))).statusCode(400);
+        // Printable, but not valid in an HTTP field name.
+        importTools(Map.of("headers", Map.of("X(Test)", "a"))).statusCode(400);
+        importTools(Map.of("headers", Map.of("X=Test", "a"))).statusCode(400);
         assertEquals(before, mcp.requests.get());
     }
 

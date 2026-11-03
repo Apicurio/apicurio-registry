@@ -36,8 +36,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -61,7 +62,9 @@ import java.util.function.Consumer;
  * which a DNS change moves the connection to an address that was never checked.
  * <p>
  * Each call is bounded by the per-peer timeout, the size of the answer is bounded, and the
- * connections and the queue behind them are bounded per peer.
+ * connections and the queue behind them are bounded per peer. Across all peers, the number of calls
+ * in progress is bounded from the name lookup until the answer has been read or the call has been
+ * cancelled; a call beyond it is refused as {@code capacity_exceeded}.
  */
 @ApplicationScoped
 public class PeerSearchClient {
@@ -96,6 +99,7 @@ public class PeerSearchClient {
     };
 
     private HttpClient httpClient;
+    private Semaphore slots;
     private ThreadPoolExecutor setupExecutor;
 
     @PostConstruct
@@ -109,16 +113,19 @@ public class PeerSearchClient {
         optionsCustomizer.accept(options);
         httpClient = vertx.createHttpClient(options);
 
-        // Name resolution blocks, so it runs here and not on an event loop. The pool has no queue:
-        // when every thread is busy, for example behind lookups that hang, the call is refused.
-        int threads = Math.max(1, config.getSearchMaxConcurrentCalls());
+        int maxCalls = Math.max(1, config.getSearchMaxConcurrentCalls());
+        slots = new Semaphore(maxCalls);
+
+        // Name resolution blocks, so it runs here and not on an event loop. There is a thread for
+        // every slot, so a call never waits for one; the queue only covers the moment between a
+        // thread giving its slot back and returning to the pool.
         AtomicInteger counter = new AtomicInteger();
         ThreadFactory threadFactory = runnable -> {
             Thread thread = new Thread(runnable, "federation-peer-call-" + counter.incrementAndGet());
             thread.setDaemon(true);
             return thread;
         };
-        setupExecutor = new ThreadPoolExecutor(threads, threads, 30, TimeUnit.SECONDS, new SynchronousQueue<>(),
+        setupExecutor = new ThreadPoolExecutor(maxCalls, maxCalls, 30, TimeUnit.SECONDS, new LinkedBlockingQueue<>(),
                 threadFactory);
         setupExecutor.allowCoreThreadTimeOut(true);
     }
@@ -138,7 +145,14 @@ public class PeerSearchClient {
      * by the returned call's future as a {@link PeerSearchException}.
      */
     PeerCall search(PeerDto peer, PeerQuery query) {
+        if (!slots.tryAcquire()) {
+            CompletableFuture<PeerSearchResponse> refused = CompletableFuture
+                    .failedFuture(new PeerSearchException.CapacityExceeded("Too many peer calls are in progress."));
+            return new PeerCall(refused, refused);
+        }
+        Slot slot = new Slot(slots);
         CompletableFuture<PeerSearchResponse> future = new CompletableFuture<>();
+        CompletableFuture<PeerSearchResponse> result = new CompletableFuture<>();
         AtomicReference<InFlight> inFlight = new AtomicReference<>();
 
         long timeoutMs = config.getSearchPeerTimeoutMs();
@@ -149,19 +163,27 @@ public class PeerSearchClient {
             if (failure != null) {
                 reset(inFlight.get());
             }
+            slot.release();
+            if (failure != null) {
+                result.completeExceptionally(failure);
+            } else {
+                result.complete(response);
+            }
         });
 
         try {
-            setupExecutor.execute(() -> call(peer, query, future, inFlight));
+            setupExecutor.execute(() -> call(peer, query, future, inFlight, slot));
         } catch (RejectedExecutionException ex) {
+            slot.release();
             future.completeExceptionally(
-                    new PeerSearchException.CapacityExceeded("Too many peer calls are in progress."));
+                    new PeerSearchException.CapacityExceeded("No thread is left to set up the call."));
         }
-        return new PeerCall(future);
+        return new PeerCall(future, result);
     }
 
     private void call(PeerDto peer, PeerQuery query, CompletableFuture<PeerSearchResponse> future,
-            AtomicReference<InFlight> inFlight) {
+            AtomicReference<InFlight> inFlight, Slot slot) {
+        boolean setUp = false;
         try {
             if (future.isDone()) {
                 return;
@@ -186,6 +208,10 @@ public class PeerSearchClient {
                     .putHeader("Accept", "application/json")
                     .putHeader(FederatedSearchService.HOP_HEADER, "1");
 
+            // The name lookup is over. From here the call's future alone holds the slot, until the
+            // answer has been read or the request has been reset.
+            setUp = true;
+            slot.release();
             httpClient.request(options).compose(request -> {
                 inFlight.set(new InFlight(request, Vertx.currentContext()));
                 if (future.isDone()) {
@@ -200,6 +226,10 @@ public class PeerSearchClient {
         } catch (RuntimeException ex) {
             log.warn("Unexpected failure calling peer {}", peer.getPeerId(), ex);
             future.completeExceptionally(new PeerSearchException.Unreachable("The call failed.", ex));
+        } finally {
+            if (!setUp) {
+                slot.release();
+            }
         }
     }
 
@@ -379,5 +409,26 @@ public class PeerSearchClient {
     }
 
     private record InFlight(HttpClientRequest request, Context context) {
+    }
+
+    /**
+     * One call's place under the limit on calls in progress. Two parties hold it, the call's future
+     * and the thread setting the call up, and it is given back once both have let go: a call that
+     * times out while its name lookup is still running keeps its place until the lookup ends, since
+     * the thread it occupies is not free either.
+     */
+    private static final class Slot {
+        private final Semaphore slots;
+        private final AtomicInteger holders = new AtomicInteger(2);
+
+        Slot(Semaphore slots) {
+            this.slots = slots;
+        }
+
+        void release() {
+            if (holders.decrementAndGet() == 0) {
+                slots.release();
+            }
+        }
     }
 }

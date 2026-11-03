@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.MissingNode;
 import io.apicurio.registry.agents.aicatalog.AiCatalogConfig;
 import io.apicurio.registry.agents.aicatalog.AiCatalogConstants;
 import io.apicurio.registry.agents.ard.ArdConfig;
+import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -106,6 +107,10 @@ public class AiCatalogDiscovery {
     @Inject
     @Current
     RegistryStorage storage;
+
+    /** Discovery lists registry artifacts, so it is restricted by per-resource authorization. */
+    @Inject
+    ISearchAuthorizer searchAuthorizer;
 
     @Inject
     AgentCardDiscovery agentCardDiscovery;
@@ -326,7 +331,7 @@ public class AiCatalogDiscovery {
         if (!StringUtil.isEmpty(textFilter)) {
             agentFilters.add(SearchFilter.ofPartialName(textFilter));
         }
-        ArtifactSearchResultsDto agentResults = storage.searchArtifacts(
+        ArtifactSearchResultsDto agentResults = searchAuthorizer.searchArtifacts(
                 agentFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
         warnIfTruncated(agentResults);
         for (SearchedArtifactDto artifact : agentVisibilityFilter.filterDtosByVisibility(agentResults.getArtifacts())) {
@@ -338,7 +343,7 @@ public class AiCatalogDiscovery {
         if (!StringUtil.isEmpty(textFilter)) {
             toolFilters.add(SearchFilter.ofPartialName(textFilter));
         }
-        ArtifactSearchResultsDto toolResults = storage.searchArtifacts(
+        ArtifactSearchResultsDto toolResults = searchAuthorizer.searchArtifacts(
                 toolFilters, OrderBy.createdOn, OrderDirection.desc, 0, MAX_VISIBILITY_FILTER_RESULTS, false);
         warnIfTruncated(toolResults);
         for (SearchedArtifactDto artifact : toolResults.getArtifacts()) {

@@ -46,7 +46,7 @@ class WebhookSchemaPostgresqlMigrationTest {
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
-            assertDbVersion(conn, 112);
+            assertDbVersion(conn, 113);
             assertConstraintInvariants(conn);
         } finally {
             pg.close();
@@ -54,7 +54,7 @@ class WebhookSchemaPostgresqlMigrationTest {
     }
 
     // ------------------------------------------------------------
-    // Upgrade: 111 → 112 from the real v111 schema with representative rows
+    // Upgrade: 111 → 112 → 113 from the real v111 schema with representative rows
     // ------------------------------------------------------------
 
     
@@ -77,9 +77,9 @@ class WebhookSchemaPostgresqlMigrationTest {
             assertDbVersion(conn, 111);
             assertTableExists(conn, "peers");
 
-            // Apply the webhook upgrade (111 → 112).
-            applyStatements(conn, new PostgreSQLSqlStatements().databaseUpgrade(111, 112));
-            assertDbVersion(conn, 112);
+            // Apply the drafts cleanup (111 → 112) and the webhook upgrade (112 → 113).
+            applyStatements(conn, new PostgreSQLSqlStatements().databaseUpgrade(111, 113));
+            assertDbVersion(conn, 113);
 
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
@@ -598,8 +598,8 @@ class WebhookSchemaPostgresqlMigrationTest {
         } else {
             applyDdlResource(conn, "pre-peers-schema/postgresql.ddl");
             applyStatements(conn, new PostgreSQLSqlStatements().databaseUpgrade(110, 111));
-            applyStatements(conn, new PostgreSQLSqlStatements().databaseUpgrade(111, 112));
-            assertDbVersion(conn, 112);
+            applyStatements(conn, new PostgreSQLSqlStatements().databaseUpgrade(111, 113));
+            assertDbVersion(conn, 113);
         }
     }
 

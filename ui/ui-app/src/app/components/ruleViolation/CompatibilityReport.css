@@ -1,0 +1,30 @@
+.compatibility-report-cause {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.compatibility-report-reference {
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.compatibility-report-content {
+    margin-top: 15px;
+}
+
+.compatibility-report-content-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 8px;
+}
+
+.compatibility-report-compare-loading {
+    margin-bottom: 8px;
+}
+
+.compatibility-report-compare-error {
+    color: var(--pf-t--global--color--status--danger--default);
+    margin-bottom: 8px;
+}

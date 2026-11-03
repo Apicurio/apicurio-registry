@@ -52,7 +52,7 @@ public class SqlSearchRepository {
      * escapes the escape character itself, so a value that genuinely contains '!' still matches
      * literally - the character is only ever consumed as an escape when this code puts it there.
      */
-    private static final char LIKE_ESCAPE_CHAR = '!';
+    static final char LIKE_ESCAPE_CHAR = '!';
 
     private static final String STRUCTURE_FILTER_FORMAT_HELP = "Expected '<artifactType>:<kind>:<name>', "
             + "'<kind>:<name>' or '<name>', for example 'agent_card:skill:translation'.";
@@ -105,11 +105,20 @@ public class SqlSearchRepository {
                         break;
                     case name:
                         buildNameClause(where, "a.name", "a.artifactId", filter.getStringValue(),
-                                filter.isNot(), binders);
+                                filter.isNot(), false, binders);
+                        break;
+                    case nameCaseInsensitive:
+                        buildNameClause(where, "a.name", "a.artifactId", filter.getStringValue(),
+                                filter.isNot(), true, binders);
                         break;
                     case groupId:
                         buildWildcardClause(where, "a.groupId",
                                 normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
+                        break;
+                    case authorization:
+                        SqlAuthorizationFilter.appendArtifactCondition(where, binders,
+                                filter.getAuthorizationValue(), sqlStatements.dbType(), "a.groupId", "a.artifactId",
+                                "a.owner");
                         break;
                     case artifactId:
                         buildWildcardClause(where, "a.artifactId",
@@ -356,6 +365,11 @@ public class SqlSearchRepository {
                         buildWildcardClause(where, "a.groupId",
                                 normalizeGroupId(filter.getStringValue()), filter.isNot(), binders);
                         break;
+                    case authorization:
+                        SqlAuthorizationFilter.appendArtifactCondition(where, binders,
+                                filter.getAuthorizationValue(), sqlStatements.dbType(), "a.groupId", "a.artifactId",
+                                "a.owner");
+                        break;
                     case artifactType:
                         op = filter.isNot() ? "!=" : "=";
                         where.append("a.type " + op + " ?");
@@ -394,7 +408,11 @@ public class SqlSearchRepository {
                         break;
                     case name:
                         buildNameClause(where, "v.name", "v.artifactId", filter.getStringValue(),
-                                filter.isNot(), binders);
+                                filter.isNot(), false, binders);
+                        break;
+                    case nameCaseInsensitive:
+                        buildNameClause(where, "v.name", "v.artifactId", filter.getStringValue(),
+                                filter.isNot(), true, binders);
                         break;
                     case description:
                         op = filter.isNot() ? "NOT LIKE" : "LIKE";
@@ -531,7 +549,7 @@ public class SqlSearchRepository {
      * is used inside a LIKE pattern, so request-derived text is matched literally. The caller is
      * responsible for adding any intentional wildcards and the matching {@code ESCAPE} clause.
      */
-    private static String escapeLikePattern(String value) {
+    static String escapeLikePattern(String value) {
         StringBuilder escaped = new StringBuilder(value.length());
         for (char c : value.toCharArray()) {
             if (c == LIKE_ESCAPE_CHAR || c == '%' || c == '_') {
@@ -577,7 +595,8 @@ public class SqlSearchRepository {
      * introduced in #6298 (see #8002).
      */
     private void buildNameClause(StringBuilder where, String nameColumn, String artifactIdColumn,
-            String value, boolean not, List<SqlStatementVariableBinder> binders) {
+            String value, boolean not, boolean caseInsensitive,
+            List<SqlStatementVariableBinder> binders) {
         boolean startsWithWildcard = value.startsWith("*");
         boolean endsWithWildcard = value.endsWith("*");
         boolean wildcard = startsWithWildcard || endsWithWildcard;
@@ -598,16 +617,21 @@ public class SqlSearchRepository {
         } else {
             op = not ? "!=" : "=";
         }
+        if (caseInsensitive) {
+            nameColumn = "LOWER(" + nameColumn + ")";
+            artifactIdColumn = "LOWER(" + artifactIdColumn + ")";
+        }
         where.append("(").append(nameColumn).append(" ").append(op).append(" ? OR ")
                 .append(artifactIdColumn).append(" ").append(op).append(" ?)");
 
         // Translate leading/trailing '*' into SQL '%' wildcards, else bind the literal for exact match
-        String bound;
+        String pattern = searchValue;
         if (wildcard) {
-            bound = (startsWithWildcard ? "%" : "") + searchValue + (endsWithWildcard ? "%" : "");
-        } else {
-            bound = searchValue;
+            String prefix = startsWithWildcard ? "%" : "";
+            String suffix = endsWithWildcard ? "%" : "";
+            pattern = prefix + searchValue + suffix;
         }
+        final String bound = caseInsensitive ? pattern.toLowerCase(Locale.ROOT) : pattern;
         binders.add((query, idx) -> {
             query.bind(idx, bound);
         });

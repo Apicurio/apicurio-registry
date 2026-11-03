@@ -59,6 +59,11 @@ public class OpenApiAgentCardService {
     private final OpenApiAgentCardAssembler assembler = new OpenApiAgentCardAssembler();
     private final JsonContentCanonicalizer canonicalizer = new JsonContentCanonicalizer();
 
+    /** @return the ID of the AGENT_CARD companion generated for an OPENAPI artifact */
+    public static String companionId(String sourceId) {
+        return sourceId + "-agent-card";
+    }
+
     /** Preflight only for a version being published; callers must skip ordinary drafts. */
     public String validateAndAssemble(TypedContent content, boolean isUpdate) {
         if (!config.isEnabled() || (isUpdate && !config.isSyncOnUpdateEnabled())) {
@@ -99,7 +104,7 @@ public class OpenApiAgentCardService {
         if (!config.isEnabled()) {
             return;
         }
-        String companionId = sourceId + "-agent-card";
+        String companionId = companionId(sourceId);
         ArtifactMetaDataDto companion;
         try {
             companion = storage.getArtifactMetaData(groupId, companionId);

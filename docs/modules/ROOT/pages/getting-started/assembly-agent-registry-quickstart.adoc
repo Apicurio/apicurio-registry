@@ -7,7 +7,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can use {registry} as a central registry for AI agents, prompt templates, and model schemas. You start {registry} with agent features enabled, register an agent card, discover agents by skill, and connect Claude Desktop to {registry} by using the Model Context Protocol (MCP).
+You can use {registry} as a central registry for AI agents, prompt templates, and model schemas. You start {registry} with agent features enabled, register an agent card, discover agents by skill, and connect Claude Desktop by using the Model Context Protocol (MCP).
 
 ifdef::service-registry-downstream[]
 WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
@@ -20,7 +20,9 @@ endif::[]
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-{registry} functions as both an A2A (Agent-to-Agent) agent and an agent registry. As an A2A agent, {registry} exposes its own capabilities, such as schema validation, artifact management, and agent discovery. As an agent registry, {registry} stores and serves agent cards that other AI agents publish for discovery.
+{registry} functions as both an A2A (Agent-to-Agent) agent that exposes its own capabilities and an agent registry that stores and serves the agent cards that other AI agents publish for discovery.
+
+As an A2A agent, {registry} exposes capabilities such as schema validation, artifact management, and agent discovery.
 
 The A2A protocol is a standard that AI agents use to discover and communicate with each other through well-known endpoints. MCP (Model Context Protocol) is a standard that LLM-powered tools such as Claude Desktop use to interact with external services and data sources.
 

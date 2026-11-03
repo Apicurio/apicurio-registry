@@ -27,7 +27,7 @@ ifdef::apicurio-registry[]
 see the link:https://www.apicur.io/registry/docs/apicurio-registry-operator/{operator-version}/assembly-registry-maintenance.html#registry-security-keycloak[{operator} documentation].
 endif::[]
 ifdef::rh-service-registry[]
-see xref:registry-security-keycloak[].
+see xref:registry-security-keycloak_{context}[].
 endif::[]
 ====
 
@@ -157,7 +157,12 @@ TIP: For an example of setting environment variables on OpenShift, see the healt
 [role="_additional-resources"]
 .Additional resources
 * xref:registry-security-settings_{context}[]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-configuring-the-registry.adoc#configuring-liveness-readiness-probes_{context}[Configuring {registry} health checks on OpenShift]
+endif::[]
+ifdef::service-registry-downstream[]
 * xref:configuring-liveness-readiness-probes_{context}[]
+endif::[]
 * https://github.com/Apicurio/apicurio-registry/tree/{registry-version}.x/distro/docker-compose[Docker Compose example of Apicurio Registry with Keycloak]
 ifdef::apicurio-registry[]
 * link:https://www.keycloak.org/documentation[Keycloak documentation]
@@ -256,8 +261,9 @@ IMPORTANT: You must register your {registry} application host as a *Redirect URI
 +
 NOTE: When you enable roles in {registry}, you must also create the same roles in Azure AD as application roles. The default roles expected by {registry} are `sr-admin`, `sr-developer`, and `sr-readonly`.
 
-. In {registry} UI, configure the following environment variables:
+. Configure the following environment variables for the {registry} web console to use Azure AD ID tokens:
 +
+.Configuration for the {registry} web console with Azure AD
 [.table-expandable,width="100%",cols="6,5,4",options="header"]
 |===
 |Environment variable
@@ -1080,7 +1086,9 @@ You can set the following environment variables to configure authentication for 
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-By default, {registry} supports authentication by using OpenID Connect. Users or API clients must obtain an access token to make authenticated calls to the {registry} REST API. However, because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication by setting the following configuration options to `true`:
+By default, {registry} supports authentication by using OpenID Connect. Because some tools do not support OpenID Connect, you can also configure {registry} to support HTTP basic authentication.
+
+With OpenID Connect, users or API clients must obtain an access token to make authenticated calls to the {registry} REST API. To enable HTTP basic authentication, set the following configuration options to `true`:
 
 .Configuration for {registry} HTTP basic authentication
 [%header,cols="4,4,1,1"]
@@ -1223,7 +1231,18 @@ You can configure {registry} to authenticate clients by validating their Kuberne
 
 IMPORTANT: Kubernetes-native authentication is an *experimental* feature. You must enable the experimental features gate (`APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`) to use it; otherwise, the application fails at startup. You cannot enable Kubernetes-native authentication and OpenID Connect at the same time, because both use bearer tokens.
 
-NOTE: When you deploy {registry} with the Operator, you can configure this feature with the `spec.app.auth.kubernetesAuth` fields of the `ApicurioRegistry3` custom resource: `enabled`, `apiAudiences`, `cacheExpiration`, and `groupMapping` with `adminGroups`, `developerGroups`, and `readOnlyGroups`. The Operator adds the `kubernetes` mechanism to the priority list and sets the role source automatically.
+NOTE: When you deploy {registry} with the Operator, you can configure this feature with the `spec.app.auth.kubernetesAuth` fields of the `ApicurioRegistry3` custom resource: `enabled`, `apiAudiences`, `cacheExpiration`, and `groupMapping` with `adminGroups`, `developerGroups`, and `readOnlyGroups`. The Operator adds the `kubernetes` mechanism to the priority list, unless you already set the `APICURIO_AUTHN_MECHANISM_PRIORITY` environment variable, and, when `groupMapping` is configured, sets the role source to `kubernetes`.
+
+The Operator does not enable the experimental features gate for this feature. When you deploy {registry} with the Operator, you must also add the `APICURIO_FEATURES_EXPERIMENTAL_ENABLED` environment variable with the value `true` to `spec.app.env`; otherwise, the {registry} pod fails at startup. For example:
+
+[source,yaml]
+----
+spec:
+  app:
+    env:
+      - name: APICURIO_FEATURES_EXPERIMENTAL_ENABLED
+        value: "true"
+----
 
 .Prerequisites
 * {registry} is deployed on a Kubernetes cluster.
@@ -1568,7 +1587,12 @@ failures return an authentication error instead.
 
 [role="_additional-resources"]
 .Additional resources
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-configuring-the-registry.adoc#configuring-liveness-readiness-probes_{context}[Configuring {registry} health checks on OpenShift]
+endif::[]
+ifdef::service-registry-downstream[]
 * xref:configuring-liveness-readiness-probes_{context}[]
+endif::[]
 * https://quarkus.io/guides/security-openid-connect-web-authentication[Quarkus Open ID Connect documentation]
 
 
@@ -1606,8 +1630,7 @@ endif::[]
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-Browsers enforce a same-origin policy that prevents a web page served from one origin (for example, `\https://my-app.example.com`) from making HTTP requests to a different origin (for example, `\https://registry.example.com`).
-CORS is the mechanism by which a server explicitly allows cross-origin requests by including specific HTTP response headers such as `Access-Control-Allow-Origin`.
+Browsers enforce a same-origin policy that prevents a web page served from one origin from making HTTP requests to a different origin. CORS is the mechanism by which a server explicitly allows cross-origin requests by including specific HTTP response headers such as `Access-Control-Allow-Origin`.
 
 Consider a typical scenario where your browser application runs at `\https://my-app.example.com` and {registry} runs at `\https://registry.example.com`.
 When your JavaScript code calls the {registry} REST API:
@@ -1811,6 +1834,7 @@ services:
 
 [role="_abstract"]
 When you use OIDC authentication (for example, {keycloak}), CORS and authentication work together.
+
 Your browser application must send an `Authorization` header with a bearer token, and the {registry} CORS configuration must allow that header for authenticated cross-origin requests to succeed.
 
 The `authorization` header is already included in the default allowed headers, so you typically only need to configure the allowed origins.

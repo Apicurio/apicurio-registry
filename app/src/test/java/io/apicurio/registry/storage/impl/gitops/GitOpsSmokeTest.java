@@ -16,6 +16,7 @@ import io.apicurio.registry.util.JsonObjectMapper;
 import io.apicurio.registry.util.YAMLObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.restassured.http.ContentType;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -25,10 +26,12 @@ import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import static io.restassured.RestAssured.get;
+import static io.restassured.RestAssured.given;
 import static java.util.Objects.requireNonNull;
 import static org.awaitility.Awaitility.await;
 import static org.hamcrest.Matchers.containsString;
@@ -107,10 +110,25 @@ public class GitOpsSmokeTest {
         assertTrue(peer.isEnabled());
         assertEquals("eu-registry", peer.getCredentialSecretRef());
 
+        // The peer management API serves the declarative peers and rejects writes as read-only
+        get("/apis/registry/v3/admin/peers")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("peers[0].peerId", equalTo("eu-registry"))
+                .body("peers[0].url", equalTo("https://registry.eu.example.com"))
+                .body("peers[0].credentialSecretRef", equalTo("eu-registry"));
+        given().contentType(ContentType.JSON)
+                .body(Map.of("peerId", "rest-peer", "url", "https://rest.example.com"))
+                .post("/apis/registry/v3/admin/peers")
+                .then()
+                .statusCode(409)
+                .body("name", equalTo("ReadOnlyStorageException"));
+
         // --- Load smoke02: Different artifact, no rules ---
         testRepository.load("git/smoke02");
         await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
-            assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
+            assertEquals(Set.of("person", "user"), withContext(() -> storage.getArtifactIds(10)));
         });
 
         // Global rules cleared
@@ -129,6 +147,9 @@ public class GitOpsSmokeTest {
         assertEquals(JsonObjectMapper.MAPPER.readTree(personContent.bytes()),
                 JsonObjectMapper.MAPPER.readTree(version.getContent().bytes()));
 
+        // Artifact type auto-detected from .avsc extension (no artifactType in YAML)
+        assertEquals("AVRO", storage.getArtifactMetaData("bar", "user").getArtifactType());
+
         // Peers removed (omitted/empty peers list wipes the previously loaded peer)
         assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
 
@@ -136,7 +157,7 @@ public class GitOpsSmokeTest {
         testRepository.load("git/invalid-content-ref");
         await().pollDelay(Duration.ofSeconds(5)).untilAsserted(() -> {
             // Previous data should still be served because the failed load does not cause a swap
-            assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
+            assertEquals(Set.of("person", "user"), withContext(() -> storage.getArtifactIds(10)));
         });
 
         // --- Load data with an invalid peer (reserved id "local") → rejected by PeerValidator,
@@ -160,7 +181,7 @@ public class GitOpsSmokeTest {
         });
 
         // Previous data should still be served because the failed load does not cause a swap
-        assertEquals(Set.of("person"), withContext(() -> storage.getArtifactIds(10)));
+        assertEquals(Set.of("person", "user"), withContext(() -> storage.getArtifactIds(10)));
         assertEquals(Set.of(), Set.copyOf(storage.getPeers()));
 
         // Admin writes against this read-only storage are rejected with a 409-mapped exception
@@ -256,6 +277,28 @@ public class GitOpsSmokeTest {
     }
 
     @Test
+    void peerWithAnAddressTheOutboundPolicyRefusesIsRejected() throws Exception {
+        var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        // Plain http is refused unless apicurio.federation.peer.insecure-http.enabled is set, which
+        // this profile does not do. The admin API refuses the same url, so a declarative peer must
+        // not be a way around the policy.
+        testRepository.load("git/peers-insecure");
+
+        // The detail only exists for this revision, so it cannot be satisfied by an earlier error.
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("ERROR"))
+                    .body("errors", hasSize(1))
+                    .body("errors[0].detail", containsString(
+                            "Plain http requires apicurio.federation.peer.insecure-http.enabled=true."));
+        });
+        assertTrue(storage.getPeers().stream().noneMatch(peer -> "insecure-peer".equals(peer.getPeerId())));
+    }
+
+    @Test
     void validatedUpToSkipsIncompatibleVersions() throws Exception {
         var testRepository = GitTestRepositoryManager.getTestRepository();
 
@@ -271,6 +314,59 @@ public class GitOpsSmokeTest {
         var v3 = storage.getArtifactVersionContent("testgroup", "compat-test", "3");
         assertNotNull(v1.getContent());
         assertNotNull(v3.getContent());
+    }
+
+    @Test
+    void typeMismatchAcrossVersionsIsRejected() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        testRepository.load("git/type-mismatch");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("ERROR"))
+                    .body("errors[0].detail", containsString("resolves to GRAPHQL, but the artifact type is AVRO"));
+        });
+    }
+
+    @Test
+    void unknownExtensionProducesActionableError() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        testRepository.load("git/unknown-extension");
+        await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+            get("/apis/registry/v3/admin/gitops/status")
+                    .then()
+                    .statusCode(200)
+                    .body("syncState", equalTo("ERROR"))
+                    .body("errors[0].detail", containsString("Cannot determine the artifact type"))
+                    .body("errors[0].detail", containsString("schema.txt"));
+        });
+    }
+
+    @Test
+    void explicitArtifactTypeWinsOverExtension() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        testRepository.load("git/explicit-type-wins");
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("avro-in-json"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        assertEquals("AVRO", storage.getArtifactMetaData("default", "avro-in-json").getArtifactType());
+    }
+
+    @Test
+    void ambiguousExtensionFallsBackToContentDetection() throws Exception {
+        final var testRepository = GitTestRepositoryManager.getTestRepository();
+
+        testRepository.load("git/ambiguous-extension");
+        await().atMost(Duration.ofSeconds(60)).untilAsserted(() -> {
+            assertEquals(Set.of("openapi-yaml"), withContext(() -> storage.getArtifactIds(10)));
+        });
+
+        assertEquals("OPENAPI", storage.getArtifactMetaData("default", "openapi-yaml").getArtifactType());
     }
 
     @ActivateRequestContext

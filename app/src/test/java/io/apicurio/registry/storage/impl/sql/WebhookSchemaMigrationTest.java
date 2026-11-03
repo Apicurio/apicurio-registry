@@ -33,7 +33,8 @@ public class WebhookSchemaMigrationTest {
 
     private static final int VERSION_BEFORE = 110;
     private static final int VERSION_PEERS = 111;
-    private static final int VERSION_AFTER = 112;
+    private static final int VERSION_DRAFTS_CLEANUP = 112;
+    private static final int VERSION_AFTER = 113;
 
     // ------------------------------------------------------------
     // Fresh-install tests
@@ -50,7 +51,7 @@ public class WebhookSchemaMigrationTest {
     }
 
     @Test
-    void freshInstall_dbVersionIs112() throws Exception {
+    void freshInstall_dbVersionIs113() throws Exception {
         try (Connection conn = freshH2()) {
             applyStatements(conn, new H2SqlStatements().databaseInitialization());
             assertDbVersion(conn, VERSION_AFTER);
@@ -124,17 +125,17 @@ public class WebhookSchemaMigrationTest {
                 ps.executeUpdate();
             }
 
-            // Apply the full upgrade chain: 110 → 111 (peers) → 112 (webhooks).
+            // Apply the full upgrade chain: 110 → 111 (peers) → 112 (drafts cleanup) → 113 (webhooks).
             applyStatements(conn, new H2SqlStatements().databaseUpgrade(110, 111));
             assertDbVersion(conn, VERSION_PEERS);
-            applyStatements(conn, new H2SqlStatements().databaseUpgrade(111, 112));
+            applyStatements(conn, new H2SqlStatements().databaseUpgrade(111, 113));
 
             // All three webhook tables must now exist.
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
 
-            // Version marker must be 112.
+            // Version marker must be 113.
             assertDbVersion(conn, VERSION_AFTER);
 
             // Unrelated apicurio property must be unchanged.
@@ -167,7 +168,7 @@ public class WebhookSchemaMigrationTest {
             assertDbVersion(conn, VERSION_PEERS);
             assertTableExists(conn, "peers");
 
-            // Seed a peer row that must survive the 112 (webhook) upgrade unchanged.
+            // Seed a peer row that must survive the 113 (webhook) upgrade unchanged.
             try (PreparedStatement ps = conn.prepareStatement(
                     "INSERT INTO peers (peerId, url, name, description, enabled) VALUES (?, ?, ?, ?, ?)")) {
                 ps.setString(1, "test-peer-1");
@@ -178,18 +179,18 @@ public class WebhookSchemaMigrationTest {
                 ps.executeUpdate();
             }
 
-            // Apply the 112 (webhooks) upgrade.
-            applyStatements(conn, new H2SqlStatements().databaseUpgrade(111, 112));
+            // Apply the 113 (webhooks) upgrade.
+            applyStatements(conn, new H2SqlStatements().databaseUpgrade(111, 113));
             assertDbVersion(conn, VERSION_AFTER);
 
-            // The peers table must still exist after the 112 upgrade.
+            // The peers table must still exist after the 113 upgrade.
             assertTableExists(conn, "peers");
 
             // The seeded peer row must be intact.
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT url, name, enabled FROM peers WHERE peerId = 'test-peer-1'")) {
                 try (ResultSet rs = ps.executeQuery()) {
-                    assertTrue(rs.next(), "Peer row must survive the 112 upgrade");
+                    assertTrue(rs.next(), "Peer row must survive the 113 upgrade");
                     assertEquals("https://peer.example.com/apis/registry/v3", rs.getString("url"));
                     assertEquals("Test Peer", rs.getString("name"));
                     assertTrue(rs.getBoolean("enabled"));
@@ -203,21 +204,23 @@ public class WebhookSchemaMigrationTest {
     // ------------------------------------------------------------
 
     /**
-     * Simulates a MySQL-style partial failure during the 112 (webhook) upgrade: the first
+     * Simulates a MySQL-style partial failure during the 113 (webhook) upgrade: the first
      * CREATE TABLE auto-committed but the process died before the rest of the script ran,
-     * leaving the version marker at 111.  On the next start the upgrade runner reads version 111,
-     * re-runs the 112 upgrade script, and must succeed because every statement is guarded by
+     * leaving the version marker at 112.  On the next start the upgrade runner reads version 112,
+     * re-runs the 113 upgrade script, and must succeed because every statement is guarded by
      * IF NOT EXISTS.
      */
     @Test
     void upgrade_partialApplication_isRetryable() throws Exception {
         try (Connection conn = freshH2()) {
-            // Start from v111 (peers already applied).
+            // Start from v112 (peers and the drafts cleanup already applied).
             executeDdlResource(conn, "pre-peers-schema/h2.ddl");
             applyStatements(conn, new H2SqlStatements().databaseUpgrade(110, 111));
             assertDbVersion(conn, VERSION_PEERS);
+            applyStatements(conn, new H2SqlStatements().databaseUpgrade(111, 112));
+            assertDbVersion(conn, VERSION_DRAFTS_CLEANUP);
 
-            // Simulate partial failure during 112: webhook_subscriptions was committed but the
+            // Simulate partial failure during 113: webhook_subscriptions was committed but the
             // script died before webhook_events, webhook_delivery_logs, and the version marker
             // were written.
             try (Statement st = conn.createStatement()) {
@@ -240,13 +243,13 @@ public class WebhookSchemaMigrationTest {
                         + ")");
             }
 
-            // Version is still 111: the marker had not been written yet (it is last in the script).
-            assertDbVersion(conn, VERSION_PEERS);
+            // Version is still 112: the marker had not been written yet (it is last in the script).
+            assertDbVersion(conn, VERSION_DRAFTS_CLEANUP);
 
-            // Retry: the full 112 upgrade script must succeed without "table already exists" errors.
-            applyStatements(conn, new H2SqlStatements().databaseUpgrade(111, 112));
+            // Retry: the full 113 upgrade script must succeed without "table already exists" errors.
+            applyStatements(conn, new H2SqlStatements().databaseUpgrade(112, 113));
 
-            // All three webhook tables must now exist and the version must be 112.
+            // All three webhook tables must now exist and the version must be 113.
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
@@ -446,9 +449,9 @@ public class WebhookSchemaMigrationTest {
      * All structural invariants (unique constraints, FK protection, check constraints) must hold
      * on both a fresh install and a fully upgraded database.
      *
-     * <p>"fresh" = full version-112 initialization DDL on an empty DB.</p>
-     * <p>"upgraded" = real v110 schema + v111 upgrade + seed rows + v112 upgrade, with
-     * verification that seeded rows are preserved and db_version = 112.</p>
+     * <p>"fresh" = full version-113 initialization DDL on an empty DB.</p>
+     * <p>"upgraded" = real v110 schema + v111 upgrade + seed rows + v112 and v113 upgrades, with
+     * verification that seeded rows are preserved and db_version = 113.</p>
      */
     @ParameterizedTest(name = "constraintInvariants on {0} database")
     @ValueSource(strings = {"fresh", "upgraded"})
@@ -819,11 +822,11 @@ public class WebhookSchemaMigrationTest {
      * Opens an H2 in-memory connection pre-populated according to the given scenario.
      *
      * <ul>
-     *   <li>{@code "fresh"} – applies the full v112 initialization DDL to an empty DB.</li>
+     *   <li>{@code "fresh"} – applies the full v113 initialization DDL to an empty DB.</li>
      *   <li>{@code "upgraded"} – applies the pinned v110 baseline, seeds representative rows
      *       (an extra {@code apicurio} property and a {@code global_rules} row), runs the full
-     *       v110→v111→v112 upgrade chain, and verifies the seeded rows are preserved and
-     *       {@code db_version = 112}.</li>
+     *       v110→v111→v112→v113 upgrade chain, and verifies the seeded rows are preserved and
+     *       {@code db_version = 113}.</li>
      * </ul>
      */
     private Connection openScenarioH2(String scenario) throws Exception {
@@ -839,7 +842,7 @@ public class WebhookSchemaMigrationTest {
                 st.execute("INSERT INTO global_rules (type, configuration) VALUES ('VALIDITY', 'FULL')");
             }
             // Apply upgrades via the production DdlParser path (not a manual split).
-            applyStatements(conn, new H2SqlStatements().databaseUpgrade(110, 112));
+            applyStatements(conn, new H2SqlStatements().databaseUpgrade(110, 113));
             assertDbVersion(conn, VERSION_AFTER);
             // Verify seeded rows survived.
             try (PreparedStatement ps = conn.prepareStatement(

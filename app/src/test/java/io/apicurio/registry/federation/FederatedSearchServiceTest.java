@@ -167,6 +167,14 @@ class FederatedSearchServiceTest {
         return new PeerSearchResponse(List.of(agents), reportedCount);
     }
 
+    private static void sleep(long ms) {
+        try {
+            Thread.sleep(ms);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
     private FederatedAgentSearchResults search(AgentSearchResults local) {
         return service.search(QUERY, (limit, checkpoint) -> local);
     }
@@ -341,21 +349,38 @@ class FederatedSearchServiceTest {
     }
 
     @Test
-    void aSlowLocalSearchLeavesNoTimeForPeersThatHaveNotAnswered() {
+    void aLocalSearchThatFindsNothingButFinishesAfterTheDeadlineFailsTheRequest() {
         config.searchDeadlineMs = 200;
         registered(peer("hung", true));
         peers.neverAnswers("hung");
 
-        FederatedAgentSearchResults results = service.search(QUERY, (limit, checkpoint) -> {
-            try {
-                Thread.sleep(400);
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-            }
+        // No result, so no checkpoint is ever reached inside the search.
+        assertThrows(SearchDeadlineExceededException.class, () -> service.search(QUERY, (limit, checkpoint) -> {
+            sleep(400);
             return local(0);
-        });
+        }));
 
-        assertEquals(FederatedSearchOutcome.deadline_exceeded, source(results, "hung").getOutcome());
+        assertEquals(1, peers.cancellationsOf("hung"));
+    }
+
+    @Test
+    void aLocalSearchWhoseLastUnitFinishesAfterTheDeadlineFailsTheRequest() {
+        config.searchDeadlineMs = 200;
+        registered(peer("hung", true));
+        peers.neverAnswers("hung");
+        AtomicInteger units = new AtomicInteger();
+
+        // Like the agent search: a checkpoint before each unit of work and none after the last.
+        assertThrows(SearchDeadlineExceededException.class, () -> service.search(QUERY, (limit, checkpoint) -> {
+            for (int i = 0; i < 2; i++) {
+                checkpoint.run();
+                units.incrementAndGet();
+                sleep(i == 1 ? 400 : 0);
+            }
+            return local(1, agent("g", "late"));
+        }));
+
+        assertEquals(2, units.get(), "Both units start in time; only the last one ends late.");
         assertEquals(1, peers.cancellationsOf("hung"));
     }
 

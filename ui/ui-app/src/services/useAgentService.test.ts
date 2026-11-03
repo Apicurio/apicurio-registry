@@ -1,14 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { Paging } from "@models/Paging.ts";
 
-const { fetchMock } = vi.hoisted(() => {
+const { fetchMock, getRegistryClientMock } = vi.hoisted(() => {
     const registryConfig = { artifacts: { url: "http://localhost:8080/apis/registry/v3/" } };
     (globalThis as any).ApicurioRegistryConfig = registryConfig;
     (globalThis as any).window = {
         ApicurioRegistryConfig: registryConfig,
         location: { origin: "http://localhost:8080" }
     };
-    return { fetchMock: vi.fn() };
+    return { fetchMock: vi.fn(), getRegistryClientMock: vi.fn() };
 });
 
 vi.mock("@apitomy/common-ui-components", () => ({
@@ -17,6 +17,11 @@ vi.mock("@apitomy/common-ui-components", () => ({
         isBasicAuthEnabled: () => false,
         getToken: async () => undefined
     })
+}));
+
+vi.mock("@utils/rest.utils.ts", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("@utils/rest.utils.ts")>()),
+    getRegistryClient: getRegistryClientMock
 }));
 
 (globalThis as any).fetch = fetchMock;
@@ -102,5 +107,35 @@ describe("useAgentService array and string filters", () => {
 
         expect(parsedUrl.searchParams.getAll("capability")).toEqual([]);
         expect(parsedUrl.searchParams.getAll("skill")).toEqual(["streaming", "pushNotifications"]);
+    });
+});
+
+describe("useAgentService federated search", () => {
+    it("asks every registry for up to the given number of agents, with the filters as lists", async () => {
+        const get = vi.fn().mockResolvedValue({ agents: [], sources: [] });
+        getRegistryClientMock.mockReturnValue({ search: { federated: { get } } });
+
+        await useAgentService().searchFederatedAgents(
+            { name: "refund", capability: "streaming", skill: ["pay", "", "refund"] }, 12);
+
+        expect(get).toHaveBeenCalledWith({
+            queryParameters: {
+                name: "refund",
+                capability: ["streaming"],
+                skill: ["pay", "refund"],
+                perSourceLimit: 12
+            }
+        });
+    });
+
+    it("leaves out the filters that are not set", async () => {
+        const get = vi.fn().mockResolvedValue({ agents: [], sources: [] });
+        getRegistryClientMock.mockReturnValue({ search: { federated: { get } } });
+
+        await useAgentService().searchFederatedAgents({ name: "" }, 5);
+
+        expect(get).toHaveBeenCalledWith({
+            queryParameters: { name: undefined, capability: undefined, skill: undefined, perSourceLimit: 5 }
+        });
     });
 });

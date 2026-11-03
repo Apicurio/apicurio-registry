@@ -1,6 +1,8 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./AgentsPage.css";
 import {
+    Alert,
+    AlertActionCloseButton,
     Button,
     Card,
     CardBody,
@@ -19,6 +21,7 @@ import {
     MenuToggle,
     MenuToggleElement,
     Spinner,
+    Switch,
     Content,
     Toolbar,
     ToolbarContent,
@@ -39,9 +42,20 @@ import {
 import { Paging } from "@models/Paging.ts";
 import { useAppNavigation } from "@services/useAppNavigation.ts";
 import { FromNow, PleaseWaitModal } from "@apitomy/common-ui-components";
-import { CreateAgentModal, ImportAgentModal } from "@app/pages/agents/components";
+import {
+    CreateAgentModal,
+    FederatedSources,
+    ImportAgentModal,
+    LOCAL_SOURCE,
+    sourceName
+} from "@app/pages/agents/components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
-import { CreateArtifact } from "@sdk/lib/generated-client/models";
+import {
+    CreateArtifact,
+    FederatedAgentSearchResult,
+    FederatedSearchSource
+} from "@sdk/lib/generated-client/models";
+import { isErrorStatus } from "@utils/rest.utils.ts";
 
 const EMPTY_RESULTS: AgentSearchResults = {
     agents: [],
@@ -51,6 +65,35 @@ const EMPTY_RESULTS: AgentSearchResults = {
 const DEFAULT_PAGING: Paging = {
     page: 1,
     pageSize: 12
+};
+
+/**
+ * An agent as shown on the page. The source is set only when remote registries were searched.
+ */
+type ShownAgent = AgentSearchResult & {
+    source?: string;
+};
+
+const toShownAgent = (agent: FederatedAgentSearchResult): ShownAgent => {
+    return {
+        source: agent.source || LOCAL_SOURCE,
+        groupId: agent.groupId || "",
+        artifactId: agent.artifactId || "",
+        name: agent.name || "",
+        description: agent.description || undefined,
+        supportedInterfaces: agent.supportedInterfaces?.map(iface => ({
+            url: iface.url || "",
+            protocolBinding: iface.protocolBinding || "",
+            protocolVersion: iface.protocolVersion || undefined
+        })),
+        skills: agent.skills || undefined,
+        capabilities: agent.capabilities ? {
+            streaming: agent.capabilities.streaming || undefined,
+            pushNotifications: agent.capabilities.pushNotifications || undefined
+        } : undefined,
+        createdOn: agent.createdOn || undefined,
+        owner: agent.owner || undefined
+    };
 };
 
 const CAPABILITY_OPTIONS = [
@@ -67,6 +110,9 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
     const [isSearching, setSearching] = useState<boolean>(false);
     const [results, setResults] = useState<AgentSearchResults>(EMPTY_RESULTS);
+    const [includeRemote, setIncludeRemote] = useState<boolean>(false);
+    const [sources, setSources] = useState<FederatedSearchSource[]>();
+    const [remoteProblem, setRemoteProblem] = useState<string>();
     const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
     const [appliedFilters, setAppliedFilters] = useState<AgentSearchFilters>({});
     const [nameFilter, setNameFilter] = useState<string>("");
@@ -91,13 +137,28 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
         };
     };
 
-    const search = async (filters: AgentSearchFilters, paging: Paging): Promise<void> => {
+    const search = async (filters: AgentSearchFilters, paging: Paging, remote: boolean = includeRemote): Promise<void> => {
         setAppliedFilters(filters);
         setSearching(true);
         try {
-            const results = await agentSvc.searchAgents(filters, paging);
-            setResults(results);
+            if (remote) {
+                // No paging across registries: each one returns up to a page of agents.
+                const federated = await agentSvc.searchFederatedAgents(filters, paging.pageSize);
+                const agents: ShownAgent[] = (federated.agents || []).map(toShownAgent);
+                setResults({ agents, count: agents.length });
+                setSources(federated.sources || []);
+            } else {
+                setResults(await agentSvc.searchAgents(filters, paging));
+                setSources(undefined);
+            }
         } catch (error) {
+            if (remote && isErrorStatus(error, 409)) {
+                // Federation is not enabled, or too many peers are: say why and show this registry's agents.
+                setRemoteProblem((error as any)?.detail || "Remote registries could not be searched.");
+                setIncludeRemote(false);
+                await search(filters, paging, false);
+                return;
+            }
             setPageError(toPageError(error, "Error searching for agents."));
         } finally {
             setSearching(false);
@@ -105,13 +166,21 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
     };
 
     const applyFilters = (newFilters: AgentSearchFilters): void => {
-        const newPaging = { ...DEFAULT_PAGING };
+        const newPaging = { ...DEFAULT_PAGING, pageSize: paging.pageSize };
         setPaging(newPaging);
         search(newFilters, newPaging);
     };
 
     const createLoaders = (): Promise<any> => {
         return search(createFilters(), paging);
+    };
+
+    const handleIncludeRemote = (_event: React.FormEvent<HTMLInputElement>, checked: boolean): void => {
+        setIncludeRemote(checked);
+        setRemoteProblem(undefined);
+        const newPaging = { ...DEFAULT_PAGING, pageSize: paging.pageSize };
+        setPaging(newPaging);
+        search(appliedFilters, newPaging, checked);
     };
 
     const handleSearch = (): void => {
@@ -170,19 +239,29 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
         setLoaders(createLoaders());
     }, []);
 
-    const renderAgentCard = (agent: AgentSearchResult): React.ReactElement => {
+    const renderAgentCard = (agent: ShownAgent): React.ReactElement => {
         const primaryInterface = agent.supportedInterfaces?.[0];
+        // An agent from a peer registry has no page here.
+        const isRemote = agent.source !== undefined && agent.source !== LOCAL_SOURCE;
         return (
             <Card
-                key={`${agent.groupId}-${agent.artifactId}`}
-                className="agent-card"
-                onClick={() => navigateToAgent(agent)}
+                key={`${agent.source || LOCAL_SOURCE}-${agent.groupId}-${agent.artifactId}`}
+                className={isRemote ? "agent-card agent-card-remote" : "agent-card"}
+                data-testid={`agent-card-${agent.source || LOCAL_SOURCE}-${agent.artifactId}`}
+                onClick={isRemote ? undefined : () => navigateToAgent(agent)}
             >
                 <CardTitle>
                     <Flex>
                         <FlexItem>
                             <span className="agent-name">{agent.name || agent.artifactId}</span>
                         </FlexItem>
+                        {agent.source !== undefined && (
+                            <FlexItem>
+                                <Label color={isRemote ? "purple" : "grey"} isCompact data-testid="agent-source">
+                                    {sourceName(agent.source)}
+                                </Label>
+                            </FlexItem>
+                        )}
                         {agent.version && (
                             <FlexItem align={{ default: "alignRight" }}>
                                 <Label color="blue" isCompact>v{agent.version}</Label>
@@ -259,6 +338,15 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
 
     const renderEmptyState = (): React.ReactElement => {
         const isFiltered = !!(appliedFilters.name || appliedFilters.capability || appliedFilters.skill);
+        if (sources) {
+            return (
+                <EmptyState headingLevel="h4" icon={SearchIcon} titleText="No agents found">
+                    <EmptyStateBody>
+                        No agent in this registry or in the remote registries that answered matches your search.
+                    </EmptyStateBody>
+                </EmptyState>
+            );
+        }
         return (
             <EmptyState
                 headingLevel="h4"
@@ -337,6 +425,15 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                             Search
                         </Button>
                     </ToolbarItem>
+                    <ToolbarItem alignSelf="center">
+                        <Switch
+                            id="include-remote-registries"
+                            data-testid="include-remote-registries"
+                            label="Include remote registries"
+                            isChecked={includeRemote}
+                            onChange={handleIncludeRemote}
+                        />
+                    </ToolbarItem>
                     <IfFeature feature="readOnly" isNot={true}>
                         <ToolbarItem>
                             <Button variant="secondary" onClick={() => setIsCreateAgentModalOpen(true)}>
@@ -349,17 +446,19 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                             </Button>
                         </ToolbarItem>
                     </IfFeature>
-                    <ToolbarItem variant="pagination" align={{ default: "alignEnd" }}>
-                        <Pagination
-                            itemCount={results.count}
-                            perPage={paging.pageSize}
-                            page={paging.page}
-                            onSetPage={handlePageChange}
-                            onPerPageSelect={handlePerPageChange}
-                            variant="top"
-                            isCompact
-                        />
-                    </ToolbarItem>
+                    {!sources && (
+                        <ToolbarItem variant="pagination" align={{ default: "alignEnd" }}>
+                            <Pagination
+                                itemCount={results.count}
+                                perPage={paging.pageSize}
+                                page={paging.page}
+                                onSetPage={handlePageChange}
+                                onPerPageSelect={handlePerPageChange}
+                                variant="top"
+                                isCompact
+                            />
+                        </ToolbarItem>
+                    )}
                 </ToolbarContent>
             </Toolbar>
         );
@@ -381,6 +480,22 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                 </PageSection>
                 <PageSection hasBodyWrapper={false} variant={PageSectionVariants.default} isFilled={true}>
                     {renderToolbar()}
+                    {remoteProblem && (
+                        <Alert variant="info" isInline title="Only this registry was searched"
+                            className="remote-problem" data-testid="remote-problem"
+                            actionClose={<AlertActionCloseButton onClose={() => setRemoteProblem(undefined)} />}>
+                            {remoteProblem}
+                        </Alert>
+                    )}
+                    {sources && !isSearching && (
+                        <div className="federated-summary">
+                            <FederatedSources sources={sources} />
+                            <Content component="small">
+                                Up to {paging.pageSize} agents from each registry. Agents from remote registries are
+                                public ones only, and open on their own registry.
+                            </Content>
+                        </div>
+                    )}
                     {isSearching ? (
                         <div className="loading-container">
                             <Spinner size="xl" />
@@ -392,7 +507,7 @@ export const AgentsPage: FunctionComponent<PageProperties> = () => {
                             {results.agents.map(agent => renderAgentCard(agent))}
                         </Gallery>
                     )}
-                    {results.count > 0 && (
+                    {results.count > 0 && !sources && (
                         <Pagination
                             itemCount={results.count}
                             perPage={paging.pageSize}

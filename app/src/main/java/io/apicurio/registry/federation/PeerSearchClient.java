@@ -285,6 +285,11 @@ public class PeerSearchClient {
                 future.complete(decode(body, query));
             } catch (PeerSearchException ex) {
                 future.completeExceptionally(ex);
+            } catch (RuntimeException ex) {
+                // Anything else decoding throws is still the answer's fault, and is told at once
+                // rather than when the timeout fires.
+                future.completeExceptionally(
+                        new PeerSearchException.InvalidResponse("The peer's answer could not be decoded.", ex));
             }
         });
     }
@@ -331,8 +336,16 @@ public class PeerSearchClient {
                 throw new PeerSearchException.InvalidResponse("The peer's answer is not a JSON object.", null);
             }
             // The bean defaults a missing list to an empty one, which would pass for "no matches".
-            if (!root.path("agents").isArray() || !root.path("count").isNumber()) {
+            JsonNode count = root.path("count");
+            if (!root.path("agents").isArray() || !count.isIntegralNumber() || !count.canConvertToLong()
+                    || count.longValue() < 0) {
                 throw new PeerSearchException.InvalidResponse("The peer's answer is incomplete.", null);
+            }
+            for (JsonNode entry : root.path("agents")) {
+                if (!isAgent(entry)) {
+                    throw new PeerSearchException.InvalidResponse(
+                            "The peer's answer has an entry that is not an agent.", null);
+                }
             }
             results = MAPPER.treeToValue(root, AgentSearchResults.class);
         } catch (IOException ex) {
@@ -353,6 +366,17 @@ public class PeerSearchClient {
                     null);
         }
         return new PeerSearchResponse(List.copyOf(results.getAgents()), results.getCount());
+    }
+
+    /** An object that names an artifact, in a group or in none. */
+    private static boolean isAgent(JsonNode entry) {
+        if (!entry.isObject()) {
+            return false;
+        }
+        JsonNode artifactId = entry.path("artifactId");
+        JsonNode groupId = entry.path("groupId");
+        return artifactId.isTextual() && !artifactId.asText().isBlank()
+                && (groupId.isMissingNode() || groupId.isNull() || groupId.isTextual());
     }
 
     private static String requestUri(URI uri, PeerQuery query) {

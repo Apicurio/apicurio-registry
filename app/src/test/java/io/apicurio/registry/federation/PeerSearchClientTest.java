@@ -203,6 +203,33 @@ class PeerSearchClientTest {
     }
 
     @Test
+    void rejectsEntriesThatAreNotAgentsAndCountsThatAreNotWholeAtOnceAndNotAtTheTimeout() throws Exception {
+        // Long enough that a failure left to the timeout makes the test fail rather than pass.
+        config.searchPeerTimeoutMs = 60_000;
+        List<String> answers = List.of(
+                "{\"publicOnly\":true,\"count\":1,\"agents\":[null]}",
+                "{\"publicOnly\":true,\"count\":1,\"agents\":[{}]}",
+                "{\"publicOnly\":true,\"count\":1,\"agents\":[\"a\"]}",
+                "{\"publicOnly\":true,\"count\":1,\"agents\":[{\"groupId\":\"g\",\"artifactId\":\" \"}]}",
+                "{\"publicOnly\":true,\"count\":1,\"agents\":[{\"groupId\":\"g\",\"artifactId\":7}]}",
+                "{\"publicOnly\":true,\"count\":1,\"agents\":[{\"groupId\":[],\"artifactId\":\"a\"}]}",
+                "{\"publicOnly\":true,\"count\":1.5,\"agents\":[]}",
+                "{\"publicOnly\":true,\"count\":-1,\"agents\":[]}");
+        for (String answer : answers) {
+            try (StubPeer stub = StubPeer.start(vertx, (request, response) -> StubPeer.json(response, answer))) {
+                assertInstanceOf(PeerSearchException.InvalidResponse.class, failed(search(stub.url())), answer);
+            }
+        }
+
+        // An agent in no group is still an agent.
+        String noGroup = "{\"publicOnly\":true,\"count\":2,\"agents\":[{\"artifactId\":\"a\"},"
+                + "{\"groupId\":null,\"artifactId\":\"b\"}]}";
+        try (StubPeer stub = StubPeer.start(vertx, (request, response) -> StubPeer.json(response, noGroup))) {
+            assertEquals(2, succeeded(search(stub.url())).agents().size());
+        }
+    }
+
+    @Test
     void rejectsMoreAgentsThanWereAskedFor() throws Exception {
         PeerQuery one = new PeerQuery(null, null, null, null, null, 1);
         try (StubPeer stub = StubPeer.start(vertx, (request, response) -> StubPeer.publicAgents(response, 2, "a", "b"))) {

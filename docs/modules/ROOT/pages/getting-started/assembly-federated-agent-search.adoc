@@ -1,0 +1,212 @@
+include::{mod-loc}shared/all-attributes.adoc[]
+
+:dp-support-scope: link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope]
+[id="assembly-federated-agent-search_{context}"]
+= Federated agent search across {registry} instances
+
+:_mod-docs-content-type: ASSEMBLY
+
+[role="_abstract"]
+With federated agent search, one {registry} instance searches the Agent Cards it stores and those of other {registry} instances, its peer registries, in a single request. Each agent in the response says which registry it came from, and each registry has an outcome of its own, so a slow or failing peer does not fail the search.
+
+ifdef::service-registry-downstream[]
+WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
+endif::[]
+
+// con-federation-overview
+[id="federation-overview_{context}"]
+== How federated agent search works
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+A federated search runs the agent search of this registry and calls the agent search of every enabled peer registry in parallel, all under one deadline.
+
+Public agents only:: Peers are called anonymously and asked for `public` Agent Cards only. A peer returns an Agent Card only when it carries the `apicurio.agent.visibility=public` label, whatever the peer's own authentication settings. A peer must confirm in its answer that it applied the public-only mode. An answer without that confirmation, for example from an older registry that ignores the request, is discarded and the peer is reported as `unsupported`. For the visibility labels, see xref:getting-started/assembly-a2a-features.adoc#a2a-visibility-model_{context}[Agent visibility model].
+No credentials are forwarded:: The caller's credentials are never sent to a peer, and nothing that identifies the caller or this registry is sent either.
+This registry's own results:: The caller's own visibility rules apply to the results of this registry, exactly as for `/.well-known/agents`.
+One hop only:: Every call to a peer carries an `X-Federation-Hop` header, and a registry refuses a federated search that carries one. A search is therefore forwarded at most once, and two registries that list each other as peers do not loop.
+Source attribution:: Every agent in the response has a `source`: `local` for this registry, or the id of the peer it came from. Agents with the same group and artifact ID from different sources are all returned, since nothing proves that two registries publish under the same identity.
+
+// proc-enabling-federation
+[id="enabling-federation_{context}"]
+== Enabling federated agent search
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+Federated agent search is an experimental feature and is disabled by default.
+
+.Prerequisites
+* A2A support is enabled on every registry that takes part, including the peers. A peer that does not serve `/.well-known/agents` is reported as `unsupported`.
+
+.Procedure
+. Enable experimental features, A2A and federation on the registry that runs the federated search:
++
+[source,bash]
+----
+APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true
+APICURIO_A2A_ENABLED=true
+APICURIO_FEDERATION_ENABLED=true
+----
+. Optional: to show the *Agents* page and the *Include remote registries* switch in the {registry} web console, also set `APICURIO_UI_FEATURES_AGENTS_ENABLED=true`.
+. Optional, for development and testing only: allow peers over plain HTTP, or on loopback addresses:
++
+[source,bash]
+----
+APICURIO_FEDERATION_PEER_INSECURE_HTTP_ENABLED=true
+APICURIO_FEDERATION_PEER_LOOPBACK_ENABLED=true
+----
++
+Both settings apply to every peer, including peers loaded from GitOps or KubernetesOps storage.
+
+.Verification
+* `GET /apis/registry/v3/search/federated` returns `200`. While federation is disabled, it returns `409`.
+
+// proc-managing-peers
+[id="managing-peer-registries_{context}"]
+== Managing peer registries
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+Peer registries are managed through the admin REST API, which requires the admin role when authorization is enabled. In GitOps and KubernetesOps storage, peers are declared in the `peers` list of the `registry-v0` file instead, and the full list is replaced on every load.
+
+.Procedure
+. Register a peer:
++
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/registry/v3/admin/peers \
+  -H 'Content-Type: application/json' \
+  -d '{"peerId": "eu-west", "url": "https://registry.eu.example.com", "name": "EU registry"}'
+----
++
+`peerId` and `url` are required. The `peerId` uses lowercase letters, digits, `.`, `_` and `-`, and `local` is reserved. A peer is enabled unless you send `"enabled": false`.
+. List the peers with `GET /apis/registry/v3/admin/peers`, update one with `PUT /apis/registry/v3/admin/peers/\{peerId}`, and remove one with `DELETE /apis/registry/v3/admin/peers/\{peerId}`.
+
+In the web console, an admin can do the same on the *Remote registries* tab.
+
+In GitOps or KubernetesOps storage, declare the peers in the `registry-v0` file of the registry:
+
+[source,yaml]
+----
+$type: registry-v0
+registryId: prod
+peers:
+  - peerId: eu-west
+    url: https://registry.eu.example.com
+    name: EU registry
+    enabled: true
+----
+
+The peer URL must use `https`, unless plain HTTP is allowed, and must be an absolute URL with a host. A host that is, or resolves to, a loopback, link-local, unspecified, multicast, reserved or cloud metadata address is refused. Loopback addresses can be allowed for testing. The host name is resolved when the peer is called, every address it resolves to is checked, and the connection goes to the address that was checked. The certificate is still verified against the host name.
+
+The `credentialSecretRef` field can be stored with a peer, but federated search does not use it yet: every peer is called anonymously.
+
+// proc-running-federated-search
+[id="running-federated-search_{context}"]
+== Searching agents across registries
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+The federated search takes the same filters as the agent search of `/.well-known/agents`. When authorization is enabled, the caller needs read access.
+
+.Procedure
+* Search for agents with a skill, across this registry and its peers:
++
+[source,bash]
+----
+curl 'http://localhost:8080/apis/registry/v3/search/federated?skill=translate&perSourceLimit=10'
+----
++
+The query parameters are `name`, `skill`, `capability`, `inputMode` and `outputMode`. Repeat `skill`, `capability`, `inputMode` and `outputMode` to require several values. `perSourceLimit` is the maximum number of agents from each source. It defaults to `20` and is capped by `apicurio.federation.search.per-source-limit.max`. There is no paging across sources.
+
+.Example response
+[source,json]
+----
+{
+  "agents": [
+    { "source": "local", "groupId": "demo", "artifactId": "local-helper", "name": "local-helper" },
+    { "source": "eu-west", "groupId": "demo", "artifactId": "remote-translator", "name": "remote-translator" }
+  ],
+  "sources": [
+    { "source": "local", "outcome": "ok", "count": 1, "truncated": false },
+    { "source": "eu-west", "outcome": "ok", "count": 1, "truncated": false },
+    { "source": "gone", "outcome": "failed", "reason": "unreachable", "count": 0, "truncated": false }
+  ]
+}
+----
+
+In the web console, open the *Agents* page and turn on *Include remote registries*. Each agent shows the registry it came from, and a row of labels shows the outcome of every registry. Agents from a peer open on their own registry, not in this one.
+
+// ref-federation-outcomes
+[id="federation-outcomes_{context}"]
+== Source outcomes and failure reasons
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The response is `200` whenever the search of this registry succeeds, even when some or all peers fail. Each entry in `sources` has one of the following outcomes.
+
+.Source outcomes
+[cols="1,3",options="header"]
+|===
+|Outcome |Meaning
+|`ok` |The source answered and its agents are in the response. `truncated` is `true` when more agents matched than `perSourceLimit`.
+|`deadline_exceeded` |The search ran out of time before the peer answered. This says nothing about the peer's health.
+|`unsupported` |The peer did not confirm the public-only mode, or has no agent search, so its answer was discarded.
+|`failed` |The source could not be searched. `reason` says why.
+|===
+
+.Failure reasons
+[cols="1,3",options="header"]
+|===
+|Reason |Meaning
+|`unauthorized` |The peer answered `401` or `403`.
+|`unreachable` |The peer could not be reached, or its address is not allowed.
+|`timeout` |The peer did not answer within the per-peer timeout.
+|`peer_error` |The peer answered with a server error, or with a redirect. Redirects are not followed.
+|`invalid_response` |The peer's answer was malformed, too large or inconsistent.
+|`circuit_open` |The peer has been failing repeatedly and was not called.
+|`capacity_exceeded` |This registry had too many peer calls in progress to call the peer.
+|===
+
+The federated search itself fails in the following cases:
+
+* `400`: the request carries an `X-Federation-Hop` header, because another registry forwarded it.
+* `404`: A2A support is not enabled.
+* `409`: federation is not enabled, or more peers are enabled than `apicurio.federation.search.max-peers`. Disable some peers rather than search only part of them.
+* `503`: the search of this registry did not finish before the deadline. The calls to the peers are cancelled.
+
+// ref-federation-configuration
+[id="federation-configuration_{context}"]
+== Federation configuration properties
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The following properties bound the time, the number of calls and the size of the answers of a federated search.
+
+.Federation configuration properties
+[cols="2,1,3",options="header"]
+|===
+|Property |Default |Description
+|`apicurio.federation.enabled` |`false` |Enables the peers API and federated agent search. Requires `apicurio.features.experimental.enabled=true`.
+|`apicurio.federation.search.deadline-ms` |`5000` |Time limit for the whole federated search, including this registry's own search.
+|`apicurio.federation.search.peer-timeout-ms` |`3000` |Time limit for one call to a peer.
+|`apicurio.federation.search.max-peers` |`16` |Maximum number of enabled peers a federated search queries.
+|`apicurio.federation.search.max-concurrent-calls` |`64` |Maximum number of peer calls in progress at once, across all federated searches, from the name lookup until the answer has been read or the call cancelled.
+|`apicurio.federation.search.max-response-bytes` |`1048576` |Maximum size of the answer accepted from one peer.
+|`apicurio.federation.search.per-source-limit.max` |`100` |Upper bound for `perSourceLimit`.
+|`apicurio.federation.search.breaker.request-volume-threshold` |`4` |Number of recent calls to a peer that must have been made before its circuit breaker can open.
+|`apicurio.federation.search.breaker.failure-ratio` |`0.5` |Share of failed calls among the recent calls that opens the circuit breaker of a peer.
+|`apicurio.federation.search.breaker.delay-ms` |`30000` |Time a peer's circuit stays open before the peer is called again.
+|`apicurio.federation.peer.insecure-http.enabled` |`false` |Allows peer URLs that use plain HTTP. For development and testing only.
+|`apicurio.federation.peer.loopback.enabled` |`false` |Allows peers on loopback addresses. For development and testing only.
+|===
+
+Each peer has its own circuit breaker, so a peer that keeps failing is skipped without any effect on the others. Only transport failures, server errors and timeouts count against a peer. A `401` or `403`, an unsupported peer, a malformed answer, a refused address, a call cancelled at the deadline and a call this registry had no capacity for do not.
+
+The service records the metrics `apicurio.federation.peer.search`, a timer tagged by `peer`, `outcome` and `reason`, and `apicurio.federation.peer.circuit.state`, a gauge per peer that is `0` when its circuit is closed, `1` when half open and `2` when open.

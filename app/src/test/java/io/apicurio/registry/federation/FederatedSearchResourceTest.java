@@ -260,6 +260,25 @@ public class FederatedSearchResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    void aMalformedAnswerIsAnInvalidResponseAtOnceAndNeverOpensThePeersCircuit() throws Exception {
+        String skill = "malformed-" + UUID.randomUUID();
+        card("local-card", skill, "public");
+        registerPeer("a-ok", stub((request, response) -> StubPeer.publicAgents(response, 1, "remote")).url());
+        StubPeer malformed = stub((request, response) -> StubPeer.json(response,
+                "{\"publicOnly\":true,\"count\":1,\"agents\":[null]}"));
+        registerPeer("b-malformed", malformed.url());
+
+        // More searches than it takes to open a circuit, were the malformed answers held against the peer.
+        for (int i = 0; i < 6; i++) {
+            search(skill).body("agents.source", contains("local", "a-ok"))
+                    .body("sources.source", contains("local", "a-ok", "b-malformed"))
+                    .body("sources.outcome", contains("ok", "ok", "failed"))
+                    .body("sources[2].reason", equalTo("invalid_response"));
+        }
+        assertEquals(6, malformed.requests().size(), "A malformed answer must not open the circuit.");
+    }
+
+    @Test
     void theLocalSearchStillWorksWhenEveryPeerFails() throws Exception {
         String skill = "mine-" + UUID.randomUUID();
         card("local-card", skill, "public");

@@ -7,7 +7,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.4-SNAPSHOT
+    app.kubernetes.io/version: 3.3.5-SNAPSHOT
   name: apicurioregistries3.registry.apicur.io
 spec:
   group: registry.apicur.io
@@ -7315,7 +7315,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.4-SNAPSHOT
+    app.kubernetes.io/version: 3.3.5-SNAPSHOT
   name: apicurio-registry-operator
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -7327,7 +7327,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.4-SNAPSHOT
+    app.kubernetes.io/version: 3.3.5-SNAPSHOT
   name: apicurio-registry-operator-role
 rules:
 - apiGroups:
@@ -7443,7 +7443,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.4-SNAPSHOT
+    app.kubernetes.io/version: 3.3.5-SNAPSHOT
   name: apicurio-registry-operator-clusterrole-PLACEHOLDER_NAMESPACE
 rules:
 - apiGroups:
@@ -7472,7 +7472,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.4-SNAPSHOT
+    app.kubernetes.io/version: 3.3.5-SNAPSHOT
   name: apicurio-registry-operator-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -7492,7 +7492,7 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.4-SNAPSHOT
+    app.kubernetes.io/version: 3.3.5-SNAPSHOT
   name: apicurio-registry-operator-clusterrolebinding-PLACEHOLDER_NAMESPACE
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -7512,8 +7512,8 @@ metadata:
     app.kubernetes.io/instance: apicurio-registry-operator
     app.kubernetes.io/name: apicurio-registry-operator
     app.kubernetes.io/part-of: apicurio-registry
-    app.kubernetes.io/version: 3.3.4-SNAPSHOT
-  name: apicurio-registry-operator-v3.3.4-snapshot
+    app.kubernetes.io/version: 3.3.5-SNAPSHOT
+  name: apicurio-registry-operator-v3.3.5-snapshot
   namespace: PLACEHOLDER_NAMESPACE
 spec:
   replicas: 1
@@ -7524,7 +7524,7 @@ spec:
       app.kubernetes.io/instance: apicurio-registry-operator
       app.kubernetes.io/name: apicurio-registry-operator
       app.kubernetes.io/part-of: apicurio-registry
-      app.kubernetes.io/version: 3.3.4-SNAPSHOT
+      app.kubernetes.io/version: 3.3.5-SNAPSHOT
   template:
     metadata:
       labels:
@@ -7533,7 +7533,7 @@ spec:
         app.kubernetes.io/instance: apicurio-registry-operator
         app.kubernetes.io/name: apicurio-registry-operator
         app.kubernetes.io/part-of: apicurio-registry
-        app.kubernetes.io/version: 3.3.4-SNAPSHOT
+        app.kubernetes.io/version: 3.3.5-SNAPSHOT
     spec:
       automountServiceAccountToken: true
       containers:

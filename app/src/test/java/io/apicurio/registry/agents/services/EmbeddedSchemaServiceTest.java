@@ -5,7 +5,9 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.extensions.ContentPlan;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
+import io.apicurio.registry.storage.dto.EditableArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.EditableVersionMetaDataDto;
+import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.VersionAlreadyExistsException;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -29,7 +31,6 @@ import static io.apicurio.registry.util.JsonObjectMapper.MAPPER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 /**
  * {@link EmbeddedSchemaService#planPromptTemplateEmbeddedSchemas} predicts the version a schema
  * registration would get and defers writing it to {@link ContentPlan#getCommit()}. If another write
@@ -186,5 +187,46 @@ public class EmbeddedSchemaServiceTest {
         } finally {
             context.terminate();
         }
+    }
+
+    /**
+     * A MODEL_SCHEMA plans both "input" and "output" as separate schema artifacts in one
+     * {@link ContentPlan#getCommit()}. If "input" is new and commits fine but "output" then loses a
+     * race for its predicted version, the whole commit must fail <em>and</em> undo "input": otherwise
+     * "input" is left registered with nothing referencing it, because the parent is never written
+     * when commit() throws.
+     */
+    @Test
+    public void commitRollsBackAnEarlierFieldWhenALaterFieldLosesTheRace() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = "partial-model";
+        String inputSchemaArtifactId = artifactId + "-input-schema";
+        String outputSchemaArtifactId = artifactId + "-output-schema";
+        String model = """
+                {
+                  "modelId": "m",
+                  "input": { "type": "object", "properties": { "prompt": { "type": "string" } } },
+                  "output": { "type": "object", "properties": { "text": { "type": "string" } } }
+                }
+                """;
+
+        ContentPlan plan = service.planModelSchemaEmbeddedSchemas(storage, groupId, artifactId,
+                ContentHandle.create(model), ContentTypes.APPLICATION_JSON, "test-owner");
+
+        // Another write takes the output schema's predicted artifact ("1") before this plan commits;
+        // the input schema's predicted artifact is untouched, so input's write alone would succeed.
+        storage.createArtifact(groupId, outputSchemaArtifactId, "JSON",
+                EditableArtifactMetaDataDto.builder().build(), "1",
+                ContentWrapperDto.builder().content(ContentHandle.create("{\"type\": \"string\"}"))
+                        .contentType(ContentTypes.APPLICATION_JSON).references(Collections.emptyList()).build(),
+                EditableVersionMetaDataDto.builder().build(), Collections.emptyList(), false, false,
+                "other-writer");
+
+        assertThrows(VersionAlreadyExistsException.class, () -> plan.getCommit().run());
+
+        // input must not be left behind just because output lost the race.
+        assertThrows(ArtifactNotFoundException.class, () -> storage.getArtifactMetaData(groupId, inputSchemaArtifactId));
+        // output is exactly what the other writer registered, untouched by the failed plan.
+        assertEquals(1, storage.getArtifactVersions(groupId, outputSchemaArtifactId).size());
     }
 }

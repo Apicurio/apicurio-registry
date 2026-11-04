@@ -223,12 +223,33 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
             }
         }
 
-        Runnable commit = () -> fieldPlans.forEach(fieldPlan -> {
-            SchemaWrite write = fieldPlan.registration().write();
-            if (write != null) {
-                write.commit().run();
+        Runnable commit = () -> {
+            // Each field's write is independent (potentially different artifacts), so one field's
+            // write succeeding does not make the whole plan atomic. If a later field's write fails
+            // (its predicted coordinates were taken concurrently), undo the earlier fields' writes
+            // rather than leave them registered with nothing referencing them: the parent is never
+            // written when this throws.
+            List<Runnable> committed = new ArrayList<>();
+            try {
+                for (FieldPlan fieldPlan : fieldPlans) {
+                    SchemaWrite write = fieldPlan.registration().write();
+                    if (write != null) {
+                        write.commit().run();
+                        committed.add(write.rollback());
+                    }
+                }
+            } catch (RuntimeException failure) {
+                for (int i = committed.size() - 1; i >= 0; i--) {
+                    try {
+                        committed.get(i).run();
+                    } catch (RuntimeException rollbackFailure) {
+                        log.warn("Failed to roll back an embedded schema registration after a later "
+                                + "field's commit failed for the same write", rollbackFailure);
+                    }
+                }
+                throw failure;
             }
-        });
+        };
         return new ContentPlan(content, plannedReferencedContent, commit);
     }
 
@@ -270,7 +291,11 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
                         throw new VersionAlreadyExistsException(groupId, schemaArtifactId, "1");
                     }
                 };
-                return new SchemaRegistration("1", new SchemaWrite(contentWrapper, commit));
+                Runnable rollback = () -> {
+                    storage.deleteArtifact(groupId, schemaArtifactId);
+                    log.info("Rolled back embedded schema artifact: {}/{}", groupId, schemaArtifactId);
+                };
+                return new SchemaRegistration("1", new SchemaWrite(contentWrapper, commit, rollback));
             }
 
             TypedContent typedContent = TypedContent.create(contentHandle, ContentTypes.APPLICATION_JSON);
@@ -299,7 +324,12 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
                     throw new VersionAlreadyExistsException(groupId, schemaArtifactId, predictedVersion);
                 }
             };
-            return new SchemaRegistration(predictedVersion, new SchemaWrite(contentWrapper, commit));
+            Runnable rollback = () -> {
+                storage.deleteArtifactVersion(groupId, schemaArtifactId, predictedVersion);
+                log.info("Rolled back embedded schema version: {}/{} v{}", groupId, schemaArtifactId,
+                        predictedVersion);
+            };
+            return new SchemaRegistration(predictedVersion, new SchemaWrite(contentWrapper, commit, rollback));
         } catch (Exception e) {
             log.warn("Failed to plan embedded schema registration {}/{}: {}", groupId, schemaArtifactId,
                     e.getMessage());
@@ -372,7 +402,9 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
     }
 
     /** @param content the schema content, for reference resolution and rules before commit runs
-     *  @param commit writes the schema; throws if its predicted coordinates were taken concurrently */
-    private record SchemaWrite(ContentWrapperDto content, Runnable commit) {
+     *  @param commit writes the schema; throws if its predicted coordinates were taken concurrently
+     *  @param rollback undoes {@code commit} after it succeeded; best-effort, used only when a later
+     *                  field in the same plan fails to commit */
+    private record SchemaWrite(ContentWrapperDto content, Runnable commit, Runnable rollback) {
     }
 }

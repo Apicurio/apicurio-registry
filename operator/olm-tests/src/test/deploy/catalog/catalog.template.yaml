@@ -2,7 +2,7 @@ schema: olm.template.basic
 entries:
   - schema: olm.package
     name: ${PLACEHOLDER_PACKAGE_NAME}
-    defaultChannel: ${PLACEHOLDER_CHANNEL}
+    defaultChannel: ${PLACEHOLDER_CATALOG_DEFAULT_CHANNEL}
   - schema: olm.channel
     package: ${PLACEHOLDER_PACKAGE_NAME}
     name: 3.x

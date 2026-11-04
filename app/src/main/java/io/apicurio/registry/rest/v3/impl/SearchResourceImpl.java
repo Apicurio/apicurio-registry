@@ -9,6 +9,9 @@ import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.contracts.ContractLabels;
+import io.apicurio.registry.federation.FederatedSearchService;
+import io.apicurio.registry.federation.FederationConfig;
+import io.apicurio.registry.federation.PeerQuery;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.OTelMetricsProvider;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -20,6 +23,7 @@ import io.apicurio.registry.rest.v3.beans.ArtifactSearchResults;
 import io.apicurio.registry.rest.v3.beans.ArtifactSortBy;
 import io.apicurio.registry.rest.v3.beans.ContractRule;
 import io.apicurio.registry.rest.v3.beans.ContractRuleSearchResult;
+import io.apicurio.registry.rest.v3.beans.FederatedAgentSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupSearchResults;
 import io.apicurio.registry.rest.v3.beans.GroupSortBy;
 import io.apicurio.registry.rest.v3.beans.Params;
@@ -37,13 +41,16 @@ import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.cdi.Current;
+import io.apicurio.registry.extensions.AgentSearchHandler;
 import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.StringUtil;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.core.Context;
 
 import java.io.InputStream;
@@ -62,6 +69,7 @@ public class SearchResourceImpl implements SearchResource {
     private static final String EMPTY_CONTENT_ERROR_MESSAGE = "Empty content is not allowed.";
     private static final String CANONICAL_QUERY_PARAM_ERROR_MESSAGE = "When setting 'canonical' to 'true', the 'artifactType' query parameter is also required.";
     private static final String CONTRACT_LABEL_PREFIX = "contract.*";
+    private static final int DEFAULT_PER_SOURCE_LIMIT = 20;
 
     @Inject
     @Current
@@ -78,6 +86,15 @@ public class SearchResourceImpl implements SearchResource {
 
     @Inject
     ISearchAuthorizer searchAuthorizer;
+
+    @Inject
+    FederationConfig federationConfig;
+
+    @Inject
+    FederatedSearchService federatedSearch;
+
+    @Inject
+    Instance<AgentSearchHandler> agentSearch;
 
     private static SearchFilter parseLabelFilter(String prop) {
         int delimiterIndex = prop.lastIndexOf(":");
@@ -98,6 +115,30 @@ public class SearchResourceImpl implements SearchResource {
             labelValue = prop.substring(delimiterIndex + 1);
         }
         return SearchFilter.ofLabel(labelKey, labelValue);
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.SearchResource#searchFederatedAgents(String, List, List, List, List, BigInteger)
+     */
+    @Override
+    @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
+    public FederatedAgentSearchResults searchFederatedAgents(String name, List<String> skill,
+            List<String> capability, List<String> inputMode, List<String> outputMode,
+            BigInteger perSourceLimit) {
+        federationConfig.requireEnabled();
+        if (!agentSearch.isResolvable()) {
+            throw new NotFoundException("Agent search is not available");
+        }
+        if (request.getHeader(FederatedSearchService.HOP_HEADER) != null) {
+            throw new BadRequestException("A federated search cannot be forwarded: the request carries the "
+                    + FederatedSearchService.HOP_HEADER + " header.");
+        }
+        int maxLimit = federationConfig.getSearchPerSourceLimitMax();
+        int limit = perSourceLimit == null ? Math.min(DEFAULT_PER_SOURCE_LIMIT, maxLimit)
+            : perSourceLimit.min(BigInteger.valueOf(maxLimit)).max(BigInteger.ONE).intValue();
+        PeerQuery query = new PeerQuery(name, skill, capability, inputMode, outputMode, limit);
+        return federatedSearch.search(query, (localLimit, checkpoint) -> agentSearch.get().searchAgents(name,
+                skill, capability, inputMode, outputMode, 0, localLimit, false, checkpoint));
     }
 
     @Override

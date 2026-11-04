@@ -15,6 +15,8 @@ type AgentSearchResults struct {
 	agents []AgentSearchResultable
 	// The count property
 	count *int32
+	// `true` when the request asked for `publicOnly` and this registry applied it. Absent otherwise, and absent from registries that predate the parameter.
+	publicOnly *bool
 }
 
 // NewAgentSearchResults instantiates a new AgentSearchResults and sets the default values.
@@ -78,7 +80,23 @@ func (m *AgentSearchResults) GetFieldDeserializers() map[string]func(i878a80d233
 		}
 		return nil
 	}
+	res["publicOnly"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetBoolValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetPublicOnly(val)
+		}
+		return nil
+	}
 	return res
+}
+
+// GetPublicOnly gets the publicOnly property value. `true` when the request asked for `publicOnly` and this registry applied it. Absent otherwise, and absent from registries that predate the parameter.
+// returns a *bool when successful
+func (m *AgentSearchResults) GetPublicOnly() *bool {
+	return m.publicOnly
 }
 
 // Serialize serializes information the current object
@@ -97,6 +115,12 @@ func (m *AgentSearchResults) Serialize(writer i878a80d2330e89d26896388a3f487eef2
 	}
 	{
 		err := writer.WriteInt32Value("count", m.GetCount())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteBoolValue("publicOnly", m.GetPublicOnly())
 		if err != nil {
 			return err
 		}
@@ -125,11 +149,18 @@ func (m *AgentSearchResults) SetCount(value *int32) {
 	m.count = value
 }
 
+// SetPublicOnly sets the publicOnly property value. `true` when the request asked for `publicOnly` and this registry applied it. Absent otherwise, and absent from registries that predate the parameter.
+func (m *AgentSearchResults) SetPublicOnly(value *bool) {
+	m.publicOnly = value
+}
+
 type AgentSearchResultsable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
 	GetAgents() []AgentSearchResultable
 	GetCount() *int32
+	GetPublicOnly() *bool
 	SetAgents(value []AgentSearchResultable)
 	SetCount(value *int32)
+	SetPublicOnly(value *bool)
 }

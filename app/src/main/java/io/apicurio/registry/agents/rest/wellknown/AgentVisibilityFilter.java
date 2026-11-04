@@ -99,6 +99,21 @@ public class AgentVisibilityFilter {
     }
 
     /**
+     * Keeps only the artifacts whose effective visibility is {@code public}. Unlike
+     * {@link #filterDtosByVisibility}, the result does not depend on the caller or on whether
+     * authentication is enabled: an unlabelled card is public only if the configured default is.
+     */
+    List<SearchedArtifactDto> filterDtosToPublic(List<SearchedArtifactDto> artifacts) {
+        List<SearchedArtifactDto> result = new ArrayList<>();
+        for (SearchedArtifactDto artifact : artifacts) {
+            if ("public".equals(resolveVisibility(artifact.getLabels()))) {
+                result.add(artifact);
+            }
+        }
+        return result;
+    }
+
+    /**
      * Returns the effective visibility for an artifact. If the {@code apicurio.agent.visibility}
      * label is not set, falls back to the configured default visibility.
      * <p>

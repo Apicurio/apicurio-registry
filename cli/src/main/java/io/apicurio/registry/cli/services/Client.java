@@ -37,6 +37,14 @@ public class Client {
     private static final int IDLE_TIMEOUT_SECONDS = 120;
     private static final int MAX_REDIRECTS = 5;
 
+    // The kiota adapter blocks with no timeout of its own, so without this bound one stalled
+    // request hangs the command forever. Imports stay silent while the server works, hence the
+    // slow-admin budget the deployment manager in integration-tests also uses. The connect
+    // timeout equals the Vert.x default, which the client effectively had before options were
+    // set here.
+    private static final long REGISTRY_CONNECT_TIMEOUT_MILLIS = 60_000L;
+    private static final long REGISTRY_READ_IDLE_TIMEOUT_MILLIS = 180_000L;
+
     private RegistryClient registryClient;
 
     private HttpClient httpClient;
@@ -61,7 +69,7 @@ public class Client {
                     if (uri.getPath() == null) {
                         uri = uri.resolve("/apis/registry/v3");
                     }
-                    final var options = RegistryClientOptions.create(uri.toString(), vertx);
+                    final var options = newRegistryClientOptions(uri.toString());
                     if (httpLoggingEnabled) {
                         options.enableHttpLogging();
                     }
@@ -75,6 +83,12 @@ public class Client {
             }
             return registryClient;
         }
+    }
+
+    RegistryClientOptions newRegistryClientOptions(final String registryUrl) {
+        final var options = RegistryClientOptions.create(registryUrl, vertx);
+        options.requestTimeout(REGISTRY_CONNECT_TIMEOUT_MILLIS, REGISTRY_READ_IDLE_TIMEOUT_MILLIS);
+        return options;
     }
 
     public HttpClient getHttpClient() {

@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * {@link EmbeddedSchemaService#planPromptTemplateEmbeddedSchemas} predicts the version a schema
- * registration would get and defers writing it to {@link ContentPlan#getCommit()}. If another write
+ * registration would get and defers writing it to {@link ContentPlan#commit()}. If another write
  * takes that predicted version between planning and commit, the commit must fail rather than
  * register the schema under a different version than the plan's {@code $ref} already points at — see
  * issue #10603. Subclasses run these tests against every storage variant.
@@ -84,13 +84,13 @@ public class EmbeddedSchemaServiceTest {
     }
 
     @Test
-    public void commitFailsWhenThePredictedVersionIsTakenByAnotherWrite() throws Exception {
+    void commitFailsWhenThePredictedVersionIsTakenByAnotherWrite() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String artifactId = "taken-schema";
         String schemaArtifactId = artifactId + "-output-schema";
 
         // Plan v1: the schema artifact doesn't exist, so the plan predicts a new artifact at "1".
-        plan(groupId, artifactId, PROMPT_V1).getCommit().run();
+        plan(groupId, artifactId, PROMPT_V1).commit().run();
         assertEquals(1, storage.getArtifactVersions(groupId, schemaArtifactId).size());
 
         // Plan v2: the schema artifact now exists at version "1", so the plan predicts a new version "2".
@@ -106,20 +106,21 @@ public class EmbeddedSchemaServiceTest {
 
         // The plan's commit must fail, not silently register under version "3": the parent's already
         // rewritten $ref points at "2", which now holds the other writer's content.
-        assertThrows(VersionAlreadyExistsException.class, () -> v2Plan.getCommit().run());
+        Runnable v2Commit = v2Plan.commit();
+        assertThrows(VersionAlreadyExistsException.class, v2Commit::run);
 
         // Nothing was added: the schema artifact still has only the two versions genuinely registered.
         assertEquals(2, storage.getArtifactVersions(groupId, schemaArtifactId).size());
     }
 
     @Test
-    public void commitSucceedsWhenNothingRacesThePlan() throws Exception {
+    void commitSucceedsWhenNothingRacesThePlan() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String artifactId = "sequential-schema";
         String schemaArtifactId = artifactId + "-output-schema";
 
-        plan(groupId, artifactId, PROMPT_V1).getCommit().run();
-        plan(groupId, artifactId, PROMPT_V2).getCommit().run();
+        plan(groupId, artifactId, PROMPT_V1).commit().run();
+        plan(groupId, artifactId, PROMPT_V2).commit().run();
 
         assertEquals(2, storage.getArtifactVersions(groupId, schemaArtifactId).size());
     }
@@ -130,17 +131,17 @@ public class EmbeddedSchemaServiceTest {
      * version "2" must hold the winner's schema.
      */
     @Test
-    public void concurrentCommitsOfTheSamePredictedVersionHaveExactlyOneWinner() throws Exception {
+    void concurrentCommitsOfTheSamePredictedVersionHaveExactlyOneWinner() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String artifactId = "raced-schema";
         String schemaArtifactId = artifactId + "-output-schema";
-        plan(groupId, artifactId, PROMPT_V1).getCommit().run();
+        plan(groupId, artifactId, PROMPT_V1).commit().run();
 
         // Plan every writer before any commits, so all see base version "1" and predict "2".
         List<ContentPlan> plans = new ArrayList<>();
         for (int i = 0; i < WRITERS; i++) {
             ContentPlan plan = plan(groupId, artifactId, promptFor("writer" + i));
-            assertEquals("2", plan.getContent().getReferences().get(0).getVersion());
+            assertEquals("2", plan.content().getReferences().get(0).getVersion());
             plans.add(plan);
         }
 
@@ -179,7 +180,7 @@ public class EmbeddedSchemaServiceTest {
         context.activate();
         try {
             start.await(30, TimeUnit.SECONDS);
-            plan.getCommit().run();
+            plan.commit().run();
             return true;
         } catch (VersionAlreadyExistsException lost) {
             assertEquals("2", lost.getVersion());
@@ -191,13 +192,13 @@ public class EmbeddedSchemaServiceTest {
 
     /**
      * A MODEL_SCHEMA plans both "input" and "output" as separate schema artifacts in one
-     * {@link ContentPlan#getCommit()}. If "input" is new and commits fine but "output" then loses a
+     * {@link ContentPlan#commit()}. If "input" is new and commits fine but "output" then loses a
      * race for its predicted version, the whole commit must fail <em>and</em> undo "input": otherwise
      * "input" is left registered with nothing referencing it, because the parent is never written
      * when commit() throws.
      */
     @Test
-    public void commitRollsBackAnEarlierFieldWhenALaterFieldLosesTheRace() throws Exception {
+    void commitRollsBackAnEarlierFieldWhenALaterFieldLosesTheRace() throws Exception {
         String groupId = TestUtils.generateGroupId();
         String artifactId = "partial-model";
         String inputSchemaArtifactId = artifactId + "-input-schema";
@@ -213,8 +214,8 @@ public class EmbeddedSchemaServiceTest {
         ContentPlan plan = service.planModelSchemaEmbeddedSchemas(storage, groupId, artifactId,
                 ContentHandle.create(model), ContentTypes.APPLICATION_JSON, "test-owner");
 
-        // Another write takes the output schema's predicted artifact ("1") before this plan commits;
-        // the input schema's predicted artifact is untouched, so input's write alone would succeed.
+        // Another write takes the output schema's predicted artifact before this plan commits; the
+        // input schema's predicted artifact is untouched, so input's write alone would succeed.
         storage.createArtifact(groupId, outputSchemaArtifactId, "JSON",
                 EditableArtifactMetaDataDto.builder().build(), "1",
                 ContentWrapperDto.builder().content(ContentHandle.create("{\"type\": \"string\"}"))
@@ -222,7 +223,8 @@ public class EmbeddedSchemaServiceTest {
                 EditableVersionMetaDataDto.builder().build(), Collections.emptyList(), false, false,
                 "other-writer");
 
-        assertThrows(VersionAlreadyExistsException.class, () -> plan.getCommit().run());
+        Runnable commit = plan.commit();
+        assertThrows(VersionAlreadyExistsException.class, commit::run);
 
         // input must not be left behind just because output lost the race.
         assertThrows(ArtifactNotFoundException.class, () -> storage.getArtifactMetaData(groupId, inputSchemaArtifactId));

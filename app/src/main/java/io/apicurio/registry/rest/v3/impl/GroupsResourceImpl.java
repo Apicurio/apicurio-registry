@@ -2057,11 +2057,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Apply rules only if not a draft version (unless draft production mode is enabled)
         if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {
-            final Map<String, TypedContent> resolvedReferences = ReferenceResolution.recursivelyResolveReferences(
-                    referencesAsDtos, prepared.hookPlan().loader(accessGuard.referenceLoader()));
-            final TypedContent typedContent = TypedContent.create(content, contentType);
-            rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
-                    typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
+            applyUpdateRules(groupId, artifactId, artifactType, content, contentType, references, referencesAsDtos,
+                    prepared.hookPlan());
         }
 
         // Let write hooks inspect the content BEFORE the version is persisted, so a hook rejection
@@ -2095,6 +2092,20 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ArtifactMetaData amd = V3ApiUtil.dtoToArtifactMetaData(amdDto);
 
         return CreateArtifactResponse.builder().artifact(amd).version(vmd).build();
+    }
+
+    /**
+     * Resolves references (seeing a hook's planned, not-yet-persisted content through {@code hookPlan})
+     * and applies the configured rules for a version update.
+     */
+    private void applyUpdateRules(String groupId, String artifactId, String artifactType, ContentHandle content,
+            String contentType, List<ArtifactReference> references, List<ArtifactReferenceDto> referencesAsDtos,
+            HookPlan hookPlan) {
+        final Map<String, TypedContent> resolvedReferences = ReferenceResolution.recursivelyResolveReferences(
+                referencesAsDtos, hookPlan.loader(accessGuard.referenceLoader()));
+        final TypedContent typedContent = TypedContent.create(content, contentType);
+        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
+                typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
     }
 
     private List<ArtifactReferenceDto> toReferenceDtos(List<ArtifactReference> references) {
@@ -2163,7 +2174,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             String currentContentType = result != null ? result.getContentType() : contentType;
             ContentPlan plan = hook.planContent(context, TypedContent.create(currentContent, currentContentType));
             if (plan != null) {
-                ContentWrapperDto prepared = plan.getContent();
+                ContentWrapperDto prepared = plan.content();
                 List<ArtifactReferenceDto> references = new ArrayList<>();
                 if (result != null) {
                     references.addAll(result.getReferences());
@@ -2173,8 +2184,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 }
                 result = ContentWrapperDto.builder().content(prepared.getContent())
                         .contentType(prepared.getContentType()).references(references).build();
-                plannedReferencedContent.putAll(plan.getPlannedReferencedContent());
-                commits.add(plan.getCommit());
+                plannedReferencedContent.putAll(plan.plannedReferencedContent());
+                commits.add(plan.commit());
             }
         }
         return new HookPlan(result, plannedReferencedContent, commits);

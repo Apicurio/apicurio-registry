@@ -42,7 +42,7 @@ public interface ArtifactVersionWriteHook {
 
     /**
      * Stage 1, for hooks that write related artifacts or versions: plan the rewrite without writing
-     * anything, deferring the write to {@link ContentPlan#getCommit()}.
+     * anything, deferring the write to {@link ContentPlan#commit()}.
      * <p>
      * The default implementation calls {@link #prepareContent}, so a hook that only overrides that
      * method keeps writing immediately, unchanged from before this method existed.

@@ -50,7 +50,7 @@ import static io.apicurio.registry.util.YAMLObjectMapper.YAML_MAPPER;
  * <p>
  * Registration is planned, not written, by {@link #planContent}: a schema that matches an existing
  * version is reused without writing anything; a new artifact or version is predicted (its coordinates
- * decided) and written only by the returned {@link ContentPlan#getCommit()}, which the caller runs
+ * decided) and written only by the returned {@link ContentPlan#commit()}, which the caller runs
  * after rules and every other hook have passed, and never on a dry run. This keeps a later rejection
  * from leaving a registered schema behind. See issue #10603.
  * </p>
@@ -132,12 +132,11 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
                 return null;
             }
             ObjectNode rootObj = (ObjectNode) root;
+            PlanContext ctx = new PlanContext(storage, groupId, artifactId, owner);
 
             List<FieldPlan> fieldPlans = new ArrayList<>();
-            planField(storage, groupId, artifactId, rootObj, "input", "input-schema",
-                    "Input schema for " + artifactId, owner, fieldPlans);
-            planField(storage, groupId, artifactId, rootObj, "output", "output-schema",
-                    "Output schema for " + artifactId, owner, fieldPlans);
+            planField(ctx, rootObj, "input", "input-schema", "Input schema for " + artifactId, fieldPlans);
+            planField(ctx, rootObj, "output", "output-schema", "Output schema for " + artifactId, fieldPlans);
 
             if (fieldPlans.isEmpty()) {
                 return null;
@@ -162,10 +161,11 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
                 return null;
             }
             ObjectNode rootObj = (ObjectNode) root;
+            PlanContext ctx = new PlanContext(storage, groupId, artifactId, owner);
 
             List<FieldPlan> fieldPlans = new ArrayList<>();
-            planField(storage, groupId, artifactId, rootObj, "outputSchema", "output-schema",
-                    "Output schema for prompt template " + artifactId, owner, fieldPlans);
+            planField(ctx, rootObj, "outputSchema", "output-schema",
+                    "Output schema for prompt template " + artifactId, fieldPlans);
 
             if (fieldPlans.isEmpty()) {
                 return null;
@@ -182,21 +182,20 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
      * version, or predicting a new artifact or version) and rewrites {@code rootObj}'s field in place to
      * a {@code $ref}. Appends the plan to {@code fieldPlans} so the caller can build the content plan.
      */
-    private void planField(RegistryStorage storage, String groupId, String artifactId, ObjectNode rootObj,
-            String field, String suffix, String description, String owner, List<FieldPlan> fieldPlans) {
+    private void planField(PlanContext ctx, ObjectNode rootObj, String field, String suffix, String description,
+            List<FieldPlan> fieldPlans) {
         if (!rootObj.has(field) || !rootObj.get(field).isObject() || !hasSchemaProperties(rootObj.get(field))) {
             return;
         }
-        String schemaArtifactId = artifactId + "-" + suffix;
+        String schemaArtifactId = ctx.artifactId() + "-" + suffix;
         JsonNode schema = rootObj.get(field);
-        SchemaRegistration registration = planSchemaRegistration(storage, groupId, schemaArtifactId, schema,
-                description, owner);
+        SchemaRegistration registration = planSchemaRegistration(ctx, schemaArtifactId, schema, description);
         if (registration == null) {
             return;
         }
-        String refName = buildReferenceName(groupId, schemaArtifactId, registration.version());
+        String refName = buildReferenceName(ctx.groupId(), schemaArtifactId, registration.version());
         rootObj.set(field, createRefNode(refName));
-        ArtifactReferenceDto reference = ArtifactReferenceDto.builder().groupId(groupId)
+        ArtifactReferenceDto reference = ArtifactReferenceDto.builder().groupId(ctx.groupId())
                 .artifactId(schemaArtifactId).version(registration.version()).name(refName).build();
         fieldPlans.add(new FieldPlan(reference, registration));
     }
@@ -223,34 +222,41 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
             }
         }
 
-        Runnable commit = () -> {
-            // Each field's write is independent (potentially different artifacts), so one field's
-            // write succeeding does not make the whole plan atomic. If a later field's write fails
-            // (its predicted coordinates were taken concurrently), undo the earlier fields' writes
-            // rather than leave them registered with nothing referencing them: the parent is never
-            // written when this throws.
-            List<Runnable> committed = new ArrayList<>();
-            try {
-                for (FieldPlan fieldPlan : fieldPlans) {
-                    SchemaWrite write = fieldPlan.registration().write();
-                    if (write != null) {
-                        write.commit().run();
-                        committed.add(write.rollback());
-                    }
+        return new ContentPlan(content, plannedReferencedContent, () -> commitFields(fieldPlans));
+    }
+
+    /**
+     * Each field's write is independent (potentially a different artifact), so one field's write
+     * succeeding does not make the whole plan atomic. If a later field's write fails (its predicted
+     * coordinates were taken concurrently), undoes the earlier fields' writes rather than leaving them
+     * registered with nothing referencing them: the parent is never written when this throws.
+     */
+    private void commitFields(List<FieldPlan> fieldPlans) {
+        List<Runnable> committed = new ArrayList<>();
+        try {
+            for (FieldPlan fieldPlan : fieldPlans) {
+                SchemaWrite write = fieldPlan.registration().write();
+                if (write != null) {
+                    write.commit().run();
+                    committed.add(write.rollback());
                 }
-            } catch (RuntimeException failure) {
-                for (int i = committed.size() - 1; i >= 0; i--) {
-                    try {
-                        committed.get(i).run();
-                    } catch (RuntimeException rollbackFailure) {
-                        log.warn("Failed to roll back an embedded schema registration after a later "
-                                + "field's commit failed for the same write", rollbackFailure);
-                    }
-                }
-                throw failure;
             }
-        };
-        return new ContentPlan(content, plannedReferencedContent, commit);
+        } catch (RuntimeException failure) {
+            rollBack(committed);
+            throw failure;
+        }
+    }
+
+    /** Undoes already-committed writes in reverse order, best-effort: logs but does not throw. */
+    private void rollBack(List<Runnable> committed) {
+        for (int i = committed.size() - 1; i >= 0; i--) {
+            try {
+                committed.get(i).run();
+            } catch (RuntimeException rollbackFailure) {
+                log.warn("Failed to roll back an embedded schema registration after a later field's "
+                        + "commit failed for the same write", rollbackFailure);
+            }
+        }
     }
 
     /**
@@ -263,8 +269,11 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
      * @return the registration, or null if nothing can be planned (matches the old behaviour of leaving
      *         the field inline and logging a warning)
      */
-    private SchemaRegistration planSchemaRegistration(RegistryStorage storage, String groupId,
-            String schemaArtifactId, JsonNode schema, String description, String owner) {
+    private SchemaRegistration planSchemaRegistration(PlanContext ctx, String schemaArtifactId, JsonNode schema,
+            String description) {
+        RegistryStorage storage = ctx.storage();
+        String groupId = ctx.groupId();
+        String owner = ctx.owner();
         try {
             String schemaContent = MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(schema);
             ContentHandle contentHandle = ContentHandle.create(schemaContent);
@@ -390,6 +399,10 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
         ObjectNode refNode = MAPPER.createObjectNode();
         refNode.put("$ref", refName);
         return refNode;
+    }
+
+    /** The parameters shared by every field planned for one write: bundled to keep method signatures short. */
+    private record PlanContext(RegistryStorage storage, String groupId, String artifactId, String owner) {
     }
 
     /** One field's plan: the reference it rewrites to, and how it would be registered. */

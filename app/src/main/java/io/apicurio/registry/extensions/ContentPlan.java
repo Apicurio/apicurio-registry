@@ -17,41 +17,22 @@ import java.util.Map;
  * {@link #commit()}, run only after every check has passed and only when the request is not a dry
  * run.
  * </p>
+ *
+ * @param content                  the replacement content and type, with {@code references}
+ *                                  holding only the references the rewrite introduced, exactly
+ *                                  as {@link ArtifactVersionWriteHook#prepareContent} returns
+ * @param plannedReferencedContent content for references introduced by {@code content} that are
+ *                                  not yet persisted (keyed by {@code groupId}/{@code artifactId}/
+ *                                  {@code version}, with {@code name} left unset), so reference
+ *                                  resolution and rules see it before {@link #commit} runs
+ * @param commit                   registers whatever {@code content} refers to that is not yet
+ *                                  persisted; must throw if a predicted coordinate was taken by a
+ *                                  concurrent write, rather than silently writing somewhere else
  */
-public final class ContentPlan {
+public record ContentPlan(ContentWrapperDto content, Map<ArtifactReferenceDto, ContentWrapperDto> plannedReferencedContent,
+        Runnable commit) {
 
-    private final ContentWrapperDto content;
-    private final Map<ArtifactReferenceDto, ContentWrapperDto> plannedReferencedContent;
-    private final Runnable commit;
-
-    /**
-     * @param content                  the replacement content and type, with {@code references}
-     *                                  holding only the references the rewrite introduced, exactly
-     *                                  as {@link ArtifactVersionWriteHook#prepareContent} returns
-     * @param plannedReferencedContent content for references introduced by {@code content} that are
-     *                                  not yet persisted (keyed by {@code groupId}/{@code artifactId}/
-     *                                  {@code version}, with {@code name} left unset), so reference
-     *                                  resolution and rules see it before {@link #commit} runs
-     * @param commit                   registers whatever {@code content} refers to that is not yet
-     *                                  persisted; must throw if a predicted coordinate was taken by a
-     *                                  concurrent write, rather than silently writing somewhere else
-     */
-    public ContentPlan(ContentWrapperDto content, Map<ArtifactReferenceDto, ContentWrapperDto> plannedReferencedContent,
-            Runnable commit) {
-        this.content = content;
-        this.plannedReferencedContent = Map.copyOf(plannedReferencedContent);
-        this.commit = commit;
-    }
-
-    public ContentWrapperDto getContent() {
-        return content;
-    }
-
-    public Map<ArtifactReferenceDto, ContentWrapperDto> getPlannedReferencedContent() {
-        return plannedReferencedContent;
-    }
-
-    public Runnable getCommit() {
-        return commit;
+    public ContentPlan {
+        plannedReferencedContent = Map.copyOf(plannedReferencedContent);
     }
 }

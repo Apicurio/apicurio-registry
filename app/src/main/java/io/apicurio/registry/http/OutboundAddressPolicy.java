@@ -68,8 +68,8 @@ public final class OutboundAddressPolicy {
     private static final byte[] NAT64_PREFIX = { 0x00, 0x64, (byte) 0xff, (byte) 0x9b, 0, 0, 0, 0, 0, 0, 0, 0 };
 
     // A host whose last label is a number is parsed as an IPv4 address by URL parsers and resolvers.
-    private static final Pattern NUMERIC_LABEL = Pattern.compile("^(0x[0-9a-f]*|[0-9]+)$");
-    private static final String OCTET = "(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])";
+    private static final Pattern NUMERIC_LABEL = Pattern.compile("^(0x[0-9a-f]*|\\d+)$");
+    private static final String OCTET = "(25[0-5]|2[0-4]\\d|1\\d{2}|[1-9]?\\d)";
     private static final Pattern DOTTED_QUAD = Pattern.compile(
             "^" + OCTET + "\\." + OCTET + "\\." + OCTET + "\\." + OCTET + "$");
 
@@ -85,19 +85,7 @@ public final class OutboundAddressPolicy {
      */
     public static AddressVerdict classifyHost(String host, boolean loopbackEnabled) {
         if (host.startsWith("[") && host.endsWith("]")) {
-            String literal = host.substring(1, host.length() - 1);
-            if (literal.indexOf('%') >= 0) {
-                throw new InvalidHostException("must not use a scoped IPv6 address.");
-            }
-            if (literal.indexOf(':') < 0) {
-                throw new InvalidHostException("host is not a valid IPv6 address.");
-            }
-            try {
-                // An IPv6 literal is parsed locally; no lookup takes place.
-                return classify(InetAddress.getByName(literal), loopbackEnabled);
-            } catch (UnknownHostException ex) {
-                throw new InvalidHostException("host is not a valid IPv6 address.");
-            }
+            return classifyIpv6Literal(host.substring(1, host.length() - 1), loopbackEnabled);
         }
 
         String name = host.toLowerCase(Locale.ROOT);
@@ -110,19 +98,39 @@ public final class OutboundAddressPolicy {
 
         String lastLabel = name.substring(name.lastIndexOf('.') + 1);
         if (NUMERIC_LABEL.matcher(lastLabel).matches()) {
-            Matcher quad = DOTTED_QUAD.matcher(name);
-            if (!quad.matches()) {
-                throw new InvalidHostException("host is not a valid IPv4 address. "
-                        + "Use four dotted decimal octets without leading zeros.");
-            }
-            byte[] bytes = new byte[4];
-            for (int i = 0; i < 4; i++) {
-                bytes[i] = (byte) Integer.parseInt(quad.group(i + 1));
-            }
-            return classify(address(bytes), loopbackEnabled);
+            return classify(dottedQuad(name), loopbackEnabled);
         }
 
         return AddressVerdict.ALLOWED;
+    }
+
+    private static AddressVerdict classifyIpv6Literal(String literal, boolean loopbackEnabled) {
+        if (literal.indexOf('%') >= 0) {
+            throw new InvalidHostException("must not use a scoped IPv6 address.");
+        }
+        if (literal.indexOf(':') < 0) {
+            throw new InvalidHostException("host is not a valid IPv6 address.");
+        }
+        try {
+            // An IPv6 literal is parsed locally; no lookup takes place.
+            return classify(InetAddress.getByName(literal), loopbackEnabled);
+        } catch (UnknownHostException ex) {
+            throw new InvalidHostException("host is not a valid IPv6 address.");
+        }
+    }
+
+    /** The address of a host whose last label is numeric, which must be four dotted octets. */
+    private static InetAddress dottedQuad(String name) {
+        Matcher quad = DOTTED_QUAD.matcher(name);
+        if (!quad.matches()) {
+            throw new InvalidHostException("host is not a valid IPv4 address. "
+                    + "Use four dotted decimal octets without leading zeros.");
+        }
+        byte[] bytes = new byte[4];
+        for (int i = 0; i < 4; i++) {
+            bytes[i] = (byte) Integer.parseInt(quad.group(i + 1));
+        }
+        return address(bytes);
     }
 
     /**
@@ -153,16 +161,16 @@ public final class OutboundAddressPolicy {
         if (effective.isMulticastAddress()) {
             return AddressVerdict.MULTICAST;
         }
-        if (effective instanceof Inet4Address) {
-            int firstOctet = effective.getAddress()[0] & 0xff;
-            if (firstOctet == 0) {
-                return AddressVerdict.UNSPECIFIED;
-            }
-            if (firstOctet >= 240) {
-                return AddressVerdict.RESERVED;
-            }
+        return effective instanceof Inet4Address ? classifyIpv4Range(effective) : AddressVerdict.ALLOWED;
+    }
+
+    /** 0.0.0.0/8 is "this network" and 240.0.0.0/4, including broadcast, is reserved. */
+    private static AddressVerdict classifyIpv4Range(InetAddress address) {
+        int firstOctet = address.getAddress()[0] & 0xff;
+        if (firstOctet == 0) {
+            return AddressVerdict.UNSPECIFIED;
         }
-        return AddressVerdict.ALLOWED;
+        return firstOctet >= 240 ? AddressVerdict.RESERVED : AddressVerdict.ALLOWED;
     }
 
     private static InetAddress unwrapEmbeddedIpv4(InetAddress address) {

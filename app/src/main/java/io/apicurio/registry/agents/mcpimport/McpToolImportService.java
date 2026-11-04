@@ -105,49 +105,15 @@ public class McpToolImportService implements McpToolImportHandler {
      */
     @Override
     public McpToolImportResult importTools(String groupId, String serverArtifactId, McpToolImportRequest request) {
-        if (!config.isEnabled()) {
-            throw new ConflictException("Importing tools from MCP servers is not enabled.");
-        }
-        if (storage.isReadOnly()) {
-            throw new ReadOnlyStorageException("Unsupported write operation. Storage is in read-only mode.");
-        }
-        if (request == null) {
-            throw new BadRequestException("An import request is required.");
-        }
-        String serverType = storage.getArtifactMetaData(raw(groupId), serverArtifactId).getArtifactType();
-        if (!ArtifactType.MCP_SERVER.equals(serverType)) {
-            throw new BadRequestException("Tools can only be imported into an MCP_SERVER artifact.");
-        }
+        requireImportable(groupId, serverArtifactId, request);
         String toolGroupId = request.getToolGroupId() == null || request.getToolGroupId().isBlank()
                 ? groupId : request.getToolGroupId();
         accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.group(toolGroupId));
         Map<String, String> headers = validHeaders(request.getHeaders());
         boolean dryRun = Boolean.TRUE.equals(request.getDryRun());
 
-        ServerTools listed;
-        try {
-            listed = toolsClient.listTools(targetPolicy.check(request.getUrl()), headers);
-        } catch (McpImportException e) {
-            failure(e.getReason());
-            throw e;
-        }
-
-        // Checked before anything is written, so neither leaves some tools imported and others not:
-        // two tools with one name would map to one artifact, and an existing tool artifact may be
-        // one the caller cannot write (owner-only or per-resource authorization).
-        Set<String> listedNames = new HashSet<>();
-        for (McpSchema.Tool tool : listed.tools()) {
-            if (!listedNames.add(tool.name())) {
-                failure(McpImportException.Reason.PROTOCOL);
-                throw new McpImportException(McpImportException.Reason.PROTOCOL,
-                        "The MCP server lists two tools with the same name.");
-            }
-            String toolArtifactId = serverArtifactId + "." + tool.name();
-            if (storage.isArtifactExists(raw(toolGroupId), toolArtifactId)) {
-                accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(toolGroupId,
-                        toolArtifactId));
-            }
-        }
+        ServerTools listed = listTools(request.getUrl(), headers);
+        Set<String> listedNames = checkBeforeWriting(listed.tools(), toolGroupId, serverArtifactId);
 
         List<McpToolImportToolResult> results = new ArrayList<>();
         List<ArtifactReference> references = new ArrayList<>();
@@ -164,22 +130,90 @@ public class McpToolImportService implements McpToolImportHandler {
         StoredArtifactVersionDto previous = latest(groupId, serverArtifactId);
         List<ArtifactReferenceDto> previousReferences = previous.getReferences() == null ? List.of()
                 : previous.getReferences();
-        for (ArtifactReferenceDto old : previousReferences) {
-            if (!listedNames.contains(old.getName())) {
-                McpToolImportToolResult removed = new McpToolImportToolResult();
-                removed.setName(old.getName());
-                removed.setGroupId(new GroupId(old.getGroupId()).getRawGroupIdWithDefaultString());
-                removed.setArtifactId(old.getArtifactId());
-                removed.setStatus(McpToolImportStatus.REMOVED);
-                results.add(removed);
-                count(McpToolImportStatus.REMOVED, dryRun);
-            }
-        }
+        results.addAll(removedTools(previousReferences, listedNames, dryRun));
 
         McpToolImportResult result = new McpToolImportResult();
         result.setGroupId(groupId);
         result.setArtifactId(serverArtifactId);
         result.setTools(results);
+        publishServerVersion(result, previous, previousReferences, references, dryRun);
+        return result;
+    }
+
+    /**
+     * Everything checked before the MCP server is contacted, apart from authorization and headers:
+     * the feature, the storage, the request and the server artifact.
+     */
+    private void requireImportable(String groupId, String serverArtifactId, McpToolImportRequest request) {
+        if (!config.isEnabled()) {
+            throw new ConflictException("Importing tools from MCP servers is not enabled.");
+        }
+        if (storage.isReadOnly()) {
+            throw new ReadOnlyStorageException("Unsupported write operation. Storage is in read-only mode.");
+        }
+        if (request == null) {
+            throw new BadRequestException("An import request is required.");
+        }
+        String serverType = storage.getArtifactMetaData(raw(groupId), serverArtifactId).getArtifactType();
+        if (!ArtifactType.MCP_SERVER.equals(serverType)) {
+            throw new BadRequestException("Tools can only be imported into an MCP_SERVER artifact.");
+        }
+    }
+
+    private ServerTools listTools(String url, Map<String, String> headers) {
+        try {
+            return toolsClient.listTools(targetPolicy.check(url), headers);
+        } catch (McpImportException e) {
+            failure(e.getReason());
+            throw e;
+        }
+    }
+
+    /**
+     * Checked before anything is written, so neither leaves some tools imported and others not:
+     * two tools with one name would map to one artifact, and an existing tool artifact may be one
+     * the caller cannot write (owner-only or per-resource authorization).
+     *
+     * @return the names of the listed tools
+     */
+    private Set<String> checkBeforeWriting(List<McpSchema.Tool> tools, String toolGroupId, String serverArtifactId) {
+        Set<String> listedNames = new HashSet<>();
+        for (McpSchema.Tool tool : tools) {
+            if (!listedNames.add(tool.name())) {
+                failure(McpImportException.Reason.PROTOCOL);
+                throw new McpImportException(McpImportException.Reason.PROTOCOL,
+                        "The MCP server lists two tools with the same name.");
+            }
+            String toolArtifactId = serverArtifactId + "." + tool.name();
+            if (storage.isArtifactExists(raw(toolGroupId), toolArtifactId)) {
+                accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(toolGroupId,
+                        toolArtifactId));
+            }
+        }
+        return listedNames;
+    }
+
+    /** The tools the previous server version referenced that the server no longer lists. */
+    private List<McpToolImportToolResult> removedTools(List<ArtifactReferenceDto> previousReferences,
+            Set<String> listedNames, boolean dryRun) {
+        List<McpToolImportToolResult> removed = new ArrayList<>();
+        for (ArtifactReferenceDto old : previousReferences) {
+            if (!listedNames.contains(old.getName())) {
+                McpToolImportToolResult result = new McpToolImportToolResult();
+                result.setName(old.getName());
+                result.setGroupId(new GroupId(old.getGroupId()).getRawGroupIdWithDefaultString());
+                result.setArtifactId(old.getArtifactId());
+                result.setStatus(McpToolImportStatus.REMOVED);
+                removed.add(result);
+                count(McpToolImportStatus.REMOVED, dryRun);
+            }
+        }
+        return removed;
+    }
+
+    /** Adds a server version referencing the imported tools, unless the latest one already does. */
+    private void publishServerVersion(McpToolImportResult result, StoredArtifactVersionDto previous,
+            List<ArtifactReferenceDto> previousReferences, List<ArtifactReference> references, boolean dryRun) {
         if (sameReferences(previousReferences, references)) {
             result.setStatus(McpToolImportStatus.UNCHANGED);
             result.setVersion(previous.getVersion());
@@ -190,11 +224,11 @@ public class McpToolImportService implements McpToolImportHandler {
         } else {
             CreateVersion version = new CreateVersion();
             version.setContent(content(previous.getContent().content(), references));
-            VersionMetaData created = groups.createArtifactVersion(groupId, serverArtifactId, false, version);
+            VersionMetaData created = groups.createArtifactVersion(result.getGroupId(), result.getArtifactId(),
+                    false, version);
             result.setStatus(McpToolImportStatus.NEW_VERSION);
             result.setVersion(created.getVersion());
         }
-        return result;
     }
 
     private McpToolImportToolResult importTool(String groupId, String artifactId, McpSchema.Tool tool,

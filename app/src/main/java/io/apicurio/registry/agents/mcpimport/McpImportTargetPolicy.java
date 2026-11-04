@@ -1,5 +1,6 @@
 package io.apicurio.registry.agents.mcpimport;
 
+import io.apicurio.registry.agents.mcpimport.McpImportException.Reason;
 import io.apicurio.registry.http.OutboundAddressPolicy;
 import io.apicurio.registry.http.OutboundAddressPolicy.AddressVerdict;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -37,42 +38,63 @@ public class McpImportTargetPolicy {
 
     static final String DENIED = "The MCP server URL is not allowed by this registry.";
 
-    private static final Pattern IPV4_LITERAL = Pattern.compile("^[0-9]{1,3}(\\.[0-9]{1,3}){3}$");
+    private static final Pattern IPV4_LITERAL = Pattern.compile("^\\d{1,3}(\\.\\d{1,3}){3}$");
 
     @Inject
     McpImportConfig config;
 
     /**
      * @return the URL to connect to
-     * @throws McpImportDeniedException if the registry may not connect to it
+     * @throws McpImportException with {@link Reason#HOST_DENIED} if the registry may not connect to it
      */
     public URI check(String url) {
         return check(url, config.getAllowedHosts(), config.isInsecureHttpEnabled(), config.isLoopbackEnabled());
     }
 
     static URI check(String url, List<String> allowedHosts, boolean insecureHttpEnabled, boolean loopbackEnabled) {
+        URI uri = parse(url, insecureHttpEnabled);
+        String host = uri.getHost();
+        String name = normalize(host);
+        requireAllowedForm(host, loopbackEnabled);
+
+        boolean hostListed = allowedHosts.stream().anyMatch(entry -> matchesHostEntry(name, entry));
+        List<Cidr> ranges = allowedHosts.stream().filter(McpImportTargetPolicy::isAddressEntry)
+                .map(Cidr::parse).toList();
+        if (!hostListed && ranges.isEmpty()) {
+            throw denied("host not listed");
+        }
+        for (InetAddress address : resolve(name)) {
+            requireAllowedAddress(address, loopbackEnabled, hostListed ? List.of() : ranges);
+        }
+        return uri;
+    }
+
+    /** The URL, if it is an absolute http(s) URL with a host and no user information. */
+    private static URI parse(String url, boolean insecureHttpEnabled) {
         if (url == null || url.isBlank()) {
-            throw new McpImportDeniedException("The MCP server URL is required.");
+            throw invalid("The MCP server URL is required.");
         }
         URI uri;
         try {
             uri = new URI(url);
         } catch (Exception e) {
-            throw new McpImportDeniedException("The MCP server URL is not a valid URI.");
+            throw invalid("The MCP server URL is not a valid URI.");
         }
         String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase(Locale.ROOT);
         if (!"https".equals(scheme) && !("http".equals(scheme) && insecureHttpEnabled)) {
-            throw new McpImportDeniedException("The MCP server URL must use https.");
+            throw invalid("The MCP server URL must use https.");
         }
         if (uri.getRawUserInfo() != null) {
-            throw new McpImportDeniedException("The MCP server URL must not contain user information.");
+            throw invalid("The MCP server URL must not contain user information.");
         }
-        String host = uri.getHost();
-        if (host == null || host.isEmpty()) {
-            throw new McpImportDeniedException("The MCP server URL must be an absolute URI with a host.");
+        if (uri.getHost() == null || uri.getHost().isEmpty()) {
+            throw invalid("The MCP server URL must be an absolute URI with a host.");
         }
-        String name = normalize(host);
+        return uri;
+    }
 
+    /** Refuses a host written as an address that is never allowed, before any lookup. */
+    private static void requireAllowedForm(String host, boolean loopbackEnabled) {
         AddressVerdict verdict;
         try {
             verdict = OutboundAddressPolicy.classifyHost(host, loopbackEnabled);
@@ -82,36 +104,37 @@ public class McpImportTargetPolicy {
         if (verdict != AddressVerdict.ALLOWED) {
             throw denied(verdict.getDescription());
         }
+    }
 
-        boolean hostListed = allowedHosts.stream().anyMatch(entry -> matchesHostEntry(name, entry));
-        List<Cidr> ranges = allowedHosts.stream().filter(McpImportTargetPolicy::isAddressEntry)
-                .map(Cidr::parse).toList();
-        if (!hostListed && ranges.isEmpty()) {
-            throw denied("host not listed");
-        }
-
-        InetAddress[] addresses;
+    private static InetAddress[] resolve(String name) {
         try {
-            addresses = InetAddress.getAllByName(name);
+            return InetAddress.getAllByName(name);
         } catch (UnknownHostException | SecurityException e) {
             throw denied("host does not resolve");
         }
-        for (InetAddress address : addresses) {
-            AddressVerdict resolved = OutboundAddressPolicy.classify(address, loopbackEnabled);
-            if (resolved != AddressVerdict.ALLOWED) {
-                throw denied("resolves to " + resolved.getDescription());
-            }
-            if (!hostListed && ranges.stream().noneMatch(range -> range.contains(address))) {
-                throw denied("resolves outside the listed ranges");
-            }
-        }
-        return uri;
     }
 
-    private static McpImportDeniedException denied(String why) {
+    /**
+     * @param ranges the listed ranges the address must be in; empty when the host itself is listed
+     */
+    private static void requireAllowedAddress(InetAddress address, boolean loopbackEnabled, List<Cidr> ranges) {
+        AddressVerdict resolved = OutboundAddressPolicy.classify(address, loopbackEnabled);
+        if (resolved != AddressVerdict.ALLOWED) {
+            throw denied("resolves to " + resolved.getDescription());
+        }
+        if (!ranges.isEmpty() && ranges.stream().noneMatch(range -> range.contains(address))) {
+            throw denied("resolves outside the listed ranges");
+        }
+    }
+
+    private static McpImportException invalid(String message) {
+        return new McpImportException(Reason.HOST_DENIED, message);
+    }
+
+    private static McpImportException denied(String why) {
         // The reason is for operators only; the client gets the same message for every refusal.
         log.debug("Refused an MCP import target: {}", why);
-        return new McpImportDeniedException(DENIED);
+        return new McpImportException(Reason.HOST_DENIED, DENIED);
     }
 
     private static String normalize(String host) {
@@ -151,7 +174,7 @@ public class McpImportTargetPolicy {
             int slash = e.indexOf('/');
             String literal = slash < 0 ? e : e.substring(0, slash);
             byte[] bytes = literalBytes(literal);
-            if (bytes == null) {
+            if (bytes.length == 0) {
                 throw new IllegalArgumentException("Invalid address in apicurio.mcp-import.allowed-hosts: " + e);
             }
             int prefix = slash < 0 ? bytes.length * 8 : Integer.parseInt(e.substring(slash + 1));
@@ -178,16 +201,16 @@ public class McpImportTargetPolicy {
             return (candidate[full] & mask) == (network[full] & mask);
         }
 
-        /** Parses an IP literal without any DNS lookup, or returns null. */
+        /** Parses an IP literal without any DNS lookup, or returns an empty array. */
         private static byte[] literalBytes(String literal) {
             if (!literal.contains(":") && !IPV4_LITERAL.matcher(literal).matches()) {
-                return null;
+                return new byte[0];
             }
             try {
                 // A literal in one of these forms is parsed locally; no lookup takes place.
                 return InetAddress.getByName(literal).getAddress();
             } catch (UnknownHostException e) {
-                return null;
+                return new byte[0];
             }
         }
 

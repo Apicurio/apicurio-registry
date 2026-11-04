@@ -1,6 +1,8 @@
 package io.apicurio.registry.agents.mcpimport;
 
+import io.apicurio.registry.agents.mcpimport.McpImportException.Reason;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -14,15 +16,25 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class McpImportTargetPolicyTest {
 
+    private static final List<String> ANY_HOST = List.of("*");
+
     private static URI check(String url, List<String> allowed) {
         return McpImportTargetPolicy.check(url, allowed, false, false);
     }
 
     private static void assertDenied(String url, List<String> allowed, boolean insecureHttp, boolean loopback) {
-        McpImportDeniedException e = assertThrows(McpImportDeniedException.class,
+        McpImportException e = assertRefused(
                 () -> McpImportTargetPolicy.check(url, allowed, insecureHttp, loopback));
         // One message for every host refusal: the endpoint must not tell what exists or resolves.
         assertEquals(McpImportTargetPolicy.DENIED, e.getMessage());
+    }
+
+    /** Every refusal is a client error (400), counted as host-denied, with nothing contacted. */
+    private static McpImportException assertRefused(Executable check) {
+        McpImportException e = assertThrows(McpImportException.class, check);
+        assertEquals(Reason.HOST_DENIED, e.getReason());
+        assertEquals(400, e.getResponse().getStatus());
+        return e;
     }
 
     @Test
@@ -81,8 +93,7 @@ class McpImportTargetPolicyTest {
     @ParameterizedTest
     @ValueSource(strings = {"https://2130706433/", "https://0x7f.1/"})
     void ambiguousNumericHostsAreRefused(String url) {
-        assertThrows(McpImportDeniedException.class,
-                () -> McpImportTargetPolicy.check(url, List.of("*"), false, true));
+        assertRefused(() -> McpImportTargetPolicy.check(url, ANY_HOST, false, true));
     }
 
     @Test
@@ -92,15 +103,16 @@ class McpImportTargetPolicyTest {
 
     @Test
     void urlShapeIsChecked() {
-        McpImportDeniedException http = assertThrows(McpImportDeniedException.class,
-                () -> check("http://10.1.2.3/mcp", List.of("*")));
-        assertEquals("The MCP server URL must use https.", http.getMessage());
-        assertThrows(McpImportDeniedException.class, () -> check("ftp://10.1.2.3/mcp", List.of("*")));
-        McpImportDeniedException userInfo = assertThrows(McpImportDeniedException.class,
-                () -> check("https://user:pass@10.1.2.3/mcp", List.of("*")));
-        assertEquals("The MCP server URL must not contain user information.", userInfo.getMessage());
-        assertThrows(McpImportDeniedException.class, () -> check("https:///mcp", List.of("*")));
-        assertThrows(McpImportDeniedException.class, () -> check("not a url", List.of("*")));
-        assertThrows(McpImportDeniedException.class, () -> check(null, List.of("*")));
+        assertEquals("The MCP server URL must use https.",
+                assertRefused(() -> check("http://10.1.2.3/mcp", ANY_HOST)).getMessage());
+        assertEquals("The MCP server URL must use https.",
+                assertRefused(() -> check("ftp://10.1.2.3/mcp", ANY_HOST)).getMessage());
+        assertEquals("The MCP server URL must not contain user information.",
+                assertRefused(() -> check("https://user:pass@10.1.2.3/mcp", ANY_HOST)).getMessage());
+        assertEquals("The MCP server URL must be an absolute URI with a host.",
+                assertRefused(() -> check("https:///mcp", ANY_HOST)).getMessage());
+        assertEquals("The MCP server URL is not a valid URI.",
+                assertRefused(() -> check("not a url", ANY_HOST)).getMessage());
+        assertEquals("The MCP server URL is required.", assertRefused(() -> check(null, ANY_HOST)).getMessage());
     }
 }

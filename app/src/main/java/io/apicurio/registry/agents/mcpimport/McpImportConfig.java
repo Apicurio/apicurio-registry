@@ -11,6 +11,9 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_MCP
 
 /**
  * Configuration of importing tool definitions from live MCP servers.
+ * <p>
+ * {@code @Singleton}, like the other configuration classes such as {@code FederationConfig}: it
+ * holds injected configuration values only, so it needs no client proxy.
  */
 @Singleton
 public class McpImportConfig {

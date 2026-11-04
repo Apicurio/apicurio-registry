@@ -121,7 +121,9 @@ public class McpToolsClient {
     }
 
     private static McpImportException translate(Throwable e) {
-        log.debug("MCP import could not list tools: {}", causeTypes(e));
+        if (log.isDebugEnabled()) {
+            log.debug("MCP import could not list tools: {}", causeTypes(e));
+        }
         for (Throwable t = e; t != null; t = t.getCause()) {
             if (t instanceof McpTransportException && t.getMessage() != null
                     && t.getMessage().contains(SDK_MAX_SIZE_PHRASE)) {
@@ -145,7 +147,7 @@ public class McpToolsClient {
         StringBuilder types = new StringBuilder();
         Set<Throwable> seen = new HashSet<>();
         for (Throwable t = e; t != null && seen.add(t); t = t.getCause()) {
-            if (types.length() > 0) {
+            if (!types.isEmpty()) {
                 types.append(" <- ");
             }
             types.append(t.getClass().getName());
@@ -157,7 +159,9 @@ public class McpToolsClient {
         try {
             client.closeGracefully();
         } catch (RuntimeException e) {
-            log.debug("Closing the MCP import client failed: {}", causeTypes(e));
+            if (log.isDebugEnabled()) {
+                log.debug("Closing the MCP import client failed: {}", causeTypes(e));
+            }
         }
     }
 

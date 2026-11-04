@@ -117,6 +117,12 @@ func (m *ItemArtifactsWithArtifactItemRequestBuilder) Get(ctx context.Context, r
 	return res.(iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.ArtifactMetaDataable), nil
 }
 
+// McpImport import tool definitions from a live MCP server.
+// returns a *ItemArtifactsItemMcpImportRequestBuilder when successful
+func (m *ItemArtifactsWithArtifactItemRequestBuilder) McpImport() *ItemArtifactsItemMcpImportRequestBuilder {
+	return NewItemArtifactsItemMcpImportRequestBuilderInternal(m.BaseRequestBuilder.PathParameters, m.BaseRequestBuilder.RequestAdapter)
+}
+
 // Put updates the editable parts of the artifact's metadata.  Not all metadata fields canbe updated.  Note that only the properties included will be updated.  You can updateonly the name by including only the `name` property in the payload of the request.Properties that are allowed but not present will result in the artifact's metadatanot being changed.This operation can fail for the following reasons:* No artifact with the `artifactId` exists (HTTP error `404`)* A server error occurred (HTTP error `500`)
 // returns a ProblemDetails error when the service returns a 401 status code
 // returns a ProblemDetails error when the service returns a 403 status code

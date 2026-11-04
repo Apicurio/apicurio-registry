@@ -301,7 +301,14 @@ public class EmbeddedSchemaService implements ArtifactVersionWriteHook {
                     }
                 };
                 Runnable rollback = () -> {
-                    storage.deleteArtifact(groupId, schemaArtifactId);
+                    // Delete only the version this plan wrote: a concurrent write may have added
+                    // another version to this artifact since, which must not be destroyed by undoing
+                    // this plan. Remove the whole artifact only if it still holds just our version.
+                    if (storage.getArtifactVersions(groupId, schemaArtifactId).size() == 1) {
+                        storage.deleteArtifact(groupId, schemaArtifactId);
+                    } else {
+                        storage.deleteArtifactVersion(groupId, schemaArtifactId, "1");
+                    }
                     log.info("Rolled back embedded schema artifact: {}/{}", groupId, schemaArtifactId);
                 };
                 return new SchemaRegistration("1", new SchemaWrite(contentWrapper, commit, rollback));

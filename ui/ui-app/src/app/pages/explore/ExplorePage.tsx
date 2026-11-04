@@ -16,6 +16,7 @@ import { ConfirmDeleteModal, CreateGroupModal, InvalidContentModal, RootPageHead
 import { ListWithToolbar, PleaseWaitModal, ProgressModal } from "@apitomy/common-ui-components";
 import { FilterBy, SearchFilter, SearchService, useSearchService } from "@services/useSearchService.ts";
 import { GroupSearchResults } from "@apicurio/apicurio-registry-sdk/dist/generated-client/models";
+import { type GetFormatQueryParameterType } from "@apicurio/apicurio-registry-sdk/dist/generated-client/admin/exportEscaped";
 import { Paging } from "@models/Paging.ts";
 import { GroupsSortBy } from "@models/GroupsSortBy.ts";
 import { SortOrder } from "@models/SortOrder.ts";
@@ -193,11 +194,12 @@ export const ExplorePage: FunctionComponent<ExplorePageProps> = () => {
         setImportModalOpen(true);
     };
 
-    const onExportArtifacts = (): void => {
-        admin.exportAs("all-artifacts.zip").then(dref => {
+    const onExportArtifacts = (format?: GetFormatQueryParameterType): void => {
+        const filename = format === "gitops-v0" ? "all-artifacts-gitops.zip" : "all-artifacts.zip";
+        admin.exportAs(filename, format).then(dref => {
             const link = document.createElement("a");
             link.href = dref.href || "";
-            link.download = "all-artifacts.zip";
+            link.download = filename;
             link.click();
         }).catch(error => {
             setPageError(toPageError(error, "Failed to export artifacts"));

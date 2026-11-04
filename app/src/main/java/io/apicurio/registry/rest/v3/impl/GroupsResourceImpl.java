@@ -1718,15 +1718,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Apply rules unless the version is DRAFT (unless draft production mode is enabled)
         if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
-            // Try to resolve the new artifact references and the nested ones (if any); a reference a
-            // hook planned but hasn't committed yet is seen through the plan, not storage.
-            final Map<String, TypedContent> resolvedReferences = ReferenceResolution.recursivelyResolveReferences(
-                    referencesAsDtos, hookPlan.loader(accessGuard.referenceLoader()));
-
-            TypedContent typedContent = TypedContent.create(effectiveContent, effectiveContentType);
-            rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
-                    typedContent, RuleApplicationType.UPDATE, data.getContent().getReferences(),
-                    resolvedReferences);
+            applyUpdateRules(groupId, artifactId, artifactType, TypedContent.create(effectiveContent, effectiveContentType),
+                    data.getContent().getReferences(), referencesAsDtos, hookPlan);
         }
 
         // Let write hooks inspect the content BEFORE the version is persisted, so a hook rejection
@@ -2057,8 +2050,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Apply rules only if not a draft version (unless draft production mode is enabled)
         if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {
-            applyUpdateRules(groupId, artifactId, artifactType, content, contentType, references, referencesAsDtos,
-                    prepared.hookPlan());
+            applyUpdateRules(groupId, artifactId, artifactType, TypedContent.create(content, contentType),
+                    references, referencesAsDtos, prepared.hookPlan());
         }
 
         // Let write hooks inspect the content BEFORE the version is persisted, so a hook rejection
@@ -2098,12 +2091,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * Resolves references (seeing a hook's planned, not-yet-persisted content through {@code hookPlan})
      * and applies the configured rules for a version update.
      */
-    private void applyUpdateRules(String groupId, String artifactId, String artifactType, ContentHandle content,
-            String contentType, List<ArtifactReference> references, List<ArtifactReferenceDto> referencesAsDtos,
-            HookPlan hookPlan) {
+    private void applyUpdateRules(String groupId, String artifactId, String artifactType, TypedContent typedContent,
+            List<ArtifactReference> references, List<ArtifactReferenceDto> referencesAsDtos, HookPlan hookPlan) {
         final Map<String, TypedContent> resolvedReferences = ReferenceResolution.recursivelyResolveReferences(
                 referencesAsDtos, hookPlan.loader(accessGuard.referenceLoader()));
-        final TypedContent typedContent = TypedContent.create(content, contentType);
         rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
                 typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
     }

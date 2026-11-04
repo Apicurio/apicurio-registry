@@ -1599,7 +1599,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             // Commit whatever a hook planned (e.g. register an extracted schema) only now that rules
             // and beforePublish have passed, and never on a dry run: a predicted coordinate a hook
             // reserved must not be written if the artifact itself is about to be rejected or not persisted.
-            if (hookPlan != null && (dryRun == null || !dryRun)) {
+            if (hookPlan != null && isNotDryRun(dryRun)) {
                 hookPlan.commit();
             }
 
@@ -1608,7 +1608,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                     firstVersion, firstVersionContent, firstVersionMetaData, firstVersionBranches,
                     firstVersionIsDraft, dryRun != null && dryRun, owner);
 
-            if (dryRun == null || !dryRun) {
+            if (isNotDryRun(dryRun)) {
                 String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
                 otelMetrics.recordArtifactCreated(rawGroupId, artifactType);
                 if (storageResult.getRight() != null) {
@@ -1681,11 +1681,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             ParameterValidationUtils.requireParameter("body.content.content", data.getContent().getContent());
             ParameterValidationUtils.requireParameter("body.content.contentType", data.getContent().getContentType());
         } else {
-            if (data.getContent() == null) {
-                data.setContent(new VersionContent());
-            }
-            data.getContent().setContent("");
-            data.getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
+            defaultToEmptyContent(data);
         }
 
         ContentHandle content = ContentHandle.create(resolveContent(data.getContent()));
@@ -1729,7 +1725,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Commit whatever a hook planned only now that rules and beforePublish have passed, and never
         // on a dry run.
-        if (dryRun == null || !dryRun) {
+        if (isNotDryRun(dryRun)) {
             hookPlan.commit();
         }
 
@@ -1742,7 +1738,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 new GroupId(groupId).getRawGroupIdWithNull(), artifactId, data.getVersion(), artifactType,
                 contentDto, metaDataDto, data.getBranches(), isDraft, dryRun != null && dryRun, owner);
 
-        if (dryRun == null || !dryRun) {
+        if (isNotDryRun(dryRun)) {
             otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
             afterPublish.forEach(Runnable::run);
         }
@@ -2062,7 +2058,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Commit whatever a hook planned only now that rules and beforePublish have passed, and never
         // on a dry run.
-        if (dryRun == null || !dryRun) {
+        if (isNotDryRun(dryRun)) {
             prepared.hookPlan().commit();
         }
 
@@ -2073,7 +2069,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(groupId, artifactId, version,
                 artifactType, contentDto, metaData, branches, isDraftVersion, dryRun != null && dryRun, owner);
 
-        if (dryRun == null || !dryRun) {
+        if (isNotDryRun(dryRun)) {
             otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
             afterPublish.forEach(Runnable::run);
         }
@@ -2085,6 +2081,20 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ArtifactMetaData amd = V3ApiUtil.dtoToArtifactMetaData(amdDto);
 
         return CreateArtifactResponse.builder().artifact(amd).version(vmd).build();
+    }
+
+    /** Fills in the content of a version whose artifact type has no content (requires no body field). */
+    private static void defaultToEmptyContent(CreateVersion data) {
+        if (data.getContent() == null) {
+            data.setContent(new VersionContent());
+        }
+        data.getContent().setContent("");
+        data.getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
+    }
+
+    /** @return true unless {@code dryRun} is explicitly set */
+    private static boolean isNotDryRun(Boolean dryRun) {
+        return dryRun == null || !dryRun;
     }
 
     /**

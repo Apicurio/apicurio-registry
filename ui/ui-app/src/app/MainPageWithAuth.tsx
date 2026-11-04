@@ -1,6 +1,6 @@
 import { FunctionComponent } from "react";
 import { Page } from "@patternfly/react-core";
-import { AppHeader, ErrorBoundaryWithRouter } from "@app/components";
+import { AppHeader, ErrorBoundaryWithRouter, ReadOnlyBanner } from "@app/components";
 import { Navigate, Route, Routes } from "react-router";
 import {
     AgentsPage,
@@ -61,6 +61,7 @@ export const MainPageWithAuth: FunctionComponent<MainPageWithAuthProps> = () => 
                     masthead={<AppHeader />}
                     isContentFilled={true}
                 >
+                    <ReadOnlyBanner />
                     <ErrorBoundaryWithRouter>
                         <Routes>
                             <Route path="/" element={ <RootRedirectPage /> } />

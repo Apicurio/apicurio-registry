@@ -3,7 +3,10 @@ package io.apicurio.registry.rest.v2.impl;
 import com.google.common.hash.Hashing;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
+import io.apicurio.registry.auth.AuthorizedResource;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.ISearchAuthorizer;
+import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
@@ -37,6 +40,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.storage.impl.sql.RegistryContentUtils;
+import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.types.ArtifactState;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -106,6 +110,12 @@ public class GroupsResourceImpl implements GroupsResource {
     RegistryStorage storage;
 
     @Inject
+    ISearchAuthorizer searchAuthorizer;
+
+    @Inject
+    ResourceAccessGuard accessGuard;
+
+    @Inject
     ArtifactTypeUtilProviderFactory factory;
 
     @Inject
@@ -156,14 +166,14 @@ public class GroupsResourceImpl implements GroupsResource {
                     RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
                             .recursivelyResolveReferencesWithContext(factory, contentToReturn,
                                     metaData.getArtifactType(), artifact.getReferences(),
-                                    storage::getContentByReference);
+                                    accessGuard.referenceLoader());
 
                     contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
                             rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
                 } else {
                     contentToReturn = artifactTypeProvider.getContentDereferencer()
-                            .dereference(contentToReturn, RegistryContentUtils.recursivelyResolveReferences(
-                                    artifact.getReferences(), storage::getContentByReference));
+                            .dereference(contentToReturn, ReferenceResolution.recursivelyResolveReferences(
+                                    artifact.getReferences(), accessGuard.referenceLoader()));
                 }
             }
 
@@ -232,8 +242,10 @@ public class GroupsResourceImpl implements GroupsResource {
                     .getReferences().stream().map(V2ApiUtil::referenceDtoToReference)
                     .collect(Collectors.toList());
         } else {
+            // Inbound references point from other artifacts: only list those the caller may read
             return storage.getInboundArtifactReferences(defaultGroupIdToNull(groupId), artifactId, version)
-                    .stream().map(V2ApiUtil::referenceDtoToReference).collect(Collectors.toList());
+                    .stream().filter(ref -> searchAuthorizer.canReadArtifact(ref.getGroupId(), ref.getArtifactId()))
+                    .map(V2ApiUtil::referenceDtoToReference).collect(Collectors.toList());
         }
     }
 
@@ -378,6 +390,7 @@ public class GroupsResourceImpl implements GroupsResource {
                     (String[]) null);
         }
 
+        accessGuard.requireWriteOnAllArtifacts(groupId);
         storage.deleteGroup(groupId);
     }
 
@@ -402,7 +415,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         Set<SearchFilter> filters = Collections.emptySet();
 
-        GroupSearchResultsDto resultsDto = storage.searchGroups(filters, oBy, oDir,
+        GroupSearchResultsDto resultsDto = searchAuthorizer.searchGroups(filters, oBy, oDir,
                 ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimitUnbounded(limit));
         return V2ApiUtil.dtoToSearchResults(resultsDto);
@@ -415,6 +428,8 @@ public class GroupsResourceImpl implements GroupsResource {
         if (new GroupId(data.getId()).isDefaultGroup()) {
             throw new BadRequestException("The group name 'default' is reserved and cannot be used.");
         }
+        // The group comes from the body, so per-resource authorization is checked here
+        accessGuard.requireAccess(AuthorizedLevel.Write, AuthorizedResource.group(data.getId()));
 
         GroupMetaDataDto.GroupMetaDataDtoBuilder group = GroupMetaDataDto.builder().groupId(data.getId())
                 .description(data.getDescription()).labels(data.getProperties());
@@ -681,14 +696,14 @@ public class GroupsResourceImpl implements GroupsResource {
             if (artifactTypeProvider.supportsReferencesWithContext()) {
                 RegistryContentUtils.RewrittenContentHolder rewrittenContent = RegistryContentUtils
                         .recursivelyResolveReferencesWithContext(factory, contentToReturn, metaData.getArtifactType(),
-                                artifact.getReferences(), storage::getContentByReference);
+                                artifact.getReferences(), accessGuard.referenceLoader());
 
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(
                         rewrittenContent.getRewrittenContent(), rewrittenContent.getResolvedReferences());
             } else {
                 contentToReturn = artifactTypeProvider.getContentDereferencer().dereference(contentToReturn,
-                        RegistryContentUtils.recursivelyResolveReferences(artifact.getReferences(),
-                                storage::getContentByReference));
+                        ReferenceResolution.recursivelyResolveReferences(artifact.getReferences(),
+                                accessGuard.referenceLoader()));
             }
         }
 
@@ -903,7 +918,7 @@ public class GroupsResourceImpl implements GroupsResource {
         Set<SearchFilter> filters = new HashSet<>();
         filters.add(SearchFilter.ofGroupId(defaultGroupIdToNull(groupId)));
 
-        ArtifactSearchResultsDto resultsDto = storage.searchArtifacts(filters, oBy, oDir,
+        ArtifactSearchResultsDto resultsDto = searchAuthorizer.searchArtifacts(filters, oBy, oDir,
                 ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimitUnbounded(limit), false);
         return V2ApiUtil.dtoToSearchResults(resultsDto);
@@ -924,6 +939,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         ParameterValidationUtils.requireParameter("groupId", groupId);
 
+        accessGuard.requireWriteOnAllArtifacts(groupId);
         storage.deleteArtifacts(defaultGroupIdToNull(groupId));
     }
 
@@ -1030,7 +1046,10 @@ public class GroupsResourceImpl implements GroupsResource {
                     ? RegistryHashAlgorithm.SHA256 : RegistryHashAlgorithm.valueOf(xRegistryHashAlgorithm);
                 switch (algorithm) {
                     case MD5:
-                        calculatedSha = Hashing.md5().hashString(content.content(), StandardCharsets.UTF_8)
+                        // MD5 is an explicit, client-selected option of the v2 API contract
+                        // (X-Registry-Hash-Algorithm) used only as a content checksum, never for
+                        // security decisions. SHA256 is the default. Kept for backward compatibility.
+                        calculatedSha = Hashing.md5().hashString(content.content(), StandardCharsets.UTF_8) // NOSONAR
                                 .toString();
                         break;
                     case SHA256:
@@ -1071,6 +1090,8 @@ public class GroupsResourceImpl implements GroupsResource {
             } else if (!ArtifactIdValidator.isArtifactIdAllowed(artifactId)) {
                 throw new InvalidArtifactIdException(ArtifactIdValidator.ARTIFACT_ID_ERROR_MESSAGE);
             }
+            // The interceptor checked the group; grants must also allow writing this artifact name
+            accessGuard.requireGrantsAccess(AuthorizedLevel.Write, AuthorizedResource.artifact(groupId, artifactId));
 
             TypedContent typedContent = TypedContent.create(content, ct);
             String artifactType = ArtifactType.AVRO;
@@ -1084,8 +1105,8 @@ public class GroupsResourceImpl implements GroupsResource {
             final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
             // Try to resolve the new artifact references and the nested ones (if any)
-            final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                    .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+            final Map<String, TypedContent> resolvedReferences = ReferenceResolution
+                    .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
             rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,
                     RuleApplicationType.CREATE, toV3Refs(references), resolvedReferences);
@@ -1138,7 +1159,7 @@ public class GroupsResourceImpl implements GroupsResource {
 
         Set<SearchFilter> filters = Set.of(SearchFilter.ofGroupId(defaultGroupIdToNull(groupId)),
                 SearchFilter.ofArtifactId(artifactId));
-        VersionSearchResultsDto resultsDto = storage.searchVersions(filters, OrderBy.createdOn,
+        VersionSearchResultsDto resultsDto = searchAuthorizer.searchVersions(filters, OrderBy.createdOn,
                 OrderDirection.asc, ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimitUnbounded(limit), false);
         return V2ApiUtil.dtoToSearchResults(resultsDto);
@@ -1231,8 +1252,8 @@ public class GroupsResourceImpl implements GroupsResource {
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
         // Try to resolve the new artifact references and the nested ones (if any)
-        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+        final Map<String, TypedContent> resolvedReferences = ReferenceResolution
+                .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
         final String owner = securityIdentity.getPrincipal().getName();
 
@@ -1343,8 +1364,8 @@ public class GroupsResourceImpl implements GroupsResource {
         // passed references does not exist.
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
 
-        final Map<String, TypedContent> resolvedReferences = RegistryContentUtils
-                .recursivelyResolveReferences(referencesAsDtos, storage::getContentByReference);
+        final Map<String, TypedContent> resolvedReferences = ReferenceResolution
+                .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
 
         TypedContent typedContent = TypedContent.create(content, contentType);
         rulesService.applyRules(defaultGroupIdToNull(groupId), artifactId, artifactType, typedContent,

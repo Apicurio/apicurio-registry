@@ -3,6 +3,7 @@ package io.apicurio.registry.agents.rest.wellknown;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.agents.mcptools.McpToolsConfig;
 import io.apicurio.registry.agents.mcptools.compatibility.CrossToolCompatibilityService;
+import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
@@ -11,10 +12,13 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.dto.GroupSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
+import io.apicurio.registry.storage.dto.SearchFilter;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
+import io.apicurio.registry.storage.dto.VersionSearchResultsDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.RegistryStorageException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
@@ -25,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -70,6 +75,26 @@ class McpToolDiscoveryCompatibleToolsTest {
 
         resource = new McpToolDiscovery();
         resource.storage = storage;
+        // Per-resource authorization disabled: searches delegate to storage
+        resource.searchAuthorizer = new ISearchAuthorizer() {
+            @Override
+            public ArtifactSearchResultsDto searchArtifacts(Set<SearchFilter> filters, OrderBy orderBy,
+                    OrderDirection orderDir, int offset, int limit, boolean skipCount) {
+                return storage.searchArtifacts(filters, orderBy, orderDir, offset, limit, skipCount);
+            }
+
+            @Override
+            public GroupSearchResultsDto searchGroups(Set<SearchFilter> filters, OrderBy orderBy,
+                    OrderDirection orderDir, int offset, int limit) {
+                return storage.searchGroups(filters, orderBy, orderDir, offset, limit);
+            }
+
+            @Override
+            public VersionSearchResultsDto searchVersions(Set<SearchFilter> filters, OrderBy orderBy,
+                    OrderDirection orderDir, int offset, int limit, boolean skipCount) {
+                return storage.searchVersions(filters, orderBy, orderDir, offset, limit, skipCount);
+            }
+        };
         resource.mcpToolsConfig = mcpToolsConfig;
         resource.crossToolCompatibility = new CrossToolCompatibilityService();
 

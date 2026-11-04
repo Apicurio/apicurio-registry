@@ -22,4 +22,6 @@ public class Registry extends HasSchema {
     private List<Rule> globalRules;
 
     private List<ConfigurationProperty> properties;
+
+    private List<Peer> peers;
 }

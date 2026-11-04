@@ -11,6 +11,8 @@ import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.elasticsearch.core.SearchResponse;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
+import io.apicurio.registry.storage.dto.AuthorizationFilter;
+import io.apicurio.registry.storage.dto.AuthorizationNames;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
@@ -258,6 +260,9 @@ public class ElasticsearchSearchService {
                     : filter.getStringValue();
             return buildTermOrWildcardQuery("groupId", groupValue);
 
+        case authorization:
+            return buildAuthorizationQuery(filter.getAuthorizationValue());
+
         case artifactId:
             return buildTermOrWildcardQuery("artifactId", filter.getStringValue());
 
@@ -283,6 +288,9 @@ public class ElasticsearchSearchService {
 
         case name:
             return buildNameQuery(filter.getStringValue());
+
+        case nameCaseInsensitive:
+            return buildCaseInsensitiveNameQuery(filter.getStringValue());
 
         case description:
             return buildTextQuery(FIELD_DESCRIPTION, filter.getStringValue());
@@ -318,6 +326,60 @@ public class ElasticsearchSearchService {
     }
 
     /**
+     * Builds the per-resource authorization restriction. Artifact name patterns are decomposed by
+     * {@link AuthorizationNames}, exactly as in the SQL implementation and point access. The index
+     * does not store artifact ownership, so owned artifacts are matched by the names in
+     * {@link AuthorizationFilter#ownedArtifacts()}.
+     */
+    Query buildAuthorizationQuery(AuthorizationFilter filter) {
+        Query allowed = filter.allowAll() ? Query.of(q -> q.matchAll(m -> m))
+                : anyNameMatches(filter.allowExact(), filter.allowPrefix());
+        Query denied = anyNameMatches(filter.denyExact(), filter.denyPrefix());
+        Query byGrants = Query.of(q -> q.bool(b -> b.must(allowed).mustNot(denied)));
+        if (filter.ownedArtifacts().isEmpty()) {
+            return byGrants;
+        }
+        // Owners always see their artifacts (resolved by ElasticsearchSearchDecorator)
+        Query owned = anyNameMatches(filter.ownedArtifacts(), Set.of());
+        return Query.of(q -> q.bool(b -> b.should(byGrants).should(owned).minimumShouldMatch("1")));
+    }
+
+    /** Matches documents whose artifact name equals one of {@code exact} or starts with a prefix. */
+    private static Query anyNameMatches(Set<String> exact, Set<String> prefixes) {
+        List<Query> clauses = new ArrayList<>();
+        for (String name : exact) {
+            AuthorizationNames.artifactsNamed(name).forEach(c -> clauses.add(clauseQuery(c)));
+        }
+        for (String prefix : prefixes) {
+            AuthorizationNames.artifactsWithPrefix(prefix).forEach(c -> clauses.add(clauseQuery(c)));
+        }
+        if (clauses.isEmpty()) {
+            return Query.of(q -> q.matchNone(m -> m));
+        }
+        return Query.of(q -> q.bool(b -> b.should(clauses).minimumShouldMatch("1")));
+    }
+
+    /** The default group is indexed with the group ID {@code default}. */
+    private static Query clauseQuery(AuthorizationNames.Clause clause) {
+        Query group = clause.groupPrefix() ? prefixQuery("groupId", clause.group())
+                : termQuery("groupId", clause.group());
+        if (clause.artifact() == null) {
+            return group;
+        }
+        Query artifact = clause.artifactPrefix() ? prefixQuery("artifactId", clause.artifact())
+                : termQuery("artifactId", clause.artifact());
+        return Query.of(q -> q.bool(b -> b.must(group).must(artifact)));
+    }
+
+    private static Query termQuery(String field, String value) {
+        return Query.of(q -> q.term(t -> t.field(field).value(value)));
+    }
+
+    private static Query prefixQuery(String field, String value) {
+        return Query.of(q -> q.prefix(p -> p.field(field).value(value)));
+    }
+
+    /**
      * Builds a query for the name filter. Searches both "name" (full-text) and "artifactId"
      * (exact match) to match SQL behavior.
      *
@@ -331,6 +393,41 @@ public class ElasticsearchSearchService {
                 .should(Query.of(sq -> sq.term(t -> t
                         .field("artifactId").value(value))))
         ));
+    }
+
+    /**
+     * Builds a case-insensitive wildcard query for the name and artifact ID fields. Only a leading
+     * or trailing {@code *} is treated as a wildcard, matching the SQL storage behavior.
+     *
+     * @param value the search value
+     * @return a query that matches name or artifactId without regard to case
+     */
+    private Query buildCaseInsensitiveNameQuery(String value) {
+        String escapedValue = escapeCaseInsensitiveNamePattern(value);
+        return Query.of(q -> q.bool(b -> b
+                .should(Query.of(sq -> sq.wildcard(w -> w
+                        .field("name.keyword").value(escapedValue).caseInsensitive(true))))
+                .should(Query.of(sq -> sq.wildcard(w -> w
+                        .field("artifactId").value(escapedValue).caseInsensitive(true))))
+        ));
+    }
+
+    /**
+     * Escapes Elasticsearch wildcard syntax inside a name search while preserving an intentional
+     * leading or trailing {@code *}. SQL treats interior {@code *}, {@code ?}, and backslashes as
+     * literal characters, so escaping them here keeps both storage paths consistent.
+     */
+    private static String escapeCaseInsensitiveNamePattern(String value) {
+        StringBuilder escaped = new StringBuilder(value.length());
+        for (int idx = 0; idx < value.length(); idx++) {
+            char character = value.charAt(idx);
+            boolean boundaryWildcard = character == '*' && (idx == 0 || idx == value.length() - 1);
+            if (!boundaryWildcard && (character == '*' || character == '?' || character == '\\')) {
+                escaped.append('\\');
+            }
+            escaped.append(character);
+        }
+        return escaped.toString();
     }
 
     /**

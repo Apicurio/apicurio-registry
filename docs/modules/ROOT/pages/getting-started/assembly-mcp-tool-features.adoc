@@ -378,21 +378,78 @@ IMPORTANT: If you already use the `FULL` validity level for MCP tool definitions
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-When you version MCP tool definitions, {registry} checks for breaking changes based on compatibility rules.
+When a `COMPATIBILITY` rule is configured, {registry} compares the `inputSchema` and optional `outputSchema` of successive `MCP_TOOL` versions with the same Apitomy Data Models checker used for JSON Schema artifacts.
+The two schemas have opposite directions:
 
-The following changes are compatible and are allowed:
+* `BACKWARD`: the new tool accepts every input allowed by the old input schema, and every output allowed by the new output schema satisfies the old output schema.
+* `FORWARD`: the old tool accepts every input allowed by the new input schema, and every output allowed by the old output schema satisfies the new output schema.
+* `FULL`: both conditions hold.
+* The `_TRANSITIVE` modes check every earlier version rather than only the latest. `NONE` disables compatibility checking. With no previous version, there is no compatibility comparison; configure a `VALIDITY` rule for initial content validation.
 
-* Adding optional input parameters
-* Changing name, title, or description
-* Changing annotations
-* Adding or modifying outputSchema
+.MCP tool schema evolution rules
+[%header,cols="3,1,1,1,1"]
+|===
+|Change (old to new)
+|Input BACKWARD
+|Input FORWARD
+|Output BACKWARD
+|Output FORWARD
 
-The following changes are incompatible and might break clients:
+|Make a required property optional, keeping its schema
+|Yes |No |No |Yes
 
-* Removing input parameters from inputSchema.properties
-* Adding new required parameters
-* Removing required parameters
-* Changing the inputSchema type
+|Make an optional property required
+|No |Yes |Yes |No
+
+|Add a typed optional property to a closed object (`additionalProperties: false`)
+|Yes |No |No |Yes
+
+|Add a typed optional property to an open object (absent or `true` additionalProperties)
+|No |Yes |Yes |No
+
+|Remove an optional property declaration from a closed object
+|No |Yes |Yes |No
+
+|Remove an optional property constraint from an open object
+|Yes |No |No |Yes
+
+|Widen `type`, including nested properties and array items (`integer` to `number`, or `string` to `["string", "null"]`)
+|Yes |No |No |Yes
+
+|Change between disjoint types (`string` to `integer`)
+|No |No |No |No
+
+|Expand `enum`, remove `const`, or relax `multipleOf` from 4 to 2
+|Yes |No |No |Yes
+
+|Lower `minimum`, `exclusiveMinimum`, `minLength`, `minItems`, or `minProperties`; raise the corresponding maximum
+|Yes |No |No |Yes
+
+|Allow additional properties, widen their schema, or relax `uniqueItems` from `true` to `false`
+|Yes |No |No |Yes
+|===
+
+The table assumes a strict change in accepted values with other constraints unchanged. Reverse a widening change to reverse its results. A property declaration is a constraint, not a guarantee that the property exists: use `required` for that guarantee. A required output can become optional only with a forward-compatible change; adding a required output can be backward compatible if the old schema already allowed that property and its values.
+
+Adding an `outputSchema` where none existed is backward compatible but not forward compatible. Removing it loses the declared output guarantee and is backward incompatible but forward compatible. Changing the tool's name, title, description, or annotations does not affect this schema comparison; that does not establish that a renamed tool or changed implementation is safe for callers.
+
+=== Supported schema subset and limits
+
+The publication rule supports recursive `properties`, schema-valued or boolean `additionalProperties`, homogeneous `items`, boolean subschemas, `type` (including unions), `required`, `enum`, `const`, numeric bounds and `multipleOf`, string length bounds, array size and uniqueness, and object property counts. It recognizes drafts 4, 6, 7, 2019-09, and 2020-12; absent `$schema` uses draft 7. Keywords must be valid for the declared draft. In draft 4, `const` (which draft 4 does not define) and the boolean `exclusiveMinimum` and `exclusiveMaximum` modifiers are outside the supported subset. The checker compares most numbers as 64-bit floating-point values, so numbers must be exactly representable at that precision, such as `0.1` or integers up to 2^53^. A value such as `9007199254740993.0`, or an integer above 2^53^ in a numeric bound or `multipleOf`, is outside the supported subset and returns HTTP 422 rather than comparing equal to a neighboring value. Integers of any size inside `enum` and `const` values are compared exactly.
+
+Schema annotations (`title`, `description`, `default`, `examples`, `$comment`, `deprecated`, `readOnly`, and `writeOnly`) do not enforce compatibility constraints. Default values do not fill missing inputs.
+
+References (`$ref`, `$dynamicRef`, `$recursiveRef`, identifiers and definition containers), composition (`allOf`, `anyOf`, `oneOf`, `not`), conditionals, dependencies, tuple schemas, `prefixItems`, `contains`, `unevaluated*`, `pattern`, `patternProperties`, `format`, and other unlisted keywords are outside this publication rule's supported subset. They are not silently discarded. If either compared schema uses one, even unchanged, the comparison fails with HTTP 422. No reference is fetched or resolved. This deliberately narrower contract does not change the JSON artifact checker or cross-tool chaining endpoint.
+
+A known incompatible change returns HTTP 400 with a rule-violation context prefixed by `/inputSchema` or `/outputSchema`. For example, narrowing an input string reports `/inputSchema/properties/query/maxLength`. Input BACKWARD contexts point into the new schema; output BACKWARD contexts point into the old schema because its accepted outputs are the comparison target. FORWARD reverses those locations; FULL can report both. Invalid or unsupported schemas return HTTP 422. Neither rejection creates the candidate version or changes previously accepted content.
+
+The engine can conservatively reject changes that accept the same values, especially when several constraints interact. A passing schema check is not proof of behavioral equivalence, runtime conformance, successful invocation, or compatibility between two different tools.
+
+=== Upgrade and sample guidance
+
+Earlier MCP tool checking compared only top-level input types, property names, and requiredness; output changes and nested constraint changes were unchecked. Version 3.4 checks the supported subset above and changes those results. Making an input optional is now backward compatible. Adding a typed optional input to an open schema is no longer automatically accepted. Stored versions are not rewritten; unsupported schemas in existing versions can prevent subsequent publication under an enabled compatibility rule.
+
+For a release-safety demonstration, publish a tool whose input `query` is a string with `maxLength: 10`, enable `BACKWARD`, and propose `maxLength: 5`. Expect HTTP 400 and unchanged old content. Propose `maxLength: 20` and expect acceptance. For an output schema, the direction is reversed. Use a disposable registry and retain the rule configuration, exact versions, responses, and retrieved content as evidence for the agent-registry graduation work (#10294). This demonstrates publication-time schema enforcement only; it is not evidence of runtime admission, authenticated invocation, or full feature graduation.
 
 // ref-mcp-automatic-label-extraction
 [id="mcp-automatic-label-extraction_{context}"]

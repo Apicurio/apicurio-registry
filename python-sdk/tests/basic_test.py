@@ -1,4 +1,3 @@
-import asyncio
 from dataclasses import dataclass
 from typing import Optional
 from httpx import QueryParams
@@ -60,17 +59,6 @@ def registry_server(request):
     p = subprocess.Popen(["java", "-jar", registry_jar])
     request.addfinalizer(p.kill)
     poll_for_ready()
-
-
-# workaround: https://stackoverflow.com/a/72104554
-@pytest.fixture(scope="session", autouse=True)
-def event_loop():
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest.mark.asyncio

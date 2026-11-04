@@ -38,4 +38,4 @@ RUN chmod -R g+w /opt/app-root/src /usr/local/bin/
 EXPOSE 8080 1337
 
 USER 1001
-CMD /usr/local/bin/entrypoint.sh
+CMD ["/usr/local/bin/entrypoint.sh"]

@@ -1,4 +1,4 @@
-# ADR-001: Per-Resource Authorization for Apicurio Registry
+# ADR-0005: Per-Resource Authorization for Apicurio Registry
 
 - **Status:** Accepted
 - **Date:** 2026-05-09

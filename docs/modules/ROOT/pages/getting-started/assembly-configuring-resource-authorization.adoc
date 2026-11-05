@@ -8,6 +8,13 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 Per-resource authorization controls access to individual groups and artifacts. For example, you can allow Alice to write artifacts in `team-a` and read artifacts in `shared`, without granting access to `team-b`. You define access rules in a file. {registry} combines these rules with configured role and ownership checks, and filters search and list results. Administrator and owner bypasses affect the outcome, as described in this guide.
 
+ifdef::service-registry-downstream[]
+[IMPORTANT]
+====
+Per-resource authorization is a Technology Preview feature. Technology Preview features are not supported with Red{nbsp}Hat production service level agreements (SLAs) and might not be functionally complete. Red{nbsp}Hat does not recommend using them in production. These features provide early access to upcoming product features, enabling customers to test functionality and provide feedback during the development process.
+====
+endif::[]
+
 // con-resource-authorization-overview
 [id="resource-authorization-overview_{context}"]
 == Per-resource authorization overview
@@ -34,6 +41,11 @@ The access rules file uses the Kroxylicious ACL rules format, which Kroxylicious
 
 [role="_additional-resources"]
 .Additional resources
+* xref:getting-started/assembly-configuring-registry-security.adoc#registry-security-settings_{context}[{registry} authentication and authorization configuration options]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-deploying-registry-operator.adoc#configuring-env-vars_{context}[Environment variable configuration]
+* xref:getting-started/assembly-deploying-registry-operator.adoc#using-podtemplatespec_{context}[PodTemplateSpec advanced customization]
+endif::[]
 * link:https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md[Kroxylicious ACL rules format (proposal 009)]
 
 // proc-enabling-resource-authorization
@@ -67,6 +79,46 @@ environment:
 
 +
 These environment variables configure the feature and file path only; they do not enable authentication. If authentication is disabled, {registry} warns at startup and bypasses authorization even when resource-based authorization is enabled.
+. If you deploy {registry} with the {operator}, configure the `ApicurioRegistry3` custom resource instead. Set the properties as environment variables in `spec.app.env`, and mount the ConfigMap through `spec.app.podTemplateSpec`:
++
+[source,yaml]
+----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry-access-rules
+data:
+  access.rules: |
+    from io.apicurio.authz import Artifact, Group, Role;
+    allow Role with name = "sr-developer" to READ Artifact with name like "public/*";
+    otherwise deny;
+---
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry
+spec:
+  app:
+    env:
+      - name: APICURIO_AUTH_RESOURCE_BASED_AUTHORIZATION_ENABLED
+        value: "true"
+      - name: APICURIO_AUTH_RESOURCE_BASED_AUTHORIZATION_RULES_PATH
+        value: /opt/apicurio/authz/access.rules
+    podTemplateSpec:
+      spec:
+        volumes:
+          - name: access-rules
+            configMap:
+              name: registry-access-rules
+        containers:
+          - name: apicurio-registry-app
+            volumeMounts:
+              - name: access-rules
+                mountPath: /opt/apicurio/authz
+                readOnly: true
+----
++
+Keep your existing `spec.app.auth` configuration, because per-resource authorization has no effect without authentication. Set the environment variables in `spec.app.env`, not in the `podTemplateSpec` container. If a `podTemplateSpec` container sets `env`, the {operator} records a validation error condition in the `ApicurioRegistry3` status.
 
 . Start or restart {registry}.
 +

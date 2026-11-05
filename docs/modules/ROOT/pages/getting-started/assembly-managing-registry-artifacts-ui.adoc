@@ -659,6 +659,53 @@ IMPORTANT: This feature is experimental and subject to backwards-incompatible ch
 
 * The dialog lists each tool with its result: `CREATED`, `NEW_VERSION`, `UNCHANGED`, `REJECTED`, or `REMOVED`. For a rejected tool, it shows the rule violations. When you close the dialog after an import, the artifact page shows the new version.
 
+[id="browsing-agent-cards-using-console_{context}"]
+== Browsing and registering agent cards using the {registry} web console
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the *Agents* tab of the {registry} web console to find the A2A agent cards stored as `AGENT_CARD` artifacts, and to register new agent cards by entering their content or importing them from a URL.
+
+IMPORTANT: This feature is experimental and subject to backwards-incompatible change or removal.
+
+.Prerequisites
+
+* {registry} is started with `apicurio.features.experimental.enabled=true`.
+* The *Agents* tab is enabled. Set `apicurio.ui.features.agents.enabled=true` on the {registry} server, or, as an administrator, select *Agents tab* in the *Web console settings* on the *Settings* tab. The setting is dynamic, so you can change it at runtime. You must set the experimental features property before {registry} starts.
+* To register or edit agent cards, the web console is not in read-only mode and you have permission to create artifacts.
+
+.Procedure
+
+. In the {registry} web console, click the *Agents* tab.
++
+The tab shows a card for each registered agent. Each card shows the agent name, version, and description, the URL and protocol binding of its first supported interface, its capabilities and skills, and its group, creation time, and owner.
+
+. To narrow the list, enter a name in *Search by name*, enter a skill ID in *Filter by skill*, or select *Streaming* or *Push Notifications* from the *All Capabilities* list, and then click *Search*.
+
+. To open the `AGENT_CARD` artifact of an agent, click its card.
+
+. To register an agent card by entering its content, click *Create Agent* and complete the *Create Agent Card* wizard:
+.. On the *Agent Coordinates* page, enter the *Group ID*, the *Artifact ID*, and the initial *Version*. When you leave the group ID empty, the web console uses the `default` group. When you leave the artifact ID empty, {registry} generates one.
+.. On the *Agent Card Content* page, enter the agent card. You can continue only when the card has a name, a description, a version, capabilities, at least one skill, and at least one supported interface that has a URL, a protocol binding, and a protocol version.
+.. On the *Metadata* page, optionally enter the artifact *Name* and *Description*, and click *Create*.
+
+. To import the agent card that an agent publishes, click *Import Agent* and complete the *Import Agent from URL* wizard:
+.. On the *Agent Card URL* page, enter the URL of the agent card, for example `\https://agent.example.com/.well-known/agent.json`. The web console fetches the content. It rejects content that is not a JSON object with a `name` string, or that has two skills with the same ID.
+.. On the *Preview* page, review the fetched agent card.
+.. On the *Import Settings* page, optionally enter the *Group ID* and the *Artifact ID*, and click *Import*. When you leave them empty, the web console uses the `default` group and {registry} generates an artifact ID.
+
+. To edit an agent card, open a version of the `AGENT_CARD` artifact and select *Edit Agent Card* from the version actions menu. The action appears only when the web console is not in read-only mode and you have write access to the artifact. The web console saves the edited card as a new version of the artifact.
+
+.Verification
+
+ifndef::service-registry-downstream[]
+* The new or edited agent card appears on the *Agents* tab, and the `GET /.well-known/agents` endpoint returns it, as described in xref:getting-started/assembly-a2a-features.adoc#a2a-well-known-endpoints_{context}[A2A well-known endpoints].
+endif::[]
+ifdef::service-registry-downstream[]
+* The new or edited agent card appears on the *Agents* tab, and the `GET /.well-known/agents` endpoint returns it.
+endif::[]
+
 [id="changing-artifact-owner-using-console_{context}"]
 == Changing an artifact owner using the {registry} web console
 :_mod-docs-content-type: PROCEDURE

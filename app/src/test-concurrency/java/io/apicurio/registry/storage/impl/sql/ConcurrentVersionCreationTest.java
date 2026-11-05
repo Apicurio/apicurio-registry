@@ -38,9 +38,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * Two threads concurrently creating the FIRST version of an artifact must get versionOrder 1 and 2.
  *
- * <p>No CI workflow activates {@code -Pbyteman} yet, so this runs locally only until #9845 is
+ * <p>No CI workflow activates {@code -Pconcurrency-tests} yet, so this runs locally only until #9845 is
  * settled. Run it with
- * {@code ./mvnw test -pl :apicurio-registry-app -Pbyteman -Dtest=ConcurrentVersionCreationTest}.
+ * {@code ./mvnw test -pl :apicurio-registry-app -Pconcurrency-tests -Dtest=ConcurrentVersionCreationTest}.
  * The Byteman section of DEVELOPING.md explains the separate source root and {@code @BMUnitConfig}.
  */
 @QuarkusTest

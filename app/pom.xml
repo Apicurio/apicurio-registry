@@ -940,10 +940,11 @@
          the dependency nor the test sources may appear in the default build: the license scan
          reads the POM dependency graph of the profile-less model, and a compiled BMUnit
          annotation left in target/test-classes would ride into the test-jar produced at
-         process-test-classes. Hence the separate source root, src/test-byteman/java, which only
+         process-test-classes. Hence the separate source root, src/test-concurrency/java, which only
          this profile adds. -->
     <profile>
-      <id>byteman</id>
+      <!-- Opt-in because it pulls the LGPL Byteman dependency. -->
+      <id>concurrency-tests</id>
       <dependencies>
         <dependency>
           <groupId>org.jboss.byteman</groupId>
@@ -969,7 +970,7 @@
             <configuration>
               <testSourceDirectories>
                 <testSourceDirectory>${project.build.testSourceDirectory}</testSourceDirectory>
-                <testSourceDirectory>${project.basedir}/src/test-byteman/java</testSourceDirectory>
+                <testSourceDirectory>${project.basedir}/src/test-concurrency/java</testSourceDirectory>
               </testSourceDirectories>
             </configuration>
           </plugin>
@@ -978,14 +979,14 @@
             <artifactId>build-helper-maven-plugin</artifactId>
             <executions>
               <execution>
-                <id>add-byteman-test-source</id>
+                <id>add-concurrency-test-source</id>
                 <goals>
                   <goal>add-test-source</goal>
                 </goals>
                 <phase>generate-test-sources</phase>
                 <configuration>
                   <sources>
-                    <source>${project.basedir}/src/test-byteman/java</source>
+                    <source>${project.basedir}/src/test-concurrency/java</source>
                   </sources>
                 </configuration>
               </execution>

@@ -28,6 +28,8 @@ jobs:
       branch: ${{ steps.config.outputs.branch }}
       run-tests: ${{ steps.config.outputs.run-tests }}
       package-version: ${{ steps.config.outputs.package-version }}
+      previous-version: ${{ steps.config.outputs.previous-version }}
+      rolling: ${{ steps.config.outputs.rolling }}
     steps:
 
       - name: Fetch Release Details
@@ -83,6 +85,34 @@ jobs:
               exit 1
           fi
 
+      # Derive the upgrade path from the released tags rather than from the branch or the
+      # Makefile: a maintenance branch's Makefile can be stale when the previous patch
+      # was released from main (3.3.4 replaced 3.3.2 instead of 3.3.3), and a maintenance
+      # release can still be the newest release, which must also go to the rolling channel.
+      - name: Determine upgrade path and channels
+        working-directory: registry
+        run: |
+          MAJOR="${RELEASE_VERSION%%.*}"
+          RELEASES=$( (git tag -l "$MAJOR.*"; echo "$RELEASE_VERSION") | grep -E "^$MAJOR\.[0-9]+\.[0-9]+$" | sort -Vu)
+          if ! grep -qx "$RELEASE_VERSION" <<< "$RELEASES"; then
+            echo "ERROR: Release version $RELEASE_VERSION is not of the form $MAJOR.Y.Z"
+            exit 1
+          fi
+          PREVIOUS=$(awk -v r="$RELEASE_VERSION" '$0 == r { exit } { p = $0 } END { print p }' <<< "$RELEASES")
+          if [ -z "$PREVIOUS" ]; then
+            echo "ERROR: No release before $RELEASE_VERSION found in the tags"
+            exit 1
+          fi
+          NEWEST=$(tail -1 <<< "$RELEASES")
+          ROLLING=false
+          if [ "$NEWEST" = "$RELEASE_VERSION" ]; then
+            ROLLING=true
+          fi
+          echo "Previous release: $PREVIOUS, newest release: $NEWEST, rolling channel: $ROLLING"
+          # make reads PREVIOUS_PACKAGE_VERSION from the environment (the Makefile uses ?=).
+          echo "PREVIOUS_PACKAGE_VERSION=$PREVIOUS" >> $GITHUB_ENV
+          echo "ROLLING=$ROLLING" >> $GITHUB_ENV
+
       - name: Configure outputs
         id: config
         working-directory: registry/operator
@@ -91,6 +121,8 @@ jobs:
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
           echo "run-tests=$RUN_TESTS" >> $GITHUB_OUTPUT
           echo "package-version=$(make VAR=LC_VERSION variable-get)" >> $GITHUB_OUTPUT
+          echo "previous-version=$PREVIOUS_PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "rolling=$ROLLING" >> $GITHUB_OUTPUT
 
       - name: Show make configuration
         working-directory: registry/operator
@@ -98,9 +130,9 @@ jobs:
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION config-show
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: temurin
           cache: maven
 
@@ -127,7 +159,7 @@ jobs:
         working-directory: registry/operator
         run: |
           ROLLING_CHANNEL_ARG=""
-          if [ "$BRANCH" = "main" ]; then
+          if [ "$ROLLING" = "true" ]; then
             ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
           fi
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION $ROLLING_CHANNEL_ARG bundle
@@ -136,7 +168,7 @@ jobs:
         working-directory: registry/operator
         run: |
           ROLLING_CHANNEL_ARG=""
-          if [ "$BRANCH" = "main" ]; then
+          if [ "$ROLLING" = "true" ]; then
             ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
           fi
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_CATALOG_IMAGE_TAG=latest $ROLLING_CHANNEL_ARG catalog
@@ -147,7 +179,7 @@ jobs:
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION INSTALL_FILE=controller/target/test-install.yaml dist-install-file
 
       - name: Upload test artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: operator-test-artifacts
           path: |
@@ -157,7 +189,7 @@ jobs:
           retention-days: 1
 
       - name: Upload bundle artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: operator-bundle-artifacts
           path: |
@@ -224,21 +256,21 @@ jobs:
           cd registry && git checkout "${{ needs.release-build.outputs.release-version }}"
 
       - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: temurin
           cache: maven
 
       - name: Download test artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: operator-test-artifacts
           path: registry/operator/
 
 
 
-      - uses: apicurio/apicurio-github-actions/setup-minikube@ecae58cc1a9b5eeb810b90f8a9e15d2266a371d3 # v2
+      - uses: apicurio/apicurio-github-actions/setup-minikube@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
         with:
           driver: 'none'
           ingress-enable: 'true'
@@ -262,10 +294,14 @@ jobs:
     if: always() && needs.release-build.result == 'success' && (needs.release-test.result == 'success' || needs.release-test.result == 'skipped')
     runs-on: ubuntu-26.04
     timeout-minutes: 60
+    # Read by the notify job, which leaves out a failure already reported here.
+    outputs:
+      notified: ${{ steps.notify.outcome }}
     env:
       RELEASE_VERSION: ${{ needs.release-build.outputs.release-version }}
       BRANCH: ${{ needs.release-build.outputs.branch }}
       PACKAGE_VERSION: ${{ needs.release-build.outputs.package-version }}
+      ROLLING: ${{ needs.release-build.outputs.rolling }}
     steps:
 
       - name: Configure env. variables
@@ -280,10 +316,19 @@ jobs:
           git clone "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git" registry
           cd registry && git checkout "$RELEASE_VERSION"
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+      # The release tag may predate operator/scripts (e.g. 3.3.x), so take the
+      # helper scripts from the commit this workflow runs from instead.
+      - name: Checkout workflow helper scripts
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          java-version: '21'
+          path: workflow-scripts
+          sparse-checkout: operator/scripts
+          persist-credentials: false
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          java-version: '25'
           distribution: temurin
           cache: maven
 
@@ -293,7 +338,7 @@ jobs:
           make BUILD_OPTS=--no-transfer-progress SKIP_TESTS=true OPERAND_IMAGE_TAG=$RELEASE_VERSION build
 
       - name: Download bundle artifacts
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           name: operator-bundle-artifacts
           path: registry/operator/target/bundle/
@@ -380,7 +425,7 @@ jobs:
 
           # Wait for the pipeline-built bundle, then refresh catalog history in
           # case a preceding catalog submission merged while we were waiting.
-          BUNDLE_IMG=$(bash ../registry/operator/scripts/published-bundle.sh "$PACKAGE_VERSION")
+          BUNDLE_IMG=$(bash ../workflow-scripts/operator/scripts/published-bundle.sh "$PACKAGE_VERSION")
           git fetch origin main
           git checkout -B main origin/main
           git checkout -b "${RELEASE_BRANCH}-catalog"
@@ -389,7 +434,7 @@ jobs:
           MINOR_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
           CSV_NAME="$PKG_NAME.v$PACKAGE_VERSION"
 
-          if [ "$BRANCH" = "main" ]; then
+          if [ "$ROLLING" = "true" ]; then
             CHANNELS="3.x $MINOR_CHANNEL"
           else
             CHANNELS="$MINOR_CHANNEL"
@@ -512,21 +557,37 @@ jobs:
             make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
             make release-catalog-template-update
           else
-            # Maintenance release from an older minor — only update its channel
-            # and add the bundle image. Do NOT touch PREVIOUS_PACKAGE_VERSION,
-            # the rolling channel, or other minor channels on main.
+            # Maintenance release from an older minor — only update its channel (and the
+            # rolling channel if it is the newest release) and add the bundle image.
+            # Do NOT touch PREVIOUS_PACKAGE_VERSION or other minor channels on main.
             CATALOG_DIR=$(make VAR=CATALOG_DIR variable-get)
             CATALOG_FILE="$CATALOG_DIR/catalog.template.yaml"
             PKG_NAME=$(make VAR=PACKAGE_NAME variable-get)
             LC_VERSION=$(echo "$PACKAGE_VERSION" | tr A-Z a-z)
-            PREV_PKG=$(make VAR=PREVIOUS_PACKAGE variable-get)
             BUNDLE_IMG="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$LC_VERSION"
+            # "Update install file" runs mvn clean, which deletes target/bin/yq.
+            make install-yq
             YQ=$(make VAR=YQ variable-get)
 
-            echo "Syncing maintenance release $PACKAGE_VERSION to main (channel $RELEASE_CHANNEL only)"
+            SYNC_CHANNELS="$RELEASE_CHANNEL"
+            if [ "$ROLLING" = "true" ]; then
+              SYNC_CHANNELS="3.x $RELEASE_CHANNEL"
+            fi
+            echo "Syncing maintenance release $PACKAGE_VERSION to main (channels: $SYNC_CHANNELS)"
 
-            # Add the new version to its minor channel
-            $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$RELEASE_CHANNEL\") | .entries) |= [{\"name\": \"$PKG_NAME.v$PACKAGE_VERSION\", \"replaces\": \"$PREV_PKG\"}] + ." "$CATALOG_FILE"
+            # Add the new version as the head of each channel, replacing the current
+            # released head. The development placeholder stays first.
+            export PLACEHOLDER='${PLACEHOLDER_PACKAGE}' CSV_NAME="$PKG_NAME.v$PACKAGE_VERSION"
+            for CH in $SYNC_CHANNELS; do
+              export CH HEAD
+              HEAD=$($YQ '.entries[] | select(.schema == "olm.channel" and .name == strenv(CH)) | [.entries[] | select(.name != strenv(PLACEHOLDER))] | .[0].name // ""' "$CATALOG_FILE")
+              if [ -z "$HEAD" ] || [ "$HEAD" = "$CSV_NAME" ]; then
+                echo "ERROR: Unexpected head '$HEAD' of channel $CH"
+                exit 1
+              fi
+              $YQ -i '(.entries[] | select(.schema == "olm.channel" and .name == strenv(CH)) | .entries) |=
+                ([.[] | select(.name == strenv(PLACEHOLDER))] + [{"name": strenv(CSV_NAME), "replaces": strenv(HEAD)}] + [.[] | select(.name != strenv(PLACEHOLDER))])' "$CATALOG_FILE"
+            done
 
             # Add the bundle image
             $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$CATALOG_FILE"
@@ -538,26 +599,41 @@ jobs:
           git rebase origin/main
           git push origin main
 
-      - name: Slack Notification (Always)
-        if: always()
-        run: |
-          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job completed with status: ${{ job.status }}"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "${{ secrets.SLACK_NOTIFICATION_WEBHOOK }}"
-
-      - name: Slack Notification (Error)
-        if: failure()
-        run: |
-          MESSAGE="'${{ github.workflow }}/${{ github.job }}' job FAILED!"
-          REPO="${{ github.repository }}"
-          LINK="https://github.com/$REPO/actions/runs/${{ github.run_id }}"
-          PAYLOAD="{\"workflow\": \"${{ github.workflow }}\", \"status\": \"${{ job.status }}\", \"message\": \"$MESSAGE\", \"link\": \"$LINK\", \"repository\": \"$REPO\"}"
-          curl -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "${{ secrets.SLACK_ERROR_WEBHOOK }}"
+      # Before tmate, which holds the job open until it times out, so whoever is
+      # notified can still connect. tmate lets in only github.actor's SSH keys,
+      # and apicurio-ci (which dispatches this workflow from release-images)
+      # has none: then there is no session, and the notify job reports the
+      # failure, mentioning whoever ran the release.
+      - name: Notify failure
+        id: notify
+        if: failure() && github.actor != 'apicurio-ci'
+        uses: Apicurio/apicurio-github-actions/notify-slack@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2.4.0
+        with:
+          level: important
+          text: ":x: ${{ github.workflow }} failed for ${{ inputs.tag }} in release-post. :mag: Debug it on the runner: @${{ github.actor }} can SSH in with tmate until the job times out. The ssh command is in the job log."
+          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          mention: ${{ github.actor }},${{ github.triggering_actor }}
+          user-map: ${{ secrets.SLACK_USER_MAP }}
+          important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
 
       - name: Setup tmate session on failure
-        if: failure()
+        if: failure() && github.actor != 'apicurio-ci'
         uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3
         with:
           limit-access-to-actor: true
+
+  # Slack: see "Notifications" in .github/workflows/README.md.
+  notify:
+    name: Notify
+    needs: [release-build, release-test, release-post]
+    if: "!cancelled() && github.repository_owner == 'Apicurio'"
+    permissions:
+      actions: read
+    uses: ./.github/workflows/reusable-notify.yaml
+    with:
+      results: ${{ toJSON(needs) }}
+      version: ${{ inputs.tag }}
+    secrets:
+      SLACK_USER_MAP: ${{ secrets.SLACK_USER_MAP }}
+      SLACK_IMPORTANT_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+      SLACK_GENERAL_NOTIFICATION_WEBHOOK: ${{ secrets.SLACK_GENERAL_NOTIFICATION_WEBHOOK }}

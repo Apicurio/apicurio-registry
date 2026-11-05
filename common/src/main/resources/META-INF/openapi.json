@@ -428,6 +428,16 @@
             "in": "query"
           },
           {
+            "name": "nameCaseInsensitive",
+            "description": "When true, matches the `name` filter against names and artifact IDs without regard to letter case. Defaults to false.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
             "name": "skipCount",
             "description": "Indicates whether to skip the total count query.  When true, the total count is not computed and count will be 0 in the response.  This can improve performance for large datasets.",
             "schema": {
@@ -835,6 +845,89 @@
           "description": "An expression resolvable to a specific version ID within the given group and artifact. The following rules apply:\n\n - If the expression is in the form \"branch={branchId}\", and artifact branch {branchId} exists: The expression is resolved to a version that the branch points to.\n - Otherwise: The expression is resolved to a version with the same ID, which must follow the \"[a-zA-Z0-9._\\\\-+]{1,256}\" pattern.",
           "schema": {
             "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
+    "/groups/{groupId}/artifacts/{artifactId}/mcp-import": {
+      "summary": "Import tool definitions from a live MCP server.",
+      "post": {
+        "tags": [
+          "Artifacts",
+          "AI"
+        ],
+        "requestBody": {
+          "description": "Where to reach the MCP server, and where to publish its tools.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpToolImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolImportResult"
+                }
+              }
+            },
+            "description": "The result of the import, for the server and for each tool."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The MCP server could not be reached, or its response could not be used."
+          }
+        },
+        "operationId": "importMcpTools",
+        "summary": "Import tools from an MCP server",
+        "description": "**Experimental.** Connects to a live MCP server over the Streamable HTTP transport, lists its tools with `tools/list`, and publishes each tool as an `MCP_TOOL` artifact. The artifact named in the path must be an `MCP_SERVER`; a new version of it references every imported tool whose definition is stored.\n\nEach tool is published like any other version: configured rules, such as `COMPATIBILITY`, apply, and a tool rejected by a rule is reported as `REJECTED` with the violations, without changing what is stored. A tool whose definition is unchanged is reported as `UNCHANGED`. A tool referenced by the previous `MCP_SERVER` version but no longer listed by the server is reported as `REMOVED`; its artifact is left as it is. With `dryRun`, nothing is written and the same report is returned.\n\nThe registry connects only to hosts in `apicurio.mcp-import.allowed-hosts`, never to loopback, link-local or cloud metadata addresses, and does not follow redirects. Headers in the request are sent to the MCP server only; they are not stored, returned or logged.\n\nThis operation can fail for the following reasons:\n\n* The import feature is disabled, or the storage is read-only (HTTP error `409`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The artifact is not an `MCP_SERVER`, or the URL or its host is not allowed (HTTP error `400`)\n* The MCP server could not be reached, timed out, sent a response that is too large or invalid, or listed too many tools (HTTP error `502`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/ArtifactId"
           },
           "in": "path",
           "required": true
@@ -2914,6 +3007,225 @@
         "description": "Creates a new mapping between a user/principal and a role.\n\nThis operation can fail for the following reasons:\n\n* A server error occurred (HTTP error `500`)\n\n"
       }
     },
+    "/admin/peers": {
+      "summary": "Collection to manage the peer registries this registry federates with.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "description": "The number of peers to return.  Defaults to 20.",
+            "schema": {
+              "default": 20,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          },
+          {
+            "name": "offset",
+            "description": "The number of peers to skip before starting the result set.  Defaults to 0.",
+            "schema": {
+              "default": 0,
+              "type": "integer"
+            },
+            "in": "query",
+            "required": false
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PeerSearchResults"
+                }
+              }
+            },
+            "description": "A successful response will return the list of peer registries."
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "listPeers",
+        "summary": "List peer registries",
+        "description": "**Experimental.** Gets the list of all peer registries configured in the registry, including disabled peers, ordered by `peerId`.\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewPeer"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Returned when the peer registry was successfully created."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "createPeer",
+        "summary": "Create a peer registry",
+        "description": "**Experimental.** Registers a new peer registry.\n\nThe peer `url` must use `https` unless `apicurio.federation.peer.insecure-http.enabled` is set. It must not contain userinfo, a query or a fragment, and must not point at a link-local, unspecified, multicast, reserved or cloud metadata address, or at a loopback address unless `apicurio.federation.peer.loopback.enabled` is set. `credentialSecretRef` names a key in the registry's peer credentials directory; it is never a credential value.\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* The peer definition is invalid (HTTP error `400`)\n* A peer with the same `peerId` already exists (HTTP error `409`)\n* The registry storage is read-only (HTTP error `409`)\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      }
+    },
+    "/admin/peers/{peerId}": {
+      "summary": "Manage the configuration of a single peer registry.",
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Peer"
+                }
+              }
+            },
+            "description": "When successful, returns the details of a peer registry."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "getPeer",
+        "summary": "Get a peer registry",
+        "description": "**Experimental.** Gets the details of a single peer registry (by `peerId`).\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* The `peerId` is invalid (HTTP error `400`)\n* No peer registry with the `peerId` exists (HTTP error `404`)\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "put": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePeer"
+              }
+            }
+          },
+          "required": true
+        },
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Response when the update is successful."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "updatePeer",
+        "summary": "Update a peer registry",
+        "description": "**Experimental.** Replaces the definition of a single peer registry. Optional fields that are omitted are cleared.\n\nThe peer `url` must use `https` unless `apicurio.federation.peer.insecure-http.enabled` is set. It must not contain userinfo, a query or a fragment, and must not point at a link-local, unspecified, multicast, reserved or cloud metadata address, or at a loopback address unless `apicurio.federation.peer.loopback.enabled` is set. `credentialSecretRef` names a key in the registry's peer credentials directory; it is never a credential value.\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* The `peerId` or the peer definition is invalid (HTTP error `400`)\n* No peer registry with the `peerId` exists (HTTP error `404`)\n* The registry storage is read-only (HTTP error `409`)\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "responses": {
+          "204": {
+            "description": "Response returned when the delete was successful."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        },
+        "operationId": "deletePeer",
+        "summary": "Delete a peer registry",
+        "description": "**Experimental.** Deletes a single peer registry.\n\nThis endpoint is only available when federation is enabled (`apicurio.federation.enabled`). Returns HTTP 409 (Conflict) otherwise.\n\nThis operation can fail for the following reasons:\n\n* The `peerId` is invalid (HTTP error `400`)\n* No peer registry with the `peerId` exists (HTTP error `404`)\n* The registry storage is read-only (HTTP error `409`)\n* Federation is not enabled (HTTP error `409`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "peerId",
+          "description": "Unique id of a peer registry.",
+          "schema": {
+            "type": "string"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/admin/config/artifactTypes": {
       "summary": "The list of artifact types supported by this instance of Registry.",
       "get": {
@@ -3859,6 +4171,16 @@
               "type": "string"
             },
             "in": "query"
+          },
+          {
+            "name": "nameCaseInsensitive",
+            "description": "When true, matches the `name` filter against names and artifact IDs without regard to letter case. Defaults to false.",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            },
+            "in": "query",
+            "required": false
           },
           {
             "name": "skipCount",
@@ -6923,6 +7245,10 @@
           "name": {
             "description": "The name of the error (typically a server exception class name).",
             "type": "string"
+          },
+          "ruleViolation": {
+            "description": "Rule violation details when the error is caused by a rule violation.",
+            "$ref": "#/components/schemas/RuleViolationDetails"
           }
         },
         "example": {
@@ -7020,11 +7346,82 @@
           },
           "context": {
             "type": "string"
+          },
+          "code": {
+            "description": "The checker's identifier for the kind of difference, for example a JSON Schema difference type or an Avro schema incompatibility type. Meaningful together with the artifact type. Informational: it identifies the explanation to look up, and may change between minor versions. Clients must not build logic on specific values.",
+            "type": "string"
+          },
+          "direction": {
+            "description": "Which compatibility this difference breaks. Under a `FULL` compatibility level, this tells the user what each problem breaks.",
+            "$ref": "#/components/schemas/CompatibilityDifferenceDirection"
+          },
+          "proposed": {
+            "description": "Where the difference is in the content being added, when the checker can locate it there.",
+            "$ref": "#/components/schemas/DifferenceLocation"
+          },
+          "existing": {
+            "description": "Where the difference is in the existing version it was compared with.",
+            "$ref": "#/components/schemas/DifferenceLocation"
           }
         },
         "example": {
           "description": "External documentation URL is not valid (it must be formatted as a URL).",
           "context": "/info/externalDocs[url]"
+        }
+      },
+      "DifferenceLocation": {
+        "title": "Root Type for DifferenceLocation",
+        "description": "A location within one of the two documents compared by a rule. Locations are labelled by document - proposed or existing - rather than by the checker's original and updated schemas, so that the direction of the check does not change their meaning. Clients must tolerate a pointer that does not resolve in the content as written, falling back to the deepest part that does.",
+        "required": [
+          "pointer"
+        ],
+        "type": "object",
+        "properties": {
+          "pointer": {
+            "description": "A JSON Pointer, in that document's own keywords. When the two documents use different drafts, each pointer uses its own document's spelling.",
+            "type": "string"
+          },
+          "reference": {
+            "description": "When set, the location is in a referenced artifact, named as in the version's artifact references, and `pointer` points into that artifact. Absent means the location is in the document itself.",
+            "type": "string"
+          },
+          "version": {
+            "description": "The existing version the difference was found against, when known - always the latest version for the non-transitive compatibility levels. Not set on a proposed location.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "pointer": "/properties/name/maxLength",
+          "version": "3"
+        }
+      },
+      "CompatibilityDifferenceDirection": {
+        "description": "Which compatibility a difference breaks.",
+        "enum": [
+          "BACKWARD",
+          "FORWARD",
+          "BOTH"
+        ],
+        "type": "string",
+        "example": "BACKWARD",
+        "x-codegen-package": "io.apicurio.registry.types"
+      },
+      "RuleViolationDetails": {
+        "title": "Rule Violation Details",
+        "description": "Details of rule violations when the problem is caused by a rule violation.",
+        "type": "object",
+        "properties": {
+          "causes": {
+            "description": "List of rule violation causes.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleViolationCause"
+            }
+          },
+          "ruleType": {
+            "description": "The type of rule that was violated.",
+            "$ref": "#/components/schemas/RuleType"
+          }
         }
       },
       "IfArtifactExists": {
@@ -7685,7 +8082,8 @@
             "type": "object",
             "properties": {
               "causes": {
-                "description": "List of rule violation causes.",
+                "deprecated": true,
+                "description": "List of rule violation causes. Deprecated: use ruleViolation.causes instead.",
                 "type": "array",
                 "items": {
                   "$ref": "#/components/schemas/RuleViolationCause"
@@ -8284,6 +8682,15 @@
           "readOnly": {
             "type": "boolean"
           },
+          "readOnlyReason": {
+            "description": "Why the registry is in read-only mode: storage (inherently read-only, e.g. GitOps), config (manual configuration), or absent when not read-only.",
+            "type": "string",
+            "enum": ["storage", "config"]
+          },
+          "storageName": {
+            "description": "The active storage variant name (e.g. gitops, kubernetesops, sql). Populated when readOnlyReason is storage.",
+            "type": "string"
+          },
           "breadcrumbs": {
             "type": "boolean"
           },
@@ -8452,6 +8859,152 @@
             "role": "READ_ONLY"
           }
         ]
+      },
+      "Peer": {
+        "title": "Root Type for Peer",
+        "description": "A peer registry that this registry federates with.",
+        "required": [
+          "peerId",
+          "url",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "peerId": {
+            "description": "Unique id of the peer registry. Lowercase letters, digits, `.`, `_` and `-` only, at most 256 characters. `local` is reserved.",
+            "type": "string"
+          },
+          "url": {
+            "description": "Base URL of the peer registry, for example `https://registry.eu.example.com`.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the peer registry.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of the peer registry.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the peer registry is used for federation.",
+            "type": "boolean"
+          },
+          "credentialSecretRef": {
+            "description": "Name of the key in the registry's peer credentials directory that holds the credential for this peer. A reference only: the credential value is never stored or returned.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "peerId": "eu-registry",
+          "url": "https://registry.eu.example.com",
+          "name": "EU registry",
+          "description": "Registry serving the EU region.",
+          "enabled": true,
+          "credentialSecretRef": "eu-registry"
+        }
+      },
+      "NewPeer": {
+        "title": "Root Type for NewPeer",
+        "description": "The information needed to register a new peer registry.",
+        "required": [
+          "peerId",
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "peerId": {
+            "description": "Unique id of the peer registry. Lowercase letters, digits, `.`, `_` and `-` only, at most 256 characters. `local` is reserved.",
+            "type": "string"
+          },
+          "url": {
+            "description": "Base URL of the peer registry, for example `https://registry.eu.example.com`.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the peer registry.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of the peer registry.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the peer registry is used for federation. Defaults to `true`.",
+            "type": "boolean"
+          },
+          "credentialSecretRef": {
+            "description": "Name of the key in the registry's peer credentials directory that holds the credential for this peer. A reference only: the credential value is never stored or returned.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "peerId": "eu-registry",
+          "url": "https://registry.eu.example.com",
+          "name": "EU registry",
+          "description": "Registry serving the EU region.",
+          "enabled": true,
+          "credentialSecretRef": "eu-registry"
+        }
+      },
+      "UpdatePeer": {
+        "title": "Root Type for UpdatePeer",
+        "description": "The replacement definition of a peer registry. Optional fields that are omitted are cleared.",
+        "required": [
+          "url",
+          "enabled"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "description": "Base URL of the peer registry, for example `https://registry.eu.example.com`.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Display name of the peer registry.",
+            "type": "string"
+          },
+          "description": {
+            "description": "Description of the peer registry.",
+            "type": "string"
+          },
+          "enabled": {
+            "description": "Whether the peer registry is used for federation.",
+            "type": "boolean"
+          },
+          "credentialSecretRef": {
+            "description": "Name of the key in the registry's peer credentials directory that holds the credential for this peer. A reference only: the credential value is never stored or returned.",
+            "type": "string"
+          }
+        },
+        "example": {
+          "url": "https://registry.eu.example.com",
+          "name": "EU registry",
+          "description": "Registry serving the EU region.",
+          "enabled": true,
+          "credentialSecretRef": "eu-registry"
+        }
+      },
+      "PeerSearchResults": {
+        "description": "Describes the response received when listing peer registries.",
+        "required": [
+          "peers",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "peers": {
+            "description": "The peer registries returned in the result set.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Peer"
+            }
+          },
+          "count": {
+            "description": "The total number of peer registries (may be more than the number of peers in the result set).",
+            "type": "integer"
+          }
+        }
       },
       "EditableVersionMetaData": {
         "title": "Root Type for EditableArtifactMetaData",
@@ -8632,6 +9185,109 @@
           "modifiedOn"
         ],
         "type": "string"
+      },
+      "McpToolImportRequest": {
+        "title": "Root Type for McpToolImportRequest",
+        "description": "Where to reach an MCP server, and where to publish its tools.",
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "description": "The MCP server endpoint, for the Streamable HTTP transport. Its host must be allowed by `apicurio.mcp-import.allowed-hosts`.",
+            "type": "string"
+          },
+          "headers": {
+            "description": "HTTP headers to send to the MCP server, for example `Authorization`. Sent to the MCP server only: never stored, returned or logged.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "toolGroupId": {
+            "description": "The group to publish the `MCP_TOOL` artifacts in. Defaults to the group of the `MCP_SERVER` artifact.",
+            "type": "string"
+          },
+          "dryRun": {
+            "description": "When `true`, the server is contacted and the report is returned, but nothing is written.",
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "url": "https://weather.apps.example.com/mcp",
+          "toolGroupId": "mcp-tools",
+          "dryRun": false
+        }
+      },
+      "McpToolImportStatus": {
+        "description": "The outcome of an MCP import for one artifact.\n\n* `CREATED` - a new artifact was created\n* `NEW_VERSION` - a new version was added to an existing artifact\n* `UNCHANGED` - the stored version already matches\n* `REJECTED` - a rule rejected the new definition; nothing was stored\n* `REMOVED` - the tool was referenced by the previous server version but is no longer listed; its artifact is left as it is\n",
+        "enum": [
+          "CREATED",
+          "NEW_VERSION",
+          "UNCHANGED",
+          "REJECTED",
+          "REMOVED"
+        ],
+        "type": "string"
+      },
+      "McpToolImportToolResult": {
+        "title": "Root Type for McpToolImportToolResult",
+        "description": "The outcome of the import for one tool.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The tool name, as listed by the MCP server.",
+            "type": "string"
+          },
+          "groupId": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "artifactId": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "version": {
+            "description": "The version that matches the tool's definition. Absent when the tool was rejected or removed, or when nothing was written.",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/McpToolImportStatus"
+          },
+          "causes": {
+            "description": "The rule violations, when the tool was rejected.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleViolationCause"
+            }
+          }
+        }
+      },
+      "McpToolImportResult": {
+        "title": "Root Type for McpToolImportResult",
+        "description": "The result of importing tools from an MCP server.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "artifactId": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "version": {
+            "description": "The `MCP_SERVER` version that references the imported tools. Absent when nothing was written.",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/McpToolImportStatus"
+          },
+          "tools": {
+            "description": "The outcome for each tool.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpToolImportToolResult"
+            }
+          }
+        }
       },
       "RenderPromptRequest": {
         "title": "Root Type for RenderPromptRequest",

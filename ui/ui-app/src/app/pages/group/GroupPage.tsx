@@ -1,6 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./GroupPage.css";
 import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
+import { SubmittedContent, toSubmittedContent } from "@utils/ruleViolation.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, PageSectionVariants, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useLocation, useMatch, useParams } from "react-router";
 import {
@@ -51,6 +52,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
     const [isCreateArtifactModalOpen, setCreateArtifactModalOpen] = useState<boolean>(false);
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [invalidContent, setInvalidContent] = useState<SubmittedContent>();
     const [isInvalidContentModalOpen, setInvalidContentModalOpen] = useState<boolean>(false);
     const [artifactToDelete, setArtifactToDelete] = useState<SearchedVersion>();
     const [artifactDeleteSuccessCallback, setArtifactDeleteSuccessCallback] = useState<() => void>();
@@ -150,7 +152,7 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         }).catch( error => {
             pleaseWait(false);
             if (error && (error.status === 400 || error.status === 409)) {
-                handleInvalidContentError(error);
+                handleInvalidContentError(error, toSubmittedContent(data.firstVersion?.content));
             } else {
                 setPageError(toPageError(error, "Error creating artifact."));
             }
@@ -210,9 +212,10 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
         setInvalidContentModalOpen(false);
     };
 
-    const handleInvalidContentError = (error: any): void => {
+    const handleInvalidContentError = (error: any, content?: SubmittedContent): void => {
         logger.info("[SearchPage] Invalid content error:", error);
         setInvalidContentError(error);
+        setInvalidContent(content);
         setInvalidContentModalOpen(true);
     };
 
@@ -365,6 +368,8 @@ export const GroupPage: FunctionComponent<PageProperties> = () => {
                 groupId={group?.groupId as string} />
             <InvalidContentModal
                 error={invalidContentError}
+                content={invalidContent?.content}
+                contentType={invalidContent?.contentType}
                 isOpen={isInvalidContentModalOpen}
                 onClose={closeInvalidContentModal} />
             <PleaseWaitModal message={pleaseWaitMessage}

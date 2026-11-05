@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-This chapter introduces the Data Contracts framework in {registry}, which uses the Open Data Contract Standard (ODCS) v3.1 as the native contract format for managing schema contracts between data producers and consumers.
+{registry} provides a Data Contracts framework that uses the Open Data Contract Standard (ODCS) v3.1 as the native contract format for managing schema contracts between data producers and consumers.
 
 [role="_additional-resources"]
 .Additional resources
@@ -120,7 +120,7 @@ ODCS accuracy rule thresholds determine what happens when a rule fails:
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-This example shows a complete ODCS v3.1 contract and the projections it produces when submitted to {registry}.
+Submitting a complete ODCS v3.1 contract to {registry} produces a set of projections on the schema artifacts that the contract references. The example contract and its resulting projections show how each contract section maps to labels and rules on those artifacts.
 
 .ODCS v3.1 contract
 [source,yaml]

@@ -27,6 +27,9 @@ IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(IMAGE_TAG)
 ADDITIONAL_IMAGE ?= $(IMAGE_REGISTRY)/$(IMAGE_NAME):$(ADDITIONAL_IMAGE_TAG)
 
 IMAGE_PLATFORMS ?= linux/amd64,linux/arm64,linux/s390x,linux/ppc64le
+# Commit the image is built from, in its org.opencontainers.image.revision label.
+# Verify's publish guard reads it from latest-snapshot.
+IMAGE_REVISION ?= $(shell git rev-parse HEAD 2>/dev/null)
 
 OPERAND_IMAGE_TAG ?= latest-snapshot
 
@@ -132,6 +135,10 @@ export PLACEHOLDER_CATALOG_NAMESPACE := $(CATALOG_NAMESPACE)
 export PLACEHOLDER_CATALOG_IMAGE := $(CATALOG_IMAGE)
 
 export PLACEHOLDER_CHANNEL := $(DEFAULT_CHANNEL)
+# The catalog's package-level default channel is always the rolling channel (e.g. 3.x), even for
+# maintenance branch releases whose bundle is only in the minor channel. Otherwise the catalog
+# would point new installs at an older minor stream.
+export PLACEHOLDER_CATALOG_DEFAULT_CHANNEL := $(shell echo "$(LC_VERSION)" | sed 's/\([0-9]*\)\..*/\1.x/')
 
 
 ########## Help
@@ -343,6 +350,8 @@ image-buildx-push: ## Build and push a multi-arch operator image
 		for i in 1 2 3; do \
 			docker buildx build --push -f controller/src/main/docker/Dockerfile.jvm \
 				--platform $(IMAGE_PLATFORMS) \
+				$(if $(IMAGE_REVISION),--label org.opencontainers.image.revision=$(IMAGE_REVISION),) \
+				--label org.opencontainers.image.source=https://github.com/Apicurio/apicurio-registry \
 				-t $(IMAGE) \
 				$(if $(and $(ADDITIONAL_IMAGE),$(ADDITIONAL_IMAGE_TAG)),-t $(ADDITIONAL_IMAGE),) \
 				controller/target && break; \
@@ -561,7 +570,7 @@ release-catalog-template-update: install-yq
 	# PREVIOUS_CHANNEL describes the release; CHANNEL describes the next development version.
 	YQ=$(YQ) bash scripts/catalog-channels.sh $(CATALOG_DIR)/catalog.template.yaml $(CHANNEL) $(PREVIOUS_PACKAGE) $(PREVIOUS_CHANNEL) $(PREVIOUS_BUNDLE_IMAGE)
 	# Update defaultChannel to the current channel
-	$(YQ) '(.entries[] | select(.schema == "olm.package")).defaultChannel = "$${PLACEHOLDER_CHANNEL}"' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '(.entries[] | select(.schema == "olm.package")).defaultChannel = "$${PLACEHOLDER_CATALOG_DEFAULT_CHANNEL}"' -i $(CATALOG_DIR)/catalog.template.yaml
 
 
 .PHONY: dev

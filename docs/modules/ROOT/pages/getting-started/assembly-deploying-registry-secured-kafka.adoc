@@ -7,6 +7,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 [role="_abstract"]
 You can deploy {registry} with KafkaSQL storage connected to a Kafka instance that requires TLS encryption, SASL authentication, or both.
+
 {registry} supports multiple security configurations for Kafka connections, including TLS-only encryption, OAUTHBEARER authentication, and SCRAM-SHA-512 authentication.
 
 
@@ -536,7 +537,12 @@ You might encounter errors when you configure {registry} to connect to a secured
 
 [role="_additional-resources"]
 .Additional resources
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-deploying-registry-operator.adoc#deploying-registry-kafkasql_{context}[Deploying {registry} with KafkaSQL storage]
+endif::[]
+ifdef::service-registry-downstream[]
 * xref:deploying-registry-kafkasql_{context}[]
+endif::[]
 ifdef::apicurio-registry[]
 * https://strimzi.io/docs/overview/latest/[{kafka-streams} documentation]
 endif::[]

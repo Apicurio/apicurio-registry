@@ -16,7 +16,7 @@ import io.apicurio.registry.storage.dto.OutboxEvent;
 import io.apicurio.registry.storage.dto.RuleAction;
 import io.apicurio.registry.storage.dto.RuleKind;
 import io.apicurio.registry.storage.dto.RuleMode;
-import io.apicurio.registry.storage.util.ContractOutboxTestProfile;
+import io.apicurio.registry.storage.util.PostgresqlTestProfile;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
 import io.quarkus.test.junit.QuarkusTest;
@@ -66,7 +66,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 @QuarkusTest
 @Tag(ApicurioTestTags.SLOW)
-@TestProfile(ContractOutboxTestProfile.class)
+@TestProfile(PostgresqlTestProfile.class)
 public class ContractOutboxTransactionTest {
 
     /** PostgreSQL SQL state for a check-constraint violation. */

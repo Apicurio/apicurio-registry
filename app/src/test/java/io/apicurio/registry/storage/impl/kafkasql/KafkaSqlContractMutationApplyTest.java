@@ -100,10 +100,14 @@ public class KafkaSqlContractMutationApplyTest extends AbstractResourceTestBase 
 
     @Test
     public void testGlobalContractRulesetIsApplied() {
-        storage.setGlobalContractRuleset(ruleset("global-rule"));
-        assertSingleDomainRule("global-rule", storage.getGlobalContractRuleset());
-
-        storage.deleteGlobalContractRuleset();
+        // The global ruleset is registry-wide state shared by every test in this profile, so the
+        // delete has to run even when the read-back assertion fails.
+        try {
+            storage.setGlobalContractRuleset(ruleset("global-rule"));
+            assertSingleDomainRule("global-rule", storage.getGlobalContractRuleset());
+        } finally {
+            storage.deleteGlobalContractRuleset();
+        }
         assertTrue(storage.getGlobalContractRuleset().getDomainRules().isEmpty());
     }
 

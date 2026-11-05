@@ -471,7 +471,7 @@ ifdef::apicurio-registry[]
 |User Interface
 |https://hub.docker.com/r/apicurio/apicurio-registry-ui
 |{operator}
-|https://quay.io/repository/apicurio/apicurio-registry-3-operator
+|https://hub.docker.com/r/apicurio/apicurio-registry-operator
 |===
 
 [role="_additional-resources"]

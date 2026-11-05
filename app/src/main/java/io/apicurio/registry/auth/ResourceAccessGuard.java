@@ -214,7 +214,7 @@ public class ResourceAccessGuard {
     }
 
     /** Bypasses that skip all local resource authorization, as in the interceptor. */
-    private boolean isBypassed() {
+    boolean isBypassed() {
         if (!authConfig.isAuthenticationEnabled()) {
             return true;
         }
@@ -228,7 +228,7 @@ public class ResourceAccessGuard {
         return adminOverride.isAdmin() || (authConfig.roleBasedAuthorizationEnabled && rbac.isAdmin());
     }
 
-    private boolean isAnonymous() {
+    boolean isAnonymous() {
         return securityIdentity == null || securityIdentity.isAnonymous();
     }
 }

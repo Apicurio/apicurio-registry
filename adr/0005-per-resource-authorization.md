@@ -1,4 +1,4 @@
-# ADR-001: Per-Resource Authorization for Apicurio Registry
+# ADR-0005: Per-Resource Authorization for Apicurio Registry
 
 - **Status:** Accepted
 - **Date:** 2026-05-09
@@ -463,12 +463,17 @@ Within a request, authorization reads each piece of metadata at most once (`Auth
 
 **Impact:** increased latency on globalId endpoints and on dereferencing. **Mitigation:** a short-lived cache shared across requests, invalidated on grants reload and on ownership/existence changes ([#10600](https://github.com/Apicurio/apicurio-registry/issues/10600)).
 
-### 2. Search results do not report the caller's permissions
+### 2. Search result permissions are advisory
 
-Search results contain only readable resources, but not whether the caller may also write or
-administer them; the API has no field for this. The UI cannot show or hide edit/delete actions per
-artifact. **Mitigation:** a new, batch-evaluated `permissions` field
-([#10599](https://github.com/Apicurio/apicurio-registry/issues/10599)).
+*Resolved by [#10599](https://github.com/Apicurio/apicurio-registry/issues/10599).* With
+per-resource authorization enabled, v3 search and list results (`SearchedArtifact`,
+`SearchedVersion`, `SearchedGroup`) carry a `permissions` field (`read`, `write`, `admin`): each
+flag is true when a request at that level (`admin` meaning `AuthorizedLevel.Admin`) on the
+resource would be authorized, under the same rules as point access. A page is evaluated with one
+access rules call (`ResourcePermissionsEvaluator`), and the denials it finds are not audited, since
+nothing is accessed. Versions report their artifact's permissions. The flags reflect the state when
+the page was produced and only guide the UI: every request is still authorized on its own. The
+field is omitted when per-resource authorization is disabled.
 
 ### 3. Group and artifact grants are independent
 

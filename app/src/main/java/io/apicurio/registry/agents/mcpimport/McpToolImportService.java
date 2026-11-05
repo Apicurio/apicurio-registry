@@ -140,6 +140,11 @@ public class McpToolImportService implements McpToolImportHandler {
         return result;
     }
 
+    @Override
+    public boolean isEnabled() {
+        return config.isEnabled();
+    }
+
     /**
      * Everything checked before the MCP server is contacted, apart from authorization and headers:
      * the feature, the storage, the request and the server artifact.

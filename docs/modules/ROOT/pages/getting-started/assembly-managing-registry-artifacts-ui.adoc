@@ -626,6 +626,39 @@ NOTE: To disable a rule, click the trash icon next to the rule. If you do this a
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
+[id="importing-mcp-tools-using-console_{context}"]
+== Importing tools from an MCP server using the {registry} web console
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the {registry} web console to import the tools of a running MCP server into an `MCP_SERVER` artifact. Each tool becomes an `MCP_TOOL` artifact, subject to the rules configured for it, and a new version of the `MCP_SERVER` artifact references the imported tools.
+
+IMPORTANT: This feature is experimental and subject to backwards-incompatible change or removal.
+
+.Prerequisites
+
+* {registry} allows MCP imports, as described in "Importing tools from a live MCP server" in xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool features]. The web console shows the *Import tools* button only when `apicurio.mcp-import.enabled` is `true` and the storage is not read-only.
+* An `MCP_SERVER` artifact exists for the server, and you can write to it.
+
+.Procedure
+
+. On the *Explore* tab, open the `MCP_SERVER` artifact.
+
+. Click *Import tools*.
+
+. In the *MCP server URL* field, enter the Streamable HTTP endpoint of the MCP server.
+
+. Optional: In the *Tool group* field, enter the group for the `MCP_TOOL` artifacts. By default, the server artifact's group is used.
+
+. Optional: Click *Add header* to send an HTTP header to the MCP server, for example credentials. Header values are sent to the MCP server only, and are not stored.
+
+. Click *Preview* to see the result without writing anything, or click *Import*.
+
+.Verification
+
+* The dialog lists each tool with its result: `CREATED`, `NEW_VERSION`, `UNCHANGED`, `REJECTED`, or `REMOVED`. For a rejected tool, it shows the rule violations. When you close the dialog after an import, the artifact page shows the new version.
+
 [id="changing-artifact-owner-using-console_{context}"]
 == Changing an artifact owner using the {registry} web console
 :_mod-docs-content-type: PROCEDURE

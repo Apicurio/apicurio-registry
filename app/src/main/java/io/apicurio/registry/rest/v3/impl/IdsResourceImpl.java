@@ -3,7 +3,9 @@ package io.apicurio.registry.rest.v3.impl;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.auth.AuthorizationLookups;
 import io.apicurio.registry.auth.ISearchAuthorizer;
+import io.apicurio.registry.auth.GlobalIdCoordinates;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
@@ -21,6 +23,7 @@ import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.storage.dto.StoredArtifactVersionDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.ReferenceType;
@@ -54,6 +57,9 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
 
     @Inject
     ISearchAuthorizer searchAuthorizer;
+
+    @Inject
+    AuthorizationLookups lookups;
 
     /**
      * @see io.apicurio.registry.rest.v3.IdsResource#getContentById(long)
@@ -193,10 +199,11 @@ public class IdsResourceImpl extends AbstractResourceImpl implements IdsResource
             return artifact.getReferences().stream().map(V3ApiUtil::referenceDtoToReference)
                     .collect(Collectors.toList());
         } else {
-            ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(globalId);
+            GlobalIdCoordinates gid = lookups.coordinates(storage, globalId)
+                    .orElseThrow(() -> new VersionNotFoundException(globalId));
             // Inbound references point from other artifacts: only list those the caller may read
             return storage
-                    .getInboundArtifactReferences(vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion())
+                    .getInboundArtifactReferences(gid.groupId(), gid.artifactId(), gid.version())
                     .stream().filter(ref -> searchAuthorizer.canReadArtifact(ref.getGroupId(), ref.getArtifactId()))
                     .map(V3ApiUtil::referenceDtoToReference).collect(Collectors.toList());
         }

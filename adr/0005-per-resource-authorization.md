@@ -16,9 +16,7 @@ The original JSON grants design is superseded: **use the Kroxylicious ACL rules 
 current ACL-based design; the prefix does not imply a JSON format.
 
 The references below point to source files in this checkout, so they follow the code rather than
-fixed line numbers. The reference-batching subsection explicitly identifies the work in
-[PR #10883](https://github.com/Apicurio/apicurio-registry/pull/10883), which is not yet merged at
-the time of this update. Other delivered milestones are listed under [History](#history).
+fixed line numbers. Delivered milestones are listed under [History](#history).
 
 - Start with [the decision](#decision) and [the access model](#access-model).
 - To trace a request, follow [point access](#point-access) or [search](#search-and-pagination).
@@ -288,13 +286,13 @@ default `planContent` delegates to legacy `prepareContent`, which cannot make a 
 hook side-effect-free. See
 [ArtifactVersionWriteHook](../app/src/main/java/io/apicurio/registry/extensions/ArtifactVersionWriteHook.java).
 
-### Reference batching — implementation in PR #10883
+### Reference batching (#10883)
 
-The implementation proposed in #10883 adds `GrantsAccessController.isAllowedForAll`: canonicalize names,
+`GrantsAccessController.isAllowedForAll`, added in #10883, does the following: canonicalize names,
 deduplicate actions by stored resource, call `authorize()` once, and record the resulting decisions.
 `ResourceAccessGuard` removes strict-owner bypasses before submitting the batch.
 
-`AuthorizingReferenceLoader` (introduced in #10883)
+[AuthorizingReferenceLoader](../app/src/main/java/io/apicurio/registry/references/AuthorizingReferenceLoader.java)
 extends the existing loader shape with an `authorize(collection)` operation. Loading a reference
 individually still authorizes it. A guard-created loader remembers successful authorizations for
 its own lifetime, keyed by group/artifact as supplied (not version); it is not a cross-request cache.
@@ -651,7 +649,7 @@ are more useful design boundaries than an assumed fixed rule count or latency cl
 | [#10849](https://github.com/Apicurio/apicurio-registry/pull/10849) | Cross-request global-ID coordinate cache and local import invalidation; limitations above remain relevant |
 | [#10858](https://github.com/Apicurio/apicurio-registry/pull/10858) | v3 search/list permission reporting for #10599 |
 | [#10882](https://github.com/Apicurio/apicurio-registry/pull/10882) | Renumbered this ADR from `001` to `0005`, avoiding a duplicate ADR 1 |
-| [#10883](https://github.com/Apicurio/apicurio-registry/pull/10883), in review | Batches reference authorization; the branch-specific behavior is identified above |
+| [#10883](https://github.com/Apicurio/apicurio-registry/pull/10883) | Batches reference authorization: one authorizer call per level or sibling set |
 
 Earlier versions of this document are retained in Git history. They explain the development JSON
 format and initial alternatives; they must not be used as current configuration instructions.

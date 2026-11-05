@@ -1,8 +1,8 @@
 # Per-resource authorization example: Keycloak for authentication and RBAC roles, and an access rules
 # file (Kroxylicious ACL rules format) for fine-grained access to groups and artifacts. See README.md; run ./demo.sh to verify.
 #
-# For local demonstration only: TLS verification and the token issuer check are relaxed so the
-# browser (localhost) and the registry container (keycloak:8080) can share one Keycloak.
+# For local demonstration only: the token issuer check is relaxed so the browser (localhost) and the
+# registry container (keycloak:8080) can share one Keycloak, and Keycloak runs in dev mode over HTTP.
 #
 # Host ports default to 8080 (Keycloak), 8081 (API) and 8888 (UI); override them with
 # KEYCLOAK_PORT, REGISTRY_PORT and UI_PORT if they are in use.
@@ -11,8 +11,9 @@ services:
     container_name: keycloak-resource-authz
     image: quay.io/keycloak/keycloak:26.2
     environment:
-      KEYCLOAK_ADMIN: admin
-      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
     command:
       - start-dev
       - --import-realm
@@ -21,6 +22,12 @@ services:
       - "${KEYCLOAK_PORT:-8080}:8080"
     volumes:
       - ../config/realm.json:/opt/keycloak/data/import/realm.json
+    # Registry starts only once the realm is imported and Keycloak answers (the image has no curl)
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
   apicurio-registry:
     image: apicurio/apicurio-registry:latest-snapshot
@@ -35,7 +42,6 @@ services:
       QUARKUS_OIDC_CLIENT_ID: "registry-api"
       APICURIO_UI_AUTH_OIDC_CLIENT_ID: "apicurio-registry"
       apicurio.ui.auth.oidc.redirect-uri: "http://localhost:${UI_PORT:-8888}/"
-      QUARKUS_OIDC_TLS_VERIFICATION: "none"
       QUARKUS_OIDC_TOKEN_ISSUER: "any"
       # Coarse-grained RBAC from Keycloak roles (access rules restrict within what RBAC allows)
       apicurio.auth.role-based-authorization: "true"
@@ -49,7 +55,8 @@ services:
     ports:
       - "${REGISTRY_PORT:-8081}:8080"
     depends_on:
-      - keycloak
+      keycloak:
+        condition: service_healthy
     volumes:
       # Mount the directory, not the file: editors replace files on save, which a single-file
       # bind mount would not pick up

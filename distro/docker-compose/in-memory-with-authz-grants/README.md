@@ -1,135 +1,90 @@
 # Per-resource authorization (access rules) with Keycloak
 
-Two layers of authorization:
+A complete, local example of Apicurio Registry's per-resource authorization:
 
-- **Keycloak** authenticates users and provides coarse-grained roles (`sr-admin`, `sr-developer`,
-  `sr-readonly`), enforced by Registry RBAC.
-- **An access rules file** (`access.rules`) gives fine-grained access to individual groups and
-  artifacts. It uses the [Kroxylicious ACL rules format](https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md),
-  shared with Kroxylicious. The rules restrict within what RBAC allows; they never widen it.
+- **Keycloak** authenticates users and gives them a Registry role (`sr-admin`, `sr-developer`,
+  `sr-readonly`), enforced by Registry role-based access control (RBAC).
+- **An access rules file** ([`access.rules`](access.rules)) gives fine-grained access to individual
+  groups and artifacts. It uses the
+  [Kroxylicious ACL rules format](https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md).
+  RBAC is enabled here, so the rules restrict within what each role allows; they never widen it.
+
+**New to this? Follow the [step-by-step guide](GUIDE.md).** It walks through every feature with
+commands and expected output, in about 30 minutes, and works as a script for a team demo.
+
+## Quick start
+
+Requires Docker (or Podman) with Compose v2, `curl` and `jq`.
+
+```bash
+docker compose up -d     # starts Keycloak, then the Registry and its UI
+./demo.sh                # creates sample data, then checks the expected access
+```
+
+`demo.sh` prints one line per check and ends with `All checks passed.` (it exits non-zero if a check
+fails). Then open the UI at <http://localhost:8888> and log in as `developer` / `developer`.
+
+To explore the API yourself, load the helper commands:
+
+```bash
+source ./demo-env.sh
+status developer GET /groups/team-b/artifacts/inventory-schema   # 403
+visible developer                                                 # what developer's search returns
+```
+
+Stop and remove everything with `docker compose down -v`.
 
 ## Services
 
-| Service               | URL                   | Purpose                               |
-|-----------------------|-----------------------|---------------------------------------|
-| Keycloak              | http://localhost:8080 | Authentication and roles (admin/admin) |
+| Service               | URL                   | Purpose                                  |
+|-----------------------|-----------------------|------------------------------------------|
+| Keycloak              | http://localhost:8080 | Authentication and roles (admin console: `admin` / `admin`) |
 | Apicurio Registry API | http://localhost:8081 | Registry with per-resource authorization |
-| Apicurio Registry UI  | http://localhost:8888 | Web console                           |
+| Apicurio Registry UI  | http://localhost:8888 | Web console                              |
 
 ## Users and access
 
 Passwords equal the user name, except `developer2` (password `developer`).
 
-| User        | Role         | Access allowed by `access.rules`                                                        |
-|-------------|--------------|-----------------------------------------------------------------------------------------|
-| `admin`     | sr-admin     | Everything (RBAC admins bypass the rules)                                               |
-| `developer` | sr-developer | Write group `team-a` and `team-a/*` except denied `team-a/secret-schema`; read group `team-b` and `team-b/public-schema`; read group `shared` and `shared/*` (role rule) |
-| `developer2`| sr-developer | Read `shared/*` only (role rule): same role as `developer`, different access           |
-| `user`      | sr-readonly  | Read `shared/*` (role rule)                                                             |
-| _anonymous_ | none         | Read `shared/common-types` only (`$anonymous` role rule)                                |
+| User        | Role         | Access allowed by `access.rules` |
+|-------------|--------------|----------------------------------|
+| `admin`     | sr-admin     | Everything: RBAC administrators bypass the rules |
+| `developer` | sr-developer | Write group `team-a` and `team-a/*`, except the denied `team-a/secret-schema`; read group `team-b` and `team-b/public-schema`; read group `shared` and `shared/*` (role rule) |
+| `developer2`| sr-developer | Read group `shared` and `shared/*` only (role rule): same role as `developer`, different access |
+| `user`      | sr-readonly  | Read group `shared` and `shared/*` (role rule) |
+| _anonymous_ | none         | Read `shared/common-types` only (`$anonymous` role rule) |
 
-`demo.sh` creates the sample groups and artifacts as `admin`. This is important: the default owner
-bypass must not mask the explicit deny on `team-a/secret-schema`. OBAC is disabled in this example;
-owner bypass remains enabled, so resources a user subsequently owns can be accessible independently
-of the ACL rules. The anonymous rule allows the artifact directly, not the `shared` group itself.
-
-## Run it
-
-```bash
-docker compose up -d
-./demo.sh          # seeds data, then checks point access and search filtering (needs curl, jq)
-```
-
-`demo.sh` prints one line per check and exits non-zero if any check fails.
-
-If the default ports are in use, override them for both commands:
-
-```bash
-export KEYCLOAK_PORT=18080 REGISTRY_PORT=18081 UI_PORT=18888
-docker compose up -d
-KEYCLOAK=http://localhost:$KEYCLOAK_PORT API=http://localhost:$REGISTRY_PORT/apis ./demo.sh
-```
-
-With Podman on macOS, run Compose from a path under your home directory or `/private/tmp`
-rather than `/tmp`: the `/tmp` symlink cannot be shared into the VM, and the registry then fails
-at startup with `Access rules file not found`. To run against a
-locally built registry, build the image first
-(`./mvnw install -pl distro/docker -am -DskipTests`, then build `distro/docker/target/docker/Dockerfile.jvm`
-as `apicurio/apicurio-registry:latest-snapshot`).
-
-Then log in to the UI as `developer`: the group list contains `team-a`, `team-b`, and `shared`.
-The artifact list within `team-b` contains only `public-schema`; the `team-a` list excludes
-`secret-schema`. Log in as `user` to see group `shared` and its artifacts.
-
-## What to look at
-
-**Point access** - every endpoint that addresses a group or artifact (REST v2/v3, Confluent
-compatibility API, Iceberg catalog, MCP Registry API, content and global IDs) applies the applicable
-checks. For a non-admin, non-owner authenticated caller that passes RBAC, an ACL denial returns
-`403`:
-
-```bash
-TOKEN=$(curl -s -X POST http://localhost:8080/realms/registry/protocol/openid-connect/token \
-  -d 'grant_type=password&client_id=apicurio-registry&username=developer&password=developer' | jq -r .access_token)
-curl -s -o /dev/null -w '%{http_code}\n' -H "Authorization: Bearer $TOKEN" \
-  http://localhost:8081/apis/registry/v3/groups/team-b/artifacts/inventory-schema   # 403
-```
-
-**Creation is checked on the name too** - `developer` can write to group `team-a`, but cannot
-create an artifact named `team-a/secret-schema`, because that name is denied: otherwise creating it
-would make them its owner and bypass the deny.
-
-**Anonymous access is opt-in per resource** - anonymous read access is enabled, but unauthenticated
-callers can read only what the rules allow to the `$anonymous` role:
-
-```bash
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8081/apis/registry/v3/groups/shared/artifacts/common-types  # 200
-curl -s -o /dev/null -w '%{http_code}\n' http://localhost:8081/apis/registry/v3/groups/shared/artifacts/error-schema  # 401
-```
-
-**Search and lists** - results are filtered inside the storage query, so counts and pagination are
-computed over the authorized result set. This example uses exact and prefix selectors, which are
-supported by query filtering:
-
-```bash
-curl -s -H "Authorization: Bearer $TOKEN" 'http://localhost:8081/apis/registry/v3/search/artifacts?limit=100' \
-  | jq -r '.count, (.artifacts[] | "\(.groupId)/\(.artifactId)")'
-```
-
-**Permission flags (v3)** - with this feature enabled, searched artifacts, versions, and groups also
-include `permissions: {read, write, admin}`. For example:
-
-```bash
-curl -s -H "Authorization: Bearer $TOKEN" 'http://localhost:8081/apis/registry/v3/search/artifacts?limit=100' \
-  | jq '.artifacts[] | {groupId, artifactId, permissions}'
-```
-
-For the seeded data, `developer` has write-level permission on the visible `team-a` artifacts and
-read-only permission on `shared/*` and `team-b/public-schema`. Its RBAC developer role does not permit
-admin-level access. Flags are advisory: additional checks or later policy changes can still reject
-an operation, and API support for flags does not guarantee a UI version uses them to hide actions.
-
-**Hot reload** - edit `access.rules`; Registry polls its modification time every 5 seconds. Once
-the edit is visible and a poll loads it successfully, subsequent checks use it. This is not a strict
-five-second deadline. For example, give
-`developer` read access to all of `team-b` by adding, before `otherwise deny;`:
-
-```
-allow User with name = "developer" to READ Artifact with name like "team-b/*";
-```
-
-If an edit leaves the file invalid, Registry logs an error and keeps the previous rules.
-Deleting the file also leaves the previous rules active. With multiple replicas, check the file
-update and reload on each replica separately.
+`demo.sh` creates the sample data as `admin`, so `admin` owns it. That matters: by default, the
+owner of a resource bypasses the access rules for it (see step 11 of the guide).
 
 ## Files
 
-| File                 | Purpose                                         |
-|----------------------|-------------------------------------------------|
-| `docker-compose.yml` | Services                                        |
-| `access.rules`       | Access rules (the directory is mounted read-only) |
-| `demo.sh`            | Seeds data and verifies the expected access     |
+| File | Purpose |
+|------|---------|
+| [`GUIDE.md`](GUIDE.md) | Step-by-step walkthrough and presenter notes |
+| [`docker-compose.yml`](docker-compose.yml) | The three services; the Registry configuration is in its `environment` |
+| [`access.rules`](access.rules) | The access rules; this directory is mounted read-only, and edits apply within seconds |
+| [`demo.sh`](demo.sh) | Creates the sample data and checks the expected access |
+| [`demo-env.sh`](demo-env.sh) | Shell helpers (`status`, `call`, `visible`, `denials`) to call the API as any user |
+| [`../config/realm.json`](../config/realm.json) | The Keycloak realm: users, roles and clients |
 
-See [Configuring per-resource authorization](../../../docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc)
-for rules, configuration, and limitations, and [ADR-0005](../../../adr/0005-per-resource-authorization.md)
-for request walkthroughs and the implementation map.
+## Notes
+
+- **Other ports:** if 8080, 8081 or 8888 are in use, see
+  [Using other ports](GUIDE.md#using-other-ports) in the guide.
+- **Podman on macOS:** run Compose from a path under your home directory, not under `/tmp`. The
+  `/tmp` symlink cannot be shared into the Podman VM, and the registry then fails at startup with
+  `Access rules file not found`.
+- **Local build:** the example uses the `latest-snapshot` images. To run a locally built registry,
+  build it (`./mvnw install -pl distro/docker -am -DskipTests`), then build
+  `distro/docker/target/docker/Dockerfile.jvm` as `apicurio/apicurio-registry:latest-snapshot`.
+- **Local only:** Keycloak runs in development mode over HTTP, and the token issuer check is relaxed
+  so the browser and the registry container can share one Keycloak. Do not use this configuration
+  in production.
+
+## Learn more
+
+- *Configuring per-resource authorization* in the Registry documentation
+  ([source](../../../docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc)):
+  the rules format, configuration, and limitations.
+- [ADR-0005](../../../adr/0005-per-resource-authorization.md): how it is implemented.

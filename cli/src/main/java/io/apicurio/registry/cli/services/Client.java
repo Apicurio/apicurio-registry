@@ -61,10 +61,11 @@ public class Client {
     /**
      * A Registry client that never logs request or response bodies, even with {@code --verbose}.
      * For calls whose body carries secrets the SDK cannot recognise, such as headers forwarded to
-     * another server. The client is not cached, so the cached one keeps its own logging setting.
+     * another server. Always a new client: the cached one may have been created with logging on
+     * by an earlier command in the same JVM.
      */
     public RegistryClient getRegistryClientWithoutHttpLogging() {
-        return httpLoggingEnabled ? createRegistryClient(false) : getRegistryClient();
+        return createRegistryClient(false);
     }
 
     private void requireCurrentContext() {

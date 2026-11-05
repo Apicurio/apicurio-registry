@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * image, such as the default {@code latest-release}, the class is skipped.
  */
 @QuarkusTest
-public class McpImportCommandTest extends AbstractCLITest {
+class McpImportCommandTest extends AbstractCLITest {
 
     // Fails on anything after the first JSON value, so "stdout is only JSON" is really checked.
     private static final ObjectMapper MAPPER = new ObjectMapper()
@@ -88,7 +88,7 @@ public class McpImportCommandTest extends AbstractCLITest {
     }
 
     @AfterAll
-    public static void stopMcp() throws Exception {
+    static void stopMcp() throws Exception {
         if (mcp != null) {
             mcp.close();
         }
@@ -169,6 +169,18 @@ public class McpImportCommandTest extends AbstractCLITest {
         assertThat(versionCount(group, "srv.search")).isEqualTo(1);
     }
 
+    @Test
+    void artifactIdDefaultsToTheCurrentContext() {
+        executeAndAssertSuccess("context", "update", "-g", group, "-a", "srv");
+        clearOutput();
+
+        int code = cmd.execute("mcp", "import", "--url", mcpUrl);
+
+        assertThat(code).as(withCliOutput("import using the context artifact should succeed")).isZero();
+        assertThat(out.toString()).contains("MCP server '" + group + "/srv' now at version 2.");
+        assertThat(versionCount(group, "srv")).isEqualTo(2);
+    }
+
     /**
      * The edge case agreed for this change: a dry run into another tool group, as JSON. Nothing is
      * written, and stdout holds only the JSON document.
@@ -224,17 +236,19 @@ public class McpImportCommandTest extends AbstractCLITest {
         var logged = new CopyOnWriteArrayList<String>();
         var capture = new Handler() {
             @Override
-            public void publish(LogRecord record) {
-                logged.add(String.valueOf(record.getMessage()) + " "
-                        + (record.getParameters() == null ? "" : List.of(record.getParameters())));
+            public void publish(LogRecord logRecord) {
+                logged.add(String.valueOf(logRecord.getMessage()) + " "
+                        + (logRecord.getParameters() == null ? "" : List.of(logRecord.getParameters())));
             }
 
             @Override
             public void flush() {
+                // Nothing is buffered.
             }
 
             @Override
             public void close() {
+                // Nothing to release.
             }
         };
         Logger rootLogger = Logger.getLogger("");
@@ -250,11 +264,20 @@ public class McpImportCommandTest extends AbstractCLITest {
             executeAndAssertSuccess("--verbose", "artifact", "get", "srv", "-g", group);
             assertThat(logged).as("--verbose should log HTTP traffic").isNotEmpty();
             logged.clear();
-            client.reset();
             clearOutput();
 
             Files.writeString(headerFile, "Authorization: " + TOKEN + "\n");
             config.setEnvOverride("MCP_TENANT", TENANT);
+
+            // No reset: the cached client still logs, from the verbose command above. A later
+            // command without --verbose in the same JVM must not reuse it for the import.
+            int quietCode = cmd.execute("mcp", "import", "srv", "-g", group, "--url", mcpUrl,
+                    "--header-file", headerFile.toString(), "--header-env", "X-Tenant=MCP_TENANT");
+            assertThat(quietCode).as(withCliOutput("non-verbose import with headers should succeed")).isZero();
+            assertThat(logged).noneMatch(line -> line.contains(TOKEN) || line.contains(TENANT)
+                    || line.contains("mcp-import"));
+            clearOutput();
+
             int code = cmd.execute("--verbose", "mcp", "import", "srv", "-g", group, "--url", mcpUrl,
                     "--header-file", headerFile.toString(), "--header-env", "X-Tenant=MCP_TENANT");
 

@@ -49,7 +49,9 @@ public class McpImportCommand extends AbstractCommand {
 
     @Parameters(
             index = "0",
-            description = "The ID of the MCP_SERVER artifact to import into."
+            arity = "0..1",
+            description = "The ID of the MCP_SERVER artifact to import into. "
+                    + "If not provided, uses the artifactId from the current context."
     )
     private String artifactId;
 
@@ -98,6 +100,7 @@ public class McpImportCommand extends AbstractCommand {
     @Override
     public void run(final OutputBuffer output) throws Exception {
         final var resolvedGroupId = IdUtil.resolveGroupId(groupId, config);
+        final var resolvedArtifactId = IdUtil.resolveArtifactId(artifactId, config);
         final var headers = McpHeaders.read(isBlank(headerFile) ? null : FileUtils.readContent(headerFile),
                 headerEnv, config::getEnv);
 
@@ -122,7 +125,7 @@ public class McpImportCommand extends AbstractCommand {
         final io.apicurio.registry.rest.client.models.McpToolImportResult result;
         try {
             result = client.getRegistryClientWithoutHttpLogging()
-                    .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(artifactId)
+                    .groups().byGroupId(resolvedGroupId).artifacts().byArtifactId(resolvedArtifactId)
                     .mcpImport().post(request);
         } catch (ProblemDetails ex) {
             throw explainDisabled(ex);

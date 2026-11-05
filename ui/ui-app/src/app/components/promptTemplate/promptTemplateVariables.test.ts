@@ -30,8 +30,10 @@ describe("classifyHandlebarsTag", () => {
         expect(classifyHandlebarsTag("{{~/if~}}")).toBe("block");
     });
 
-    it("classifies whitespace-control variables in supported scope", () => {
-        expect(classifyHandlebarsTag("{{~ item ~}}")).toBe("variable");
+    it("classifies whitespace-control variables as plain (not substituted)", () => {
+        expect(classifyHandlebarsTag("{{~ item ~}}")).toBe("plain");
+        expect(classifyHandlebarsTag("{{~item}}")).toBe("plain");
+        expect(classifyHandlebarsTag("{{item~}}")).toBe("plain");
     });
 });
 
@@ -127,6 +129,12 @@ describe("extractTemplateVariableNames", () => {
         // Backend PromptTemplateVariableUtil also uses \\w+ only; {{user.name}}
         // is intentionally out of scope for both frontend and backend.
         expect(extractTemplateVariableNames("{{user.name}}")).toEqual([]);
+    });
+
+    it("does not capture whitespace-control variables (matches backend scope)", () => {
+        expect(extractTemplateVariableNames("{{~ name ~}}")).toEqual([]);
+        expect(extractTemplateVariableNames("{{~name}}")).toEqual([]);
+        expect(extractTemplateVariableNames("{{name~}}")).toEqual([]);
     });
 
     it("does not capture @index-style tokens (matches backend scope)", () => {

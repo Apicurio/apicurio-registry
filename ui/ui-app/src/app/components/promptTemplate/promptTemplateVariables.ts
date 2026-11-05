@@ -26,8 +26,8 @@ export type ReconciledVariable = {
 };
 
 /**
- * Shared placeholder matcher used by extractTemplateVariableNames and
- * PromptTemplateViewer token classification.
+ * Placeholder matcher used by extractTemplateVariableNames(). PromptTemplateViewer
+ * does not use this regex; it classifies tags via classifyHandlebarsTag().
  *
  * Captures optional block prefix (group 1) and variable name (group 2).
  * Optional whitespace inside the braces matches the backend canonical plain-
@@ -54,12 +54,16 @@ const BLOCK_KEYWORDS = new Set(["if", "unless", "each", "with", "else", "this", 
 
 export type HandlebarsTagKind = "block" | "variable" | "plain";
 
+const stripTagBraces = (tag: string): string => {
+    return tag.replace(/^\{+|\}+$/g, "").trim();
+};
+
 /**
  * Strip braces, trim, and remove Handlebars whitespace-control tildes
- * from the edges of a tag body.
+ * from the edges of a tag body. Used for block detection only.
  */
 export const parseHandlebarsTagInner = (tag: string): { inner: string; head: string } => {
-    const inner = tag.replace(/^\{+|\}+$/g, "").trim().replace(/^~+|~+$/g, "").trim();
+    const inner = stripTagBraces(tag).replace(/^~+|~+$/g, "").trim();
     const head = inner.split(/\s+/, 1)[0];
     return { inner, head };
 };
@@ -72,8 +76,10 @@ export const isBlockHelperTag = (tag: string): boolean => {
     return isBlockHelperHead(parseHandlebarsTagInner(tag).head);
 };
 
+// Tildes are kept: extractTemplateVariableNames() and the backend do not
+// substitute whitespace-control variables like {{~name~}}.
 const isSubstitutablePlainVariableTag = (tag: string): boolean => {
-    const { inner } = parseHandlebarsTagInner(tag);
+    const inner = stripTagBraces(tag);
     if (!/^\w+$/.test(inner)) {
         return false;
     }

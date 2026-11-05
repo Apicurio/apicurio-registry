@@ -204,6 +204,68 @@ public class GrantsIndirectAccessTest extends AbstractResourceTestBase {
         bob().get(path(GROUP, "outer") + "/versions/1/content?references=DEREFERENCE").then().statusCode(403);
     }
 
+    /**
+     * References at one level are authorized together: one unreadable reference among readable ones
+     * still fails the whole resolution, on every path that resolves references, and none of its content
+     * is returned.
+     */
+    @Test
+    public void anUnreadableReferenceAmongReadableOnesFailsTheWholeResolution() {
+        create(alice(), "open-sibling-1", "AVRO", OPEN_AVRO.replace("Open", "Open1"), List.of(), 200);
+        create(alice(), "private-sibling", "AVRO", PRIVATE_AVRO.replace("Secret", "Hidden"), List.of(), 200);
+        create(alice(), "open-sibling-2", "AVRO", OPEN_AVRO.replace("Open", "Open2"), List.of(), 200);
+        String fields = "[{\"name\":\"a\",\"type\":\"Open1\"},{\"name\":\"b\",\"type\":\"Hidden\"},"
+                + "{\"name\":\"c\",\"type\":\"Open2\"}]";
+        create(alice(), "mixed-wrapper", "AVRO", "{\"type\":\"record\",\"name\":\"Mixed\",\"fields\":" + fields + "}",
+                List.of(reference("open-sibling-1", "Open1"), reference("private-sibling", "Hidden"),
+                        reference("open-sibling-2", "Open2")), 200);
+        long globalId = versionMetaData("mixed-wrapper", "globalId");
+        long contentId = versionMetaData("mixed-wrapper", "contentId");
+        String content = path(GROUP, "mixed-wrapper") + "/versions/1/content";
+
+        bob().get(content + "?references=DEREFERENCE").then().statusCode(403);
+        bob().get(content + "?canonical=true").then().statusCode(403);
+        bob().get("/registry/v3/ids/globalIds/" + globalId + "?references=DEREFERENCE").then().statusCode(403);
+        bob().get("/registry/v2/groups/" + GROUP + "/artifacts/mixed-wrapper?dereference=true").then().statusCode(403);
+        bob().get("/ccompat/v7/schemas/ids/" + contentId + "?format=resolved").then().statusCode(403);
+        // Registering content with the same references is refused, and creates nothing
+        create(bob(), "mixed-copy", "AVRO", "{\"type\":\"record\",\"name\":\"Copy\",\"fields\":" + fields + "}",
+                List.of(reference("open-sibling-1", "Open1"), reference("private-sibling", "Hidden"),
+                        reference("open-sibling-2", "Open2")), 403);
+        alice().get(path(GROUP, "mixed-copy")).then().statusCode(404);
+
+        // Without the unreadable one, every sibling is resolved
+        create(alice(), "open-wrapper-2", "AVRO", "{\"type\":\"record\",\"name\":\"Both\",\"fields\":"
+                + "[{\"name\":\"a\",\"type\":\"Open1\"},{\"name\":\"c\",\"type\":\"Open2\"}]}",
+                List.of(reference("open-sibling-1", "Open1"), reference("open-sibling-2", "Open2")), 200);
+        bob().get(path(GROUP, "open-wrapper-2") + "/versions/1/content?references=DEREFERENCE").then()
+                .statusCode(200).body(containsString("Open1")).body(containsString("Open2"))
+                .body(not(containsString("CONFIDENTIAL-MARKER")));
+    }
+
+    private static void createProto(String artifactId, String content, List<Map<String, Object>> references) {
+        alice().contentType(CT_JSON).body(Map.of("artifactId", artifactId, "artifactType", "PROTOBUF", "firstVersion",
+                Map.of("version", "1", "content", Map.of("content", content, "contentType", "application/x-protobuf",
+                        "references", references))))
+                .post("/registry/v3/groups/" + GROUP + "/artifacts").then().statusCode(200);
+    }
+
+    @Test
+    public void protobufExportRequiresReadOnEveryImportedFile() {
+        createProto("open-proto", "syntax = \"proto3\";\npackage open;\nmessage Open { string v = 1; }\n", List.of());
+        createProto("private-proto", "syntax = \"proto3\";\npackage secret;\nmessage Secret { string salary = 1; }\n",
+                List.of());
+        createProto("mixed-proto", "syntax = \"proto3\";\npackage wrap;\nimport \"open.proto\";\n"
+                + "import \"secret.proto\";\nmessage W { open.Open o = 1; secret.Secret s = 2; }\n",
+                List.of(reference("open-proto", "open.proto"), reference("private-proto", "secret.proto")));
+        createProto("open-only-proto", "syntax = \"proto3\";\npackage wrap2;\nimport \"open.proto\";\n"
+                + "message W2 { open.Open o = 1; }\n", List.of(reference("open-proto", "open.proto")));
+
+        bob().get(path(GROUP, "mixed-proto") + "/versions/1/export").then().statusCode(403);
+        bob().get(path(GROUP, "open-only-proto") + "/versions/1/export").then().statusCode(200);
+        alice().get(path(GROUP, "mixed-proto") + "/versions/1/export").then().statusCode(200);
+    }
+
     @Test
     public void readableReferencesAreDereferenced() {
         create(alice(), "open-avro", "AVRO", OPEN_AVRO, List.of(), 200);

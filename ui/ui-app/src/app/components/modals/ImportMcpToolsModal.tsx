@@ -114,6 +114,11 @@ export const ImportMcpToolsModal: FunctionComponent<ImportMcpToolsModalProps> = 
     };
 
     const close = (): void => {
+        // The dialog stays open until the request completes, so its result is not lost and a
+        // stale request cannot fill a reopened dialog.
+        if (isRunning) {
+            return;
+        }
         setHeaders([]);
         props.onClose(imported);
     };
@@ -149,7 +154,7 @@ export const ImportMcpToolsModal: FunctionComponent<ImportMcpToolsModalProps> = 
                 <Button key="preview" variant="secondary" data-testid="modal-btn-preview"
                     isDisabled={!isValid() || isRunning} onClick={() => run(true)}>Preview</Button>,
                 <Button key="close" variant="link" data-testid="modal-btn-close"
-                    onClick={close}>{result ? "Close" : "Cancel"}</Button>
+                    isDisabled={isRunning} onClick={close}>{result ? "Close" : "Cancel"}</Button>
             ]}
         >
             <Content component="p">

@@ -138,6 +138,23 @@ describe("ImportMcpToolsModal", () => {
         expect(onClose).toHaveBeenLastCalledWith(true);
     });
 
+    it("cannot be closed while an import is running, so the reload after it is not lost", async () => {
+        let finish: (r: McpToolImportResult) => void = () => undefined;
+        render(modal(vi.fn().mockReturnValue(new Promise<McpToolImportResult>(resolve => { finish = resolve; }))));
+        type("form-mcp-url", "https://mcp.example.com/mcp");
+        fireEvent.click(screen.getByTestId("modal-btn-import"));
+
+        expect(screen.getByTestId("modal-btn-close")).toBeDisabled();
+        fireEvent.keyDown(document.body, { key: "Escape" });
+        expect(onClose).not.toHaveBeenCalled();
+
+        finish(result());
+        await waitFor(() => expect(screen.getByTestId("mcp-import-summary")).toHaveTextContent("now at version 2."));
+        fireEvent.click(screen.getByTestId("modal-btn-close"));
+        expect(onClose).toHaveBeenCalledTimes(1);
+        expect(onClose).toHaveBeenLastCalledWith(true);
+    });
+
     it("clears the form, including header values, when it opens again", () => {
         const { rerender } = render(modal(vi.fn()));
         type("form-mcp-url", "https://mcp.example.com/mcp");

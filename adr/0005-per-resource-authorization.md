@@ -16,9 +16,7 @@ The original JSON grants design is superseded: **use the Kroxylicious ACL rules 
 current ACL-based design; the prefix does not imply a JSON format.
 
 The references below point to source files in this checkout, so they follow the code rather than
-fixed line numbers. The reference-batching subsection explicitly identifies the work in
-[PR #10883](https://github.com/Apicurio/apicurio-registry/pull/10883), which is not yet merged at
-the time of this update. Other delivered milestones are listed under [History](#history).
+fixed line numbers. Delivered milestones are listed under [History](#history).
 
 - Start with [the decision](#decision) and [the access model](#access-model).
 - To trace a request, follow [point access](#point-access) or [search](#search-and-pagination).

@@ -6,9 +6,34 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can configure your {registry} deployment, including file-based secrets, HTTP caching, the web console, logging, health checks, observability, and the storage content cache.
+You can configure your {registry} deployment, including the experimental features gate, file-based secrets, HTTP caching, the web console, logging, health checks, observability, and the storage content cache.
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
+
+// con-registry-experimental-features
+[id="registry-experimental-features_{context}"]
+== Experimental features
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+An experimental feature is disabled by default and can change or be removed in a later release. The `apicurio.features.experimental.enabled` property gates all experimental features. If you enable an experimental feature while the gate is `false`, {registry} does not start.
+
+The gate is `false` by default. At startup, before it initializes storage, {registry} checks every experimental property and the storage kind. If an experimental feature is enabled and the gate is not, startup fails with a message that lists each enabled property and its description:
+
+----
+The following experimental features are enabled but the experimental features gate ('apicurio.features.experimental.enabled') is not enabled. Either enable the experimental features gate or disable the following properties: apicurio.a2a.enabled (Enable A2A protocol support)
+----
+
+To recover, set `apicurio.features.experimental.enabled=true` or the `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true` environment variable, or disable the listed features.
+
+IMPORTANT: {registry} 3.4 and later enforce the gate at startup. Releases 3.2 and 3.3 defined the property but did not check it, so a deployment that enabled an experimental feature without the gate still started. Before you upgrade such a deployment, set the gate or disable the feature.
+
+The configuration reference ends the description of each experimental property with _(experimental)_, for example, `apicurio.a2a.enabled`, `apicurio.ai-catalog.enabled`, `apicurio.ard.enabled`, `apicurio.mcp-tools.enabled`, `apicurio.iceberg.enabled`, and `apicurio.usage.telemetry.enabled`. The GitOps and KubernetesOps storage variants, `apicurio.storage.kind=gitops` and `apicurio.storage.kind=kubernetesops`, are also experimental and require the gate.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-config-reference.adoc[]
 
 // proc-configuring-file-based-secrets
 [id="configuring-file-based-secrets_{context}"]

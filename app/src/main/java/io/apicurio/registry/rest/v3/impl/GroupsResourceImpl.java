@@ -60,6 +60,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.references.AuthorizingReferenceLoader;
 import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ArtifactType;
@@ -2231,9 +2232,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     private record HookPlan(ContentWrapperDto content, Map<ArtifactReferenceDto, ContentWrapperDto> plannedReferencedContent,
             List<Runnable> commits) {
 
-        /** @return a reference loader that prefers planned content over {@code fallback} */
+        /** @return a reference loader that prefers planned content over loading it with {@code fallback} */
         Function<ArtifactReferenceDto, ContentWrapperDto> loader(Function<ArtifactReferenceDto, ContentWrapperDto> fallback) {
-            return ref -> plannedReferencedContent.getOrDefault(ref, fallback.apply(ref));
+            return AuthorizingReferenceLoader.preferring(plannedReferencedContent, fallback);
         }
 
         void commit() {

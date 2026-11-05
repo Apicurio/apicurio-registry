@@ -20,6 +20,7 @@ import io.quarkus.security.runtime.QuarkusSecurityIdentity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,13 +30,16 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -324,5 +328,93 @@ public class GrantsAccessControllerTest {
     void allowedActionsAllowsNothingWhenUninitialized() {
         assertEquals(Set.of(), controller("dev", "team-a-dev")
                 .allowedActions(List.of(new Action(Artifact.READ, "team-a/x"))));
+    }
+
+    // ==================== Batched authorization of access attempts ====================
+
+    private GrantsAccessController devWithMetricsSpy() throws Exception {
+        GrantsAccessController dev = controller("dev", "team-a-dev");
+        dev.setAuthorizer(authorizer());
+        dev.metrics = spy(dev.metrics);
+        return dev;
+    }
+
+    @Test
+    void isAllowedForAllAllowsOnlyWhenEveryResourceIsAllowed() throws Exception {
+        GrantsAccessController dev = devWithMetricsSpy();
+
+        // team-a-dev may write artifacts in team-a, but only read the group
+        assertFalse(dev.isAllowedForAll(AuthorizedLevel.Write, List.of(AuthorizedResource.artifact("team-a", "x"),
+                AuthorizedResource.artifact("team-a", "y"), AuthorizedResource.group("team-a"))));
+        assertTrue(dev.isAllowedForAll(AuthorizedLevel.Write, List.of(AuthorizedResource.artifact("team-a", "x"),
+                AuthorizedResource.artifact("team-a", "y"))));
+        assertTrue(dev.isAllowedForAll(AuthorizedLevel.Read, List.of(AuthorizedResource.artifact("team-a", "x"),
+                AuthorizedResource.artifact("team-a", "y"), AuthorizedResource.group("team-a"))));
+        assertFalse(dev.isAllowedForAll(AuthorizedLevel.Read, List.of(AuthorizedResource.artifact("team-a", "x"),
+                AuthorizedResource.artifact("team-b", "y"))));
+    }
+
+    @Test
+    void isAllowedForAllEvaluatesTheStoredIdsSoACaseOnlyChangeDoesNotEscapeADeny() throws Exception {
+        GrantsAccessController dev = devWithMetricsSpy();
+
+        // Storage resolves TEAM-A/VICTIM to team-a/victim, denied despite the allow on team-a/*
+        assertFalse(dev.isAllowedForAll(AuthorizedLevel.Read, List.of(AuthorizedResource.artifact("team-a", "x"),
+                AuthorizedResource.artifact("TEAM-A", "VICTIM"))));
+        // Recorded under the stored name, and the two spellings of one artifact are one decision
+        verify(dev.metrics, times(1)).recordAuthzDecision(false, "artifact", "read");
+        assertFalse(dev.isAllowedForAll(AuthorizedLevel.Read, List.of(AuthorizedResource.artifact("team-a", "victim"),
+                AuthorizedResource.artifact("TEAM-A", "Victim"))));
+        verify(dev.metrics, times(2)).recordAuthzDecision(false, "artifact", "read");
+    }
+
+    @Test
+    void isAllowedForAllRecordsEveryDecisionAsAnAccessAttempt() throws Exception {
+        GrantsAccessController dev = devWithMetricsSpy();
+
+        dev.isAllowedForAll(AuthorizedLevel.Read, List.of(AuthorizedResource.artifact("team-a", "x"),
+                AuthorizedResource.artifact("team-a", "y"), AuthorizedResource.artifact("team-b", "z"),
+                AuthorizedResource.group("team-a")));
+
+        // One decision each, as isAllowed would record: denials are also written to the audit log
+        verify(dev.metrics, times(2)).recordAuthzDecision(true, "artifact", "read");
+        verify(dev.metrics, times(1)).recordAuthzDecision(false, "artifact", "read");
+        verify(dev.metrics, times(1)).recordAuthzDecision(true, "group", "read");
+    }
+
+    @Test
+    void isAllowedForAllOfNothingIsAllowedAndUninitializedDeniesEverything() throws Exception {
+        assertTrue(devWithMetricsSpy().isAllowedForAll(AuthorizedLevel.Read, List.of()));
+        assertFalse(controller("dev", "team-a-dev").isAllowedForAll(AuthorizedLevel.Read,
+                List.of(AuthorizedResource.artifact("team-a", "x"))));
+    }
+
+    @Test
+    void isAllowedForAllMakesOneAuthorizerCallWithOneActionPerStoredResource() throws Exception {
+        GrantsAccessController dev = controller("dev", "team-a-dev");
+        AccessRulesAuthorizer authorizer = spy(authorizer());
+        dev.setAuthorizer(authorizer);
+
+        dev.isAllowedForAll(AuthorizedLevel.Read, List.of(AuthorizedResource.artifact("team-a", "x"),
+                AuthorizedResource.artifact("TEAM-A", "VICTIM"), AuthorizedResource.artifact("team-a", "victim"),
+                AuthorizedResource.group("team-a")));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<Action>> actions = ArgumentCaptor.forClass(List.class);
+        verify(authorizer, times(1)).authorize(any(), actions.capture());
+        assertEquals(List.of(new Action(Artifact.READ, "team-a/x"), new Action(Artifact.READ, "team-a/victim"),
+                new Action(Group.READ, "team-a")), actions.getValue());
+    }
+
+    @Test
+    void isAllowedForAllAllowsLevelNoneWithoutAskingAndRefusesContent() throws Exception {
+        GrantsAccessController dev = controller("dev", "team-a-dev");
+        AccessRulesAuthorizer authorizer = spy(authorizer());
+        dev.setAuthorizer(authorizer);
+
+        assertTrue(dev.isAllowedForAll(AuthorizedLevel.None, List.of(AuthorizedResource.artifact("team-b", "z"))));
+        verify(authorizer, never()).authorize(any(), any());
+        assertThrows(IllegalArgumentException.class, () -> dev.isAllowedForAll(AuthorizedLevel.Read,
+                List.of(AuthorizedResource.content(List.of()))));
     }
 }

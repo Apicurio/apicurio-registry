@@ -357,7 +357,12 @@ grants with the same rules and bypasses as the interceptor. Every client-facing 
 (REST v2/v3, Confluent compatibility API, Iceberg, MCP Registry, `/.well-known` discovery);
 inbound reference lists (including the Confluent `referencedby` list) and content-ID lists are
 filtered per item. References are resolved through `ResourceAccessGuard.referenceLoader()`, which
-checks `read` on each referenced artifact.
+checks `read` on each referenced artifact. The references known together are checked with one access
+rules call (`GrantsAccessController.isAllowedForAll`), as proposal 009 asks of call sites so that
+remote authorizers can batch them: each level of the reference graph, or the references of one
+document where resolution is depth-first (dereferencing with rewritten references, Protobuf export).
+Each reference is still evaluated against its stored IDs, every decision is still recorded, and a
+single denied reference fails the request before any of its level is loaded.
 
 ### Hot-reload
 
@@ -457,11 +462,11 @@ Fetch more results than needed, filter by authorization, return the requested pa
 
 ## Known Limitations
 
-### 1. No authorization caching across requests
+### 1. Little authorization caching across requests
 
-Within a request, authorization reads each piece of metadata at most once (`AuthorizationLookups`, request-scoped): owner-only authorization, the owner bypass, the stored-ID check and global/content ID resolution share the lookups. Across requests nothing is cached, so every request reads the metadata it needs (one lookup for globalId endpoints, one per artifact or group checked) and evaluates grants again. Resolving references checks each referenced artifact. High-traffic SerDes clients will feel this.
+Within a request, authorization reads each piece of metadata at most once (`AuthorizationLookups`, request-scoped): owner-only authorization, the owner bypass, the stored-ID check and global/content ID resolution share the lookups. Across requests, only what a global ID names is cached (`GlobalIdCoordinatesCache`, [#10849](https://github.com/Apicurio/apicurio-registry/pull/10849)): a global ID's coordinates never change, so the cache is flushed only by a data import, which can reuse global IDs. Everything else is read again by every request (one lookup per artifact or group checked), and grants are evaluated again. Resolving references checks each referenced artifact, with one access rules call per level of the graph, but still one metadata lookup per referenced artifact. High-traffic SerDes clients will feel this.
 
-**Impact:** increased latency on globalId endpoints and on dereferencing. **Mitigation:** a short-lived cache shared across requests, invalidated on grants reload and on ownership/existence changes ([#10600](https://github.com/Apicurio/apicurio-registry/issues/10600)).
+**Impact:** increased latency on dereferencing and on endpoints checking many resources. **Mitigation:** a short-lived metadata cache shared across requests, with bounded staleness ([#10600](https://github.com/Apicurio/apicurio-registry/issues/10600)). Authorization decisions themselves are not cached: they derive from the subject, which proposal 009 advises against caching.
 
 ### 2. Search result permissions are advisory
 

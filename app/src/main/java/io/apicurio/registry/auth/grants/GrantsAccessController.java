@@ -1,8 +1,11 @@
 package io.apicurio.registry.auth.grants;
 
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -156,6 +159,46 @@ public class GrantsAccessController extends AbstractAccessController {
             return groupId;
         }
         return lookups().group(storage, groupId).map(GroupMetaDataDto::getGroupId).orElse(groupId);
+    }
+
+    /**
+     * Evaluates grants for many artifacts or groups with a single access rules call, so that remote
+     * authorizers can batch them (Kroxylicious proposal 009). Same decisions as calling
+     * {@link #isAllowed} on each: resources are canonicalized to their stored IDs first, and every
+     * decision is recorded (metrics, and an audit entry for each denial), since this authorizes an
+     * access attempt. Owner bypass is not applied here, as in {@link #isAllowed}.
+     *
+     * @return true if {@code level} is allowed on every resource (vacuously true for none)
+     */
+    public boolean isAllowedForAll(AuthorizedLevel level, Collection<AuthorizedResource> resources) {
+        if (level == AuthorizedLevel.None || resources.isEmpty()) {
+            return true;
+        }
+        if (authorizer == null) {
+            LOG.error("Per-resource authorization is enabled but not initialized, denying access.");
+            return false;
+        }
+        // One action per distinct stored name: two spellings of one artifact are one decision
+        Map<Action, String> actions = new LinkedHashMap<>();
+        for (AuthorizedResource resource : resources) {
+            AuthorizedResource stored = canonical(resource);
+            switch (stored.kind()) {
+                case ARTIFACT -> actions.putIfAbsent(new Action(toArtifactOp(level),
+                        buildResourceName(stored.groupId(), stored.artifactId())), TYPE_ARTIFACT);
+                case GROUP -> actions.putIfAbsent(new Action(toGroupOp(level), normalizeGroup(stored.groupId())),
+                        TYPE_GROUP);
+                case CONTENT -> throw new IllegalArgumentException("Content is authorized through isAllowed");
+            }
+        }
+        AuthorizeResult result = authorize(currentSubject(), List.copyOf(actions.keySet()));
+        boolean allAllowed = true;
+        for (Map.Entry<Action, String> entry : actions.entrySet()) {
+            Action action = entry.getKey();
+            boolean allowed = result.decision(action.operation(), action.resourceName()) == Decision.ALLOW;
+            record(allowed, entry.getValue(), level, action.resourceName());
+            allAllowed &= allowed;
+        }
+        return allAllowed;
     }
 
     /**

@@ -24,6 +24,9 @@ import java.util.Locale;
 @QuarkusTest
 public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
 
+    /** The schema version whose upgrade scripts add UQ_versions_3. */
+    private static final int VERSION_ORDER_DB_VERSION = 113;
+
     @Inject
     @Current
     RegistryStorage storage;
@@ -65,12 +68,12 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
 
     /**
      * Seeds the state a registry is in after losing the first-version race: UQ_versions_3 absent
-     * and two versions of one artifact sharing a versionOrder. The 112 to 113 upgrade must then
-     * stop before ADD CONSTRAINT, name both rows and leave db_version at 112, and it must go through
-     * once the operator has removed the duplicate.
+     * and two versions of one artifact sharing a versionOrder. The upgrade to VERSION_ORDER_DB_VERSION
+     * must then stop before ADD CONSTRAINT, name both rows and leave db_version one version lower,
+     * and it must go through once the operator has removed the duplicate.
      */
     @Test
-    public void testUpgradeTo113FailsOnDuplicateVersionOrder() {
+    public void testVersionOrderUpgradeFailsOnDuplicateVersionOrder() {
         String groupId = TestUtils.generateGroupId();
         String artifactId = TestUtils.generateArtifactId();
         ArtifactVersionMetaDataDto first = createFirstVersion(groupId, artifactId);
@@ -80,21 +83,22 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
         execute("ALTER TABLE versions DROP CONSTRAINT UQ_versions_3");
         try {
             storage.importArtifactVersion(duplicateOf(first, "2"));
-            execute("UPDATE apicurio SET propValue = '112' WHERE propName = 'db_version'");
+            execute("UPDATE apicurio SET propValue = '" + (VERSION_ORDER_DB_VERSION - 1)
+                    + "' WHERE propName = 'db_version'");
 
             IllegalStateException e = Assertions.assertThrows(IllegalStateException.class,
-                    this::upgradeTo113);
+                    this::upgradeToVersionOrderVersion);
             Assertions.assertTrue(e.getMessage().contains("versions share a versionOrder"), e.getMessage());
             Assertions.assertTrue(e.getMessage().contains("groupId=" + groupId + ", artifactId=" + artifactId
                     + ", version=1, versionOrder=1"), e.getMessage());
             Assertions.assertTrue(e.getMessage().contains("groupId=" + groupId + ", artifactId=" + artifactId
                     + ", version=2, versionOrder=1"), e.getMessage());
-            Assertions.assertEquals("112", databaseVersion());
+            Assertions.assertEquals(String.valueOf(VERSION_ORDER_DB_VERSION - 1), databaseVersion());
 
             storage.deleteArtifactVersion(groupId, artifactId, "2");
-            upgradeTo113();
+            upgradeToVersionOrderVersion();
             constraintRestored = true;
-            Assertions.assertEquals("113", databaseVersion());
+            Assertions.assertEquals(String.valueOf(VERSION_ORDER_DB_VERSION), databaseVersion());
             // The constraint is back, so the same duplicate is rejected again.
             ArtifactVersionEntity next = duplicateOf(first, "3");
             RuntimeSqlException rejected = Assertions.assertThrows(RuntimeSqlException.class,
@@ -137,10 +141,14 @@ public class DefaultRegistryStorageTest extends AbstractRegistryStorageTest {
         return duplicate;
     }
 
-    /** Runs the real 113 scripts the way AbstractSqlRegistryStorage.upgradeDatabaseRaw does. */
-    private void upgradeTo113() {
+    /**
+     * Runs the real VERSION_ORDER_DB_VERSION scripts the way
+     * AbstractSqlRegistryStorage.upgradeDatabaseRaw does.
+     */
+    private void upgradeToVersionOrderVersion() {
         handles.withHandleNoException(handle -> {
-            for (String statement : sqlStatements.databaseUpgrade(112, 113)) {
+            for (String statement : sqlStatements.databaseUpgrade(VERSION_ORDER_DB_VERSION - 1,
+                    VERSION_ORDER_DB_VERSION)) {
                 if (statement.startsWith("UPGRADER:")) {
                     String className = statement.substring("UPGRADER:".length()).trim();
                     Assertions.assertEquals(DuplicateVersionOrderUpgrader.class.getName(), className);

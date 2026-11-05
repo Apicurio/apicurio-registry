@@ -49,21 +49,10 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
     private static final Logger log = LoggerFactory.getLogger(UpgradeOLMITTest.class);
 
-    // Budget for an upgrade that OLM can satisfy in a single step. Also the floor for
-    // multi-hop upgrades.
+    // Budget for an upgrade that OLM can satisfy in a single step.
     private static final Duration UPGRADE_TIMEOUT = Duration.ofSeconds(
             Integer.getInteger("test.operator.timeout.olm-upgrade", 1200));
 
-    // Extra budget per additional replaces-chain hop. OLM walks the chain one CSV at a time and
-    // each hop costs a bundle-unpack Job (an image pull) plus an operator Deployment rollout, so
-    // a single fixed budget silently decays as releases accumulate in a channel: the 3.x
-    // cross-minor upgrade was 3.2.5 -> 3.3.1 (3 hops) when these tests were written and is
-    // 3.2.5 -> 3.3.3-snapshot (4 hops) today, which is what pushed it past the fixed 1200s and
-    // wedged CI mid-chain at "BundleUnpacking: UnpackingInProgress". Scaling by the hops the
-    // resolver actually has to walk keeps the assertion meaningful instead of turning it into a
-    // slow race against the release cadence.
-    private static final Duration UPGRADE_TIMEOUT_PER_HOP = Duration.ofSeconds(
-            Integer.getInteger("test.operator.timeout.olm-upgrade-per-hop", 300));
 
     private static final String SUBSCRIPTION_NAME = "apicurio-registry-operator-subscription";
 
@@ -238,8 +227,14 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     }
 
     /**
-     * Verifies cross-minor upgrade via the rolling channel (e.g., 3.2.5 -> 3.3.1 on 3.x).
-     * Requires the current version to be in the 3.x channel and an entry from a different minor.
+     * Verifies the cross-minor upgrade edge in the rolling channel (e.g. 3.3.4 -> 3.4.0 on 3.x).
+     * <p>
+     * Only the step between minors is exercised. OLM v0 walks the replaces chain one CSV per
+     * install plan, so following it all the way to the head adds a bundle unpack and a Deployment
+     * rollout for every patch release in the newer minor, and the test outgrows the CI job timeout
+     * as releases accumulate. The remaining edges are older, already released ones, the newest
+     * edge is covered by {@link #testUpgradeWithinMinorChannel()}, and the chain itself is
+     * validated by {@code ChannelValidationOLMITTest}.
      */
     @RetryTest
     @EnabledIf("hasCrossMinorEntryInRollingChannel")
@@ -247,48 +242,35 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         setUp();
 
         var crossMinorEntry = catalog.getCrossMinorEntry(rollingChannel());
-        var headVersion = catalog.getChannelHeadVersion(rollingChannel());
-        var hops = catalog.getHopsToHead(rollingChannel(), crossMinorEntry.getCsvName());
 
-        log.info("Testing upgrade via {} channel: {} -> {} ({} hops)",
-                rollingChannel(), crossMinorEntry.getVersion(), headVersion, hops);
+        log.info("Testing cross-minor upgrade edge via {} channel from {}",
+                rollingChannel(), crossMinorEntry.getVersion());
 
-        // Automatic multi-hop upgrades can resolve the next hop before OLM has removed
-        // the replaced CSV, leaving an orphan that makes the resolver constraints unsatisfiable.
         deployCatalogAndSubscribe(rollingChannel(), crossMinorEntry.getCsvName(), true);
         var installedCSV = approveNextInstallPlan(null);
         assertThat(installedCSV).isEqualTo(crossMinorEntry.getCsvName());
         waitForOperatorVersion(crossMinorEntry.getVersion());
 
-        var headCSV = catalog.getChannelHeadCSV(rollingChannel());
         // Follow the actual InstallPlan: downstream catalogs can skip replaces-chain entries.
-        int maxHops = catalog.getChannels().get(rollingChannel()).size();
-        for (int hop = 0; hop < maxHops && !headCSV.equals(installedCSV); hop++) {
-            var previousCSV = installedCSV;
-            installedCSV = approveNextInstallPlan(previousCSV);
-            verifyUpgradeTo(CatalogInfo.parseVersion(CatalogInfo.extractVersionString(installedCSV)));
-            // Do not approve another hop until the old CSV is actually gone.
-            upgradeAwait().untilAsserted(() -> assertThat(client.genericKubernetesResources(
-                            "operators.coreos.com/v1alpha1", "ClusterServiceVersion")
-                    .inNamespace(namespace).withName(previousCSV).get())
-                    .as("Replaced CSV %s should be removed before the next hop", previousCSV)
-                    .isNull());
-        }
-        assertThat(installedCSV).as("Upgrade should reach the discovered channel head").isEqualTo(headCSV);
+        var upgradedCSV = approveNextInstallPlan(installedCSV);
+        var upgradedVersion = CatalogInfo.parseVersion(CatalogInfo.extractVersionString(upgradedCSV));
+        assertThat(upgradedVersion.getMinor())
+                .as("First upgrade from %s should cross into a newer minor", installedCSV)
+                .isGreaterThan(crossMinorEntry.getVersion().getMinor());
+        verifyUpgradeTo(upgradedVersion);
         upgradeAwait().untilAsserted(() -> {
             var subscription = client.genericKubernetesResources("operators.coreos.com/v1alpha1", "Subscription")
                     .inNamespace(namespace).withName(SUBSCRIPTION_NAME).get();
-            assertThat((String) subscription.get("status", "installedCSV")).isEqualTo(headCSV);
+            assertThat((String) subscription.get("status", "installedCSV")).isEqualTo(upgradedCSV);
             var csv = client.genericKubernetesResources("operators.coreos.com/v1alpha1", "ClusterServiceVersion")
-                    .inNamespace(namespace).withName(headCSV).get();
+                    .inNamespace(namespace).withName(upgradedCSV).get();
             assertThat(csv).isNotNull();
             assertThat((String) csv.get("status", "phase")).isEqualTo("Succeeded");
         });
 
-        verifyUpgradeCompleted(crossMinorEntry.getVersion(), headVersion);
+        verifyUpgradeCompleted(crossMinorEntry.getVersion(), upgradedVersion);
 
-        log.info("Cross-minor upgrade succeeded: {} -> {}",
-                crossMinorEntry.getVersion(), headVersion);
+        log.info("Cross-minor upgrade succeeded: {} -> {}", crossMinorEntry.getVersion(), upgradedVersion);
     }
 
     /**
@@ -594,12 +576,8 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     }
 
     private void verifyUpgradeTo(Semver targetVersion) {
-        verifyUpgradeTo(targetVersion, 1);
-    }
-
-    private void verifyUpgradeTo(Semver targetVersion, int hops) {
         var name = deploymentName(targetVersion);
-        upgradeAwait(hops).untilAsserted(() -> {
+        upgradeAwait().untilAsserted(() -> {
             var deployment = client.apps().deployments().inNamespace(namespace)
                     .withName(name).get();
             assertThat(deployment)
@@ -637,18 +615,7 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     //     of the startCSV -> install -> upgrade sequence: the resolver re-runs while the
     //     just-created CSV is not linked yet, and self-heals when the CSV succeeds.
     private ConditionFactory upgradeAwait() {
-        return upgradeAwait(1);
-    }
-
-    /**
-     * Awaitility factory budgeted for an upgrade spanning {@code hops} replaces-chain steps.
-     * Unknown hop counts (-1, entry not found in the channel) fall back to the single-hop budget.
-     */
-    private ConditionFactory upgradeAwait(int hops) {
-        var timeout = hops > 1
-                ? UPGRADE_TIMEOUT.plus(UPGRADE_TIMEOUT_PER_HOP.multipliedBy(hops - 1L))
-                : UPGRADE_TIMEOUT;
-        return await().atMost(timeout).ignoreExceptions()
+        return await().atMost(UPGRADE_TIMEOUT).ignoreExceptions()
                 .failFast("Subscription resolution failed", this::subscriptionResolutionFailed);
     }
 

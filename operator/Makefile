@@ -139,6 +139,10 @@ export PLACEHOLDER_CATALOG_NAMESPACE := $(CATALOG_NAMESPACE)
 export PLACEHOLDER_CATALOG_IMAGE := $(CATALOG_IMAGE)
 
 export PLACEHOLDER_CHANNEL := $(DEFAULT_CHANNEL)
+# The catalog's package-level default channel is always the rolling channel (e.g. 3.x), even for
+# maintenance branch releases whose bundle is only in the minor channel. Otherwise the catalog
+# would point new installs at an older minor stream.
+export PLACEHOLDER_CATALOG_DEFAULT_CHANNEL := $(shell echo "$(LC_VERSION)" | sed 's/\([0-9]*\)\..*/\1.x/')
 
 
 ########## Help
@@ -585,7 +589,7 @@ endif
 		$(YQ) '.entries |= . + [{"schema": "olm.channel", "package": "$${PLACEHOLDER_PACKAGE_NAME}", "name": "$(CHANNEL)", "entries": [{"name": "$${PLACEHOLDER_PACKAGE}", "replaces": "$(PREVIOUS_PACKAGE)"}, {"name": "$(PREVIOUS_PACKAGE)"}]}]' -i $(CATALOG_DIR)/catalog.template.yaml; \
 	fi
 	# Update defaultChannel to the current channel
-	$(YQ) '(.entries[] | select(.schema == "olm.package")).defaultChannel = "$${PLACEHOLDER_CHANNEL}"' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '(.entries[] | select(.schema == "olm.package")).defaultChannel = "$${PLACEHOLDER_CATALOG_DEFAULT_CHANNEL}"' -i $(CATALOG_DIR)/catalog.template.yaml
 	# Add bundle image for the released version
 	$(YQ) '.entries |= . + [{"schema": "olm.bundle", "image": "$(PREVIOUS_BUNDLE_IMAGE)"}]' -i $(CATALOG_DIR)/catalog.template.yaml
 

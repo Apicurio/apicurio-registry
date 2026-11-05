@@ -46,21 +46,10 @@ public class UpgradeOLMITTest implements OperatorTestContext {
 
     private static final Logger log = LoggerFactory.getLogger(UpgradeOLMITTest.class);
 
-    // Budget for an upgrade that OLM can satisfy in a single step. Also the floor for
-    // multi-hop upgrades.
+    // Budget for an upgrade that OLM can satisfy in a single step.
     private static final Duration UPGRADE_TIMEOUT = Duration.ofSeconds(
             Integer.getInteger("test.operator.timeout.olm-upgrade", 1200));
 
-    // Extra budget per additional replaces-chain hop. OLM walks the chain one CSV at a time and
-    // each hop costs a bundle-unpack Job (an image pull) plus an operator Deployment rollout, so
-    // a single fixed budget silently decays as releases accumulate in a channel: the 3.x
-    // cross-minor upgrade was 3.2.5 -> 3.3.1 (3 hops) when these tests were written and is
-    // 3.2.5 -> 3.3.3-snapshot (4 hops) today, which is what pushed it past the fixed 1200s and
-    // wedged CI mid-chain at "BundleUnpacking: UnpackingInProgress". Scaling by the hops the
-    // resolver actually has to walk keeps the assertion meaningful instead of turning it into a
-    // slow race against the release cadence.
-    private static final Duration UPGRADE_TIMEOUT_PER_HOP = Duration.ofSeconds(
-            Integer.getInteger("test.operator.timeout.olm-upgrade-per-hop", 300));
 
     private static final String SUBSCRIPTION_NAME = "apicurio-registry-operator-subscription";
 
@@ -235,8 +224,14 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     }
 
     /**
-     * Verifies cross-minor upgrade via the rolling channel (e.g., 3.2.5 -> 3.3.1 on 3.x).
-     * Requires the current version to be in the 3.x channel and an entry from a different minor.
+     * Verifies the cross-minor upgrade edge in the rolling channel (e.g. 3.2.5 -> 3.3.0 on 3.x).
+     * <p>
+     * Only the step between minors is exercised. OLM v0 walks the replaces chain one CSV per
+     * install plan, so following it all the way to the head adds a bundle unpack and a Deployment
+     * rollout for every patch release in the newer minor, and the test outgrew the CI job timeout
+     * as releases accumulated. The remaining edges are older, already released ones, the newest
+     * edge is covered by {@link #testUpgradeWithinMinorChannel()}, and the chain itself is
+     * validated by {@code ChannelValidationOLMITTest}. Manual approval stops OLM after one hop.
      */
     @RetryTest
     @EnabledIf("hasCrossMinorEntryInRollingChannel")
@@ -244,23 +239,31 @@ public class UpgradeOLMITTest implements OperatorTestContext {
         setUp();
 
         var crossMinorEntry = catalog.getCrossMinorEntry(rollingChannel());
-        var headVersion = catalog.getChannelHeadVersion(rollingChannel());
-        var hops = catalog.getHopsToHead(rollingChannel(), crossMinorEntry.getCsvName());
+        var successor = catalog.getSuccessor(rollingChannel(), crossMinorEntry.getCsvName());
+        assertThat(successor)
+                .as("Cross-minor entry " + crossMinorEntry.getCsvName() + " should have a successor in "
+                        + rollingChannel())
+                .isNotNull();
+        assertThat(successor.getVersion().getMinor())
+                .as("Successor of " + crossMinorEntry.getCsvName() + " should be in a newer minor")
+                .isGreaterThan(crossMinorEntry.getVersion().getMinor());
 
-        log.info("Testing upgrade via {} channel: {} -> {} ({} hops)",
-                rollingChannel(), crossMinorEntry.getVersion(), headVersion, hops);
+        log.info("Testing cross-minor upgrade edge via {} channel: {} -> {}",
+                rollingChannel(), crossMinorEntry.getVersion(), successor.getVersion());
 
-        deployCatalogAndSubscribe(rollingChannel(), crossMinorEntry.getCsvName());
+        deployCatalogAndSubscribe(rollingChannel(), crossMinorEntry.getCsvName(), "Manual");
+        waitForAndApproveInstallPlans();
         waitForOperatorVersion(crossMinorEntry.getVersion());
 
-        log.info("Operator {} deployed, waiting for upgrade to {}",
-                crossMinorEntry.getVersion(), headVersion);
-        verifyUpgradeTo(headVersion, hops);
+        log.info("Operator {} deployed, approving the upgrade to {}",
+                crossMinorEntry.getVersion(), successor.getVersion());
+        waitForAndApproveInstallPlans();
+        verifyUpgradeTo(successor.getVersion());
 
-        verifyUpgradeCompleted(crossMinorEntry.getVersion(), headVersion);
+        verifyUpgradeCompleted(crossMinorEntry.getVersion(), successor.getVersion());
 
         log.info("Cross-minor upgrade succeeded: {} -> {}",
-                crossMinorEntry.getVersion(), headVersion);
+                crossMinorEntry.getVersion(), successor.getVersion());
     }
 
     /**
@@ -527,6 +530,11 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     }
 
     private void deployCatalogAndSubscribe(String channel, String startCSV) throws Exception {
+        deployCatalogAndSubscribe(channel, startCSV, "Automatic");
+    }
+
+    private void deployCatalogAndSubscribe(String channel, String startCSV, String installPlanApproval)
+            throws Exception {
         try {
             createResource(client, namespace, "olmv0/catalog-source.yaml");
             waitForCatalogPodReady(client, namespace);
@@ -536,7 +544,9 @@ public class UpgradeOLMITTest implements OperatorTestContext {
                     "${PLACEHOLDER_UPGRADE_CHANNEL}", channel,
                     "${PLACEHOLDER_UPGRADE_START_CSV}", startCSV);
             var raw = loadRawResource("olmv0/subscription-upgrade.yaml");
-            client.resource(replaceVars(raw, namespace, extraVars)).create();
+            client.resource(replaceVars(raw, namespace, extraVars)
+                    .replace("installPlanApproval: Automatic", "installPlanApproval: " + installPlanApproval))
+                    .create();
         } catch (Exception e) {
             log.error("OLM catalog/subscription setup failed, dumping cluster diagnostics", e);
             ClusterDiagnostics.dump(client, namespace, true);
@@ -558,12 +568,8 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     }
 
     private void verifyUpgradeTo(Semver targetVersion) {
-        verifyUpgradeTo(targetVersion, 1);
-    }
-
-    private void verifyUpgradeTo(Semver targetVersion, int hops) {
         var name = deploymentName(targetVersion);
-        upgradeAwait(hops).untilAsserted(() -> {
+        upgradeAwait().untilAsserted(() -> {
             var deployment = client.apps().deployments().inNamespace(namespace)
                     .withName(name).get();
             assertThat(deployment)
@@ -603,18 +609,7 @@ public class UpgradeOLMITTest implements OperatorTestContext {
     //     of the startCSV -> install -> upgrade sequence: the resolver re-runs while the
     //     just-created CSV is not linked yet, and self-heals when the CSV succeeds.
     private ConditionFactory upgradeAwait() {
-        return upgradeAwait(1);
-    }
-
-    /**
-     * Awaitility factory budgeted for an upgrade spanning {@code hops} replaces-chain steps.
-     * Unknown hop counts (-1, entry not found in the channel) fall back to the single-hop budget.
-     */
-    private ConditionFactory upgradeAwait(int hops) {
-        var timeout = hops > 1
-                ? UPGRADE_TIMEOUT.plus(UPGRADE_TIMEOUT_PER_HOP.multipliedBy(hops - 1L))
-                : UPGRADE_TIMEOUT;
-        return await().atMost(timeout).ignoreExceptions()
+        return await().atMost(UPGRADE_TIMEOUT).ignoreExceptions()
                 .failFast("Subscription resolution failed", this::subscriptionResolutionFailed);
     }
 

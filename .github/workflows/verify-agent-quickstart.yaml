@@ -46,18 +46,13 @@ jobs:
           docker compose up -d --wait apicurio-registry apicurio-registry-ui
           echo "Registry and web console ready after $(( $(date +%s) - start ))s"
 
+      # docker compose run is synchronous and returns the seed container's exit code.
       - name: Seed the demo catalog
-        # docker compose wait exits with the seed container's exit code.
-        run: |
-          docker compose up -d seed
-          docker compose wait seed
-          docker compose logs --no-log-prefix seed
+        run: docker compose run --rm seed
 
       - name: Seed again (must change nothing)
         run: |
-          docker compose up -d --force-recreate seed
-          docker compose wait seed
-          docker compose logs --no-log-prefix seed | tee seed-rerun.log
+          docker compose run --rm seed | tee seed-rerun.log
           if grep -q '^created' seed-rerun.log; then echo "::error::the second seed run created artifacts"; exit 1; fi
 
       - name: Run the quickstart smoke test

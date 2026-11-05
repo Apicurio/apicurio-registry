@@ -26,6 +26,11 @@ The sample uses these existing upstream extensions:
 - [A2A Apicurio Registry](https://github.com/quarkiverse/quarkus-langchain4j/tree/main/a2a-apicurio-registry)
 - [MCP Apicurio Registry](https://github.com/quarkiverse/quarkus-langchain4j/tree/main/mcp-apicurio-registry)
 
+The Quarkus LangChain4j documentation describes how to configure each extension:
+
+- [Discovering A2A agents with Apicurio Registry](https://docs.quarkiverse.io/quarkus-langchain4j/dev/agentic.html#_discovering_a2a_agents_with_apicurio_registry)
+- [Apicurio Registry MCP server discovery](https://docs.quarkiverse.io/quarkus-langchain4j/dev/mcp.html#_apicurio_registry_mcp_server_discovery)
+
 It runs locally without authentication and uses fictional weather data. MCP
 discovery currently uses `MCP_TOOL` artifacts with connection labels. Compatibility
 checks govern stored definitions; they do not block traffic to a running server.

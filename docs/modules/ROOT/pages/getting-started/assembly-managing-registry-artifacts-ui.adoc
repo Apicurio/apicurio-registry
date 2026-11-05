@@ -235,7 +235,7 @@ You can validate a saved draft against the configured content rules, and then fi
 . On the *Drafts* tab, select *Finalize draft* from the draft's Action menu (three vertical dots).
 . Optional: Turn on *Dry run only*, and then click *Finalize (dry run)* to check the content rules without publishing the version.
 +
-If the content violates a rule, correct the content in the editor and save it before trying again. A successful dry run leaves the version in the `DRAFT` state.
+If the content violates a rule, the web console displays the *Invalid Content Error* dialog. For a compatibility violation, the dialog lists each violation with its location and shows the content that you submitted under *Submitted content*, so that you can copy it. Correct the content in the editor and save it before trying again. A successful dry run leaves the version in the `DRAFT` state.
 . Select *Finalize draft* again if you performed a dry run. Ensure that *Dry run only* is off, and then click *Finalize*.
 +
 {registry} applies the content rules and changes the version to `ENABLED`. If a rule fails, the version remains a draft. After publication, you cannot edit the version's content or return it to `DRAFT`. To prepare further changes, select *Create draft from...* on the published version page and create a new draft version.
@@ -314,7 +314,7 @@ For a draft version, the only available value is *Enabled*. For other versions, 
 Alternatively, you can publish a draft by selecting *Finalize draft* from the Action menu (three vertical dots) in the version page header, or edit its content by clicking *Edit draft*.
 . Click *Change state*.
 +
-When you publish a draft, {registry} applies the configured content rules. If the content violates a rule, the web console displays the *Invalid Content Error* dialog with the rule violations, and the version remains a draft.
+When you publish a draft, {registry} applies the configured content rules. If the content violates a rule, the web console displays the *Invalid Content Error* dialog with the rule violations, and the version remains a draft. For a compatibility violation, the dialog lists each violation with its location and shows the content that you submitted under *Submitted content*, so that you can copy it.
 
 .Verification
 * Verify that *Status* on the version's *Overview* tab displays the selected state. In the *Versions in artifact* list, the version displays a *Deprecated* or *Disabled* badge, or no badge if you enabled the version.

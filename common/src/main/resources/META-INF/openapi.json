@@ -8724,6 +8724,10 @@
             "description": "",
             "type": "boolean"
           },
+          "mcpImport": {
+            "description": "Whether importing tools from live MCP servers is enabled. Experimental.",
+            "type": "boolean"
+          },
           "urlImportMaxContentLength": {
             "description": "Maximum content length (in bytes) for UI 'Import from URL' responses.",
             "type": "integer",

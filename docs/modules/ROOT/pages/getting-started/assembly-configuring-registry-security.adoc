@@ -24,7 +24,7 @@ You can manually configure authentication and authorization options for {registr
 ====
 Alternatively, for details on how to configure these settings automatically,
 ifdef::apicurio-registry[]
-see the link:https://www.apicur.io/registry/docs/apicurio-registry-operator/{operator-version}/assembly-registry-maintenance.html#registry-security-keycloak[{operator} documentation].
+see xref:getting-started/assembly-deploying-registry-operator.adoc#configuring-registry-authentication_{context}[].
 endif::[]
 ifdef::rh-service-registry[]
 see xref:registry-security-keycloak_{context}[].
@@ -1008,10 +1008,11 @@ Use the following symptoms and fixes to diagnose common Dex authentication probl
 [role="_abstract"]
 {registry} provides the following authentication options: OpenID Connect with an identity provider such as {keycloak}, HTTP basic authentication, proxy header authentication, and Kubernetes-native authentication.
 
-{registry} provides authorization options for role-based and content-based approaches:
+{registry} provides the following authorization options:
 
 * Role-based authorization for default admin, write, and read-only user roles.
 * Content-based authorization for schema or API artifacts, where only the owner of the artifacts or artifact group can update or delete artifacts.
+* Per-resource authorization for individual groups and artifacts, from an access rules file that {registry} applies after role-based and content-based authorization.
 
 IMPORTANT: All authentication and authorization options in {registry} are disabled by default. OpenID Connect, and HTTP basic authentication that exchanges client credentials for a token, require `QUARKUS_OIDC_TENANT_ENABLED` set to `true`. HTTP basic authentication against users configured in {registry} (`QUARKUS_HTTP_AUTH_BASIC` with a Quarkus identity provider such as `QUARKUS_SECURITY_USERS_EMBEDDED_*`), proxy header authentication, and Kubernetes-native authentication do not require OpenID Connect.
 
@@ -1028,6 +1029,9 @@ You can configure the options described in the following sections.
 * xref:registry-security-obac-enabled_{context}[]
 * xref:registry-security-auth-read_{context}[]
 * xref:registry-security-anon-read_{context}[]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-configuring-resource-authorization.adoc#configuring-resource-authorization_{context}[Configuring per-resource authorization]
+endif::[]
 
 // ref-registry-security-authn-keycloak
 [id="registry-security-authn-keycloak_{context}"]
@@ -1512,6 +1516,8 @@ When owner-only authorization is enabled, only the user who created an artifact 
 
 When owner-only authorization and group owner-only authorization are both enabled, only the user who created an artifact group has write access to that artifact group, for example, to add or remove artifacts in that group.
 
+If you also enable per-resource authorization, the owner of an artifact or group keeps access to it by default, even when the access rules deny it. To apply the access rules to owners too, set `apicurio.auth.resource-based-authorization.owner-bypass.enabled` to `false`.
+
 // ref-registry-security-auth-read
 [id="registry-security-auth-read_{context}"]
 == {registry} authenticated read access
@@ -1729,7 +1735,7 @@ Environment variables are the recommended approach because they let you configur
 |`authorization,content-type`
 |===
 
-NOTE: Setting `QUARKUS_HTTP_CORS_ORIGINS` by using an environment variable completely overrides the default origins from `application.properties`. The default methods and headers still apply unless you also override them.
+NOTE: Setting `QUARKUS_HTTP_CORS_ORIGINS` by using an environment variable completely overrides the default origins from `application.properties`. The default methods and headers still apply unless you also override them. If you set `APICURIO_URL_OVERRIDE_HOST`, {registry} still adds the `http://` and `https://` origins for that host to the allowed origins.
 
 For the full set of Quarkus CORS options, see the link:https://quarkus.io/guides/http-reference#cors-filter[Quarkus HTTP Reference - CORS Filter].
 
@@ -1798,6 +1804,8 @@ endif::[]
 In production, explicitly list the origins that are allowed to access the {registry} REST API.
 
 TIP: If you deploy {registry} by using the {kubernetes} Operator, automatic CORS origin detection is available based on your Ingress configuration, and you often do not need to configure CORS manually.
+
+When {registry} runs behind an HTTPS reverse proxy and you set `APICURIO_URL_OVERRIDE_HOST` to the proxy host name, {registry} adds the `http://` and `https://` origins for that host to the allowed origins. If you also set `APICURIO_URL_OVERRIDE_PORT`, the origins include that port unless it is `80` or `443`. Set `QUARKUS_HTTP_CORS_ORIGINS` only for other origins, such as a browser application on a different host.
 
 To allow a single origin:
 

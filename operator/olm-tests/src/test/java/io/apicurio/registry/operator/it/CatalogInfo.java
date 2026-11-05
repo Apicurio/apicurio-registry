@@ -97,25 +97,20 @@ public class CatalogInfo {
     }
 
     /**
-     * Returns the number of replaces-chain hops OLM has to walk to get from the given entry up to
-     * the channel head, or -1 if the channel or the entry is not found. Entries are ordered
-     * head-first along the replaces chain, so this is simply the entry's index.
-     * <p>
-     * Callers use this to size upgrade timeouts: OLM installs one CSV per hop, and every hop costs
-     * a bundle-unpack Job (an image pull) plus an operator Deployment rollout, so a chain that
-     * grows by one release makes the whole upgrade measurably slower.
+     * Returns the entry that directly replaces the given one (the next entry towards the channel
+     * head), or null if the channel or the entry is not found, or the entry is the head.
      */
-    public int getHopsToHead(String channelName, String csvName) {
+    public ChannelEntry getSuccessor(String channelName, String csvName) {
         var entries = channels.get(channelName);
         if (entries == null) {
-            return -1;
+            return null;
         }
-        for (int i = 0; i < entries.size(); i++) {
+        for (int i = 1; i < entries.size(); i++) {
             if (entries.get(i).getCsvName().equals(csvName)) {
-                return i;
+                return entries.get(i - 1);
             }
         }
-        return -1;
+        return null;
     }
 
     /**

@@ -266,6 +266,10 @@ environment:
   QUARKUS_OTEL_TRACES_SAMPLER_ARG: "0.1"
 ----
 
+ifndef::service-registry-downstream[]
+If you deploy {registry} with the {operator}, you can set the same values in the `spec.app.otel` section of the `ApicurioRegistry3` custom resource instead of environment variables. See xref:getting-started/assembly-operator-config-reference.adoc#otel-spec_{context}[OTelSpec].
+endif::[]
+
 When you enable the OpenTelemetry SDK and use JSON logging format, {registry} automatically includes trace context (trace ID and span ID) in log entries. You can then correlate logs and traces.
 
 .Example: Enabling structured logging with trace context

@@ -29,13 +29,34 @@ The custom resource enables you to declaratively configure all aspects of your {
 
 NOTE: Additional `ApicurioRegistry3` custom resource examples are available in the {registry} upstream repository.
 
-The `ApicurioRegistry3` custom resource is organized into two main components:
+The `ApicurioRegistry3` custom resource is organized into three sections:
 
 * `spec.app` - Configures the {registry-app}
 * `spec.ui` - Configures the {registry-ui}
+* `spec.consolePlugin` - Configures the OpenShift Console plugin component. See xref:configuring-console-plugin_{context}[].
 
-Each component can be independently configured with its own settings for replicas, ingress, environment variables,
-and pod specifications.
+You configure replicas, ingress, environment variables, and pod specifications separately for `spec.app` and `spec.ui`.
+
+The {operator} Deployment sets `runAsNonRoot: true`, `seccompProfile.type: RuntimeDefault`, `allowPrivilegeEscalation: false`, and `readOnlyRootFilesystem: true`, and drops all Linux capabilities. These settings meet the `restricted` Pod Security Standards profile. The {operator} sets no security context on the {registry} app and UI pods, so they use the namespace defaults. To run them in a namespace that enforces the `restricted` profile, set the security context in `podTemplateSpec`:
+
+[source,yaml]
+----
+spec:
+  app:
+    podTemplateSpec:
+      spec:
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        containers:
+          - name: apicurio-registry-app
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                  - ALL
+----
 
 [role="_additional-resources"]
 .Additional resources
@@ -57,8 +78,9 @@ and pod specifications.
 * *KafkaSQL* - Stores data in Apache Kafka topics, with an embedded H2 database as a local SQL store that {registry} rebuilds from the Kafka journal on each startup. Suitable for production deployments when you configure persistent Kafka storage.
 * *KubernetesOps* - Read-only storage that loads registry data from Kubernetes ConfigMaps. Suitable for
 Kubernetes-native and GitOps workflows. This is an experimental feature.
+* *GitOps* - Read-only storage that loads registry data from Git repositories through a sync sidecar container. Suitable for Git-based workflows. This is an experimental feature.
 
-IMPORTANT: The default embedded H2 configuration is not suitable for production environments. Configure a storage type (`postgresql`, `mysql`, `kafkasql`, or `kubernetesops`) for production use.
+IMPORTANT: The default embedded H2 configuration is not suitable for production environments. Configure a storage type (`postgresql`, `mysql`, `kafkasql`, `kubernetesops`, or `gitops`) for production use.
 
 // proc-deploying-registry-inmemory
 [id="deploying-registry-inmemory_{context}"]
@@ -101,7 +123,7 @@ spec:
       host: registry-ui.example.com
 ----
 +
-NOTE: Replace the `host` values with appropriate hostnames for your environment. Currently, {operator} only creates simple HTTP Ingresses. To enable TLS, you must create your own Ingress or Route resources with TLS configuration.
+NOTE: Replace the `host` values with hostnames for your environment. By default, the {operator} creates plain HTTP Ingresses. To enable TLS, set `tlsTermination` and `tlsSecretName` in the `ingress` section of each component. See xref:configuring-ingress-hostname_{context}[]. You can instead disable the operator-managed Ingress and create your own Ingress or Route resources with TLS.
 
 . Click *Create* and wait for the {registry} deployment to be created.
 
@@ -332,6 +354,13 @@ spec:
 +
 WARNING: You must configure the Kafka topic used by {registry} with `cleanup.policy: delete` and infinite retention
 (`retention.ms: -1` and `retention.bytes: -1`), otherwise data loss might occur.
++
+ifndef::service-registry-downstream[]
+NOTE: Before you upgrade a KafkaSQL deployment from a version earlier than 3.1.3, correct the configuration of the topics that {registry} created automatically. See xref:getting-started/assembly-registry-high-availability.adoc#ha-kafkasql-topics_{context}[KafkaSQL topic configuration].
+endif::[]
+ifdef::service-registry-downstream[]
+NOTE: Before you upgrade a KafkaSQL deployment from a version earlier than 3.1.3, correct the configuration of the topics that {registry} created automatically. See xref:ha-kafkasql-topics_{context}[].
+endif::[]
 
 .Verification
 
@@ -523,6 +552,136 @@ REST API or web console.
 
 * xref:getting-started/assembly-configuring-kubernetesops-storage.adoc[]
 
+// proc-deploying-registry-gitops
+[id="deploying-registry-gitops_{context}"]
+== Deploying {registry} with GitOps storage
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+Deploy {registry} with GitOps storage, a read-only storage variant that loads registry data from one or more Git repositories. The {operator} adds a sync sidecar container, `apicurio-registry-gitops-sync`, to the {registry} pod. The sidecar keeps a clone of each repository in a shared volume mounted at `/repos` in both containers.
+
+IMPORTANT: GitOps storage is an *experimental* feature. The {operator} enables the experimental features gate when you configure this storage type.
+
+.Prerequisites
+* You must have cluster administrator access to {kubernetes-with-article} cluster.
+* You must have already installed the {operator}. See {installing-the-registry-openshift}.
+* You must have a Git repository with registry data in the GitOps repository format, or plan to push that data to the sidecar.
+
+.Procedure
+
+. In the {kubernetes} web console, click *Installed Operators* > *{registry}* > *ApicurioRegistry3* >
+*Create ApicurioRegistry3*.
+
+. Paste in the following custom resource definition, adjusting the values for your environment:
++
+[source,yaml]
+----
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: example-registry-gitops
+spec:
+  app:
+    storage:
+      type: gitops
+      gitops:
+        registryId: prod
+        repos:
+          - url: https://github.com/my-org/my-registry-data.git
+            branch: main
+    ingress:
+      host: registry.example.com
+  ui:
+    ingress:
+      host: registry-ui.example.com
+----
++
+NOTE: The `registryId` value must match the `registryId` in the registry configuration file of your repository. Otherwise, {registry} starts but loads no data. If you omit `registryId`, the application default `main` applies.
+
+. Optional: To pull from a private repository over SSH, create one Secret with the SSH private key and another with a `known_hosts` file. Reference them in the `pull` section:
++
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: gitops
+      gitops:
+        registryId: prod
+        repos:
+          - url: git@github.com:my-org/my-registry-data.git
+        pull:
+          sshKeys:
+            name: gitops-ssh-keys
+            key: id_ed25519
+          knownHosts:
+            name: gitops-known-hosts
+            key: known_hosts
+----
++
+The {operator} mounts both Secrets into the sidecar and sets its SSH environment variables.
+
+. Optional: To accept `git push` instead of pulling from a remote repository, set `mode` to `push`. Reference the Secrets that hold the `authorized_keys` file and a persistent SSH host key:
++
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: gitops
+      gitops:
+        mode: push
+        registryId: prod
+        push:
+          authorizedKeys:
+            name: gitops-push-authorized-keys
+            key: authorized_keys
+          hostKey:
+            name: gitops-push-host-key
+            key: ssh_host_key
+----
++
+In push mode, the {operator} creates a Service named `<cr-name>-gitops-ssh-service` that exposes the SSH server of the sidecar on port `2222`. It also allows that port in the NetworkPolicy of the app component. Clients push to `ssh://git@<service-host>:2222/repos/default`.
+
+. Optional: To load data from several repositories, list them in `repos` and give each one a distinct `dir`:
++
+[source,yaml]
+----
+spec:
+  app:
+    storage:
+      type: gitops
+      gitops:
+        registryId: prod
+        repos:
+          - url: https://github.com/my-org/platform-schemas.git
+            dir: platform
+          - url: https://github.com/my-org/fulfillment-schemas.git
+            branch: fulfillment
+            dir: fulfillment
+----
+
+. Click *Create* and wait for the {registry} deployment to be created.
+
+.Verification
+
+* Access the {registry} web console and verify that the artifacts from your repository are visible.
+
+NOTE: GitOps storage is read-only. You cannot create, update, or delete artifacts through the REST API or web console.
+
+[role="_additional-resources"]
+.Additional resources
+
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-configuring-gitops-storage.adoc[]
+* xref:getting-started/assembly-operator-config-reference.adoc#git-ops-spec_{context}[GitOpsSpec]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:assembly-configuring-gitops-storage_{context}[]
+* xref:git-ops-spec_{context}[]
+endif::[]
+
 // proc-configuring-registry-authentication
 [id="configuring-registry-authentication_{context}"]
 == Configuring authentication and authorization
@@ -532,6 +691,13 @@ REST API or web console.
 [role="_abstract"]
 Configure {registry} with OIDC authentication and role-based authorization by using
 an identity provider such as {keycloak}.
+
+ifndef::service-registry-downstream[]
+NOTE: To authenticate clients with Kubernetes service account tokens instead of an OpenID Connect provider, configure the experimental `spec.app.auth.kubernetesAuth` section and leave `spec.app.auth.enabled` unset. See xref:getting-started/assembly-configuring-registry-security.adoc#registry-security-kubernetes-auth_{context}[Configuring {registry} Kubernetes-native authentication] and xref:getting-started/assembly-operator-config-reference.adoc#kubernetes-auth-spec_{context}[KubernetesAuthSpec].
+endif::[]
+ifdef::service-registry-downstream[]
+NOTE: To authenticate clients with Kubernetes service account tokens instead of an OpenID Connect provider, configure the experimental `spec.app.auth.kubernetesAuth` section and leave `spec.app.auth.enabled` unset. See xref:registry-security-kubernetes-auth_{context}[] and xref:kubernetes-auth-spec_{context}[].
+endif::[]
 
 .Prerequisites
 * You must have cluster administrator access to {kubernetes-with-article} cluster.
@@ -686,12 +852,12 @@ NOTE: Set `tlsVerificationType` to `certificate-validation` to validate the cert
 
 // ref-configuring-ingress-hostname
 [id="configuring-ingress-hostname_{context}"]
-== Ingress hostname and class configuration
+== Ingress hostname, class, and TLS configuration
 
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-You can specify the Ingress hostname and IngressClass for each component.
+You can specify the Ingress hostname and IngressClass for each component, and configure TLS on the operator-managed Ingress.
 
 [source,yaml]
 ----
@@ -713,6 +879,63 @@ spec:
       annotations:
         nginx.org/proxy-connect-timeout: "30s"
 ----
+
+To configure TLS on the operator-managed Ingress of a component, set `tlsSecretName` and `tlsTermination` in its `ingress` section. Without these fields, the {operator} creates a plain HTTP Ingress. Unless you configure application TLS, it also logs a warning that the Ingress has no TLS.
+
+`tlsSecretName`:: Name of a Secret of type `kubernetes.io/tls` in the namespace of the custom resource. The {operator} adds a `tls` section to the Ingress that references this Secret and the configured `host`.
+`tlsTermination`:: TLS termination type: `edge`, `passthrough`, or `reencrypt`. The {operator} also sets the `route.openshift.io/termination` annotation on the Ingress. On OpenShift, this annotation controls the TLS termination of the Route that OpenShift generates from the Ingress.
+
+With edge termination, TLS ends at the Ingress or Route, and traffic to the {registry} pod uses HTTP. Do not configure application TLS (`spec.app.tls`). Set the `REGISTRY_API_URL` environment variable of the UI to the HTTPS URL of the API:
+
+[source,yaml]
+----
+spec:
+  app:
+    ingress:
+      host: registry-api.example.com
+      tlsTermination: edge
+      tlsSecretName: registry-tls-cert
+  ui:
+    ingress:
+      host: registry-ui.example.com
+      tlsTermination: edge
+      tlsSecretName: registry-tls-cert
+    env:
+      - name: REGISTRY_API_URL
+        value: https://registry-api.example.com/apis/registry/v3
+----
+
+On OpenShift, you can omit `tlsSecretName` and set only `tlsTermination: edge` to use the default certificate of the OpenShift router. Cloud-based OpenShift clusters, such as Red Hat OpenShift Service on AWS, Azure Red Hat OpenShift, and OpenShift on Google Cloud, usually require HTTPS. On those clusters, set `tlsTermination: edge` so that the operator-managed Ingress works.
+
+With passthrough termination, the encrypted traffic passes through the Ingress or Route to the {registry} pod, so you must also configure application TLS. When you configure the application keystore, the {operator} points the Ingress backend at the `https` port of the application Service:
+
+[source,yaml]
+----
+spec:
+  app:
+    ingress:
+      host: registry-api.example.com
+      tlsTermination: passthrough
+      tlsSecretName: registry-tls-cert
+    tls:
+      insecureRequests: disabled
+      keystoreSecretRef:
+        name: registry-keystore
+        key: keystore.p12
+      keystorePasswordSecretRef:
+        name: registry-keystore
+        key: keystore.password
+  ui:
+    ingress:
+      host: registry-ui.example.com
+      tlsTermination: edge
+      tlsSecretName: registry-tls-cert
+    env:
+      - name: REGISTRY_API_URL
+        value: https://registry-api.example.com/apis/registry/v3
+----
+
+NOTE: On Kubernetes with the NGINX Ingress Controller, passthrough might also need the `nginx.ingress.kubernetes.io/ssl-passthrough: "true"` annotation. Add it through the `annotations` field. For the application TLS fields, see xref:configuring-app-tls_{context}[].
 
 // ref-disabling-operator-ingress
 [id="disabling-operator-ingress_{context}"]
@@ -933,7 +1156,7 @@ The autoscaling configuration is available on both `spec.app.autoscaling` and `s
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The operator creates PodDisruptionBudget resources by default. To manage PodDisruptionBudget manually, disable the operator-managed PodDisruptionBudget.
+The {operator} manages PodDisruptionBudget resources by default. For the app component, it creates a PodDisruptionBudget with `maxUnavailable: 1` only when the component can run more than one pod. That is the case when `replicas` is greater than `1`, or when autoscaling is enabled with `maxReplicas` greater than `1`. With the default single replica, the app component gets no PodDisruptionBudget. For the UI component, the {operator} creates a PodDisruptionBudget with `minAvailable: 1` whenever the operator-managed PodDisruptionBudget is enabled. To manage these resources yourself, disable the operator-managed PodDisruptionBudget.
 
 [source,yaml]
 ----
@@ -1059,6 +1282,22 @@ To configure TLS certificates for the {registry} application, provide keystore r
 spec:
   app:
     tls:
+      keystoreSecretRef:
+        name: registry-tls
+        key: keystore.p12
+      keystorePasswordSecretRef:
+        name: registry-tls
+        key: keystore.password
+----
+
+When you configure application TLS, the `insecureRequests` field controls the plain HTTP port. `enabled`, the default, keeps the port open. `redirect` keeps it open but redirects every request to HTTPS. `disabled` does not open it. You can also provide a truststore with the `truststoreSecretRef` and `truststorePasswordSecretRef` fields. If you omit the `key` of a reference, the {operator} uses `user.p12` and `user.password` for the keystore and `ca.p12` and `ca.password` for the truststore. To serve HTTPS only:
+
+[source,yaml]
+----
+spec:
+  app:
+    tls:
+      insecureRequests: disabled
       keystoreSecretRef:
         name: registry-tls
         key: keystore.p12

@@ -286,7 +286,7 @@ curl "http://localhost:8080/.well-known/mcp-tools?parameter=location"
 }
 ----
 
-The `GET /.well-known/mcp-tools/{groupId}/{artifactId}` endpoint retrieves a specific registered MCP tool definition. It accepts the following path parameters:
+The `GET /.well-known/mcp-tools/\{groupId}/\{artifactId}` endpoint retrieves a specific registered MCP tool definition. It accepts the following path parameters:
 
 `groupId`:: The group containing the tool definition
 `artifactId`:: The artifact ID of the tool definition

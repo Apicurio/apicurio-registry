@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteOldUsageEvents1Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.RecordUsageEvent1Message;
 import io.apicurio.registry.storage.impl.util.ProducerActions;
 import jakarta.enterprise.inject.Instance;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -18,18 +19,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Usage writes are fire and forget. Every message registered with the coordinator keeps a latch for the life
+ * Usage writes are fire and forget. Every message registered with the coordinator keeps its pending entry for the life
  * of the process unless somebody waits for it, so these writes must not register one.
  */
 class KafkaSqlUsageSubmissionTest {
 
     private KafkaSqlCoordinator coordinator;
     private ProducerActions<KafkaSqlMessageKey, KafkaSqlMessage> producer;
+    private Instance<KafkaSqlCoordinator> coordinatorInstance;
     private KafkaSqlSubmitter submitter;
     private KafkaSqlRegistryStorage storage;
     private Logger log;
@@ -46,7 +49,7 @@ class KafkaSqlUsageSubmissionTest {
 
         Instance<KafkaSqlConfiguration> configurationInstance = mock(Instance.class);
         when(configurationInstance.get()).thenReturn(configuration);
-        Instance<KafkaSqlCoordinator> coordinatorInstance = mock(Instance.class);
+        coordinatorInstance = mock(Instance.class);
         when(coordinatorInstance.get()).thenReturn(coordinator);
         Instance<ProducerActions<KafkaSqlMessageKey, KafkaSqlMessage>> producerInstance = mock(Instance.class);
         when(producerInstance.get()).thenReturn(producer);
@@ -73,6 +76,10 @@ class KafkaSqlUsageSubmissionTest {
         storage.deleteOldUsageEvents(5000L);
 
         assertEquals(0, coordinator.pendingCount());
+        // A count of 0 also holds for writes that send nothing, so pin that all 101 were sent
+        // and that none of them reached the coordinator.
+        verify(producer, times(101)).apply(any());
+        verify(coordinatorInstance, never()).get();
     }
 
     @Test
@@ -80,22 +87,26 @@ class KafkaSqlUsageSubmissionTest {
         submitter.submitMessage(new DeleteOldUsageEvents1Message(5000L));
 
         assertEquals(1, coordinator.pendingCount(),
-                "the control: a message somebody may wait for keeps its latch until waitForResponse");
+                "the control: a message somebody may wait for keeps its pending entry until waitForResponse");
     }
 
     @Test
     void usageWritesStillCarryARequestIdAndTheMessageType() {
         storage.deleteOldUsageEvents(5000L);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<ProducerRecord<KafkaSqlMessageKey, KafkaSqlMessage>> captor = ArgumentCaptor
-                .forClass(ProducerRecord.class);
-        verify(producer).apply(captor.capture());
-        ProducerRecord<KafkaSqlMessageKey, KafkaSqlMessage> sent = captor.getValue();
+        ProducerRecord<KafkaSqlMessageKey, KafkaSqlMessage> sent = sentRecord();
         assertEquals("DeleteOldUsageEvents1Message", sent.key().getMessageType());
         assertNotNull(sent.headers().lastHeader(KafkaSqlSubmitter.REQUEST_ID_HEADER));
         assertEquals("DeleteOldUsageEvents1Message", new String(
                 sent.headers().lastHeader(KafkaSqlSubmitter.MESSAGE_TYPE_HEADER).value(), StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void aUsageEventIsSentWithTheFieldsOfItsDto() {
+        storage.recordUsageEvent(SchemaUsageEventDto.builder().globalId(11L).contentId(22L).clientId("client-a")
+                .operation("FETCH").eventTimestamp(1000L).build());
+
+        assertEquals(new RecordUsageEvent1Message(11L, 22L, "client-a", "FETCH", 1000L), sentRecord().value());
     }
 
     @Test
@@ -122,5 +133,14 @@ class KafkaSqlUsageSubmissionTest {
                 cause);
         verify(log, times(2)).debug("Failed to send {} to the KafkaSQL journal.", "DeleteOldUsageEvents1Message",
                 cause);
+    }
+
+    /** The single record handed to the producer. */
+    private ProducerRecord<KafkaSqlMessageKey, KafkaSqlMessage> sentRecord() {
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<ProducerRecord<KafkaSqlMessageKey, KafkaSqlMessage>> captor = ArgumentCaptor
+                .forClass(ProducerRecord.class);
+        verify(producer).apply(captor.capture());
+        return captor.getValue();
     }
 }

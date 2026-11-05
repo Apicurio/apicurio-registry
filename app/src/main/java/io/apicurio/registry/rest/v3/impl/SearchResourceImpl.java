@@ -79,6 +79,9 @@ public class SearchResourceImpl implements SearchResource {
     @Inject
     ISearchAuthorizer searchAuthorizer;
 
+    @Inject
+    SearchResultPermissions searchResultPermissions;
+
     private static SearchFilter parseLabelFilter(String prop) {
         int delimiterIndex = prop.lastIndexOf(":");
         if (delimiterIndex == 0) {
@@ -153,7 +156,7 @@ public class SearchResourceImpl implements SearchResource {
         ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("artifacts");
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override
@@ -203,7 +206,7 @@ public class SearchResourceImpl implements SearchResource {
         ArtifactSearchResultsDto results = searchAuthorizer.searchArtifacts(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("artifactsByContent");
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override
@@ -241,7 +244,7 @@ public class SearchResourceImpl implements SearchResource {
         GroupSearchResultsDto results = searchAuthorizer.searchGroups(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimit(limit));
         otelMetrics.recordSearchRequest("groups");
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override
@@ -309,7 +312,7 @@ public class SearchResourceImpl implements SearchResource {
         VersionSearchResultsDto results = searchAuthorizer.searchVersions(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("versions");
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override
@@ -367,7 +370,7 @@ public class SearchResourceImpl implements SearchResource {
         VersionSearchResultsDto results = searchAuthorizer.searchVersions(filters, oBy, oDir, ParameterValidationUtils.normalizeOffset(offset),
                 ParameterValidationUtils.normalizeLimit(limit), skipCount != null && skipCount);
         otelMetrics.recordSearchRequest("versionsByContent");
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override
@@ -469,7 +472,7 @@ public class SearchResourceImpl implements SearchResource {
                 ParameterValidationUtils.normalizeOffset(offset), ParameterValidationUtils.normalizeLimit(limit),
                 false);
         otelMetrics.recordSearchRequest("contracts");
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     /**

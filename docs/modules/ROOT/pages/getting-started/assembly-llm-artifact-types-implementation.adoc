@@ -119,11 +119,11 @@ The PROMPT_TEMPLATE schema is aligned with the Microsoft Prompty specification f
 
 |`variables`
 |`inputs`
-|Both names supported
+|{registry} interprets `variables` only
 
 |`outputSchema`
 |`outputs`
-|Both names supported
+|{registry} interprets `outputSchema` only
 
 |`template`
 |Body content
@@ -142,6 +142,8 @@ The PROMPT_TEMPLATE schema is aligned with the Microsoft Prompty specification f
 |Categorization
 |===
 
+NOTE: {registry} stores the `templateFormat`, `model`, `authors`, and `tags` fields but does not interpret them. The same applies to the Prompty names `inputs` and `outputs`, so declare variables in `variables` and the output structure in `outputSchema`. The JSON Schema at `/.well-known/schemas/prompt-template/v1` declares none of these fields. Whatever the value of `templateFormat`, the render endpoint supports only `+{{variable}}+` placeholders and the conditional blocks described in xref:llm-artifact-types-prompt-rendering-service_{context}[].
+
 .PROMPT_TEMPLATE with Prompty-aligned fields
 [source,yaml]
 ----
@@ -157,7 +159,7 @@ tags:
   - sentiment
   - nlp
 
-templateFormat: mustache  # or jinja2, handlebars
+templateFormat: mustache
 
 # Model configuration (Prompty-aligned)
 model:
@@ -333,6 +335,12 @@ The `mcp/` module contains an MCP Server for registry prompts:
 [role="_additional-resources"]
 .Additional resources
 * link:https://modelcontextprotocol.io/[Model Context Protocol (MCP)]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-mcp-server-integration.adoc#mcp-server-available-tools_{context}[Available MCP tools]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:mcp-server-available-tools_{context}[Available MCP tools]
+endif::[]
 
 // ref-llm-artifact-types-mcp-tools-and-prompts
 [id="llm-artifact-types-mcp-tools-and-prompts_{context}"]
@@ -434,14 +442,14 @@ interface PromptTemplate {
     // Prompty-aligned fields
     authors?: string[];         // Contributors list
     tags?: string[];            // Categorization tags
-    templateFormat?: string;    // 'mustache' | 'jinja2' | 'handlebars'
+    templateFormat?: string;    // Stored, not interpreted
     model?: ModelConfiguration; // Model configuration
 
     // Input/output definitions (Prompty: inputs/outputs)
     variables?: Record<string, VariableSchema>;  // Variable definitions
-    inputs?: Record<string, VariableSchema>;     // Alias for variables (Prompty)
+    inputs?: Record<string, VariableSchema>;     // Prompty name, stored but not interpreted
     outputSchema?: Record<string, unknown>;      // Expected output structure
-    outputs?: Record<string, unknown>;           // Alias for outputSchema (Prompty)
+    outputs?: Record<string, unknown>;           // Prompty name, stored but not interpreted
 
     // Extensions
     metadata?: Record<string, unknown>;          // Custom metadata
@@ -729,7 +737,7 @@ The `PromptRenderingService` class (`app/src/main/java/io/apicurio/registry/agen
 |Replaces `{\{variable}}` placeholders with provided values
 
 |Type validation
-|Validates that variable values match their defined types
+|Validates that variable values match their defined types. For the `integer` type, accepts a whole-number decimal such as `5.0`, from the caller or from a default, and renders it as `5`. Reports a fractional value, or a whole number outside the 64-bit signed integer range, as a type mismatch.
 
 |Required field checking
 |Reports missing required variables as validation errors
@@ -739,9 +747,22 @@ The `PromptRenderingService` class (`app/src/main/java/io/apicurio/registry/agen
 
 |Range validation
 |Validates numeric values against minimum/maximum constraints
+
+|Conditional blocks
+|Renders or removes `+{{#if variable}}+` and `+{{#unless variable}}+` blocks, depending on whether the variable is truthy
 |===
 
 A variable placeholder is a word-character name with optional surrounding whitespace, so `{\{name}}` and `{{ name }}` both resolve to the variable `name`. The render endpoint does not resolve a name that contains any other character, for example `{{user.name}}` or `{\{my-var}}`, and leaves it in the rendered output as literal text. Earlier versions of the render endpoint resolved such names. The MCP prompt converter also resolved a placeholder such as `{{user.name}}` when you supplied an argument of the same name. Both now use the same grammar as the prompt template validity rule.
+
+The render endpoint also evaluates these conditional blocks, where `variable` is a word-character name:
+
+* `+{{#if variable}}...{{/if}}+`: renders the content when the variable is truthy.
+* `+{{#if variable}}...{{else}}...{{/if}}+`: renders the first branch when the variable is truthy and the second branch when it is not.
+* `+{{#unless variable}}...{{/unless}}+`: renders the content when the variable is falsy.
+
+After the render endpoint applies declared defaults, a value is truthy unless it is missing, `null`, `false`, or an empty string. The render endpoint resolves conditional blocks before it substitutes variable placeholders.
+
+NOTE: The MCP server tools `get_mcp_prompt` and `render_prompt_template`, and the `render_registry_prompt` MCP prompt, recognize only plain `+{{#if variable}}...{{/if}}+` blocks. They treat a block that contains `+{{else}}+` as a plain if block. A truthy variable renders both branches and the literal `+{{else}}+`, and a falsy variable removes the whole block. They leave `+{{#unless variable}}...{{/unless}}+` blocks in the rendered text. They substitute variable placeholders before they resolve conditional blocks.
 
 When validation fails, the response includes validation errors:
 

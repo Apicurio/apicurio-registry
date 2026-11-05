@@ -40,6 +40,9 @@ public class AuthorizationLookups {
     @Inject
     RequestAuthorizationLookups perRequest;
 
+    @Inject
+    GlobalIdCoordinatesCache globalIdCoordinates;
+
     /** @return the artifact's metadata, or empty if it does not exist */
     public Optional<ArtifactMetaDataDto> artifact(RegistryStorage storage, String groupId, String artifactId) {
         return remember(RequestAuthorizationLookups::artifacts, Arrays.asList(groupKey(groupId), artifactId),
@@ -63,6 +66,26 @@ public class AuthorizationLookups {
             long contentId) {
         return remember(RequestAuthorizationLookups::contentUsers, contentId,
                 () -> find(() -> List.copyOf(storage.getArtifactVersionsByContentId(contentId))));
+    }
+
+    /**
+     * @return the (group, artifact, version) the global ID names, or empty if it does not resolve.
+     *         Unlike {@link #version}, this is also cached across requests (see
+     *         {@link GlobalIdCoordinatesCache}): a global ID's coordinates never change, even when
+     *         the version's metadata (state, labels, owner) is later edited, or the version itself
+     *         is deleted. Prefer this over {@link #version} when only the coordinates are needed.
+     */
+    public Optional<GlobalIdCoordinates> coordinates(RegistryStorage storage, long globalId) {
+        return remember(RequestAuthorizationLookups::coordinates, globalId,
+                () -> globalIdCoordinates != null ? globalIdCoordinates.resolve(storage, globalId)
+                        : rawCoordinates(storage, globalId));
+    }
+
+    private static Optional<GlobalIdCoordinates> rawCoordinates(RegistryStorage storage, long globalId) {
+        return find(() -> {
+            ArtifactVersionMetaDataDto vmd = storage.getArtifactVersionMetaData(globalId);
+            return new GlobalIdCoordinates(vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion());
+        });
     }
 
     /**

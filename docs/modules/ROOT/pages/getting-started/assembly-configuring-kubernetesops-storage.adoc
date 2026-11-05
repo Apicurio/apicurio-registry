@@ -639,6 +639,12 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 |Rule configuration value (for example, `FULL`, `BACKWARD`, or `FORWARD`).
 |===
 
+ifndef::service-registry-downstream[]
+[role="_additional-resources"]
+.Additional resources
+* xref:getting-started/assembly-a2a-features.adoc#a2a-peer-registries_{context}[Peer registries for federated agent search]
+endif::[]
+
 
 [id="kubernetesops-rbac-requirements_{context}"]
 == RBAC requirements

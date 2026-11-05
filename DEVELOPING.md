@@ -243,7 +243,10 @@ therefore never interleave. Writes that the plain SQL variant has to protect wit
 lock or an UPSERT, described below, are ordered by the journal instead: two concurrent
 `createArtifactVersion` calls for the same artifact, the race behind duplicate
 `versionOrder` values in #9775, are applied in journal order, and so are two
-concurrent `setConfigProperty` calls for the same property.
+concurrent `setConfigProperty` calls for the same property. Only the apply step is
+serialized: checks that run on the request thread before the message is submitted,
+such as rule and compatibility validation against the current latest version, can
+still race, on KafkaSQL as on plain SQL.
 
 The known exceptions are maintenance operations. `deleteAllOrphanedContent()` and
 `deleteAllExpiredDownloads()` bypass the journal and write directly to the pod's own
@@ -255,13 +258,14 @@ races between them and journaled writes. The orphaned content race described und
 `sqlStore` or the inherited delegate, after the consumer thread has started is another
 exception of the same kind.
 
-Races between the request thread, which waits for its message to be applied, and the
+Races between a request thread waiting for its message to be applied and the
 consumer thread that delivers the result through `KafkaSqlCoordinator` are a different
 class of bug, and that coordination is where the KafkaSQL-specific concurrency work
 lives.
 
 The plain SQL variant runs each write operation in its own request thread, in its own
-transaction, against the shared database, and in a multi-replica deployment from
+transaction (content inserts run in an earlier one, see below), against the shared
+database, and in a multi-replica deployment from
 separate JVMs. Nothing in the application serializes writes. Correctness comes from
 database isolation plus explicit row locks, so every new write path needs to name the
 lock that makes it safe.
@@ -331,9 +335,10 @@ An `@ApplicationScoped` bean has one instance, and the CDI container does not se
 calls to it. Every mutable field on such a bean is shared by all concurrent request
 threads. Use a concurrent collection with atomic compound operations, or design the
 state away. The OIDC token cache stampede (#9776) was a check-then-act on a shared
-map, the coordinator races #9778 and #9780 were a lost update on a single-slot field
-and a map TOCTOU respectively, and all three lived on `@ApplicationScoped` beans. Note
-that `volatile`, which #9778's field already had, gives visibility, not atomicity; the
+map, the KafkaSQL snapshot race #9778 was a lost update on a single-slot field of
+`KafkaSqlRegistryStorage`, the coordinator race #9780 was a map TOCTOU, and all three
+lived on `@ApplicationScoped` beans. Note that `volatile`, which #9778's field already
+had, gives visibility, not atomicity; the
 pattern to look for is a compound operation, not a missing keyword.
 
 ### Make check-and-update atomic on shared maps
@@ -342,7 +347,11 @@ The most common concurrency bug in this codebase is check-then-act on a
 `ConcurrentHashMap`: `containsKey()` followed by `get()` followed by `put()`. Between
 the check and the update another thread wins, and the second `put()` overwrites the
 first thread's value. Fold the whole compound operation into `compute()`, `merge()`, or
-`computeIfAbsent()`. For request/response coordination across threads, prefer one map
+`computeIfAbsent()`. Keep the function passed to them short and non-blocking, because it
+runs under the map's bin lock; a remote load such as a token fetch belongs in a
+`CompletableFuture` stored in the map, not in the function, and a future that failed
+or expired has to be removed or replaced explicitly. For request/response
+coordination across threads, prefer one map
 whose value carries the whole operation, such as `Map<UUID, CompletableFuture<...>>`,
 over two parallel maps that can disagree.
 

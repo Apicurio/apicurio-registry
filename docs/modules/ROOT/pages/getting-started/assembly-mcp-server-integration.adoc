@@ -9,7 +9,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 [role="_abstract"]
 You can connect Large Language Model (LLM) clients such as Claude Desktop to {registry} by using the {registry} MCP server container, which acts as an adapter between LLM clients and {registry}.
 
-On the LLM side, the MCP server communicates by using stdio transport (standard input/output) with locally launched clients such as Claude Desktop, or by using HTTP transport at `/mcp` with clients that connect over the network. HTTP transport is disabled by default. To enable it, set `apicurio.mcp.http.enabled=true` and configure inbound OIDC authentication, as described in xref:configuring-mcp-server-http-oauth_{context}[]. On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
+On the LLM side, the MCP server communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
 
 ifdef::service-registry-downstream[]
 WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
@@ -37,7 +37,7 @@ endif::[]
 [role="_abstract"]
 The {registry} MCP server container acts as an adapter between LLM clients and {registry}.
 
-On the LLM side, it communicates by using stdio transport (standard input/output) with locally launched clients such as Claude Desktop, or by using HTTP transport at `/mcp` with clients that connect over the network. HTTP transport is disabled by default. To enable it, set `apicurio.mcp.http.enabled=true` and configure inbound OIDC authentication, as described in xref:configuring-mcp-server-http-oauth_{context}[]. On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
+On the LLM side, it communicates by using stdio transport (standard input/output). On the {registry} side, it communicates by using HTTP or HTTPS to the {registry} REST API, configured through the `REGISTRY_URL` environment variable.
 
 When an LLM client sends a request, the MCP server converts that request into {registry} REST API calls, runs the operation, and returns the results to the LLM client. The LLM client prompts you for confirmation before each tool call.
 
@@ -49,9 +49,6 @@ The MCP server supports operations in the following categories:
 * **Versions**: Create, list, search, update content, and manage version state
 * **Configuration**: List, get, and update dynamic configuration properties
 * **Prompt templates**: List, get, and render prompt templates stored in {registry}
-* **Rules**: Test whether proposed content passes the rules configured for an artifact
-* **Agent and tool discovery**: Discover A2A agent cards and MCP tool definitions stored in {registry}
-* **ARD search**: Search the Agentic Resource Discovery (ARD) index of {registry}
 
 The MCP server has a safe mode that is enabled by default. Safe mode restricts operations that could cause unintended changes, such as limiting which configuration properties you can update.
 
@@ -289,50 +286,6 @@ The {registry} MCP server provides the following tools for LLM clients to call. 
 
 |`render_prompt_template`
 |Renders any `PROMPT_TEMPLATE` artifact with variables that you provide, regardless of MCP enablement.
-|===
-
-.Rule tools
-
-[cols="2,4",options="header"]
-|===
-|Tool name
-|Description
-
-|`test_schema_rules`
-|Tests whether proposed version content passes the validity, integrity, and compatibility rules configured for an artifact, without creating a version. If the content violates a rule, returns an explanation of the violation.
-|===
-
-.Agent and tool discovery tools
-
-[cols="2,4",options="header"]
-|===
-|Tool name
-|Description
-
-|`discover_agents`
-|Searches the A2A agent cards stored in {registry} by name, skill ID, or capability. Each result includes the name, description, skills, capabilities, and URL of the agent.
-
-|`get_agent_card`
-|Returns the full agent card JSON of a specific `AGENT_CARD` artifact.
-
-|`search_mcp_tools`
-|Searches the MCP tool definitions stored in {registry} by artifact name or artifact ID (partial match), or by input parameter name.
-
-|`get_mcp_tool`
-|Returns the full MCP tool definition JSON, including the input schema, of a specific `MCP_TOOL` artifact.
-|===
-
-The agent tools call the `/.well-known/agents` endpoints and the tool discovery tools call the `/.well-known/mcp-tools` endpoints, so A2A support (`apicurio.a2a.enabled=true`) or MCP tools support (`apicurio.mcp-tools.enabled=true`) must be enabled on the target {registry} instance. Otherwise, the tool call fails with an error.
-
-.ARD search tools
-
-[cols="2,4",options="header"]
-|===
-|Tool name
-|Description
-
-|`ard_search`
-|Searches the Agentic Resource Discovery (ARD) index of {registry} with a natural-language query and optional `type`, `tags`, `capabilities`, and `publisher` filters, and returns the matching A2A agents and MCP tools in the ARD entry format. Requires ARD support (`apicurio.ard.enabled=true`) on the target {registry} instance.
 |===
 
 You can also use the following MCP prompts in Claude Desktop by clicking the *+* icon and selecting *Add from {registry}*:

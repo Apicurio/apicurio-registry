@@ -41,7 +41,6 @@ Well-known endpoints:: Serve tool definitions at standard URLs.
 a|
 * `/.well-known/mcp-tools` (search tools)
 * `/.well-known/mcp-tools/\{groupId}/\{artifactId}` (retrieve tool)
-* `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible` (find compatible tools)
 
 a|
 * Store tool definitions as `MCP_TOOL` artifacts
@@ -245,7 +244,7 @@ The `GET /.well-known/mcp-tools` endpoint searches for registered MCP tool defin
 
 |`name`
 |string
-|Filter by artifact name or artifact ID (partial match). The filter does not match the `name` field inside the tool definition, so set the artifact name to the tool name when you create the artifact.
+|Filter by tool name (partial match)
 
 |`parameter`
 |string (repeatable)
@@ -298,14 +297,6 @@ You can optionally specify the following query parameter:
 
 The response is the MCP tool definition JSON document.
 
-The `GET /.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible` endpoint returns the registered MCP tool definitions that can receive the structured output of the specified tool as their input. It accepts an optional `version` query parameter, which defaults to the latest version, and the `offset` and `limit` pagination parameters.
-ifndef::service-registry-downstream[]
-For the rules that the comparison applies, see xref:getting-started/assembly-agent-discovery-patterns.adoc#well-known-endpoint-architecture_{context}[Well-known endpoint architecture].
-endif::[]
-ifdef::service-registry-downstream[]
-For the rules that the comparison applies, see xref:well-known-endpoint-architecture_{context}[Well-known endpoint architecture].
-endif::[]
-
 The `GET /.well-known/schemas/mcp-tool/v1` endpoint retrieves the JSON Schema for MCP tool definitions. You can use the schema for IDE autocompletion and validation.
 
 .Example
@@ -337,7 +328,6 @@ curl -X POST "http://localhost:8080/apis/registry/v3/groups/mcp-tools/artifacts"
   -d '{
     "artifactId": "weather-tool",
     "artifactType": "MCP_TOOL",
-    "name": "get_weather",
     "firstVersion": {
       "version": "1.0.0",
       "content": {
@@ -449,7 +439,7 @@ The publication rule supports recursive `properties`, schema-valued or boolean `
 
 Schema annotations (`title`, `description`, `default`, `examples`, `$comment`, `deprecated`, `readOnly`, and `writeOnly`) do not enforce compatibility constraints. Default values do not fill missing inputs.
 
-References (`$ref`, `$dynamicRef`, `$recursiveRef`, identifiers and definition containers), composition (`allOf`, `anyOf`, `oneOf`, `not`), conditionals, dependencies, tuple schemas, `prefixItems`, `contains`, `unevaluated*`, `pattern`, `patternProperties`, `format`, and other unlisted keywords are outside this publication rule's supported subset. They are not silently discarded. If either compared schema uses one, even unchanged, the comparison fails with HTTP 422. No reference is fetched or resolved. This deliberately narrower contract does not change the JSON artifact checker or the `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible` endpoint described in xref:mcp-well-known-endpoints_{context}[].
+References (`$ref`, `$dynamicRef`, `$recursiveRef`, identifiers and definition containers), composition (`allOf`, `anyOf`, `oneOf`, `not`), conditionals, dependencies, tuple schemas, `prefixItems`, `contains`, `unevaluated*`, `pattern`, `patternProperties`, `format`, and other unlisted keywords are outside this publication rule's supported subset. They are not silently discarded. If either compared schema uses one, even unchanged, the comparison fails with HTTP 422. No reference is fetched or resolved. This deliberately narrower contract does not change the JSON artifact checker or cross-tool chaining endpoint.
 
 A known incompatible change returns HTTP 400 with a rule-violation context prefixed by `/inputSchema` or `/outputSchema`. For example, narrowing an input string reports `/inputSchema/properties/query/maxLength`. Input BACKWARD contexts point into the new schema; output BACKWARD contexts point into the old schema because its accepted outputs are the comparison target. FORWARD reverses those locations; FULL can report both. Invalid or unsupported schemas return HTTP 422. Neither rejection creates the candidate version or changes previously accepted content.
 
@@ -459,7 +449,7 @@ The engine can conservatively reject changes that accept the same values, especi
 
 Earlier MCP tool checking compared only top-level input types, property names, and requiredness; output changes and nested constraint changes were unchecked. Version 3.4 checks the supported subset above and changes those results. Making an input optional is now backward compatible. Adding a typed optional input to an open schema is no longer automatically accepted. Stored versions are not rewritten; unsupported schemas in existing versions can prevent subsequent publication under an enabled compatibility rule.
 
-For a release-safety demonstration, publish a tool whose input `query` is a string with `maxLength: 10`, enable `BACKWARD`, and propose `maxLength: 5`. Expect HTTP 400 and unchanged old content. Propose `maxLength: 20` and expect acceptance. For an output schema, the direction is reversed. This demonstrates publication-time schema enforcement only; it is not evidence of runtime admission, authenticated invocation, or full feature graduation.
+For a release-safety demonstration, publish a tool whose input `query` is a string with `maxLength: 10`, enable `BACKWARD`, and propose `maxLength: 5`. Expect HTTP 400 and unchanged old content. Propose `maxLength: 20` and expect acceptance. For an output schema, the direction is reversed. Use a disposable registry and retain the rule configuration, exact versions, responses, and retrieved content as evidence for the agent-registry graduation work (#10294). This demonstrates publication-time schema enforcement only; it is not evidence of runtime admission, authenticated invocation, or full feature graduation.
 
 // proc-mcp-importing-tools
 [id="mcp-importing-tools_{context}"]

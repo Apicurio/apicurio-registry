@@ -533,6 +533,8 @@ jobs:
             LC_VERSION=$(echo "$PACKAGE_VERSION" | tr A-Z a-z)
             PREV_PKG=$(make VAR=PREVIOUS_PACKAGE variable-get)
             BUNDLE_IMG="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$LC_VERSION"
+            # "Update install file" runs mvn clean, which deletes target/bin/yq.
+            make install-yq
             YQ=$(make VAR=YQ variable-get)
 
             echo "Syncing maintenance release $PACKAGE_VERSION to main (channel $RELEASE_CHANNEL only)"

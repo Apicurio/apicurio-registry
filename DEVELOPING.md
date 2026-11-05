@@ -239,8 +239,11 @@ section before changing storage code or adding a write path.
 KafkaSQL serializes journaled mutations. Every storage mutation that goes through the
 journal becomes a message sent to Kafka, and a single consumer thread in
 `KafkaSqlRegistryStorage` applies those messages one at a time. Those mutations
-therefore never interleave, and the races between concurrent journaled writes that
-exist in the plain SQL variant cannot happen there.
+therefore never interleave. Writes that the plain SQL variant has to protect with a
+lock or an UPSERT, described below, are ordered by the journal instead: two concurrent
+`createArtifactVersion` calls for the same artifact, the race behind duplicate
+`versionOrder` values in #9775, are applied in journal order, and so are two
+concurrent `setConfigProperty` calls for the same property.
 
 The known exceptions are maintenance operations. `deleteAllOrphanedContent()` and
 `deleteAllExpiredDownloads()` bypass the journal and write directly to the pod's own
@@ -248,8 +251,9 @@ SQL store from scheduled jobs that run independently on every pod. They can inte
 with consumer-thread operations, so journal serialization does not protect against
 races between them and journaled writes. The orphaned content race described under
 "Content inserts and the orphan reaper" applies to KafkaSQL for this reason. Any
-`KafkaSqlRegistryStorage` method that calls `sqlStore` directly instead of submitting a
-journal message is another exception of the same kind.
+`KafkaSqlRegistryStorage` method that writes to the local SQL store directly, through
+`sqlStore` or the inherited delegate, after the consumer thread has started is another
+exception of the same kind.
 
 Races between the request thread, which waits for its message to be applied, and the
 consumer thread that delivers the result through `KafkaSqlCoordinator` are a different

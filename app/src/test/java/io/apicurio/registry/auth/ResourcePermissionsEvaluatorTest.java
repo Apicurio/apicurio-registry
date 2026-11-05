@@ -242,9 +242,32 @@ class ResourcePermissionsEvaluatorTest {
         when(storage.getArtifactMetaData("g", "a"))
                 .thenReturn(ArtifactMetaDataDto.builder().groupId("g").artifactId("a").owner("dev").build());
 
-        Target target = evaluator("dev").versionTarget("g", "a");
+        Target target = evaluator("dev").versionTarget("g", "a", true);
 
         assertEquals(artifact("g", "a", "dev"), target);
+    }
+
+    @Test
+    void versionOwnersAreNotLookedUpWhenTheyCannotMatter() {
+        assertEquals(artifact("g", "a", null), evaluator("dev").versionTarget("g", "a", false));
+        verify(storage, never()).getArtifactMetaData("g", "a");
+    }
+
+    @Test
+    void ownersMatterOnlyForRestrictedAuthenticatedCallersWithAnOwnerRule() {
+        assertEquals(true, evaluator("dev").usesOwners());
+
+        // Bypassed callers get everything, anonymous callers never own anything
+        when(guard.isBypassed()).thenReturn(true);
+        assertEquals(false, evaluator("alice").usesOwners());
+        when(guard.isBypassed()).thenReturn(false);
+        assertEquals(false, evaluator(null).usesOwners());
+
+        // Neither the owner bypass nor owner-only authorization is enabled
+        when(grantsConfig.isOwnerBypassEnabled()).thenReturn(false);
+        assertEquals(false, evaluator("dev").usesOwners());
+        ownerOnly = true;
+        assertEquals(true, evaluator("dev").usesOwners());
     }
 
     @Test
@@ -252,7 +275,7 @@ class ResourcePermissionsEvaluatorTest {
         when(storage.getArtifactMetaData("g", "gone"))
                 .thenThrow(new ArtifactNotFoundException("gone"));
 
-        assertEquals(artifact("g", "gone", null), evaluator("dev").versionTarget("g", "gone"));
+        assertEquals(artifact("g", "gone", null), evaluator("dev").versionTarget("g", "gone", true));
     }
 
     @Test

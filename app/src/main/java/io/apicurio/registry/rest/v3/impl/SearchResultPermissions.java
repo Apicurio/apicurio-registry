@@ -48,8 +48,10 @@ public class SearchResultPermissions {
 
     public VersionSearchResults addTo(VersionSearchResults results) {
         if (evaluator.isEnabled()) {
-            // A version's owner is not its artifact's: versions are authorized as their artifact
-            apply(results.getVersions(), v -> evaluator.versionTarget(v.getGroupId(), v.getArtifactId()),
+            // A version's owner is not its artifact's: versions are authorized as their artifact.
+            // Its owner is looked up only when it can matter (not for admins or anonymous callers).
+            boolean withOwner = evaluator.usesOwners();
+            apply(results.getVersions(), v -> evaluator.versionTarget(v.getGroupId(), v.getArtifactId(), withOwner),
                     SearchedVersion::setPermissions);
         }
         return results;

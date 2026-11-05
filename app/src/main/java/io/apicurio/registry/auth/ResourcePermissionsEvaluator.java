@@ -76,12 +76,23 @@ public class ResourcePermissionsEvaluator {
     }
 
     /**
+     * @return true if resource owners can affect the current caller's permissions; false for
+     *         bypassed and anonymous callers, and when neither owner rule is enabled, so callers
+     *         can skip looking owners up
+     */
+    public boolean usesOwners() {
+        return !guard.isBypassed() && !guard.isAnonymous()
+                && (grantsConfig.isOwnerBypassEnabled() || authConfig.ownerOnlyAuthorizationEnabled.get());
+    }
+
+    /**
      * @return the target for an artifact version: versions are authorized as their artifact, and
      *         its owner (not the version's) is the one the owner rules apply to
+     * @param withOwner whether to look the owner up; pass {@link #usesOwners()}
      */
-    public Target versionTarget(String groupId, String artifactId) {
-        String owner = lookups.artifact(storage, groupId, artifactId).map(ArtifactMetaDataDto::getOwner)
-                .orElse(null);
+    public Target versionTarget(String groupId, String artifactId, boolean withOwner) {
+        String owner = withOwner ? lookups.artifact(storage, groupId, artifactId)
+                .map(ArtifactMetaDataDto::getOwner).orElse(null) : null;
         return new Target(AuthorizedResource.artifact(groupId, artifactId), owner);
     }
 

@@ -83,21 +83,42 @@ class SearchResultPermissionsTest {
         assertEquals(new ResourcePermissions(true, true, false), group.getPermissions());
     }
 
-    @Test
-    void versionPermissionsUseTheArtifactTarget() {
-        SearchedVersion version = new SearchedVersion();
+    private static VersionSearchResults oneVersion(SearchedVersion version) {
         version.setGroupId("g");
         version.setArtifactId("a");
         version.setOwner("version-owner");
         VersionSearchResults results = new VersionSearchResults();
         results.setVersions(new ArrayList<>(List.of(version)));
+        return results;
+    }
+
+    @Test
+    void versionPermissionsUseTheArtifactTarget() {
+        SearchedVersion version = new SearchedVersion();
+        VersionSearchResults results = oneVersion(version);
         Target artifactTarget = new Target(AuthorizedResource.artifact("g", "a"), "artifact-owner");
-        when(evaluator.versionTarget("g", "a")).thenReturn(artifactTarget);
+        when(evaluator.usesOwners()).thenReturn(true);
+        when(evaluator.versionTarget("g", "a", true)).thenReturn(artifactTarget);
         when(evaluator.evaluate(List.of(artifactTarget))).thenReturn(List.of(new Permissions(true, true, false)));
 
         decorator(true).addTo(results);
 
         assertEquals(new ResourcePermissions(true, true, false), version.getPermissions());
+    }
+
+    @Test
+    void versionOwnersAreNotLookedUpWhenTheyCannotMatter() {
+        SearchedVersion version = new SearchedVersion();
+        VersionSearchResults results = oneVersion(version);
+        Target artifactTarget = new Target(AuthorizedResource.artifact("g", "a"), null);
+        when(evaluator.usesOwners()).thenReturn(false);
+        when(evaluator.versionTarget("g", "a", false)).thenReturn(artifactTarget);
+        when(evaluator.evaluate(List.of(artifactTarget))).thenReturn(List.of(new Permissions(true, true, true)));
+
+        decorator(true).addTo(results);
+
+        assertEquals(new ResourcePermissions(true, true, true), version.getPermissions());
+        verify(evaluator, never()).versionTarget("g", "a", true);
     }
 
     @Test

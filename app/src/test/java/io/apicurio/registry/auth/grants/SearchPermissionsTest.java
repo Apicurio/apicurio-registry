@@ -110,7 +110,8 @@ public class SearchPermissionsTest extends AbstractResourceTestBase {
     @Override
     protected RegistryClient createRestClientV3(Vertx vertx) {
         return RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl).vertx(vertx).basicAuth("alice", "alice"));
+                .registryUrl(registryV3ApiUrl).vertx(vertx).basicAuth("alice", "alice")
+                .requestTimeout(CLIENT_CONNECT_TIMEOUT_MS, CLIENT_READ_IDLE_TIMEOUT_MS));
     }
 
     @BeforeAll

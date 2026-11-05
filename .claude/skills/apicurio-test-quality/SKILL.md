@@ -13,7 +13,7 @@ agent sweeps: `concurrency`, `timing`, `waste`, `lifecycle`, `correctness`, `hyg
 ## When to use
 
 - Before committing any change that touches `**/src/test/**` or an alternate test source
-  root such as `**/src/test-byteman/**`
+  root such as `**/src/test-concurrency/**`
 - As part of the DoD (after /simplify, before /code-review)
 - On CI as a PR quality gate
 
@@ -32,8 +32,8 @@ git diff --name-only HEAD | grep -E 'src/test[^/]*/.*\.java$'
 git diff main...HEAD --name-only | grep -E 'src/test[^/]*/.*\.java$'
 ```
 
-The `[^/]*` is what reaches alternate test source roots such as `src/test-byteman/java`,
-added by the `byteman` profile in `app/pom.xml`. A plain `src/test/` pattern misses them
+The `[^/]*` is what reaches alternate test source roots such as `src/test-concurrency/java`,
+added by the `concurrency-tests` profile in `app/pom.xml`. A plain `src/test/` pattern misses them
 and the gate then stops as not applicable on a diff whose riskiest file it never read.
 Widen this again if another source root appears.
 

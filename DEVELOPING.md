@@ -200,10 +200,10 @@ modes, and detailed usage instructions.
 ### Byteman concurrency tests
 
 Tests that use Byteman to force a specific thread interleaving live in
-`app/src/test-byteman/java` and are opt-in via `-Pbyteman`:
+`app/src/test-concurrency/java` and are opt-in via `-Pconcurrency-tests`:
 
 ```bash
-./mvnw test -pl :apicurio-registry-app -Pbyteman
+./mvnw test -pl :apicurio-registry-app -Pconcurrency-tests
 ```
 
 That command also runs the regular `app` suite. To run only the Byteman tests, name them
@@ -212,7 +212,8 @@ with `-Dtest=ConcurrentVersionCreationTest,...`.
 They sit in their own source root because Byteman is LGPL and may not appear in the
 default build. Only the profile adds that root, so a new test put anywhere else will
 either fail the license scan or not compile. Put new Byteman tests in
-`app/src/test-byteman/java`.
+`app/src/test-concurrency/java`. Concurrency tests that do not use Byteman stay in
+`app/src/test/java`, because only that root runs in CI.
 
 Every `@WithByteman` class also carries `@BMUnitConfig`, even when it sets nothing. BMUnit
 pushes a configuration for each Byteman class but pops it only when that annotation is
@@ -220,7 +221,7 @@ present, so without it the next Byteman class in the same JVM fails with "BMUnit
 configuration pushed without prior pop!".
 
 Two things to expect. An IDE that has not enabled the profile shows these files as
-non-source with every symbol unresolved. And no CI workflow activates `-Pbyteman`, so
+non-source with every symbol unresolved. And no CI workflow activates `-Pconcurrency-tests`, so
 these tests run locally only.
 
 Run `clean` when you go back to a build without the profile. The Byteman classes stay in

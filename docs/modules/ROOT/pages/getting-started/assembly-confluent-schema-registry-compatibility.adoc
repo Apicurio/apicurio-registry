@@ -127,6 +127,40 @@ The `apicurio.ccompat.legacy-id-mode.enabled` configuration property controls th
 
 For most use cases, use the default content ID mode, because it matches the Confluent behavior where identical schemas share the same ID across subjects.
 
+**Schema format parameter**
+
+The `format` query parameter selects how the following operations return a schema, in both `/apis/ccompat/v7` and `/apis/ccompat/v8`:
+
+* `GET /schemas/ids/\{id}`
+* `GET /schemas/ids/\{id}/schema`
+* `POST /subjects/\{subject}` (lookup by content)
+* `GET /subjects/\{subject}/versions/\{version}`
+* `GET /subjects/\{subject}/versions/\{version}/schema`
+
+.Supported format values
+[%header,cols="1,1,3"]
+|===
+|Value
+|Schema type
+|Effect
+
+|`resolved`
+|Avro
+|Inlines the referenced schemas. For a schema without references, the API returns the schema as re-serialized by the Avro parser.
+
+|`ignore_extensions`
+|Protobuf
+|Removes the extension declarations from the schema.
+
+|`serialized`
+|Protobuf
+|Returns the schema as a serialized Protobuf `FileDescriptor`.
+|===
+
+Any other value for an Avro or Protobuf schema returns HTTP `400`, and the error message lists the valid values. For JSON Schema, {registry} ignores the parameter.
+
+When `apicurio.rest.artifact.references.default-handling` is `DEREFERENCE` and the request has no `format` parameter, `GET /schemas/ids/\{id}` returns Avro schemas in the `resolved` format.
+
 **Configuration properties**
 
 .Confluent compatibility API configuration

@@ -92,7 +92,7 @@ You can use the {registry} web console to browse the schema and API artifacts st
 . In the {registry} web console, find the artifact by using one of the following tabs:
 +
 ** *Explore*: Browse the list of groups, click a group, and then click an artifact in the *Artifacts in group* list.
-** *Search*: Select *Artifacts* from the *Search for* menu to browse artifacts. You can filter the results by criteria such as *Name*, *Group*, *Labels*, or *Global Id*. When you filter by *Type*, select the value from a list instead of typing it. The *State* filter is available when you select *Versions* from *Search for*. For this filter, you also select the value from a list.
+** *Search*: Select *Artifacts* from the *Search for* menu to browse artifacts. You can filter the results by criteria such as *Name*, *Group*, *Labels*, or *Global Id*. The *Name* filter ignores letter case. When you filter by *Type*, select the value from a list instead of typing it. The *State* filter is available when you select *Versions* from *Search for*. For this filter, you also select the value from a list.
 ** *Dashboard*: Click an artifact in the *Recent Artifacts* list.
 +
 .Artifacts in {registry} web console
@@ -114,7 +114,7 @@ image::images/getting-started/registry-web-console-artifact.png[Artifacts in Reg
 ** *Overview*: Displays artifact version metadata such as version name, description, status, global ID, content ID, and labels. Also displays any comments created for the artifact version.
 ** *Documentation*: Displays a visualization for supported artifact types. For OpenAPI and AsyncAPI, it displays API documentation. For JSON Schema, it displays schema properties and a generated example. The tab is also available for the `AGENT_CARD`, `MCP_TOOL`, `MODEL_SCHEMA`, and `PROMPT_TEMPLATE` artifact types, and is hidden for disabled versions.
 ** *Content*: Displays a read-only view of the full artifact version content. For JSON content, you can click *JSON* or *YAML* to display your preferred format.
-** *References*: Displays a read-only view of all artifacts referenced by this artifact version. You can also click *View artifacts that reference this artifact version*. To add references to a new artifact or version, use the *Artifact References* step when you create it.
+** *References*: Displays a read-only view of all artifacts referenced by this artifact version. You can also click *View artifacts that reference this artifact version*. Click *Graph* to display the references as a graph instead of a list. Use the *Graph Depth* slider to set how many levels, from 1 to 5, the graph includes. To add references to a new artifact or version, use the *Artifact References* step when you create it.
 +
 .Artifact version details in {registry} web console
 image::images/getting-started/registry-web-console-artifact-version.png[Artifacts in Registry web console]

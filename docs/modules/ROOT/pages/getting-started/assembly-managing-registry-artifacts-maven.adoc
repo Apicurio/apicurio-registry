@@ -363,13 +363,13 @@ NOTE: When testing artifacts using the Maven plug-in, even if the artifact passe
 [role="_abstract"]
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
 
-The following artifact types support artifact references:
-
-* Apache Avro
-* Google Protobuf
-* JSON Schema
-* OpenAPI
-* AsyncAPI
+For the artifact types that support artifact references, see
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-artifact-reference.adoc#registry-artifact-type-reference-support_{context}[Artifact reference support by type].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:registry-artifact-type-reference-support_{context}[].
+endif::[]
 
 This section shows a simple example of using the {registry} Maven plug-in to manually register an artifact reference to a simple Avro schema artifact stored in {registry}. This example assumes that the following `Exchange` schema artifact has already been created in {registry}:
 
@@ -493,13 +493,16 @@ The following `TradeKey` schema contains a nested reference to the `Exchange` sc
 [role="_abstract"]
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
 
-The following artifact types support artifact references:
+The {registry} Maven plug-in detects artifact references automatically for the following artifact types:
 
 * Apache Avro
 * Google Protobuf
 * JSON Schema
 * OpenAPI
 * AsyncAPI
+* OpenRPC
+
+For other artifact types, such as XSD, WSDL, or GraphQL, add the references manually. See xref:adding-artifact-references-manually-using-maven-plugin_{context}[].
 
 You can specify a single artifact and configure the {registry} Maven plugin to automatically detect all references to artifacts located in the same directory, and to automatically register those references. This is a Technology Preview feature.
 

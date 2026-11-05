@@ -57,7 +57,7 @@ a| Enforces artifact reference integrity when creating or updating artifacts. Th
 * `FULL`: All artifact reference integrity checks are enabled.
 * `NO_DUPLICATES`: Detect if there are any duplicate artifact references.
 * `NO_CIRCULAR_REFERENCES`: Detect circular reference chains among artifacts.
-* `REFS_EXIST`: Detect if there are any references to non-existent artifacts.
+* `REFS_EXIST`: Detect if there are any references to non-existent artifacts. For `AGENT_CARD`, `MCP_SERVER`, and `MCP_TOOL` artifacts, also detect references to artifact types that they cannot reference.
 * `ALL_REFS_MAPPED`: Ensure that all artifact references are mapped.
 * `NONE`: All artifact reference integrity checks are disabled.
 |===
@@ -118,7 +118,7 @@ a| Mapping detection not supported
 |*Thrift*
 a| Syntax Only
 a| None
-a| Mapping detection not supported
+a| Full
 |*WSDL*
 a| Full
 a| None
@@ -140,6 +140,9 @@ not require a mapping. At the `FULL` validity level, {registry} resolves XSD imp
 the mapped artifact references and never fetches them from the network or file system. An unmapped location
 fails with `Unresolved reference: <location>`. For WSDL 1.1, `FULL` validity also compiles the schemas
 embedded in `wsdl:types` by using the same resolution. For WSDL 2.0, `FULL` validity checks syntax only.
+
+NOTE: For Thrift artifacts, the `ALL_REFS_MAPPED` and `FULL` integrity levels require a mapped artifact
+reference for every `include` directive. An unmapped include fails with `Unmapped Thrift include detected.`
 
 
 

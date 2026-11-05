@@ -149,6 +149,10 @@ Configure {registry} to use KubernetesOps storage, including the required enviro
 |`APICURIO_POLLING_STORAGE_FILE_SUFFIXES`
 |`registry,ar`
 |Comma-separated list of file suffixes that identify registry metadata files. Each suffix is combined with extensions (`.yaml`, `.yml`, `.json`) to form the full pattern. For example, suffix `registry` matches `*.registry.yaml`, `*.registry.yml`, and `*.registry.json`. Data keys that do not match a recognized suffix are treated as raw content files.
+
+|`APICURIO_POLLING_STORAGE_SOURCE_LABEL_KEY`
+|`system:source`
+|Key of the label that {registry} adds to each loaded group and artifact to identify its source. With KubernetesOps storage, the label value is `kubernetes`. Set to an empty string to disable the label.
 |===
 
 . Example deployment configuration:

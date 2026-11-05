@@ -51,6 +51,8 @@ found=$(curl -fsS -X POST "$REGISTRY_URL/.well-known/ard/search" \
 pass "ARD search finds the Translation Agent"
 
 # 3. The registry MCP server, over stdio, lists its tools.
+# stdin stays open for 30 s so the server can answer before it sees end of input. "|| true" keeps
+# set -e from aborting on a failed pipeline: an empty or partial result fails in the case below.
 tools=$( { printf '%s\n' \
     '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"smoke","version":"1"}}}' \
     '{"jsonrpc":"2.0","method":"notifications/initialized"}' \

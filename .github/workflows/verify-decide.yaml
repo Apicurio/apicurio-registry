@@ -300,6 +300,7 @@ jobs:
             "run-extras": "${{ steps.decide.outputs.run-extras }}",
             "run-sdk": "${{ steps.decide.outputs.run-sdk }}",
             "run-cli": "${{ steps.decide.outputs.run-cli }}",
+            "run-agent-quickstart": "${{ steps.decide.outputs.run-agent-quickstart }}",
             "run-operator": "${{ steps.decide.outputs.run-operator }}",
             "run-console-plugin": "${{ steps.decide.outputs.run-console-plugin }}",
             "run-go-sdk-freshness": "${{ steps.decide.outputs.run-go-sdk-freshness }}",

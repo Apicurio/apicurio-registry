@@ -67,7 +67,7 @@ compatibility rules on agent content), start a stack that comes with a demo cata
 
     docker compose -f distro/docker-compose/ai-agent-registry/docker-compose.yml up -d
 
-Then follow the [agent registry quick start](docs/modules/ROOT/pages/getting-started/assembly-agent-registry-quickstart.adoc).
+See [its README](distro/docker-compose/ai-agent-registry/README.md) for what it contains and what to try.
 The stack is for local evaluation only: it has no authentication.
 
 ## Versioning & Support Policy

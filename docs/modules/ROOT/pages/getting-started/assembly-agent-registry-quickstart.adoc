@@ -41,7 +41,7 @@ ifndef::service-registry-downstream[]
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can start {registry} with agent features enabled by using Docker Compose. Because A2A support is an experimental feature, you must enable the experimental features flag and the A2A flag.
+You can start {registry} with agent features enabled by using Docker Compose. Because A2A support and the *Agents* tab of the web console are experimental features, you must enable the experimental features flag together with the A2A flag and the Agents tab flag.
 
 .Prerequisites
 * Docker and Docker Compose are installed
@@ -63,6 +63,7 @@ services:
     environment:
       APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
       APICURIO_A2A_ENABLED: "true"
+      APICURIO_UI_FEATURES_AGENTS_ENABLED: "true"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
       interval: 10s
@@ -150,7 +151,7 @@ curl -X POST "http://localhost:8080/apis/registry/v3/groups/ai-agents/artifacts"
       "version": "1.0.0",
       "content": {
         "contentType": "application/json",
-        "content": "{\"name\": \"Customer Support Agent\", \"description\": \"Handles customer inquiries, analyzes sentiment, and generates responses\", \"version\": \"1.0.0\", \"supportedInterfaces\": [{\"url\": \"http://support-agent:9001\", \"protocolBinding\": \"http+json\", \"protocolVersion\": \"1.0\"}], \"provider\": {\"organization\": \"Acme Corp\", \"url\": \"https://acme.example.com\"}, \"skills\": [{\"id\": \"sentiment-analysis\", \"name\": \"Sentiment Analysis\", \"description\": \"Analyzes customer message sentiment\"}, {\"id\": \"response-generation\", \"name\": \"Response Generation\", \"description\": \"Generates context-aware customer responses\"}], \"capabilities\": {\"streaming\": false, \"pushNotifications\": false}, \"defaultInputModes\": [\"text\"], \"defaultOutputModes\": [\"text\"]}"
+        "content": "{\"name\": \"Customer Support Agent\", \"description\": \"Handles customer inquiries, analyzes sentiment, and generates responses\", \"version\": \"1.0.0\", \"supportedInterfaces\": [{\"url\": \"http://support-agent:9001\", \"protocolBinding\": \"http+json\", \"protocolVersion\": \"1.0\"}], \"provider\": {\"organization\": \"Acme Corp\", \"url\": \"https://acme.example.com\"}, \"skills\": [{\"id\": \"sentiment-analysis\", \"name\": \"Sentiment Analysis\", \"description\": \"Analyzes customer message sentiment\", \"tags\": [\"sentiment\"]}, {\"id\": \"response-generation\", \"name\": \"Response Generation\", \"description\": \"Generates context-aware customer responses\", \"tags\": [\"support\"]}], \"capabilities\": {\"streaming\": false, \"pushNotifications\": false}, \"defaultInputModes\": [\"text\"], \"defaultOutputModes\": [\"text\"]}"
       }
     }
   }'
@@ -208,7 +209,7 @@ curl "http://localhost:8080/.well-known/agents/ai-agents/customer-support-agent"
 curl http://localhost:8080/.well-known/agent.json
 ----
 +
-You can also browse registered agent cards by using the {registry} web console at `http://localhost:8888`.
+You can also browse registered agent cards on the *Agents* tab of the {registry} web console at `http://localhost:8888`.
 
 // proc-connecting-claude-desktop-by-using-mcp
 [id="connecting-claude-desktop-via-mcp_{context}"]

@@ -1051,6 +1051,9 @@ The following commands are available. Running a parent command, such as `acr gro
 | `acr admin import`
 | Import registry data from a .zip file.
 
+| `acr mcp`
+| Work with MCP servers. Subcommand: `import` (experimental), which imports the tools of a running MCP server into an `MCP_SERVER` artifact.
+
 | `acr gitops`
 | Display GitOps command help. Subcommands: `status`, `sync`, `validate`.
 

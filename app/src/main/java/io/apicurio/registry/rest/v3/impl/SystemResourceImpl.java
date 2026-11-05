@@ -6,6 +6,7 @@ import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
+import io.apicurio.registry.extensions.McpToolImportHandler;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.core.System;
 import io.apicurio.registry.limits.RegistryLimitsConfiguration;
@@ -22,6 +23,7 @@ import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.impl.search.ElasticsearchSearchConfig;
 import io.apicurio.registry.ui.UserInterfaceConfigProperties;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 import jakarta.interceptor.Interceptors;
 
@@ -32,6 +34,9 @@ import java.util.Map;
 @Interceptors({ ResponseErrorLivenessCheck.class, ResponseTimeoutReadinessCheck.class })
 @Logged
 public class SystemResourceImpl implements SystemResource {
+
+    @Inject
+    Instance<McpToolImportHandler> mcpToolImportHandler;
 
     @Inject
     System system;
@@ -106,6 +111,8 @@ public class SystemResourceImpl implements SystemResource {
                         .draftMutability(restConfig.isArtifactVersionMutabilityEnabled())
                         .agents(uiConfig.featureAgents.get())
                         .searchIndex(esSearchConfig.isEnabled())
+                        .mcpImport(mcpToolImportHandler.isResolvable() && mcpToolImportHandler.get().isEnabled()
+                                && !readOnly)
                         .urlImportMaxContentLength(uiConfig.featureUrlImportMaxContentLength)
                         .settings("true".equals(uiConfig.featureSettings)).build())
                 .build();
@@ -125,9 +132,7 @@ public class SystemResourceImpl implements SystemResource {
             uiConfig.authOidcRedirectUri.ifPresent(uri -> options.put("redirectUri", uri));
             options.put("clientId", uiConfig.authOidcClientId);
             options.put("scope", uiConfig.scope);
-            if (!"f5".equals(uiConfig.authOidcLogoutUrl)) {
-                options.put("logoutUrl", uiConfig.authOidcLogoutUrl);
-            }
+            uiConfig.authOidcLogoutUrl.ifPresent(logoutUrl -> options.put("logoutUrl", logoutUrl));
             // Only include loadUserInfo if explicitly configured
             uiConfig.loadUserInfo.ifPresent(loadUserInfo -> options.put("loadUserInfo", String.valueOf(loadUserInfo)));
             // Only include useNonce if explicitly configured

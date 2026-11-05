@@ -20,7 +20,6 @@ import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 import io.apicurio.registry.utils.impexp.v3.ContentEntity;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,15 +152,7 @@ public class AvroCanonicalHashUpgrader implements IDbUpgrader {
             }
             return loaded;
         };
-        ReferenceGraphWalker.walk(references, loader, maxReferenceDepth());
-    }
-
-    private static int maxReferenceDepth() {
-        // Read directly rather than injected: this upgrader is constructed with `new`, outside CDI. See
-        // the same pattern in io.apicurio.registry.references.ReferenceResolution.
-        return ConfigProvider.getConfig()
-                .getOptionalValue(ReferenceResolutionConfig.MAX_DEPTH_PROPERTY, Integer.class)
-                .orElse(ReferenceResolutionConfig.DEFAULT_MAX_DEPTH);
+        ReferenceGraphWalker.walk(references, loader, ReferenceResolutionConfig.maxDepth());
     }
 
     private ContentWrapperDto resolveReference(Handle handle, ArtifactReferenceDto reference) {

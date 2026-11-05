@@ -115,6 +115,11 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
                 .byVersionExpression("branch=latest").get().getContentId();
     }
 
+    private long globalIdOf(String groupId, String artifactId) {
+        return clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression("branch=latest").get().getGlobalId();
+    }
+
     private static String artifactPath(String groupId, String artifactId) {
         return "/registry/v3/groups/" + groupId + "/artifacts/" + artifactId;
     }
@@ -215,6 +220,36 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
         as("bob2").get("/registry/v3/ids/contentIds/" + visibleContent).then().statusCode(200);
         as("bob2").get("/registry/v3/ids/contentIds/" + hiddenContent).then().statusCode(403);
         as("bob2").get("/registry/v2/ids/contentIds/" + hiddenContent).then().statusCode(403);
+    }
+
+    // ==================== Global IDs ====================
+
+    /**
+     * {@code ids/globalIds/{id}} resolves the caller's access through the cached global ID
+     * coordinates ({@link io.apicurio.registry.auth.GlobalIdCoordinatesCache}), consulted by
+     * {@link io.apicurio.registry.auth.AbstractAccessController#isAuthorized}. Unlike role-based or
+     * owner-only authorization on a Read operation (which never resolve the target resource), grants
+     * always do, so this exercises the cache on the actual authorization path — not just the
+     * business logic's own direct, uncached storage read.
+     */
+    @Test
+    public void globalIdRequiresAccessToTheArtifactItNames() throws Exception {
+        String visible = createAsAdmin(TEAM_A, "visible-");
+        String hidden = createAsAdmin(TEAM_B, "hidden-");
+        long visibleGlobalId = globalIdOf(TEAM_A, visible);
+        long hiddenGlobalId = globalIdOf(TEAM_B, hidden);
+
+        // bob1 has a TEAM_A grant but no TEAM_B grant.
+        as("bob1").get("/registry/v3/ids/globalIds/" + visibleGlobalId).then().statusCode(200);
+        as("bob1").get("/registry/v3/ids/globalIds/" + hiddenGlobalId).then().statusCode(403);
+        as("bob1").get("/registry/v2/ids/globalIds/" + hiddenGlobalId).then().statusCode(403);
+
+        // The same global ID's authorization is re-checked on every request, not cached as a
+        // decision: a caller without the grant stays denied on a repeat read.
+        as("bob1").get("/registry/v3/ids/globalIds/" + hiddenGlobalId).then().statusCode(403);
+        // A caller with the grant can still read it, proving the coordinates cache serves the
+        // correct (TEAM_A) owner on repeated reads rather than some stale or shared answer.
+        as("bob1").get("/registry/v3/ids/globalIds/" + visibleGlobalId).then().statusCode(200);
     }
 
     @Test

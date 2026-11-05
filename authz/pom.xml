@@ -35,6 +35,11 @@
             </exclusions>
         </dependency>
 
+        <!-- The resource scope API this module implements -->
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-scope-api</artifactId>
+        </dependency>
         <!-- Access rules: the Kroxylicious ACL rules format and its authorizer -->
         <dependency>
             <groupId>io.kroxylicious</groupId>
@@ -60,6 +65,11 @@
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.apicurio</groupId>
+            <artifactId>apicurio-scope-api-tck</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

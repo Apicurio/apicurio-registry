@@ -1,6 +1,7 @@
 import React, { FunctionComponent, useEffect, useState } from "react";
 import "./VersionPage.css";
 import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
+import { isRuleViolation, SubmittedContent, toSubmittedContent } from "@utils/ruleViolation.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useMatch, useParams } from "react-router";
 import {
@@ -77,6 +78,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
     const [isCreateDraftFromModalOpen, setIsCreateDraftFromModalOpen] = useState(false);
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState<boolean>(false);
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [invalidContent, setInvalidContent] = useState<SubmittedContent>();
     const [isFinalizeDryRunSuccessModalOpen, setIsFinalizeDryRunSuccessModalOpen] = useState(false);
     const [isTestVersionModalOpen, setIsTestVersionModalOpen] = useState(false);
     const [isTestVersionSuccessModalOpen, setIsTestVersionSuccessModalOpen] = useState(false);
@@ -301,16 +303,17 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         }).catch(error => {
             pleaseWait(false);
             if (error && (error.status === 400 || error.status === 409)) {
-                handleInvalidContentError(error);
+                handleInvalidContentError(error, { content: versionContent, contentType: versionContentType });
             } else {
                 setPageError(toPageError(error, "Error changing version state."));
             }
         });
     };
 
-    const handleInvalidContentError = (error: any): void => {
+    const handleInvalidContentError = (error: any, content?: SubmittedContent): void => {
         console.info("[DraftsPage] Invalid content error:", error);
         setInvalidContentError(error);
+        setInvalidContent(content);
         setIsInvalidContentModalOpen(true);
     };
 
@@ -323,8 +326,8 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
             setIsTestVersionSuccessModalOpen(true);
         }).catch(error => {
             pleaseWait(false);
-            if (error && (error.status === 400 || error.status === 409) && Array.isArray(error.causes)) {
-                handleInvalidContentError(error);
+            if (isRuleViolation(error)) {
+                handleInvalidContentError(error, toSubmittedContent(data.content));
             } else {
                 setPageError(toPageError(error, "Error testing content."));
             }
@@ -346,7 +349,7 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
         }).catch(error => {
             pleaseWait(false);
             if (error && (error.status === 400 || error.status === 409)) {
-                handleInvalidContentError(error);
+                handleInvalidContentError(error, { content: versionContent, contentType: versionContentType });
             } else {
                 setPageError(toPageError(error, "Error finalizing a draft."));
             }
@@ -535,9 +538,14 @@ export const VersionPage: FunctionComponent<PageProperties> = () => {
                 isOpen={isConfirmFinalizeModalOpen} />
             <InvalidContentModal
                 error={invalidContentError}
+                content={invalidContent?.content}
+                contentType={invalidContent?.contentType}
+                groupId={groupId}
+                artifactId={artifactId}
                 isOpen={isInvalidContentModalOpen}
                 onClose={() => {
                     setInvalidContentError(undefined);
+                    setInvalidContent(undefined);
                     setIsInvalidContentModalOpen(false);
                 }} />
             <TestVersionModal

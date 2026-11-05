@@ -8,13 +8,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
+import io.apicurio.scope.ResourceScope;
+import io.apicurio.scope.ResourceScopeProvider;
 import io.kroxylicious.authorizer.service.Action;
 import io.kroxylicious.authorizer.service.AuthorizeResult;
 import io.kroxylicious.authorizer.service.Authorizer;
 import io.kroxylicious.authorizer.service.ResourceType;
 import io.kroxylicious.identity.Identity;
+import io.kroxylicious.identity.Subject;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,11 +33,11 @@ import org.slf4j.LoggerFactory;
  *     looks like an access control cannot silently be ignored;</li>
  *     <li>reloads the file when it changes. A file that cannot be loaded leaves the previous rules
  *     in effect, so a bad edit never locks everyone out;</li>
- *     <li>provides the scope of the rules for search pre-filtering ({@link #scope}), from the same
- *     version of the file as the point decisions.</li>
+ *     <li>provides the scope of the rules for search pre-filtering, as a
+ *     {@link ResourceScopeProvider}, from the same version of the file as the point decisions.</li>
  * </ul>
  */
-public final class AccessRulesAuthorizer implements Authorizer {
+public final class AccessRulesAuthorizer implements Authorizer, ResourceScopeProvider {
 
     private static final Logger LOG = LoggerFactory.getLogger(AccessRulesAuthorizer.class);
 
@@ -103,10 +107,15 @@ public final class AccessRulesAuthorizer implements Authorizer {
 
     /**
      * @return the names of {@code operation}'s resource type that the rules allow {@code subject}
-     *         to perform {@code operation} on, exactly as {@link #authorize} decides them
+     *         to perform {@code operation} on, exactly as {@link #authorize} decides them; forbidden
+     *         for a resource type this authorizer does not enforce
      */
-    public SearchFilterData scope(Identity subject, ResourceType<?> operation) {
-        return rules.scope().scope(subject, operation);
+    @Override
+    public CompletionStage<ResourceScope> resolveScope(Subject subject, ResourceType<?> operation) {
+        if (!supportedResourceTypes.contains(((Enum<?>) operation).getDeclaringClass())) {
+            return CompletableFuture.completedStage(ResourceScope.forbidden());
+        }
+        return CompletableFuture.completedStage(rules.scope().scope(subject, operation));
     }
 
     @Override

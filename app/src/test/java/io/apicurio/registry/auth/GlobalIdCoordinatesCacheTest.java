@@ -7,7 +7,6 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -89,8 +88,38 @@ class GlobalIdCoordinatesCacheTest {
         // Compile-time guarantee, documented here: GlobalIdCoordinates has exactly three
         // components (group, artifact, version), so a caller can never read state, labels,
         // name, description, owner, or timestamps through this cache, however it is resolved.
-        GlobalIdCoordinates coordinates = new GlobalIdCoordinates("g", "a", "1");
-        assertTrue(coordinates.getClass().getRecordComponents().length == 3,
+        assertEquals(3, GlobalIdCoordinates.class.getRecordComponents().length,
                 "GlobalIdCoordinates must only ever hold the three immutable coordinates");
+    }
+
+    @Test
+    void invalidateAllForcesEveryEntryToBeReResolved() {
+        GlobalIdCoordinatesCache cache = newCache(true);
+        RegistryStorage storage = mock(RegistryStorage.class);
+        when(storage.getArtifactVersionMetaData(1L)).thenReturn(vmd("g", "a", "1"));
+        when(storage.getArtifactVersionMetaData(2L)).thenReturn(vmd("g", "b", "1"));
+
+        assertEquals("a", cache.resolve(storage, 1L).orElseThrow().artifactId());
+        assertEquals("b", cache.resolve(storage, 2L).orElseThrow().artifactId());
+        verify(storage, times(1)).getArtifactVersionMetaData(1L);
+        verify(storage, times(1)).getArtifactVersionMetaData(2L);
+
+        cache.invalidateAll();
+
+        // An import can rebind a global ID to different coordinates (preserveGlobalId reuse of a
+        // deleted ID): after invalidateAll(), every previously-cached ID must be read from storage
+        // again, not served from the stale entry.
+        when(storage.getArtifactVersionMetaData(1L)).thenReturn(vmd("g", "rebound", "1"));
+        assertEquals("rebound", cache.resolve(storage, 1L).orElseThrow().artifactId());
+        verify(storage, times(2)).getArtifactVersionMetaData(1L);
+        assertEquals("b", cache.resolve(storage, 2L).orElseThrow().artifactId());
+        verify(storage, times(2)).getArtifactVersionMetaData(2L);
+    }
+
+    @Test
+    void invalidateAllIsANoOpWhenDisabled() {
+        GlobalIdCoordinatesCache cache = newCache(false);
+        // Must not throw: the cache field is never initialized when disabled.
+        cache.invalidateAll();
     }
 }

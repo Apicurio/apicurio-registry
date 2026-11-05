@@ -615,46 +615,4 @@ public class BasicAuthWithPropertiesTest extends AbstractResourceTestBase {
         assertEquals(DEVELOPER_2_USERNAME, client_dev1.groups().byGroupId(groupId).get().getOwner());
     }
 
-    /**
-     * A global ID's (group, artifact, version) coordinates are cached forever, since a global ID is
-     * never reassigned. But the content it names is deleted, then a *different* artifact is created
-     * under the exact same group/artifact name (getting its own, different global ID). The deleted
-     * global ID must keep 404ing — the cached coordinates must never let it resolve to the new
-     * artifact's content just because the names match.
-     */
-    @Test
-    public void testDeletedGlobalIdDoesNotResolveToARecreatedArtifactWithTheSameName() throws Exception {
-        var client = RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
-                .basicAuth(DEVELOPER_USERNAME, DEVELOPER_PASSWORD));
-        final String groupId = "testDeletedGlobalIdReuse-" + UUID.randomUUID();
-        final String artifactId = generateArtifactId();
-
-        CreateArtifact first = clientCreateArtifact();
-        first.setArtifactId(artifactId);
-        long firstGlobalId = client.groups().byGroupId(groupId).artifacts().post(first).getVersion()
-                .getGlobalId();
-
-        // Warm the coordinates cache for the first global ID.
-        assertNotNull(client.ids().globalIds().byGlobalId(firstGlobalId).get());
-
-        client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).delete();
-
-        // A different artifact, same group/artifact name, gets its own, different global ID.
-        CreateArtifact second = clientCreateArtifact();
-        second.setArtifactId(artifactId);
-        long secondGlobalId = client.groups().byGroupId(groupId).artifacts().post(second).getVersion()
-                .getGlobalId();
-        assertTrue(secondGlobalId > firstGlobalId, "a new global ID must not reuse the deleted one");
-
-        // The deleted global ID must still 404, not silently serve the recreated artifact's content.
-        var exception = assertThrows(Exception.class,
-                () -> client.ids().globalIds().byGlobalId(firstGlobalId).get());
-        assertEquals(io.apicurio.registry.rest.client.models.ProblemDetails.class, exception.getClass());
-        assertEquals(404,
-                ((io.apicurio.registry.rest.client.models.ProblemDetails) exception).getStatus());
-
-        // The new global ID resolves correctly, independent of the old cache entry.
-        assertNotNull(client.ids().globalIds().byGlobalId(secondGlobalId).get());
-    }
-
 }

@@ -23,9 +23,15 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_STO
  * <p>
  * A global ID is assigned once, from a monotonic sequence that is never rewound below the highest
  * ID already issued (see {@code SqlSequenceRepository.resetGlobalId}), so a resolved entry is never
- * invalidated: deleting the version it names does not change what the ID once named, and nothing
- * else can ever be assigned that same ID. A global ID that does not resolve (not yet assigned, or
- * never will be) is not cached, since nothing here guarantees it never will.
+ * individually invalidated: deleting the version it names does not change what the ID once named,
+ * and nothing allocated through that sequence can ever reuse the same ID. A global ID that does not
+ * resolve (not yet assigned, or never will be) is not cached, since nothing here guarantees it never
+ * will.
+ * <p>
+ * Data import with {@code preserveGlobalId} is the one path that bypasses the sequence and writes
+ * entities under their originally exported global IDs, which can rebind an ID that this process
+ * already cached (if it was previously assigned, then deleted, then reimported for different
+ * content). {@link #invalidateAll()} must be called once such an import completes.
  * <p>
  * Bounded by entry count ({@link #maxSize}), not by a TTL: unlike {@link
  * io.apicurio.registry.storage.decorator.ContentCacheDecorator}'s hot-path cache, there is no
@@ -83,6 +89,17 @@ public class GlobalIdCoordinatesCache {
             return Optional.of(new GlobalIdCoordinates(vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion()));
         } catch (NotFoundException e) {
             return Optional.empty();
+        }
+    }
+
+    /**
+     * Flushes every cached entry. Must be called after a data import or upgrade that may have
+     * written entities under preserved (reused) global IDs, since those can rebind an ID this
+     * process has already cached for different coordinates.
+     */
+    public void invalidateAll() {
+        if (enabled) {
+            cache.invalidateAll();
         }
     }
 }

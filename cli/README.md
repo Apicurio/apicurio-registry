@@ -588,6 +588,18 @@ acr search version --name <name> --group <group-id> --artifact <artifact-id>
 
 All filters are optional and can be combined. Additional filters include `--description`, `--type`, `--state`, `--label`, `--global-id`, `--content-id`. Pagination (`--page`, `--size`) and ordering (`--order`, `--order-by`) are supported.
 
+### Importing tools from an MCP server (experimental)
+
+`acr mcp import` imports the tools of a running MCP server into an `MCP_SERVER` artifact: each tool becomes an `MCP_TOOL` artifact, subject to its rules, and a new version of the server artifact references them. The registry must have MCP import enabled and allow the server's host (`apicurio.mcp-import.*`).
+
+```bash
+acr mcp import <server-artifact-id> --url https://mcp.example.com/mcp [--group <group-id>] [--tool-group <group-id>] [--dry-run] [-o json]
+```
+
+The output lists the result for each tool (`CREATED`, `NEW_VERSION`, `UNCHANGED`, `REJECTED`, `REMOVED`), with rule violations for rejected tools. Rejected tools are a reported result, so the command still exits with 0.
+
+Headers for the MCP server, such as credentials, are never taken as plain options, which would end up in shell history. Use `--header-file <file>` (one `Name: value` per line, `-` for stdin) or `--header-env Name=VARIABLE`. With `--verbose`, this request is not logged, because its body carries the headers.
+
 ### Interactive mode (experimental)
 
 The `acr artifact` and `acr search artifact` commands accept `--interactive`, which opens the results in a selectable terminal table instead of printing a static listing. Interactive mode is experimental and subject to backwards-incompatible change or removal. It requires an interactive terminal (TTY); with redirected input the command fails with an error.

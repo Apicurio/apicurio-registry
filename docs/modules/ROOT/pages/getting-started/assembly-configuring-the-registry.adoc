@@ -6,34 +6,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can configure your {registry} deployment, including the experimental features gate, file-based secrets, HTTP caching, the web console, logging, health checks, observability, and the storage content cache.
+You can configure your {registry} deployment, including file-based secrets, HTTP caching, the web console, logging, health checks, observability, and the storage content cache.
 
 NOTE: For a list of all available configuration options, see {registry-config-reference}.
-
-// con-registry-experimental-features
-[id="registry-experimental-features_{context}"]
-== Experimental features
-
-:_mod-docs-content-type: CONCEPT
-
-[role="_abstract"]
-{registry} includes some features that are experimental. An experimental feature is disabled by default and can change or be removed in a later release. The `apicurio.features.experimental.enabled` configuration property is a global gate for all experimental features: {registry} does not start when an experimental feature is enabled while the gate is disabled.
-
-The gate is `false` by default. At startup, before it initializes storage, {registry} checks every experimental property and the configured storage kind. If an experimental feature is enabled and the gate is not, startup fails with the following message, which lists each enabled experimental property with its description:
-
-----
-The following experimental features are enabled but the experimental features gate ('apicurio.features.experimental.enabled') is not enabled. Either enable the experimental features gate or disable the following properties: apicurio.a2a.enabled (Enable A2A protocol support)
-----
-
-To resolve the failure, set `apicurio.features.experimental.enabled=true`, or the `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true` environment variable, or disable the listed features.
-
-IMPORTANT: {registry} 3.4 and later enforce the gate at startup. Releases 3.2 and 3.3 defined the property but did not check it, so a deployment that enabled an experimental feature without the gate started normally. Before you upgrade such a deployment, set the gate or disable the feature.
-
-The {registry} configuration reference marks each experimental property with _(experimental)_ at the end of its description, for example, `apicurio.a2a.enabled`, `apicurio.ai-catalog.enabled`, `apicurio.ard.enabled`, `apicurio.mcp-tools.enabled`, `apicurio.iceberg.enabled`, and `apicurio.usage.telemetry.enabled`. The GitOps and KubernetesOps storage variants, selected with `apicurio.storage.kind=gitops` or `apicurio.storage.kind=kubernetesops`, are also experimental and require the gate.
-
-[role="_additional-resources"]
-.Additional resources
-* xref:getting-started/assembly-config-reference.adoc[]
 
 // proc-configuring-file-based-secrets
 [id="configuring-file-based-secrets_{context}"]
@@ -290,10 +265,6 @@ environment:
   QUARKUS_OTEL_TRACES_SAMPLER: "parentbased_traceidratio"
   QUARKUS_OTEL_TRACES_SAMPLER_ARG: "0.1"
 ----
-
-ifndef::service-registry-downstream[]
-If you deploy {registry} with the {operator}, you can configure the same settings in the `spec.app.otel` section of the `ApicurioRegistry3` custom resource instead of setting environment variables. See xref:getting-started/assembly-operator-config-reference.adoc#otel-spec_{context}[OTelSpec].
-endif::[]
 
 When you enable the OpenTelemetry SDK and use JSON logging format, {registry} automatically includes trace context (trace ID and span ID) in log entries. You can then correlate logs and traces.
 

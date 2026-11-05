@@ -131,18 +131,16 @@ The PROMPT_TEMPLATE schema is aligned with the Microsoft Prompty specification f
 
 |`model`
 |`model`
-|Model configuration. Stored, not interpreted by {registry}.
+|Model configuration
 
 |`authors`
 |`authors`
-|Contributors list. Stored, not interpreted by {registry}.
+|Contributors list
 
 |`tags`
 |`tags`
-|Categorization. Stored, not interpreted by {registry}.
+|Categorization
 |===
-
-NOTE: {registry} accepts and stores the `templateFormat`, `model`, `authors`, and `tags` fields, but does not interpret them, and the JSON Schema served at `/.well-known/schemas/prompt-template/v1` does not declare them. Whatever `templateFormat` you set, the render endpoint applies only its own grammar: `+{{variable}}+` placeholders and the conditional blocks described in xref:llm-artifact-types-prompt-rendering-service_{context}[]. Set `templateFormat` to `mustache`, the value that the shipped examples use.
 
 .PROMPT_TEMPLATE with Prompty-aligned fields
 [source,yaml]
@@ -159,7 +157,7 @@ tags:
   - sentiment
   - nlp
 
-templateFormat: mustache
+templateFormat: mustache  # or jinja2, handlebars
 
 # Model configuration (Prompty-aligned)
 model:
@@ -317,7 +315,7 @@ mcp:
 |MCP arguments (auto-derived from `variables` if not specified)
 |===
 
-The `mcp/` module is the {registry} MCP server. The following components of the module serve PROMPT_TEMPLATE artifacts as MCP prompts:
+The `mcp/` module contains an MCP Server for registry prompts:
 
 .MCP server components
 [%header,cols="2,4"]
@@ -335,12 +333,6 @@ The `mcp/` module is the {registry} MCP server. The following components of the 
 [role="_additional-resources"]
 .Additional resources
 * link:https://modelcontextprotocol.io/[Model Context Protocol (MCP)]
-ifndef::service-registry-downstream[]
-* xref:getting-started/assembly-mcp-server-integration.adoc#mcp-server-available-tools_{context}[Available MCP tools]
-endif::[]
-ifdef::service-registry-downstream[]
-* xref:mcp-server-available-tools_{context}[Available MCP tools]
-endif::[]
 
 // ref-llm-artifact-types-mcp-tools-and-prompts
 [id="llm-artifact-types-mcp-tools-and-prompts_{context}"]
@@ -349,7 +341,7 @@ endif::[]
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The MCP Server exposes the following prompt-template tools and MCP prompts through the MCP protocol.
+The MCP Server exposes the following tools and prompts for working with prompt templates through the MCP protocol.
 
 .MCP tools
 [%header,cols="2,4"]
@@ -375,9 +367,6 @@ The MCP Server exposes the following prompt-template tools and MCP prompts throu
 
 |`render_registry_prompt`
 |Interactive prompt for rendering templates from the registry
-
-|`create_new_artifact_version`
-|Guided workflow for creating artifact versions of any type, including draft mode support and content iteration. This prompt is not specific to `PROMPT_TEMPLATE` artifacts.
 |===
 
 // ref-llm-artifact-types-mcp-server-usage
@@ -445,7 +434,7 @@ interface PromptTemplate {
     // Prompty-aligned fields
     authors?: string[];         // Contributors list
     tags?: string[];            // Categorization tags
-    templateFormat?: string;    // Stored, not interpreted; use 'mustache'
+    templateFormat?: string;    // 'mustache' | 'jinja2' | 'handlebars'
     model?: ModelConfiguration; // Model configuration
 
     // Input/output definitions (Prompty: inputs/outputs)
@@ -740,7 +729,7 @@ The `PromptRenderingService` class (`app/src/main/java/io/apicurio/registry/agen
 |Replaces `{\{variable}}` placeholders with provided values
 
 |Type validation
-|Validates that variable values match their defined types. For the `integer` type, a whole-number decimal such as `5.0`, whether supplied by the caller or declared as a default, is accepted and rendered as `5`. A fractional value, or a whole number outside the 64-bit signed integer range, is reported as a type mismatch.
+|Validates that variable values match their defined types
 
 |Required field checking
 |Reports missing required variables as validation errors
@@ -750,22 +739,9 @@ The `PromptRenderingService` class (`app/src/main/java/io/apicurio/registry/agen
 
 |Range validation
 |Validates numeric values against minimum/maximum constraints
-
-|Conditional blocks
-|Renders or removes `+{{#if variable}}+` and `+{{#unless variable}}+` blocks, depending on whether the variable has a truthy value
 |===
 
 A variable placeholder is a word-character name with optional surrounding whitespace, so `{\{name}}` and `{{ name }}` both resolve to the variable `name`. The render endpoint does not resolve a name that contains any other character, for example `{{user.name}}` or `{\{my-var}}`, and leaves it in the rendered output as literal text. Earlier versions of the render endpoint resolved such names. The MCP prompt converter also resolved a placeholder such as `{{user.name}}` when you supplied an argument of the same name. Both now use the same grammar as the prompt template validity rule.
-
-The render endpoint also evaluates the following conditional blocks, where `variable` is a word-character name:
-
-* `+{{#if variable}}...{{/if}}+`: renders the content when the variable is truthy.
-* `+{{#if variable}}...{{else}}...{{/if}}+`: renders the first branch when the variable is truthy, and the second branch otherwise.
-* `+{{#unless variable}}...{{/unless}}+`: renders the content when the variable is falsy.
-
-A value is truthy when it is present, is not `false`, and is not an empty string. The render endpoint resolves conditional blocks before it substitutes variable placeholders.
-
-NOTE: The MCP server tools `get_mcp_prompt` and `render_prompt_template`, and the `render_registry_prompt` MCP prompt, recognize only plain `+{{#if variable}}...{{/if}}+` blocks. They treat an if/else block as a plain if block: a truthy variable renders both branches and the literal `+{{else}}+`, and a falsy variable removes the whole block. They leave `+{{#unless variable}}...{{/unless}}+` blocks in the rendered text, and they substitute variable placeholders before they resolve conditional blocks.
 
 When validation fails, the response includes validation errors:
 

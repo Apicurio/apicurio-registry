@@ -264,8 +264,7 @@ jobs:
           decide run-sdk         "$run_tests" "$IS_PUSH" "$SDK" "$JAVA" "$CI"
           decide run-cli         "$run_tests" "$CLI"
           decide run-ard-conformance "$run_tests" "$ARD"
-          # Also on Java changes: a Registry change can break the quickstart stack.
-          decide run-agent-quickstart "$run_tests" "$AGENT_QUICKSTART" "$JAVA"
+          decide run-agent-quickstart "$run_tests" "$AGENT_QUICKSTART"
           decide run-operator        "$run_tests" "$IS_PUSH" "$OPERATOR" "$CI_OPERATOR"
           decide run-console-plugin  "$run_tests" "$IS_PUSH" "$CONSOLE_PLUGIN" "$CI"
           decide run-go-sdk-freshness "$run_tests" "$GO_SDK_GEN" "$CI"

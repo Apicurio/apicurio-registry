@@ -419,21 +419,79 @@ check "v2 no affected modules: states the reactor stays whole" \
 check "v2 no affected modules: draws no saving table" \
   "$work/v2-noaffect.json" lacks "$table"
 
-# --- a report-shaped trigger, from writeFullBuildReport ----------------------
-# The real producer shape for a scalpel.fullBuildTriggers match: no status
-# field and no counts. Unreachable in this repo today because disableTriggers
-# subsumes the default fullBuildTriggers list and is checked first, but one
-# maven.config edit away, so the branch that handles it is kept honest here.
-jq '.fullBuildTriggered = true | .triggerFile = "pom.xml"
-    | .changedFiles = ["pom.xml"]
-    | del(.excludedUpstreamCount, .buildSetSize, .reactorModuleCount, .testedModulesCount, .affectedModules, .skippedModules)' \
-  "$work/v2-full.json" > "$work/v2-trigger.json"
+# --- unowned root files, Scalpel 0.5.0 (upstream #229) ------------------------
+# writeFullBuildReport's shape, verbatim from a 0.5.0 mode=report run on
+# README.md plus an app source change against a local probe base branch. The
+# variants below are derived from it.
+cat > "$work/v2-rootfile.json" <<'EOF'
+{"version":"2","scalpelVersion":"0.5.0","baseBranch":"probe-base-050","decisionId":"87bc0f6a66912f7daba9c98d0400f8822a1811b616e3533beb2773c050b66562","mergeBaseId":"294ec47402fb35810c8682c68b0a174530dc6781","headId":"4aba6b023564bda65cdb4da20a70b7ec13d9070d","configFingerprint":"baseBranch=70726f62652d626173652d303530;head=48454144;alsoMake=74727565;alsoMakeDependents=74727565;fullBuildTriggers=2e6d766e2f2a2a;excludePaths=2e636c617564652f2a2a2c2e676974686f6f6b732f2a2a2c2e6f70656e636f64652f2a2a2c6164722f2a2a2c6272616e64696e672f2a2a2c646f63732d706c6179626f6f6b2f2a2a2c646f63732f2a2a2c6964652d636f6e6669672f2a2a2c707974686f6e2d73646b2f2a2a2c747970657363726970742d73646b2f2a2a2c75692f2a2a;includePaths=;disableTriggers=2e6769746875622f2a2a2c2e6d766e2f2a2a2c6d766e772a;forceBuildModules=;maxResourceFileSize=3130343835373630;uncommitted=66616c7365;untracked=66616c7365;","fullBuildTriggered":true,"triggerFile":"README.md","changedFiles":["README.md","app/src/main/java/io/apicurio/registry/storage/impl/sql/CommonSqlStatements.java"],"changedProperties":[],"changedManagedDependencies":[],"changedManagedPlugins":[],"excludedUpstreamCount":0,"affectedModules":[]}
+EOF
+check "root-file report: reports a full build" \
+  "$work/v2-rootfile.json" has "**full build**"
+check "root-file report: names the file" \
+  "$work/v2-rootfile.json" has '`README.md`'
+check "root-file report: names the root-file cause" \
+  "$work/v2-rootfile.json" has "root-level files that no module owns"
+check "root-file report: builds no table" \
+  "$work/v2-rootfile.json" lacks "$table"
+
+# Two unowned root files, joined with ", " as 0.5.0 writes them. This tests the
+# script's parsing of the joined string, not Scalpel's ordering.
+jq '.triggerFile = "LICENSE, README.md" | .changedFiles = ["LICENSE"] + .changedFiles' \
+  "$work/v2-rootfile.json" > "$work/v2-rootfiles.json"
+check "root-file report: names both files" \
+  "$work/v2-rootfiles.json" has '`LICENSE, README.md`'
+check "root-file report: two files are still the root-file cause" \
+  "$work/v2-rootfiles.json" has "root-level files that no module owns"
+
+# A scalpel.fullBuildTriggers match writes the same shape with one path. Not
+# configured here, but a path with a slash must not be called an unowned root
+# file, which is what a narrowed disableTriggers would expose (.mvn/** is the
+# 0.5.0 default trigger).
+jq '.triggerFile = ".mvn/maven.config" | .changedFiles = [".mvn/maven.config"]' \
+  "$work/v2-rootfile.json" > "$work/v2-trigger.json"
 check "trigger report: reports a full build" \
   "$work/v2-trigger.json" has "**full build**"
-check "trigger report: names the file" \
-  "$work/v2-trigger.json" has '`pom.xml`'
+check "trigger report: names the trigger cause" \
+  "$work/v2-trigger.json" has "scalpel.fullBuildTriggers"
+check "trigger report: does not blame a root file" \
+  "$work/v2-trigger.json" lacks "root-level files that no module owns"
+check "trigger report: names the trigger path" \
+  "$work/v2-trigger.json" has '`.mvn/maven.config`'
 check "trigger report: builds no table" \
   "$work/v2-trigger.json" lacks "$table"
+
+# pom.xml has no slash but can only come from a fullBuildTriggers match:
+# Scalpel classifies pom changes before it collects unowned root files.
+jq '.triggerFile = "pom.xml" | .changedFiles = ["pom.xml"]' \
+  "$work/v2-rootfile.json" > "$work/v2-pomtrigger.json"
+check "pom.xml trigger: names the trigger cause" \
+  "$work/v2-pomtrigger.json" has "scalpel.fullBuildTriggers"
+check "pom.xml trigger: does not blame an unowned root file" \
+  "$work/v2-pomtrigger.json" lacks "root-level files that no module owns"
+check "pom.xml trigger: names the trigger" \
+  "$work/v2-pomtrigger.json" has 'Trigger: `pom.xml`'
+
+# A triggerFile that is not a string must not stop the never-fail contract.
+for odd in '["README.md"]' '5' 'true' '{"a":1}'; do
+  jq --argjson v "$odd" '.triggerFile = $v' "$work/v2-rootfile.json" > "$work/v2-oddtrigger.json"
+  check "full-build report with triggerFile $odd: degrades to unknown cause" \
+    "$work/v2-oddtrigger.json" has "records no trigger file"
+done
+
+# No triggerFile: the cause is unknown, and must not print as a file name.
+jq '.triggerFile = null' "$work/v2-rootfile.json" > "$work/v2-notrigger.json"
+check "full-build report without trigger: says the cause is unknown" \
+  "$work/v2-notrigger.json" has "records no trigger file"
+check "full-build report without trigger: prints no file span" \
+  "$work/v2-notrigger.json" lacks "Files:"
+check "full-build report without trigger: prints no trigger span" \
+  "$work/v2-notrigger.json" lacks "Trigger:"
+
+# An empty string is the one value that reaches the unknown arm directly.
+jq '.triggerFile = ""' "$work/v2-rootfile.json" > "$work/v2-emptytrigger.json"
+check "full-build report with empty trigger: says the cause is unknown" \
+  "$work/v2-emptytrigger.json" has "records no trigger file"
 
 # --- degraded inputs ---------------------------------------------------------
 check "missing report: explains rather than fails" \

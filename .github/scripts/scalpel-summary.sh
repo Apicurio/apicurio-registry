@@ -24,8 +24,15 @@ report=${1:?usage: scalpel-summary.sh <report.json>}
 # how an empty trim is applied to the session, which mode=report never reaches.
 # 0.4.3 fixes a module-attribution bug for deleted modules (upstream #216) and
 # ships the same schema 2 report shape as 0.4.2.
+# 0.5.0 ships the same scalpel-report-v2.schema.json as 0.4.3, sha256
+# ac9efce1c237ec0679bd2183e87f7762025f6c170a968b6366f8353a56cea308 in both core
+# jars from Maven Central, and makes a changed root file that no module owns
+# write the full-build report shape handled below (upstream #229). The schema
+# still describes triggerFile as the one file that matched fullBuildTriggers; on
+# that path it holds the unowned root files joined with ", ", so identical bytes
+# do not mean identical meaning for that field.
 # shellcheck disable=SC2034  # consumed by scalpel-summary.test.sh, not here
-known_schema_2="0.4.1 0.4.2 0.4.3"
+known_schema_2="0.4.1 0.4.2 0.4.3 0.5.0"
 
 # The value this repository pins in .mvn/maven.config for the empty-reactor
 # reasons below. Read by scalpel-summary.test.sh, which cross-checks it against
@@ -189,15 +196,30 @@ else
       esac
 
     elif [ "$full_triggered" = "true" ]; then
-      # Not the skip path: this is writeFullBuildReport's shape, produced when a
-      # changed file matches scalpel.fullBuildTriggers. Unreachable today because
-      # this repo's disableTriggers subsumes the default fullBuildTriggers list
-      # and is checked first, but one maven.config edit away: adding pom.xml to
-      # scalpel.fullBuildTriggers would route here. It is a live outcome, not
-      # future-proofing, so it says a true thing instead of printing a table.
-      trigger=$(jq -r '.triggerFile // "not recorded"' "$report")
-      echo "A changed file matched a full-build trigger, so the projection is a"
-      echo "**full build** with no reduced build set. Trigger: \`$(sanitize "$trigger")\`."
+      # Not the skip path: writeFullBuildReport's shape, for a
+      # scalpel.fullBuildTriggers match or, from 0.5.0, for changed root files no
+      # module owns (upstream #229). The report has no cause field (REG-516), so
+      # a value with a slash, or pom.xml, which Scalpel classifies before root
+      # files, is a trigger match and any other value is the joined root-file
+      # list. Another slash-free trigger pattern would be misread; none is
+      # configured. A non-string triggerFile is treated as missing.
+      trigger=$(jq -r 'if (.triggerFile | type) == "string" then .triggerFile else "" end' "$report")
+      case "$trigger" in
+        "")
+          echo "The report projects a **full build** with no reduced build set but"
+          echo "records no trigger file, so the cause is not known from the report."
+          ;;
+        */* | pom.xml)
+          echo "A changed file matched \`scalpel.fullBuildTriggers\`, so the"
+          echo "projection is a **full build** with no reduced build set."
+          echo "Trigger: \`$(sanitize "$trigger")\`."
+          ;;
+        *)
+          echo "One or more changed root-level files that no module owns forced a"
+          echo "full build, so the projection is a **full build** with no reduced"
+          echo "build set. Files: \`$(sanitize "$trigger")\`."
+          ;;
+      esac
 
     else
       # Counts are floored once and reused. A null or non-numeric count makes the
@@ -270,8 +292,8 @@ else
           echo "neither \`scalpel.includePaths\` nor a \`-pl\` selection, so the"
           echo "no-affected-modules decision is the only producer of this shape"
           echo "here: changes no module in this reactor owns land in it, which"
-          echo "means root-level files no pom names and paths under modules"
-          echo "outside the default reactor such as \`operator\` and \`mcp\`."
+          echo "means paths under modules outside the default reactor such as"
+          echo "\`operator\` and \`mcp\`."
         else
           echo "| | modules |"
           echo "| --- | ---: |"

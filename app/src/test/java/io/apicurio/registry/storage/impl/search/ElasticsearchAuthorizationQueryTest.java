@@ -2,9 +2,9 @@ package io.apicurio.registry.storage.impl.search;
 
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
-import io.apicurio.authz.SearchFilterData;
 import io.apicurio.registry.storage.dto.AuthorizationFilter;
 import io.apicurio.registry.storage.dto.AuthorizationNames;
+import io.apicurio.scope.ResourceScope;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -52,8 +52,8 @@ class ElasticsearchAuthorizationQueryTest {
     void queryMatchesReferenceSemanticsForEveryDocument() {
         for (AuthorizationFilter filter : filters()) {
             Query query = service.buildAuthorizationQuery(filter);
-            SearchFilterData reference = new SearchFilterData(filter.allowAll(), filter.allowExact(),
-                    filter.allowPrefix(), filter.denyExact(), filter.denyPrefix());
+            ResourceScope reference = ResourceScope.of(filter.allowAll(), filter.allowExact(),
+                    filter.allowPrefix(), Set.of(), filter.denyExact(), filter.denyPrefix(), Set.of());
             for (Map<String, String> doc : DOCS) {
                 String name = AuthorizationNames.artifact(doc.get("groupId"), doc.get("artifactId"));
                 boolean expected = reference.matches(name) || filter.ownedArtifacts().contains(name);

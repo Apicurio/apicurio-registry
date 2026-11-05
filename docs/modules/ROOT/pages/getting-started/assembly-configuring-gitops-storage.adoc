@@ -10,7 +10,7 @@ Configure {registry} to use a Git repository as the source of registry data. Wit
 
 == Prerequisites
 
-* You have a way to run the {registry} container image, for example Docker, Podman, or a {kubernetes} cluster.
+* You have a way to run the {registry} container image, for example Docker, Podman, or {kubernetes-with-article} cluster.
 * You have a Git repository for registry data.
 
 //INCLUDES
@@ -371,7 +371,7 @@ endif::[]
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following tables describe the configuration properties of the registry for GitOps storage, and the environment variables of the GitOps sync container.
+You configure GitOps storage with {registry} configuration properties for the registry and with environment variables for the GitOps sync container.
 
 All GitOps storage properties are experimental and require `apicurio.features.experimental.enabled=true`.
 

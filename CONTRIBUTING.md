@@ -68,6 +68,15 @@ If you use different computers to contribute, please make sure the name is the s
 
 We may use this information to acknowledge your contributions!
 
+### Choosing what to work on
+
+We encourage you to work on the parts of Apicurio Registry you find interesting. Before you report an issue, or start working on one, make sure it fits the project's priorities and direction:
+
+- **Bug fixes and minor issues** that the maintainers already know about don't need any discussion first. Claim the issue and go ahead.
+- **Larger features and significant changes in behaviour** should be discussed with the maintainers before you write any code. Describe what you want to do in the issue and wait for a maintainer to agree. This makes sure that your effort isn't spent on something the project considers low priority, or on a feature that doesn't fit the project's requirements or direction and so can't be merged.
+
+If you're not sure which of these applies, ask in the issue.
+
 ### Claiming an issue
 
 Before you start working on an issue, let us know so we don't end up with duplicate effort:

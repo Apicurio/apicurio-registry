@@ -28,6 +28,8 @@ jobs:
       branch: ${{ steps.config.outputs.branch }}
       run-tests: ${{ steps.config.outputs.run-tests }}
       package-version: ${{ steps.config.outputs.package-version }}
+      previous-version: ${{ steps.config.outputs.previous-version }}
+      rolling: ${{ steps.config.outputs.rolling }}
     steps:
 
       - name: Fetch Release Details
@@ -83,6 +85,34 @@ jobs:
               exit 1
           fi
 
+      # Derive the upgrade path from the released tags rather than from the branch or the
+      # Makefile: a maintenance branch's Makefile can be stale when the previous patch
+      # was released from main (3.3.4 replaced 3.3.2 instead of 3.3.3), and a maintenance
+      # release can still be the newest release, which must also go to the rolling channel.
+      - name: Determine upgrade path and channels
+        working-directory: registry
+        run: |
+          MAJOR="${RELEASE_VERSION%%.*}"
+          RELEASES=$( (git tag -l "$MAJOR.*"; echo "$RELEASE_VERSION") | grep -E "^$MAJOR\.[0-9]+\.[0-9]+$" | sort -Vu)
+          if ! grep -qx "$RELEASE_VERSION" <<< "$RELEASES"; then
+            echo "ERROR: Release version $RELEASE_VERSION is not of the form $MAJOR.Y.Z"
+            exit 1
+          fi
+          PREVIOUS=$(awk -v r="$RELEASE_VERSION" '$0 == r { exit } { p = $0 } END { print p }' <<< "$RELEASES")
+          if [ -z "$PREVIOUS" ]; then
+            echo "ERROR: No release before $RELEASE_VERSION found in the tags"
+            exit 1
+          fi
+          NEWEST=$(tail -1 <<< "$RELEASES")
+          ROLLING=false
+          if [ "$NEWEST" = "$RELEASE_VERSION" ]; then
+            ROLLING=true
+          fi
+          echo "Previous release: $PREVIOUS, newest release: $NEWEST, rolling channel: $ROLLING"
+          # make reads PREVIOUS_PACKAGE_VERSION from the environment (the Makefile uses ?=).
+          echo "PREVIOUS_PACKAGE_VERSION=$PREVIOUS" >> $GITHUB_ENV
+          echo "ROLLING=$ROLLING" >> $GITHUB_ENV
+
       - name: Configure outputs
         id: config
         working-directory: registry/operator
@@ -91,6 +121,8 @@ jobs:
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
           echo "run-tests=$RUN_TESTS" >> $GITHUB_OUTPUT
           echo "package-version=$(make VAR=LC_VERSION variable-get)" >> $GITHUB_OUTPUT
+          echo "previous-version=$PREVIOUS_PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "rolling=$ROLLING" >> $GITHUB_OUTPUT
 
       - name: Show make configuration
         working-directory: registry/operator
@@ -100,7 +132,7 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: temurin
           cache: maven
 
@@ -127,7 +159,7 @@ jobs:
         working-directory: registry/operator
         run: |
           ROLLING_CHANNEL_ARG=""
-          if [ "$BRANCH" = "main" ]; then
+          if [ "$ROLLING" = "true" ]; then
             ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
           fi
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION $ROLLING_CHANNEL_ARG bundle
@@ -136,7 +168,7 @@ jobs:
         working-directory: registry/operator
         run: |
           ROLLING_CHANNEL_ARG=""
-          if [ "$BRANCH" = "main" ]; then
+          if [ "$ROLLING" = "true" ]; then
             ROLLING_CHANNEL_ARG="ROLLING_CHANNEL=3.x"
           fi
           make OPERAND_IMAGE_TAG=$RELEASE_VERSION ADDITIONAL_CATALOG_IMAGE_TAG=latest $ROLLING_CHANNEL_ARG catalog
@@ -226,7 +258,7 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: temurin
           cache: maven
 
@@ -269,6 +301,7 @@ jobs:
       RELEASE_VERSION: ${{ needs.release-build.outputs.release-version }}
       BRANCH: ${{ needs.release-build.outputs.branch }}
       PACKAGE_VERSION: ${{ needs.release-build.outputs.package-version }}
+      ROLLING: ${{ needs.release-build.outputs.rolling }}
     steps:
 
       - name: Configure env. variables
@@ -295,7 +328,7 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
         with:
-          java-version: '21'
+          java-version: '25'
           distribution: temurin
           cache: maven
 
@@ -401,7 +434,7 @@ jobs:
           MINOR_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
           CSV_NAME="$PKG_NAME.v$PACKAGE_VERSION"
 
-          if [ "$BRANCH" = "main" ]; then
+          if [ "$ROLLING" = "true" ]; then
             CHANNELS="3.x $MINOR_CHANNEL"
           else
             CHANNELS="$MINOR_CHANNEL"
@@ -524,21 +557,37 @@ jobs:
             make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
             make release-catalog-template-update
           else
-            # Maintenance release from an older minor — only update its channel
-            # and add the bundle image. Do NOT touch PREVIOUS_PACKAGE_VERSION,
-            # the rolling channel, or other minor channels on main.
+            # Maintenance release from an older minor — only update its channel (and the
+            # rolling channel if it is the newest release) and add the bundle image.
+            # Do NOT touch PREVIOUS_PACKAGE_VERSION or other minor channels on main.
             CATALOG_DIR=$(make VAR=CATALOG_DIR variable-get)
             CATALOG_FILE="$CATALOG_DIR/catalog.template.yaml"
             PKG_NAME=$(make VAR=PACKAGE_NAME variable-get)
             LC_VERSION=$(echo "$PACKAGE_VERSION" | tr A-Z a-z)
-            PREV_PKG=$(make VAR=PREVIOUS_PACKAGE variable-get)
             BUNDLE_IMG="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$LC_VERSION"
+            # "Update install file" runs mvn clean, which deletes target/bin/yq.
+            make install-yq
             YQ=$(make VAR=YQ variable-get)
 
-            echo "Syncing maintenance release $PACKAGE_VERSION to main (channel $RELEASE_CHANNEL only)"
+            SYNC_CHANNELS="$RELEASE_CHANNEL"
+            if [ "$ROLLING" = "true" ]; then
+              SYNC_CHANNELS="3.x $RELEASE_CHANNEL"
+            fi
+            echo "Syncing maintenance release $PACKAGE_VERSION to main (channels: $SYNC_CHANNELS)"
 
-            # Add the new version to its minor channel
-            $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$RELEASE_CHANNEL\") | .entries) |= [{\"name\": \"$PKG_NAME.v$PACKAGE_VERSION\", \"replaces\": \"$PREV_PKG\"}] + ." "$CATALOG_FILE"
+            # Add the new version as the head of each channel, replacing the current
+            # released head. The development placeholder stays first.
+            export PLACEHOLDER='${PLACEHOLDER_PACKAGE}' CSV_NAME="$PKG_NAME.v$PACKAGE_VERSION"
+            for CH in $SYNC_CHANNELS; do
+              export CH HEAD
+              HEAD=$($YQ '.entries[] | select(.schema == "olm.channel" and .name == strenv(CH)) | [.entries[] | select(.name != strenv(PLACEHOLDER))] | .[0].name // ""' "$CATALOG_FILE")
+              if [ -z "$HEAD" ] || [ "$HEAD" = "$CSV_NAME" ]; then
+                echo "ERROR: Unexpected head '$HEAD' of channel $CH"
+                exit 1
+              fi
+              $YQ -i '(.entries[] | select(.schema == "olm.channel" and .name == strenv(CH)) | .entries) |=
+                ([.[] | select(.name == strenv(PLACEHOLDER))] + [{"name": strenv(CSV_NAME), "replaces": strenv(HEAD)}] + [.[] | select(.name != strenv(PLACEHOLDER))])' "$CATALOG_FILE"
+            done
 
             # Add the bundle image
             $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$CATALOG_FILE"

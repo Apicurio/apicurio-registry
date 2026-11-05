@@ -194,9 +194,8 @@ Review the release notes for all intermediate versions to understand the full se
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-{registry} does not support downgrades.
+{registry} does not support downgrades, because database schema migrations are forward-only and irreversible.
 
-Database schema migrations are forward-only and irreversible.
 Starting an older version of {registry} against a database that has been migrated to a newer schema version fails.
 
 If you deploy {registry} by using the {operator}, switching to an older OLM channel is also not supported.

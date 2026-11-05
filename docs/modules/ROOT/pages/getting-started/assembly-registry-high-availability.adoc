@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-This chapter explains how to configure {registry} for high availability in a single {kubernetes} cluster.
+You can configure {registry} for high availability in a single {kubernetes} cluster by running multiple stateless application and UI replicas across failure domains and by using a highly available storage layer.
 
 == Prerequisites
 

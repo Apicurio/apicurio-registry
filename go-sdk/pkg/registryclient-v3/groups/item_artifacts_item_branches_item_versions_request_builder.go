@@ -119,6 +119,7 @@ func (m *ItemArtifactsItemBranchesItemVersionsRequestBuilder) Post(ctx context.C
 // returns a ProblemDetails error when the service returns a 401 status code
 // returns a ProblemDetails error when the service returns a 403 status code
 // returns a ProblemDetails error when the service returns a 404 status code
+// returns a ProblemDetails error when the service returns a 409 status code
 // returns a ProblemDetails error when the service returns a 500 status code
 func (m *ItemArtifactsItemBranchesItemVersionsRequestBuilder) Put(ctx context.Context, body iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.ReplaceBranchVersionsable, requestConfiguration *ItemArtifactsItemBranchesItemVersionsRequestBuilderPutRequestConfiguration) error {
 	requestInfo, err := m.ToPutRequestInformation(ctx, body, requestConfiguration)
@@ -129,6 +130,7 @@ func (m *ItemArtifactsItemBranchesItemVersionsRequestBuilder) Put(ctx context.Co
 		"401": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"403": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"404": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
+		"409": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 		"500": iefa8953a3555be741841d5395d25b8cc91d8ea997e2cc98794b61191090ff773.CreateProblemDetailsFromDiscriminatorValue,
 	}
 	err = m.BaseRequestBuilder.RequestAdapter.SendNoContent(ctx, requestInfo, errorMapping)

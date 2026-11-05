@@ -283,7 +283,7 @@ curl -X POST "http://localhost:8080/apis/registry/v3/groups/ai-agents/artifacts"
       "version": "1.0.0",
       "content": {
         "contentType": "application/json",
-        "content": "{\"name\": \"Customer Support Agent\", \"description\": \"Handles customer inquiries, analyzes sentiment, and generates responses\", \"version\": \"1.0.0\", \"supportedInterfaces\": [{\"url\": \"http://support-agent:9001\", \"protocolBinding\": \"http+json\", \"protocolVersion\": \"1.0\"}], \"provider\": {\"organization\": \"Acme Corp\", \"url\": \"https://acme.example.com\"}, \"skills\": [{\"id\": \"sentiment-analysis\", \"name\": \"Sentiment Analysis\", \"description\": \"Analyzes customer message sentiment\", \"tags\": [\"sentiment\"]}, {\"id\": \"response-generation\", \"name\": \"Response Generation\", \"description\": \"Generates context-aware customer responses\", \"tags\": [\"support\"]}], \"capabilities\": {\"streaming\": false, \"pushNotifications\": false}, \"defaultInputModes\": [\"text\"], \"defaultOutputModes\": [\"text\"]}"
+        "content": "{\"name\": \"Customer Support Agent\", \"description\": \"Handles customer inquiries, analyzes sentiment, and generates responses\", \"version\": \"1.0.0\", \"supportedInterfaces\": [{\"url\": \"http://support-agent:9001\", \"protocolBinding\": \"http+json\", \"protocolVersion\": \"1.0\"}], \"provider\": {\"organization\": \"Acme Corp\", \"url\": \"https://acme.example.com\"}, \"skills\": [{\"id\": \"sentiment-analysis\", \"name\": \"Sentiment Analysis\", \"description\": \"Analyzes customer message sentiment\"}, {\"id\": \"response-generation\", \"name\": \"Response Generation\", \"description\": \"Generates context-aware customer responses\"}], \"capabilities\": {\"streaming\": false, \"pushNotifications\": false}, \"defaultInputModes\": [\"text\"], \"defaultOutputModes\": [\"text\"]}"
       }
     }
   }'
@@ -341,7 +341,7 @@ curl "http://localhost:8080/.well-known/agents/ai-agents/customer-support-agent"
 curl http://localhost:8080/.well-known/agent.json
 ----
 +
-You can also browse registered agent cards on the *Agents* tab of the {registry} web console at `http://localhost:8888`.
+You can also browse registered agent cards by using the {registry} web console at `http://localhost:8888`.
 
 // proc-connecting-claude-desktop-by-using-mcp
 [id="connecting-claude-desktop-via-mcp_{context}"]
@@ -388,7 +388,7 @@ Replace `<registry-url>` with the URL of your {registry} instance. For local dev
 .Verification
 . Verify the connection by asking Claude a question about {registry}, for example: "What groups are present in {registry}?"
 +
-The MCP server provides tools for working with groups, artifacts, versions, configuration properties, prompt templates, and rules in {registry}, and for discovering the A2A agents and MCP tools stored in it.
+The MCP server provides tools for working with groups, artifacts, versions, and configuration properties in {registry}.
 endif::[]
 
 [role="_additional-resources"]

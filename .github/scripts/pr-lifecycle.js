@@ -65,6 +65,10 @@ const LABEL_DEFS = {
 
 const BOT_LOGIN = 'github-actions[bot]';
 
+// GitHub App accounts (Copilot's reviewer, Renovate, ...) leave reviews and
+// can be requested as reviewers, but they are not people a ping can reach.
+const isBotLogin = login => login.endsWith('[bot]');
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -225,10 +229,11 @@ function createApi(github, owner, repo) {
     enableAutoMerge: async (prNumber, mergeMethod) => {
       const { data: pr } = await github.rest.pulls.get({ owner, repo, pull_number: prNumber });
       await github.graphql(
-        `mutation($id: ID!, $method: PullRequestMergeMethod!) {
-          enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: $method }) { clientMutationId }
+        `mutation($id: ID!, $mergeMethod: PullRequestMergeMethod!) {
+          enablePullRequestAutoMerge(input: { pullRequestId: $id, mergeMethod: $mergeMethod }) { clientMutationId }
         }`,
-        { id: pr.node_id, method: mergeMethod.toUpperCase() }
+        // Not "method": @octokit/graphql reserves it as a request option (#10623).
+        { id: pr.node_id, mergeMethod: mergeMethod.toUpperCase() }
       );
     },
 
@@ -589,10 +594,13 @@ async function resolveRunPrs(github, owner, repo, workflowRun, core) {
   });
   prRefs = prs.filter(p => p.head.sha === workflowRun.head_sha);
   if (!prRefs.length) {
-    // Last resort: scan all open PRs by head SHA (covers edge cases where
-    // the head-branch filter above misses, e.g. a stale/renamed branch).
-    const { data: openPrs } = await github.rest.pulls.list({
-      owner, repo, state: 'open', per_page: 50,
+    // Last resort: scan every open PR by head SHA. The head-branch filter
+    // above misses a stale/renamed branch, and always misses a fork PR on a
+    // Review Relay run: for pull_request_review, head_repository is the base
+    // repository, not the fork. Every page, or a fork PR older than the
+    // newest page of open PRs is never found (#10605).
+    const openPrs = await github.paginate(github.rest.pulls.list, {
+      owner, repo, state: 'open', per_page: 100,
     });
     prRefs = openPrs.filter(p => p.head.sha === workflowRun.head_sha);
   }
@@ -838,7 +846,7 @@ async function checkAndTransitionToReady(api, pr, core, reviews) {
     const requestedLogins = (pr.requested_reviewers || []).map(r => r.login);
     const allReviewers = [...new Set([...reviewerLogins, ...requestedLogins])];
     const mentions = allReviewers
-      .filter(login => login !== pr.user.login)
+      .filter(login => login !== pr.user.login && !isBotLogin(login))
       .map(login => `@${login}`)
       .join(' ');
     const mentionSuffix = mentions ? ` ${mentions}` : '';
@@ -1582,13 +1590,65 @@ async function handleTestResult({ github, context, core }) {
   }
 }
 
+// The keys the decide job writes to verify-decisions.json and
+// verify-changes.json (verify-decide.yaml, "Save decision summary"). A file
+// with any other key is rejected, so a key added there must be added here,
+// or no summary is posted at all. pr-lifecycle.test.js checks the two match.
+const DECISION_KEYS = new Set([
+  'lifecycle-ready', 'run-build', 'run-unit-tests', 'run-scalpel-report',
+  'run-integration', 'run-extras', 'run-sdk', 'run-cli',
+  'run-operator', 'run-console-plugin', 'run-go-sdk-freshness', 'run-docs', 'scalpel-enabled',
+]);
+const CHANGES_KEYS = new Set([
+  'java', 'ui', 'integration', 'sdk', 'cli', 'go-sdk-gen', 'operator', 'console-plugin', 'docs', 'ci',
+]);
+
+// One summary row per Verify phase: [label, decision key, job name prefix,
+// extra decision keys]. A phase counts as planned only when its key and every
+// extra key are 'true', matching the job's `if:` in verify.yaml. Otherwise a
+// job that was skipped on purpose shows as 🟡 instead of ➖.
+const SUMMARY_PHASES = [
+  ['Lint and Validate', 'lifecycle-ready', 'Lint and Validate'],
+  // build-java/build-ui are inlined directly in verify.yaml (not a
+  // reusable "Build" caller job), so they are named "Build Java
+  // Application (no tests)" / "Build UI Application" directly rather
+  // than composing as "Build / ...".
+  ['Build', 'run-build', 'Build '],
+  ['Unit Tests', 'run-unit-tests', 'Unit Tests /'],
+  ['Scalpel Report', 'run-scalpel-report', 'Scalpel Report', ['scalpel-enabled']],
+  ['Integration Tests', 'run-integration', 'Integration Tests /'],
+  ['Extra Tests', 'run-extras', 'Extra Tests /'],
+  ['SDK Verification', 'run-sdk', 'SDK Verification /'],
+  ['CLI Verification', 'run-cli', 'CLI Verification'],
+  ['Operator Tests', 'run-operator', 'Operator Tests /'],
+  ['Console Plugin', 'run-console-plugin', 'Console Plugin /'],
+  ['Docs Check', 'run-docs', 'Docs Check /'],
+];
+
+function decisionSummaryRows(decisions, jobs) {
+  const jobResult = (namePrefix) => {
+    const matching = jobs.filter(j => j.name.startsWith(namePrefix));
+    if (!matching.length) return 'skipped';
+    if (matching.some(j => j.conclusion === 'failure')) return 'failure';
+    if (matching.every(j => j.conclusion === 'skipped')) return 'skipped';
+    if (matching.every(j => j.conclusion === 'success' || j.conclusion === 'skipped')) return 'success';
+    return 'mixed';
+  };
+
+  const icon = (planned, result) => {
+    if (!planned) return '➖';
+    if (result === 'success') return '🟢';
+    if (result === 'failure') return '🔴';
+    return '🟡';
+  };
+
+  return SUMMARY_PHASES.map(([label, key, jobPrefix, extraKeys = []]) => {
+    const planned = [key, ...extraKeys].every(k => decisions[k] === 'true');
+    return `| ${label} | ${icon(planned, jobResult(jobPrefix))} |`;
+  });
+}
+
 async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, core) {
-  const DECISION_KEYS = new Set([
-    'lifecycle-ready', 'run-build', 'run-unit-tests',
-    'run-integration', 'run-extras', 'run-sdk', 'run-cli',
-    'run-operator', 'run-go-sdk-freshness',
-  ]);
-  const CHANGES_KEYS = new Set(['java', 'ui', 'integration', 'sdk', 'cli', 'operator', 'go-sdk-gen', 'ci']);
   const ALLOWED_VALUES = new Set(['true', 'false', 'skip']);
   const EXPECTED_FILES = new Set(['verify-decisions.json', 'verify-changes.json']);
   const MAX_ARTIFACT_BYTES = 10240;
@@ -1664,42 +1724,9 @@ async function postDecisionSummary(github, owner, repo, workflowRun, prNumber, c
       owner, repo, run_id: workflowRun.id, per_page: 100,
     });
 
-    const jobResult = (namePrefix) => {
-      const matching = jobs.filter(j => j.name.startsWith(namePrefix));
-      if (!matching.length) return 'skipped';
-      if (matching.some(j => j.conclusion === 'failure')) return 'failure';
-      if (matching.every(j => j.conclusion === 'skipped')) return 'skipped';
-      if (matching.every(j => j.conclusion === 'success' || j.conclusion === 'skipped')) return 'success';
-      return 'mixed';
-    };
-
-    const icon = (planned, result) => {
-      if (planned !== 'true') return '➖';
-      if (result === 'success') return '🟢';
-      if (result === 'failure') return '🔴';
-      return '🟡';
-    };
-
     const conclusion = workflowRun.conclusion === 'success' ? '✅ passed' : '❌ failed';
 
-    const phases = [
-      ['Lint and Validate', 'lifecycle-ready', 'Lint and Validate'],
-      // build-java/build-ui are inlined directly in verify.yaml (not a
-      // reusable "Build" caller job), so they are named "Build Java
-      // Application (no tests)" / "Build UI Application" directly rather
-      // than composing as "Build / ...".
-      ['Build', 'run-build', 'Build '],
-      ['Unit Tests', 'run-unit-tests', 'Unit Tests /'],
-      ['Integration Tests', 'run-integration', 'Integration Tests /'],
-      ['Extra Tests', 'run-extras', 'Extra Tests /'],
-      ['SDK Verification', 'run-sdk', 'SDK Verification /'],
-      ['CLI Verification', 'run-cli', 'CLI Verification'],
-      ['Operator Tests', 'run-operator', 'Operator Tests /'],
-    ];
-
-    const rows = phases.map(([label, key, jobPrefix]) =>
-      `| ${label} | ${icon(decisions[key], jobResult(jobPrefix))} |`
-    );
+    const rows = decisionSummaryRows(decisions, jobs);
 
     const bodyParts = [
       '<!-- verify-decide-summary -->',
@@ -1991,7 +2018,7 @@ async function handleReviewOverdue(github, api, config, core, owner, repo, pr, n
   const responsible = [...new Set([
     ...(pr.assignees || []).map(a => a.login),
     ...(pr.requested_reviewers || []).map(r => r.login),
-  ])].filter(login => login !== pr.user.login);
+  ])].filter(login => login !== pr.user.login && !isBotLogin(login));
   const mentions = responsible.length
     ? `\n\ncc ${responsible.map(login => `@${login}`).join(' ')}`
     : '';
@@ -2186,4 +2213,7 @@ module.exports = {
   reconcile,
   LABELS,
   FULL_SUITE_WORKFLOWS,
+  DECISION_KEYS,
+  CHANGES_KEYS,
+  decisionSummaryRows,
 };

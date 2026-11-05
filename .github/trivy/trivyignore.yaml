@@ -1,0 +1,21 @@
+# Trivy ignore rules for the nightly image scan (.github/workflows/image-scan.yaml).
+# Every entry MUST be scoped to a path and carry a justification + review date.
+
+vulnerabilities:
+  # docker-java-transport-zerodep shades (relocates) its own copy of Apache HttpClient 5 / HttpCore 5,
+  # so the version cannot be overridden through Maven dependency management. The jar is only present
+  # in lib/deployment of the "-mutable" image (Quarkus dev services / build-time classpath) and is
+  # never loaded by the production runtime. 3.7.1 is the latest docker-java release; remove these
+  # entries once a docker-java release ships HttpClient >= 5.6.3 / HttpCore >= 5.4.3.
+  - id: CVE-2026-54399
+    paths:
+      - "deployments/quarkus-app/lib/deployment/com.github.docker-java.docker-java-transport-zerodep-*.jar"
+    statement: Shaded in build-time-only docker-java transport; no fixed upstream release.
+  - id: CVE-2026-54428
+    paths:
+      - "deployments/quarkus-app/lib/deployment/com.github.docker-java.docker-java-transport-zerodep-*.jar"
+    statement: Shaded in build-time-only docker-java transport; no fixed upstream release.
+  - id: CVE-2026-64607
+    paths:
+      - "deployments/quarkus-app/lib/deployment/com.github.docker-java.docker-java-transport-zerodep-*.jar"
+    statement: Shaded in build-time-only docker-java transport; no fixed upstream release.

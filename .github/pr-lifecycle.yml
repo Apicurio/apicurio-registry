@@ -23,6 +23,65 @@ pr_limit_exempt:
 merge:
   strategy: rebase
 
+# Docs-only PR fast path. A PR is docs-only when every file it changes (and the
+# previous name of every renamed file) matches `paths` and none matches
+# `exclude`. Read by .github/scripts/docs-only.js, the one place that decides
+# it, for Quick Check (skips the Java and UI builds), PR validation (milestone
+# exempt, issue link advisory) and auto-approval. See the "Docs-only PRs"
+# section of PR_LIFECYCLE.md.
+docs_only:
+  # Only the playbooks and the UI supplements of docs-playbook/ are docs. Its
+  # build scripts, Dockerfile and npm manifests are code: publish-docs.yaml
+  # runs _build-all.sh in a workspace that holds the website push token.
+  paths:
+    - "docs/**"
+    - "docs-playbook/*.yml"
+    - "docs-playbook/supplemental_ui/**"
+  # Code or generated output under docs/: a PR touching these is not docs-only.
+  # The Maven parts (pom.xml, config-generator, rest-api and the generated
+  # config reference) are also in Decide's java change class, which builds
+  # them: ref-registry-all-configs.adoc is generated from the app's
+  # @ConfigProperty/@Info annotations through its .template, and build-java
+  # fails when the committed copy is out of sync. Shell scripts are code that
+  # users run (docs/scripts/ holds the export/import tools).
+  exclude:
+    - "docs/pom.xml"
+    - "docs/config-generator/**"
+    - "docs/rest-api/**"
+    - "docs/modules/ROOT/partials/getting-started/ref-registry-all-configs.*"
+    - "docs/scripts/**"
+    - "docs/**/*.sh"
+  # Docs-only PRs by maintainers are approved by the bot once Verify passes
+  # (docs-auto-approve.yml), so the author can merge without a second person.
+  # A PR touching any of these still needs a human review. docs-playbook/ is
+  # docs (the fast path applies) but runs as code: the playbook picks the UI
+  # bundle, whose helpers Antora executes, and can load extensions, and
+  # publish-docs.yaml builds with it next to the website push token;
+  # supplemental_ui/ is JavaScript and HTML served on every page of the site.
+  # Matched against the
+  # whole path, case-insensitively. This is a filename heuristic: security
+  # content in a page whose name has none of these words is not caught, so
+  # treat the list as a safety net, not a guarantee.
+  review_required_paths:
+    - "docs-playbook/**"
+    - "docs/**/*secur*"
+    - "docs/**/*auth*"
+    - "docs/**/*oidc*"
+    - "docs/**/*keycloak*"
+    - "docs/**/*tls*"
+    - "docs/**/*ssl*"
+    - "docs/**/*cert*"
+    - "docs/**/*rbac*"
+    - "docs/**/*role*"
+    - "docs/**/*owner*"
+    - "docs/**/*acl*"
+    - "docs/**/*credential*"
+    - "docs/**/*secret*"
+    - "docs/**/*token*"
+    - "docs/**/*docker-compose*"
+    - "docs/**/*.yaml"
+    - "docs/guides/**/*.yml"
+
 # Automatic reviewer assignment (#9005). Runs in the classify-pr job of
 # classify.yml when a PR opens or leaves draft, right after it has been given
 # its area/* labels. See the "Reviewer assignment" section of PR_LIFECYCLE.md.

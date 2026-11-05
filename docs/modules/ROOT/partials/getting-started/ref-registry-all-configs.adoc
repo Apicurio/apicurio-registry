@@ -246,6 +246,31 @@ The following {registry} configuration options are available for each component 
 |`false`
 |`2.1.0.Final`
 |Artifact group owner-only authorization
+|`apicurio.auth.resource-based-authorization.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Enable per-resource (fine-grained) authorization of groups and artifacts, evaluated from an access rules file in the Kroxylicious ACL rules format. Requires authentication.
+|`apicurio.auth.resource-based-authorization.owner-bypass.enabled`
+|`boolean`
+|`true`
+|`3.4.0`
+|Let the recorded owner of an artifact or group access it regardless of the access rules. Set to 'false' to make the access rules the only per-resource authority.
+|`apicurio.auth.resource-based-authorization.rules.path`
+|`optional<string>`
+|
+|`3.4.0`
+|Path to the access rules file, in the Kroxylicious ACL rules format. Required when per-resource authorization is enabled; startup fails if it is missing or invalid.
+|`apicurio.auth.resource-based-authorization.rules.reload-enabled`
+|`boolean`
+|`true`
+|`3.4.0`
+|Enable periodic hot-reload of the access rules file. Set to 'false' to disable polling for changes.
+|`apicurio.auth.resource-based-authorization.rules.reload-every`
+|`string`
+|`5s`
+|`3.4.0`
+|Interval for checking access rules file changes. Must be a valid duration (e.g. '5s', '1m'). Use apicurio.auth.resource-based-authorization.rules.reload-enabled to disable hot-reload.
 |`apicurio.auth.role-based-authorization`
 |`boolean`
 |`false`
@@ -499,6 +524,32 @@ The following {registry} configuration options are available for each component 
 |`30`
 |`2.1.2.Final`
 |Download link expiry
+|===
+
+== federation
+.federation configuration options
+[.table-expandable,width="100%",cols="6,3,2,3,5",options="header"]
+|===
+|Name
+|Type
+|Default
+|Available from
+|Description
+|`apicurio.federation.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Enable federation with peer registries, including the peer management API _(experimental)_
+|`apicurio.federation.peer.insecure-http.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Allow peer registry URLs that use plain HTTP instead of HTTPS. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively
+|`apicurio.federation.peer.loopback.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Allow peer registry URLs that point at a loopback address or a localhost name, for development and tests. Server-wide: applies to every peer, whether created through the admin API or loaded declaratively
 |===
 
 == gitops
@@ -883,6 +934,41 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.mcp-import.allowed-hosts`
+|`optional<list<string>>`
+|
+|`3.4.0`
+|Hosts the registry may connect to when importing from an MCP server, as a comma-separated list. Each entry is a hostname (mcp.example.com), a domain wildcard (*.example.com, which does not match example.com itself), an IP address, or a CIDR range (10.0.0.0/8) that every address the host resolves to must be in. When empty, every host is refused. Loopback, link-local, and cloud metadata addresses are refused even when listed
+|`apicurio.mcp-import.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Enable importing tool definitions from live MCP servers. The registry connects to the MCP server URL given in the request _(experimental)_
+|`apicurio.mcp-import.insecure-http.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Allow MCP server URLs that use plain HTTP instead of HTTPS when importing
+|`apicurio.mcp-import.loopback.enabled`
+|`boolean`
+|`false`
+|`3.4.0`
+|Allow MCP server URLs that point at a loopback address or a localhost name when importing, for development and tests. The host must still be allowed by apicurio.mcp-import.allowed-hosts
+|`apicurio.mcp-import.response.max-size`
+|`int`
+|`1048576`
+|`3.4.0`
+|Maximum size, in bytes, of each message received from an MCP server during an import
+|`apicurio.mcp-import.timeout.seconds`
+|`int`
+|`10`
+|`3.4.0`
+|Timeout, in seconds, for connecting to the MCP server and for each request to it during an import
+|`apicurio.mcp-import.tools.max-size`
+|`int`
+|`500`
+|`3.4.0`
+|Maximum number of tools an MCP server may list for an import. An import from a server listing more is refused
 |`apicurio.mcp-registry.enabled`
 |`boolean`
 |`false`
@@ -1519,7 +1605,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`100`
 |`3.0.6`
-|Maximum recursion depth for resolving schema references. Prevents stack overflow from deeply nested schemas.
+|Maximum depth a reference graph may be resolved to. Most resolution fails when a graph is deeper than this. Resolution during content storage and lookup by content still truncates with a warning.
 |`apicurio.storage.snapshot.location`
 |`string`
 |`./`
@@ -1614,8 +1700,8 @@ The following {registry} configuration options are available for each component 
 |`3.1.6`
 |Whether to load user info from the OIDC userinfo endpoint. Defaults to true if not specified. Set to false for OIDC providers like Azure Entra ID where the userinfo endpoint has incompatible audience requirements.
 |`apicurio.ui.auth.oidc.logout-url`
-|`string`
-|`f5`
+|`optional<string>`
+|
 |`3.0.0`
 |The OIDC logout URL
 |`apicurio.ui.auth.oidc.redirect-uri`
@@ -1659,7 +1745,7 @@ The following {registry} configuration options are available for each component 
 |`3.0.0`
 |Enabled to show breadcrumbs in the UI
 |`apicurio.ui.features.read-only.enabled`
-|`string`
+|`boolean [dynamic]`
 |`false`
 |`3.0.0`
 |Enabled to set the UI to read-only mode
@@ -1884,11 +1970,6 @@ The following {registry} configuration options are available for each component 
 |`${apicurio.config.dynamic.allow-all}`
 |
 |
-|`apicurio.usage.flush.every`
-|`unknown`
-|`10s`
-|
-|
 |===
 
 == usage
@@ -1914,12 +1995,17 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`90`
 |`3.3.0`
-|Number of days after which a schema is classified as DEAD
+|Deprecated, has no effect, and will be removed in 4.0.0: a schema is classified as DEAD once its last fetch is older than the stale threshold
 |`apicurio.usage.drift-alert-threshold`
 |`int`
 |`2`
 |`3.3.0`
 |Number of versions behind latest before triggering a drift alert
+|`apicurio.usage.flush.every`
+|`string`
+|`10s`
+|`3.3.0`
+|How often buffered usage events are written to storage (Quarkus scheduler expression)
 |`apicurio.usage.retention-days`
 |`int`
 |`180`
@@ -1929,7 +2015,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`30`
 |`3.3.0`
-|Number of days after which a schema is classified as STALE
+|A schema whose last fetch is older than the active threshold and no older than this many days is classified as STALE. Older than this is DEAD.
 |`apicurio.usage.telemetry.enabled`
 |`boolean`
 |`false`

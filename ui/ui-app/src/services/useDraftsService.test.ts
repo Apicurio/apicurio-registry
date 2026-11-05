@@ -64,6 +64,7 @@ describe("useDraftsService pagination", () => {
 
         expect(get).toHaveBeenCalledTimes(1);
         expect(get.mock.calls[0][0].queryParameters.name).toBe("*Cart*");
+        expect(get.mock.calls[0][0].queryParameters.nameCaseInsensitive).toBe(true);
     });
 
     it("preserves explicit wildcards in searchDrafts", async () => {
@@ -77,5 +78,6 @@ describe("useDraftsService pagination", () => {
 
         expect(get).toHaveBeenCalledTimes(1);
         expect(get.mock.calls[0][0].queryParameters.name).toBe("Cart*");
+        expect(get.mock.calls[0][0].queryParameters.nameCaseInsensitive).toBe(true);
     });
 });

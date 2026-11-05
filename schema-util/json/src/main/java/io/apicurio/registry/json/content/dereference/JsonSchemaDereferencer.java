@@ -4,9 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsonorg.JsonOrgModule;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -15,6 +13,8 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.ContentDereferencer;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
+import io.apicurio.registry.json.content.refs.JsonSchemaRefScopes;
+import io.apicurio.registry.json.content.refs.JsonSchemaRefScopes.RefSite;
 import io.vertx.core.json.JsonObject;
 import io.vertx.json.schema.Draft;
 import io.vertx.json.schema.JsonSchema;
@@ -24,8 +24,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 
@@ -35,6 +35,7 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
     private static final Logger log = LoggerFactory.getLogger(JsonSchemaDereferencer.class);
     private static final String idKey = "$id";
     private static final String schemaKey = "$schema";
+    private static final String REF = "$ref";
 
     static {
         objectMapper = new ObjectMapper();
@@ -77,7 +78,8 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
 
         Map<String, JsonSchema> lookups = new HashMap<>();
         resolveReferences(resolvedReferences, lookups);
-        JsonObject resolvedSchema = JsonRef.resolve(new JsonObject(content.getContent().content()), lookups);
+        String source = useResolvedRefsWhereRegistered(content.getContent().content(), lookups.keySet());
+        JsonObject resolvedSchema = JsonRef.resolve(new JsonObject(source), lookups);
 
         if (null != id) {
             resolvedSchema.put(idKey, id);
@@ -113,7 +115,15 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
     public TypedContent rewriteReferences(TypedContent content, Map<String, String> resolvedReferenceUrls) {
         try {
             JsonNode tree = objectMapper.readTree(content.getContent().content());
-            rewriteIn(tree, resolvedReferenceUrls);
+            for (RefSite site : JsonSchemaRefScopes.find(tree)) {
+                String rewritten = rewrite(site.resolved(), resolvedReferenceUrls);
+                if (rewritten == null) {
+                    rewritten = rewrite(site.ref(), resolvedReferenceUrls);
+                }
+                if (rewritten != null) {
+                    site.node().put(REF, rewritten);
+                }
+            }
             String converted = objectMapper.writeValueAsString(objectMapper.treeToValue(tree, Object.class));
             return TypedContent.create(ContentHandle.create(converted), content.getContentType());
         } catch (Exception e) {
@@ -121,46 +131,55 @@ public class JsonSchemaDereferencer implements ContentDereferencer {
         }
     }
 
-    private void rewriteIn(JsonNode node, Map<String, String> resolvedReferenceUrls) {
-        if (node.isObject()) {
-            rewriteInObject((ObjectNode) node, resolvedReferenceUrls);
-        } else if (node.isArray()) {
-            rewriteInArray((ArrayNode) node, resolvedReferenceUrls);
-        }
-    }
-
-    private void rewriteInObject(ObjectNode node, Map<String, String> resolvedReferenceUrls) {
-        if (node.hasNonNull("$ref")) {
-            String $ref = node.get("$ref").asText();
-            if (resolvedReferenceUrls.containsKey($ref)) {
-                node.put("$ref", resolvedReferenceUrls.get($ref));
-            } else {
-                // The reference in the file might be using just a component, use just the resource for the
-                // lookup.
-                JsonPointerExternalReference externalReference = new JsonPointerExternalReference($ref);
-                if (resolvedReferenceUrls.containsKey(externalReference.getResource())) {
-                    JsonPointerExternalReference rewrittenRef = new JsonPointerExternalReference(
-                            resolvedReferenceUrls.get(externalReference.getResource()),
-                            externalReference.getComponent());
-                    node.put("$ref", rewrittenRef.getFullReference());
+    /**
+     * Rewrites $ref values that resolve, against the base URI of their $id scope, to a reference registered
+     * under that absolute URI. The JSON Schema library looks references up by their literal value, so this
+     * makes references registered under the resolved URI dereferenceable, and keeps identical relative
+     * references in different $id scopes apart. Values matching no registered resource are left as they are.
+     *
+     * @param content the schema content
+     * @param registeredResources the resources (reference names without the JSON pointer) available
+     * @return the content with matching $ref values made absolute, or the original content if none match
+     */
+    private static String useResolvedRefsWhereRegistered(String content, Set<String> registeredResources) {
+        try {
+            JsonNode tree = objectMapper.readTree(content);
+            boolean changed = false;
+            for (RefSite site : JsonSchemaRefScopes.find(tree)) {
+                if (site.resolved() != null && registeredResources
+                        .contains(new JsonPointerExternalReference(site.resolved()).getResource())) {
+                    site.node().put(REF, site.resolved());
+                    changed = true;
                 }
             }
-        }
-        Iterator<String> fieldNames = node.fieldNames();
-        while (fieldNames.hasNext()) {
-            String fieldName = fieldNames.next();
-            JsonNode fieldValue = node.get(fieldName);
-            if (fieldValue.isObject()) {
-                rewriteInObject((ObjectNode) fieldValue, resolvedReferenceUrls);
-            } else if (fieldValue.isArray()) {
-                rewriteInArray((ArrayNode) fieldValue, resolvedReferenceUrls);
-            }
+            return changed ? objectMapper.writeValueAsString(objectMapper.treeToValue(tree, Object.class))
+                    : content;
+        } catch (JsonProcessingException e) {
+            return content;
         }
     }
 
-    private void rewriteInArray(ArrayNode node, Map<String, String> resolvedReferenceUrls) {
-        node.forEach(innerNode -> {
-            rewriteIn(innerNode, resolvedReferenceUrls);
-        });
+    /**
+     * Looks a $ref up in the rewrite map, first as a whole and then by its resource, keeping its JSON pointer.
+     *
+     * @param ref the $ref value, may be null
+     * @param resolvedReferenceUrls map of reference names to their rewritten values
+     * @return the rewritten $ref, or null if the map has no entry for it
+     */
+    private static String rewrite(String ref, Map<String, String> resolvedReferenceUrls) {
+        if (ref == null) {
+            return null;
+        }
+        if (resolvedReferenceUrls.containsKey(ref)) {
+            return resolvedReferenceUrls.get(ref);
+        }
+        // The reference in the file might be using just a component, use just the resource for the lookup.
+        JsonPointerExternalReference externalReference = new JsonPointerExternalReference(ref);
+        if (externalReference.getResource() != null
+                && resolvedReferenceUrls.containsKey(externalReference.getResource())) {
+            return new JsonPointerExternalReference(resolvedReferenceUrls.get(externalReference.getResource()),
+                    externalReference.getComponent()).getFullReference();
+        }
+        return null;
     }
 }

@@ -21,6 +21,7 @@ import java.util.List;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
@@ -485,6 +486,35 @@ public class WellKnownResourceTest extends AbstractResourceTestBase {
                 .get("/.well-known/schemas/prompt-template/v1")
                 .then()
                 .statusCode(200);
+
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/agent-card/v1")
+                .then()
+                .statusCode(200)
+                .contentType("application/schema+json")
+                .header("Content-Disposition", equalTo("inline; filename=\"agent-card-v1.json\""))
+                .body("title", equalTo("A2A Agent Card"))
+                .body("required", hasItems("name", "description", "version", "supportedInterfaces",
+                        "capabilities", "skills", "defaultInputModes", "defaultOutputModes"))
+                .body("properties.capabilities.properties.extensions", notNullValue())
+                .body("properties.skills.items.properties.inputModes", notNullValue())
+                .body("properties.supportedInterfaces.items.properties.tenant", notNullValue())
+                .body("definitions.securityScheme.properties.bearerFormat", notNullValue())
+                .body("properties.signatures.items.properties.protected", notNullValue());
+
+        // Boundary collision test: type=agent, version=card-v1 must not resolve to agent-card-v1
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/agent/card-v1")
+                .then()
+                .statusCode(404);
+
+        givenAtRoot()
+                .when()
+                .get("/.well-known/schemas/agent-card/v2")
+                .then()
+                .statusCode(404);
 
         givenAtRoot()
                 .when()

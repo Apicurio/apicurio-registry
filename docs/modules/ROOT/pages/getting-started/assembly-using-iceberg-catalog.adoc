@@ -865,64 +865,64 @@ SELECT * FROM apicurio_db.users;
 |`/apis/iceberg/v1/config`
 |Get catalog configuration
 |GET
-|`/apis/iceberg/v1/{prefix}/namespaces`
+|`/apis/iceberg/v1/\{prefix}/namespaces`
 |List all namespaces
 |POST
-|`/apis/iceberg/v1/{prefix}/namespaces`
+|`/apis/iceberg/v1/\{prefix}/namespaces`
 |Create a namespace
 |GET
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}`
 |Load namespace metadata
 |HEAD
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}`
 |Check if namespace exists
 |DELETE
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}`
 |Drop a namespace (must be empty)
 |POST
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/properties`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/properties`
 |Update namespace properties
 |GET
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/tables`
 |List tables in a namespace
 |POST
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/tables`
 |Create a table
 |GET
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables/{table}`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/tables/\{table}`
 |Load a table
 |POST
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables/{table}`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/tables/\{table}`
 |Commit updates to a table (atomic metadata update with optimistic concurrency)
 |HEAD
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables/{table}`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/tables/\{table}`
 |Check if table exists
 |DELETE
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/tables/{table}`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/tables/\{table}`
 |Drop a table
 |POST
-|`/apis/iceberg/v1/{prefix}/tables/rename`
+|`/apis/iceberg/v1/\{prefix}/tables/rename`
 |Rename a table
 |GET
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/views`
 |List views in a namespace
 |POST
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/views`
 |Create a view
 |GET
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views/{view}`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/views/\{view}`
 |Load a view
 |POST
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views/{view}`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/views/\{view}`
 |Replace/commit a view
 |HEAD
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views/{view}`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/views/\{view}`
 |Check if a view exists
 |DELETE
-|`/apis/iceberg/v1/{prefix}/namespaces/{namespace}/views/{view}`
+|`/apis/iceberg/v1/\{prefix}/namespaces/\{namespace}/views/\{view}`
 |Drop a view
 |POST
-|`/apis/iceberg/v1/{prefix}/views/rename`
+|`/apis/iceberg/v1/\{prefix}/views/rename`
 |Rename a view
 |===
 

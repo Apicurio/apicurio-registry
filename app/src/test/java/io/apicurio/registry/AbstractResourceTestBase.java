@@ -63,8 +63,8 @@ public abstract class AbstractResourceTestBase extends AbstractRegistryTestBase 
     // no bound, which cost a CI shard the full 1800 second class limit (issue 10424). The slowest test class
     // in the app-other shard of run 38295474390 took 11 seconds in total, so a single request that stays
     // silent for 60 seconds is a stalled response.
-    private static final long CLIENT_CONNECT_TIMEOUT_MS = 30_000;
-    private static final long CLIENT_READ_IDLE_TIMEOUT_MS = 60_000;
+    protected static final long CLIENT_CONNECT_TIMEOUT_MS = 30_000;
+    protected static final long CLIENT_READ_IDLE_TIMEOUT_MS = 60_000;
 
     public String registryApiBaseUrl;
     protected String registryV2ApiUrl;

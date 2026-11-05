@@ -32,6 +32,8 @@ type SearchedArtifact struct {
 	name *string
 	// The owner property
 	owner *string
+	// The operations the caller may perform on a resource returned by a search or list operation. Each flag is true when a request at that level on the resource would be authorized.
+	permissions ResourcePermissionsable
 }
 
 // NewSearchedArtifact instantiates a new SearchedArtifact and sets the default values.
@@ -181,6 +183,16 @@ func (m *SearchedArtifact) GetFieldDeserializers() map[string]func(i878a80d2330e
 		}
 		return nil
 	}
+	res["permissions"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetObjectValue(CreateResourcePermissionsFromDiscriminatorValue)
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetPermissions(val.(ResourcePermissionsable))
+		}
+		return nil
+	}
 	return res
 }
 
@@ -218,6 +230,12 @@ func (m *SearchedArtifact) GetName() *string {
 // returns a *string when successful
 func (m *SearchedArtifact) GetOwner() *string {
 	return m.owner
+}
+
+// GetPermissions gets the permissions property value. The operations the caller may perform on a resource returned by a search or list operation. Each flag is true when a request at that level on the resource would be authorized.
+// returns a ResourcePermissionsable when successful
+func (m *SearchedArtifact) GetPermissions() ResourcePermissionsable {
+	return m.permissions
 }
 
 // Serialize serializes information the current object
@@ -278,6 +296,12 @@ func (m *SearchedArtifact) Serialize(writer i878a80d2330e89d26896388a3f487eef27b
 	}
 	{
 		err := writer.WriteStringValue("owner", m.GetOwner())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteObjectValue("permissions", m.GetPermissions())
 		if err != nil {
 			return err
 		}
@@ -346,6 +370,11 @@ func (m *SearchedArtifact) SetOwner(value *string) {
 	m.owner = value
 }
 
+// SetPermissions sets the permissions property value. The operations the caller may perform on a resource returned by a search or list operation. Each flag is true when a request at that level on the resource would be authorized.
+func (m *SearchedArtifact) SetPermissions(value ResourcePermissionsable) {
+	m.permissions = value
+}
+
 type SearchedArtifactable interface {
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.AdditionalDataHolder
 	i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.Parsable
@@ -359,6 +388,7 @@ type SearchedArtifactable interface {
 	GetModifiedOn() *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time
 	GetName() *string
 	GetOwner() *string
+	GetPermissions() ResourcePermissionsable
 	SetArtifactId(value *string)
 	SetArtifactType(value *string)
 	SetCreatedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
@@ -369,4 +399,5 @@ type SearchedArtifactable interface {
 	SetModifiedOn(value *i336074805fc853987abe6f7fe3ad97a6a6f3077a16391fec744f671a015fbd7e.Time)
 	SetName(value *string)
 	SetOwner(value *string)
+	SetPermissions(value ResourcePermissionsable)
 }

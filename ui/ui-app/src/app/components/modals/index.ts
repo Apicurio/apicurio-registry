@@ -8,6 +8,7 @@ export * from "./CreateGroupModal";
 export * from "./CreateVersionModal";
 export * from "./EditCommentModal";
 export * from "./EditMetaDataModal";
+export * from "./ImportMcpToolsModal";
 export * from "./InvalidContentModal";
 export * from "./LabelsFormGroup";
 export * from "./ReferencesFormGroup";

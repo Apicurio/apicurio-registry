@@ -174,7 +174,10 @@ const testArtifactVersion = async (config: ConfigService, auth: AuthService, gro
 
 const importMcpTools = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string, data: McpToolImportRequest): Promise<McpToolImportResult> => {
     groupId = normalizeGroupId(groupId);
-    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).mcpImport.post(data).then(v => v!);
+    // Pass the request configuration explicitly. Given only a body, the Kiota client also uses the
+    // body as the configuration, and would send its "headers" field, meant for the MCP server, as
+    // HTTP headers to the registry.
+    return getRegistryClient(config, auth).groups.byGroupId(groupId).artifacts.byArtifactId(artifactId).mcpImport.post(data, {}).then(v => v!);
 };
 
 const getArtifactMetaData = async (config: ConfigService, auth: AuthService, groupId: string|null, artifactId: string): Promise<ArtifactMetaData> => {

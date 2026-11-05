@@ -33,8 +33,8 @@ const RESULT = {
 /**
  * Mocks the registry calls of the artifact page. Records each import request body.
  */
-const mockRegistry = async (page: Page, options: { mcpImport: boolean, artifactType?: string }): Promise<unknown[]> => {
-    const imports: unknown[] = [];
+const mockRegistry = async (page: Page, options: { mcpImport: boolean, artifactType?: string }): Promise<Request[]> => {
+    const imports: Request[] = [];
     await page.route("**/apis/registry/v3/**", async route => {
         const request = route.request();
         const path = new URL(request.url()).pathname;
@@ -52,7 +52,7 @@ const mockRegistry = async (page: Page, options: { mcpImport: boolean, artifactT
             });
         }
         if (path === `${SERVER_PATH}/mcp-import` && request.method() === "POST") {
-            imports.push(bodyOf(request));
+            imports.push(request);
             return json(route, 200, RESULT);
         }
         if (path === `${SERVER_PATH}/rules`) {
@@ -99,11 +99,17 @@ test("MCP import - imports with headers and shows each tool's result", async ({ 
         .toContainText("The declared 'type' of the schema was changed.");
     await expect(page.getByTestId("mcp-import-summary")).toContainText("now at version 2.");
 
-    expect(imports).toEqual([{
+    expect(imports).toHaveLength(1);
+    expect(bodyOf(imports[0])).toEqual({
         url: "https://weather.example.com/mcp",
         dryRun: false,
         headers: { Authorization: SECRET }
-    }]);
+    });
+    // The MCP server headers travel in the body only. Sent as HTTP headers, they would reach the
+    // registry, and a real browser would block the request in the CORS preflight.
+    const httpHeaders = await imports[0].allHeaders();
+    expect(Object.keys(httpHeaders)).not.toContain("additionaldata");
+    expect(httpHeaders["authorization"]).toBeUndefined();
     await expect(page.getByTestId("form-mcp-header-value-0")).toHaveAttribute("type", "password");
     expect(await page.locator("body").innerText()).not.toContain(SECRET);
 });

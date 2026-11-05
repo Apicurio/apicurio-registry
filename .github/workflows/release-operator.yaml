@@ -256,6 +256,163 @@ jobs:
             EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \
             test-remote-group
 
+  # Keeps the branch's generated/bookkeeping files tracking the version bump
+  # release.yaml already pushed, independent of whether release-test passes.
+  # Split out from release-post (#10841): that job gates everything on
+  # release-test, so a test failure — unrelated to whether this housekeeping
+  # itself would succeed — used to skip it entirely, leaving install.yaml,
+  # install-namespaced.yaml, the Makefile's PREVIOUS_PACKAGE_VERSION and the
+  # catalog template silently out of date on the branch (and, for a
+  # maintenance release, un-synced to main) until Verify went red from the
+  # drift and someone noticed and fixed it by hand (#10837). Only release-post's
+  # actual external publication (dist archive, Community Operators PRs) has a
+  # real reason to wait on tests passing.
+  release-post-sync:
+    name: Post-Release Housekeeping
+    needs: [release-build]
+    if: always() && needs.release-build.result == 'success'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    # Read by the notify job, which leaves out a failure already reported here.
+    outputs:
+      notified: ${{ steps.notify.outcome }}
+    env:
+      RELEASE_VERSION: ${{ needs.release-build.outputs.release-version }}
+      BRANCH: ${{ needs.release-build.outputs.branch }}
+      PACKAGE_VERSION: ${{ needs.release-build.outputs.package-version }}
+    steps:
+
+      - name: Configure env. variables
+        run: |
+          echo "GH_TOKEN=${{ secrets.ACCESS_TOKEN }}" >> "$GITHUB_ENV"
+
+      - name: Download Source Code
+        run: |
+          git config --global user.name apicurio-ci
+          git config --global user.email apicurio.ci@gmail.com
+          git clone "https://apicurio-ci:${{ secrets.ACCESS_TOKEN }}@github.com/Apicurio/apicurio-registry.git" registry
+          cd registry && git checkout "$RELEASE_VERSION"
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          java-version: '25'
+          distribution: temurin
+          cache: maven
+
+      - name: Prepare post-release changes
+        working-directory: registry/operator
+        run: |
+          # Switch to the branch and pull latest to pick up the snapshot version update by release.yaml .
+          # It could have been pushed after the initial clone.
+          git fetch origin
+          git checkout "$BRANCH"
+          git pull origin "$BRANCH"
+
+      - name: Update Makefile
+        working-directory: registry/operator
+        run: |
+          make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
+          git add Makefile
+
+      - name: Update catalog template
+        working-directory: registry/operator
+        run: |
+          make release-catalog-template-update
+          git add "$(make VAR=CATALOG_DIR variable-get)"
+
+      - name: Update install file
+        working-directory: registry/operator
+        run: |
+          make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file
+          make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml dist-install-file-namespaced
+          git add install/*
+
+      - name: Commit & push post-release changes
+        working-directory: registry/operator
+        run: |
+          git commit -m "ci(operator): post-release changes for $RELEASE_VERSION"
+          # Rebase in case somebody else pushed to the branch
+          git fetch origin
+          git rebase "origin/$BRANCH"
+          git push origin "$BRANCH"
+
+      - name: Sync post-release changes to main
+        if: env.BRANCH != 'main'
+        working-directory: registry
+        run: |
+          # Save the versioned install files before switching branches
+          INSTALL_FILE="operator/install/apicurio-registry-operator-$RELEASE_VERSION.yaml"
+          INSTALL_NAMESPACED_FILE="operator/install/apicurio-registry-operator-namespaced-$RELEASE_VERSION.yaml"
+          cp "$INSTALL_FILE" /tmp/install-file.yaml
+          cp "$INSTALL_NAMESPACED_FILE" /tmp/install-file-namespaced.yaml
+
+          # Switch to main
+          git checkout main
+          git pull origin main
+
+          # Copy the versioned install files
+          cp /tmp/install-file.yaml "$INSTALL_FILE"
+          cp /tmp/install-file-namespaced.yaml "$INSTALL_NAMESPACED_FILE"
+
+          RELEASE_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          MAIN_CHANNEL=$(cd operator && make VAR=CHANNEL variable-get)
+
+          cd operator
+          if [ "$RELEASE_CHANNEL" = "$MAIN_CHANNEL" ]; then
+            # Same minor as main — full catalog update
+            make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
+            make release-catalog-template-update
+          else
+            # Maintenance release from an older minor — only update its channel
+            # and add the bundle image. Do NOT touch PREVIOUS_PACKAGE_VERSION,
+            # the rolling channel, or other minor channels on main.
+            CATALOG_DIR=$(make VAR=CATALOG_DIR variable-get)
+            CATALOG_FILE="$CATALOG_DIR/catalog.template.yaml"
+            PKG_NAME=$(make VAR=PACKAGE_NAME variable-get)
+            LC_VERSION=$(echo "$PACKAGE_VERSION" | tr A-Z a-z)
+            PREV_PKG=$(make VAR=PREVIOUS_PACKAGE variable-get)
+            BUNDLE_IMG="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$LC_VERSION"
+            YQ=$(make VAR=YQ variable-get)
+
+            echo "Syncing maintenance release $PACKAGE_VERSION to main (channel $RELEASE_CHANNEL only)"
+
+            # Add the new version to its minor channel
+            $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$RELEASE_CHANNEL\") | .entries) |= [{\"name\": \"$PKG_NAME.v$PACKAGE_VERSION\", \"replaces\": \"$PREV_PKG\"}] + ." "$CATALOG_FILE"
+
+            # Add the bundle image
+            $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$CATALOG_FILE"
+          fi
+
+          cd ..
+          git add .
+          git commit -m "ci(operator): sync $RELEASE_VERSION post-release changes from $BRANCH to main"
+          git rebase origin/main
+          git push origin main
+
+      # Before tmate, which holds the job open until it times out, so whoever is
+      # notified can still connect. tmate lets in only github.actor's SSH keys,
+      # and apicurio-ci (which dispatches this workflow from release-images)
+      # has none: then there is no session, and the notify job reports the
+      # failure, mentioning whoever ran the release.
+      - name: Notify failure
+        id: notify
+        if: failure() && github.actor != 'apicurio-ci'
+        uses: Apicurio/apicurio-github-actions/notify-slack@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2.4.0
+        with:
+          level: important
+          text: ":x: ${{ github.workflow }} failed for ${{ inputs.tag }} in release-post-sync. :mag: Debug it on the runner: @${{ github.actor }} can SSH in with tmate until the job times out. The ssh command is in the job log."
+          link: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          mention: ${{ github.actor }},${{ github.triggering_actor }}
+          user-map: ${{ secrets.SLACK_USER_MAP }}
+          important-webhook: ${{ secrets.SLACK_IMPORTANT_NOTIFICATION_WEBHOOK }}
+
+      - name: Setup tmate session on failure
+        if: failure() && github.actor != 'apicurio-ci'
+        uses: mxschmitt/action-tmate@35b54afac29c97fb54faba5b513f8fbd1882f113 # v3
+        with:
+          limit-access-to-actor: true
+
   release-post:
     name: Post-Release
     needs: [release-build, release-test]
@@ -460,96 +617,6 @@ jobs:
         if: steps.openshift-community-operators-catalog-pr.outcome == 'failure'
         run: echo "::warning::Failed to create Openshift Community Operators Catalog PR. Please create it manually."
 
-      - name: Prepare post-release changes
-        working-directory: registry/operator
-        run: |
-          # Switch to the branch and pull latest to pick up the snapshot version update by release.yaml .
-          # It could have been pushed after the initial clone.
-          git fetch origin
-          git checkout "$BRANCH"
-          git pull origin "$BRANCH"
-
-      - name: Update Makefile
-        working-directory: registry/operator
-        run: |
-          make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
-          git add Makefile
-
-      - name: Update catalog template
-        working-directory: registry/operator
-        run: |
-          make release-catalog-template-update
-          git add "$(make VAR=CATALOG_DIR variable-get)"
-
-      - name: Update install file
-        working-directory: registry/operator
-        run: |
-          make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true build INSTALL_FILE=install/install.yaml dist-install-file
-          make IMAGE_TAG=latest-snapshot OPERAND_IMAGE_TAG=latest-snapshot SKIP_TESTS=true INSTALL_NAMESPACED_FILE=install/install-namespaced.yaml dist-install-file-namespaced
-          git add install/*
-
-      - name: Commit & push post-release changes
-        working-directory: registry/operator
-        run: |
-          git commit -m "ci(operator): post-release changes for $RELEASE_VERSION"
-          # Rebase in case somebody else pushed to the branch
-          git fetch origin
-          git rebase "origin/$BRANCH"
-          git push origin "$BRANCH"
-
-      - name: Sync post-release changes to main
-        if: env.BRANCH != 'main'
-        working-directory: registry
-        run: |
-          # Save the versioned install files before switching branches
-          INSTALL_FILE="operator/install/apicurio-registry-operator-$RELEASE_VERSION.yaml"
-          INSTALL_NAMESPACED_FILE="operator/install/apicurio-registry-operator-namespaced-$RELEASE_VERSION.yaml"
-          cp "$INSTALL_FILE" /tmp/install-file.yaml
-          cp "$INSTALL_NAMESPACED_FILE" /tmp/install-file-namespaced.yaml
-
-          # Switch to main
-          git checkout main
-          git pull origin main
-
-          # Copy the versioned install files
-          cp /tmp/install-file.yaml "$INSTALL_FILE"
-          cp /tmp/install-file-namespaced.yaml "$INSTALL_NAMESPACED_FILE"
-
-          RELEASE_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
-          MAIN_CHANNEL=$(cd operator && make VAR=CHANNEL variable-get)
-
-          cd operator
-          if [ "$RELEASE_CHANNEL" = "$MAIN_CHANNEL" ]; then
-            # Same minor as main — full catalog update
-            make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
-            make release-catalog-template-update
-          else
-            # Maintenance release from an older minor — only update its channel
-            # and add the bundle image. Do NOT touch PREVIOUS_PACKAGE_VERSION,
-            # the rolling channel, or other minor channels on main.
-            CATALOG_DIR=$(make VAR=CATALOG_DIR variable-get)
-            CATALOG_FILE="$CATALOG_DIR/catalog.template.yaml"
-            PKG_NAME=$(make VAR=PACKAGE_NAME variable-get)
-            LC_VERSION=$(echo "$PACKAGE_VERSION" | tr A-Z a-z)
-            PREV_PKG=$(make VAR=PREVIOUS_PACKAGE variable-get)
-            BUNDLE_IMG="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$LC_VERSION"
-            YQ=$(make VAR=YQ variable-get)
-
-            echo "Syncing maintenance release $PACKAGE_VERSION to main (channel $RELEASE_CHANNEL only)"
-
-            # Add the new version to its minor channel
-            $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$RELEASE_CHANNEL\") | .entries) |= [{\"name\": \"$PKG_NAME.v$PACKAGE_VERSION\", \"replaces\": \"$PREV_PKG\"}] + ." "$CATALOG_FILE"
-
-            # Add the bundle image
-            $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$CATALOG_FILE"
-          fi
-
-          cd ..
-          git add .
-          git commit -m "ci(operator): sync $RELEASE_VERSION post-release changes from $BRANCH to main"
-          git rebase origin/main
-          git push origin main
-
       # Before tmate, which holds the job open until it times out, so whoever is
       # notified can still connect. tmate lets in only github.actor's SSH keys,
       # and apicurio-ci (which dispatches this workflow from release-images)
@@ -576,7 +643,7 @@ jobs:
   # Slack: see "Notifications" in .github/workflows/README.md.
   notify:
     name: Notify
-    needs: [release-build, release-test, release-post]
+    needs: [release-build, release-test, release-post-sync, release-post]
     if: "!cancelled() && github.repository_owner == 'Apicurio'"
     permissions:
       actions: read

@@ -458,6 +458,45 @@ The `DefaultFallbackArtifactProvider` uses the following properties to configure
 |None
 |===
 
+**Configuration for contract rule enforcement**
+
+The SerDes use the following properties to enforce data contract rules. When you enable enforcement, the SerDes fetch the artifact-level contract ruleset from the registry, cache it, and evaluate the rules locally.
+
+.Configuration properties for contract rule enforcement
+[cols="5,5,5,3,2",width="100%",options="header",role="table-expandable"]
+|===
+|Constant
+|Property
+|Description
+|Type
+|Default
+|`CONTRACT_RULES_ENABLED`
+|`apicurio.registry.serde.contract-rules.enabled`
+|Used by serializers and deserializers. Enables contract rule execution. The serializer runs `WRITE` rules and the deserializer runs `READ` rules.
+|`boolean`
+|`false`
+|`CONTRACT_RULES_FAIL_ON_ERROR`
+|`apicurio.registry.serde.contract-rules.fail-on-error`
+|Used by serializers and deserializers. When `true`, a rule failure throws an exception. When `false`, the SerDes log the failure as a warning.
+|`boolean`
+|`true`
+|`CONTRACT_RULES_CACHE_TTL_SECONDS`
+|`apicurio.registry.serde.contract-rules.cache.ttl.seconds`
+|Used by serializers and deserializers. Number of seconds that the SerDes cache a fetched contract ruleset. After the entry expires, the SerDes fetch the ruleset again on the next message.
+|`long`
+|`60`
+|`CONTRACT_RULES_MIGRATION_ENABLED`
+|`apicurio.registry.serde.contract-rules.migration.enabled`
+|Used by deserializers only. Enables inline schema migration. When the schema version of a record differs from the target version, the deserializer runs the `UPGRADE` or `DOWNGRADE` migration rules of each version in between. Takes effect only when `apicurio.registry.serde.contract-rules.enabled` is `true`.
+|`boolean`
+|`false`
+|`CONTRACT_RULES_MIGRATION_TARGET_VERSION`
+|`apicurio.registry.serde.contract-rules.migration.target-version`
+|Used by deserializers only. The schema version to migrate records to. Required for inline migration. Takes effect only when `apicurio.registry.serde.contract-rules.enabled` is `true`.
+|`String`
+|None
+|===
+
 You can configure application properties as Java system properties or include them in the Quarkus
 `application.properties` file.
 For more details, see the https://quarkus.io/guides/config#overriding-properties-at-runtime[Quarkus documentation].
@@ -469,6 +508,12 @@ ifndef::service-registry-downstream[]
 endif::[]
 ifdef::service-registry-downstream[]
 * xref:registry-sdk-config_{context}[]
+endif::[]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-data-contracts.adoc#data-contracts-serdes_{context}[Kafka SerDes integration]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:data-contracts-serdes_{context}[]
 endif::[]
 * link:https://github.com/Apicurio/apicurio-registry/blob/main/serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/config/SerdeConfig.java[SerdeConfig Java class]
 

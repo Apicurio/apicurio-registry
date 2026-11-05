@@ -103,7 +103,7 @@ image::images/getting-started/registry-web-console.png[Artifacts in Registry web
 ** *Overview*: Displays artifact metadata and the *Versions in artifact* list. The list is empty if the artifact has no versions.
 ** *Rules*: Displays the content rules that you can configure for the artifact.
 ** *Branches*: Displays a list of branches for the artifact. The tab displays at least the `latest` branch and might display other generated branches depending on your configuration.
-** *Contract*: Displays the data contract metadata, quality score, contract rules, and audit log for the artifact.
+** *Contract*: Displays the data contract metadata, quality score, contract rules, and audit log for the artifact. When the artifact has a contract, the tab also has the following controls. *Edit YAML* and *Edit ODCS Contract* open the ODCS contract YAML for editing and re-projection. *Change* next to *Status* marks the contract as stable or deprecated. *Promote to DEV*, *Promote to STAGE*, and *Promote to PROD* move the contract to the next promotion stage, and `PROD` requires the `STABLE` status. The web console hides the ODCS editing controls in read-only mode.
 ** *Usage*: Displays which client applications fetch each version of the artifact. The tab displays data only to administrators, and only when usage telemetry is enabled.
 +
 .Artifact details in {registry} web console
@@ -621,6 +621,48 @@ NOTE: To disable a rule, click the trash icon next to the rule. If you do this a
 * xref:adding-artifacts-using-console_{context}[]
 * {registry-rule-reference}
 
+
+[id="managing-global-contract-rules-using-console_{context}"]
+== Managing global contract rules using the {registry} web console
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can add and delete global contract rules in the {registry} web console. The server-side rule execution endpoint applies global rules to all artifacts.
+
+.Prerequisites
+
+* {registry} is installed and running in your environment.
+* You are logged in to the {registry} web console:
++
+`{registry-url}`
+* When role-based authorization is enabled, you have administrator access.
+* The web console is not in read-only mode.
+
+.Procedure
+
+. Click the *Contract rules* tab.
++
+The page lists the global *Domain Rules* and *Migration Rules*.
+. To add a rule, click *Add domain rule* or *Add migration rule*, and complete the following fields:
++
+** *Name*: A name for the rule. Required.
+** *Kind*: *Condition (validate)* or *Transform (modify)*.
+** *Type*: *CEL* or *JSONata*.
+** *Mode*: *Write*, *Read*, *Write + Read*, *Upgrade*, or *Downgrade*.
+** *Expression*: The CEL or JSONata expression. Required.
+** *On Failure*: *Error (reject)*, *DLQ (dead letter queue)*, or *None (log only)*.
+. Click *Add rule*.
+. To delete a rule, click the trash icon in its row.
+. To delete every global contract rule, click *Delete all global contract rules*.
+
+[role="_additional-resources"]
+.Additional resources
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-data-contracts.adoc#data-contracts-global-rules_{context}[Global contract rules]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:data-contracts-global-rules_{context}[]
+endif::[]
 
 
 // Metadata created by nebel

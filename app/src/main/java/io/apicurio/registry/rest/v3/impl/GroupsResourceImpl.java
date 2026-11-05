@@ -211,6 +211,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     @Inject
     ISearchAuthorizer searchAuthorizer;
 
+    @Inject
+    SearchResultPermissions searchResultPermissions;
+
 
     /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#getArtifactVersionReferences(java.lang.String,
@@ -783,7 +786,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         GroupSearchResultsDto resultsDto = searchAuthorizer.searchGroups(filters, oBy, oDir,
                 offset.intValue(), limit.intValue());
-        return V3ApiUtil.dtoToSearchResults(resultsDto);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(resultsDto));
     }
 
     @Override
@@ -1405,7 +1408,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ArtifactSearchResultsDto resultsDto = searchAuthorizer.searchArtifacts(filters, oBy, oDir, offset.intValue(),
                 limit.intValue(), skipCount != null && skipCount);
-        return V3ApiUtil.dtoToSearchResults(resultsDto);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(resultsDto));
     }
 
     /**
@@ -1666,7 +1669,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 SearchFilter.ofArtifactId(artifactId));
         VersionSearchResultsDto resultsDto = searchAuthorizer.searchVersions(filters, oBy, oDir, offset.intValue(),
                 limit.intValue(), skipCount != null && skipCount);
-        return V3ApiUtil.dtoToSearchResults(resultsDto);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(resultsDto));
     }
 
     @Override
@@ -1849,7 +1852,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         VersionSearchResultsDto results = storage.getBranchVersions(ga, bid, offset.intValue(),
                 limit.intValue());
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override

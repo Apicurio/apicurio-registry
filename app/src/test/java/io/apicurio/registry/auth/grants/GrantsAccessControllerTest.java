@@ -12,6 +12,7 @@ import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.GroupMetaDataDto;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
+import io.kroxylicious.authorizer.service.Action;
 import io.kroxylicious.identity.Subject;
 import io.kroxylicious.proxy.authentication.User;
 import io.quarkus.security.runtime.QuarkusPrincipal;
@@ -29,9 +30,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -290,5 +295,34 @@ public class GrantsAccessControllerTest {
         // A group that does not exist keeps the requested spelling
         assertTrue(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("TEAM-C")));
         assertFalse(dev.isAllowed(AuthorizedLevel.Read, AuthorizedResource.group("team-c")));
+    }
+
+    // ==================== Batched evaluation for permission reporting ====================
+
+    @Test
+    void allowedActionsEvaluatesManyActionsWithoutRecordingDecisions() throws Exception {
+        GrantsAccessController dev = controller("dev", "team-a-dev");
+        dev.setAuthorizer(authorizer());
+        OTelMetricsProvider metrics = spy(dev.metrics);
+        dev.metrics = metrics;
+
+        Set<Action> allowed = dev.allowedActions(List.of(
+                new Action(Artifact.READ, "team-a/x"),
+                new Action(Artifact.WRITE, "team-a/x"),
+                new Action(Artifact.ADMIN, "team-a/x"),
+                new Action(Artifact.READ, "team-a/victim"),
+                new Action(Group.READ, "team-a"),
+                new Action(Group.WRITE, "team-a")));
+
+        assertEquals(Set.of(new Action(Artifact.READ, "team-a/x"), new Action(Artifact.WRITE, "team-a/x"),
+                new Action(Group.READ, "team-a")), allowed);
+        // Reporting permissions is not an access attempt: no metrics, and so no audit entry either
+        verify(metrics, never()).recordAuthzDecision(anyBoolean(), anyString(), anyString());
+    }
+
+    @Test
+    void allowedActionsAllowsNothingWhenUninitialized() {
+        assertEquals(Set.of(), controller("dev", "team-a-dev")
+                .allowedActions(List.of(new Action(Artifact.READ, "team-a/x"))));
     }
 }

@@ -189,6 +189,21 @@ public class GrantsAccessController extends AbstractAccessController {
         return allowed;
     }
 
+    /**
+     * Evaluates the access rules for many actions in a single call, without recording the
+     * decisions: this reports what the caller may do (e.g. permissions in search results), it does
+     * not authorize an access attempt, so denials are neither audited nor counted. Resource names
+     * must already be the stored IDs (see {@link #canonical}).
+     *
+     * @return the allowed actions; none if per-resource authorization is not initialized
+     */
+    public Set<Action> allowedActions(List<Action> actions) {
+        if (authorizer == null || actions.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(authorize(currentSubject(), actions).allowed());
+    }
+
     private boolean decide(Subject subject, ResourceType<?> operation, String resourceType,
             AuthorizedLevel level, String resourceName) {
         boolean allowed = authorize(subject, List.of(new Action(operation, resourceName)))
@@ -252,7 +267,8 @@ public class GrantsAccessController extends AbstractAccessController {
         return AuthorizationNames.group(groupId);
     }
 
-    private static Artifact toArtifactOp(AuthorizedLevel level) {
+    /** @return the access rules operation on an artifact required by {@code level} */
+    public static Artifact toArtifactOp(AuthorizedLevel level) {
         return switch (level) {
             case Read, None -> Artifact.READ;
             case Write -> Artifact.WRITE;
@@ -260,7 +276,8 @@ public class GrantsAccessController extends AbstractAccessController {
         };
     }
 
-    private static Group toGroupOp(AuthorizedLevel level) {
+    /** @return the access rules operation on a group required by {@code level} */
+    public static Group toGroupOp(AuthorizedLevel level) {
         return switch (level) {
             case Read, None -> Group.READ;
             case Write -> Group.WRITE;

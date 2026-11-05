@@ -12,7 +12,8 @@ agent sweeps: `concurrency`, `timing`, `waste`, `lifecycle`, `correctness`, `hyg
 
 ## When to use
 
-- Before committing any change that touches `**/src/test/**`
+- Before committing any change that touches `**/src/test/**` or an alternate test source
+  root such as `**/src/test-byteman/**`
 - As part of the DoD (after /simplify, before /code-review)
 - On CI as a PR quality gate
 
@@ -26,10 +27,15 @@ Phase 4. Carry this constraint into all detector-agent prompts.
 
 ```bash
 # Changed test files in the current diff
-git diff --name-only HEAD | grep -E 'src/test/.*\.java$'
+git diff --name-only HEAD | grep -E 'src/test[^/]*/.*\.java$'
 # Or vs main for PR scope
-git diff main...HEAD --name-only | grep -E 'src/test/.*\.java$'
+git diff main...HEAD --name-only | grep -E 'src/test[^/]*/.*\.java$'
 ```
+
+The `[^/]*` is what reaches alternate test source roots such as `src/test-byteman/java`,
+added by the `byteman` profile in `app/pom.xml`. A plain `src/test/` pattern misses them
+and the gate then stops as not applicable on a diff whose riskiest file it never read.
+Widen this again if another source root appears.
 
 If no test files are changed, report "No test files in scope; test-quality review
 not applicable" and stop. This does not establish that behavioral coverage is adequate.

@@ -1,583 +1,657 @@
 # ADR-0005: Per-Resource Authorization for Apicurio Registry
 
-- **Status:** Accepted
-- **Date:** 2026-05-09
-- **Authors:** Carles Arnal
-- **PR:** [#7829](https://github.com/Apicurio/apicurio-registry/pull/7829)
-- **Issue:** [#7724](https://github.com/Apicurio/apicurio-registry/issues/7724)
-- **Amended:** 2026-10-27: Registry adopts the Kroxylicious ACL rules format
-  ([proposal 009](https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md))
-  in place of the JSON grants format. See "Amendment 1" below.
-- **Amended:** 2026-10-28: Apicurio publishes the resource scope API for search pre-filtering. See
-  "Amendment 2" below.
+- **Status:** Accepted; implementation guide updated 2026-11-05.
+- **Original decision date:** 2026-05-09.
+- **Author:** Carles Arnal.
+- **Tracking:** [#7724](https://github.com/Apicurio/apicurio-registry/issues/7724),
+  [enterprise authorization epic #8212](https://github.com/Apicurio/apicurio-registry/issues/8212).
+- **Scope:** Server-side authorization of Registry groups, artifacts, and content reached through them.
+  Authentication establishes identity; this design decides what that identity may access.
+
+## Reading this document
+
+This is a description of the current implementation, with historical decisions collected at the end.
+The original JSON grants design is superseded: **use the Kroxylicious ACL rules format and the
+`rules.*` properties documented here**. Java classes retaining the `Grants` prefix implement the
+current ACL-based design; the prefix does not imply a JSON format.
+
+The references below point to source files in this checkout, so they follow the code rather than
+fixed line numbers. The reference-batching subsection explicitly identifies the work in
+[PR #10883](https://github.com/Apicurio/apicurio-registry/pull/10883), which is not yet merged at
+the time of this update. Other delivered milestones are listed under [History](#history).
+
+- Start with [the decision](#decision) and [the access model](#access-model).
+- To trace a request, follow [point access](#point-access) or [search](#search-and-pagination).
+- For deployment, use [configuration](#configuration-and-reload) and the
+  [operator guide](../docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc).
+- For code changes, use [the source map](#source-map) and [verification map](#verification-map).
+- Read [limitations](#limitations-and-open-work) before inferring guarantees about concurrent
+  requests or multiple replicas.
 
 ## Context
 
-Apicurio Registry supports two authorization models:
+Registry already has global role-based access control (RBAC) and owner-only authorization (OBAC).
+RBAC alone cannot express team-specific visibility. OBAC limits writes but does not hide another
+team's artifacts from readers. A shared Registry therefore needs a resource-level decision as well
+as the existing identity and role checks.
 
-- **RBAC** — global roles (`sr-readonly`, `sr-developer`, `sr-admin`) that apply to all resources equally
-- **OBAC** — owner-based access control, where only the artifact creator can modify it
-
-Neither supports per-resource visibility or access rules. A developer with `sr-developer` can read and write every artifact in every group. There is no way to express "Alice can write to team-a artifacts but not team-b artifacts," and no way to prevent team-b's schemas from appearing in team-a's search results.
-
-This is a fundamental limitation for multi-tenant deployments where teams share a Registry instance but need isolation between their schemas.
+The difficult part is search: filtering a fetched page after authorization can produce short pages,
+incorrect totals, and offsets that refer to the wrong result set. A point-decision API alone does
+not solve this. The authorization restriction must participate in the query that selects and counts
+the page. This does not require every future policy engine to use SQL internally; it requires a
+queryable scope consistent with that engine's decisions.
 
 ## Decision
 
-We implement per-resource authorization using **a JSON grants file with an in-process Java evaluator that translates grants into SQL query predicates** for search/list filtering.
+1. Use the **Kroxylicious `Authorizer` API** for decisions about operations on named resources.
+2. Read **Kroxylicious ACL rules**, but evaluate the parsed rules in Apicurio's `AccessRules`.
+3. Publish **`ResourceScopeProvider`** and its TCK as a companion contract for query pre-filtering.
+4. Keep identity integration, RBAC, OBAC, owner/admin bypasses, resource resolution, and audit/metrics
+   in Registry. An ACL allow is not, by itself, permission to execute an endpoint.
+5. Push supported scopes into storage queries before pagination. When a scope cannot be translated,
+   fail closed rather than discard its denied selectors.
 
-### Why this approach
+The root [POM](../pom.xml) currently pins Kroxylicious **0.25.1**. The
+[proposal](https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md) describes
+the shared direction; the pinned parser and Registry tests establish the supported behavior.
 
-The hard problem is not point-access authorization (can this user read this artifact?) — any authorization engine solves that. The hard problem is **search/list filtering with correct pagination**.
+### Why Registry has its own evaluator
 
-When a user calls `GET /search/artifacts?limit=20`, Registry needs to return exactly 20 authorized results with a correct total count. This constrains the entire design. External engines (OPA, Zanzibar, Keycloak UMA) are outside the database query path — they can only make allow/deny decisions after results are fetched, not before. Post-filtering breaks pagination: total counts are wrong, page sizes are unpredictable, and performance degrades with deny rate.
+[AccessRules](../authz/src/main/java/io/apicurio/authz/AccessRules.java) uses Kroxylicious's
+`AclRulesLexer`/`AclRulesParser`, validates imported types and operations, and creates both decisions
+and scopes from one parsed rule set. It does not delegate production decisions to `AclAuthorizer`.
 
-The only approach that gives correct pagination is **translating authorization rules into SQL `WHERE` clauses before the query hits the database**. This requires the authorization data to be in-process, in a format that maps to SQL predicates.
+The implementation records two reasons for this choice: class resolution in
+`AclAuthorizerService` conflicts with Quarkus test/dev class loaders, and upstream 0.25.1 has
+prefix-matching defects. `AccessRulesTest` compares compatible behavior and tests Registry's
+regressions. Upgrading the dependency does not automatically remove the custom evaluator; a switch
+requires checking class loading, matching, operation implication, and scope conformance again.
 
-## Amendment 1 (2026-10-27): adopt the Kroxylicious ACL rules format
+## Access model
 
-**Decision.** The access rules file is shared with Kroxylicious and StreamsHub Console, and its
-format is the Kroxylicious ACL rules language defined by
-[proposal 009](https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md) and
-implemented by `AclAuthorizer` (`io.kroxylicious:kroxylicious-authorizer-acl`). Registry replaces
-its JSON grants format with it before 3.4.0. The JSON format was never released (the latest
-release is 3.3.3), so no migration is needed. This reverses the earlier rejection of `AclAuthorizer`
-(see "Kroxylicious Authorizer with ACL DSL" below). Issue
-[#10602](https://github.com/Apicurio/apicurio-registry/issues/10602), implemented in
-[#10746](https://github.com/Apicurio/apicurio-registry/pull/10746).
+### Subjects and roles
 
-The sections below that describe `GrantsAuthorizer`, `GrantsData` and the JSON grants file
-describe the original design, which #10746 replaces.
+`GrantsAccessController.currentSubject()` converts the current Quarkus `SecurityIdentity` into:
 
-**Example:**
+- an authenticated caller: one Kroxylicious `User` containing the principal name, plus an Apicurio
+  `Role` for each entry in `SecurityIdentity.getRoles()`;
+- an anonymous caller: only `Role("$anonymous")`, with no `User` principal.
 
-```
+Rules match the **exact principal class** and name: a user named `ops` is not a role named `ops`.
+`User` defaults to `io.kroxylicious.proxy.authentication.User`; `Role` is explicitly imported as
+`io.apicurio.authz.Role`. Do not infer ACL role principals from RBAC decisions: RBAC can use the
+token, application, header, or Kubernetes role provider, while ACL subjects are built from the
+security identity's roles. Check both mappings when configuring a non-token role source.
+
+### Resources and names
+
+The current Registry initializer supports two resource types, the `Artifact` and `Group` enums in
+`authz`. A version, branch, or comment is normally authorized as its **artifact**, not as an
+independent resource. Content IDs/hashes are an indirect resource resolved through their users.
+
+[AuthorizationNames](../app/src/main/java/io/apicurio/registry/storage/dto/AuthorizationNames.java)
+defines the naming convention:
+
+| Resource | Name passed to the authorizer | Example |
+|---|---|---|
+| Group | Group ID; default group is `default` | `team-a` |
+| Artifact | `escape(groupId) + "/" + artifactId` | `team-a/order` |
+| Artifact in default group | `default/` followed by artifact ID | `default/order` |
+
+Only the **group component of an artifact name** escapes `%` as `%25` and `/` as `%2F`.
+Group resource names and artifact IDs are not escaped. Thus group `team-a/sub`, artifact `x`
+becomes `team-a%2Fsub/x`; group `team-a`, artifact `sub/x` becomes `team-a/sub/x`.
+This is an authorization naming scheme, not URL encoding.
+
+Names are case-sensitive. On a database that resolves IDs case-insensitively, point access first
+resolves an existing resource to its **stored spelling**. A request for `TEAM-A/VICTIM` must not
+escape a deny on stored `team-a/victim`. Missing artifacts retain their requested artifact ID but
+use the existing group's stored spelling when available. Default-group representations normalize
+to the same authorization name.
+
+### Operations and denies
+
+Both enums have `READ`, `WRITE`, and `ADMIN`. Operation expansion is the same for **allow and deny**:
+
+| Operation written in a rule | Operations covered |
+|---|---|
+| `READ` | `READ` |
+| `WRITE` | `WRITE`, `READ` |
+| `ADMIN` or `*` | `ADMIN`, `WRITE`, `READ` |
+
+A matching deny takes precedence over matching allows; without an allow, access is denied.
+This precedence is within ACL evaluation. An owner/admin bypass can skip ACL evaluation entirely.
+
+**A deny is not the inverse of an allow hierarchy.** Denying `READ` does not deny `WRITE` or
+`ADMIN`. Denying `WRITE` denies reads too, but does not deny `ADMIN`. To exclude a resource from all
+operations, deny `*`; to grant read-only access, allow `READ` without a matching broader allow.
+For example, with an allow of `ADMIN` on a resource:
+
+| Additional matching deny | READ | WRITE | ADMIN |
+|---|---|---|---|
+| None | allow | allow | allow |
+| `READ` | deny | allow | allow |
+| `WRITE` | deny | deny | allow |
+| `*` | deny | deny | deny |
+
+Endpoint annotations choose the operation:
+
+| `AuthorizedLevel` | ACL operation | Other relevant behavior |
+|---|---|---|
+| `Read` | `READ` | Anonymous/authenticated read settings can bypass the role check |
+| `Write` | `WRITE` | Includes ordinary core metadata changes and deletes; OBAC can restrict it |
+| `Admin` | `ADMIN` | Used for example by Iceberg namespace/table/view drops |
+| `AdminOrOwner` | `ADMIN` | RBAC permits an administrator or the owner; not the same as `Admin` |
+| `None` | No ACL check | Unprotected level; distinct from resource **style** `None` |
+
+`RoleBasedAccessController` may downgrade its own `Write` check to `Read` for an annotated dry run.
+That does not rewrite the level used by OBAC or the grants controller. Do not assume that a dry run
+universally requires only read permission.
+
+### A complete rules example
+
+```text
 from io.apicurio.authz import Artifact, Group, Role;
 
 deny User with name = "bob" to * Artifact with name = "team-a/secret";
 allow Role with name = "team-a-dev" to WRITE Group with name = "team-a";
 allow Role with name = "team-a-dev" to WRITE Artifact with name like "team-a/*";
-allow Role with name = "ops" to * Artifact with name *;
+allow Role with name = "$anonymous" to READ Group with name = "public";
+allow Role with name = "$anonymous" to READ Artifact with name like "public/*";
 otherwise deny;
 ```
 
-**Mapping from the JSON grants format.**
+The parser requires denies before allows and a final `otherwise deny;`. Use `//` comments.
+Selectors are equality (`=`), a set (`in`), a trailing-wildcard prefix (`like "team-a/*"`), all
+names (`with name *`), or a full RE2 match (`matching /regex/`, resources only).
+`like` is not a general glob or a SQL LIKE expression.
 
-| JSON grants | ACL rules |
+For this example, suppose Bob has the `team-a-dev` identity role and the RBAC developer role,
+OBAC is disabled, and Bob does not own `team-a/secret`. He may read/write other artifacts in
+`team-a`, and create new names there, but cannot access `secret`. If Bob owns `secret` and owner
+bypass is enabled, the ownership exception overrides that ACL deny. Disable owner bypass if ACL
+denies must apply to owners too. Anonymous reads require the anonymous-read setting in addition
+to the two explicit rules.
+
+Group and artifact rules are independent: a group grant does not grant its artifacts, and a group
+deny does not hide them from global artifact search. Listing a group's artifacts checks the group
+first and filters the artifacts second. It is therefore possible to read an artifact directly but
+be unable to list its group.
+
+## Point access
+
+The authoritative entry point is
+[AuthorizedInterceptor.authorizeMethod](../app/src/main/java/io/apicurio/registry/auth/AuthorizedInterceptor.java).
+The following order matters:
+
+1. Role-mapping API operations require application-managed RBAC, even before the general bypasses.
+2. A non-anonymous request with a proxy-header credential bypasses local authorization when trusted
+   proxy authorization is enabled. A normal OIDC/basic request does not get this bypass merely
+   because the option is enabled.
+3. If `AuthConfig.isAuthenticationEnabled()` is false, proceed without authorization. Enabling the
+   resource-authorization option alone does not enable authentication.
+4. An anonymous caller may use level `None`. For level `Read`, anonymous reads must be enabled and,
+   when grants are enabled, the grants check must pass. Other anonymous access is rejected with 401.
+5. Authenticated level `None` requests proceed; a configured admin override also proceeds.
+6. Authenticated-read access skips the RBAC read check, but still applies grants. Otherwise, when
+   RBAC is enabled, the role provider checks the level.
+7. OBAC, when enabled, restricts writes; RBAC administrators are exempt. Groups are owner-restricted
+   only when `owner-only-authorization.limit-group-access` is enabled.
+8. When grants are enabled, RBAC administrators bypass them. Otherwise the strict owner bypass or
+   an ACL allow must permit the addressed resource.
+
+With default RBAC role names, read-only users can read, developers can read/write, and administrators
+can read/write/administer. These checks apply **only when RBAC is enabled**. RBAC is optional;
+there is no requirement to enable it in order to use resource rules. Conversely, with RBAC disabled,
+`sr-admin` is not automatically a grants bypass unless a separate admin override applies.
+
+### Ownership is two different checks
+
+- **OBAC** (`isOwnerOf`): a write restriction. It is intentionally lenient for missing resources
+  and resources with no owner; the endpoint decides whether the operation is valid.
+- **Owner bypass** (`isStrictOwner`): an exception to ACL restrictions. It requires an existing
+  resource whose recorded owner is the authenticated caller. It is independent of OBAC and can
+  be disabled. It does not override an earlier RBAC denial.
+
+For versions these checks use the artifact owner, not the version creator. Ownership changes in
+core v3 additionally use
+[OwnershipTransferAuthorizer](../app/src/main/java/io/apicurio/registry/auth/OwnershipTransferAuthorizer.java)
+inside the metadata-update endpoint. A `write` permission flag is not sufficient evidence that
+an ownership transfer will succeed.
+
+### Resolving the target
+
+[AbstractAccessController.resolveResource](../app/src/main/java/io/apicurio/registry/auth/AbstractAccessController.java)
+is shared by OBAC and grants:
+
+| `AuthorizedStyle` | Resource resolution |
 |---|---|
-| `principal` / `principal_role` | `User with name = …` / `Role with name = …`. `User` is Kroxylicious's own `io.kroxylicious.proxy.authentication.User`, the default for `User` in rules files, so Kroxylicious rules work unchanged; `Role` is `io.apicurio.authz.Role` |
-| `operation`: read, write, admin | `READ`, `WRITE`, `ADMIN` of the resource type enum |
-| `resource_type`: artifact, group | `io.apicurio.authz.Artifact`, `io.apicurio.authz.Group`: top-level `ResourceType` enums (nested classes can't be imported) |
-| `exact` / `prefix` pattern | `with name = "…"` / `with name like "…*"`, plus `in {…}`, `*` and `matching /regex/` (RE2, full match) |
-| `deny: true` | `deny` rules, which must come before `allow` rules; the first matching rule applies |
-| `config.admin_roles` | explicit rules, e.g. `allow Role with name = "ops" to * Artifact with name *;` |
-| deny by default | explicit, mandatory `otherwise deny;` at the end of the file |
-| `grants.path`, `grants.reload-*` config | `rules.path`, `rules.reload-every`, `rules.reload-enabled` |
+| `GroupAndArtifact` | Artifact from group/artifact parameters |
+| `GroupOnly` | Group parameter |
+| `ArtifactOnly` | Confluent subject plus group header or configured group-concat convention |
+| `GlobalId` | Coordinates of the global ID, then its artifact |
+| `ContentId`, `ContentHash` | Artifacts using the content |
+| `CCompatSchemaId` | Content ID normally; global ID in legacy-ID mode |
+| `QualifiedArtifactName` | MCP server name split into namespace/group and artifact |
+| `IcebergNamespace`, `IcebergTable` | Namespace/group and optional table/artifact; not catalog prefix |
+| `None` | No single resource resolved; role/authentication checks still apply |
 
-Registry keeps what is outside the file: RBAC (evaluated first), the owner bypass, admin override,
-audit logging (the `Authorizer` does not audit) and hot reload (the authorizer is rebuilt when the
-file changes; an invalid file keeps the previous rules).
+Content access uses **any-of** semantics: one readable artifact using the content (or one eligible
+owner bypass) is sufficient. Unknown IDs resolve to content with no users, so a restricted caller
+cannot obtain an accidental bypass. An administrator can reach the endpoint's own 404 instead.
 
-**Semantics that differ from the JSON grants** (verified against `AclAuthorizer` 0.25.1):
-- A `deny` also denies the operations its operation implies: denying `WRITE` also denies `READ`. A
-  resource can't be made read-only by denying `WRITE`; instead, allow only `READ`.
-- A `deny` does not deny operations that imply it: denying `READ` leaves `WRITE` allowed, and
-  denying `WRITE` leaves `ADMIN` allowed, if an `allow` matches. To hide a resource completely, deny
-  `*` (or `ADMIN`).
-- Names are opaque strings. Registry's `group/artifact` naming, with `%` and `/` escaped in the group
-  ID, is a Registry convention, not part of the format.
+`GrantsAccessController.isAuthorized` permits style `None` without a single-resource ACL check.
+Body-addressed targets therefore need an explicit
+[ResourceAccessGuard](../app/src/main/java/io/apicurio/registry/auth/ResourceAccessGuard.java) check;
+list/search endpoints need filtering; unfilterable registry-wide reports use
+`requireUnrestrictedRead`. **`requireAccess` adds OBAC/grants, not authentication and RBAC**:
+the endpoint still needs its annotation or an equivalent outer check.
 
-**How Registry reads and evaluates the file.** Registry uses the format, not (yet) the Kroxylicious
-evaluator (`io.apicurio.authz.AccessRules`):
-- **Reading.** `AclAuthorizerService` resolves imported classes with `Class.forName` in its own class
-  loader. Under Quarkus test and dev class loading, that finds a second copy of Registry's resource
-  types, which is not a `ResourceType` in its view, so it rejects every Registry rules file. Registry
-  parses the file with the Kroxylicious parser (`AclRulesParser`), resolves classes in its own class
-  loader, and validates as `AclAuthorizerService` does. Tests check that the same files are accepted
-  and rejected.
-- **Evaluating.** `AclAuthorizer` 0.25.1 has a prefix-matching defect, reported to Kroxylicious
-  privately. Registry therefore evaluates the parsed rules itself with the semantics above, and can
-  return to `AclAuthorizer` once it is fixed upstream. Tests check that decisions otherwise agree
-  with `AclAuthorizer`.
+### Following a concrete request
 
-**Search.** Search pre-filtering needs the scope of the rules, not just point decisions. Point
-decisions and the scope come from the same parse and the same matching, so search selects exactly
-what point access allows. A test checks this invariant. The scope is provided through Apicurio's
-resource scope API (Amendment 2). `=` and `in` map to exact names, `like` to prefixes, `*` to allow-all
-and `matching` to patterns. SQL and Elasticsearch can't evaluate RE2 patterns, so a grant-restricted
-search whose scope contains patterns fails closed. Use `=`, `in` or `like` for Registry resources
-where search matters.
+For an authenticated, non-admin `GET /apis/registry/v3/ids/globalIds/{id}`:
 
-**Open points with Kroxylicious** (found while checking 0.25.1 against proposal 009):
-- `anonymous User` is in the proposal but not in the 0.25.1 grammar. Until it ships, Registry
-  gives unauthenticated callers a `Role` principal named `$anonymous`.
-- A rules file only loads if every imported principal and resource type class is on the classpath.
-  One file covering Registry and Kroxylicious resources can't load in either, so either each system
-  has its own file in the shared format, or loading must tolerate other systems' types.
-- Principal classes are imported by fully qualified name, so a file shared across systems needs
-  shared principal classes (e.g. `User` and `Role` in `kroxylicious-identity-api`).
-- `kroxylicious-authorizer-acl` depends on the whole `kroxylicious-api` (including native compression
-  libraries) only for the `@Plugin` annotation.
-- `AclAuthorizer.authorize()` still takes the deprecated `Identity`; the proposal uses `Subject`.
-- `AclAuthorizerService` resolves classes in its own class loader, which fails under Quarkus test
-  and dev class loading (see "How Registry reads and evaluates the file"). A way to supply a class
-  resolver would let Registry use it directly.
-- `AclAuthorizer` prefix matching (reported privately).
-- The parser removes every backslash in a regex literal, so `/a\.b/` is the regex `a.b`.
-- The lexer reads a block comment (`/* … */`) as a regex literal, so block comments are syntax
-  errors; only `//` comments work.
+1. `IdsResourceImpl` declares style `GlobalId`, level `Read`; the interceptor applies its gates.
+2. Resource resolution uses `AuthorizationLookups.coordinates` and the cross-request coordinate
+   cache to identify the artifact. The cached value is not the permission decision.
+3. The owner bypass, if enabled, looks up the artifact's current-request metadata. Otherwise
+   `isAllowed(Read, resource)` canonicalizes the name and evaluates `Artifact.READ` for the caller.
+4. After authorization, the endpoint loads content and applies its own existence/state checks.
+   A cached coordinate alone does not make a deleted or disabled version readable.
+5. If dereferencing is requested, the reference loader checks each reached artifact separately
+   from the root's permission. Access to the root never implies access to its dependencies.
 
-## Amendment 2 (2026-10-28): Apicurio publishes the resource scope API
+For `GET /apis/registry/v3/search/artifacts`, there is no single artifact in the request to
+authorize. The outer read gate runs, then the scope limits the query and its count. Optional
+permission reporting evaluates operations on the selected page; it does not replace filtering.
 
-**Decision.** The Kroxylicious `Authorizer` API answers point decisions only. Search pre-filtering
-needs the scope of the rules, so Apicurio defines and publishes the resource scope API itself
-([#10601](https://github.com/Apicurio/apicurio-registry/issues/10601)):
+### Multiple resources and generated writes
 
-- `io.apicurio:apicurio-scope-api`: `ResourceScopeProvider`, an optional companion to a Kroxylicious
-  `Authorizer` (`resolveScope(Subject, ResourceType)`), and the sealed `ResourceScope`
-  (`Unrestricted`, `Forbidden`, `Scoped` with allowed and denied exact names, prefixes and RE2
-  patterns). It depends only on the Kroxylicious authorizer and identity APIs and RE2/J.
-- `io.apicurio:apicurio-scope-api-tck`: conformance tests that check a provider's scope selects
-  exactly what its `Authorizer` allows.
+- Creating an artifact requires a group write and a write on the new artifact name. The name does
+  not exist yet, so it cannot acquire an owner bypass before authorization.
+- Existing-artifact `ifExists` paths must check the existing artifact, not rely on the group's
+  permission. Deleting a group/all its artifacts checks the affected artifacts too.
+- References included in dereferencing, canonicalization, Protobuf export, and Confluent resolved
+  content use **all-of** semantics: every reached artifact must be readable. This differs from
+  the any-of rule for shared content IDs.
+- Submitted references, including those of drafts, are checked before write-hook planning.
+  Generated targets have their own write checks through `requireGeneratedArtifactWrite`.
 
-Both are modules of this repository, released with Registry. Registry's `AccessRulesAuthorizer` is
-the first implementation, and its search pre-filtering uses only the interface. The StreamsHub team
-plans a unified authorizer for Registry, Kroxylicious, StreamsHub Console and Kafka that implements
-the same API. Kroxylicious is not expected to implement it: pre-filtering isn't needed for Kafka
-resources.
+Embedded-schema extraction now uses
+[ContentPlan](../app/src/main/java/io/apicurio/registry/extensions/ContentPlan.java): predict the
+rewrite and reference coordinates, expose planned content to rules, run rules and `beforePublish`,
+then commit only when not a dry run. `EmbeddedSchemaService` uses
+`createArtifactVersionIfLatest` to reject a coordinate race and compensates earlier field writes
+when a later field commit fails. This fixes the rejection-before-commit orphan case from #10603.
+It is **not a general transaction over arbitrary third-party hooks and the parent write**; the
+default `planContent` delegates to legacy `prepareContent`, which cannot make a legacy writing
+hook side-effect-free. See
+[ArtifactVersionWriteHook](../app/src/main/java/io/apicurio/registry/extensions/ArtifactVersionWriteHook.java).
 
-Matching rules are part of the contract: names are opaque and compared exactly and case-sensitively;
-exact names by equality, prefixes by `startsWith`, patterns by a full RE2 match (RE2 runs in linear
-time, so user-supplied patterns can't cause catastrophic backtracking); deny selectors take
-precedence. A store that can't evaluate patterns fails closed.
+### Reference batching (#10883)
 
-## Design
+`GrantsAccessController.isAllowedForAll`, added in #10883, does the following: canonicalize names,
+deduplicate actions by stored resource, call `authorize()` once, and record the resulting decisions.
+`ResourceAccessGuard` removes strict-owner bypasses before submitting the batch.
 
-### Grants file format
+[AuthorizingReferenceLoader](../app/src/main/java/io/apicurio/registry/references/AuthorizingReferenceLoader.java)
+extends the existing loader shape with an `authorize(collection)` operation. Loading a reference
+individually still authorizes it. A guard-created loader remembers successful authorizations for
+its own lifetime, keyed by group/artifact as supplied (not version); it is not a cross-request cache.
 
-> **Superseded by Amendment 1:** the file format is the Kroxylicious ACL rules format. The JSON
-> format below is the format of the current code until #10602 is merged.
+| Traversal | Batch boundary |
+|---|---|
+| `ReferenceResolution` / `ReferenceGraphWalker` | Distinct target coordinates at each breadth-first level |
+| `RegistryContentUtils.resolveReferencesWithContext` | Siblings in a document before depth-first loading; invalid sibling lists retain the previous per-item error path |
+| `ProtobufExporter.collectReferences` | Unvisited imports of each file before depth-first loading |
+| `HookPlan.loader` | Preserves batching through `AuthorizingReferenceLoader.preferring`; planned content is authorized but need not be read from storage |
 
-A JSON file defines who can access what. Each grant maps a principal (user or IdP role) to an operation on a resource pattern:
+There can be multiple walks in a request (for example submitted-reference checks followed by rule
+resolution). The guarantee is **one authorizer call per nonempty batch needing ACL evaluation**,
+not one per request. Already-authorized references and bypasses can need zero calls. Metadata
+lookups are still per distinct lookup key and shared by the request lookup layer.
+
+On denial, content in that batch is not loaded. Earlier levels may already have been loaded to
+discover it; authorization itself can read metadata. Do not interpret this as "no reads occurred."
+A denial now takes precedence over a missing sibling that the old loader would have visited first.
+Non-authorization loader errors retain the existing traversal-specific behavior (some are logged
+and skipped); a `ForbiddenException` must propagate. Protobuf export collects references before
+streaming so it can still return an error response rather than a partially written ZIP.
+
+## Search and pagination
+
+The paginated search path is:
+
+```text
+Endpoint authentication / read-role gate
+  -> ISearchAuthorizer (SearchAuthorizerProducer)
+  -> GrantsSearchFilter: scope for Artifact.READ or Group.READ
+  -> AuthorizationFilter, combined with the user's normal search criteria
+  -> storage query: authorization restriction before count, offset, limit
+  -> result conversion, then optional v3 permissions decoration
+```
+
+[ResourceScopeProvider](../scope-api/src/main/java/io/apicurio/scope/ResourceScopeProvider.java)
+returns `Unrestricted`, `Forbidden`, or `Scoped` (allow-all plus allowed/denied exact names,
+prefixes, and RE2 patterns). At the contract level, `scope.matches(name)` must agree with the
+authorizer's decision for that subject, operation, and policy version. The TCK tests this property.
+
+For scopes the store can translate, selection is conceptually:
+
+```text
+normal search criteria
+AND ((ACL allow matches AND no ACL deny matches) OR eligible owner matches)
+```
+
+The owner term is outside the ACL deny term deliberately: it reproduces owner bypass. Version
+search uses artifact ownership. Unrestricted callers/scopes require no ACL predicate.
+
+### Translation and boundaries of the invariant
+
+- **SQL:** `SqlAuthorizationFilter` translates names via `AuthorizationNames` for group, artifact,
+  and version queries. It binds values and escapes LIKE metacharacters. MySQL uses binary
+  comparisons; SQL Server uses a binary collation. Equality/prefix conditions also include an
+  ordinary index-usable comparison on these dialects. H2/PostgreSQL are case-sensitive by default.
+  The SQL query layer is reused by the storage variants; KafkaSQL uses its local SQL view.
+- **Elasticsearch:** authorization uses term/prefix queries over names. The
+  `ElasticsearchSearchDecorator` resolves owner matches from primary storage rather than relying
+  on stale indexed ownership. It supplies **at most 1000 owned artifact names** and logs when the
+  cap is reached. Indexed data can lag primary storage. Unsupported combinations of content or
+  structure filters with hash filters return 400 rather than partially evaluating the query.
+- **Regex scopes:** the point evaluator supports full RE2 matches, but SQL/Elasticsearch search
+  does not translate them. For a restricted caller whose relevant scope contains patterns,
+  `GrantsSearchFilter` selects only eligible owned resources, or none without owner bypass.
+  It does not simply ignore the regex rule and retain other ACL allows.
+
+Thus policy-scope equivalence is an API invariant, but **exact search/point parity has explicit
+implementation limits**: pattern scopes, the indexed owner cap, index freshness, and concurrent
+policy/data changes. Counts describe the query's selected result set (when the endpoint requests
+a count); no promise is made that every page is full, or that separate requests share a snapshot.
+
+Not every list uses a paginated search: branch-version lists are gated on the parent artifact;
+inbound-reference/content-user lists use per-item visibility checks. The outbound reference graph
+can retain reference coordinates while suppressing an unreadable target's metadata. Raw stored
+content can itself contain references. This design does not conceal every occurrence of a hidden
+artifact's name; it prevents unauthorized content/metadata access through protected paths.
+
+## Permissions reported in v3 results
+
+[SearchResultPermissions](../app/src/main/java/io/apicurio/registry/rest/v3/impl/SearchResultPermissions.java)
+adds an optional object to `SearchedArtifact`, `SearchedVersion`, and `SearchedGroup`:
 
 ```json
 {
-  "config": {
-    "admin_roles": ["sr-admin"]
-  },
-  "grants": [
-    {
-      "principal": "alice",
-      "operation": "write",
-      "resource_type": "artifact",
-      "resource_pattern_type": "prefix",
-      "resource_pattern": "team-a/"
-    },
-    {
-      "principal_role": "sr-developer",
-      "operation": "read",
-      "resource_type": "artifact",
-      "resource_pattern_type": "prefix",
-      "resource_pattern": "public/"
-    },
-    {
-      "principal": "alice",
-      "operation": "read",
-      "resource_type": "artifact",
-      "resource_pattern_type": "exact",
-      "resource_pattern": "team-a/secret-schema",
-      "deny": true
-    }
-  ]
+  "permissions": {"read": true, "write": false, "admin": false}
 }
 ```
 
-**Grant fields:**
+It is present when resource-based authorization is enabled, and omitted when disabled. It is
+v3-only and does not change result membership. It covers artifact/group/version searches,
+content searches, contract search returning searched artifacts, and corresponding group/artifact/
+version/branch-version lists.
 
-| Field | Required | Description |
-|-------|----------|-------------|
-| `principal` | One of `principal` or `principal_role` | Username to match |
-| `principal_role` | One of `principal` or `principal_role` | IdP role to match |
-| `operation` | Yes | `read`, `write`, or `admin` (hierarchy: admin > write > read) |
-| `resource_type` | Yes | `artifact` or `group` (extensible for other systems) |
-| `resource_pattern_type` | No | `prefix` (startsWith), `exact` or omitted (equals). `resource_pattern: "*"` matches everything regardless of this field. |
-| `resource_pattern` | Yes | The pattern to match (`team-a/`, `team-b/public-schema`, `*`) |
-| `deny` | No | When `true`, denies the matched access. Deny rules take precedence over allow rules. |
+`ResourcePermissionsEvaluator` applies the caller-wide gates and per-resource owner rules, with
+at most one quiet `allowedActions` call per page. Empty/bypassed pages need no authorizer call.
+Artifact/group owners come from the result data; versions use the artifact metadata through
+`AuthorizationLookups`. Owner lookups are skipped when ownership cannot affect the answer.
 
-Artifact resource names follow the format `{groupId}/{artifactId}`. Group resource names are just the group ID.
+The flags describe authorization **at those levels**, not guaranteed endpoint success:
 
-### Authorization flow
+- `write` is not "can perform every mutation": ownership transfer, state, mutability settings,
+  validation rules, referenced artifacts, and group-wide deletes can impose additional checks.
+- `admin` means `AuthorizedLevel.Admin`, not `AdminOrOwner`, not "can delete a core artifact",
+  and not "can transfer ownership". Core deletes generally require `Write`; Iceberg drops use
+  `Admin`.
+- An owning developer with RBAC enabled can have `{read:true, write:true, admin:false}`.
+  With RBAC disabled, an owner bypass can also allow `Admin`; there is no unconditional rule that
+  every non-administrator must receive `admin:false`.
+- Policy or ownership can change after the result is returned. The flags never authorize a later
+  request, and the UI must still handle authorization failures.
 
-```
-Request → Authentication (Keycloak/IdP)
-        → Admin override                       (bypasses everything below)
-        → RBAC                                 (coarse-grained role check; skipped for reads under
-                                                anonymous/authenticated read access)
-        → OBAC                                 (when enabled)
-        → Per-resource grants                  (RBAC admins and, by default, owners bypass)
-```
+## Configuration and reload
 
-Key interactions:
+These are the defaults in `GrantsAccessControllerConfig`:
 
-- **Admins** bypass grants: admin override, RBAC admins (`sr-admin`), or a role listed in
-  `config.admin_roles`.
-- **Owners bypass grants**, independently of whether OBAC is enabled. The bypass is strict: it applies
-  only when the addressed resource exists and its recorded owner is the caller (for content: owner of any
-  artifact using it). Missing resources and
-  resources without an owner never bypass. It can be disabled with
-  `apicurio.auth.resource-based-authorization.owner-bypass.enabled=false`.
-- **Creation and group deletes check artifacts too.** Creating an artifact requires `write` on the
-  group and on the new name (otherwise a deny could be bypassed by creating the artifact and owning
-  it), through every API that creates artifacts (core, Confluent compatibility, MCP publishing,
-  Iceberg renames). Deleting a group, or all its artifacts, requires `write` on every artifact in it.
-- **Indirectly accessed artifacts are authorized like direct access.** Resolving references
-  (dereferencing, canonical content, Protobuf export, Confluent `format=resolved`) and registering
-  content with references require `read` on every referenced artifact, transitively; the request
-  fails with 403 rather than leaving a reference unresolved, so the response never depends silently
-  on the caller. Write hooks that generate artifacts (embedded schemas, OpenAPI agent cards) require
-  `write` on every generated artifact, plus `write` on the group when it does not exist yet, and
-  embedded schemas also get owner-only authorization (`ResourceAccessGuard.requireGeneratedArtifactWrite`).
-  Submitted references are authorized, for drafts too, before any hook runs, so a request rejected by authorization
-  leaves no hook writes behind.
-- **Grants are evaluated against stored IDs.** MySQL and SQL Server match IDs case-insensitively, so
-  `GrantsAccessController` resolves an existing group or artifact to its stored spelling before
-  evaluating grants; otherwise a case-only change of the ID would address the same resource under a
-  name no deny rule matches.
-- **RBAC runs before grants.** Grants restrict within what RBAC allows.
-- **Grants files are validated strictly.** `config.admin_roles` must be an array of non-empty
-  strings (a number or boolean must not become a role name). Any invalid grant (both or neither principal field, unknown
-  operation or pattern type, non-boolean `deny`) rejects the whole file, since skipping an invalid
-  deny rule would fail open.
-- **Deny rules take precedence.** A deny on an operation also denies every operation that implies it:
-  denying `read` blocks all access; denying `write` makes a resource read-only.
-- **`authenticated-read-access` / `anonymous-read-access`** skip RBAC for reads, not grants.
-  Unauthenticated callers get the `$anonymous` role, so anonymous access is granted explicitly.
-- **Registry-wide reports** that cannot be filtered per resource (GitOps status and validation tasks)
-  are limited to callers who are not restricted by grants.
-- **`apicurio.authn.proxy-header.trust-proxy-authorization`** bypasses all local authorization.
-
-### Two authorization paths
-
-**Point access** (can this user perform this operation on this resource?): the Kroxylicious
-`Authorizer.authorize()` call. The evaluator filters grants for the current user (~5-20 entries),
-applies deny rules, then allow rules. In-process, ~10-50 µs per check.
-
-**Search and list filtering** (which resources does this user see?): `GrantsData.getSearchFilterData()`
-returns the user's read grants as resource-name patterns (allow-all flag, allowed exact/prefix names,
-denied exact/prefix names), passed verbatim to storage as one `AuthorizationFilter`, plus the caller as
-owner. Storage translates it into its query:
-
-- SQL (`SqlAuthorizationFilter`): one condition shared by artifact, version and group searches.
-  Group IDs may contain `/`, so a name pattern is decomposed at every `/` rather than split once:
-  Artifact names escape `%` and `/` in the group ID (`%25`, `%2F`), so names are injective and the
-  first `/` always separates group and artifact. `AuthorizationNames` decomposes a pattern into
-  group/artifact clauses once, for both SQL and Elasticsearch: an exact name or a prefix containing
-  `/` fixes the group; a prefix ending inside the escaped group becomes a raw group prefix. LIKE
-  patterns are escaped. The default group, named `default` in grants, maps to its stored ID.
-- Elasticsearch: the same clauses as `term`/`prefix` queries on keyword fields. The index does not
-  store artifact ownership (it would go stale on ownership transfers), so the search decorator
-  resolves the caller's owned artifacts from SQL storage and passes them as names that always match
-  (capped at 1000 owned artifacts, with a warning logged when reached).
-
-**Invariant:** for every subject and resource name, the search patterns select exactly what point
-access allows. This is unit-tested by comparing both paths over adversarial names, and the SQL and
-Elasticsearch translations are tested against the same reference semantics.
-
-### Architecture
-
-The implementation is split into two layers:
-
-**Authorization contract** — the [Kroxylicious Authorizer API](https://github.com/kroxylicious/kroxylicious/tree/main/kroxylicious-authorizer-api)
-(`io.kroxylicious:kroxylicious-authorizer-api`, which depends only on `kroxylicious-identity-api`
-and annotations). It provides `Authorizer`, `Action`, `AuthorizeResult`, `Decision` and
-`ResourceType`, plus `Subject`/`Identity`/`Principal` from the identity API. Registry does not
-define its own copies, so any `Authorizer` implementation written against that API (Kroxylicious,
-StreamsHub Console, or Registry) can be shared.
-
-**Shared `authz` module** (`apicurio-authz-core`) — system-agnostic grants implementation:
-
-```
-authz/
-  ├── User, RolePrincipal — Kroxylicious Principal implementations (User is @SingularPrincipal)
-  ├── GrantsAuthorizer    — implements the Kroxylicious Authorizer, grants evaluation, file hot-reload
-  ├── GrantsData          — parsed grants, search filter generation
-  ├── Grant               — single grant record with matching logic
-  └── SearchFilterData    — read grants as name patterns: allow-all, allowed/denied exact and prefix names
-```
-
-Dependencies: `kroxylicious-authorizer-api`, `jackson-databind` and `slf4j-api`. Only
-`RolePrincipal` principals are treated as roles; other principal types that other systems attach
-to a shared `Subject` cannot satisfy `principal_role` grants.
-
-**Search pre-filtering is outside the Kroxylicious API.** `Authorizer.authorize()` answers
-point-access questions only. To build the `WHERE`/query-DSL clauses for search and list endpoints,
-Registry uses Apicurio's resource scope API (Amendment 2).
-
-**Registry integration** — Registry-specific:
-
-```
-app/.../auth/
-  ├── AbstractAccessController.resolveResource — maps @Authorized style + parameters to a resource
-  ├── AuthorizedInterceptor             — RBAC → OBAC → grants (owners bypass grants)
-  ├── ResourceAccessGuard               — grants checks for body-addressed targets
-  ├── ISearchAuthorizer / SearchAuthorizerProducer — entry point for all client-facing searches
-  └── grants/
-      ├── GrantsAccessController            — maps SecurityIdentity to a Kroxylicious Subject, calls the
-      │                                       Authorizer, OTel metric, audit log
-      ├── GrantsAccessControllerConfig      — configuration properties
-      ├── GrantsAccessControllerInitializer — fail-fast startup, hot-reload scheduler, config warnings
-      ├── GrantsSearchFilter                — adds the caller's AuthorizationFilter to searches
-      └── RegistryResourceType              — Artifact and Group operations (Kroxylicious ResourceType)
-app/.../storage/
-  ├── dto/AuthorizationFilter               — storage-level search restriction
-  ├── impl/sql/repositories/SqlAuthorizationFilter — SQL translation (all SQL variants)
-  └── impl/search/ElasticsearchSearchService       — Elasticsearch translation
-```
-
-### Endpoint coverage
-
-All styles are resolved by one method, `AbstractAccessController.resolveResource()`, shared by OBAC
-and grants, so both always evaluate the resource the endpoint operates on.
-
-| `AuthorizedStyle` | Resolved resource | Used by |
+| Property | Default | Meaning |
 |---|---|---|
-| `GroupAndArtifact` | artifact (param 0, param 1) | REST v2/v3 artifact, version, branch operations |
-| `GroupOnly` | group (param 0) | REST v2/v3 group operations, listing/creating artifacts in a group |
-| `ArtifactOnly` | artifact (`X-Registry-GroupId` header or group-concat subject, param 0) | Confluent compatibility API subjects |
-| `GlobalId` | artifact of the global ID | `/ids/globalIds/{id}` |
-| `ContentId`, `ContentHash` | every artifact using the content; allowed if any is allowed | `/ids/contentIds`, `/ids/contentHashes` |
-| `CCompatSchemaId` | content ID, or global ID in legacy ID mode | Confluent compatibility API `/schemas/ids/{id}` |
-| `QualifiedArtifactName` | artifact `namespace/server` | MCP Registry API |
-| `IcebergNamespace`, `IcebergTable` | group = namespace, artifact = table/view (the catalog prefix is ignored) | Iceberg REST catalog |
-| `None` | none | admin/system endpoints; body-addressed and list endpoints (below) |
+| `apicurio.auth.resource-based-authorization.enabled` | `false` | Enable rules integration; does not enable authentication |
+| `apicurio.auth.resource-based-authorization.rules.path` | none | Required rules file when enabled |
+| `apicurio.auth.resource-based-authorization.rules.reload-enabled` | `true` | Register the polling job |
+| `apicurio.auth.resource-based-authorization.rules.reload-every` | `5s` | Poll interval |
+| `apicurio.auth.resource-based-authorization.owner-bypass.enabled` | `true` | Let eligible owners bypass ACL rules |
 
-Endpoints whose target is in the request body (creating groups, Iceberg namespace creation and
-renames, MCP server publishing) call `ResourceAccessGuard.requireAccess()`, which applies OBAC and
-grants with the same rules and bypasses as the interceptor. Every client-facing search or list goes through `ISearchAuthorizer`
-(REST v2/v3, Confluent compatibility API, Iceberg, MCP Registry, `/.well-known` discovery);
-inbound reference lists (including the Confluent `referencedby` list) and content-ID lists are
-filtered per item. References are resolved through `ResourceAccessGuard.referenceLoader()`, which
-checks `read` on each referenced artifact. The references known together are checked with one access
-rules call (`GrantsAccessController.isAllowedForAll`), as proposal 009 asks of call sites so that
-remote authorizers can batch them: each level of the reference graph, or the references of one
-document where resolution is depth-first (dereferencing with rewritten references, Protobuf export).
-Each reference is still evaluated against its stored IDs, every decision is still recorded, and a
-single denied reference fails the request before any of its level is loaded.
+Related settings, defined in `AuthConfig`, are independent:
 
-### Hot-reload
+| Property | Default |
+|---|---|
+| `apicurio.auth.role-based-authorization` | `false` |
+| `apicurio.auth.owner-only-authorization` | `false` |
+| `apicurio.auth.owner-only-authorization.limit-group-access` | `false` |
+| `apicurio.auth.anonymous-read-access.enabled` | `false` |
+| `apicurio.auth.authenticated-read-access.enabled` | `false` |
+| `apicurio.auth.role-source` | `token` |
+| `apicurio.auth.admin-override.enabled` | `false` |
+| `apicurio.authn.proxy-header.trust-proxy-authorization` | `false` |
 
-The grants file is polled every 5 seconds (configurable via `apicurio.auth.resource-based-authorization.grants.reload-every`; polling can be disabled via `apicurio.auth.resource-based-authorization.grants.reload-enabled=false`). Changes take effect without restart. A missing or invalid file fails startup; an invalid file on reload is logged once and the previous grants stay in effect, so a bad edit cannot lock everyone out. A file version is recorded as processed only after it has been loaded or rejected. The reload job is registered programmatically only when the feature and reload are both enabled.
+Authentication is configured separately (OIDC, basic, proxy header, Kubernetes, or form as recognized
+by `AuthConfig`). When rules are enabled without authentication, startup logs a warning but the
+authorization bypass remains. The old `grants.path`/`grants.reload-*` keys and JSON
+`config.admin_roles` are not part of this configuration. A role allowed all ACL operations remains
+subject to enabled RBAC/OBAC; it is not equivalent to an admin override.
 
-File polling was chosen over `WatchService` because `WatchService` is unreliable on NFS mounts and Kubernetes ConfigMap volumes.
+### File lifecycle
 
-### Cross-system sharing
+`GrantsAccessControllerInitializer` eagerly loads the file and supports only `Artifact` and `Group`.
+Missing paths/files, invalid syntax/operations/types, and rules for unsupported resource types fail
+startup. It registers the `apicurio-access-rules-reload` scheduler job only when both feature and
+reload are enabled, with concurrent executions skipped.
 
-> **Superseded by Amendment 1:** systems share the Kroxylicious ACL rules format. Whether they also
-> share a single file depends on an open point with Kroxylicious (types must be on the classpath).
+`AccessRulesAuthorizer.checkForChanges()` compares file modification time, not a content hash.
+A valid changed file replaces the decision/scope pair together via a volatile `Rules` reference.
+A rejected changed version keeps the last good rules and records its timestamp, avoiding retries
+of the same invalid version. Fixing it must also change the timestamp. A missing/non-regular file
+on reload leaves the current rules active; that path returns without logging a reload error.
 
-The grants file supports multiple `resource_type` values. Each system defines its own resource types and reads only the grants relevant to it:
+Reload is process-local. Each replica must receive the file update and poll it. A request making
+several authorization/scope calls is not pinned to one policy version, although an individual
+`authorize()` batch uses a single rule set. Publishing an update is not an instantaneous,
+cluster-wide revocation barrier. Mount ConfigMaps as directories rather than `subPath` mounts
+when relying on updates; see the operator guide for deployment details.
 
-```json
-{
-  "grants": [
-    {"principal": "alice", "operation": "write", "resource_type": "artifact", "resource_pattern_type": "prefix", "resource_pattern": "team-a/"},
-    {"principal": "alice", "operation": "read", "resource_type": "topic", "resource_pattern_type": "prefix", "resource_pattern": "team-a."},
-    {"principal_role": "ops", "operation": "read", "resource_type": "dashboard", "resource_pattern": "*"}
-  ]
-}
+### Parser and sharing constraints
+
+The format is shared; arbitrary mixed-system files are not automatically portable. Registry rejects
+rules for resource types it does not enforce, even if their classes exist. A used imported class
+must be resolvable and assignable to the expected principal/resource API type. Other systems must
+also use compatible principal classes; matching a similarly named class is insufficient.
+
+With the pinned grammar, use `Role("$anonymous")` rules instead of the proposal's `anonymous User`
+syntax. Block comments are not supported as comments. Literal processing removes escaping
+backslashes, including in regexes: `/a\.b/` becomes `a.b`. Avoid inferring regex semantics from
+another language's string escaping; test the exact file against the pinned parser.
+
+## Caches and consistency
+
+### Request-local metadata
+
+[AuthorizationLookups](../app/src/main/java/io/apicurio/registry/auth/AuthorizationLookups.java)
+is an application-scoped facade over request-scoped `RequestAuthorizationLookups`. It memoizes
+artifact/group/version metadata and content users within the request, including missing resources.
+Without an active request context, those lookups go directly to storage. Keys preserve requested
+spelling except for default-group normalization; different case spellings can cause extra reads.
+
+The first result is reused for that request, not refreshed after each check. A missing resource
+stays missing even if the same request subsequently creates it. Authorize before writing; do not
+reuse these lookups to establish the ownership of something just created. This memoization is not
+a transaction or a concurrency lock.
+
+### Cross-request global-ID coordinates
+
+[GlobalIdCoordinatesCache](../app/src/main/java/io/apicurio/registry/auth/GlobalIdCoordinatesCache.java)
+is a process-local Caffeine cache of **group/artifact/version only**. It stores no state, labels,
+owner, content, or authorization decision. Defaults are:
+
+| Property | Default |
+|---|---|
+| `apicurio.storage.global-id-cache.enabled` | `true` |
+| `apicurio.storage.global-id-cache.max-size` | `100000` |
+
+Resolved IDs are cached without TTL; not-found results are not cached across requests. Ordinary
+sequence allocation does not reuse deleted IDs. Deleting a version does not invalidate its cached
+coordinates; endpoint reads must still validate existence/state. In particular, inbound-reference
+lookups by global ID in v2/v3 deliberately read live version metadata rather than trusting this cache.
+
+This cache is an optimization, not the source of truth for resource identity or access decisions.
+Its lifecycle must be considered together with import/restore and deployment topology; this ADR
+does not establish a concurrency guarantee for those operations. Decision caching is not implemented;
+later metadata caching in #10600 remains separate design work.
+
+## Observability and failure diagnosis
+
+`GrantsAccessController.record` records ACL decisions through `OTelMetricsProvider` and logs denials
+at INFO to `io.apicurio.registry.audit.authz`:
+
+```text
+authz.denied user="bob" operation="read" resource_type="artifact" resource="team-a/secret"
 ```
 
-One ConfigMap, one source of truth. Because `GrantsAuthorizer` implements the Kroxylicious `Authorizer` API, other projects (Kroxylicious, StreamsHub Console) can consume the `authz` module without Registry-specific dependencies. Kroxylicious is building a unified authorizer that reads the same format.
+The `apicurio.authz.decisions` counter uses attributes `apicurio.registry.result` (`allow`/`deny`),
+`apicurio.registry.entity_type` (`artifact`/`group`/`content`), and `apicurio.registry.operation`
+(lowercased level name, including `adminorowner` where used). Names are sanitized for logging.
 
-### Observability
+These are **ACL-decision counts, not HTTP-request counts**. Owner/admin bypasses and earlier
+RBAC/OBAC rejections need not produce an ACL decision. Shared-content checks record an aggregate
+content decision; permission reporting uses quiet `allowedActions` and records none. In #10883,
+a batch records all evaluated canonical actions, even if one denies; an old per-item walk could
+stop at the first denial. Deduplication and loader memoization also change counts. Preserving
+observability does not mean preserving the exact number of events per request.
 
-- **OTel metrics:** `apicurio.authz.decisions` counter with attributes `apicurio.registry.result` (allow/deny), `apicurio.registry.entity_type`, `apicurio.registry.operation`
-- **Audit logging:** denied decisions logged to `io.apicurio.registry.audit.authz` with structured fields
-- **Grants validation:** strict; any invalid grant rejects the whole file (see "Grants files are validated strictly" above), summary logged on every successful load
-- **Config conflict warnings:** startup warnings when grants are enabled alongside `authenticated-read-access` or `anonymous-read-access`
+An authenticated point denial normally returns 403 with
+`User is not authorized to perform the requested operation.` Anonymous point denials in the
+interceptor return 401. Indirect checks can throw `ForbiddenException` after the outer gate,
+including on an anonymous read path. API families have their own error envelopes; internal
+resource names in audit logs must not become stack traces or internal errors in client responses.
 
-### Configuration
+| Symptom | First checks |
+|---|---|
+| Matching allow, but 403 | RBAC role/provider, OBAC, operation mapping, stored resource name, explicit denies, then referenced/generated targets |
+| Deny rule, but access succeeds | Authentication actually enabled? Trusted proxy/admin bypass? Resource owner bypass? Is the denied operation the one required? |
+| Direct read succeeds, but search omits it | Group gate versus artifact grant; regex scope fallback; indexed owner cap/freshness; ordinary search criteria |
+| `write:true`, but mutation fails | Ownership-transfer check, descendant/group checks, referenced/generated artifacts, mutability/state/rules, or changes since search |
+| No `authz.denied` for a rejected request | It may have failed before ACL evaluation, or used a different guard/error path |
+| Rules edit has no effect | Feature/reload enabled, correct file per replica, modification time changed, valid file, ConfigMap projection updated |
 
-| Property | Default | Description |
+## Source map
+
+Paths below are repository-relative; within each directory the listed names are Java classes.
+
+| Layer | Source | Responsibility |
 |---|---|---|
-| `apicurio.auth.resource-based-authorization.enabled` | `false` | Enable per-resource authorization |
-| `apicurio.auth.resource-based-authorization.grants.path` | _(none)_ | Path to JSON grants file |
-| `apicurio.auth.resource-based-authorization.grants.reload-every` | `5s` | File change polling interval (valid duration, e.g. `5s`, `1m`) |
-| `apicurio.auth.resource-based-authorization.grants.reload-enabled` | `true` | Set to `false` to disable hot-reload polling |
+| Shared contract | [scope-api](../scope-api/src/main/java/io/apicurio/scope/) | `ResourceScopeProvider`, sealed `ResourceScope`; companion to Kroxylicious `Authorizer` |
+| Conformance | [scope-api-tck](../scope-api-tck/) | Provider/decision equivalence tests |
+| Rules engine | [authz](../authz/src/main/java/io/apicurio/authz/) | `AccessRules`, `AccessRulesAuthorizer`, `Artifact`, `Group`, `Role` |
+| Identity/outer gates | [auth](../app/src/main/java/io/apicurio/registry/auth/) | `AuthorizedInterceptor`, `AuthConfig`, `AdminOverride`, role providers, `OwnerBasedAccessController` |
+| Resource resolution | [AbstractAccessController](../app/src/main/java/io/apicurio/registry/auth/AbstractAccessController.java) | Annotation styles, canonical resource lookup inputs, strict/lenient ownership |
+| Integration | [grants](../app/src/main/java/io/apicurio/registry/auth/grants/) | Controller, startup/reload, `GrantsSearchFilter` |
+| Explicit checks | [ResourceAccessGuard](../app/src/main/java/io/apicurio/registry/auth/ResourceAccessGuard.java) | Body targets, indirect reads, generated targets, bulk deletes |
+| Query restriction | [storage DTOs](../app/src/main/java/io/apicurio/registry/storage/dto/) | `AuthorizationFilter`, `AuthorizationNames` |
+| SQL translation | [SqlAuthorizationFilter](../app/src/main/java/io/apicurio/registry/storage/impl/sql/repositories/SqlAuthorizationFilter.java) | Bound, dialect-aware predicates |
+| Index translation | [ElasticsearchSearchService](../app/src/main/java/io/apicurio/registry/storage/impl/search/ElasticsearchSearchService.java), [decorator](../app/src/main/java/io/apicurio/registry/storage/decorator/ElasticsearchSearchDecorator.java) | Indexed query restrictions and live ownership names |
+| Permission reporting | [ResourcePermissionsEvaluator](../app/src/main/java/io/apicurio/registry/auth/ResourcePermissionsEvaluator.java), [SearchResultPermissions](../app/src/main/java/io/apicurio/registry/rest/v3/impl/SearchResultPermissions.java) | Quiet page-level evaluation and v3 DTO decoration |
+| Reference traversal | [references](../app/src/main/java/io/apicurio/registry/references/), [RegistryContentUtils](../app/src/main/java/io/apicurio/registry/storage/impl/sql/RegistryContentUtils.java), [ProtobufExporter](../app/src/main/java/io/apicurio/registry/rest/v3/impl/shared/ProtobufExporter.java) | Graph walking, contextual rewriting, export; batching additions in #10883 |
+| Write planning | [GroupsResourceImpl](../app/src/main/java/io/apicurio/registry/rest/v3/impl/GroupsResourceImpl.java), [EmbeddedSchemaService](../app/src/main/java/io/apicurio/registry/agents/services/EmbeddedSchemaService.java) | Plan/check/commit ordering for generated schemas |
 
-## Alternatives Considered
+Published module coordinates are `io.apicurio:apicurio-authz-core`,
+`io.apicurio:apicurio-scope-api`, and `io.apicurio:apicurio-scope-api-tck`, versioned with Registry.
+`authz` depends on the Kroxylicious authorizer API/ACL parser, scope API, ANTLR, RE2/J, and SLF4J;
+it is not the retired Jackson-based JSON grants implementation.
 
-### OPA (Open Policy Agent) with WASM
+## Verification map
 
-We prototyped evaluating OPA policies compiled to WebAssembly in-process. The Rego policy was generic grant matching — the same logic the Java evaluator now does. OPA added a WASM runtime dependency (Chicory), a policy compilation workflow, and JSON serialization overhead without adding value.
+Tests are executable examples of the boundaries, not proof that every combination or race is safe.
 
-The main argument for OPA was custom Rego extensibility, but custom policies would only apply to point-access checks, not search filtering — arbitrary Rego cannot be translated to SQL. This creates inconsistency: a user could be denied direct access but still see the artifact in search results.
+| Concern | Tests to read |
+|---|---|
+| Grammar, implications, denies, principal matching | `authz`: `AccessRulesTest` |
+| File startup/reload and unsupported types | `authz`: `AccessRulesAuthorizerTest` |
+| Scope/decision contract | `authz`: `AccessRulesConformanceTest`; `scope-api-tck` |
+| Stored-name/case behavior and batches | `app`: `GrantsAccessControllerTest`, `AuthorizationNamesTest` |
+| Query translation and dialect behavior | `SqlAuthorizationFilterTest`, `AuthorizationFilterStorageTest` and PostgreSQL/MySQL/MSSQL subclasses; `ElasticsearchAuthorizationQueryTest` |
+| End-to-end ACL integration | `GrantsAuthorizationTest`, `GrantsInteractionsTest`, `GrantsArtifactScopeTest`, `GrantsIndirectAccessTest` |
+| Filter fallback and bypasses | `GrantsSearchFilterTest`, `AuthorizedInterceptorReadParityTest` |
+| Reported flags versus direct access | `SearchPermissionsTest`, `ResourcePermissionsEvaluatorTest`, `SearchResultPermissionsTest`; omission check in `SearchArtifactsTest` |
+| Lookup/cache behavior | `AuthorizationLookupsTest`, `GlobalIdCoordinatesCacheTest`, `ImportExportTest` |
+| Generated-schema rejection/races | `EmbeddedSchemaExtractionRejectionTest`, `EmbeddedSchemaServiceTest` and their storage-specific subclasses |
+| Batching additions in #10883 | `ResourceAccessGuardBatchTest`, `AuthorizingReferenceLoaderTest`, `ReferenceResolutionTest`, `RegistryContentUtilsTest`, `ProtobufExporterTest` |
 
-**Rejected:** adds complexity without solving the search filtering problem.
+From the repository root, after building the dependencies as described in
+[DEVELOPING.md](../DEVELOPING.md), useful focused runs are:
 
-### Kroxylicious Authorizer with ACL DSL
+```bash
+./mvnw test -pl authz -am -Dtest=AccessRulesTest,AccessRulesAuthorizerTest,AccessRulesConformanceTest -Dsurefire.failIfNoSpecifiedTests=false
+./mvnw test -pl app -Dtest=GrantsAccessControllerTest,GrantsAuthorizationTest,GrantsInteractionsTest,GrantsIndirectAccessTest,SearchPermissionsTest
+```
 
-We prototyped using the Kroxylicious Authorizer interface together with its ACL DSL implementation (`AclAuthorizer`). The API is well-designed but at the time:
+The [Keycloak Compose example](../distro/docker-compose/in-memory-with-authz-grants/) supplies
+`access.rules` and `demo.sh` for a running-system walkthrough. It demonstrates point decisions,
+search filtering, anonymous reads, and denied creation; consult its README for ports and setup.
 
-- The ACL DSL mixes policy and data — every permission change requires editing rules and restarting
-- `AclAuthorizer.builder()` is package-private
-- `kroxylicious-api` depends on Kafka transitively
+When adding an endpoint, trace its annotation level/style, any body or indirectly accessed targets,
+search/filter strategy, and response fields. Add both allowed and denied cases, with state checks
+after rejected writes. For batching, count actual `authorize()` calls as well as testing outcomes.
+For storage changes, exercise supported dialects and search backends. See
+[CONTRIBUTING.md](../CONTRIBUTING.md) for the project's verification requirements.
 
-Kroxylicious 0.25 extracted `kroxylicious-authorizer-api` so it no longer depends on the rest of Kroxylicious core, which removed the dependency objection.
+## Limitations and open work
 
-**Decision (original):** the Kroxylicious `AclAuthorizer` implementation is rejected (policy/data mixing). The Kroxylicious Authorizer **API** is adopted as the contract, and `GrantsAuthorizer` implements it.
+1. **Cache lifecycle:** cache tests are not a general guarantee of import/restore consistency
+   across concurrent requests or multiple replicas.
+2. **No general request snapshot:** metadata memoization and atomic rule-set publication do not
+   pin policy, identity roles, ownership, and data to one transaction across a request.
+3. **Search expressiveness:** regex scope fallback, indexed ownership cap/freshness, and supported
+   filter combinations constrain exact parity with direct access.
+4. **File-based operation:** each replica receives/polls its own file. Large selector sets produce
+   larger query predicates and operational editing overhead. There is no established hard
+   "500-grant ceiling" or guaranteed microsecond latency; benchmark representative rules and data.
+5. **External authorizers are future integration work:** the current initializer/controller uses
+   concrete `AccessRulesAuthorizer`, not a pluggable arbitrary remote `Authorizer`. A replacement
+   must also solve scope production, failure behavior, identity mapping, lifecycle, and latency.
+   Batching is preparation, not delivery of OPA/OpenFGA support.
+6. **Additional caches and UI behavior:** #10600 tracks further work; v3 permission fields are
+   delivered but do not by themselves implement UI action visibility. They are advisory.
+7. **No universal multi-artifact transaction:** write planning removes early generated writes
+   from the built-in extraction path, but does not make arbitrary extension hooks transactional.
 
-**Reversed by Amendment 1:** Registry adopts `AclAuthorizer` and its rules format, so that the
-rules file format is shared with Kroxylicious and StreamsHub Console.
+## Alternatives and consequences
 
-### Keycloak Authorization Services (UMA)
+| Alternative | Decision and trade-off |
+|---|---|
+| OPA/WASM or an external point-decision service | Not the current implementation. Arbitrary policies need an additional search-scope strategy; evaluating decisions alone does not preserve paginated queries. Future integrations remain possible. |
+| Keycloak authorization services/UMA | Not selected: resource synchronization and queryable visibility would add coupling and lifecycle complexity. Authentication can still use Keycloak. |
+| Proxy-only authorization | Insufficient to implement resource-filtered result sets inside Registry; trusted-proxy bypass is an explicit deployment trust choice, not search filtering. |
+| Zanzibar/OpenFGA | Not selected for the initial flat named-resource rules. Relationship-based authorization is a separate tracked integration, not inherently impossible. |
+| Database ACL tables and joins | Deferred: queryable and potentially useful at scale, but requires schema, management API, migrations, and synchronization decisions. |
+| Over-fetch/post-filter pages | Not selected for exact paginated search. Correct totals would require evaluating the whole matching population; simply filtering one page is incorrect. |
+| Upstream `AclAuthorizer` implementation | Shared API and grammar adopted; production evaluator deferred for the implementation-specific reasons above. |
 
-Requires registering every artifact as a Keycloak resource and keeping it in sync. Fragile at scale, ties to Keycloak specifically, and the Protection API is not designed for bulk "list all resources user X can access" queries.
+Benefits are query-level filtering, consistent resource naming across API families, reusable
+contracts, no remote policy service required today, and reload without restart. Costs are the
+parser dependency, maintenance of a custom evaluator, explicit handling of all indirect access
+paths, query complexity from selectors, and distributed consistency concerns. These trade-offs
+are more useful design boundaries than an assumed fixed rule count or latency claim.
 
-**Rejected:** synchronization complexity and search filtering limitation.
+## History
 
-### Proxy-based (Envoy + OPA sidecar)
+| Milestone | Result |
+|---|---|
+| [#7829](https://github.com/Apicurio/apicurio-registry/pull/7829) | Initial per-resource authorization and query-filter design; JSON grants were a development format |
+| [#10746](https://github.com/Apicurio/apicurio-registry/pull/10746), amendment 1 (2026-10-27) | Replaced JSON grants with Kroxylicious ACL rules before their first release; retired `GrantsAuthorizer`, `GrantsData`, `Grant`, `SearchFilterData`, and `RolePrincipal` |
+| [#10753](https://github.com/Apicurio/apicurio-registry/pull/10753), amendment 2 (2026-10-28) | Published resource-scope API/TCK and integrated the shared contracts |
+| [#10807](https://github.com/Apicurio/apicurio-registry/pull/10807) | Plan/check/commit for embedded schemas; resolves the early-write rejection case in #10603 |
+| [#10849](https://github.com/Apicurio/apicurio-registry/pull/10849) | Cross-request global-ID coordinate cache and local import invalidation; limitations above remain relevant |
+| [#10858](https://github.com/Apicurio/apicurio-registry/pull/10858) | v3 search/list permission reporting for #10599 |
+| [#10882](https://github.com/Apicurio/apicurio-registry/pull/10882) | Renumbered this ADR from `001` to `0005`, avoiding a duplicate ADR 1 |
+| [#10883](https://github.com/Apicurio/apicurio-registry/pull/10883) | Batches reference authorization: one authorizer call per level or sibling set |
 
-Works for point-access. Cannot filter individual items from search response bodies.
-
-**Rejected:** cannot solve search filtering.
-
-### Google Zanzibar / OpenFGA
-
-Relationship-based graph system. Our problem is flat pattern matching, not hierarchical ownership chains. Additionally, external service with the same search filtering limitation.
-
-**Rejected:** overkill for the problem, cannot participate in SQL queries.
-
-### ACL table JOINs
-
-Store grants as database rows, JOIN with artifacts during search. Correct and scalable, but adds database schema, CRUD API, migration complexity. This is the right evolution when grants outgrow a file.
-
-**Deferred:** premature for current scale (5-50 grants). The file-based approach validates the model first.
-
-### Over-fetch and post-filter
-
-Fetch more results than needed, filter by authorization, return the requested page. Breaks pagination: wrong total counts, unpredictable page sizes, O(n) performance with deny rate.
-
-**Rejected:** breaks pagination contract.
-
-## Known Limitations
-
-### 1. Little authorization caching across requests
-
-Within a request, authorization reads each piece of metadata at most once (`AuthorizationLookups`, request-scoped): owner-only authorization, the owner bypass, the stored-ID check and global/content ID resolution share the lookups. Across requests, only what a global ID names is cached (`GlobalIdCoordinatesCache`, [#10849](https://github.com/Apicurio/apicurio-registry/pull/10849)): a global ID's coordinates never change, so the cache is flushed only by a data import, which can reuse global IDs. Everything else is read again by every request (one lookup per artifact or group checked), and grants are evaluated again. Resolving references checks each referenced artifact, with one access rules call per level of the graph, but still one metadata lookup per referenced artifact. High-traffic SerDes clients will feel this.
-
-**Impact:** increased latency on dereferencing and on endpoints checking many resources. **Mitigation:** a short-lived metadata cache shared across requests, with bounded staleness ([#10600](https://github.com/Apicurio/apicurio-registry/issues/10600)). Authorization decisions themselves are not cached: they derive from the subject, which proposal 009 advises against caching.
-
-### 2. Search result permissions are advisory
-
-*Resolved by [#10599](https://github.com/Apicurio/apicurio-registry/issues/10599).* With
-per-resource authorization enabled, v3 search and list results (`SearchedArtifact`,
-`SearchedVersion`, `SearchedGroup`) carry a `permissions` field (`read`, `write`, `admin`): each
-flag is true when a request at that level (`admin` meaning `AuthorizedLevel.Admin`) on the
-resource would be authorized, under the same rules as point access. A page is evaluated with one
-access rules call (`ResourcePermissionsEvaluator`), and the denials it finds are not audited, since
-nothing is accessed. Versions report their artifact's permissions. The flags reflect the state when
-the page was produced and only guide the UI: every request is still authorized on its own. The
-field is omitted when per-resource authorization is disabled.
-
-### 3. Group and artifact grants are independent
-
-Artifact access is decided by artifact grants only; group grants do not cascade to the artifacts in
-the group, and a group deny does not hide its artifacts. This keeps point access and search
-consistent, but operators usually need both kinds of grant (documented).
-
-### 4. Case-sensitive search on MySQL and SQL Server, and Elasticsearch filter combinations
-
-Point access compares names case-sensitively, so search does too on every variant: MySQL compares
-the ID columns byte-wise (`CAST(... AS BINARY)`, the columns are `ascii_general_ci`) and SQL Server
-uses a binary collation. A binary comparison cannot use the ID indexes, so each `=` and `LIKE` is
-paired with the plain, index-usable comparison (a binary match is always a case-insensitive match,
-so results are unchanged). On MySQL 8.4 this turns a full scan of the primary key into a range scan
-(50k artifacts: estimated cost 9933 to 17 for a group plus artifact prefix grant). The `<>`
-comparison excluding the default group stays binary only. Remaining limitation: index-routed
-(Elasticsearch) searches that combine content or structure filters with content-hash filters are
-rejected with `400` rather than evaluated partially.
-
-### 5. Scale ceiling at 500+ grants
-
-With hundreds of grants per user, the search `WHERE` clause becomes large (one `OR` branch per pattern and per `/` in it). Query plan efficiency degrades. The grants file also becomes unmanageable at scale (merge conflicts, review fatigue).
-
-**Impact:** limits adoption to team-level, role-based deployments (5-50 grants). **Mitigation:** role-based grants (`principal_role`) keep the per-user count small. For enterprise scale, evolve to database-backed grants with ACL table JOINs.
-
-### 6. Rules format is owned by Kroxylicious
-
-The rules format is the Kroxylicious ACL rules language (Amendment 1). It is shared with Kroxylicious
-and StreamsHub Console but is not an industry standard, and it is not interchangeable with OPA/Rego,
-OpenFGA or Kafka ACLs. Registry can't change it on its own: grammar changes, new features (e.g.
-`anonymous`) and fixes come from Kroxylicious releases.
-
-**Impact:** Registry depends on Kroxylicious for format changes. **Mitigation:** the grammar is
-defined by an ANTLR grammar in Kroxylicious and validated at load, so the grammar itself is the
-specification; Registry contributes upstream ([#10602](https://github.com/Apicurio/apicurio-registry/issues/10602)).
-
-### 7. RBAC constrains grants
-
-Grants restrict within what RBAC allows — they cannot override RBAC. A `sr-readonly` user can never write regardless of grants. This is defense-in-depth, but operators must set RBAC roles appropriately (typically `sr-developer` for everyone, with grants doing fine-grained control).
-
-**Impact:** requires RBAC role awareness when configuring grants. **Mitigation:** document the interaction clearly. Consider a future option to let grants be the sole authority.
-
-### 8. Search pre-filtering needs a resource scope provider
-
-The Kroxylicious `Authorizer` answers point-access questions only. Replacing Registry's access rules
-with another `Authorizer` requires that it also implement Apicurio's `ResourceScopeProvider`
-(Amendment 2), or search can't be pre-filtered. The conformance tests check that a provider agrees
-with its `Authorizer`.
-
-### 9. Rejected requests can leave extracted schemas behind
-
-Requests rejected by authorization leave no writes behind: references and generated targets are
-authorized before any write hook runs. But embedded schema extraction registers the schemas before
-the parent's rules run, so a request rejected by a rule (or another hook) can leave schema versions
-behind. This predates per-resource authorization
-([#10603](https://github.com/Apicurio/apicurio-registry/issues/10603)).
-
-## Consequences
-
-### Positive
-
-- Users can enforce per-resource visibility: unauthorized artifacts do not appear in search results
-- Correct pagination: page sizes, total counts, and offsets are accurate
-- No external dependencies: no OPA sidecar, no Keycloak resource sync, no Zanzibar
-- Hot-reload: permission changes take effect within seconds without restart
-- Shared rules format: Registry, Kroxylicious and StreamsHub Console use the same Kroxylicious ACL rules language
-- Defense-in-depth: grants layer adds to RBAC + OBAC, does not replace them
-
-### Negative
-
-- Rules format is owned by Kroxylicious; Registry depends on Kroxylicious releases for format changes
-- File-based grants have a scale ceiling (~500 grants)
-- Adds latency to every authorized request (grant evaluation) and globalId requests (storage lookup)
-- Search pre-filtering needs Apicurio's resource scope API, which is not part of the Kroxylicious `Authorizer` API
-
-### Neutral
-
-- Grants are managed as a file (GitOps or ConfigMap). The file can be shared across systems, so an editing UI belongs in a shared tool such as StreamsHub Console rather than in Registry
-- The rules format is versioned with Kroxylicious releases; its ANTLR grammar is the specification
-- The shared `authz` module is in the Registry repo, not a standalone project
-
-## Implementation Status
-
-- **Contract:** Kroxylicious Authorizer API (`io.kroxylicious:kroxylicious-authorizer-api` 0.25.0)
-- **Resource scope API:** `scope-api/`, `scope-api-tck/` (Amendment 2)
-- **Access rules implementation:** `authz/` — `AccessRulesAuthorizer` (an `Authorizer` and `ResourceScopeProvider`),
-  `AccessRules`, `Artifact`, `Group`, `Role` (Amendment 1; originally `GrantsAuthorizer`, `GrantsData`, `Grant`,
-  `SearchFilterData`)
-- **Registry integration:** `app/.../auth/` — `AbstractAccessController.resolveResource`, `ResourceAccessGuard`,
-  `AuthorizationLookups` (request-scoped metadata lookups),
-  `ISearchAuthorizer`; `app/.../auth/grants/` — `GrantsAccessController`, `GrantsSearchFilter`, configuration
-- **Storage:** `AuthorizationFilter` search filter, translated by `SqlAuthorizationFilter` and `ElasticsearchSearchService`
-- **Tests:** `GrantsAuthorizerTest` (evaluation, search/point-access invariant, loading, reload),
-  `GrantsAccessControllerTest`, `GrantsAuthorizationTest` (end-to-end across REST v2/v3, ccompat, Iceberg,
-  MCP Registry, content IDs), `GrantsArtifactScopeTest` (group grant must not authorize an
-  artifact-scoped operation the artifact itself denies, for the comment endpoints and
-  `createArtifact`'s `ifExists` path, creation of denied names, group deletes, the outbound reference
-  graph), `GrantsInteractionsTest` (anonymous/authenticated read access, RBAC admins, owner-bypass switch,
-  registry-wide reports), `AuthorizationFilterStorageTest` and its PostgreSQL, MySQL and SQL Server
-  variants (SQL translation, case sensitivity), `ElasticsearchAuthorizationQueryTest`
-- **Example:** `distro/docker-compose/in-memory-with-authz-grants/` with a verification script
-- **Documentation:** `docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc`
+Earlier versions of this document are retained in Git history. They explain the development JSON
+format and initial alternatives; they must not be used as current configuration instructions.

@@ -56,10 +56,10 @@ schema.registry.url=http://my-registry:8080/apis/ccompat/v7
 |Description
 
 |*Schemas API*
-|Full support for schema management including `GET /schemas`, `GET /schemas/ids/{id}`, `GET /schemas/types`, `GET /schemas/ids/{id}/subjects`, `GET /schemas/ids/{id}/versions`, and `GET /schemas/ids/{id}/schema`. Includes pagination with `offset` and `limit` parameters.
+|Full support for schema management including `GET /schemas`, `GET /schemas/ids/\{id}`, `GET /schemas/types`, `GET /schemas/ids/\{id}/subjects`, `GET /schemas/ids/\{id}/versions`, and `GET /schemas/ids/\{id}/schema`. Includes pagination with `offset` and `limit` parameters.
 
 |*Subjects API*
-|Complete create, retrieve, update, and delete operations for subjects including listing, registration, lookup by content (`POST /subjects/{subject}`), lookup by version (`POST /subjects/{subject}/versions/{version}`), and deletion. Supports pagination with `offset`, `limit`, `deleted`, and `deletedOnly` parameters.
+|Complete create, retrieve, update, and delete operations for subjects including listing, registration, lookup by content (`POST /subjects/\{subject}`), lookup by version (`POST /subjects/\{subject}/versions/\{version}`), and deletion. Supports pagination with `offset`, `limit`, `deleted`, and `deletedOnly` parameters.
 
 |*Compatibility API*
 |Schema compatibility checking against specific versions or all versions. Supports `verbose` and `normalize` parameters. When you set `verbose=true`, an incompatible result includes a `messages` array that explains each violation; otherwise the response contains only `is_compatible`. Defaults to `BACKWARD` compatibility when you do not configure an explicit rule, matching the Confluent behavior.
@@ -211,9 +211,9 @@ This normalization applies only to ccompat API responses (`/apis/ccompat/*`). Th
 
 **Default compatibility level**
 
-When you do not configure an explicit compatibility rule at the artifact, group, or global level, the ccompat compatibility check endpoint (`POST /compatibility/subjects/{subject}/versions/{version}`) defaults to `BACKWARD` compatibility. This matches the default behavior of Confluent Schema Registry.
+When you do not configure an explicit compatibility rule at the artifact, group, or global level, the ccompat compatibility check endpoint (`POST /compatibility/subjects/\{subject}/versions/\{version}`) defaults to `BACKWARD` compatibility. This matches the default behavior of Confluent Schema Registry.
 
-NOTE: This default only applies to the compatibility _check_ endpoint. Schema registration does not enforce this default unless you explicitly configure a compatibility rule by using `PUT /config` or `PUT /config/{subject}`.
+NOTE: This default only applies to the compatibility _check_ endpoint. Schema registration does not enforce this default unless you explicitly configure a compatibility rule by using `PUT /config` or `PUT /config/\{subject}`.
 
 **Compatibility check response**
 
@@ -233,7 +233,7 @@ Without `verbose=true`, or when the schema is compatible, the response omits `me
 
 **Config response format**
 
-The `PUT /config` and `PUT /config/{subject}` endpoints return a response with the following fields:
+The `PUT /config` and `PUT /config/\{subject}` endpoints return a response with the following fields:
 
 [source,json]
 ----
@@ -296,7 +296,7 @@ Error responses use Confluent-compatible error codes and message formats:
 
 **Sorted results**
 
-List endpoints (`GET /subjects`, `GET /schemas/ids/{id}/subjects`, `GET /schemas/ids/{id}/versions`) return results in sorted order (alphabetical for subjects, numerical for versions).
+List endpoints (`GET /subjects`, `GET /schemas/ids/\{id}/subjects`, `GET /schemas/ids/\{id}/versions`) return results in sorted order (alphabetical for subjects, numerical for versions).
 
 [id="ccompat-unsupported-features_{context}"]
 == Unsupported features

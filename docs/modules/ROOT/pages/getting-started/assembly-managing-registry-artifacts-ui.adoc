@@ -94,7 +94,7 @@ You can use the {registry} web console to browse the schema and API artifacts st
 . In the {registry} web console, find the artifact by using one of the following tabs:
 +
 ** *Explore*: Browse the list of groups, click a group, and then click an artifact in the *Artifacts in group* list.
-** *Search*: Select *Artifacts* from the *Search for* menu to browse artifacts. You can filter the results by criteria such as *Name*, *Group*, *Labels*, or *Global Id*. The *Name* filter ignores letter case. When you filter by *Type*, select the value from a list instead of typing it. The *State* filter is available when you select *Versions* from *Search for*. For this filter, you also select the value from a list.
+** *Search*: Select *Artifacts* from the *Search for* menu to browse artifacts. You can filter the results by criteria such as *Name*, *Group*, *Labels*, or *Global Id*. The *Name* filter matches any part of the artifact name or artifact ID and is not case-sensitive. To anchor the match, include the `*` wildcard yourself, for example, `payment*` matches only names or artifact IDs that start with `payment`. The REST API `name` filter matches exactly by default. When you filter by *Type*, select the value from a list instead of typing it. The *State* filter is available when you select *Versions* from *Search for*. For this filter, you also select the value from a list.
 ** *Dashboard*: Click an artifact in the *Recent Artifacts* list.
 +
 .Artifacts in {registry} web console
@@ -131,6 +131,12 @@ image::images/getting-started/registry-web-console-artifact-version.png[Artifact
 * xref:changing-version-state-using-console_{context}[]
 * xref:viewing-json-schema-using-console_{context}[]
 * {registry-rule-reference}
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-managing-registry-artifacts-api.adoc#searching-artifacts-using-rest-api_{context}[]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:searching-artifacts-using-rest-api_{context}[]
+endif::[]
 * xref:getting-started/assembly-data-contracts.adoc[]
 * xref:getting-started/assembly-usage-telemetry.adoc[]
 

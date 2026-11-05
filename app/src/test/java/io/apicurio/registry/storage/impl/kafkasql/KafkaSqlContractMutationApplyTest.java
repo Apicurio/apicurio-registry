@@ -49,7 +49,7 @@ public class KafkaSqlContractMutationApplyTest extends AbstractResourceTestBase 
     KafkaSqlRegistryStorage storage;
 
     @Test
-    public void testContractMetadataAndStatusAreApplied() throws Exception {
+    void testContractMetadataAndStatusAreApplied() throws Exception {
         String artifactId = "contract-apply-metadata-" + UUID.randomUUID();
         createArtifact(GROUP, artifactId, ArtifactType.JSON, "{\"type\":\"object\"}",
                 ContentTypes.APPLICATION_JSON);
@@ -77,7 +77,7 @@ public class KafkaSqlContractMutationApplyTest extends AbstractResourceTestBase 
     }
 
     @Test
-    public void testArtifactAndVersionContractRulesetsAreApplied() throws Exception {
+    void testArtifactAndVersionContractRulesetsAreApplied() throws Exception {
         String artifactId = "contract-apply-ruleset-" + UUID.randomUUID();
         var response = createArtifact(GROUP, artifactId, ArtifactType.JSON, "{\"type\":\"object\"}",
                 ContentTypes.APPLICATION_JSON);
@@ -99,7 +99,7 @@ public class KafkaSqlContractMutationApplyTest extends AbstractResourceTestBase 
     }
 
     @Test
-    public void testGlobalContractRulesetIsApplied() {
+    void testGlobalContractRulesetIsApplied() {
         // The global ruleset is registry-wide state shared by every test in this profile, so the
         // delete has to run even when the read-back assertion fails.
         try {

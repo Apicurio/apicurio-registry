@@ -98,7 +98,7 @@ public class ContractOutboxTransactionTest {
     private String ownerTeamKey;
 
     @BeforeEach
-    public void setUp() {
+    void setUp() {
         groupId = ContractOutboxEventRecorder.GROUP_PREFIX + UUID.randomUUID();
         artifactId = "artifact-" + UUID.randomUUID();
         prefix = ContractLabels.contractPrefix(CONTRACT_ID);
@@ -111,7 +111,7 @@ public class ContractOutboxTransactionTest {
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         // The injected failures are schema-wide, so they are always removed here as well as inline:
         // an assertion that fails between blocking and unblocking must not leak into the next test.
         unblockOutboxWrites();
@@ -124,7 +124,7 @@ public class ContractOutboxTransactionTest {
     // ----------------------------------------------------------------------------------------------
 
     @Test
-    public void testUpdateContractMetadataRollsBackWhenOutboxWriteFails() {
+    void testUpdateContractMetadataRollsBackWhenOutboxWriteFails() {
         storage.updateContractMetadata(groupId, artifactId, prefix, Map.of(ownerTeamKey, "before"));
         assertEquals("before", labels().get(ownerTeamKey));
 
@@ -139,7 +139,7 @@ public class ContractOutboxTransactionTest {
     }
 
     @Test
-    public void testTransitionContractStatusRollsBackWhenOutboxWriteFails() {
+    void testTransitionContractStatusRollsBackWhenOutboxWriteFails() {
         transitionTo(null, ContractStatus.DRAFT);
         assertEquals(ContractStatus.DRAFT.name(), labels().get(statusKey));
 
@@ -154,7 +154,7 @@ public class ContractOutboxTransactionTest {
     }
 
     @Test
-    public void testSetArtifactContractRulesetRollsBackWhenOutboxWriteFails() {
+    void testSetArtifactContractRulesetRollsBackWhenOutboxWriteFails() {
         storage.setArtifactContractRuleset(groupId, artifactId, ruleset("before"));
 
         blockOutboxWritesFor(StorageEventType.CONTRACT_RULESET_CONFIGURED);
@@ -166,7 +166,7 @@ public class ContractOutboxTransactionTest {
     }
 
     @Test
-    public void testDeleteArtifactContractRulesetRollsBackWhenOutboxWriteFails() {
+    void testDeleteArtifactContractRulesetRollsBackWhenOutboxWriteFails() {
         storage.setArtifactContractRuleset(groupId, artifactId, ruleset("before"));
 
         blockOutboxWritesFor(StorageEventType.CONTRACT_RULESET_CONFIGURED);
@@ -177,7 +177,7 @@ public class ContractOutboxTransactionTest {
     }
 
     @Test
-    public void testSetVersionContractRulesetRollsBackWhenOutboxWriteFails() {
+    void testSetVersionContractRulesetRollsBackWhenOutboxWriteFails() {
         storage.setVersionContractRuleset(groupId, artifactId, VERSION, ruleset("before"));
 
         blockOutboxWritesFor(StorageEventType.CONTRACT_RULESET_CONFIGURED);
@@ -190,7 +190,7 @@ public class ContractOutboxTransactionTest {
     }
 
     @Test
-    public void testDeleteVersionContractRulesetRollsBackWhenOutboxWriteFails() {
+    void testDeleteVersionContractRulesetRollsBackWhenOutboxWriteFails() {
         storage.setVersionContractRuleset(groupId, artifactId, VERSION, ruleset("before"));
 
         blockOutboxWritesFor(StorageEventType.CONTRACT_RULESET_CONFIGURED);
@@ -203,7 +203,7 @@ public class ContractOutboxTransactionTest {
     }
 
     @Test
-    public void testSetGlobalContractRulesetRollsBackWhenOutboxWriteFails() {
+    void testSetGlobalContractRulesetRollsBackWhenOutboxWriteFails() {
         storage.setGlobalContractRuleset(ruleset("before"));
 
         blockOutboxWritesFor(StorageEventType.CONTRACT_RULESET_CONFIGURED);
@@ -214,7 +214,7 @@ public class ContractOutboxTransactionTest {
     }
 
     @Test
-    public void testDeleteGlobalContractRulesetRollsBackWhenOutboxWriteFails() {
+    void testDeleteGlobalContractRulesetRollsBackWhenOutboxWriteFails() {
         storage.setGlobalContractRuleset(ruleset("before"));
 
         blockOutboxWritesFor(StorageEventType.CONTRACT_RULESET_CONFIGURED);
@@ -234,7 +234,7 @@ public class ContractOutboxTransactionTest {
      * must roll the status back as well.
      */
     @Test
-    public void testTransitionContractStatusRollsBackStatusWhenLifecycleDateWriteFails() {
+    void testTransitionContractStatusRollsBackStatusWhenLifecycleDateWriteFails() {
         transitionTo(null, ContractStatus.DRAFT);
 
         blockStableDateLabelWrites();
@@ -251,7 +251,7 @@ public class ContractOutboxTransactionTest {
     // ----------------------------------------------------------------------------------------------
 
     @Test
-    public void testSuccessfulMetadataUpdateKeepsUnrelatedLabelsAndPublishesEvent() {
+    void testSuccessfulMetadataUpdateKeepsUnrelatedLabelsAndPublishesEvent() {
         storage.updateContractMetadata(groupId, artifactId, prefix, Map.of(ownerTeamKey, "payments"));
 
         Map<String, String> labels = labels();
@@ -265,7 +265,7 @@ public class ContractOutboxTransactionTest {
     }
 
     @Test
-    public void testSuccessfulStatusTransitionWritesDateAndPublishesEvent() {
+    void testSuccessfulStatusTransitionWritesDateAndPublishesEvent() {
         transitionTo(null, ContractStatus.DRAFT);
         recorder.clear();
 
@@ -284,7 +284,7 @@ public class ContractOutboxTransactionTest {
     }
 
     @Test
-    public void testSuccessfulArtifactRulesetMutationsPublishScopedEvents() {
+    void testSuccessfulArtifactRulesetMutationsPublishScopedEvents() {
         storage.setArtifactContractRuleset(groupId, artifactId, ruleset("domain-rule"));
 
         ContractRuleSetDto stored = storage.getArtifactContractRuleset(groupId, artifactId);
@@ -312,7 +312,7 @@ public class ContractOutboxTransactionTest {
     }
 
     @Test
-    public void testSuccessfulVersionRulesetMutationPublishesVersionScopedEvent() {
+    void testSuccessfulVersionRulesetMutationPublishesVersionScopedEvent() {
         storage.setVersionContractRuleset(groupId, artifactId, VERSION, ruleset("version-rule"));
 
         assertSingleDomainRule("version-rule",
@@ -326,7 +326,7 @@ public class ContractOutboxTransactionTest {
     }
 
     @Test
-    public void testSuccessfulGlobalRulesetMutationPublishesGlobalScopedEvent() {
+    void testSuccessfulGlobalRulesetMutationPublishesGlobalScopedEvent() {
         storage.setGlobalContractRuleset(ruleset("global-rule"));
 
         assertSingleDomainRule("global-rule", storage.getGlobalContractRuleset());

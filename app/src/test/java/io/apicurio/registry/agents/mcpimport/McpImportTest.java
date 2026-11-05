@@ -128,6 +128,12 @@ public class McpImportTest extends AbstractResourceTestBase {
     }
 
     @Test
+    void uiConfigOffersTheImport() {
+        given().get(registryV3ApiUrl + "/system/uiConfig").then().statusCode(200)
+                .body("features.mcpImport", equalTo(true));
+    }
+
+    @Test
     void importCreatesToolsAndLinksThemFromANewServerVersion() throws Exception {
         mcp.tools(McpTestServer.tool("search", "string"), McpTestServer.tool("fetch", "string"));
         double created = count(McpToolImportService.METRIC_TOOLS, "result", "created");

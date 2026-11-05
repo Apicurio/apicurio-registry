@@ -201,9 +201,6 @@ spec:
 [role="_additional-resources"]
 .Additional resources
 * xref:getting-started/assembly-deploying-registry-operator.adoc[Deploying with the {operator}]
-ifndef::service-registry-downstream[]
-* xref:getting-started/assembly-operator-config-reference.adoc#search-index-spec_{context}[SearchIndexSpec]
-endif::[]
 * link:https://quarkus.io/guides/elasticsearch[Quarkus Elasticsearch client configuration]
 
 

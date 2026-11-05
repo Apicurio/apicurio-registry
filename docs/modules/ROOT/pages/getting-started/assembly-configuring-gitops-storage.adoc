@@ -34,7 +34,7 @@ GitOps storage uses a polling-based architecture with blue-green database switch
 . When the commit changes, the registry loads all data into an inactive in-memory database and validates it.
 . After a successful load, the active and inactive databases switch atomically. If the load fails, the registry keeps serving the last successfully loaded data.
 
-Data flows in one direction only: from Git to the registry. REST API calls that would modify data are rejected with an HTTP `409` response. The {registry} web console detects the read-only storage, switches to read-only mode automatically, and shows a banner that tells users to update the source Git repository. The registry requires no external database, because data is loaded into in-memory storage from Git.
+Data flows in one direction only: from Git to the registry. REST API calls that would modify data are rejected with an HTTP `409` response. The registry requires no external database, because data is loaded into in-memory storage from Git.
 
 *Relationship of repositories and registry instances*
 
@@ -52,7 +52,6 @@ GitOps storage is a good fit when:
 ifndef::service-registry-downstream[]
 [role="_additional-resources"]
 .Additional resources
-* xref:getting-started/assembly-managing-registry-artifacts-ui.adoc#configuring-registry-ui_{context}[]
 * link:https://github.com/Apicurio/apicurio-registry-gitops-example[Example GitOps repository]
 endif::[]
 
@@ -79,16 +78,14 @@ Each metadata file declares its kind with a `$type` discriminator:
 | Registry configuration. Fields: `registryId`, `globalRules` (list of `ruleType` and `config` pairs), `properties`, and `peers` (list of peer registries; see below). The `registryId` value must match the `apicurio.polling-storage.id` property of the registry instance.
 
 | `group-v0`
-| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `labels`, `owner`, `artifactsType`, `rules`, `createdOn`, and `modifiedOn`. Every group that an artifact references must be declared by a `group-v0` file; the registry does not create groups automatically.
+| An artifact group. Fields: `registryIds` (list), `groupId`, `description`, `rules`, and `createdOn`. Every group that an artifact references must be declared by a `group-v0` file; the registry does not create groups automatically.
 
 | `artifact-v0`
-| An artifact with its versions declared inline. Fields: `registryIds`, `groupId`, `artifactId`, `artifactType` (optional), `name`, `description`, `labels`, `owner`, `createdOn`, `modifiedOn`, `rules`, `validatedUpTo`, and `versions`. Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file. A version can also have `name`, `description`, `labels`, `owner`, `globalId`, `createdOn`, `modifiedOn`, and `contentMetadata`, which is a relative path to a `content-v0` file.
+| An artifact with its versions declared inline. Fields: `registryIds`, `groupId`, `artifactId`, `artifactType` (optional), `name`, `description`, `createdOn`, `rules`, `validatedUpTo`, and `versions`. Each version has `version`, `state`, and `content`, where `content` is a relative path to a schema file.
 
 | `content-v0`
-| Optional content metadata, for explicit content identifiers and references. Fields: `contentId`, `content` (relative path to the schema file), and `references` (list of entries with `groupId`, `artifactId`, `version`, and `name`). A version points to a `content-v0` file through its `contentMetadata` field, and the `content-v0` file points to the schema file through its own `content` field.
+| Optional content metadata, for explicit content identifiers and references.
 |===
-
-GitOps storage and KubernetesOps storage share the same data format. The field reference for KubernetesOps storage lists the type and description of the fields, except `createdOn`, `modifiedOn`, and `validatedUpTo`, which are described in the rules later in this section.
 
 The following example declares a registry configuration, a group, and an artifact. All three files are required: a load that references an undeclared group fails, and the registry does not become ready.
 
@@ -172,21 +169,9 @@ All versions of an artifact must share the same type. When `artifactType` is omi
 The following additional rules apply:
 
 * If `registryIds` is omitted or empty on a group or artifact, any registry instance loads it.
-* The `createdOn` and `modifiedOn` timestamps on groups, artifacts, and versions are optional. When omitted, the Git commit time is used. Supported formats are ISO 8601, with or without a time zone or as a date only, and Unix milliseconds.
+* Timestamps such as `createdOn` are optional. When omitted, the Git commit time is used. Supported formats are ISO 8601, with or without a time zone or as a date only, and Unix milliseconds.
 * The optional `validatedUpTo` field on an artifact controls rule validation during a load. When unset, only the latest version is validated, against all preceding versions. When set to a version identifier, versions up to and including that version are not re-validated. When the value matches no version, all versions are validated.
 * The optional `peers` list on the registry configuration declares peer registries. Each entry has `peerId` (lowercase letters, digits, `.`, `_`, and `-` only; must be unique and cannot be `local`, which is reserved), `url`, optional `name` and `description`, `enabled` (defaults to `true` when omitted), and an optional `credentialSecretRef`, which is a reference to a credential and never a secret value itself. The full `peers` list is replaced on every load: omitting the key, or setting it to an empty list, removes all previously loaded peers.
-ifndef::service-registry-downstream[]
-For the peer URL policy, the federation properties, and the peer management REST API, see xref:getting-started/assembly-a2a-features.adoc#a2a-peer-registries_{context}[Peer registries for federation].
-endif::[]
-
-[role="_additional-resources"]
-.Additional resources
-ifndef::service-registry-downstream[]
-* xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-field-reference_{context}[]
-endif::[]
-ifdef::service-registry-downstream[]
-* xref:kubernetesops-field-reference_{context}[]
-endif::[]
 
 
 [id="configuring-gitops-storage-single-repository_{context}"]
@@ -354,7 +339,7 @@ $ curl -X POST -H "Content-Type: application/json" \
   http://localhost:8080/apis/registry/v3/admin/gitops/validate
 ----
 +
-The `repoId` value must be the identifier of a configured repository. The registry rejects a missing or unconfigured value with an HTTP `400` response that lists the configured repository identifiers. The value must also match the directory name of the repository, because the sync container resolves `repoId` by directory name: the registry accepts an identifier that you assign with `APICURIO_GITOPS_REPOS_N_ID`, but the created task then fails with an `Unknown repoId` error. The response contains a `taskId`.
+The `repoId` value must match the directory name of a configured repository; identifiers that you assign with `APICURIO_GITOPS_REPOS_N_ID` are not recognized by the sync container. An unknown value fails the created task instead of rejecting the request. The response contains a `taskId`.
 . Poll the task until it completes:
 +
 [source,bash,subs="+quotes"]
@@ -596,7 +581,7 @@ The status response contains the following fields:
 | Description
 
 | `syncState`
-| Current state: `INITIALIZING`, `IDLE`, `LOADING`, `SWITCHING`, or `ERROR`. The state is `ERROR` after a failed load and also after a failed poll of the data source, for example when the registry cannot read the local Git clone. When a later poll succeeds, the state returns to `IDLE` only if no load errors remain; otherwise it stays `ERROR` and keeps reporting the load errors.
+| Current state: `INITIALIZING`, `IDLE`, `LOADING`, `SWITCHING`, or `ERROR`.
 
 | `lastSuccessfulSync`
 | Timestamp of the last successful load.
@@ -608,13 +593,13 @@ The status response contains the following fields:
 | Counts of the currently loaded data.
 
 | `errors`
-| Structured errors from the last failed load and from the last failed poll. Each load error has a `detail` message and, where available, a `source` repository identifier and a `context` file path. A poll error has only a `detail` message, which starts with `Poll failed:`. Load errors from the last failed load remain listed through later successful polls until a load succeeds.
+| Structured load errors. Each error has a `detail` message and, where available, a `source` repository identifier and a `context` file path.
 
 | `sources`
 | Map of repository identifiers to the abbreviated commit currently loaded from each repository.
 |===
 
-If a load fails because of a data error, for example malformed metadata, a missing content file, or a rule violation, the registry does not retry the same commit. Push a new commit that fixes the problem to trigger a fresh load. The registry reports a transient error, including a failed poll of the data source, in the status as `ERROR` with an `errors` entry, and retries it on the next poll.
+If a load fails because of a data error, for example malformed metadata, a missing content file, or a rule violation, the registry does not retry the same commit. Push a new commit that fixes the problem to trigger a fresh load. Transient errors are retried on the next poll.
 
 ifndef::service-registry-downstream[]
 [role="_additional-resources"]

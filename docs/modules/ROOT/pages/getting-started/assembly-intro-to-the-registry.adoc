@@ -215,13 +215,13 @@ An artifact reference is stored in {registry} as a collection of artifact metada
 
 You can manage artifact references using the {registry} core REST API, Maven plug-in, and Java serializers/deserializers (SerDes). {registry} stores the artifact references along with the artifact content. {registry} also maintains a collection of all artifact references so you can search them or list all references for a specific artifact.
 
-{registry} currently supports artifact references for the following artifact types only:
-
-* Avro
-* Protobuf
-* JSON Schema
-* OpenAPI
-* AsyncAPI
+Reference support varies by artifact type. For the types that find, dereference, or rewrite references, see
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-artifact-reference.adoc#registry-artifact-type-reference-support_{context}[Artifact reference support by type].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:registry-artifact-type-reference-support_{context}[].
+endif::[]
 
 [role="_additional-resources"]
 .Additional resources

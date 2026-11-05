@@ -1,5 +1,8 @@
 package io.apicurio.registry.rest.v3.impl;
 
+import io.apicurio.registry.rest.v3.beans.McpToolImportResult;
+import io.apicurio.registry.rest.v3.beans.McpToolImportRequest;
+import io.apicurio.registry.extensions.McpToolImportHandler;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
@@ -57,6 +60,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.references.AuthorizingReferenceLoader;
 import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ArtifactType;
@@ -138,6 +142,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     RulesService rulesService;
 
     @Inject
+    Instance<McpToolImportHandler> mcpToolImportHandler;
+
+    @Inject
     OTelMetricsProvider otelMetrics;
 
     @Inject
@@ -204,6 +211,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     ISearchAuthorizer searchAuthorizer;
+
+    @Inject
+    SearchResultPermissions searchResultPermissions;
 
 
     /**
@@ -777,7 +787,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         GroupSearchResultsDto resultsDto = searchAuthorizer.searchGroups(filters, oBy, oDir,
                 offset.intValue(), limit.intValue());
-        return V3ApiUtil.dtoToSearchResults(resultsDto);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(resultsDto));
     }
 
     @Override
@@ -1399,7 +1409,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ArtifactSearchResultsDto resultsDto = searchAuthorizer.searchArtifacts(filters, oBy, oDir, offset.intValue(),
                 limit.intValue(), skipCount != null && skipCount);
-        return V3ApiUtil.dtoToSearchResults(resultsDto);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(resultsDto));
     }
 
     /**
@@ -1660,7 +1670,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 SearchFilter.ofArtifactId(artifactId));
         VersionSearchResultsDto resultsDto = searchAuthorizer.searchVersions(filters, oBy, oDir, offset.intValue(),
                 limit.intValue(), skipCount != null && skipCount);
-        return V3ApiUtil.dtoToSearchResults(resultsDto);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(resultsDto));
     }
 
     @Override
@@ -1843,7 +1853,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         VersionSearchResultsDto results = storage.getBranchVersions(ga, bid, offset.intValue(),
                 limit.intValue());
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override
@@ -2119,6 +2129,24 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#importMcpTools(java.lang.String, java.lang.String,
+     *      io.apicurio.registry.rest.v3.beans.McpToolImportRequest)
+     */
+    @Override
+    // The request body is not extracted: its headers may carry credentials for the MCP server.
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID})
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public McpToolImportResult importMcpTools(String groupId, String artifactId, McpToolImportRequest data) {
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        if (!mcpToolImportHandler.isResolvable()) {
+            throw new ConflictException("Importing tools from MCP servers is not available.");
+        }
+        return mcpToolImportHandler.get().importTools(groupId, artifactId, data);
+    }
+
+    /**
      * @see io.apicurio.registry.rest.v3.GroupsResource#renderPromptTemplate(java.lang.String,
      *      java.lang.String, java.lang.String, io.apicurio.registry.rest.v3.beans.RenderPromptRequest)
      */
@@ -2204,9 +2232,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     private record HookPlan(ContentWrapperDto content, Map<ArtifactReferenceDto, ContentWrapperDto> plannedReferencedContent,
             List<Runnable> commits) {
 
-        /** @return a reference loader that prefers planned content over {@code fallback} */
+        /** @return a reference loader that prefers planned content over loading it with {@code fallback} */
         Function<ArtifactReferenceDto, ContentWrapperDto> loader(Function<ArtifactReferenceDto, ContentWrapperDto> fallback) {
-            return ref -> plannedReferencedContent.getOrDefault(ref, fallback.apply(ref));
+            return AuthorizingReferenceLoader.preferring(plannedReferencedContent, fallback);
         }
 
         void commit() {

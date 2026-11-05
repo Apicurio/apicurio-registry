@@ -286,7 +286,7 @@ curl "http://localhost:8080/.well-known/mcp-tools?parameter=location"
 }
 ----
 
-The `GET /.well-known/mcp-tools/{groupId}/{artifactId}` endpoint retrieves a specific registered MCP tool definition. It accepts the following path parameters:
+The `GET /.well-known/mcp-tools/\{groupId}/\{artifactId}` endpoint retrieves a specific registered MCP tool definition. It accepts the following path parameters:
 
 `groupId`:: The group containing the tool definition
 `artifactId`:: The artifact ID of the tool definition
@@ -450,6 +450,113 @@ The engine can conservatively reject changes that accept the same values, especi
 Earlier MCP tool checking compared only top-level input types, property names, and requiredness; output changes and nested constraint changes were unchecked. Version 3.4 checks the supported subset above and changes those results. Making an input optional is now backward compatible. Adding a typed optional input to an open schema is no longer automatically accepted. Stored versions are not rewritten; unsupported schemas in existing versions can prevent subsequent publication under an enabled compatibility rule.
 
 For a release-safety demonstration, publish a tool whose input `query` is a string with `maxLength: 10`, enable `BACKWARD`, and propose `maxLength: 5`. Expect HTTP 400 and unchanged old content. Propose `maxLength: 20` and expect acceptance. For an output schema, the direction is reversed. Use a disposable registry and retain the rule configuration, exact versions, responses, and retrieved content as evidence for the agent-registry graduation work (#10294). This demonstrates publication-time schema enforcement only; it is not evidence of runtime admission, authenticated invocation, or full feature graduation.
+
+// proc-mcp-importing-tools
+[id="mcp-importing-tools_{context}"]
+== Importing tools from a live MCP server
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+{registry} can connect to a running MCP server, list its tools with `tools/list`, and publish each tool as an `MCP_TOOL` artifact, so that you do not need to write one artifact per tool by hand. Importing again after the server is redeployed shows which tool contracts changed, and configured rules reject changes that break them.
+
+IMPORTANT: This feature is experimental. The registry makes outbound connections to the URL in the request, so it is disabled by default and connects only to hosts that you allow.
+
+.Prerequisites
+* Experimental features are enabled: `apicurio.features.experimental.enabled=true`.
+* MCP import is enabled: `apicurio.mcp-import.enabled=true`.
+* The MCP server host is listed in `apicurio.mcp-import.allowed-hosts`. When this list is empty, which is the default, every host is refused.
+* An `MCP_SERVER` artifact exists for the server, and you have write access to it and to the group that the tools are published to.
+* The MCP server supports the Streamable HTTP transport. The `sse` and `stdio` transports are not supported.
+
+.Procedure
+. Import the tools:
++
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/registry/v3/groups/my-servers/artifacts/weather/mcp-import \
+  -H "Content-Type: application/json" \
+  -d '{
+        "url": "https://weather.apps.example.com/mcp",
+        "headers": { "Authorization": "Bearer <token>" },
+        "toolGroupId": "mcp-tools",
+        "dryRun": false
+      }'
+----
++
+* `url`: the MCP server endpoint. Required.
+* `headers`: HTTP headers to send to the MCP server, for example credentials. They are sent to the MCP server only, and are never stored, returned, logged, or audited. Headers that the transport sets itself, such as `Host`, `Content-Type`, `Accept`, and `Mcp-Session-Id`, are refused.
+* `toolGroupId`: the group for the `MCP_TOOL` artifacts. Defaults to the group of the `MCP_SERVER` artifact.
+* `dryRun`: when `true`, the server is contacted and the report is returned, but nothing is written.
+
+. Read the report. For example:
++
+[source,json]
+----
+{
+  "groupId": "my-servers",
+  "artifactId": "weather",
+  "status": "NEW_VERSION",
+  "version": "2",
+  "tools": [
+    { "name": "getWeather", "groupId": "mcp-tools", "artifactId": "weather.getWeather",
+      "version": "1", "status": "CREATED" }
+  ]
+}
+----
+
+.Verification
+* Each tool is stored as an `MCP_TOOL` artifact with the ID `<server artifact ID>.<tool name>`.
+* The new `MCP_SERVER` version references the tools, with each reference named after its tool.
+
+[id="mcp-importing-tools-results_{context}"]
+=== Import results
+
+Each tool, and the `MCP_SERVER` artifact, has one of the following statuses:
+
+[%header,cols="1,3"]
+|===
+|Status |Meaning
+
+|`CREATED`
+|A new `MCP_TOOL` artifact was created.
+
+|`NEW_VERSION`
+|The tool's definition changed, and a new version was added. For the server, a new version with different references was added.
+
+|`UNCHANGED`
+|A stored version already matches the tool's definition. For the server, the latest version already has the same references, so no version was added.
+
+|`REJECTED`
+|A rule, such as `COMPATIBILITY`, rejected the new definition, and the causes list the violations. Nothing was written for the tool, and the new server version does not reference it, because no stored version matches what the server offers. A tool is also rejected when an artifact with its ID exists and is not an `MCP_TOOL`.
+
+|`REMOVED`
+|The previous server version referenced the tool, but the server no longer lists it. The tool's artifact is not changed or deleted, and the new server version does not reference it.
+|===
+
+Each tool is published like any other version: rules, write hooks, authorization, and auditing apply to each tool. Before any tool is written, the import checks that the server lists no tool name twice and that you can write every existing tool artifact, so these failures leave nothing imported. A rule rejecting one tool does not stop the others. Tools are otherwise not imported atomically: if another error occurs partway through, tools that were already accepted stay stored. In a dry run, the report states whether a new server version would be added, but the server version is not checked against rules, because the tools it would reference do not exist yet.
+
+The new server version references exactly the imported tools. References that you added to an earlier version by hand are not carried over.
+
+[id="mcp-importing-tools-security_{context}"]
+=== Outbound connection security
+
+The registry applies the following restrictions before and while it connects to the MCP server:
+
+* The URL must use HTTPS, unless `apicurio.mcp-import.insecure-http.enabled=true`, and must not contain user information.
+* The host must be allowed by `apicurio.mcp-import.allowed-hosts`. Each entry is a hostname (`mcp.example.com`), a domain wildcard (`*.example.com`, which does not match `example.com`), `*` for any host, an IP address, or a CIDR range (`10.0.0.0/8`). A CIDR entry allows a host when every address the host resolves to is in a listed range.
+* Every address that the host resolves to must not be a loopback, link-local, unspecified, multicast, reserved, or cloud metadata address, even when the allow-list permits the host. Loopback is allowed only with `apicurio.mcp-import.loopback.enabled=true`, for development and tests.
+* Redirects are never followed.
+* Each request times out after `apicurio.mcp-import.timeout.seconds`. Each message is limited to `apicurio.mcp-import.response.max-size` bytes, and the number of tools to `apicurio.mcp-import.tools.max-size`.
+
+Every refused host gets the same error message, so the endpoint does not reveal which hosts exist or resolve. A refused URL returns HTTP 400. An MCP server that cannot be reached, times out, sends a response that is too large or invalid, or lists too many tools returns HTTP 502. Read-only storage, such as GitOps or KubernetesOps, returns HTTP 409 before any connection is made, as does an import when the feature is disabled.
+
+NOTE: The HTTP client resolves the host again when it connects, so a host whose DNS answer changes between the check and the connection (DNS rebinding) is not detected. To limit this, allow hostnames whose DNS you control, or CIDR ranges.
+
+The registry records the following Micrometer counters. They have no URL, host, or header values as tags, and dry runs are not counted in `apicurio.mcp.import.tools`.
+
+* `apicurio.mcp.import.tools`, tagged `result` (`created`, `new-version`, `unchanged`, `rejected`, `removed`).
+* `apicurio.mcp.import.failures`, tagged `reason` (`host-denied`, `timeout`, `oversize`, `too-many-tools`, `protocol`).
 
 // ref-mcp-automatic-label-extraction
 [id="mcp-automatic-label-extraction_{context}"]

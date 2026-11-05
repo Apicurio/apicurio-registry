@@ -135,6 +135,10 @@ export PLACEHOLDER_CATALOG_NAMESPACE := $(CATALOG_NAMESPACE)
 export PLACEHOLDER_CATALOG_IMAGE := $(CATALOG_IMAGE)
 
 export PLACEHOLDER_CHANNEL := $(DEFAULT_CHANNEL)
+# The catalog's package-level default channel is always the rolling channel (e.g. 3.x), even for
+# maintenance branch releases whose bundle is only in the minor channel. Otherwise the catalog
+# would point new installs at an older minor stream.
+export PLACEHOLDER_CATALOG_DEFAULT_CHANNEL := $(shell echo "$(LC_VERSION)" | sed 's/\([0-9]*\)\..*/\1.x/')
 
 
 ########## Help
@@ -566,7 +570,7 @@ release-catalog-template-update: install-yq
 	# PREVIOUS_CHANNEL describes the release; CHANNEL describes the next development version.
 	YQ=$(YQ) bash scripts/catalog-channels.sh $(CATALOG_DIR)/catalog.template.yaml $(CHANNEL) $(PREVIOUS_PACKAGE) $(PREVIOUS_CHANNEL) $(PREVIOUS_BUNDLE_IMAGE)
 	# Update defaultChannel to the current channel
-	$(YQ) '(.entries[] | select(.schema == "olm.package")).defaultChannel = "$${PLACEHOLDER_CHANNEL}"' -i $(CATALOG_DIR)/catalog.template.yaml
+	$(YQ) '(.entries[] | select(.schema == "olm.package")).defaultChannel = "$${PLACEHOLDER_CATALOG_DEFAULT_CHANNEL}"' -i $(CATALOG_DIR)/catalog.template.yaml
 
 
 .PHONY: dev

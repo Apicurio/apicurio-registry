@@ -38,8 +38,8 @@ import static org.mockito.Mockito.when;
  * unset and fails the assertion. The individual budgets below are therefore ceilings on
  * failure diagnosis, not part of the pass criterion.
  * <p>
- * Run with {@code ./mvnw test -pl :apicurio-registry-app -Pbyteman -Dtest=KafkaSqlCoordinatorRaceTest}.
- * No CI workflow activates {@code -Pbyteman}, so this does not run in the pipeline yet. See
+ * Run with {@code ./mvnw test -pl :apicurio-registry-app -Pconcurrency-tests -Dtest=KafkaSqlCoordinatorRaceTest}.
+ * No CI workflow activates {@code -Pconcurrency-tests}, so this does not run in the pipeline yet. See
  * the Byteman section of DEVELOPING.md for why the profile exists.
  * Like every class in this source root, it is kept out of the default suite by the profile
  * alone, so there is deliberately no system-property guard that could silently skip the test

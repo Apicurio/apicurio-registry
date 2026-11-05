@@ -5,23 +5,16 @@ import jakarta.enterprise.inject.Instance;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.apache.kafka.common.header.Header;
-import org.jboss.logmanager.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.mockito.ArgumentCaptor;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
-import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Handler;
-import java.util.logging.Level;
-import java.util.logging.LogRecord;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -101,16 +94,17 @@ class KafkaSqlSubmitterTest {
     }
 
     @Test
-    void testSubmitFireAndForgetRegistersNoPendingEntry() {
+    void testSubmitMessageWithoutResponseRegistersNoPendingEntry() throws Exception {
         produceResult.complete(mock(RecordMetadata.class));
 
-        submitter.submitFireAndForget(message());
+        UUID requestId = submitter.submitMessageWithoutResponse(message()).get(5, TimeUnit.SECONDS);
 
         // KafkaSqlValueDeserializer needs the type header to decode the record. KafkaAdminUtil
         // classifies a journal topic as v3 only when the request ID header is present too, and
         // KafkaSqlSink parses that header with UUID.fromString, so it must be a real UUID.
         assertEquals("RecordUsageEvent1", sentHeader(KafkaSqlSubmitter.MESSAGE_TYPE_HEADER));
         assertEquals(4, sentRequestId().version(), "The request ID must be a well-formed random UUID");
+        assertEquals(requestId, sentRequestId(), "The returned UUID must be the one on the wire");
         // The submitter reaches the coordinator only through this Instance.
         verify(coordinatorInstance, never()).get();
         assertEquals(0, coordinator.pendingCount());
@@ -165,77 +159,34 @@ class KafkaSqlSubmitterTest {
     }
 
     @Test
-    void testFireAndForgetSynchronousFailureStillPropagates() {
+    void testSubmitMessageWithoutResponseSynchronousFailurePropagates() {
         // A synchronous send failure means the record was never handed to the producer.
         when(producerInstance.get()).thenThrow(new IllegalStateException("producer unavailable"));
 
         IllegalStateException thrown = assertThrows(IllegalStateException.class,
-                () -> submitter.submitFireAndForget(message()));
+                () -> submitter.submitMessageWithoutResponse(message()));
         assertEquals("producer unavailable", thrown.getMessage());
 
-        // Not pendingCount(): fire-and-forget never registers, so a count of 0 holds even for an
+        // Not pendingCount(): this path never registers, so a count of 0 holds even for an
         // empty method body. Asserting the coordinator is never consulted states the contract.
         verify(coordinatorInstance, never()).get();
     }
 
     /**
-     * The drop-and-log branch, which is the half of submitFireAndForget that the synchronous test
-     * above cannot reach: that one throws from the producer lookup inside send(), before
-     * whenComplete is ever attached. Here the send succeeds and fails afterwards, so the callback
-     * runs.
-     * <p>
-     * The captured log record is the assertion rather than a nicety. Dropping the failure is the
-     * only observable thing this branch does, so without it the test passes just as happily
-     * against a whenComplete that was deleted outright. The logger comes from jboss-logmanager
-     * directly, the same LogContext lookup the slf4j binding makes, rather than from
-     * java.util.logging.Logger: that one reaches the same logger only when surefire has set
-     * java.util.logging.manager, so an IDE or bare JUnit run would capture nothing.
+     * The submitter does not swallow an asynchronous failure: it reaches the caller through the
+     * returned future, which is where KafkaSqlRegistryStorage logs it for usage writes.
      */
     @Test
-    void testFireAndForgetAsyncFailureIsDroppedNotPropagated() {
-        Logger logger = Logger.getLogger(KafkaSqlSubmitter.class.getName());
-        // The logger is JVM-global, so the handler keeps only WARN records naming this test's own
-        // exception; other code logging through it from another thread is ignored.
-        RuntimeException sendFailure = new RuntimeException("broker down " + UUID.randomUUID());
-        List<LogRecord> captured = new CopyOnWriteArrayList<>();
-        Handler captor = new Handler() {
-            @Override
-            public void publish(LogRecord record) {
-                Object[] parameters = record.getParameters();
-                // equals, not ==: jboss-logmanager publishes its own WARN instance, which
-                // Level.equals matches to WARNING by int value.
-                if (Level.WARNING.equals(record.getLevel()) && parameters != null
-                        && Arrays.asList(parameters).contains(sendFailure.toString())) {
-                    captured.add(record);
-                }
-            }
+    void testSubmitMessageWithoutResponseAsyncFailureReachesTheCaller() {
+        RuntimeException sendFailure = new RuntimeException("broker down");
 
-            @Override
-            public void flush() {
-            }
+        CompletableFuture<UUID> result = submitter.submitMessageWithoutResponse(message());
+        produceResult.completeExceptionally(sendFailure);
 
-            @Override
-            public void close() {
-            }
-        };
-        logger.addHandler(captor);
-        try {
-            submitter.submitFireAndForget(message());
-
-            produceResult.completeExceptionally(sendFailure);
-
-            // The failure completes on this thread, so the record is published before this runs.
-            assertEquals(1, captured.size(), "The dropped send must be logged exactly once");
-            LogRecord record = captured.get(0);
-            assertEquals("RecordUsageEvent1", record.getParameters()[0],
-                    "The message type is what tells an operator which send was lost");
-            assertNull(record.getThrown(),
-                    "The WARN line carries no stack trace; a flush dropping thousands of messages "
-                            + "during an outage would otherwise print one per message");
-        } finally {
-            logger.removeHandler(captor);
-        }
-
+        ExecutionException thrown = assertThrows(ExecutionException.class,
+                () -> result.get(5, TimeUnit.SECONDS));
+        assertSame(sendFailure, thrown.getCause(),
+                "The caller must see the original send failure, not a substitute");
         verify(coordinatorInstance, never()).get();
     }
 

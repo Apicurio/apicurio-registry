@@ -1194,7 +1194,7 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String deleteOrphanedContentReferences() {
-        return "DELETE FROM content_references WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = contentId)";
+        return "DELETE FROM content_references WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = content_references.contentId)";
     }
 
     @Override

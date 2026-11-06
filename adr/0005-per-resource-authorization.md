@@ -76,7 +76,8 @@ on, so a Kroxylicious upgrade that changes it is noticed.
 
 - an authenticated caller: one Kroxylicious `User` containing the principal name, plus an Apicurio
   `Role` for each entry in `SecurityIdentity.getRoles()`;
-- an anonymous caller: only `Role("$anonymous")`, with no `User` principal.
+- an anonymous caller: the anonymous subject (no principals), which only `anonymous User` rules
+  match.
 
 Rules match the **exact principal class** and name: a user named `ops` is not a role named `ops`.
 `User` defaults to `io.kroxylicious.proxy.authentication.User`; `Role` is explicitly imported as
@@ -157,8 +158,8 @@ from io.apicurio.authz import Artifact, Group, Role;
 deny User with name = "bob" to * Artifact with name = "team-a/secret";
 allow Role with name = "team-a-dev" to WRITE Group with name = "team-a";
 allow Role with name = "team-a-dev" to WRITE Artifact with name like "team-a/*";
-allow Role with name = "$anonymous" to READ Group with name = "public";
-allow Role with name = "$anonymous" to READ Artifact with name like "public/*";
+allow anonymous User to READ Group with name = "public";
+allow anonymous User to READ Artifact with name like "public/*";
 otherwise deny;
 ```
 
@@ -466,10 +467,10 @@ rules for resource types it does not enforce, even if their classes exist. A use
 must be resolvable and assignable to the expected principal/resource API type. Other systems must
 also use compatible principal classes; matching a similarly named class is insufficient.
 
-With the pinned grammar, use `Role("$anonymous")` rules instead of the proposal's `anonymous User`
-syntax. Block comments are not supported as comments. Literal processing removes escaping
-backslashes, including in regexes: `/a\.b/` becomes `a.b`. Avoid inferring regex semantics from
-another language's string escaping; test the exact file against the pinned parser.
+Unauthenticated callers are selected with `anonymous User`, as in the proposal. Both `//` and
+`/* */` comments are supported. In a regex literal, `\/` is a slash and `\\` a backslash; any other
+backslash belongs to the expression, so `/a\.b/` matches only `a.b`. Avoid inferring regex
+semantics from another language's string escaping; test the exact file against the pinned parser.
 
 ## Caches and consistency
 

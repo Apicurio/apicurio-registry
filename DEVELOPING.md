@@ -14,27 +14,37 @@ the [README](README.md) and the
 
 This project supports several build configuration options that affect the produced executables.
 
-By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled, and *in-memory* persistence implementation.
+By default, `mvn clean install` produces an executable JAR with the *dev* Quarkus configuration profile enabled. Its default storage is SQL on an in-memory H2 database, so data is lost on restart.
 
-Apicurio Registry supports 4 persistence implementations:
- - In-Memory
- - KafkaSQL
- - PostgreSQL
- - SQL Server (community contributed and maintained)
+A single artifact runs every storage variant. Two properties select it:
 
-Starting with Apicurio Registry 3.0, we now produce a single artifact suitable for running any storage variant.
+| Property | Env. variable | Values | Default |
+|---|---|---|---|
+| `apicurio.storage.kind` | `APICURIO_STORAGE_KIND` | `sql`, `kafkasql`, `gitops`, `kubernetesops` | `sql` |
+| `apicurio.storage.sql.kind` | `APICURIO_STORAGE_SQL_KIND` | `h2`, `postgresql`, `mysql`, `mssql` | `h2` |
 
-Which storage variant will be used is determined by the following configuration:
+There is no separate in-memory storage kind: "in-memory" is `sql` with `h2` and the default `jdbc:h2:mem` URL.
 
-| Option                   | Command argument          | Env. variable           |
-|--------------------------|---------------------------|-------------------------|
-| Registry Storage Variant | `-Dapicurio.storage.kind` | `APICURIO_STORAGE_KIND` |
+### Storage support matrix
 
-For this property, there are four possible values:
-- *sql* - for the SQL storage variant.
-- *kafkasql* - for the KafkaSQL storage variant.
-- *gitops* - for the GitOps storage variant (experimental; requires `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`).
-- *kubernetesops* - for the Kubernetes ConfigMap storage variant (experimental; requires `APICURIO_FEATURES_EXPERIMENTAL_ENABLED=true`).
+| Storage kind | Database | Writes | Status | Unit tests (`verify-unit-tests.yaml`) | Integration tests | Operator `app.storage.type` |
+|---|---|---|---|---|---|---|
+| `sql` | `h2` (in-memory) | Read/write | Development and testing; not persistent | All shards (default profile) | `h2` groups | Empty (default) |
+| `sql` | `postgresql` | Read/write | Supported | `*PostgresqlTest` classes | `postgresql` groups | `postgresql` |
+| `sql` | `mysql` | Read/write | Supported | `*MysqlTest` classes | None | `mysql` |
+| `sql` | `mssql` | Read/write | Community contributed | `*MssqlTest` classes, skipped on macOS | None | Not supported |
+| `kafkasql` | Kafka journal, replayed into the local SQL store (H2 in-memory by default) | Read/write | Supported | `app-kafkasql` shard and `*KafkaSqlTest` classes | `kafkasql` groups | `kafkasql` |
+| `gitops` | Git repository, loaded into blue/green H2 stores | Read-only | Experimental | `app-gitops` shard | None | `gitops` |
+| `kubernetesops` | ConfigMaps, loaded into blue/green H2 stores | Read-only | Experimental | `app-kubernetesops` shard | `kubernetesops` group | `kubernetesops` |
+
+Notes:
+- **KafkaSQL local store:** it uses whatever `apicurio.storage.sql.kind` selects. Only the default H2 is tested.
+- **GitOps and KubernetesOps:**
+  - Starting either one requires `apicurio.features.experimental.enabled=true`. The operator sets it automatically.
+  - Their blue/green stores use the SQL statements of `apicurio.storage.sql.kind`, so keep it at `h2`.
+  - The GitOps *push mode* is a mode of the `distro/gitops` sidecar that accepts `git push` from CI/CD. The registry never writes back to Git.
+- **Read-only mode for any storage:** `apicurio.storage.read-only.enabled` makes any storage reject writes. It defaults to `false` and can be changed at runtime.
+- **Registry events:** the SQL outbox events are written only on PostgreSQL and SQL Server. KafkaSQL publishes events to the `apicurio.events.kafka.topic` topic.
 
 Additionally, there are 2 main configuration profiles:
  - *dev* - suitable for development, and

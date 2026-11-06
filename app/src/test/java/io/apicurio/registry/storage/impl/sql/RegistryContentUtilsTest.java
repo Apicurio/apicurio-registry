@@ -20,6 +20,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.references.RecordingAuthorizingLoader;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
+import io.apicurio.registry.storage.dto.ContentWrapperDto;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
@@ -28,6 +29,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.function.Function;
 
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
@@ -100,5 +102,39 @@ public class RegistryContentUtilsTest {
         Assertions.assertThrows(IllegalStateException.class,
                 () -> resolve(loader, List.of(invalid, RecordingAuthorizingLoader.ref("b"))));
         Assertions.assertEquals(List.of(), loader.authorizedBatches);
+    }
+
+    @Test
+    void aLoaderExceptionPropagatesDuringResolveWithContext() {
+        RuntimeException storageError = new RuntimeException("simulated storage failure");
+        Function<ArtifactReferenceDto, ContentWrapperDto> failingLoader = ref -> {
+            throw storageError;
+        };
+
+        ArtifactReferenceDto reference = ArtifactReferenceDto.builder().groupId("g")
+                .artifactId("broken").version("1").name("broken").build();
+
+        ArtifactTypeUtilProviderFactory factory = mock(ArtifactTypeUtilProviderFactory.class, RETURNS_DEEP_STUBS);
+        RuntimeException thrown = Assertions.assertThrows(RuntimeException.class,
+                () -> RegistryContentUtils.recursivelyResolveReferencesWithContext(factory,
+                        TypedContent.create(ContentHandle.create("{}"), ContentTypes.APPLICATION_JSON),
+                        ArtifactType.JSON, List.of(reference), failingLoader));
+        Assertions.assertSame(storageError, thrown);
+    }
+
+    @Test
+    void aMissingReferenceDoesNotThrowDuringResolveWithContext() {
+        Function<ArtifactReferenceDto, ContentWrapperDto> nullLoader = ref -> null;
+
+        ArtifactReferenceDto reference = ArtifactReferenceDto.builder().groupId("g")
+                .artifactId("gone").version("1").name("gone").build();
+
+        ArtifactTypeUtilProviderFactory factory = mock(ArtifactTypeUtilProviderFactory.class, RETURNS_DEEP_STUBS);
+        RegistryContentUtils.RewrittenContentHolder result =
+                RegistryContentUtils.recursivelyResolveReferencesWithContext(factory,
+                        TypedContent.create(ContentHandle.create("{}"), ContentTypes.APPLICATION_JSON),
+                        ArtifactType.JSON, List.of(reference), nullLoader);
+
+        Assertions.assertTrue(result.getResolvedReferences().isEmpty());
     }
 }

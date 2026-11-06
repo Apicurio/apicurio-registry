@@ -1,6 +1,7 @@
 # ADR-0002: ODCS-Native Data Contracts
 
-- **Status:** Accepted; rewritten 2026-11-06 to describe the current design.
+- **Status:** Accepted; rewritten 2026-11-06 to describe the current design, including the fixes
+  for [#10958](https://github.com/Apicurio/apicurio-registry/issues/10958).
 - **Decision date:** 2026-05-08.
 - **Author:** Carles Arnal.
 - **Tracking:** [#6192](https://github.com/Apicurio/apicurio-registry/issues/6192).
@@ -82,22 +83,50 @@ target. A location that does not resolve becomes a warning in the response, not 
 
 | Projector | Source in the ODCS document | Written to |
 |---|---|---|
-| `OdcsLabelProjector` | `info.status` (draft → `DRAFT`, active → `STABLE`, deprecated/retired → `DEPRECATED`), `info.dataClassification`, `info.version`, `team.name`, `team.domain`, `team.contact`, `serviceLevel.availability`, `serviceLevel.latency.p50/p99`, `quality.freshness.maxStaleness`, `quality.completeness[]`, and the contract ID | Artifact labels `contract.{id}.status`, `.classification`, `.version`, `.owner.team`, `.owner.domain`, `.support.contact`, `.sla.*`, `.quality.*`, `.id` |
-| `OdcsTagProjector` | Each field's `pii: true` (tag `PII`), `classification` (tag `CLASSIFICATION:<value>`) and `tags[]` | Labels on the target version: `field-tag.{id}:{fieldPath}\|{tag}` = `EXTERNAL` |
+| `OdcsLabelProjector` | `info.status` (draft → `DRAFT`, active → `STABLE`, deprecated/retired → `DEPRECATED`), `info.dataClassification`, `info.version`, `team.name`, `team.domain`, `team.contact`, `serviceLevel.availability`, `serviceLevel.latency.p50/p99`, `quality.freshness.maxStaleness`, `quality.completeness[]`, and the contract ID | Artifact labels `contract.{id}.status`, `.classification`, `.version`, `.owner.team`, `.owner.domain`, `.support.contact`, `.sla.*`, `.quality.*`, `.id`; a status that becomes `STABLE` or `DEPRECATED` also gets its `lifecycle.*-date` |
+| `OdcsTagProjector` | Each field's `pii: true` (tag `PII`), `classification` (tag `CLASSIFICATION:<value>`) and `tags[]` | Labels on the target version: `field-tag.{id}:{fieldPath}\|{tag}` = `EXTERNAL`. A key longer than 256 characters, the limit of every storage variant, is skipped with a warning |
 | `OdcsRuleProjector` | Each `quality.accuracy[]` entry | An artifact-level contract rule `odcs:{id}:{name}`: CONDITION, CEL, mode WRITE. `threshold` ≥ 1.0 gives `onFailure: ERROR`, ≥ 0.95 `DLQ`, otherwise `NONE` |
 
 Labels are written with `mergeArtifactLabels` / `mergeVersionLabels`, which replace every label
-under a prefix (`contract.{id}.`, `field-tag.{id}:`) and keep all others, as one storage operation.
+under a prefix (`contract.{id}.`, `field-tag.{id}:`) and keep all others, as one storage operation
+that locks the artifact or version row. Keys keep their case; only the search index is
+lower-cased, as for any label.
 In KafkaSQL these are journal messages (`MergeArtifactLabels4Message`, `MergeVersionLabels5Message`),
 so all replicas apply them in the same order. Rule projection replaces the rules named
 `odcs:{id}:*` and keeps the others. The `contract.` label prefix is reserved for this feature
 (`ContractLabelOwner`), following the [labels convention](../.claude/rules/labels.md).
 
 The field-tag key uses `|` before the tag name because field paths contain dots
-(`address.zipCode`). The `INLINE` tag source and the `TagExtractor` implementations (Avro `tags`,
-JSON Schema `x-tags`, Protobuf `@tag:` comments, and their Confluent equivalents) exist for tags
-declared in schema content, but are not yet called when a version is created (see
-[Limitations](#limitations-and-open-work)).
+(`address.zipCode`). Tags can also be declared in schema content: Avro `tags`, JSON Schema `x-tags`,
+Protobuf `@tag:` comments, and their Confluent equivalents. When a version is created through the
+v3 REST API, `InlineFieldTagService` reads them with the `TagExtractor` for the artifact type and
+adds `field-tag.{fieldPath}|{tag}` = `INLINE` to the version's labels; labels submitted with the
+version win over extracted ones with the same key.
+
+### Projection lifecycle
+
+A contract is projected again every time a version of it is submitted, and the projection follows
+the contract to the end:
+
+- **Re-projection replaces what the YAML provides, and keeps the rest.** The projectors replace
+  the contract's labels, rules and tags with the new version's. State set through the API (stage,
+  compatibility group, lifecycle dates) is carried over, and the YAML's status is applied only if
+  the lifecycle allows moving to it from the current status; otherwise the current status stays
+  and the response carries a warning. A version without accuracy rules or field tags removes the
+  ones an earlier version projected.
+- **Schemas a contract stops governing are cleaned up.** Before projecting, the previous version
+  of the contract is read; schemas it targeted and the new version does not lose the contract's
+  labels, rules and field tags (on every version).
+- **Deleting a contract removes its projection** from every schema any of its versions targeted,
+  before the `ODCS_CONTRACT` artifact is deleted, so a failure leaves a contract that can be
+  deleted again.
+- **A failed projection is rolled back.** Missing schema artifacts and invalid locations are
+  warnings; any other failure deletes the new contract version (or the new contract artifact),
+  projects the previous version again, removes the projection from schemas only the failed
+  version targeted, and returns 400.
+
+Each projection and removal is recorded in the schema artifact's audit log (`CONTRACT_PROJECTED`,
+`CONTRACT_REMOVED`).
 
 `GET .../contract/export` (`OdcsExporter`) goes the other way: it rebuilds an ODCS document from
 the labels, rules and field tags on one artifact. It is a view of the projection, not of the
@@ -112,10 +141,12 @@ same `contract.{id}.*` artifact labels, so the metadata view, search and export 
   (`ContractMetadataValidator`). Transitions also set `lifecycle.stable-date` or
   `lifecycle.deprecated-date`.
 - **Promotion stage** (`POST .../contract/promote`, `PromotionService`): `DEV → STAGE → PROD`,
-  forward and one step at a time once a stage is set; PROD requires status `STABLE`.
+  forward and one step at a time, starting at DEV; PROD requires status `STABLE`.
 - **Compatibility group** (`PUT .../contract/compatibility-group`): a label only.
-- **Metadata** (`PUT .../contract/metadata`): replaces the contract's labels with the given fields,
-  without transition checks.
+- **Metadata** (`PUT .../contract/metadata`): replaces the editable fields (status, owner, domain,
+  contact, classification, stage, compatibility group) and keeps every other contract label, so the
+  artifact stays linked to its ODCS contract. A status or stage change follows the same rules as
+  the status and promote endpoints.
 
 `GET .../contract/metadata` maps the labels to a DTO (`ContractMetadataMapper`); it finds the
 contract through the `contract.{id}.id` label and falls back to un-namespaced `contract.*` labels
@@ -162,12 +193,14 @@ There are three callers, and they see different rules:
 |---|---|
 | `POST .../versions/{v}/contract/execute` (`RuleExecutionService`) | `domainRules` of global, artifact and version scopes, merged by name, the narrowest scope winning |
 | `POST .../contract/migrate` (`MigrationRuleService`, `MigrationExecutor`) | For each step on the version path, the `migrationRules` of the step's target version, in mode `UPGRADE` (or `DOWNGRADE`, walking backwards) |
-| Serializers and deserializers (`AbstractSerializer`, `AbstractDeserializer`) | The artifact-scope ruleset only, fetched with the SDK and cached (`contract-rules.cache.ttl.seconds`, default 60) |
+| Serializers and deserializers (`AbstractSerializer`, `AbstractDeserializer`, `ContractRuleLoader`) | `domainRules` of global, artifact and version scopes, merged as by the execute endpoint, fetched with the SDK and cached (`contract-rules.cache.ttl.seconds`, default 60), empty rulesets included; for migration, as the migrate endpoint |
 
 The serializers are opt-in (`apicurio.registry.serde.contract-rules.enabled`, default `false`).
 They run `WRITE` rules after resolving the schema and before writing, and `READ` rules after
 reading. With `contract-rules.fail-on-error` (default `true`) any failed rule throws; otherwise it
-is logged. Records are converted to maps by parsing their JSON `toString()`.
+is logged. Records are converted to maps by parsing their JSON `toString()`. The output of
+TRANSFORM rules and of deserializer migrations is not applied to the record (see
+[Limitations](#limitations-and-open-work)).
 
 Running the rules in the client keeps the serializer's hot path free of a registry call per record,
 at the cost of a rules cache that can be up to one TTL out of date.
@@ -177,9 +210,14 @@ at the cost of a rules cache that can be up to one TTL out of date.
 `GET /search/contracts` searches artifacts by their contract labels (`status`, `ownerTeam`,
 `compatibilityGroup`), matching both namespaced (`contract.{id}.status`) and un-namespaced keys.
 
-`ContractAuditService` writes status changes (`STATUS_CHANGED`) and metadata updates
-(`METADATA_UPDATED`) to the `contract_audit_log` table (DB upgrade 106; a KafkaSQL journal message
-in KafkaSQL), read with `GET .../contract/audit`.
+`ContractAuditService` writes every change to an artifact's contract state to the
+`contract_audit_log` table (DB upgrade 106; a KafkaSQL journal message in KafkaSQL), read with
+`GET .../contract/audit`: `CONTRACT_PROJECTED`, `CONTRACT_REMOVED`, `STATUS_CHANGED`,
+`METADATA_UPDATED`, `PROMOTED`, `COMPATIBILITY_GROUP_SET`, and `RULESET_CONFIGURED` /
+`RULESET_DELETED` for artifact and version rulesets. Global ruleset changes belong to no artifact
+and are only in the REST audit log. Deleting an artifact, or all artifacts of a group, deletes its
+audit entries and its artifact-level contract rules (version-level rules cascade with the
+versions).
 
 ### Behaviour across storage variants
 
@@ -225,49 +263,28 @@ The server has no contract-specific configuration. The serializers and deseriali
 | Audit | [`ContractAuditService`](../app/src/main/java/io/apicurio/registry/contracts/audit/ContractAuditService.java), [`SqlContractAuditRepository`](../app/src/main/java/io/apicurio/registry/storage/impl/sql/repositories/SqlContractAuditRepository.java) | Audit entries |
 | Storage | [`RegistryStorage`](../app/src/main/java/io/apicurio/registry/storage/RegistryStorage.java) (`mergeArtifactLabels`, `mergeVersionLabels`, contract rulesets), SQL DDLs | Prefix-scoped label merges; `contract_rules`, `contract_audit_log` |
 | Artifact type | [`OdcsContractReferenceFinder`](../schema-util/common/src/main/java/io/apicurio/registry/content/refs/OdcsContractReferenceFinder.java) and the other `OdcsContract*` classes in `schema-util/common` | Accepter, validator, reference finder, dereferencer |
-| Tag extractors (not wired) | [`contracts/tags/`](../app/src/main/java/io/apicurio/registry/contracts/tags/) | Inline tag extraction for Avro, JSON Schema, Protobuf |
-| Serializers | [`AbstractSerializer`](../serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/AbstractSerializer.java), [`AbstractDeserializer`](../serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/AbstractDeserializer.java), [`SerdeConfig`](../serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/config/SerdeConfig.java) | Client-side rule evaluation |
+| Inline tags | [`contracts/tags/`](../app/src/main/java/io/apicurio/registry/contracts/tags/) | `InlineFieldTagService` and the tag extractors for Avro, JSON Schema, Protobuf |
+| Serializers | [`ContractRuleLoader`](../serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/ContractRuleLoader.java), [`AbstractSerializer`](../serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/AbstractSerializer.java), [`AbstractDeserializer`](../serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/AbstractDeserializer.java), [`SerdeConfig`](../serdes/generic/serde-common/src/main/java/io/apicurio/registry/serde/config/SerdeConfig.java) | Client-side rule evaluation |
 | UI | [`ArtifactContractTabContent`](../ui/ui-app/src/app/pages/artifact/components/tabs/ArtifactContractTabContent.tsx), [`GlobalContractRulesPage`](../ui/ui-app/src/app/pages/contractRules/GlobalContractRulesPage.tsx) | Contract tab; global contract rules page |
 
 ## Limitations and open work
 
-Projection lifecycle:
-
-- **Deleting a contract leaves its projection.** `DELETE /groups/{g}/contracts/{id}` deletes the
-  `ODCS_CONTRACT` artifact only; labels, `odcs:{id}:*` rules (still enforced) and field tags stay.
-- **Re-projection overwrites API-set state.** Updating a contract replaces every `contract.{id}.*`
-  label, so status, stage, compatibility group and lifecycle dates set through the API are lost.
-  `PUT .../contract/metadata` similarly replaces them all, including the `id` label that links the
-  artifact to its contract.
-- **Re-projection does not clean up.** A schema dropped from `schemas[]` keeps its projection, and
-  a contract with no `quality.accuracy` (or no field tags) keeps the old rules (or tags).
-- **Rollback is narrow.** A failed projection deletes the whole contract artifact, but per-schema
-  failures are reported as warnings, so partial projections are possible.
-- **Label keys are lower-cased** by SQL storage, so field paths and tag names lose their case, and
-  the export reports `pii` as a tag rather than `pii: true`. The tag projector checks keys against
-  512 characters, but storage rejects keys over 256, which drops all of that schema's tags.
-
-Features that are partly wired:
-
-- **Inline tags are not extracted.** The `TagExtractor` implementations are unused.
-- **The compatibility group is not used** by compatibility checking.
-- **`GovernanceRuleExecutor`** (completeness levels NONE/BASIC/FULL) is not called.
-- **The audit log** records only status changes and metadata updates, and its entries outlive the
-  artifact.
-- **Promotion has no concurrency control**: two concurrent promotions can both succeed.
-
-Serializers:
-
-- They evaluate artifact-scope rules only, not global or version rules, so the same record can
-  pass in a producer and fail `.../contract/execute`, or the reverse.
-- TRANSFORM output and deserializer migration results are discarded, and nothing implements `DLQ`
-  routing; `onFailure` other than `ERROR` only changes whether evaluation continues.
-- The exception message prints violations without their text (`RuleViolation` has no `toString`).
-
-Other:
-
-- `cel-standalone` is pinned to 0.8.0 in `contracts-rules/pom.xml`, while the root
-  `cel-standalone.version` property still says 0.6.0 and is unused.
+1. **Serializers do not apply TRANSFORM output**, and nothing implements `DLQ` routing: `onFailure`
+   other than `ERROR` only changes whether evaluation continues
+   ([#10968](https://github.com/Apicurio/apicurio-registry/issues/10968)).
+2. **The compatibility group is not used** by compatibility checking; it is a label that can be
+   searched ([#10969](https://github.com/Apicurio/apicurio-registry/issues/10969)).
+3. **`GovernanceRuleExecutor`** (completeness levels NONE/BASIC/FULL) is not called
+   ([#10970](https://github.com/Apicurio/apicurio-registry/issues/10970)).
+4. **Lifecycle checks are not atomic.** Promotion and status changes validate the current label,
+   then write the new one; two concurrent requests can both pass
+   ([#10971](https://github.com/Apicurio/apicurio-registry/issues/10971)).
+5. **Inline tags are read only on the v3 REST create paths.** Versions created through the
+   Confluent-compatible API, and draft content updates, get no `INLINE` tags.
+6. **The export covers one artifact.** It rebuilds the contract from that artifact's projection
+   and its latest version's tags, not the submitted multi-schema YAML.
+7. **Direct label edits can diverge from the YAML.** The ODCS artifact is authoritative;
+   re-submitting it repairs what it projects.
 
 ## Alternatives
 
@@ -285,10 +302,9 @@ Other:
   the only new tables are `contract_rules` and `contract_audit_log`. The same rule engine runs in
   the server and in serializers, so a rule behaves the same in both, as long as both evaluate the
   same rules.
-- **Costs:** Two copies of the contract exist: the YAML and its projection. They can drift,
-  through direct label edits, API-set state, or deletion. The YAML is authoritative and
-  re-submitting it repairs the projection, but not API-set state (see
-  [Limitations](#limitations-and-open-work)). Two rule systems (artifact rules for schema content,
+- **Costs:** Two copies of the contract exist: the YAML and its projection, which the projection
+  lifecycle has to keep in step on every submission, update and deletion. Direct label edits can
+  still make them drift; the YAML is authoritative and re-submitting it repairs the projection. Two rule systems (artifact rules for schema content,
   contract rules for records) share vocabulary but not code, which users must learn to tell apart.
 
 ## Example and verification
@@ -304,14 +320,15 @@ Other:
 | Concern | Tests to read |
 |---|---|
 | Submit, update, list, project, export | `app/.../noprofile/rest/v3/OdcsContractResourceTest`, `integration-tests/.../OdcsContractIT` |
+| Projection lifecycle, inline tags, audit, cleanup on deletion | `app/.../noprofile/rest/v3/OdcsContractLifecycleTest` |
 | Execute, migrate, audit, search, global ruleset | `app/.../noprofile/rest/v3/DataContractsResourceTest` |
 | Rule engine, CEL, JSONata | `contracts-rules/src/test/.../RuleExecutionEngineTest`, `CelExpressionEvaluatorTest`, `JsonataRuleExecutorTest` |
 | Metadata, status transitions, promotion, quality, compatibility group | `app/.../contracts/ContractMetadataMapperTest`, `ContractMetadataValidatorTest`, `PromotionServiceTest`, `QualityScoreCalculatorTest`, `CompatibilityGroupServiceTest` |
 | KafkaSQL journaling | `app/.../storage/impl/kafkasql/KafkaSqlContract*Test`, `KafkaSqlGlobalContractRulesetJournalTest` |
-| Serializers | `app/.../noprofile/serde/ContractRuleSerdeTest`, `serde-common/.../ContractRuleLocalEvaluationTest` |
+| Serializers | `app/.../noprofile/serde/ContractRuleSerdeTest`, `serde-common/.../ContractRuleLocalEvaluationTest`, `ContractRuleLoaderTest` |
 
 ```bash
-./mvnw test -pl app -Dtest='OdcsContractResourceTest,DataContractsResourceTest'
+./mvnw test -pl app -Dtest='OdcsContractResourceTest,OdcsContractLifecycleTest,DataContractsResourceTest,ContractRuleSerdeTest'
 ./mvnw test -pl contracts-rules
 ```
 
@@ -328,6 +345,7 @@ The feature was delivered in phases; the design above is their current combined 
 | 6 | JSONata, migration rules, compatibility groups |
 | 7 | Contract events, audit log, contract search, serializer integration |
 | 8 | Global rulesets, UI contract tab and global contract rules page |
+| [#10958](https://github.com/Apicurio/apicurio-registry/issues/10958) | Projection lifecycle (deletion, re-projection that keeps API-set state, cleanup, rollback), case-preserving label merges, inline tag extraction, serializers evaluating all rule scopes, complete audit log, deletion of contract rules and audit with the artifact |
 
 Earlier revisions of this ADR also recorded, and resolved: un-namespaced projection, which allowed
 only one contract per schema (fixed by namespacing with the contract ID); read-modify-write label

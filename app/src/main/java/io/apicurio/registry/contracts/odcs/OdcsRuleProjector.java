@@ -23,32 +23,56 @@ public class OdcsRuleProjector {
     @Current
     RegistryStorage storage;
 
+    /**
+     * Replaces the contract's rules on the artifact with the contract's {@code quality.accuracy}
+     * entries, keeping every other rule. A contract without accuracy rules removes the ones an
+     * earlier version projected.
+     *
+     * @return the number of rules projected
+     */
     public int project(OdcsContract contract, String contractId, String groupId,
             String artifactId) {
-        if (contract.getQuality() == null || contract.getQuality().getAccuracy() == null) {
-            return 0;
-        }
+        List<OdcsAccuracyRule> accuracy = contract.getQuality() != null
+                && contract.getQuality().getAccuracy() != null
+                        ? contract.getQuality().getAccuracy() : List.of();
+        return replaceRules(contract, contractId, groupId, artifactId, accuracy);
+    }
 
+    /**
+     * Removes the contract's rules from the artifact, keeping every other rule.
+     */
+    public void remove(String contractId, String groupId, String artifactId) {
+        replaceRules(null, contractId, groupId, artifactId, List.of());
+    }
+
+    private int replaceRules(OdcsContract contract, String contractId, String groupId,
+            String artifactId, List<OdcsAccuracyRule> accuracy) {
         String rulePrefix = ODCS_RULE_PREFIX + contractId + ":";
         var existing = storage.getArtifactContractRuleset(groupId, artifactId);
 
         List<ContractRuleDto> otherRules = new ArrayList<>();
+        boolean hadContractRules = false;
         if (existing != null && existing.getDomainRules() != null) {
             for (ContractRuleDto rule : existing.getDomainRules()) {
-                if (!rule.getName().startsWith(rulePrefix)) {
+                if (rule.getName().startsWith(rulePrefix)) {
+                    hadContractRules = true;
+                } else {
                     otherRules.add(rule);
                 }
             }
         }
+        if (accuracy.isEmpty() && !hadContractRules) {
+            return 0;
+        }
 
         String source = "odcs:" + contractId + ":"
-                + (contract.getInfo() != null && contract.getInfo().getVersion() != null
+                + (contract != null && contract.getInfo() != null && contract.getInfo().getVersion() != null
                         ? contract.getInfo().getVersion()
                         : "unknown");
 
         List<ContractRuleDto> odcsRules = new ArrayList<>();
         int index = 0;
-        for (OdcsAccuracyRule rule : contract.getQuality().getAccuracy()) {
+        for (OdcsAccuracyRule rule : accuracy) {
             double threshold = rule.getThreshold() != null ? rule.getThreshold() : 1.0;
             odcsRules.add(ContractRuleDto.builder()
                     .name(rulePrefix + rule.getName())

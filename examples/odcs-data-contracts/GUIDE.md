@@ -78,8 +78,8 @@ All checks passed.
 ```
 
 The script starts by deleting the `orders` group and the global contract rules, so it is safe to
-run again. Kafka messages and the contract audit log survive this reset; to start from scratch,
-use `docker compose down -v` instead.
+run again. Deleting the group also deletes its contract rules and audit log. Kafka messages survive
+this reset; to start from scratch, use `docker compose down -v` instead.
 
 ## Step 3: Load the helper commands
 
@@ -121,8 +121,10 @@ schemas:
 `location` is `[groupId/]artifactId[:version]`. Without a group, the contract's own group is used;
 without a version, the latest one.
 
-Notice that the Avro schema itself knows nothing of the contract. Ownership, sensitivity and
-quality rules all live in the contract, which a different team can own and version separately.
+The schema itself knows nothing of the contract. Ownership, quality rules and service levels all
+live in the contract, which a different team can own and version separately. The schema can
+still describe its own fields: [`schemas/order-event-v1.avsc`](schemas/order-event-v1.avsc) tags
+`customerEmail` as `PII` with Avro's `tags` property.
 
 ## Step 5: What the registry did with it
 
@@ -162,12 +164,13 @@ call GET $ORDER | jq .labels
   "contract.orders-contract.sla.availability": "0.999",
   "contract.orders-contract.owner.domain": "commerce",
   "contract.orders-contract.sla.latency.p99": "PT1S",
+  "contract.orders-contract.lifecycle.stable-date": "2026-11-06",
   "contract.orders-contract.quality.freshness.maxStaleness": "PT5M"
 }
 ```
 
 Every key carries the contract ID, so several contracts can govern the same schema without
-overwriting each other. ODCS status `active` became the registry status `STABLE`.
+overwriting each other. ODCS status `active` became the registry status `STABLE`, dated today.
 
 The `quality.accuracy` entry became a contract rule, a CEL condition checked when data is written:
 
@@ -191,14 +194,16 @@ call GET $ORDER/versions/1 | jq .labels
 
 ```
 {
-  "field-tag.orders-contract:customeremail|pii": "EXTERNAL",
-  "field-tag.orders-contract:customeremail|email": "EXTERNAL"
+  "field-tag.orders-contract:customerEmail|PII": "EXTERNAL",
+  "field-tag.orders-contract:customerEmail|EMAIL": "EXTERNAL",
+  "field-tag.customerEmail|PII": "INLINE"
 }
 ```
 
-The format is `field-tag.<contract>:<field path>|<tag>`, and `EXTERNAL` means the tag came from
-outside the schema. The registry stores label keys in lower case, so `customerEmail|PII` reads back
-as `customeremail|pii`.
+Tags from the contract are `field-tag.<contract>:<field path>|<tag>` = `EXTERNAL`. The last label
+came from the schema itself: when a version is created, the registry reads the tags declared in its
+content (Avro `tags`, JSON Schema `x-tags`, Protobuf `@tag:` comments) into
+`field-tag.<field path>|<tag>` = `INLINE`.
 
 **In the UI:** open the *Contract* tab of `OrderEvent`. It shows the projected metadata, the quality
 score (step 10), the contract's rules, and the audit log (step 11). *View contract artifact* opens
@@ -220,7 +225,8 @@ call GET $ORDER/contract/metadata
   "ownerTeam": "orders-team",
   "ownerDomain": "commerce",
   "supportContact": "orders-team@example.com",
-  "classification": "CONFIDENTIAL"
+  "classification": "CONFIDENTIAL",
+  "stableDate": "2026-11-06"
 }
 ```
 
@@ -242,17 +248,17 @@ schemas:
 - type: "avro"
   location: "orders/OrderEvent:1"
   fields:
-    customeremail:
+    customerEmail:
+      pii: true
       tags:
-      - "pii"
-      - "email"
+      - "EMAIL"
 ...
 ```
 
 Compare it with the original: the export is a view of the projection, not a copy of the contract.
-Field names come back in lower case, `pii: true` comes back as a tag, and anything that was not
-projected (the title, field descriptions) is missing. The submitted YAML stays the source of
-truth: `call GET /groups/orders/contracts/orders-contract` returns it unchanged.
+What was projected comes back, but anything that was not (the title, field descriptions) is
+missing. The submitted YAML stays the source of truth:
+`call GET /groups/orders/contracts/orders-contract` returns it unchanged.
 
 ## Step 7: Check records against the contract
 
@@ -357,10 +363,11 @@ Keep the global rule for the next step.
 
 The registry can check records, but the place to stop bad data is the producer. With
 `apicurio.registry.serde.contract-rules.enabled=true`, the Apicurio serializer fetches the
-artifact's contract rules from the registry, caches them (60 seconds by default), and runs the
+contract rules that apply to the schema version from the registry (global, artifact and version
+rules, merged by name exactly as in step 8), caches them (60 seconds by default), and runs the
 `WRITE` rules on every record before serializing it.
 [`ContractSerdesDemo`](src/main/java/io/apicurio/registry/examples/ContractSerdesDemo.java) sends
-two orders, then reads the topic back:
+three orders, then reads the topic back:
 
 ```bash
 ../../mvnw -q compile exec:java
@@ -369,19 +376,21 @@ two orders, then reads the topic back:
 ```
 sent      {"orderId": "ORD-1001", "customerEmail": "customer@example.com", "totalAmount": 99.99}
 rejected  {"orderId": "ORD-1002", "customerEmail": "customer@example.com", "totalAmount": -5.0}
-          Contract rule validation failed (WRITE): [...]
+          Contract rule validation failed (WRITE): [odcs:orders-contract:positive-amount (ERROR): Condition failed: odcs:orders-contract:positive-amount]
+rejected  {"orderId": "", "customerEmail": "customer@example.com", "totalAmount": 25.0}
+          Contract rule validation failed (WRITE): [order-id-present (ERROR): Condition failed: order-id-present]
 consumed  {"orderId": "ORD-1001", "customerEmail": "customer@example.com", "totalAmount": 99.99}
 1 message(s) on topic 'orders'
 ```
 
-The invalid order never reached Kafka. The first run downloads dependencies, and Maven may print
-some JVM warnings first; they are harmless.
+The invalid orders never reached Kafka: one broke the contract's rule, the other the global rule.
+The first run downloads dependencies, and Maven may print some JVM warnings first; they are
+harmless.
 
-The serializer runs the rules in the client, and only the **artifact-level** rules: the contract's
-`positive-amount`, but not the global `order-id-present` or any version rules. An order with an
-empty `orderId` would be sent. With `apicurio.registry.serde.contract-rules.fail-on-error=false`,
-a failing record is logged and sent anyway; nothing routes it to a dead letter topic, whatever
-the rule's `onFailure`.
+The serializer runs the rules in the client, so a rule change reaches producers within the cache
+TTL, not at once. With `apicurio.registry.serde.contract-rules.fail-on-error=false`, a failing
+record is logged and sent anyway; nothing routes it to a dead letter topic, whatever the rule's
+`onFailure`, and the serializer does not apply the output of `TRANSFORM` rules.
 
 Remove the global rule:
 
@@ -460,7 +469,8 @@ call GET '/search/contracts?status=DEPRECATED' | jq .count
 1
 ```
 
-The contract audit log records status changes and metadata edits:
+The contract audit log of `OrderEvent` records everything done to its contract so far, newest
+first:
 
 ```bash
 call GET $ORDER/contract/audit | jq -c '.[] | {action, details}'
@@ -468,13 +478,19 @@ call GET $ORDER/contract/audit | jq -c '.[] | {action, details}'
 
 ```
 {"action":"STATUS_CHANGED","details":"STABLE -> DEPRECATED"}
+{"action":"PROMOTED","details":"orders-contract: STAGE -> PROD"}
+{"action":"PROMOTED","details":"orders-contract: DEV -> STAGE"}
+{"action":"PROMOTED","details":"orders-contract: none -> DEV"}
+{"action":"RULESET_DELETED","details":null}
+{"action":"RULESET_CONFIGURED","details":"1 domain rule(s), 0 migration rule(s)"}
+{"action":"CONTRACT_PROJECTED","details":"orders-contract 1.0.0"}
 ```
 
-It records only those two actions (`STATUS_CHANGED`, `METADATA_UPDATED`). Submitting, updating or
-deleting a contract, promotions and rule changes are not in it. The principal is empty here
-because the example has no authentication.
+The two ruleset entries are the version 1 override of step 8; their `version` field (not shown)
+says `1`. Changes to the global ruleset are not in any artifact's log. The principal is empty here
+because the example has no authentication. The log is deleted with the artifact.
 
-**In the UI:** the same entry is in the *Audit Log* card of the *Contract* tab (screenshot above).
+**In the UI:** the same entries are in the *Audit Log* card of the *Contract* tab (screenshot above).
 
 ## Step 12: Evolve the schema, and migrate records
 
@@ -534,12 +550,16 @@ submit orders-contract-1.1.yaml PUT orders-contract
     "rulesApplied": 1,
     "labelsApplied": 10,
     "tagsApplied": 2,
-    "warnings": []
+    "warnings": [
+      "Status STABLE from the contract not applied to orders/OrderEvent: the contract is already DEPRECATED, and its status cannot move back."
+    ]
   }
 }
 ```
 
-The contract artifact now has two versions, and the projection was redone:
+The YAML still says `status: active`, but the contract was deprecated in step 10, and a status
+never moves back; the warning says so. The contract artifact now has two versions, and the
+projection was redone:
 
 ```bash
 call GET /groups/orders/artifacts/orders-contract/versions | jq -c '[.versions[].version]'
@@ -551,15 +571,15 @@ call GET $ORDER/contract/metadata | jq -c .
 ```
 ["1.0.0","1.1.0"]
 ["odcs:orders-contract:positive-amount: totalAmount >= 1"]
-["field-tag.orders-contract:customeremail|email","field-tag.orders-contract:customeremail|pii"]
-{"status":"STABLE","ownerTeam":"orders-team","ownerDomain":"commerce","supportContact":"orders-team@example.com","classification":"CONFIDENTIAL"}
+["field-tag.customerEmail|PII","field-tag.orders-contract:customerEmail|EMAIL","field-tag.orders-contract:customerEmail|PII"]
+{"status":"DEPRECATED","ownerTeam":"orders-team","ownerDomain":"commerce","supportContact":"orders-team@example.com","classification":"CONFIDENTIAL","stage":"PROD","stableDate":"2026-11-06","deprecatedDate":"2026-11-06"}
 ```
 
-The rule was replaced, and the field tags now also sit on version 2, the latest. Look at the
-metadata, though: the status is `STABLE` again and the stage is gone. Re-projection rewrites every
-`contract.orders-contract.*` label from the YAML, so status, stage and compatibility group set
-through the API since the last submission are lost. Keep the status in the YAML (`info.status`)
-and promote again after updating a contract.
+The rule was replaced, and the contract's field tags now also sit on version 2, the latest, next to
+the `INLINE` tag from the schema. The state set through the API (the status, the PROD stage, the
+lifecycle dates, and a compatibility group if there were one) is kept: re-projection replaces
+only what the YAML provides. If a new version of the contract stops listing a schema, or stops
+declaring rules or field tags, what the previous version projected is removed.
 
 Submitting the same contract version twice is refused, and `POST` cannot replace a contract:
 
@@ -584,13 +604,14 @@ call GET $ORDER/contract/ruleset | jq -c '[.domainRules[].name]'
 ```
 204
 []
-10
-["odcs:orders-contract:positive-amount"]
+0
+[]
 ```
 
-Deleting a contract deletes the `ODCS_CONTRACT` artifact only. What it projected stays on
-`OrderEvent`: the labels, the rule (which the serializer keeps enforcing) and the field tags.
-Remove them by hand if you need to, or delete and re-create the schema artifact.
+Deleting a contract also removes everything it projected, from every schema any of its versions
+governed: the labels (including the stage and status set through the API), the rule, and the
+field tags. The `INLINE` tags belong to the schema and stay. The removal is recorded in each
+schema's audit log as `CONTRACT_REMOVED`.
 
 ## Step 15: Clean up
 
@@ -609,15 +630,16 @@ rm -f orders-contract-1.1.yaml
   keeps it and projects it onto the schema, namespaced by contract (5); you can read it back, but
   the YAML is the source of truth (6); its rules check records (7), with global defaults that
   narrower rules override (8), and the serializer enforces them before data reaches Kafka (9);
-  contracts have a lifecycle (10), can be searched (11) and evolve with the schema (12); updating
-  re-projects everything from the YAML (13), and deleting leaves the projection behind (14).
+  contracts have a lifecycle (10), can be searched and audited (11), and evolve with the schema
+  (12); updating re-projects the YAML without undoing the lifecycle (13), and deleting removes
+  the projection (14).
 - **Questions that usually come up:**
   - *Why projection, instead of reading the contract at runtime?* The registry already stores and
     enforces labels and rules in every storage variant, and serializers already fetch rules.
     Projection reuses all of it. See ADR-0002.
   - *Can two contracts govern one schema?* Yes. Everything projected carries the contract ID.
-  - *Are inline schema tags (Avro `tags`, JSON Schema `x-tags`) picked up?* Not yet: field tags
-    come only from contracts.
+  - *Are inline schema tags (Avro `tags`, JSON Schema `x-tags`) picked up?* Yes, when a version
+    is created through the REST API (as `INLINE` field tags, step 5).
   - *Does the compatibility group change compatibility checks?* Not yet: it is stored as a label
     and can be searched, but compatibility rules ignore it.
 - **To reset between runs:** `docker compose down -v`, then steps 1 to 3 again.
@@ -630,7 +652,6 @@ rm -f orders-contract-1.1.yaml
 | Helper commands print nothing, or `jq: error` | Check that `curl` and `jq` are installed, and that you ran `source ./demo-env.sh` in the current shell. |
 | Step 9 fails with `TimeoutException` or cannot connect | Check that `kafka-contracts` is running, and that `KAFKA_BOOTSTRAP` matches its port. |
 | Step 9 consumes more than one message | Kafka keeps the messages of earlier runs. `docker compose down -v` resets it. |
-| The audit log has entries from an earlier run | Audit entries survive deleting the artifact, so `demo.sh` does not clear them. Reset with `docker compose down -v`. |
 | Different outputs than in this guide | You may have run some steps twice. Reset with `docker compose down -v` and start again. |
 
 ## Using other ports

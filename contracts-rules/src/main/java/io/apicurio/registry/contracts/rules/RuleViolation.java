@@ -37,4 +37,9 @@ public class RuleViolation {
     public void setAction(String action) {
         this.action = action;
     }
+
+    @Override
+    public String toString() {
+        return ruleName + " (" + action + "): " + message;
+    }
 }

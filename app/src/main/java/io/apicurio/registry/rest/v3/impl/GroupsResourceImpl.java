@@ -20,6 +20,7 @@ import io.apicurio.registry.contracts.odcs.OdcsProjectionEngine;
 import io.apicurio.registry.contracts.odcs.OdcsProjectionResult;
 import io.apicurio.registry.contracts.odcs.OdcsSchema;
 import io.apicurio.registry.contracts.odcs.OdcsSchemaLocations;
+import io.apicurio.registry.contracts.tags.InlineFieldTagService;
 import io.apicurio.registry.rest.v3.beans.OdcsContractResult;
 import io.apicurio.registry.rest.v3.beans.OdcsContractSummary;
 import io.apicurio.registry.rest.v3.beans.OdcsProjectionSummary;
@@ -102,6 +103,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -208,6 +210,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     io.apicurio.registry.contracts.audit.ContractAuditService contractAuditService;
+
+    @Inject
+    InlineFieldTagService inlineFieldTagService;
 
     @Inject
     ISearchAuthorizer searchAuthorizer;
@@ -1578,7 +1583,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                         .references(referencesAsDtos).build();
                 firstVersionMetaData = EditableVersionMetaDataDto.builder()
                         .description(data.getFirstVersion().getDescription())
-                        .name(data.getFirstVersion().getName()).labels(data.getFirstVersion().getLabels())
+                        .name(data.getFirstVersion().getName())
+                        .labels(inlineFieldTagService.withInlineTags(artifactType, effectiveContent,
+                                data.getFirstVersion().getLabels()))
                         .build();
                 firstVersionBranches = data.getFirstVersion().getBranches();
                 firstVersionIsDraft = data.getFirstVersion().getIsDraft() != null
@@ -1740,7 +1747,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         EditableVersionMetaDataDto metaDataDto = EditableVersionMetaDataDto.builder()
-                .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
+                .description(data.getDescription()).name(data.getName())
+                .labels(inlineFieldTagService.withInlineTags(artifactType, effectiveContent, data.getLabels()))
+                .build();
         ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(effectiveContentType).content(effectiveContent)
                 .references(referencesAsDtos).build();
 
@@ -2073,7 +2082,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder().name(name)
-                .description(description).labels(labels).build();
+                .description(description)
+                .labels(inlineFieldTagService.withInlineTags(artifactType, content, labels)).build();
         ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(contentType).content(content)
                 .references(referencesAsDtos).build();
         ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(groupId, artifactId, version,
@@ -2334,13 +2344,41 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         contractMetadataValidator.validate(editableDto);
 
-        // Resolve the contract id and the labels to store before handing them to storage. The
-        // merge removes the contract.{id}.id label, so the id has to be read up front, and the
-        // resolved values are what a KafkaSQL journal message carries.
+        // Resolve the contract id and the labels to store before handing them to storage, so that a
+        // KafkaSQL journal message carries the resolved values.
         ArtifactMetaDataDto existing = storage.getArtifactMetaData(rawGroupId, artifactId);
-        String contractId = ContractLabels.findContractId(existing.getLabels());
+        Map<String, String> existingLabels = existing.getLabels() != null ? existing.getLabels() : Map.of();
+        String contractId = ContractLabels.findContractId(existingLabels);
         String prefix = ContractLabels.prefixFor(contractId);
-        Map<String, String> contractLabels = contractMetadataMapper.toLabels(editableDto, prefix);
+        ContractMetadataDto current = contractMetadataMapper.fromLabels(existingLabels, contractId);
+
+        // The metadata endpoint follows the same lifecycle rules as the status and promote endpoints
+        if (editableDto.getStatus() != null) {
+            contractMetadataValidator.validateStatusTransition(current.getStatus(), editableDto.getStatus());
+        }
+        ContractStatus resultingStatus = editableDto.getStatus() != null ? editableDto.getStatus()
+                : current.getStatus();
+        if (editableDto.getStage() != null && editableDto.getStage() != current.getStage()) {
+            promotionService.validateTransition(current.getStage(), editableDto.getStage(), resultingStatus);
+        }
+
+        // Replace only the editable fields: the contract id, version, SLA, quality and lifecycle
+        // labels stay, so the artifact keeps its link to its ODCS contract.
+        Map<String, String> contractLabels = new HashMap<>();
+        existingLabels.forEach((key, value) -> {
+            if (key.startsWith(prefix) && !ContractLabels.isEditableMetadataKey(prefix, key)) {
+                contractLabels.put(key, value);
+            }
+        });
+        contractLabels.putAll(contractMetadataMapper.toLabels(editableDto, prefix));
+        if (editableDto.getStatus() != null && editableDto.getStatus() != current.getStatus()) {
+            String today = LocalDate.now(ZoneId.systemDefault()).toString();
+            if (editableDto.getStatus() == ContractStatus.STABLE) {
+                contractLabels.putIfAbsent(prefix + ContractLabels.SUFFIX_STABLE_DATE, today);
+            } else if (editableDto.getStatus() == ContractStatus.DEPRECATED) {
+                contractLabels.putIfAbsent(prefix + ContractLabels.SUFFIX_DEPRECATED_DATE, today);
+            }
+        }
 
         // Persist the metadata and fire the metadata updated event
         storage.updateContractMetadata(rawGroupId, artifactId, prefix, contractLabels);
@@ -2378,8 +2416,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
         ContractRuleSetDto dto = toContractRuleSetDto(data);
-        storage.setArtifactContractRuleset(
-                new GroupId(groupId).getRawGroupIdWithNull(), artifactId, dto);
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        storage.setArtifactContractRuleset(rawGroupId, artifactId, dto);
+        contractAuditService.recordAction(rawGroupId, artifactId, null, "RULESET_CONFIGURED",
+                securityIdentity.getPrincipal().getName(), describeRuleset(dto));
         return data;
     }
 
@@ -2391,8 +2431,10 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("artifactId", artifactId);
 
-        storage.deleteArtifactContractRuleset(
-                new GroupId(groupId).getRawGroupIdWithNull(), artifactId);
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        storage.deleteArtifactContractRuleset(rawGroupId, artifactId);
+        contractAuditService.recordAction(rawGroupId, artifactId, null, "RULESET_DELETED",
+                securityIdentity.getPrincipal().getName(), null);
     }
 
     @Override
@@ -2428,6 +2470,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ContractRuleSetDto dto = toContractRuleSetDto(data);
         storage.setVersionContractRuleset(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId(), dto);
+        contractAuditService.recordAction(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
+                gav.getRawVersionId(), "RULESET_CONFIGURED", securityIdentity.getPrincipal().getName(),
+                describeRuleset(dto));
         return data;
     }
 
@@ -2446,6 +2491,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         storage.deleteVersionContractRuleset(
                 gav.getRawGroupIdWithNull(), gav.getRawArtifactId(), gav.getRawVersionId());
+        contractAuditService.recordAction(gav.getRawGroupIdWithNull(), gav.getRawArtifactId(),
+                gav.getRawVersionId(), "RULESET_DELETED", securityIdentity.getPrincipal().getName(), null);
+    }
+
+    private static String describeRuleset(ContractRuleSetDto dto) {
+        int domain = dto.getDomainRules() != null ? dto.getDomainRules().size() : 0;
+        int migration = dto.getMigrationRules() != null ? dto.getMigrationRules().size() : 0;
+        return domain + " domain rule(s), " + migration + " migration rule(s)";
     }
 
     @Override
@@ -2616,9 +2669,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;
+        OdcsContract previous = latestStoredContract(rawGroupId, contractId);
 
+        boolean createdArtifact = false;
+        String createdVersion;
         try {
-            storage.createArtifact(rawGroupId, contractId, ArtifactType.ODCS_CONTRACT,
+            createdVersion = storage.createArtifact(rawGroupId, contractId, ArtifactType.ODCS_CONTRACT,
                     EditableArtifactMetaDataDto.builder()
                             .name(contract.getInfo() != null ? contract.getInfo().getTitle() : contractId)
                             .description(
@@ -2630,27 +2686,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                             .content(ContentHandle.create(data))
                             .build(),
                     EditableVersionMetaDataDto.builder().build(),
-                    List.of(), false, false, null);
+                    List.of(), false, false, null).getRight().getVersion();
+            createdArtifact = true;
         } catch (ArtifactAlreadyExistsException e) {
-            storage.createArtifactVersion(rawGroupId, contractId, version,
-                    ArtifactType.ODCS_CONTRACT,
-                    ContentWrapperDto.builder()
-                            .contentType(ContentTypes.APPLICATION_YAML)
-                            .content(ContentHandle.create(data))
-                            .build(),
-                    EditableVersionMetaDataDto.builder().build(),
-                    List.of(), false, false, null);
+            createdVersion = createContractVersion(rawGroupId, contractId, version, data);
         }
 
-        OdcsProjectionResult projection;
-        try {
-            projection = projectOdcsContract(contract, contractId, rawGroupId);
-        } catch (Exception e) {
-            storage.deleteArtifact(rawGroupId, contractId);
-            throw new BadRequestException(
-                    "Contract created but projection failed — rolled back: "
-                            + e.getMessage());
-        }
+        OdcsProjectionResult projection = applyContract(contract, previous, contractId, rawGroupId,
+                createdArtifact, createdVersion);
         return toOdcsContractResult(contractId, contract, projection);
     }
 
@@ -2716,16 +2759,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
 
         String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;
-        storage.createArtifactVersion(rawGroupId, contractId, version,
-                ArtifactType.ODCS_CONTRACT,
-                ContentWrapperDto.builder()
-                        .contentType(ContentTypes.APPLICATION_YAML)
-                        .content(ContentHandle.create(data))
-                        .build(),
-                EditableVersionMetaDataDto.builder().build(),
-                List.of(), false, false, null);
+        OdcsContract previous = latestStoredContract(rawGroupId, contractId);
+        String createdVersion = createContractVersion(rawGroupId, contractId, version, data);
 
-        OdcsProjectionResult projection = projectOdcsContract(contract, contractId, rawGroupId);
+        OdcsProjectionResult projection = applyContract(contract, previous, contractId, rawGroupId,
+                false, createdVersion);
         return toOdcsContractResult(contractId, contract, projection);
     }
 
@@ -2737,7 +2775,143 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ParameterValidationUtils.requireParameter("groupId", groupId);
         ParameterValidationUtils.requireParameter("contractId", contractId);
 
-        storage.deleteArtifact(new GroupId(groupId).getRawGroupIdWithNull(), contractId);
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        // Remove the projection first, from every schema any version of the contract targeted:
+        // if that fails, the contract still exists and the delete can be retried.
+        Set<GA> targets = new LinkedHashSet<>();
+        for (String version : storage.getArtifactVersions(rawGroupId, contractId, Set.of())) {
+            OdcsContract stored = storedContract(rawGroupId, contractId, version);
+            if (stored != null) {
+                targets.addAll(projectionTargets(stored, rawGroupId));
+            }
+        }
+        removeProjection(contractId, targets);
+        storage.deleteArtifact(rawGroupId, contractId);
+    }
+
+    /**
+     * Projects a newly stored contract version, then removes the projection from the schemas the
+     * previous version targeted and this one does not. If the projection fails, the new version
+     * (or the new contract artifact) is deleted and the previous version is projected again, so
+     * the schemas do not keep a partial projection.
+     */
+    private OdcsProjectionResult applyContract(OdcsContract contract, OdcsContract previous,
+            String contractId, String rawGroupId, boolean createdArtifact, String createdVersion) {
+        Set<GA> targets = projectionTargets(contract, rawGroupId);
+        Set<GA> dropped = previous != null ? projectionTargets(previous, rawGroupId) : new LinkedHashSet<>();
+        dropped.removeAll(targets);
+        OdcsProjectionResult projection;
+        try {
+            projection = projectOdcsContract(contract, contractId, rawGroupId);
+            removeProjection(contractId, dropped);
+        } catch (RuntimeException e) {
+            log.warn("Projection of ODCS contract {} failed; rolling back", contractId, e);
+            if (createdArtifact) {
+                storage.deleteArtifact(rawGroupId, contractId);
+            } else {
+                storage.deleteArtifactVersion(rawGroupId, contractId, createdVersion);
+            }
+            restorePreviousProjection(previous, contractId, rawGroupId, targets);
+            throw new BadRequestException("The contract could not be projected and was not saved: "
+                    + e.getMessage());
+        }
+        String details = contractId + " " + (contract.getInfo() != null ? contract.getInfo().getVersion() : "");
+        for (GA target : targets) {
+            if (artifactExists(target)) {
+                contractAuditService.recordAction(target.getRawGroupIdWithNull(), target.getRawArtifactId(),
+                        null, "CONTRACT_PROJECTED", securityIdentity.getPrincipal().getName(), details.trim());
+            }
+        }
+        return projection;
+    }
+
+    private void restorePreviousProjection(OdcsContract previous, String contractId, String rawGroupId,
+            Set<GA> attempted) {
+        try {
+            Set<GA> stale = new LinkedHashSet<>(attempted);
+            if (previous != null) {
+                stale.removeAll(projectionTargets(previous, rawGroupId));
+                projectOdcsContract(previous, contractId, rawGroupId);
+            }
+            removeProjection(contractId, stale);
+        } catch (RuntimeException restoreError) {
+            log.error("Could not restore the projection of ODCS contract {}; re-submit the contract",
+                    contractId, restoreError);
+        }
+    }
+
+    /**
+     * Removes the contract's projection from the given schema artifacts, skipping those that no
+     * longer exist, and records it in each artifact's contract audit log.
+     */
+    private void removeProjection(String contractId, Set<GA> targets) {
+        for (GA target : targets) {
+            if (!artifactExists(target)) {
+                continue;
+            }
+            odcsProjectionEngine.remove(contractId, target.getRawGroupIdWithNull(), target.getRawArtifactId());
+            contractAuditService.recordAction(target.getRawGroupIdWithNull(), target.getRawArtifactId(), null,
+                    "CONTRACT_REMOVED", securityIdentity.getPrincipal().getName(), contractId);
+        }
+    }
+
+    private boolean artifactExists(GA ga) {
+        try {
+            storage.getArtifactMetaData(ga.getRawGroupIdWithNull(), ga.getRawArtifactId());
+            return true;
+        } catch (ArtifactNotFoundException e) {
+            return false;
+        }
+    }
+
+    /** The schema artifacts the contract's valid {@code schemas[].location} entries point at. */
+    private static Set<GA> projectionTargets(OdcsContract contract, String rawGroupId) {
+        Set<GA> targets = new LinkedHashSet<>();
+        if (contract.getSchemas() == null) {
+            return targets;
+        }
+        for (OdcsSchema schema : contract.getSchemas()) {
+            if (schema.getLocation() == null || schema.getLocation().isBlank()) {
+                continue;
+            }
+            String[] parsed = OdcsSchemaLocations.parse(schema.getLocation(), rawGroupId);
+            if (OdcsSchemaLocations.isValid(parsed)) {
+                targets.add(new GA(parsed[0], parsed[1]));
+            }
+        }
+        return targets;
+    }
+
+    private String createContractVersion(String rawGroupId, String contractId, String version, String data) {
+        return storage.createArtifactVersion(rawGroupId, contractId, version,
+                ArtifactType.ODCS_CONTRACT,
+                ContentWrapperDto.builder()
+                        .contentType(ContentTypes.APPLICATION_YAML)
+                        .content(ContentHandle.create(data))
+                        .build(),
+                EditableVersionMetaDataDto.builder().build(),
+                List.of(), false, false, null).getVersion();
+    }
+
+    /** The latest stored version of a contract, or {@code null} if the contract does not exist. */
+    private OdcsContract latestStoredContract(String rawGroupId, String contractId) {
+        List<String> versions;
+        try {
+            versions = storage.getArtifactVersions(rawGroupId, contractId, Set.of());
+        } catch (ArtifactNotFoundException e) {
+            return null;
+        }
+        return versions.isEmpty() ? null : storedContract(rawGroupId, contractId, versions.get(versions.size() - 1));
+    }
+
+    private OdcsContract storedContract(String rawGroupId, String contractId, String version) {
+        try {
+            return odcsParser.parse(
+                    storage.getArtifactVersionContent(rawGroupId, contractId, version).getContent().content());
+        } catch (OdcsParseException e) {
+            log.warn("Stored version {} of ODCS contract {} cannot be parsed", version, contractId, e);
+            return null;
+        }
     }
 
     private OdcsProjectionResult projectOdcsContract(OdcsContract contract,
@@ -2760,21 +2934,18 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 continue;
             }
 
-            try {
-                storage.getArtifactMetaData(parsed[0], parsed[1]);
-                OdcsProjectionResult r = odcsProjectionEngine.project(
-                        contract, contractId, parsed[0], parsed[1]);
-                combined.setRulesApplied(
-                        combined.getRulesApplied() + r.getRulesApplied());
-                combined.setLabelsApplied(
-                        combined.getLabelsApplied() + r.getLabelsApplied());
-                combined.setTagsApplied(
-                        combined.getTagsApplied() + r.getTagsApplied());
-                combined.getWarnings().addAll(r.getWarnings());
-            } catch (Exception e) {
+            if (!artifactExists(new GA(parsed[0], parsed[1]))) {
                 combined.addWarning("Schema artifact not found: " + parsed[0]
                         + "/" + parsed[1] + ". Projection skipped.");
+                continue;
             }
+            // Any other failure propagates, so that the caller rolls the contract back
+            OdcsProjectionResult r = odcsProjectionEngine.project(
+                    contract, contractId, parsed[0], parsed[1]);
+            combined.setRulesApplied(combined.getRulesApplied() + r.getRulesApplied());
+            combined.setLabelsApplied(combined.getLabelsApplied() + r.getLabelsApplied());
+            combined.setTagsApplied(combined.getTagsApplied() + r.getTagsApplied());
+            combined.getWarnings().addAll(r.getWarnings());
         }
         return combined;
     }
@@ -2845,8 +3016,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        PromotionStage previousStage = promotionService.currentStage(rawGroupId, artifactId, contractId);
         var result = promotionService.promote(rawGroupId, artifactId,
                 contractId, targetStage);
+        contractAuditService.recordAction(rawGroupId, artifactId, null, "PROMOTED",
+                securityIdentity.getPrincipal().getName(),
+                contractId + ": " + (previousStage != null ? previousStage.name() : "none") + " -> " + result.name());
         return Response.ok(Map.of("stage", result.name())).build();
     }
 
@@ -3037,5 +3212,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         compatibilityGroupService.setCompatibilityGroup(
                 rawGroupId, artifactId, contractId, compatGroup);
+        contractAuditService.recordAction(rawGroupId, artifactId, null, "COMPATIBILITY_GROUP_SET",
+                securityIdentity.getPrincipal().getName(), contractId + ": " + compatGroup);
     }
 }

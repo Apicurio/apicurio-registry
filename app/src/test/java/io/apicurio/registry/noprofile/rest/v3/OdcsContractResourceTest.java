@@ -101,19 +101,17 @@ public class OdcsContractResourceTest extends AbstractResourceTestBase {
                 .then()
                 .statusCode(200);
 
-        // The merge deletes the contract.{id}.id label, so the contract id has to be resolved
-        // before the merge. Otherwise the response body comes back empty.
         given()
                 .when()
                 .contentType(ContentTypes.APPLICATION_JSON)
                 .pathParam("groupId", GROUP)
                 .pathParam("artifactId", artifactId)
-                .body("{\"ownerTeam\": \"probe-team\", \"status\": \"DRAFT\"}")
+                .body("{\"ownerTeam\": \"probe-team\", \"status\": \"DEPRECATED\"}")
                 .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata")
                 .then()
                 .statusCode(200)
                 .body("ownerTeam", equalTo("probe-team"))
-                .body("status", equalTo("DRAFT"));
+                .body("status", equalTo("DEPRECATED"));
     }
 
     @Test

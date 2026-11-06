@@ -63,7 +63,15 @@ public interface RegistryClientFacade {
     Object getClient();
 
     /**
-     * Gets the merged contract ruleset (global + artifact scope) for the given artifact.
+     * Gets the global contract ruleset, which applies to every artifact.
+     * Returns null if there is none, or if contract rules are not supported by this facade implementation.
+     */
+    default io.apicurio.registry.rest.client.models.ContractRuleSet getGlobalContractRuleset() {
+        return null;
+    }
+
+    /**
+     * Gets the contract ruleset of the given artifact (artifact-level rules only).
      * Returns null if contract rules are not supported by this facade implementation.
      */
     default io.apicurio.registry.rest.client.models.ContractRuleSet getContractRuleset(

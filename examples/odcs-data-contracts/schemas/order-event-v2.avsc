@@ -4,7 +4,7 @@
   "namespace": "com.example.orders",
   "fields": [
     {"name": "orderId", "type": "string"},
-    {"name": "customerEmail", "type": "string"},
+    {"name": "customerEmail", "type": "string", "tags": ["PII"]},
     {"name": "totalAmount", "type": "double"},
     {"name": "currency", "type": "string", "default": "USD"}
   ]

@@ -18,7 +18,6 @@ import io.apicurio.registry.utils.IoUtil;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
-import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Set;
@@ -40,7 +39,6 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
     private final RegistryClient client;
     private final String baseUrl;
-    private static final HttpClient HTTP = HttpClient.newHttpClient();
     private final String clientId;
 
     public RegistryClientFacadeImpl(RegistryClient client) {
@@ -190,6 +188,16 @@ public class RegistryClientFacadeImpl implements RegistryClientFacade {
 
         VersionMetaData vmd = client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions().byVersionExpression(version).get();
         return RegistryVersionCoordinates.create(vmd.getGlobalId(), vmd.getContentId(), vmd.getGroupId(), vmd.getArtifactId(), vmd.getVersion());
+    }
+
+    @Override
+    public io.apicurio.registry.rest.client.models.ContractRuleSet getGlobalContractRuleset() {
+        try {
+            return client.admin().contracts().ruleset().get();
+        } catch (Exception e) {
+            LOG.warn("Failed to fetch the global contract ruleset: {}", e.getMessage());
+            return null;
+        }
     }
 
     @Override

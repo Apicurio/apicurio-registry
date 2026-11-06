@@ -207,7 +207,7 @@
     <icu4j.version>78.3</icu4j.version>
     <protobuf.version>4.36.2</protobuf.version>
     <xmlsec.version>4.0.4</xmlsec.version>
-    <protobuf.googleapi.types.version>2.80.0</protobuf.googleapi.types.version>
+    <protobuf.googleapi.types.version>2.81.0</protobuf.googleapi.types.version>
     <wsdl4j.version>1.6.3</wsdl4j.version>
     <google.truth.extension.version>1.4.5</google.truth.extension.version>
 
@@ -283,7 +283,7 @@
     <archunit.version>1.5.1</archunit.version>
     <!-- Only the concurrency-tests profile in app/pom.xml reads this. It stays out of dependencyManagement
          because the license scan reads the profile-less model, where Byteman (LGPL) must not appear. -->
-    <byteman.version>4.0.27</byteman.version>
+    <byteman.version>4.0.28</byteman.version>
     <assertj.core.version>3.27.7</assertj.core.version>
     <semver4j.version>6.0.0</semver4j.version>
     <slf4j.version>2.0.17</slf4j.version>

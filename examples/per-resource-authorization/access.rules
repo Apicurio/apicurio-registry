@@ -2,7 +2,7 @@
 // admin has the sr-admin role: RBAC admins bypass these rules.
 from io.apicurio.authz import Artifact, Group, Role;
 
-// developer owns team-a, but not its secret schema
+// developer can write team-a; demo.sh seeds the resources as admin so owner bypass does not mask the deny
 deny User with name = "developer" to * Artifact with name = "team-a/secret-schema";
 allow User with name = "developer" to WRITE Group with name = "team-a";
 allow User with name = "developer" to WRITE Artifact with name like "team-a/*";

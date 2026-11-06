@@ -67,6 +67,7 @@ export interface FeaturesConfig {
     settings?: boolean;
     agents?: boolean;
     searchIndex?: boolean;
+    mcpImport?: boolean;
     urlImportMaxContentLength?: number;
     alerts?: Alerts;
 }
@@ -241,6 +242,7 @@ export interface ConfigService {
     featureDraftMutability(): boolean;
     featureAgents(): boolean;
     featureSearchIndex(): boolean;
+    featureMcpImport(): boolean;
     featureUrlImportMaxContentLength(): number;
     authType(): string;
     authRbacEnabled(): boolean;
@@ -367,6 +369,10 @@ export class ConfigServiceImpl implements ConfigService {
 
     public featureAgents(): boolean {
         return this.features().agents || false;
+    }
+
+    public featureMcpImport(): boolean {
+        return this.features().mcpImport || false;
     }
 
     public featureSearchIndex(): boolean {

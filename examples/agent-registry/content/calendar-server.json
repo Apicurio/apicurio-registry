@@ -1,0 +1,6 @@
+{
+  "name": "io.apicur.demo/calendar",
+  "description": "Demo calendar MCP server, published through the MCP Registry API. Not a running service.",
+  "version": "1.0.0",
+  "remotes": [{ "type": "streamable-http", "url": "https://calendar.example.com/mcp" }]
+}

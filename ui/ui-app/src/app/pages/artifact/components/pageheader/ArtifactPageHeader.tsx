@@ -12,6 +12,7 @@ import { ArtifactMetaData } from "@sdk/lib/generated-client/models";
 export type ArtifactPageHeaderProps = {
     artifact: ArtifactMetaData;
     onDeleteArtifact: () => void;
+    onImportMcpTools?: () => void;
 };
 
 /**
@@ -34,6 +35,14 @@ export const ArtifactPageHeader: FunctionComponent<ArtifactPageHeaderProps> = (p
             <FlexItem align={{ default: "alignRight" }}>
                 <IfAuth isDeveloper={true} owner={props.artifact.owner}>
                     <IfFeature feature="readOnly" isNot={true}>
+                        <If condition={props.artifact.artifactType === "MCP_SERVER" && props.onImportMcpTools !== undefined}>
+                            <IfFeature feature="mcpImport" is={true}>
+                                <Button id="import-mcp-tools-button" variant="secondary"
+                                    style={{ marginRight: "8px" }}
+                                    data-testid="header-btn-import-mcp-tools"
+                                    onClick={props.onImportMcpTools}>Import tools</Button>
+                            </IfFeature>
+                        </If>
                         <IfFeature feature="deleteArtifact" is={true}>
                             <Button id="delete-artifact-button" variant="danger"
                                 data-testid="header-btn-delete" onClick={props.onDeleteArtifact}>Delete artifact</Button>

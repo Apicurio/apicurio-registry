@@ -1,0 +1,11 @@
+{
+  "templateId": "city-briefing",
+  "name": "City briefing",
+  "description": "Asks a model for a short briefing about a city visit",
+  "template": "Write a {{style}} briefing for a visit to {{city}}. Mention the weather: {{weather}}.",
+  "variables": {
+    "city": { "type": "string", "required": true },
+    "weather": { "type": "string", "required": true },
+    "style": { "type": "string", "default": "short" }
+  }
+}

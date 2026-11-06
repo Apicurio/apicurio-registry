@@ -25,4 +25,9 @@ public interface McpToolImportHandler {
      * @return the result for the server and for each tool
      */
     McpToolImportResult importTools(String groupId, String artifactId, McpToolImportRequest request);
+
+    /**
+     * @return whether importing is enabled on this server, so the UI can offer it
+     */
+    boolean isEnabled();
 }

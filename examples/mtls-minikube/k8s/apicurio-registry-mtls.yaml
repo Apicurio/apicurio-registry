@@ -1,5 +1,12 @@
-# ApicurioRegistry3 Custom Resource with mTLS configuration
-# This example configures the registry to require client certificates (mutual TLS)
+# ApicurioRegistry3 Custom Resource with mTLS enforced by a sidecar proxy.
+#
+# Why a sidecar: in the released Apicurio Registry images, quarkus.http.ssl.client-auth is a
+# build-time-fixed Quarkus property (fixed to NONE). Setting QUARKUS_HTTP_SSL_CLIENT_AUTH at
+# runtime is ignored, so the registry container itself cannot require client certificates.
+#
+# Instead, an nginx sidecar in the same pod terminates TLS on port 8443 and rejects any
+# request without a client certificate signed by the trusted CA. The registry listens on
+# plain HTTP bound to 127.0.0.1 only, so it is reachable exclusively through the sidecar.
 apiVersion: registry.apicur.io/v1
 kind: ApicurioRegistry3
 metadata:
@@ -7,39 +14,81 @@ metadata:
   namespace: apicurio-mtls
 spec:
   app:
+    # The client demo deletes the artifact it creates.
+    features:
+      resourceDeleteEnabled: true
+    # Setting app.tls makes the operator expose Service port 443 -> container port 8443 and
+    # restrict the NetworkPolicy to 8443 (+ 9000 management). No keystore is set here: the
+    # sidecar owns port 8443 and the server certificate.
+    tls:
+      insecureRequests: disabled
     env:
-      # Enable mTLS - require client certificates
-      - name: QUARKUS_HTTP_SSL_CLIENT_AUTH
-        value: "required"
-      # Server keystore configuration
-      - name: QUARKUS_HTTP_SSL_CERTIFICATE_KEY_STORE_FILE
-        value: "/deployments/certs/server-keystore.p12"
-      - name: QUARKUS_HTTP_SSL_CERTIFICATE_KEY_STORE_PASSWORD
-        valueFrom:
-          secretKeyRef:
-            name: registry-mtls-certs
-            key: keystore-password
-      # Server truststore configuration (for validating client certificates)
-      - name: QUARKUS_HTTP_SSL_CERTIFICATE_TRUST_STORE_FILE
-        value: "/deployments/certs/server-truststore.p12"
-      - name: QUARKUS_HTTP_SSL_CERTIFICATE_TRUST_STORE_PASSWORD
-        valueFrom:
-          secretKeyRef:
-            name: registry-mtls-certs
-            key: truststore-password
-      # Force HTTPS only
+      # Bind the registry HTTP listener to the pod loopback interface only.
+      - name: QUARKUS_HTTP_HOST
+        value: "127.0.0.1"
+      # Overrides the operator default ("disabled" when insecureRequests is disabled):
+      # plain HTTP is only used on loopback between the sidecar and the registry.
       - name: QUARKUS_HTTP_INSECURE_REQUESTS
-        value: "disabled"
-    # Configure pod to mount certificate secrets
+        value: "enabled"
     podTemplateSpec:
       spec:
         containers:
-          - name: apicurio-registry-app
+          - name: mtls-proxy
+            image: docker.io/nginxinc/nginx-unprivileged:stable-alpine
+            ports:
+              - name: https
+                containerPort: 8443
+                protocol: TCP
+            readinessProbe:
+              tcpSocket:
+                port: 8443
             volumeMounts:
-              - name: certs
-                mountPath: /deployments/certs
+              - name: mtls-certs
+                mountPath: /etc/mtls
                 readOnly: true
+              - name: mtls-proxy-config
+                mountPath: /etc/nginx/conf.d
+                readOnly: true
+            resources:
+              requests:
+                cpu: 50m
+                memory: 32Mi
+              limits:
+                cpu: 500m
+                memory: 128Mi
         volumes:
-          - name: certs
+          - name: mtls-certs
             secret:
               secretName: registry-mtls-certs
+          - name: mtls-proxy-config
+            configMap:
+              name: registry-mtls-proxy-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry-mtls-proxy-config
+  namespace: apicurio-mtls
+data:
+  default.conf: |
+    server {
+        listen 8443 ssl;
+
+        ssl_certificate         /etc/mtls/server-cert.pem;
+        ssl_certificate_key     /etc/mtls/server-key.pem;
+        ssl_protocols           TLSv1.2 TLSv1.3;
+
+        # Require a client certificate signed by this CA (mutual TLS).
+        ssl_client_certificate  /etc/mtls/ca-cert.pem;
+        ssl_verify_client       on;
+
+        client_max_body_size    64m;
+
+        location / {
+            proxy_pass http://127.0.0.1:8080;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-Proto https;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-SSL-Client-DN $ssl_client_s_dn;
+        }
+    }

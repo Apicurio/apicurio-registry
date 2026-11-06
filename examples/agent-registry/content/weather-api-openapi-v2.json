@@ -1,0 +1,41 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Weather API",
+    "description": "REST weather service. The x-agent-card extension makes Registry publish an Agent Card for it.",
+    "version": "2.0.0",
+    "x-agent-card": {
+      "capabilities": {},
+      "skills": [
+        {
+          "id": "current-weather",
+          "name": "Current weather",
+          "description": "Current weather for a city",
+          "tags": [
+            "weather"
+          ]
+        },
+        {
+          "id": "forecast",
+          "name": "Forecast",
+          "description": "Seven-day forecast for a city",
+          "tags": [
+            "weather"
+          ]
+        }
+      ],
+      "defaultInputModes": [
+        "text"
+      ],
+      "defaultOutputModes": [
+        "text"
+      ]
+    }
+  },
+  "servers": [
+    {
+      "url": "https://weather-api.example.com"
+    }
+  ],
+  "paths": {}
+}

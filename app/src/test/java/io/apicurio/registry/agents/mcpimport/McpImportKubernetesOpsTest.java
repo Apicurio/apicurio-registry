@@ -2,6 +2,7 @@ package io.apicurio.registry.agents.mcpimport;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
@@ -29,5 +30,12 @@ class McpImportKubernetesOpsTest {
                     .body("title", equalTo("Unsupported write operation. Storage is in read-only mode."));
             assertEquals(0, mcp.requests.get());
         }
+    }
+
+    /** Import is enabled in this profile, but read-only storage could not write the result. */
+    @Test
+    void uiConfigDoesNotOfferTheImportOnReadOnlyStorage() {
+        given().get("/apis/registry/v3/system/uiConfig").then().statusCode(200)
+                .body("features.mcpImport", equalTo(false));
     }
 }

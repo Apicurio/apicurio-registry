@@ -29,8 +29,9 @@ public final class SourceIndex {
 
     /**
      * Builds an index from the given sources and existing artifacts. Sources whose type cannot be
-     * detected are skipped. When two sources declare the same Avro full name or JSON Schema {@code $id},
-     * the first one (in source-set order) wins and a warning is recorded.
+     * detected are skipped. Only absolute JSON Schema {@code $id} values are indexed by ID; relative ones
+     * are resolved by location instead. When two sources declare the same Avro full name or absolute JSON
+     * Schema {@code $id}, the first one (in source-set order) wins and a warning is recorded.
      *
      * @param sources the local schema sources
      * @param existing artifacts already present in the registry, keyed by reference name
@@ -62,7 +63,7 @@ public final class SourceIndex {
                             + source.location() + "; using " + first.source().location());
                 }
             }
-            if (indexed.jsonSchemaId() != null) {
+            if (indexed.jsonSchemaId() != null && isAbsoluteUri(indexed.jsonSchemaId())) {
                 IndexedSource first = index.byJsonId.putIfAbsent(indexed.jsonSchemaId(), indexed);
                 if (first != null) {
                     index.warnings.add("Duplicate JSON Schema $id '" + indexed.jsonSchemaId() + "' in "
@@ -162,6 +163,9 @@ public final class SourceIndex {
             JsonNode name = root.get("name");
             if (name == null || !name.isTextual() || name.asText().isBlank()) {
                 return null;
+            }
+            if (name.asText().contains(".")) {
+                return name.asText();
             }
             JsonNode namespace = root.get("namespace");
             if (namespace == null || !namespace.isTextual() || namespace.asText().isBlank()) {

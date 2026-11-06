@@ -78,4 +78,38 @@ class SourceIndexTest {
                 "{\"type\":\"record\",\"name\":\"A\",\"fields\":[]}", ContentTypes.APPLICATION_JSON);
         assertEquals(List.of(), SourceIndex.build(SchemaSourceSet.of(s), List.of(), detector).warnings());
     }
+
+    @Test
+    void relativeJsonSchemaIdsAreResolvedByLocationOnly() {
+        String common = "{\"$schema\":\"s\",\"$id\":\"common.json\",\"type\":\"string\"}";
+        String root = "{\"$schema\":\"s\",\"$ref\":\"common.json\"}";
+        SchemaSource oneCommon = InMemorySchemaSource.of("one/common.json", common, ContentTypes.APPLICATION_JSON);
+        SchemaSource twoCommon = InMemorySchemaSource.of("two/common.json", common, ContentTypes.APPLICATION_JSON);
+        SchemaSource oneRoot = InMemorySchemaSource.of("one/root.json", root, ContentTypes.APPLICATION_JSON);
+        SchemaSource twoRoot = InMemorySchemaSource.of("two/root.json", root, ContentTypes.APPLICATION_JSON);
+        SourceIndex index = SourceIndex.build(SchemaSourceSet.of(oneCommon, twoCommon, oneRoot, twoRoot), List.of(),
+                detector);
+
+        assertEquals(List.of(), index.warnings());
+        assertEquals("two/common.json",
+                index.lookup("common.json", twoRoot).orElseThrow().source().source().location());
+        assertEquals("one/common.json",
+                index.lookup("common.json", oneRoot).orElseThrow().source().source().location());
+    }
+
+    @Test
+    void dottedAvroNameIgnoresNamespace() {
+        SchemaSource s = InMemorySchemaSource.of("Money.avsc",
+                "{\"type\":\"record\",\"name\":\"com.example.Money\",\"namespace\":\"ignored\","
+                        + "\"fields\":[]}", ContentTypes.APPLICATION_JSON);
+        SchemaSource other = InMemorySchemaSource.of("Other.avsc",
+                "{\"type\":\"record\",\"name\":\"Other\",\"fields\":[]}", ContentTypes.APPLICATION_JSON);
+        SourceIndex index = SourceIndex.build(SchemaSourceSet.of(s, other), List.of(), detector);
+        IndexedSource indexed = index.bySource(s).orElseThrow();
+
+        assertEquals("com.example.Money", indexed.avroFullName());
+        assertEquals("Money.avsc", index.lookup("com.example.Money", other).orElseThrow().source().source().location());
+        assertEquals(new ArtifactCoordinates("com.example", "Money"), DefaultNamingStrategy.INSTANCE.name(
+                new NamingContext(indexed, "com.example.Money", "AVRO", new ArtifactCoordinates("g", "root"))));
+    }
 }

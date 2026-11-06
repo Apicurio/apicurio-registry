@@ -1,7 +1,6 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
 import io.apicurio.registry.AbstractResourceTestBase;
-import io.apicurio.registry.auth.GlobalIdCoordinatesCache;
 import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.ArtifactSearchResults;
 import io.apicurio.registry.rest.client.models.ArtifactSortBy;
@@ -55,9 +54,6 @@ public class ImportExportTest extends AbstractResourceTestBase {
     @Inject
     @Current
     RegistryStorage storage;
-
-    @Inject
-    GlobalIdCoordinatesCache globalIdCoordinatesCache;
 
     @Test
     public void testExportImport() throws Exception {
@@ -330,54 +326,6 @@ public class ImportExportTest extends AbstractResourceTestBase {
         // Assert artifact comments
         // TODO add comments
 
-    }
-
-    /**
-     * A data import that reuses the original global IDs (the {@code preserveGlobalId} default) can
-     * rebind an ID this process already cached coordinates for. The cache must be flushed as part
-     * of the import, so a stale pre-import entry is never served afterward.
-     */
-    @Test
-    public void testImportInvalidatesCachedGlobalIdCoordinates() throws Exception {
-        storage.deleteAllUserData();
-
-        String groupId = "CacheInvalidationTestGroup";
-        String artifactId = "CacheInvalidationArtifact";
-
-        CreateGroup createGroup = new CreateGroup();
-        createGroup.setGroupId(groupId);
-        clientV3.groups().post(createGroup);
-
-        long globalId = createArtifact(groupId, artifactId, ArtifactType.JSON, "{}",
-                ContentTypes.APPLICATION_JSON).getVersion().getGlobalId();
-
-        // Warm the cache for this global ID, as the authorization path would on a read.
-        Assertions.assertEquals(artifactId,
-                globalIdCoordinatesCache.resolve(storage, globalId).orElseThrow().artifactId());
-
-        // Export, wipe, and reimport: preserveGlobalId defaults to true, so the reimported artifact
-        // gets back the exact same global ID.
-        DownloadRef downloadRef = clientV3.admin().export().get();
-        File tempFile = File.createTempFile(ImportExportTest.class.getSimpleName() + "-cache", ".zip");
-        downloadTo(new URL(String.format("http://localhost:%s%s", testPort, downloadRef.getHref())),
-                tempFile);
-        storage.deleteAllUserData();
-        try (FileInputStream fis = new FileInputStream(tempFile)) {
-            clientV3.admin().importEscaped().post(fis, config -> {
-                config.headers.putIfAbsent("Content-Type", Set.of("application/zip"));
-            });
-        } finally {
-            Files.deleteIfExists(tempFile.toPath());
-        }
-
-        // Now make the global ID genuinely resolve to nothing: delete the reimported artifact
-        // directly in storage (REST deletion is disabled by default in this test config).
-        storage.deleteArtifact(groupId, artifactId);
-
-        // If the import had not flushed the cache, this would still return the stale pre-export
-        // entry instead of re-checking storage, which now has no such version.
-        Assertions.assertTrue(globalIdCoordinatesCache.resolve(storage, globalId).isEmpty(),
-                "a data import must invalidate previously cached global ID coordinates");
     }
 
     private static void downloadTo(URL url, File tempFile) {

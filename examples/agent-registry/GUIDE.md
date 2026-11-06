@@ -522,10 +522,6 @@ Visibility is a discovery setting, not access control: a user who may read a gro
 card in it directly. Access rules are what restrict access. Edit `authz/access.rules`, for example to
 let `developer2` read `team-b`, and `agents developer2` changes within seconds.
 
-> **Presenter note.** The secured Registry sets `apicurio.auth.admin-override.enabled` so that
-> `admin` sees private agents, as the docs describe. Without it, only the owner does
-> ([#10951](https://github.com/Apicurio/apicurio-registry/issues/10951)).
-
 ## Part 11: the Registry MCP server, for AI assistants
 
 The Registry MCP server gives AI assistants tools to work with the Registry: search artifacts,

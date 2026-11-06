@@ -237,10 +237,8 @@ class AccessRulesTest {
                 "from io.apicurio.authz import Artifact, Group;\n"
                         + "allow Group with name = \"u\" to READ Artifact with name = \"x\";\n" + end,
                 "from io.apicurio.authz import Artifact, Role;\n"
-                        + "allow User with name = \"u\" to READ Role with name = \"x\";\n" + end,
-                // The grammar lexes a block comment as a regex literal, so it is a syntax error
-                "/* comment */\n" + header + end)) {
-            assertThrows(IllegalArgumentException.class, () -> AccessRules.parse(invalid), invalid);
+                        + "allow User with name = \"u\" to READ Role with name = \"x\";\n" + end)) {
+            assertThrows(IllegalArgumentException.class, () -> AccessRulesAuthorizer.parse(invalid), invalid);
             RuntimeException theirs = assertThrows(RuntimeException.class, () -> kroxyliciousAuthorizer(invalid),
                     invalid);
             assertFalse(theirs instanceof NullPointerException, invalid);
@@ -262,7 +260,7 @@ class AccessRulesTest {
                 rule,
                 "this is not a rule;\n")) {
             String file = header + rule + "otherwise deny;\n" + trailing;
-            IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> AccessRules.parse(file),
+            IllegalArgumentException e = assertThrows(IllegalArgumentException.class, () -> AccessRulesAuthorizer.parse(file),
                     file);
             assertTrue(e.getMessage().contains("4:0: unexpected"), e.getMessage());
             assertTrue(e.getMessage().contains("after 'otherwise deny;'"), e.getMessage());
@@ -273,7 +271,7 @@ class AccessRulesTest {
             assertTrue(allowed(theirs, r, Artifact.READ, "team-a/secret"), file);
         }
         // Comments and blank lines after it are fine
-        AccessRules.parse(header + rule + "otherwise deny;\n\n// the end\n");
+        AccessRulesAuthorizer.parse(header + rule + "otherwise deny;\n\n// the end\n");
     }
 
     /** The valid neighbours of the invalid files above are accepted by both. */
@@ -292,9 +290,10 @@ class AccessRulesTest {
                 header + "allow Role with name like \"r*\" to READ Artifact with name like \"a*\";\n" + end,
                 "from io.apicurio.authz import Artifact as A, Role as R;\n"
                         + "allow R with name = \"r\" to READ A with name = \"x\";\n" + end,
+                "/* a block comment */\n" + header + end,
                 "// a comment\n" + header
                         + "allow User with name * to READ Artifact with name *;\n" + end)) {
-            assertDoesNotThrow(() -> AccessRules.parse(valid), valid);
+            assertDoesNotThrow(() -> AccessRulesAuthorizer.parse(valid), valid);
             assertDoesNotThrow(() -> kroxyliciousAuthorizer(valid), valid);
         }
     }
@@ -308,7 +307,7 @@ class AccessRulesTest {
         assertEquals(Set.of("team-a/"), bob.allowPrefix());
         assertEquals(Set.of("team-a/secret"), bob.denyExact());
         // ADMIN implies READ, so the ADMIN pattern is part of the read scope
-        assertEquals(Set.of("team-(b|c)/[a-z]+", "dot.only"), bob.allowPatterns());
+        assertEquals(Set.of("team-(b|c)/[a-z]+", "dot\\.only"), bob.allowPatterns());
         assertTrue(bob.hasPatterns());
 
         // The deny of WRITE on every group also denies READ, which WRITE implies
@@ -322,19 +321,22 @@ class AccessRulesTest {
     }
 
     /**
-     * The rules parser removes every backslash in a regex literal, so {@code /dot\.only/} is the
-     * regex {@code dot.only}. Pinned so a change upstream is noticed: search must keep reading
-     * patterns exactly as point access does.
+     * A backslash in a regex literal escapes for the regex, so {@code /dot\.only/} matches only a
+     * literal dot. Search reads patterns exactly as point access does.
      */
     @Test
-    void regexEscapesAreReadAsTheRulesParserReadsThem() throws Exception {
+    void regexEscapesAreKept() throws Exception {
         AccessRulesAuthorizer rules = load();
         Subject bob = subject(new User("bob"));
         ResourceScope scope = scope(rules, bob, Artifact.READ);
-        for (String name : List.of("dot.only", "dotxonly")) {
-            assertTrue(scope.matches(name), name);
-            assertEquals(Decision.ALLOW, rules.authorize(bob, List.of(new Action(Artifact.READ, name)))
-                    .toCompletableFuture().join().decision(Artifact.READ, name), name);
-        }
+        assertTrue(scope.matches("dot.only"));
+        assertEquals(Decision.ALLOW, decision(rules, bob, "dot.only"));
+        assertFalse(scope.matches("dotxonly"));
+        assertEquals(Decision.DENY, decision(rules, bob, "dotxonly"));
+    }
+
+    private static Decision decision(AccessRulesAuthorizer rules, Subject subject, String name) {
+        return rules.authorize(subject, List.of(new Action(Artifact.READ, name))).toCompletableFuture().join()
+                .decision(Artifact.READ, name);
     }
 }

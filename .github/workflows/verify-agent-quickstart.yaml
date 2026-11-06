@@ -51,6 +51,7 @@ jobs:
         run: docker compose run --rm seed
 
       - name: Seed again (must change nothing)
+        shell: bash -eo pipefail {0}
         run: |
           docker compose run --rm seed | tee seed-rerun.log
           if grep -q '^created' seed-rerun.log; then echo "::error::the second seed run created artifacts"; exit 1; fi

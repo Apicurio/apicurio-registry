@@ -38,7 +38,8 @@ services:
       APICURIO_UI_FEATURES_AGENTS_ENABLED: "true"
       QUARKUS_HTTP_CORS_ORIGINS: http://localhost:8888
     ports:
-      - "8080:8080"
+      # Bound to localhost only: nothing in this stack is authenticated.
+      - "127.0.0.1:8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -53,7 +54,7 @@ services:
     environment:
       REGISTRY_API_URL: http://localhost:8080/apis/registry/v3
     ports:
-      - "8888:8080"
+      - "127.0.0.1:8888:8080"
     depends_on:
       apicurio-registry:
         condition: service_healthy

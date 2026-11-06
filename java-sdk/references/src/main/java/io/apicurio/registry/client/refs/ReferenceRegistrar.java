@@ -89,7 +89,7 @@ public final class ReferenceRegistrar {
     public RegistrationResult execute(RegistrationPlan plan) {
         plan.warnings().forEach(listener::onWarning);
         Map<PlannedArtifact, VersionMetaData> registered = new LinkedHashMap<>();
-        Map<String, VersionMetaData> latestCache = new HashMap<>();
+        Map<LatestKey, VersionMetaData> latestCache = new HashMap<>();
         for (PlannedArtifact artifact : plan.artifacts()) {
             List<ArtifactReference> references = new ArrayList<>();
             for (PlannedReference ref : artifact.references()) {
@@ -103,7 +103,7 @@ public final class ReferenceRegistrar {
     }
 
     private ArtifactReference toReference(PlannedReference ref, Map<PlannedArtifact, VersionMetaData> registered,
-            Map<String, VersionMetaData> latestCache) {
+            Map<LatestKey, VersionMetaData> latestCache) {
         ArtifactReference out = new ArtifactReference();
         out.setName(ref.name());
         if (ref.target() instanceof PlannedArtifact target) {
@@ -119,7 +119,7 @@ public final class ReferenceRegistrar {
             String version = existing.version();
             if (version == null || LATEST.equals(version.toLowerCase(Locale.ROOT))) {
                 String groupId = group(existing.groupId());
-                version = latestCache.computeIfAbsent(groupId + "\u0000" + existing.artifactId(),
+                version = latestCache.computeIfAbsent(new LatestKey(groupId, existing.artifactId()),
                         k -> client.groups().byGroupId(groupId).artifacts().byArtifactId(existing.artifactId())
                                 .versions().byVersionExpression("branch=latest").get())
                         .getVersion();
@@ -174,6 +174,9 @@ public final class ReferenceRegistrar {
             }
         }
         return raw;
+    }
+
+    private record LatestKey(String groupId, String artifactId) {
     }
 
     private static String group(String groupId) {

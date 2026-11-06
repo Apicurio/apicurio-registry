@@ -19,6 +19,7 @@ import io.apicurio.registry.content.refs.resolve.SchemaSourceSet;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -201,5 +202,60 @@ class ReferenceRegistrarTest {
 
         assertEquals("{\"type\":\"record\",\"name\":\"Common\",\"namespace\":\"c\",\"fields\":[]}",
                 body(posts().get(0)).at("/firstVersion/content/content").asText());
+    }
+
+    private JsonNode registerApiRoot(String location, String content, String contentType, String artifactType,
+            String explicitVersion) throws Exception {
+        server.stubFor(post(urlPathEqualTo("/apis/registry/v3/groups/g/artifacts"))
+                .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "application/json")
+                        .withBody("{\"version\":{\"groupId\":\"g\",\"artifactId\":\"R\",\"version\":\"1\"}}")));
+        RegistrationPlan plan = ReferenceResolver.plan(
+                List.of(new RootArtifact(location, "g", "R", null, null, explicitVersion, null)),
+                SchemaSourceSet.of(InMemorySchemaSource.of(location, content, contentType, artifactType)),
+                PlanOptions.builder().build());
+
+        ReferenceRegistrar.builder(client).versionStrategy(VersionStrategy.apiInfoVersion()).build().execute(plan);
+
+        List<LoggedRequest> posts = posts();
+        assertEquals(1, posts.size());
+        return body(posts.get(0)).get("firstVersion");
+    }
+
+    private static String openApiYaml(String version) {
+        return "openapi: 3.0.3\ninfo:\n  title: T\n  version: \"" + version + "\"\npaths: {}\n";
+    }
+
+    @Test
+    void apiInfoVersionUsesInfoVersionFromYaml() throws Exception {
+        JsonNode firstVersion = registerApiRoot("api.yaml", openApiYaml("2.0"), ContentTypes.APPLICATION_YAML,
+                ArtifactType.OPENAPI, null);
+
+        assertEquals("2.0", firstVersion.get("version").asText());
+        assertFalse(firstVersion.path("isDraft").asBoolean(false));
+    }
+
+    @Test
+    void apiInfoVersionSnapshotBecomesDraft() throws Exception {
+        JsonNode firstVersion = registerApiRoot("api.yaml", openApiYaml("3.0-SNAPSHOT"),
+                ContentTypes.APPLICATION_YAML, ArtifactType.OPENAPI, null);
+
+        assertEquals("3.0", firstVersion.get("version").asText());
+        assertTrue(firstVersion.get("isDraft").asBoolean());
+    }
+
+    @Test
+    void apiInfoVersionExplicitRootVersionWins() throws Exception {
+        JsonNode firstVersion = registerApiRoot("api.yaml", openApiYaml("2.0"), ContentTypes.APPLICATION_YAML,
+                ArtifactType.OPENAPI, "9");
+
+        assertEquals("9", firstVersion.get("version").asText());
+    }
+
+    @Test
+    void apiInfoVersionIgnoresNonApiArtifacts() throws Exception {
+        JsonNode firstVersion = registerApiRoot("R.avsc", REC.formatted("R", "r", ""),
+                ContentTypes.APPLICATION_JSON, ArtifactType.AVRO, null);
+
+        assertTrue(firstVersion.path("version").isMissingNode() || firstVersion.get("version").isNull());
     }
 }

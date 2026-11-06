@@ -42,28 +42,31 @@ queryable scope consistent with that engine's decisions.
 ## Decision
 
 1. Use the **Kroxylicious `Authorizer` API** for decisions about operations on named resources.
-2. Read **Kroxylicious ACL rules**, but evaluate the parsed rules in Apicurio's `AccessRules`.
+2. Read and evaluate **Kroxylicious ACL rules** with the Kroxylicious `AclAuthorizer`.
 3. Publish **`ResourceScopeProvider`** and its TCK as a companion contract for query pre-filtering.
 4. Keep identity integration, RBAC, OBAC, owner/admin bypasses, resource resolution, and audit/metrics
    in Registry. An ACL allow is not, by itself, permission to execute an endpoint.
 5. Push supported scopes into storage queries before pagination. When a scope cannot be translated,
    fail closed rather than discard its denied selectors.
 
-The root [POM](../pom.xml) currently pins Kroxylicious **0.25.1**. The
+The root [POM](../pom.xml) pins the Kroxylicious version. The
 [proposal](https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md) describes
-the shared direction; the pinned parser and Registry tests establish the supported behavior.
+the shared direction; the pinned authorizer and Registry tests establish the supported behavior.
 
-### Why Registry has its own evaluator
+### Evaluating the rules
 
-[AccessRules](../authz/src/main/java/io/apicurio/authz/AccessRules.java) uses Kroxylicious's
-`AclRulesLexer`/`AclRulesParser`, validates imported types and operations, and creates both decisions
-and scopes from one parsed rule set. It does not delegate production decisions to `AclAuthorizer`.
+[AccessRulesAuthorizer](../authz/src/main/java/io/apicurio/authz/AccessRulesAuthorizer.java)
+parses the file with `AclAuthorizerService.parse(rules, classLoader)`, resolving imported types in
+Registry's class loader (Quarkus dev and test modes use their own), and delegates decisions to the
+resulting `AclAuthorizer`. Search scopes come from `AclAuthorizer.resourceSelectors`, so decisions
+and scopes come from the same parsed rules. Registry adds two stricter checks: a file that refers to
+resource types Registry does not enforce is rejected, and so is any content after
+`otherwise deny;`, which the upstream parser ignores.
 
-The implementation records two reasons for this choice: class resolution in
-`AclAuthorizerService` conflicts with Quarkus test/dev class loaders, and upstream 0.25.1 has
-prefix-matching defects. `AccessRulesTest` compares compatible behavior and tests Registry's
-regressions. Upgrading the dependency does not automatically remove the custom evaluator; a switch
-requires checking class loading, matching, operation implication, and scope conformance again.
+An earlier version evaluated the parsed rules in Registry's own `AccessRules`, because the
+Kroxylicious release then pinned lacked the class-loader entry point, the selectors API and several
+matching fixes. `AccessRulesTest` and `AccessRulesConformanceTest` pin the behavior Registry relies
+on, so a Kroxylicious upgrade that changes it is noticed.
 
 ## Access model
 
@@ -542,7 +545,7 @@ Paths below are repository-relative; within each directory the listed names are 
 |---|---|---|
 | Shared contract | [scope-api](../scope-api/src/main/java/io/apicurio/scope/) | `ResourceScopeProvider`, sealed `ResourceScope`; companion to Kroxylicious `Authorizer` |
 | Conformance | [scope-api-tck](../scope-api-tck/) | Provider/decision equivalence tests |
-| Rules engine | [authz](../authz/src/main/java/io/apicurio/authz/) | `AccessRules`, `AccessRulesAuthorizer`, `Artifact`, `Group`, `Role` |
+| Rules engine | [authz](../authz/src/main/java/io/apicurio/authz/) | `AccessRulesAuthorizer`, `Artifact`, `Group`, `Role` |
 | Identity/outer gates | [auth](../app/src/main/java/io/apicurio/registry/auth/) | `AuthorizedInterceptor`, `AuthConfig`, `AdminOverride`, role providers, `OwnerBasedAccessController` |
 | Resource resolution | [AbstractAccessController](../app/src/main/java/io/apicurio/registry/auth/AbstractAccessController.java) | Annotation styles, canonical resource lookup inputs, strict/lenient ownership |
 | Integration | [grants](../app/src/main/java/io/apicurio/registry/auth/grants/) | Controller, startup/reload, `GrantsSearchFilter` |
@@ -625,11 +628,11 @@ For storage changes, exercise supported dialects and search backends. See
 | Zanzibar/OpenFGA | Not selected for the initial flat named-resource rules. Relationship-based authorization is a separate tracked integration, not inherently impossible. |
 | Database ACL tables and joins | Deferred: queryable and potentially useful at scale, but requires schema, management API, migrations, and synchronization decisions. |
 | Over-fetch/post-filter pages | Not selected for exact paginated search. Correct totals would require evaluating the whole matching population; simply filtering one page is incorrect. |
-| Upstream `AclAuthorizer` implementation | Shared API and grammar adopted; production evaluator deferred for the implementation-specific reasons above. |
+| Registry's own rules evaluator | Used before the upstream `AclAuthorizer` gained the class-loader entry point and selectors API; replaced by `AclAuthorizer`. |
 
 Benefits are query-level filtering, consistent resource naming across API families, reusable
 contracts, no remote policy service required today, and reload without restart. Costs are the
-parser dependency, maintenance of a custom evaluator, explicit handling of all indirect access
+Kroxylicious dependency, explicit handling of all indirect access
 paths, query complexity from selectors, and distributed consistency concerns. These trade-offs
 are more useful design boundaries than an assumed fixed rule count or latency claim.
 

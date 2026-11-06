@@ -146,7 +146,7 @@ The format is the Kroxylicious ACL rules format, described in https://github.com
 * `User with name ...` matches the authenticated user name. `Role with name ...` matches a role of the user, for example a role from the identity provider.
 * `deny` rules must come before `allow` rules, and the file must end with `otherwise deny;`. Lines starting with `//` are comments.
 
-User and role principals are different types: a user named `ops` does not match a role named `ops`. ACL role principals come from the authenticated security identity's roles. RBAC can use a different role source (token, application, header, or Kubernetes), so verify both mappings when using a non-default RBAC role source. With the pinned Kroxylicious 0.25.1 parser, use the `$anonymous` role instead of the proposal's `anonymous User` syntax, and use `//` rather than block comments.
+User and role principals are different types: a user named `ops` does not match a role named `ops`. ACL role principals come from the authenticated security identity's roles. RBAC can use a different role source (token, application, header, or Kubernetes), so verify both mappings when using a non-default RBAC role source. For unauthenticated callers, use the `$anonymous` role. Both `//` line comments and `/* */` block comments are supported.
 
 You select names with the following selectors:
 
@@ -168,7 +168,7 @@ You select names with the following selectors:
 |every name
 
 |`with name matching /regex/`
-|names that fully match the regular expression (RE2 syntax). Resources only. A backslash inside the expression is removed, so `/a\.b/` is the expression `a.b`.
+|names that fully match the regular expression (RE2 syntax). Resources only. Write `\/` for a slash and `\\` for a backslash; any other backslash is part of the expression, so `/a\.b/` matches only `a.b`.
 |===
 
 {registry} validates the file as a whole. A syntax error, an unknown type, principal, or operation, an invalid regular expression, or a rule for a resource type that {registry} does not enforce (such as a Kroxylicious `Topic`) rejects the file: {registry} does not start, or keeps the previous rules on reload.

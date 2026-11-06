@@ -389,7 +389,9 @@
     <cel-standalone.version>0.6.0</cel-standalone.version>
 
     <!-- Kroxylicious Authorizer API (shared authorization contract) -->
-    <kroxylicious.version>0.25.1</kroxylicious.version>
+    <!-- Snapshot with kroxylicious/kroxylicious#5292 (class loader), #5293 (resource selectors) and #5294
+         (regex escapes). Move to the first release that has them. -->
+    <kroxylicious.version>0.26.0-SNAPSHOT</kroxylicious.version>
     <re2j.version>1.8</re2j.version>
   </properties>
 

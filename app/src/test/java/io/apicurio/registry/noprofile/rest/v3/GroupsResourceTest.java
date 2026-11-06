@@ -1442,6 +1442,118 @@ public class GroupsResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void testCreateArtifactFindOrCreateVersionMatchReturnsStoredMetaData() throws Exception {
+        final String artifactId = UUID.randomUUID().toString();
+        final String content = resourceToString("openapi-empty.json");
+        final ArtifactMetaData stored = createArtifactWithCustomMetaData(artifactId, content);
+
+        io.apicurio.registry.rest.v3.beans.CreateArtifact request = TestUtils.serverCreateArtifact(
+                artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+        io.apicurio.registry.rest.v3.beans.CreateArtifactResponse response = given().when()
+                .contentType(CT_JSON).pathParam("groupId", GROUP)
+                .queryParam("ifExists", IfArtifactExists.FIND_OR_CREATE_VERSION).body(request)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200).extract()
+                .as(io.apicurio.registry.rest.v3.beans.CreateArtifactResponse.class);
+
+        assertEquals("1", response.getVersion().getVersion());
+        assertArtifactMetaDataMatchesStored(stored, response.getArtifact());
+    }
+
+    @Test
+    public void testCreateArtifactFindOrCreateVersionNewVersionReturnsStoredMetaData() throws Exception {
+        final String artifactId = UUID.randomUUID().toString();
+        final String contentV1 = resourceToString("openapi-empty.json");
+        final String contentV2 = contentV1.replace("Empty API", "Empty API (Version 2)");
+        final ArtifactMetaData storedBefore = createArtifactWithCustomMetaData(artifactId, contentV1);
+
+        io.apicurio.registry.rest.v3.beans.CreateArtifact request = TestUtils.serverCreateArtifact(
+                artifactId, ArtifactType.OPENAPI, contentV2, ContentTypes.APPLICATION_JSON);
+        io.apicurio.registry.rest.v3.beans.CreateArtifactResponse response = given().when()
+                .contentType(CT_JSON).pathParam("groupId", GROUP)
+                .queryParam("ifExists", IfArtifactExists.FIND_OR_CREATE_VERSION).body(request)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200).extract()
+                .as(io.apicurio.registry.rest.v3.beans.CreateArtifactResponse.class);
+
+        assertEquals("2", response.getVersion().getVersion());
+        ArtifactMetaData storedAfter = given().when().pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(200).extract()
+                .as(ArtifactMetaData.class);
+        assertArtifactMetaDataMatchesStored(storedBefore, response.getArtifact());
+        assertArtifactMetaDataMatchesStored(storedAfter, response.getArtifact());
+    }
+
+    @Test
+    public void testCreateArtifactCreateVersionReturnsStoredMetaData() throws Exception {
+        final String artifactId = UUID.randomUUID().toString();
+        final String contentV1 = resourceToString("openapi-empty.json");
+        final String contentV2 = contentV1.replace("Empty API", "Empty API (Version 2)");
+        final ArtifactMetaData storedBefore = createArtifactWithCustomMetaData(artifactId, contentV1);
+
+        io.apicurio.registry.rest.v3.beans.CreateArtifact request = TestUtils.serverCreateArtifact(
+                artifactId, ArtifactType.OPENAPI, contentV2, ContentTypes.APPLICATION_JSON);
+        io.apicurio.registry.rest.v3.beans.CreateArtifactResponse response = given().when()
+                .contentType(CT_JSON).pathParam("groupId", GROUP)
+                .queryParam("ifExists", IfArtifactExists.CREATE_VERSION).body(request)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200).extract()
+                .as(io.apicurio.registry.rest.v3.beans.CreateArtifactResponse.class);
+
+        assertEquals("2", response.getVersion().getVersion());
+        ArtifactMetaData storedAfter = given().when().pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(200).extract()
+                .as(ArtifactMetaData.class);
+        assertArtifactMetaDataMatchesStored(storedBefore, response.getArtifact());
+        assertArtifactMetaDataMatchesStored(storedAfter, response.getArtifact());
+    }
+
+    private ArtifactMetaData createArtifactWithCustomMetaData(String artifactId, String content) {
+        final String artifactName = "IfExists Artifact " + artifactId;
+        final String artifactDescription = "Description for " + artifactId;
+        final Map<String, String> labels = Map.of("env", "prod", "team", "registry");
+        final String customOwner = "custom-owner";
+
+        io.apicurio.registry.rest.v3.beans.CreateArtifact initial = TestUtils.serverCreateArtifact(
+                artifactId, ArtifactType.OPENAPI, content, ContentTypes.APPLICATION_JSON);
+        initial.setName(artifactName);
+        initial.setDescription(artifactDescription);
+        initial.setLabels(labels);
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP).body(initial)
+                .post("/registry/v3/groups/{groupId}/artifacts").then().statusCode(200);
+
+        EditableArtifactMetaData ownerUpdate = new EditableArtifactMetaData();
+        ownerUpdate.setOwner(customOwner);
+        given().when().contentType(CT_JSON).pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId).body(ownerUpdate)
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(204);
+
+        ArtifactMetaData stored = given().when().pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{artifactId}").then().statusCode(200).extract()
+                .as(ArtifactMetaData.class);
+        assertEquals(ArtifactType.OPENAPI, stored.getArtifactType());
+        assertEquals(artifactName, stored.getName());
+        assertEquals(artifactDescription, stored.getDescription());
+        assertEquals(labels, stored.getLabels());
+        assertEquals(customOwner, stored.getOwner());
+        return stored;
+    }
+
+    private static void assertArtifactMetaDataMatchesStored(ArtifactMetaData stored, ArtifactMetaData actual) {
+        assertNotNull(actual);
+        assertEquals(stored.getGroupId(), actual.getGroupId());
+        assertEquals(stored.getArtifactId(), actual.getArtifactId());
+        assertEquals(stored.getArtifactType(), actual.getArtifactType());
+        assertEquals(stored.getName(), actual.getName());
+        assertEquals(stored.getDescription(), actual.getDescription());
+        assertEquals(stored.getLabels(), actual.getLabels());
+        assertEquals(stored.getOwner(), actual.getOwner());
+        assertEquals(stored.getCreatedOn(), actual.getCreatedOn());
+        assertEquals(stored.getModifiedOn(), actual.getModifiedOn());
+        assertEquals(stored.getModifiedBy(), actual.getModifiedBy());
+    }
+
+    @Test
     public void testDeleteArtifactWithRule() throws Exception {
         String artifactContent = resourceToString("openapi-empty.json");
         String artifactId = "testDeleteArtifactWithRule/EmptyAPI";

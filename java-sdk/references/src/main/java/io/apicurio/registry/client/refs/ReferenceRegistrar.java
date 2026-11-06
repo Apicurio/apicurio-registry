@@ -114,8 +114,17 @@ public final class ReferenceRegistrar {
     public RegistrationResult execute(RegistrationPlan plan) {
         plan.warnings().forEach(listener::onWarning);
         Map<PlannedArtifact, VersionMetaData> registered = new LinkedHashMap<>();
+        List<PlannedArtifact> skipped = new ArrayList<>();
         Map<LatestKey, VersionMetaData> latestCache = new HashMap<>();
         for (PlannedArtifact artifact : plan.artifacts()) {
+            if (dryRun) {
+                String reason = dryRunSkipReason(artifact);
+                if (reason != null) {
+                    skipped.add(artifact);
+                    listener.onSkipped(artifact, reason);
+                    continue;
+                }
+            }
             VersionMetaData vmd;
             try {
                 List<ArtifactReference> references = new ArrayList<>();
@@ -126,12 +135,31 @@ public final class ReferenceRegistrar {
             } catch (RegistrationException e) {
                 throw e;
             } catch (RuntimeException e) {
-                throw failure(artifact, e, registered);
+                throw failure(artifact, e, registered, skipped);
             }
             registered.put(artifact, vmd);
             listener.onRegistered(artifact, vmd);
         }
-        return new RegistrationResult(registered, dryRun);
+        return new RegistrationResult(registered, skipped, dryRun);
+    }
+
+    /**
+     * In a dry run nothing is persisted, so an artifact referencing another planned artifact (which was
+     * itself only dry-run or skipped) cannot be validated by the registry and is skipped instead.
+     */
+    private static String dryRunSkipReason(PlannedArtifact artifact) {
+        List<String> missing = artifact.references().stream()
+                .map(PlannedReference::target)
+                .filter(PlannedArtifact.class::isInstance)
+                .map(PlannedArtifact.class::cast)
+                .map(t -> group(t.coordinates().groupId()) + "/" + t.coordinates().artifactId())
+                .distinct()
+                .toList();
+        if (missing.isEmpty()) {
+            return null;
+        }
+        return "Skipped in dry run: depends on artifacts that are not registered yet: "
+                + String.join(", ", missing);
     }
 
     private ArtifactReference toReference(PlannedReference ref, Map<PlannedArtifact, VersionMetaData> registered,
@@ -197,7 +225,7 @@ public final class ReferenceRegistrar {
                         }
                     }).getVersion();
         } catch (ApiException e) {
-            if (!isProblem(e) || e.getResponseStatusCode() != 409) {
+            if (dryRun || !isProblem(e) || e.getResponseStatusCode() != 409) {
                 throw e;
             }
             if (shouldUpdateDraftContentOnConflict(version)) {
@@ -243,8 +271,8 @@ public final class ReferenceRegistrar {
     }
 
     private RegistrationException failure(PlannedArtifact artifact, RuntimeException e,
-            Map<PlannedArtifact, VersionMetaData> registered) {
-        RegistrationResult partial = new RegistrationResult(registered, dryRun);
+            Map<PlannedArtifact, VersionMetaData> registered, List<PlannedArtifact> skipped) {
+        RegistrationResult partial = new RegistrationResult(registered, skipped, dryRun);
         String coordinates = "[" + group(artifact.coordinates().groupId()) + "] / ["
                 + artifact.coordinates().artifactId() + "]";
         InterruptedException interrupt = findInterrupt(e);
@@ -351,7 +379,13 @@ public final class ReferenceRegistrar {
         }
 
         /**
-         * Enables dry-run mode, in which nothing is persisted.
+         * Enables dry-run mode, in which nothing is persisted. Each artifact is sent with
+         * {@code dryRun=true} so the registry validates it without storing it. Because dry-run artifacts are
+         * not stored, an artifact that references another artifact of the same plan cannot be validated:
+         * such artifacts (and, transitively, anything depending on them) are not sent, but are reported via
+         * {@link RegistrationListener#onSkipped} and {@link RegistrationResult#skipped()}. References to
+         * {@link ExistingArtifact}s do not cause skipping. On a dry run a {@code 409 Conflict} is always
+         * reported as a failure; the draft update/promotion fallbacks are not attempted.
          *
          * @param dryRun the flag
          * @return this builder

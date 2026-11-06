@@ -14,20 +14,34 @@ import java.util.Map;
 public final class RegistrationResult {
 
     private final Map<PlannedArtifact, VersionMetaData> registered;
+    private final List<PlannedArtifact> skipped;
     private final boolean dryRun;
 
-    RegistrationResult(Map<PlannedArtifact, VersionMetaData> registered, boolean dryRun) {
+    RegistrationResult(Map<PlannedArtifact, VersionMetaData> registered, List<PlannedArtifact> skipped,
+            boolean dryRun) {
         this.registered = Collections.unmodifiableMap(new LinkedHashMap<>(registered));
+        this.skipped = List.copyOf(skipped);
         this.dryRun = dryRun;
     }
 
     /**
-     * Returns every registered artifact with its version metadata, in plan order.
+     * Returns every registered artifact with its version metadata, in plan order. In a dry run this
+     * contains only the artifacts that were actually sent (with {@code dryRun=true}) to the registry.
      *
      * @return an unmodifiable map
      */
     public Map<PlannedArtifact, VersionMetaData> registered() {
         return registered;
+    }
+
+    /**
+     * Returns the artifacts that were not sent because, in a dry run, they depend (directly or
+     * transitively) on artifacts of the same plan that were not persisted. Always empty for real runs.
+     *
+     * @return an unmodifiable list, in plan order
+     */
+    public List<PlannedArtifact> skipped() {
+        return skipped;
     }
 
     /**

@@ -51,6 +51,7 @@ public final class ReferenceResolver {
         TypeDetector detector = new TypeDetector(options.providerFactory());
         SourceIndex index = SourceIndex.build(sources, options.existingArtifacts(), detector);
         ReferenceResolver resolver = new ReferenceResolver(index, detector, options);
+        resolver.warnings.addAll(index.warnings());
         List<SchemaSource> rootSources = new ArrayList<>();
         for (RootArtifact root : roots) {
             SchemaSource source = sources.byLocation(root.location()).orElseThrow(
@@ -98,7 +99,13 @@ public final class ReferenceResolver {
                 SchemaSource target = hit.get().source().source();
                 if (stack.contains(target)) {
                     List<String> cycle = new ArrayList<>();
-                    stack.forEach(s -> cycle.add(s.location()));
+                    boolean inCycle = false;
+                    for (SchemaSource onStack : stack) {
+                        inCycle = inCycle || onStack == target;
+                        if (inCycle) {
+                            cycle.add(onStack.location());
+                        }
+                    }
                     cycle.add(target.location());
                     throw new ReferenceCycleException(cycle);
                 }

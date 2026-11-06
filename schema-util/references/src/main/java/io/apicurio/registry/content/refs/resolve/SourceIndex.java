@@ -5,6 +5,7 @@ import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.types.ArtifactType;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
@@ -21,13 +22,15 @@ public final class SourceIndex {
     private final Map<String, IndexedSource> byAvroName = new HashMap<>();
     private final Map<String, IndexedSource> byJsonId = new HashMap<>();
     private final Map<String, ExistingArtifact> existingByName = new HashMap<>();
+    private final List<String> warnings = new ArrayList<>();
 
     private SourceIndex() {
     }
 
     /**
      * Builds an index from the given sources and existing artifacts. Sources whose type cannot be
-     * detected are skipped.
+     * detected are skipped. When two sources declare the same Avro full name or JSON Schema {@code $id},
+     * the first one (in source-set order) wins and a warning is recorded.
      *
      * @param sources the local schema sources
      * @param existing artifacts already present in the registry, keyed by reference name
@@ -53,13 +56,30 @@ public final class SourceIndex {
                 index.byLocation.putIfAbsent(SchemaSourceSet.normalize(alias), indexed);
             }
             if (indexed.avroFullName() != null && ArtifactType.AVRO.equals(indexed.artifactType())) {
-                index.byAvroName.putIfAbsent(indexed.avroFullName(), indexed);
+                IndexedSource first = index.byAvroName.putIfAbsent(indexed.avroFullName(), indexed);
+                if (first != null) {
+                    index.warnings.add("Duplicate Avro name '" + indexed.avroFullName() + "' in "
+                            + source.location() + "; using " + first.source().location());
+                }
             }
             if (indexed.jsonSchemaId() != null) {
-                index.byJsonId.putIfAbsent(indexed.jsonSchemaId(), indexed);
+                IndexedSource first = index.byJsonId.putIfAbsent(indexed.jsonSchemaId(), indexed);
+                if (first != null) {
+                    index.warnings.add("Duplicate JSON Schema $id '" + indexed.jsonSchemaId() + "' in "
+                            + source.location() + "; using " + first.source().location());
+                }
             }
         }
         return index;
+    }
+
+    /**
+     * Returns the non-fatal warnings recorded while building the index, in source-set order.
+     *
+     * @return an immutable list of warnings
+     */
+    public List<String> warnings() {
+        return List.copyOf(warnings);
     }
 
     /**

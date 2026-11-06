@@ -51,4 +51,31 @@ class SourceIndexTest {
         SourceIndex index = SourceIndex.build(SchemaSourceSet.of(t, m), List.of(), detector);
         assertEquals("mode/mode.proto", index.lookup("mode/mode.proto", t).orElseThrow().source().source().location());
     }
+
+    @Test
+    void duplicateNamesAndIdsAreFirstWinsWithWarnings() {
+        SchemaSource avro1 = InMemorySchemaSource.of("a/E.avsc",
+                "{\"type\":\"enum\",\"name\":\"E\",\"namespace\":\"n\",\"symbols\":[\"A\"]}",
+                ContentTypes.APPLICATION_JSON);
+        SchemaSource json1 = InMemorySchemaSource.of("a/x.json", "{\"$schema\":\"s\",\"$id\":\"urn:x#frag\"}",
+                ContentTypes.APPLICATION_JSON);
+        SchemaSource avro2 = InMemorySchemaSource.of("b/E.avsc",
+                "{\"type\":\"enum\",\"name\":\"E\",\"namespace\":\"n\",\"symbols\":[\"B\"]}",
+                ContentTypes.APPLICATION_JSON);
+        SchemaSource json2 = InMemorySchemaSource.of("b/x.json", "{\"$schema\":\"s\",\"$id\":\"urn:x\"}",
+                ContentTypes.APPLICATION_JSON);
+        SourceIndex index = SourceIndex.build(SchemaSourceSet.of(avro1, json1, avro2, json2), List.of(), detector);
+
+        assertEquals(List.of("Duplicate Avro name 'n.E' in b/E.avsc; using a/E.avsc",
+                "Duplicate JSON Schema $id 'urn:x' in b/x.json; using a/x.json"), index.warnings());
+        assertEquals("a/E.avsc", index.lookup("n.E", json2).orElseThrow().source().source().location());
+        assertEquals("a/x.json", index.lookup("urn:x", avro2).orElseThrow().source().source().location());
+    }
+
+    @Test
+    void noWarningsWithoutDuplicates() {
+        SchemaSource s = InMemorySchemaSource.of("A.avsc",
+                "{\"type\":\"record\",\"name\":\"A\",\"fields\":[]}", ContentTypes.APPLICATION_JSON);
+        assertEquals(List.of(), SourceIndex.build(SchemaSourceSet.of(s), List.of(), detector).warnings());
+    }
 }

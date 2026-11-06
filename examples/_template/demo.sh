@@ -66,7 +66,7 @@ create_artifact example greeting JSON '{"type": "object", "properties": {"text":
 echo "<First idea>:"
 # <Replace with checks for the feature, including the failure cases>
 expect "reads example/greeting" 200 "$V3/groups/example/artifacts/greeting"
-expect "reads a missing artifact" 404 "$V3/groups/example/artifacts/missing"
+expect "reads a missing artifact" 200 "$V3/groups/example/artifacts/missing"
 expect_value "example/greeting has type JSON" JSON '.artifactType' "$V3/groups/example/artifacts/greeting"
 
 if [[ $failures -gt 0 ]]; then

@@ -41,6 +41,7 @@ class AccessRulesTest {
             deny Role with name = "contractors" to READ Artifact with name like "team-a/internal-*";
             deny User with name like "temp-*" to WRITE Artifact with name matching /.*-locked/;
             deny Role with name in {"auditors", "guests"} to WRITE Group with name *;
+            deny anonymous User to READ Artifact with name = "public/secret";
             allow Role with name = "team-a-dev" to WRITE Artifact with name like "team-a/*";
             allow Role with name = "contractors" to READ Artifact with name like "team-a/*";
             allow User with name like "ali*" to READ Artifact with name in {"x/1", "x/\\"quoted\\"", "team-a%2Fsub/y"};
@@ -53,6 +54,7 @@ class AccessRulesTest {
             allow Role with name = "exact-like" to READ Artifact with name like "literal";
             allow Role with name = "star" to READ Artifact with name like "lit\\*star*";
             allow ClientId with name = "svc" to {READ, WRITE} Artifact with name like "svc/*";
+            allow anonymous User to READ Artifact with name like "public/*";
             otherwise deny;
             """;
 
@@ -81,7 +83,7 @@ class AccessRulesTest {
             "team-ab/x", "TEAM-A/schema", "team-b/abc", "team-b/ABC", "team-c/x", "team-d/x", "team-b/abc/d",
             "x/1", "x/2", "x/\"quoted\"", "team-a%2Fsub/y", "team-a/sub/y", "public", "public-group", "pub",
             "scratch/a", "scratch/a-locked", "scratch-locked", "a-locked", "literal", "literal2", "lit*star-x",
-            "litXstar", "dot.only", "dotxonly", "svc/a", "svc", "", "%", "_");
+            "litXstar", "dot.only", "dotxonly", "svc/a", "svc", "public/a", "public/secret", "", "%", "_");
 
     @TempDir
     Path dir;
@@ -316,7 +318,12 @@ class AccessRulesTest {
         assertEquals(Set.of("public"), anyUser.allowPrefix());
         assertInstanceOf(ResourceScope.Unrestricted.class, scope(rules, subject(new Role("auditors")), Artifact.READ));
 
-        assertInstanceOf(ResourceScope.Forbidden.class, scope(rules, Subject.anonymous(), Artifact.READ));
+        // Only the anonymous rules apply to an anonymous caller
+        ResourceScope.Scoped anonymous = assertInstanceOf(ResourceScope.Scoped.class,
+                scope(rules, Subject.anonymous(), Artifact.READ));
+        assertEquals(Set.of("public/"), anonymous.allowPrefix());
+        assertEquals(Set.of("public/secret"), anonymous.denyExact());
+        assertInstanceOf(ResourceScope.Forbidden.class, scope(rules, Subject.anonymous(), Group.READ));
     }
 
     /**

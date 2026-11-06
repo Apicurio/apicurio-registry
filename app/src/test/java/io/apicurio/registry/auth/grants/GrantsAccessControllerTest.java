@@ -155,14 +155,13 @@ public class GrantsAccessControllerTest {
     }
 
     @Test
-    void anonymousIdentityGetsOnlyTheAnonymousRole() {
+    void anonymousIdentityIsTheAnonymousSubject() {
         GrantsAccessController controller = new GrantsAccessController();
         controller.setSecurityIdentity(QuarkusSecurityIdentity.builder().setAnonymous(true).build());
 
         Subject subject = controller.currentSubject();
 
-        assertEquals(Set.of(new Role(GrantsAccessController.ANONYMOUS_ROLE)), subject.principals());
-        assertEquals(Set.of(), subject.allPrincipalsOfType(User.class));
+        assertEquals(Set.of(), subject.principals());
     }
 
     // ==================== Decisions per resource kind ====================

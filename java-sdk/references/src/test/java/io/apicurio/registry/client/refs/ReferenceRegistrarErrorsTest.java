@@ -197,6 +197,36 @@ class ReferenceRegistrarErrorsTest {
     }
 
     @Test
+    void dryRunDraftConflictNeverUpdatesContent() {
+        stubRootConflict();
+        stubContentPut("1.0");
+        stubVersionGet("1.0", "DRAFT");
+
+        RegistrationException ex = assertThrows(RegistrationException.class,
+                () -> ReferenceRegistrar.builder(client).dryRun(true).build().execute(avroRoot(true, "1.0")));
+
+        assertEquals(409, ex.problem().getResponseStatusCode());
+        assertEquals("R", ex.failed().coordinates().artifactId());
+        server.verify(0, putRequestedFor(anyUrl()));
+        assertEquals(List.of("POST " + ROOT_ARTIFACTS), requestLog());
+    }
+
+    @Test
+    void dryRunApiInfoVersionConflictNeverPromotes() {
+        stubRootConflict();
+        stubVersionGet("2.0", "DRAFT");
+        stubContentPut("2.0");
+
+        RegistrationException ex = assertThrows(RegistrationException.class, () -> ReferenceRegistrar
+                .builder(client).dryRun(true).versionStrategy(VersionStrategy.apiInfoVersion()).build()
+                .execute(openApiRoot("2.0")));
+
+        assertEquals(409, ex.problem().getResponseStatusCode());
+        server.verify(0, putRequestedFor(anyUrl()));
+        assertEquals(List.of("POST " + ROOT_ARTIFACTS), requestLog());
+    }
+
+    @Test
     void apiInfoSnapshotPostsDraftWithoutSuffix() throws Exception {
         stubJson(post(urlPathEqualTo(ROOT_ARTIFACTS)), 200,
                 "{\"version\":{\"groupId\":\"g\",\"artifactId\":\"R\",\"version\":\"3.0\"}}");

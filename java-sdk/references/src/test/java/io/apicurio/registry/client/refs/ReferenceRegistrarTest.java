@@ -121,19 +121,74 @@ class ReferenceRegistrarTest {
     }
 
     @Test
-    void dryRunSendsFlagOnEveryRequest() throws Exception {
+    void dryRunSkipsArtifactsDependingOnUnpersistedArtifacts() throws Exception {
         RegistrationPlan plan = commonAndA(PlanOptions.builder().build(), avro("Common.avsc", "Common", "c", ""));
+        List<String> skipEvents = new ArrayList<>();
+        RegistrationListener listener = new RegistrationListener() {
+            @Override
+            public void onSkipped(PlannedArtifact artifact, String reason) {
+                skipEvents.add(artifact.coordinates().artifactId() + ": " + reason);
+            }
+        };
+
+        RegistrationResult result = ReferenceRegistrar.builder(client).dryRun(true).listener(listener).build()
+                .execute(plan);
+
+        List<LoggedRequest> posts = posts();
+        assertEquals(1, posts.size());
+        assertEquals("/apis/registry/v3/groups/c/artifacts", posts.get(0).getUrl().split("\\?")[0]);
+        assertEquals("true", posts.get(0).queryParameter("dryRun").firstValue());
+        assertFalse(posts.get(0).queryParameter("ifExists").isPresent());
+        assertEquals(List.of("Common"), result.registered().keySet().stream()
+                .map(a -> a.coordinates().artifactId()).toList());
+        assertEquals(List.of("A"), result.skipped().stream().map(a -> a.coordinates().artifactId()).toList());
+        assertEquals(List.of("A: Skipped in dry run: depends on artifacts that are not registered yet: c/Common"),
+                skipEvents);
+        assertEquals(List.of(), result.roots());
+        assertTrue(result.isDryRun());
+    }
+
+    @Test
+    void dryRunSkippingPropagatesTransitively() {
+        RegistrationPlan plan = ReferenceResolver.plan(
+                List.of(RootArtifact.of("A.avsc", "g", "A"), RootArtifact.of("B.avsc", "g", "B")),
+                SchemaSourceSet.of(avro("A.avsc", "A", "a", REF_FIELD),
+                        avro("B.avsc", "B", "b", "{\"name\":\"y\",\"type\":\"a.A\"}"),
+                        avro("Common.avsc", "Common", "c", "")),
+                PlanOptions.builder().build());
+        List<String> reasons = new ArrayList<>();
+        RegistrationListener listener = new RegistrationListener() {
+            @Override
+            public void onSkipped(PlannedArtifact artifact, String reason) {
+                reasons.add(reason);
+            }
+        };
+
+        RegistrationResult result = ReferenceRegistrar.builder(client).dryRun(true).listener(listener).build()
+                .execute(plan);
+
+        assertEquals(1, posts().size());
+        assertEquals(List.of("A", "B"), result.skipped().stream().map(a -> a.coordinates().artifactId()).toList());
+        assertEquals(List.of("Skipped in dry run: depends on artifacts that are not registered yet: c/Common",
+                "Skipped in dry run: depends on artifacts that are not registered yet: g/A"), reasons);
+    }
+
+    @Test
+    void dryRunSendsArtifactReferencingOnlyExistingArtifacts() throws Exception {
+        PlanOptions options = PlanOptions.builder()
+                .existingArtifacts(List.of(new ExistingArtifact("c.Common", "c", "Common", "7"))).build();
+        RegistrationPlan plan = commonAndA(options);
 
         RegistrationResult result = ReferenceRegistrar.builder(client).dryRun(true).build().execute(plan);
 
         List<LoggedRequest> posts = posts();
-        assertEquals(2, posts.size());
-        for (LoggedRequest post : posts) {
-            assertEquals("true", post.queryParameter("dryRun").firstValue());
-            assertFalse(post.queryParameter("ifExists").isPresent());
-        }
-        assertEquals("1", body(posts.get(1)).at("/firstVersion/content/references/0/version").asText());
-        assertTrue(result.isDryRun());
+        assertEquals(1, posts.size());
+        assertEquals("/apis/registry/v3/groups/g/artifacts", posts.get(0).getUrl().split("\\?")[0]);
+        assertEquals("true", posts.get(0).queryParameter("dryRun").firstValue());
+        assertEquals(MAPPER.readTree("[{\"name\":\"c.Common\",\"groupId\":\"c\",\"artifactId\":\"Common\","
+                + "\"version\":\"7\"}]"), body(posts.get(0)).at("/firstVersion/content/references"));
+        assertEquals(List.of(), result.skipped());
+        assertEquals("A", result.roots().get(0).getArtifactId());
     }
 
     @Test

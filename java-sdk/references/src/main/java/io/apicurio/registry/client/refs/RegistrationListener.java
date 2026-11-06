@@ -24,4 +24,14 @@ public interface RegistrationListener {
      */
     default void onWarning(String message) {
     }
+
+    /**
+     * Called in a dry run for an artifact that was not sent because it depends on artifacts of the same plan
+     * that were not persisted.
+     *
+     * @param artifact the skipped planned artifact
+     * @param reason a human-readable reason naming the unregistered dependencies
+     */
+    default void onSkipped(PlannedArtifact artifact, String reason) {
+    }
 }

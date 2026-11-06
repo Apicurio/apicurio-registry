@@ -397,4 +397,5 @@ endif::[]
 * xref:getting-started/assembly-llm-artifact-types-implementation.adoc[LLM artifact types]
 ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/agent-registry[AI agent registry demo], which runs every agent registry feature with Docker Compose, together with Quarkus LangChain4j agents, and includes a step-by-step guide
 endif::[]

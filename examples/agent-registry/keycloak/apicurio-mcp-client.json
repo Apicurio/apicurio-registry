@@ -1,0 +1,24 @@
+{
+  "clientId": "apicurio-mcp",
+  "name": "Apicurio Registry MCP",
+  "description": "Demo client for the Registry MCP server (HTTP mode). Authorization code + PKCE for MCP clients; the password grant is enabled only so demo.sh can get a token without a browser.",
+  "enabled": true,
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "directAccessGrantsEnabled": true,
+  "serviceAccountsEnabled": false,
+  "redirectUris": ["http://localhost:6274/oauth/callback", "http://127.0.0.1:6274/oauth/callback"],
+  "webOrigins": ["http://localhost:6274", "http://127.0.0.1:6274"],
+  "attributes": {"pkce.code.challenge.method": "S256"},
+  "protocol": "openid-connect",
+  "fullScopeAllowed": true,
+  "protocolMappers": [
+    {
+      "name": "audience-apicurio-mcp",
+      "protocol": "openid-connect",
+      "protocolMapper": "oidc-audience-mapper",
+      "consentRequired": false,
+      "config": {"included.client.audience": "apicurio-mcp", "id.token.claim": "false", "access.token.claim": "true"}
+    }
+  ]
+}

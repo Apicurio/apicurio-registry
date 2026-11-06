@@ -1,0 +1,7 @@
+{
+  "name": "io.apicur.demo/travel",
+  "title": "Travel tools",
+  "description": "Demo MCP server that provides the get_forecast tool. Not a running service.",
+  "version": "1.0.0",
+  "remotes": [{ "type": "streamable-http", "url": "https://travel.example.com/mcp" }]
+}

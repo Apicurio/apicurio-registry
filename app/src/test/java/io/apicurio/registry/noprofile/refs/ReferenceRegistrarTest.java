@@ -3,11 +3,15 @@ package io.apicurio.registry.noprofile.refs;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.refs.ReferenceRegistrar;
 import io.apicurio.registry.client.refs.RegistrationResult;
+import io.apicurio.registry.content.refs.resolve.ExistingArtifact;
 import io.apicurio.registry.content.refs.resolve.InMemorySchemaSource;
 import io.apicurio.registry.content.refs.resolve.PlanOptions;
+import io.apicurio.registry.content.refs.resolve.PlannedArtifact;
+import io.apicurio.registry.content.refs.resolve.ReferenceResolver;
 import io.apicurio.registry.content.refs.resolve.RootArtifact;
 import io.apicurio.registry.content.refs.resolve.SchemaSourceSet;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
@@ -23,6 +27,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * End-to-end tests of {@link ReferenceRegistrar} against a running registry.
@@ -109,6 +115,69 @@ public class ReferenceRegistrarTest extends AbstractResourceTestBase {
         assertEquals(1, infoRefs.size());
         assertReference(infoRefs.get(0), "mode/mode.proto", group, "mode/mode.proto",
                 versionOf(result, group, "mode/mode.proto"));
+    }
+
+    @Test
+    public void dryRunOfNewAvroChainValidatesLeafAndSkipsDependents() throws Exception {
+        String group = "refs-dry-" + UUID.randomUUID();
+        String ns = "com.kubetrade.t" + UUID.randomUUID().toString().replace("-", "");
+        String tradeNs = ns + ".trade";
+        String commonNs = ns + ".common";
+
+        RegistrationResult result = ReferenceRegistrar.builder(clientV3).dryRun(true).build()
+                .execute(ReferenceResolver.plan(List.of(RootArtifact.of("TradeRaw.avsc", group, "TradeRaw")),
+                        avroChain(ns), PlanOptions.builder().build()));
+
+        assertTrue(result.isDryRun());
+        assertEquals(List.of(commonNs + "/Exchange"), coordinates(result.registered().keySet().stream().toList()));
+        assertEquals(List.of(tradeNs + "/TradeKey", group + "/TradeRaw"), coordinates(result.skipped()));
+        assertNotFound(commonNs, "Exchange");
+        assertNotFound(tradeNs, "TradeKey");
+        assertNotFound(group, "TradeRaw");
+    }
+
+    @Test
+    public void dryRunOfRootWithOnlyExistingDependenciesIsSentAndPersistsNothing() throws Exception {
+        String ns = "com.kubetrade.t" + UUID.randomUUID().toString().replace("-", "");
+        String tradeNs = ns + ".trade";
+        String commonNs = ns + ".common";
+        SchemaSourceSet sources = avroChain(ns);
+        RegistrationResult exchange = ReferenceRegistrar.register(clientV3, sources,
+                RootArtifact.of("Exchange.avsc", commonNs, "Exchange"), PlanOptions.builder().build());
+        String exchangeVersion = exchange.roots().get(0).getVersion();
+        PlanOptions options = PlanOptions.builder().existingArtifacts(List.of(
+                new ExistingArtifact(commonNs + ".Exchange", commonNs, "Exchange", exchangeVersion))).build();
+
+        RegistrationResult result = ReferenceRegistrar.builder(clientV3).dryRun(true).build()
+                .execute(ReferenceResolver.plan(List.of(RootArtifact.of("TradeKey.avsc", tradeNs, "TradeKey")),
+                        sources, options));
+
+        assertEquals(List.of(tradeNs + "/TradeKey"), coordinates(result.registered().keySet().stream().toList()));
+        assertEquals(List.of(), result.skipped());
+        assertEquals(1, result.roots().size());
+        assertNotFound(tradeNs, "TradeKey");
+        assertEquals(1, clientV3.groups().byGroupId(commonNs).artifacts().byArtifactId("Exchange").versions()
+                .get().getCount());
+    }
+
+    private static SchemaSourceSet avroChain(String ns) throws IOException {
+        return SchemaSourceSet.of(
+                InMemorySchemaSource.of("Exchange.avsc", avroFixture("Exchange.avsc", ns),
+                        ContentTypes.APPLICATION_JSON),
+                InMemorySchemaSource.of("TradeKey.avsc", avroFixture("TradeKey.avsc", ns),
+                        ContentTypes.APPLICATION_JSON),
+                InMemorySchemaSource.of("TradeRaw.avsc", avroFixture("TradeRaw.avsc", ns),
+                        ContentTypes.APPLICATION_JSON));
+    }
+
+    private static List<String> coordinates(List<PlannedArtifact> artifacts) {
+        return artifacts.stream().map(a -> a.coordinates().groupId() + "/" + a.coordinates().artifactId()).toList();
+    }
+
+    private void assertNotFound(String groupId, String artifactId) {
+        ProblemDetails e = assertThrows(ProblemDetails.class,
+                () -> clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get());
+        assertEquals(404, e.getStatus());
     }
 
     private static String versionOf(RegistrationResult result, String groupId, String artifactId) {

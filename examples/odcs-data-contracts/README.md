@@ -1,89 +1,87 @@
-# ODCS Data Contracts — Live Demo
+# ODCS data contracts
 
-Interactive demo of the Apicurio Registry Data Contracts framework (Phases 1-8). Designed for live team presentations — the demo pauses between steps so you can narrate with the slides.
+A complete, local example of Apicurio Registry's data contracts:
 
-## Setup
+- **An ODCS contract** ([`contracts/orders-contract.yaml`](contracts/orders-contract.yaml)), in the
+  [Open Data Contract Standard](https://bitol-io.github.io/open-data-contract-standard/) v3.1
+  format, says who owns the `OrderEvent` schema, which fields are sensitive, and what a valid
+  order looks like.
+- **The registry** stores the contract and projects it onto the schema as labels, field tags and
+  CEL rules, then runs those rules on demand, with a lifecycle, search and audit on top.
+- **A Kafka producer** ([`ContractSerdesDemo`](src/main/java/io/apicurio/registry/examples/ContractSerdesDemo.java))
+  enforces the contract's rules in the Apicurio serializer, so an invalid order never reaches Kafka.
 
-### Option A: Docker Compose (recommended)
+**New to this? Follow the [step-by-step guide](GUIDE.md).** It walks through every feature in the
+API and in the UI, with commands, expected output and screenshots, in about 30 minutes, and works
+as a script for a team demo.
 
-```bash
-cd examples/odcs-data-contracts
-docker compose up -d
-```
+## Quick start
 
-This starts:
-- **Registry API** at `http://localhost:8080/apis/registry/v3`
-- **Registry UI** at `http://localhost:8888`
-
-### Option B: Build from source
-
-```bash
-# Build
-./mvnw clean install -DskipTests
-
-# Start registry
-cd app/ && ../mvnw quarkus:dev
-
-# Start UI (separate terminal)
-cd ui && npm install && cd ui-app && npm run dev
-# UI at http://localhost:8888
-```
-
-### Run the demo
-
-Open `docs/presentations/odcs-data-contracts-presentation.html` in your browser. Arrow keys to navigate, `S` for speaker notes.
-
-In a separate terminal:
+Requires Docker (or Podman) with Compose v2, `curl` and `jq`.
 
 ```bash
-cd examples/odcs-data-contracts
-mvn compile exec:java
+docker compose up -d     # starts the Registry, its UI and Kafka
+./demo.sh                # registers the schema, submits the contract, then checks the result
 ```
 
-The demo pauses before each step — press **Enter** to continue. Each `▶ DEMO` slide tells you when to switch to the terminal.
+`demo.sh` prints one line per check and ends with `All checks passed.` (it exits non-zero if a check
+fails). Then open the UI at <http://localhost:8888>, and go to *Explore*, `orders`, `OrderEvent`,
+*Contract*.
 
-For automated (non-interactive) runs:
+To explore the API yourself, load the helper commands:
 
 ```bash
-mvn compile exec:java -Dexec.args="--no-pause"
+source ./demo-env.sh
+check '{"orderId":"A1","totalAmount":-5}'       # runs the contract's rules: "passed": false
+call GET $ORDER/contract/metadata                # the contract metadata of orders/OrderEvent
 ```
 
-### UI tour (slide 12)
+To see the rules enforced in a Kafka producer (needs Java 17+; see [Notes](#notes)):
 
-When you reach the UI Tour slide, open the registry UI and navigate to **Explore → odcs-example → OrderEvent → Contract tab**.
+```bash
+../../mvnw -q compile exec:java
+```
 
-## Demo Flow
+Stop and remove everything with `docker compose down -v`.
 
-| Step | Slide | Phase | What happens |
-|------|-------|-------|-------------|
-| 1 | 3 | 1-3 | Register Avro schema with inline PII tags |
-| 2 | 4 | 1-3 | Submit ODCS contract → projection (rules, labels, tags) |
-| 3 | 5 | 1-3 | List contracts, get metadata, export as ODCS YAML |
-| 4-5 | 6 | 4 | Quality score + promote DEV → STAGE |
-| 6-7 | 7 | 5 | Verify projected CEL rules + execute (pass and fail) |
-| 8 | 8 | 6 | Compatibility group + schema v2 + JSONata migration |
-| 9 | 9 | 7 | Search contracts + audit log |
-| 10 | 10 | 8 | Set global contract rules (org-wide CEL) |
-| 11-14 | 11 | SerDes | Kafka: start → produce valid → produce invalid (rejected) → consume |
-| — | 12 | UI | Walk through Contract tab in browser |
+## Services
 
-## Presentation Slides
+| Service               | URL                   | Purpose                                     |
+|-----------------------|-----------------------|---------------------------------------------|
+| Apicurio Registry API | http://localhost:8081 | Registry, in-memory storage, no authentication |
+| Apicurio Registry UI  | http://localhost:8888 | Web console                                 |
+| Kafka                 | localhost:9092        | Single-node broker for the producer step    |
 
-| # | Title | Type |
-|---|-------|------|
-| 1 | Title + Tech Stack | Intro |
-| 2 | Projection Model | Concept |
-| 3 | Register Schema | ▶ DEMO |
-| 4 | Submit ODCS Contract | ▶ DEMO |
-| 5 | Inspect Contract | ▶ DEMO |
-| 6 | Quality & Governance | ▶ DEMO |
-| 7 | CEL Rule Engine | ▶ DEMO |
-| 8 | Schema Migration | ▶ DEMO |
-| 9 | Search & Audit | ▶ DEMO |
-| 10 | Global Rules | ▶ DEMO |
-| 11 | Kafka SerDes | ▶ DEMO |
-| 12 | UI Tour | Live browser |
-| 13 | Architecture | Concept |
-| 14 | Storage Deep Dive | Technical |
-| 15 | What's Next + Q&A | Discussion |
-| 16 | Summary | Wrap-up |
+## Files
+
+| File | Purpose |
+|------|---------|
+| [`GUIDE.md`](GUIDE.md) | Step-by-step walkthrough (API and UI) and presenter notes |
+| [`images/`](images) | The guide's UI screenshots |
+| [`docker-compose.yml`](docker-compose.yml) | The three services |
+| [`contracts/orders-contract.yaml`](contracts/orders-contract.yaml) | The ODCS contract |
+| [`schemas/`](schemas) | Versions 1 and 2 of the `OrderEvent` Avro schema |
+| [`demo.sh`](demo.sh) | Creates the sample data and checks the projection and rule execution |
+| [`demo-env.sh`](demo-env.sh) | Shell helpers (`call`, `status`, `submit`, `check`) for the API |
+| [`src/main/java/.../ContractSerdesDemo.java`](src/main/java/io/apicurio/registry/examples/ContractSerdesDemo.java) | Kafka producer and consumer with contract rules enabled |
+
+## Notes
+
+- **Other ports:** if 8081, 8888 or 9092 are in use, see
+  [Using other ports](GUIDE.md#using-other-ports) in the guide.
+- **The Kafka step needs the snapshot serializer:** the example depends on the
+  `3.4.0-SNAPSHOT` Apicurio serializer, which is not published to Maven Central. Install it
+  once from the repository root with
+  `./mvnw install -pl serdes/kafka/avro-serde -am -DskipTests -Dlocal`.
+- **Images:** the example uses the `latest-snapshot` images. To run a locally built registry,
+  build it (`./mvnw install -pl distro/docker -am -DskipTests`), then build
+  `distro/docker/target/docker/Dockerfile.jvm` as `quay.io/apicurio/apicurio-registry:latest-snapshot`.
+- **Local only:** no authentication and in-memory storage. Do not use this configuration in
+  production.
+
+## Learn more
+
+- *Apicurio Registry data contracts* in the Registry documentation
+  ([source](../../docs/modules/ROOT/pages/getting-started/assembly-data-contracts.adoc)):
+  the contract format, the REST API, and the serializer settings.
+- [ADR-0002](../../adr/0002-odcs-native-data-contracts.md): how it is designed.

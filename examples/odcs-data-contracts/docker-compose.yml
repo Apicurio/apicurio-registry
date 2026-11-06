@@ -1,31 +1,58 @@
+# ODCS data contracts example: Apicurio Registry, its UI, and a single-node Kafka broker for the
+# SerDes step. See README.md; run ./demo.sh to verify.
+#
+# For local demonstration only: no authentication, in-memory storage (data is lost on restart).
+#
+# Host ports default to 8081 (API), 8888 (UI) and 9092 (Kafka); override them with REGISTRY_PORT,
+# UI_PORT and KAFKA_PORT if they are in use.
 services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: apicurio
-      POSTGRES_PASSWORD: apicurio
-      POSTGRES_DB: apicurio-registry
-    ports:
-      - 5432:5432
-
-  registry:
+  apicurio-registry:
     image: quay.io/apicurio/apicurio-registry:latest-snapshot
+    container_name: apicurio-registry-api-contracts
     environment:
-      APICURIO_STORAGE_KIND: sql
-      APICURIO_STORAGE_SQL_KIND: postgresql
-      APICURIO_DATASOURCE_URL: jdbc:postgresql://postgres:5432/apicurio-registry
-      APICURIO_DATASOURCE_USERNAME: apicurio
-      APICURIO_DATASOURCE_PASSWORD: apicurio
+      # Let demo.sh delete the "orders" group, so it can run again
+      apicurio.rest.deletion.group.enabled: "true"
+      apicurio.rest.deletion.artifact.enabled: "true"
+      apicurio.rest.deletion.artifact-version.enabled: "true"
+      # The UI runs on another origin (port) and calls the API from the browser
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
     ports:
-      - 8080:8080
-    depends_on:
-      - postgres
+      - "${REGISTRY_PORT:-8081}:8080"
+    # Readiness is served on the management port (9000), not the API port
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/health/ready > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
 
-  ui:
+  apicurio-registry-ui:
     image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    container_name: apicurio-registry-ui-contracts
     environment:
-      REGISTRY_API_URL: http://localhost:8080/apis/registry/v3
+      REGISTRY_API_URL: "http://localhost:${REGISTRY_PORT:-8081}/apis/registry/v3"
     ports:
-      - 8888:8080
+      - "${UI_PORT:-8888}:8080"
     depends_on:
-      - registry
+      apicurio-registry:
+        condition: service_healthy
+
+  kafka:
+    image: apache/kafka:3.8.1
+    container_name: kafka-contracts
+    environment:
+      # Single-node KRaft broker (no ZooKeeper), reachable from the host for ContractSerdesDemo
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:${KAFKA_PORT:-9092}
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      # One broker, so internal topics cannot be replicated
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      # Let the demo consumer start reading immediately
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"

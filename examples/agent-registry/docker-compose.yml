@@ -104,10 +104,6 @@ services:
       # Keycloak roles (sr-admin, sr-developer, sr-readonly), narrowed by access.rules
       APICURIO_AUTH_ROLE_BASED_AUTHORIZATION: "true"
       APICURIO_AUTH_ANONYMOUS_READ_ACCESS_ENABLED: "true"
-      # Lets sr-admin users see private Agent Cards in discovery, as the docs describe. Without it
-      # only the owner sees them (issue #10951).
-      APICURIO_AUTH_ADMIN_OVERRIDE_ENABLED: "true"
-      APICURIO_AUTH_ADMIN_OVERRIDE_ROLE: "sr-admin"
       APICURIO_AUTH_RESOURCE_BASED_AUTHORIZATION_ENABLED: "true"
       APICURIO_AUTH_RESOURCE_BASED_AUTHORIZATION_RULES_PATH: "/opt/apicurio/authz/access.rules"
       APICURIO_AUTH_RESOURCE_BASED_AUTHORIZATION_RULES_RELOAD_EVERY: "5s"

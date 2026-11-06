@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class SchemaSourceSetTest {
 
@@ -45,5 +46,21 @@ class SchemaSourceSetTest {
     @Test
     void normalizeStripsDotSegmentsAndBackslashes() {
         assertEquals("common/foo.json", SchemaSourceSet.normalize("./common/../common\\foo.json"));
+    }
+
+    @Test
+    void normalizeKeepsUnresolvableLeadingDotDot() {
+        assertEquals("../shared/foo.json", SchemaSourceSet.normalize("../shared/./foo.json"));
+        assertEquals("../../x.avsc", SchemaSourceSet.normalize("a/../../../x.avsc"));
+    }
+
+    @Test
+    void addRejectsDuplicateLocation() {
+        SchemaSourceSet set = SchemaSourceSet.of(InMemorySchemaSource.of("a.json", "{}", "application/json"));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> set.add(InMemorySchemaSource.of("./a.json", "[]", "application/json")));
+        assertEquals("Duplicate schema source location: a.json", ex.getMessage());
+        assertEquals(1, set.sources().size());
     }
 }

@@ -16,6 +16,7 @@ import java.util.Optional;
 
 /**
  * A {@link SchemaSource} backed by a file on disk. Content is read lazily, once.
+ * Concurrent first calls to {@link #content()} may read the file more than once; this race is benign.
  */
 public final class FileSchemaSource implements SchemaSource {
 

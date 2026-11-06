@@ -4,23 +4,39 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
+import io.apicurio.registry.rest.v3.beans.IfArtifactExists;
 import io.apicurio.registry.types.ArtifactType;
+import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.SystemStreamLog;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Verifies the autoRefsNamingStrategy option and dryRun propagation of the autoRefs path.
+ * Verifies the autoRefsNamingStrategy option, request options, error reporting and interrupt handling of the
+ * autoRefs path.
  */
 class RegisterAutoRefsNamingStrategyTest {
 
@@ -88,6 +104,78 @@ class RegisterAutoRefsNamingStrategyTest {
         for (LoggedRequest request : requests) {
             assertEquals("true", request.queryParameter("dryRun").firstValue());
         }
+    }
+
+    @Test
+    void ifExistsReachesEveryAutoRefsRequest() throws Exception {
+        RegisterArtifact artifact = rootArtifact();
+        artifact.setIfExists(IfArtifactExists.FIND_OR_CREATE_VERSION);
+        mojo.setArtifacts(List.of(artifact));
+
+        mojo.execute();
+
+        List<LoggedRequest> requests = server.findAll(postRequestedFor(urlPathEqualTo(ARTIFACTS_PATH)));
+        assertEquals(4, requests.size());
+        for (LoggedRequest request : requests) {
+            assertEquals("FIND_OR_CREATE_VERSION", request.queryParameter("ifExists").firstValue());
+        }
+    }
+
+    @Test
+    void unresolvedReferencesAreReportedTogether(@TempDir Path dir) throws Exception {
+        Path schema = dir.resolve("root.json");
+        Files.writeString(schema, """
+                {"$schema": "http://json-schema.org/draft-07/schema#", "type": "object",
+                 "properties": {"a": {"$ref": "missing-a.json"}, "b": {"$ref": "missing-b.json"}}}
+                """);
+        RegisterArtifact artifact = rootArtifact();
+        artifact.setFile(schema.toFile());
+        mojo.setArtifacts(List.of(artifact));
+        List<Throwable> logged = new ArrayList<>();
+        mojo.setLog(new SystemStreamLog() {
+            @Override
+            public void error(CharSequence content, Throwable error) {
+                logged.add(error);
+            }
+        });
+
+        MojoExecutionException ex = assertThrows(MojoExecutionException.class, mojo::executeInternal);
+
+        assertEquals("Errors while registering artifacts ...", ex.getMessage());
+        assertEquals(1, logged.size());
+        assertEquals("Unable to resolve references: missing-a.json (from root.json), "
+                + "missing-b.json (from root.json)", logged.get(0).getMessage());
+        assertEquals(0, server.findAll(postRequestedFor(urlPathEqualTo(ARTIFACTS_PATH))).size());
+    }
+
+    @Test
+    void interruptDuringChildRegistrationKeepsChildCoordinates() throws Exception {
+        server.stubFor(post(urlPathEqualTo(ARTIFACTS_PATH)).willReturn(aResponse().withStatus(200)
+                .withHeader("Content-Type", "application/json").withBody(RESPONSE).withFixedDelay(30_000)));
+        mojo.setArtifacts(List.of(rootArtifact()));
+        AtomicReference<Throwable> thrown = new AtomicReference<>();
+        AtomicBoolean interruptedAfter = new AtomicBoolean();
+        Thread worker = new Thread(() -> {
+            try {
+                mojo.executeInternal();
+            } catch (Throwable t) {
+                thrown.set(t);
+            }
+            interruptedAfter.set(Thread.currentThread().isInterrupted());
+        });
+
+        worker.start();
+        await().atMost(Duration.ofSeconds(10)).until(() -> !server.getAllServeEvents().isEmpty());
+        worker.interrupt();
+        worker.join(15_000);
+
+        assertFalse(worker.isAlive());
+        MojoExecutionException ex = assertInstanceOf(MojoExecutionException.class, thrown.get());
+        assertEquals("Interrupted while registering artifact [test-group] / [citizen]: "
+                + "Interrupted while registering artifact [test-group] / [./city.json]", ex.getMessage());
+        assertInstanceOf(InterruptedException.class, ex.getCause());
+        assertTrue(interruptedAfter.get());
+        assertEquals(1, server.getAllServeEvents().size());
     }
 
     private RegisterArtifact rootArtifact() {

@@ -462,12 +462,17 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                         // The registry client wraps an InterruptedException (e.g. RuntimeException from
                         // Kiota's Vert.x adapter) and clears the interrupt flag, so look for it in the cause
                         // chain rather than relying on a bare InterruptedException reaching this loop.
-                        InterruptedException interrupt = findInterrupt(e);
+                        InterruptedException interrupt = findCause(e, InterruptedException.class);
                         if (interrupt != null) {
                             Thread.currentThread().interrupt();
-                            throw new MojoExecutionException(String.format(
-                                    "Interrupted while registering artifact [%s] / [%s]", groupId, artifactId),
-                                    interrupt);
+                            // keep the registrar's message, which names the exact (possibly child) artifact
+                            RegistrationException registration = findCause(e, RegistrationException.class);
+                            String message = String.format("Interrupted while registering artifact [%s] / [%s]",
+                                    groupId, artifactId);
+                            if (registration != null) {
+                                message += ": " + registration.getMessage();
+                            }
+                            throw new MojoExecutionException(message, interrupt);
                         }
                         errorCount++;
                         getLog().error(String.format("Exception while registering artifact [%s] / [%s]", groupId,
@@ -485,10 +490,10 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         }
     }
 
-    private static InterruptedException findInterrupt(Throwable t) {
+    private static <T extends Throwable> T findCause(Throwable t, Class<T> type) {
         for (Throwable c = t; c != null; c = c.getCause() == c ? null : c.getCause()) {
-            if (c instanceof InterruptedException) {
-                return (InterruptedException) c;
+            if (type.isInstance(c)) {
+                return type.cast(c);
             }
         }
         return null;

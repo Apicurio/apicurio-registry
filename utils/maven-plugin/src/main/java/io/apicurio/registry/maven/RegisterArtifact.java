@@ -21,11 +21,20 @@ public class RegisterArtifact {
     }
 
     /**
-     * Naming strategy for artifacts discovered by autoRefs. {@code LEGACY} keeps the historical naming
-     * (raw reference strings); {@code DEFAULT} uses normalized source locations.
+     * Naming strategy for artifacts discovered by autoRefs.
      */
     public enum AutoRefsNamingStrategy {
-        LEGACY, DEFAULT
+        /**
+         * Historical naming (raw reference strings). Only under this strategy is
+         * {@link RegisterArtifact#getAvroAutoRefsNamingStrategy() avroAutoRefsNamingStrategy} applied to
+         * decide the group of Avro child artifacts.
+         */
+        LEGACY,
+        /**
+         * Normalized source locations. {@link RegisterArtifact#getAvroAutoRefsNamingStrategy()
+         * avroAutoRefsNamingStrategy} is ignored under this strategy.
+         */
+        DEFAULT
     }
 
     public enum VersionStrategy {

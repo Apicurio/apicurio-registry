@@ -182,4 +182,23 @@ class AccessRulesAuthorizerTest {
         assertFalse(rules.checkForChanges());
         assertEquals(invalidVersion, rules.getLastSeenModified());
     }
+
+    /**
+     * An edit appending a rule after 'otherwise deny;' is rejected on reload, not loaded without
+     * that rule: the appended deny would otherwise silently never apply.
+     */
+    @Test
+    void aReloadWithARuleAfterOtherwiseDenyIsRejected() throws Exception {
+        Path file = write(RULES, 0);
+        AccessRulesAuthorizer rules = AccessRulesAuthorizer.create(file, REGISTRY_TYPES);
+        Subject bob = subject(new User("bob"), new Role("team-a-dev"));
+        assertEquals(Decision.ALLOW, decide(rules, bob, Artifact.READ, "team-a/schema"));
+
+        write(RULES + "deny User with name = \"bob\" to * Artifact with name like \"team-a/*\";\n", 10_000);
+        assertFalse(rules.checkForChanges());
+        // The previous rules stay in effect, as for any invalid file; the error is logged
+        assertEquals(Decision.ALLOW, decide(rules, bob, Artifact.READ, "team-a/schema"));
+        assertThrows(IllegalArgumentException.class,
+                () -> AccessRulesAuthorizer.create(file, REGISTRY_TYPES));
+    }
 }

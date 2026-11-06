@@ -1,0 +1,7 @@
+{
+  "version": "2",
+  "content": {
+    "contentType": "application/json",
+    "content": "{\"name\": \"get_forecast\", \"title\": \"Get forecast\", \"description\": \"Daily weather forecast for a city, using fictional data.\", \"inputSchema\": {\"type\": \"object\", \"properties\": {\"city\": {\"type\": \"string\"}, \"days\": {\"type\": \"integer\", \"minimum\": 1, \"maximum\": 7}, \"units\": {\"type\": \"string\", \"enum\": [\"metric\", \"imperial\"]}}, \"required\": [\"city\", \"units\"]}}"
+  }
+}

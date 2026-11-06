@@ -1,0 +1,68 @@
+name: AI Agent Registry Quickstart
+
+# Brings up distro/docker-compose/ai-agent-registry with the Registry image built for this commit,
+# waits for the seed container, and runs the quickstart smoke test (the commands from the
+# "Getting started with the AI Agent Registry" docs page). Called from verify.yaml and aggregated
+# by the Verification Gate.
+#
+# The web console and registry MCP server images are latest-snapshot: this job tests the stack and
+# the quickstart, and their own changes are tested by the UI and MCP jobs.
+
+on:
+  workflow_call:
+    inputs:
+      image-tag:
+        type: string
+        required: true
+        description: 'Build artifact identifier (commit SHA)'
+
+permissions:
+  contents: read
+
+jobs:
+  agent-quickstart:
+    name: AI Agent Registry Quickstart
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'Apicurio'
+    timeout-minutes: 15
+    env:
+      COMPOSE_FILE: distro/docker-compose/ai-agent-registry/docker-compose.yml
+      REGISTRY_IMAGE: apicurio/apicurio-registry:${{ inputs.image-tag }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Load Registry image for this commit
+        uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
+        with:
+          artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
+          image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
+          image-name: apicurio/apicurio-registry
+          tag: ${{ inputs.image-tag }}
+
+      - name: Start the quickstart stack
+        run: |
+          start=$(date +%s)
+          docker compose up -d --wait apicurio-registry apicurio-registry-ui
+          echo "Registry and web console ready after $(( $(date +%s) - start ))s"
+
+      # docker compose run is synchronous and returns the seed container's exit code.
+      - name: Seed the demo catalog
+        run: docker compose run --rm seed
+
+      - name: Seed again (must change nothing)
+        shell: bash -eo pipefail {0}
+        run: |
+          docker compose run --rm seed | tee seed-rerun.log
+          if grep -q '^created' seed-rerun.log; then echo "::error::the second seed run created artifacts"; exit 1; fi
+
+      - name: Run the quickstart smoke test
+        run: distro/docker-compose/ai-agent-registry/test/smoke-test.sh
+
+      - name: Stack logs
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v

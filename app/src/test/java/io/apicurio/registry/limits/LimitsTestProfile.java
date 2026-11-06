@@ -12,10 +12,10 @@ public class LimitsTestProfile implements QuarkusTestProfile {
         Map<String, String> props = new HashMap<>();
         props.put("apicurio.limits.config.max-total-schemas", "2");
         props.put("apicurio.limits.config.max-artifact-properties", "2");
-        props.put("apicurio.limits.config.max-property-key-size", "4"); // use text test
-        props.put("apicurio.limits.config.max-property-value-size", "4");
+        props.put("apicurio.limits.config.max-property-key-size.bytes", "4"); // use text test
+        props.put("apicurio.limits.config.max-property-value-size.bytes", "4");
         props.put("apicurio.limits.config.max-artifact-labels", "2");
-        props.put("apicurio.limits.config.max-label-size", "4");
+        props.put("apicurio.limits.config.max-label-size.bytes", "8");
         props.put("apicurio.limits.config.max-name-length", "512");
         props.put("apicurio.limits.config.max-description-length", "1024");
 

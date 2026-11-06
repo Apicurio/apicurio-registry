@@ -250,12 +250,12 @@ the endpoint still needs its annotation or an equivalent outer check.
 For an authenticated, non-admin `GET /apis/registry/v3/ids/globalIds/{id}`:
 
 1. `IdsResourceImpl` declares style `GlobalId`, level `Read`; the interceptor applies its gates.
-2. Resource resolution uses `AuthorizationLookups.coordinates` and the cross-request coordinate
-   cache to identify the artifact. The cached value is not the permission decision.
+2. Resource resolution uses `AuthorizationLookups.coordinates` to identify the artifact the global
+   ID names, reading storage once per request.
 3. The owner bypass, if enabled, looks up the artifact's current-request metadata. Otherwise
    `isAllowed(Read, resource)` canonicalizes the name and evaluates `Artifact.READ` for the caller.
 4. After authorization, the endpoint loads content and applies its own existence/state checks.
-   A cached coordinate alone does not make a deleted or disabled version readable.
+   Resolving the artifact does not by itself make a deleted or disabled version readable.
 5. If dereferencing is requested, the reference loader checks each reached artifact separately
    from the root's permission. Access to the root never implies access to its dependencies.
 
@@ -483,26 +483,21 @@ stays missing even if the same request subsequently creates it. Authorize before
 reuse these lookups to establish the ownership of something just created. This memoization is not
 a transaction or a concurrency lock.
 
-### Cross-request global-ID coordinates
+### Global IDs are resolved in every request
 
-[GlobalIdCoordinatesCache](../app/src/main/java/io/apicurio/registry/auth/GlobalIdCoordinatesCache.java)
-is a process-local Caffeine cache of **group/artifact/version only**. It stores no state, labels,
-owner, content, or authorization decision. Defaults are:
+A global ID's coordinates are remembered for the current request only, like every other lookup.
+They are deliberately **not cached across requests**. Ordinary sequence allocation never reuses a
+deleted global ID, but a data import that preserves global IDs (the default) can rebind an ID to a
+different artifact. A cross-request cache would then authorize a request against the artifact the ID
+named before, while the endpoint serves the artifact it names now; a cache local to one process also
+cannot be invalidated on other replicas. Release 3.4.0 development briefly had such a cache
+(#10849); it was removed before release, together with its `apicurio.storage.global-id-cache.*`
+properties. `GrantsAuthorizationTest.aGlobalIdRebindByImportIsAuthorizedAgainstTheNewArtifact` and
+`AuthorizationLookupsTest` cover this.
 
-| Property | Default |
-|---|---|
-| `apicurio.storage.global-id-cache.enabled` | `true` |
-| `apicurio.storage.global-id-cache.max-size` | `100000` |
-
-Resolved IDs are cached without TTL; not-found results are not cached across requests. Ordinary
-sequence allocation does not reuse deleted IDs. Deleting a version does not invalidate its cached
-coordinates; endpoint reads must still validate existence/state. In particular, inbound-reference
-lookups by global ID in v2/v3 deliberately read live version metadata rather than trusting this cache.
-
-This cache is an optimization, not the source of truth for resource identity or access decisions.
-Its lifecycle must be considered together with import/restore and deployment topology; this ADR
-does not establish a concurrency guarantee for those operations. Decision caching is not implemented;
-later metadata caching in #10600 remains separate design work.
+Any future cross-request metadata cache (#10600) must be safe across replicas and imports: it must
+never make an authorization decision from data a later request could see differently.
+Decision caching is not implemented.
 
 ## Observability and failure diagnosis
 
@@ -578,7 +573,7 @@ Tests are executable examples of the boundaries, not proof that every combinatio
 | End-to-end ACL integration | `GrantsAuthorizationTest`, `GrantsInteractionsTest`, `GrantsArtifactScopeTest`, `GrantsIndirectAccessTest` |
 | Filter fallback and bypasses | `GrantsSearchFilterTest`, `AuthorizedInterceptorReadParityTest` |
 | Reported flags versus direct access | `SearchPermissionsTest`, `ResourcePermissionsEvaluatorTest`, `SearchResultPermissionsTest`; omission check in `SearchArtifactsTest` |
-| Lookup/cache behavior | `AuthorizationLookupsTest`, `GlobalIdCoordinatesCacheTest`, `ImportExportTest` |
+| Lookup behavior, global ID rebinding | `AuthorizationLookupsTest`, `GrantsAuthorizationTest` |
 | Generated-schema rejection/races | `EmbeddedSchemaExtractionRejectionTest`, `EmbeddedSchemaServiceTest` and their storage-specific subclasses |
 | Batching additions in #10883 | `ResourceAccessGuardBatchTest`, `AuthorizingReferenceLoaderTest`, `ReferenceResolutionTest`, `RegistryContentUtilsTest`, `ProtobufExporterTest` |
 
@@ -590,7 +585,7 @@ From the repository root, after building the dependencies as described in
 ./mvnw test -pl app -Dtest=GrantsAccessControllerTest,GrantsAuthorizationTest,GrantsInteractionsTest,GrantsIndirectAccessTest,SearchPermissionsTest
 ```
 
-The [Keycloak Compose example](../distro/docker-compose/in-memory-with-authz-grants/) supplies
+The [per-resource authorization example](../examples/per-resource-authorization/) supplies
 `access.rules` and `demo.sh` for a running-system walkthrough. It demonstrates point decisions,
 search filtering, anonymous reads, and denied creation; consult its README for ports and setup.
 
@@ -602,8 +597,8 @@ For storage changes, exercise supported dialects and search backends. See
 
 ## Limitations and open work
 
-1. **Cache lifecycle:** cache tests are not a general guarantee of import/restore consistency
-   across concurrent requests or multiple replicas.
+1. **Concurrent import:** authorization and the operation run against live storage, but not in one
+   transaction; an import running concurrently with a request can change what the request reads.
 2. **No general request snapshot:** metadata memoization and atomic rule-set publication do not
    pin policy, identity roles, ownership, and data to one transaction across a request.
 3. **Search expressiveness:** regex scope fallback, indexed ownership cap/freshness, and supported
@@ -646,7 +641,7 @@ are more useful design boundaries than an assumed fixed rule count or latency cl
 | [#10746](https://github.com/Apicurio/apicurio-registry/pull/10746), amendment 1 (2026-10-27) | Replaced JSON grants with Kroxylicious ACL rules before their first release; retired `GrantsAuthorizer`, `GrantsData`, `Grant`, `SearchFilterData`, and `RolePrincipal` |
 | [#10753](https://github.com/Apicurio/apicurio-registry/pull/10753), amendment 2 (2026-10-28) | Published resource-scope API/TCK and integrated the shared contracts |
 | [#10807](https://github.com/Apicurio/apicurio-registry/pull/10807) | Plan/check/commit for embedded schemas; resolves the early-write rejection case in #10603 |
-| [#10849](https://github.com/Apicurio/apicurio-registry/pull/10849) | Cross-request global-ID coordinate cache and local import invalidation; limitations above remain relevant |
+| [#10849](https://github.com/Apicurio/apicurio-registry/pull/10849) | Cross-request global-ID coordinate cache; removed before release, because an ID-preserving import can rebind a global ID (see "Global IDs are resolved in every request") |
 | [#10858](https://github.com/Apicurio/apicurio-registry/pull/10858) | v3 search/list permission reporting for #10599 |
 | [#10882](https://github.com/Apicurio/apicurio-registry/pull/10882) | Renumbered this ADR from `001` to `0005`, avoiding a duplicate ADR 1 |
 | [#10883](https://github.com/Apicurio/apicurio-registry/pull/10883) | Batches reference authorization: one authorizer call per level or sibling set |

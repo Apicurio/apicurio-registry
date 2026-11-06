@@ -29,6 +29,21 @@ This example application demonstrates the basics of using the registry in a very
 publish/subscribe application using Apache Avro as the schema technology used to serialize
 and deserialize message payloads.
 
+## Per-resource Authorization Example
+This example runs Apicurio Registry, its web console and Keycloak with Docker Compose, with
+per-resource authorization: an access rules file decides which groups and artifacts each user can
+read or write, on top of the Keycloak roles. Its [step-by-step guide](per-resource-authorization/GUIDE.md)
+walks through each feature in the REST API and the UI, and works as a script for a team demo.
+
+## AI Agent Registry Demo
+This example runs every agent registry feature of Apicurio Registry with Docker Compose: Agent
+Cards, MCP tools and servers, prompt templates and model schemas; references and compatibility
+rules; agent and tool discovery, the AI Catalog and ARD; the MCP Registry API; importing tools from a
+running MCP server; agent visibility and access rules with Keycloak; and the Registry MCP server.
+Quarkus LangChain4j agents publish their Agent Cards and discover each other and an MCP server
+through the Registry. Its [step-by-step guide](agent-registry/GUIDE.md) walks through each feature,
+with screenshots, and works as a script for a team demo.
+
 ## Simple JSON Schema Example
 This example application demonstrates the basics of using the registry in a very simple Kafka
 publish/subscribe application using JSON Schema to validate message payloads when both producing
@@ -122,6 +137,16 @@ The demo includes a multi-agent workflow that processes customer complaints thro
 summarization, and translation agents - all using real HTTP communication.
 
 See the [a2a-real-world-integration](a2a-real-world-integration/) directory for details.
+
+## Agent Registry Workflow with Quarkus LangChain4j
+
+An end-to-end sample combining Registry-backed A2A agent publication, discovery and
+summarize-to-translate delegation with MCP tool discovery and invocation. It also
+demonstrates compatibility rejection and accepted version changes.
+
+See [agent-registry-workflow](agent-registry-workflow/) for the external sample and
+run instructions. The sample is currently available as a contributor-branch preview
+in Quarkus LangChain4j.
 
 ## Custom Artifact Types (Java providers)
 

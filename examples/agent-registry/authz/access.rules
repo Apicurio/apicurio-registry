@@ -1,0 +1,21 @@
+// Access rules for the secured Registry of the agent registry demo, in the Kroxylicious ACL rules
+// format. See GUIDE.md, part 4. admin has the sr-admin role: RBAC admins bypass these rules.
+from io.apicurio.authz import Artifact, Group, Role;
+
+// developer publishes agents in the shared "agents" group, and owns the private one
+allow User with name = "developer" to WRITE Group with name = "agents";
+allow User with name = "developer" to WRITE Artifact with name like "agents/*";
+
+// every developer and read-only user can read the shared agents
+allow Role with name in {"sr-developer", "sr-readonly"} to READ Group with name = "agents";
+allow Role with name in {"sr-developer", "sr-readonly"} to READ Artifact with name like "agents/*";
+
+// only developer can read team-b, so team-b's agents are discoverable by developer only
+allow User with name = "developer" to READ Group with name = "team-b";
+allow User with name = "developer" to READ Artifact with name like "team-b/*";
+
+// unauthenticated callers can read the public agent only
+allow Role with name = "$anonymous" to READ Group with name = "agents";
+allow Role with name = "$anonymous" to READ Artifact with name = "agents/public-agent";
+
+otherwise deny;

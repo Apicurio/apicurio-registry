@@ -112,8 +112,8 @@ public class McpRegistryApiResourceImpl implements ApisResource {
      * Label holding a published version's UUID. {@code globalId} is unique only within one registry
      * instance, so the id is minted at publish time and persisted rather than recomputed.
      */
-    private static final String SERVER_VERSION_ID_LABEL = "apicurio.mcp-registry.version-id";
-    private static final String LEGACY_SERVER_VERSION_ID_LABEL = "mcp-server-version-id";
+    static final String SERVER_VERSION_ID_LABEL = "apicurio.mcp-registry.version-id";
+    static final String LEGACY_SERVER_VERSION_ID_LABEL = "mcp-server-version-id";
 
     private static final String META_ID = "id";
     private static final String META_PUBLISHED_AT = "publishedAt";
@@ -124,7 +124,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
     private static final String LATEST_VERSION = "latest";
     private static final int DEFAULT_PAGE_SIZE = 30;
     private static final int STATUS_MESSAGE_MAX_LENGTH = 500;
-    private static final String STATUS_PREFIX = "apicurio.mcp-registry.status.";
+    static final String STATUS_PREFIX = "apicurio.mcp-registry.status.";
 
     /** Internal envelope data must not overwrite publisher-owned server._meta keys. */
     @RegisterForReflection

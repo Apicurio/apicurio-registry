@@ -4,36 +4,41 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.microsoft.kiota.ApiException;
-import io.apicurio.registry.content.ContentHandle;
-import io.apicurio.registry.content.TypedContent;
-import io.apicurio.registry.content.refs.ExternalReference;
-import io.apicurio.registry.content.refs.ReferenceFinder;
-import io.apicurio.registry.maven.refs.IndexedResource;
-import io.apicurio.registry.maven.refs.ReferenceIndex;
+import io.apicurio.registry.client.refs.ReferenceRegistrar;
+import io.apicurio.registry.client.refs.RegistrationException;
+import io.apicurio.registry.client.refs.RegistrationListener;
+import io.apicurio.registry.client.refs.VersionStrategy;
+import io.apicurio.registry.content.refs.resolve.ArtifactNamingStrategy;
+import io.apicurio.registry.content.refs.resolve.DefaultNamingStrategy;
+import io.apicurio.registry.content.refs.resolve.ExistingArtifact;
+import io.apicurio.registry.content.refs.resolve.LegacyNamingStrategy;
+import io.apicurio.registry.content.refs.resolve.PlanOptions;
+import io.apicurio.registry.content.refs.resolve.PlannedArtifact;
+import io.apicurio.registry.content.refs.resolve.ReferenceCycleException;
+import io.apicurio.registry.content.refs.resolve.ReferenceResolver;
+import io.apicurio.registry.content.refs.resolve.RegistrationPlan;
+import io.apicurio.registry.content.refs.resolve.RegistryUrlReferenceResolver;
+import io.apicurio.registry.content.refs.resolve.RootArtifact;
+import io.apicurio.registry.content.refs.resolve.SchemaSourceSet;
+import io.apicurio.registry.content.refs.resolve.UnresolvedReferencesException;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.*;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
-import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.DefaultArtifactTypeUtilProviderImpl;
 import io.vertx.core.Vertx;
-import org.apache.commons.io.FileUtils;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import java.io.*;
-import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 /**
  * Register artifacts against registry.
@@ -66,11 +71,8 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
     @Parameter(property = "dryRun", defaultValue = "false")
     boolean dryRun;
 
-    private RegisterArtifact.AvroAutoRefsNamingStrategy avroAutoRefsNamingStrategy;
-
     DefaultArtifactTypeUtilProviderImpl utilProviderFactory = new DefaultArtifactTypeUtilProviderImpl(true);
     private static final String ARTIFACTS_PROPERTY_PREFIX = "artifacts.";
-    private Pattern registryArtifactUrlPattern;
 
     /**
      * Validate the configuration.
@@ -265,11 +267,20 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                             + Arrays.toString(RegisterArtifact.AvroAutoRefsNamingStrategy.values()));
                 }
                 break;
+            case "autoRefsNamingStrategy":
+                try {
+                    artifact.setAutoRefsNamingStrategy(RegisterArtifact.AutoRefsNamingStrategy.valueOf(value));
+                } catch (IllegalArgumentException e) {
+                    throw new MojoExecutionException("Invalid value for " + propertyKey + ": " + value
+                            + ". Allowed values are: "
+                            + Arrays.toString(RegisterArtifact.AutoRefsNamingStrategy.values()));
+                }
+                break;
             default:
                 throw new MojoExecutionException("Unsupported CLI property for artifact configuration: "
                         + propertyKey + ". Supported fields include groupId, artifactId, artifactType, file, ifExists, "
                         + "canonicalize, minify, autoRefs, isDraft, contentType, version, "
-                        + "versionStrategy, avroAutoRefsNamingStrategy, references.<index>.<field>, "
+                        + "versionStrategy, avroAutoRefsNamingStrategy, autoRefsNamingStrategy, references.<index>.<field>, "
                         + "existingReferences.<index>.<field>, protoPaths.<index>.");
         }
     }
@@ -438,15 +449,7 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                     String artifactId = artifact.getArtifactId();
                     try {
                         if (artifact.getAutoRefs() != null && artifact.getAutoRefs()) {
-                            // If we have references, then we'll need to create the local resource index and then
-                            // process all refs.
-                            ReferenceIndex index = createIndex(artifact);
-                            addExistingReferencesToIndex(registryClient, index, existingReferences);
-                            addExistingReferencesToIndex(registryClient, index, artifact.getExistingReferences());
-                            Deque<RegisterArtifact> registrationStack = new ArrayDeque<>();
-
-                            this.avroAutoRefsNamingStrategy = artifact.getAvroAutoRefsNamingStrategy();
-                            registerWithAutoRefs(registryClient, artifact, index, registrationStack);
+                            registerWithAutoRefs(registryClient, artifact);
                         } else {
                             List<ArtifactReference> references = new ArrayList<>();
                             // First, we check if the artifact being processed has references defined
@@ -491,157 +494,67 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         return null;
     }
 
-    private VersionMetaData registerWithAutoRefs(RegistryClient registryClient, RegisterArtifact artifact,
-                                                 ReferenceIndex index, Deque<RegisterArtifact> registrationStack) throws IOException,
-            ExecutionException, InterruptedException, MojoExecutionException, MojoFailureException {
-        if (loopDetected(artifact, registrationStack)) {
-            throw new MojoExecutionException(
-                    "Artifact reference loop detected (not supported): " + printLoop(registrationStack));
-        }
-        registrationStack.push(artifact);
+    private void registerWithAutoRefs(RegistryClient registryClient, RegisterArtifact artifact)
+            throws MojoExecutionException, MojoFailureException {
+        List<Path> dirs = artifact.getProtoPaths() != null
+                ? artifact.getProtoPaths().stream().map(File::toPath).toList()
+                : List.of(artifact.getFile().getParentFile().toPath());
+        SchemaSourceSet sources = SchemaSourceSet.fromDirectories(dirs, SchemaSourceSet.DEFAULT_FILTER);
+        String rootLocation = sources.locationOf(artifact.getFile().toPath());
+        List<ExistingArtifact> existing = Stream
+                .concat(streamOf(existingReferences), streamOf(artifact.getExistingReferences()))
+                .map(r -> new ExistingArtifact(r.getResourceName(), r.getGroupId(), r.getArtifactId(),
+                        r.getVersion()))
+                .toList();
+        ArtifactNamingStrategy naming = artifact.getAutoRefsNamingStrategy()
+                == RegisterArtifact.AutoRefsNamingStrategy.DEFAULT
+                ? DefaultNamingStrategy.INSTANCE
+                : new LegacyNamingStrategy(LegacyNamingStrategy.AvroMode.valueOf(
+                        artifact.getAvroAutoRefsNamingStrategy().name()), utilProviderFactory);
+        try {
+            RegistrationPlan plan = ReferenceResolver.plan(
+                    List.of(new RootArtifact(rootLocation, artifact.getGroupId(), artifact.getArtifactId(),
+                            artifact.getArtifactType(), artifact.getContentType(), artifact.getVersion(),
+                            artifact.getIsDraft())),
+                    sources, PlanOptions.builder().namingStrategy(naming).existingArtifacts(existing)
+                            .urlResolver(new RegistryUrlReferenceResolver(registryUrl))
+                            .providerFactory(utilProviderFactory).build());
+            ReferenceRegistrar.builder(registryClient).ifExists(toClientIfExists(artifact.getIfExists()))
+                    .canonical(artifact.getCanonicalize()).dryRun(dryRun)
+                    .minify(Boolean.TRUE.equals(artifact.getMinify()))
+                    .versionStrategy(artifact.getVersionStrategy() == RegisterArtifact.VersionStrategy.API_INFO_VERSION
+                            ? VersionStrategy.apiInfoVersion() : VersionStrategy.explicitOnly())
+                    .listener(new RegistrationListener() {
+                        @Override
+                        public void onRegistered(PlannedArtifact a, VersionMetaData v) {
+                            getLog().info(String.format(
+                                    "Successfully registered artifact [%s] / [%s].  GlobalId is [%d]",
+                                    v.getGroupId(), v.getArtifactId(), v.getGlobalId()));
+                        }
 
-        // Read the artifact content.
-        ContentHandle artifactContent = readContent(artifact.getFile());
-        String artifactContentType = getContentTypeByExtension(artifact.getFile().getName());
-        // Set the content type on the artifact if not already explicitly set by the user
-        if (artifact.getContentType() == null) {
-            artifact.setContentType(artifactContentType);
-        }
-        TypedContent typedArtifactContent = TypedContent.create(artifactContent, artifactContentType);
-
-        // Find all references in the content
-        ArtifactTypeUtilProvider provider = this.utilProviderFactory
-                .getArtifactTypeProvider(artifact.getArtifactType());
-        ReferenceFinder referenceFinder = provider.getReferenceFinder();
-        var referenceArtifactIdentifierExtractor = provider.getReferenceArtifactIdentifierExtractor();
-        Set<ExternalReference> externalReferences = referenceFinder
-                .findExternalReferences(typedArtifactContent);
-
-        // Register all the references first, then register the artifact.
-        List<ArtifactReference> registeredReferences = new ArrayList<>(externalReferences.size());
-        Map<String, VersionMetaData> resolvedRegistryReferences = new HashMap<>(); // avoid multiple lookups
-        for (ExternalReference externalRef : externalReferences) {
-            IndexedResource iresource = index.lookup(externalRef.getResource(),
-                    Paths.get(artifact.getFile().toURI()));
-
-            if (iresource == null) {
-                Optional<ArtifactReference> registryReference = resolveRegistryReference(registryClient,
-                        externalRef, resolvedRegistryReferences);
-                if (registryReference.isPresent()) {
-                    registeredReferences.add(registryReference.orElseThrow());
-                    continue;
-                }
-
-                if (ReferenceUrlUtil.isAbsoluteUri(externalRef.getResource())) {
-                    getLog().warn("Skipping external reference not managed by Apicurio Registry: "
-                            + externalRef.getFullReference());
-                    continue;
-                }
-
-                throw new MojoExecutionException("Reference could not be resolved.  From: "
-                        + artifact.getFile().getName() + "  To: " + externalRef.getFullReference());
+                        @Override
+                        public void onWarning(String message) {
+                            getLog().warn(message);
+                        }
+                    }).build().execute(plan);
+        } catch (ReferenceCycleException | UnresolvedReferencesException e) {
+            throw new MojoExecutionException(e.getMessage(), e);
+        } catch (RegistrationException e) {
+            if (e.problem() instanceof RuleViolationProblemDetails rv) {
+                logAndThrow(rv);
+            } else if (e.problem() instanceof ProblemDetails pd) {
+                logAndThrow(pd);
             }
-
-            // If the resource isn't already registered, then register it now.
-            if (!iresource.isRegistered()) {
-                String groupId = artifact.getGroupId(); // default is same group as root artifact
-                // TODO: determine the artifactId better (type-specific logic here?)
-                String artifactId = referenceArtifactIdentifierExtractor.extractArtifactId(externalRef.getResource());
-                if (ArtifactType.AVRO.equals(iresource.getType())) {
-                    if (avroAutoRefsNamingStrategy == RegisterArtifact.AvroAutoRefsNamingStrategy.USE_AVRO_NAMESPACE) {
-                        groupId = referenceArtifactIdentifierExtractor.extractGroupId(externalRef.getResource());
-                        artifactId = referenceArtifactIdentifierExtractor.extractArtifactId(externalRef.getResource());
-                    }
-                    if (avroAutoRefsNamingStrategy == RegisterArtifact.AvroAutoRefsNamingStrategy.INHERIT_PARENT_GROUP) {
-                        groupId = artifact.getGroupId(); // same group as root artifact
-                        artifactId = iresource.getResourceName(); // fq name
-                    }
-                }
-                File localFile = getLocalFile(iresource.getPath());
-                RegisterArtifact refArtifact = buildFromRoot(artifact, artifactId, groupId);
-                refArtifact.setArtifactType(iresource.getType());
-                refArtifact.setVersion(null);
-                refArtifact.setFile(localFile);
-                refArtifact.setContentType(getContentTypeByExtension(localFile.getName()));
-                try {
-                    var car = registerWithAutoRefs(registryClient, refArtifact, index, registrationStack);
-                    iresource.setRegistration(car);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException(e);
-                } catch (IOException | ExecutionException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-
-            var reference = new ArtifactReference();
-            reference.setName(externalRef.getFullReference());
-            reference.setVersion(iresource.getRegistration().getVersion());
-            reference.setGroupId(iresource.getRegistration().getGroupId());
-            reference.setArtifactId(iresource.getRegistration().getArtifactId());
-            registeredReferences.add(reference);
+            throw new MojoExecutionException(e.getMessage(), e);
         }
-        registeredReferences.sort((ref1, ref2) -> ref1.getName().compareTo(ref2.getName()));
-
-        registrationStack.pop();
-        return registerArtifact(registryClient, artifact, registeredReferences);
     }
 
-    private Optional<ArtifactReference> resolveRegistryReference(RegistryClient registryClient,
-                                                                 ExternalReference externalRef,
-                                                                 Map<String, VersionMetaData> resolvedRegistryReferences) {
-        Optional<RegistryReferenceLocation> location = parseRegistryReferenceLocation(externalRef.getResource());
-        if (location.isEmpty()) {
-            return Optional.empty();
-        }
-
-        RegistryReferenceLocation ref = location.orElseThrow();
-        VersionMetaData vmd = resolvedRegistryReferences.get(externalRef.getResource());
-        if (vmd == null) {
-            vmd = getRegistryReferenceMetadata(registryClient, ref);
-            resolvedRegistryReferences.put(externalRef.getResource(), vmd);
-        }
-        return Optional.of(buildReferenceFromMetadata(vmd,
-                ReferenceUrlUtil.registryReferenceName(externalRef.getFullReference())));
+    private static Stream<ExistingReference> streamOf(List<ExistingReference> refs) {
+        return refs == null ? Stream.empty() : refs.stream();
     }
 
-    private VersionMetaData getRegistryReferenceMetadata(RegistryClient registryClient,
-                                                         RegistryReferenceLocation ref) {
-        return registryClient.groups().byGroupId(ref.groupId).artifacts()
-                .byArtifactId(ref.artifactId).versions().byVersionExpression(ref.versionExpression).get();
-    }
-
-    private Optional<RegistryReferenceLocation> parseRegistryReferenceLocation(String resource) {
-        if (resource == null || registryUrl == null) {
-            return Optional.empty();
-        }
-
-        if (!ReferenceUrlUtil.isSameApicurioServer(registryUrl, resource)) {
-            return Optional.empty();
-        }
-
-        URI resourceUri = URI.create(resource);
-        Matcher matcher = registryArtifactUrlPattern.matcher(resourceUri.getRawPath());
-        if (!matcher.matches()) {
-            return Optional.empty();
-        }
-
-        return Optional.of(new RegistryReferenceLocation(
-                ReferenceUrlUtil.decodePathSegment(matcher.group(1)),
-                ReferenceUrlUtil.decodePathSegment(matcher.group(2)),
-                ReferenceUrlUtil.decodePathSegment(matcher.group(3))));
-    }
-
-    private static class RegistryReferenceLocation {
-        private final String groupId;
-        private final String artifactId;
-        private final String versionExpression;
-
-        private RegistryReferenceLocation(String groupId, String artifactId, String versionExpression) {
-            this.groupId = groupId;
-            this.artifactId = artifactId;
-            this.versionExpression = versionExpression;
-        }
+    private static IfArtifactExists toClientIfExists(io.apicurio.registry.rest.v3.beans.IfArtifactExists value) {
+        return value == null ? null : IfArtifactExists.forValue(value.value());
     }
 
     private VersionMetaData registerArtifact(RegistryClient registryClient, RegisterArtifact artifact,
@@ -888,14 +801,6 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         this.artifacts = artifacts;
     }
 
-    @Override
-    public void setRegistryUrl(String registryUrl) {
-        super.setRegistryUrl(registryUrl);
-        this.registryArtifactUrlPattern = registryUrl == null
-                ? null
-                : ReferenceUrlUtil.createRegistryArtifactUrlPattern(registryUrl);
-    }
-
     public void setSkip(boolean skip) {
         this.skip = skip;
     }
@@ -908,127 +813,6 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
         reference.setGroupId(metaData.getGroupId());
         reference.setVersion(metaData.getVersion());
         return reference;
-    }
-
-    private static boolean isFileAllowedInIndex(File file) {
-        return file.isFile() && (
-                file.getName().toLowerCase().endsWith(".json") ||
-                        file.getName().toLowerCase().endsWith(".yml") ||
-                        file.getName().toLowerCase().endsWith(".yaml") ||
-                        file.getName().toLowerCase().endsWith(".xml") ||
-                        file.getName().toLowerCase().endsWith(".xsd") ||
-                        file.getName().toLowerCase().endsWith(".wsdl") ||
-                        file.getName().toLowerCase().endsWith(".graphql") ||
-                        file.getName().toLowerCase().endsWith(".avsc") ||
-                        file.getName().toLowerCase().endsWith(".proto")
-        );
-    }
-
-    /**
-     * Create a local index relative to the given file location.
-     *
-     * @param artifact
-     */
-    private static ReferenceIndex createIndex(RegisterArtifact artifact) {
-        File file = artifact.getFile();
-        ReferenceIndex index = new ReferenceIndex(file.getParentFile().toPath());
-        if (artifact.getProtoPaths() != null) {
-            artifact.getProtoPaths().forEach(path -> index.addSchemaPath(path.toPath()));
-        }
-
-        HashSet<File> roots = new HashSet<>();
-        if (artifact.getProtoPaths() != null) {
-            roots.addAll(artifact.getProtoPaths());
-        } else {
-            roots.add(file.getParentFile());
-        }
-
-        Collection<File> allFiles = new HashSet<>();
-        for (File root : roots) {
-            allFiles.addAll(FileUtils.listFiles(root, null, true));
-            allFiles.stream().filter(RegisterRegistryMojo::isFileAllowedInIndex).forEach(f -> {
-                index.index(f.toPath(), readContent(f));
-            });
-        }
-
-        return index;
-    }
-
-    private void addExistingReferencesToIndex(RegistryClient registryClient, ReferenceIndex index,
-                                              List<ExistingReference> existingReferences) throws ExecutionException, InterruptedException {
-        if (existingReferences != null && !existingReferences.isEmpty()) {
-            for (ExistingReference ref : existingReferences) {
-                VersionMetaData vmd;
-                if (ref.getVersion() == null || "LATEST".equalsIgnoreCase(ref.getVersion())) {
-                    vmd = registryClient.groups().byGroupId(ref.getGroupId()).artifacts()
-                            .byArtifactId(ref.getArtifactId()).versions().byVersionExpression("branch=latest")
-                            .get();
-                } else {
-                    vmd = new VersionMetaData();
-                    vmd.setGroupId(ref.getGroupId());
-                    vmd.setArtifactId(ref.getArtifactId());
-                    vmd.setVersion(ref.getVersion());
-                }
-                index.index(ref.getResourceName(), vmd);
-            }
-        }
-    }
-
-    protected static ContentHandle readContent(File file) {
-        try {
-            return ContentHandle.create(Files.readAllBytes(file.toPath()));
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to read schema file: " + file, e);
-        }
-    }
-
-    protected static RegisterArtifact buildFromRoot(RegisterArtifact rootArtifact, String artifactId, String groupId) {
-        RegisterArtifact nestedSchema = new RegisterArtifact();
-        nestedSchema.setCanonicalize(rootArtifact.getCanonicalize());
-        nestedSchema.setArtifactId(artifactId);
-        nestedSchema.setGroupId(groupId == null ? rootArtifact.getGroupId() : groupId);
-        nestedSchema.setContentType(rootArtifact.getContentType());
-        nestedSchema.setArtifactType(rootArtifact.getArtifactType());
-        nestedSchema.setMinify(rootArtifact.getMinify());
-        nestedSchema.setContentType(rootArtifact.getContentType());
-        nestedSchema.setIfExists(rootArtifact.getIfExists());
-        nestedSchema.setAutoRefs(rootArtifact.getAutoRefs());
-        return nestedSchema;
-    }
-
-    private static File getLocalFile(Path path) {
-        return path.toFile();
-    }
-
-    /**
-     * Detects a loop by looking for the given artifact in the registration stack.
-     *
-     * @param artifact
-     * @param registrationStack
-     */
-    private static boolean loopDetected(RegisterArtifact artifact,
-                                        Deque<RegisterArtifact> registrationStack) {
-        for (RegisterArtifact stackArtifact : registrationStack) {
-            if (artifact.getFile().equals(stackArtifact.getFile())) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static String printLoop(Deque<RegisterArtifact> registrationStack) {
-        // descendingIterator: bottom-to-top (root → leaf), matching the original
-        // Stack iteration order. ArrayDeque.stream() iterates head-to-tail
-        // (most-recently-pushed first), which would reverse the chain.
-        var sb = new StringBuilder();
-        var it = registrationStack.descendingIterator();
-        while (it.hasNext()) {
-            if (sb.length() > 0) {
-                sb.append(" -> ");
-            }
-            sb.append(it.next().getFile().getName());
-        }
-        return sb.toString();
     }
 
 }

@@ -63,4 +63,18 @@ class SchemaSourceSetTest {
         assertEquals("Duplicate schema source location: a.json", ex.getMessage());
         assertEquals(1, set.sources().size());
     }
+
+    @Test
+    void locationOfReturnsPrimaryLocationForFile() throws IOException {
+        Files.createDirectories(tmp.resolve("common"));
+        Path address = tmp.resolve("common/Address.avsc");
+        Files.writeString(address, "{}");
+
+        SchemaSourceSet set = SchemaSourceSet.fromDirectories(List.of(tmp), SchemaSourceSet.DEFAULT_FILTER);
+
+        assertEquals("common/Address.avsc", set.locationOf(address));
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> set.locationOf(tmp.resolve("missing.avsc")));
+        assertEquals("No schema source for file: " + tmp.resolve("missing.avsc"), ex.getMessage());
+    }
 }

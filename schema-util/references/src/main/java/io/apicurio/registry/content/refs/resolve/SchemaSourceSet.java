@@ -124,6 +124,22 @@ public final class SchemaSourceSet {
     }
 
     /**
+     * Returns the primary location of the file-backed source for the given file path.
+     *
+     * @param file the file path (made absolute and normalized before comparison)
+     * @return the primary location of the matching source
+     * @throws IllegalArgumentException if no file-backed source exists for the path
+     */
+    public String locationOf(Path file) {
+        Path abs = file.toAbsolutePath().normalize();
+        return sources.values().stream()
+                .filter(s -> s instanceof FileSchemaSource && ((FileSchemaSource) s).file().equals(abs))
+                .map(SchemaSource::location)
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("No schema source for file: " + file));
+    }
+
+    /**
      * Normalizes a location to a POSIX path: backslashes become slashes, "." and ".." segments are
      * resolved, and any leading "./" or "/" is stripped.
      *

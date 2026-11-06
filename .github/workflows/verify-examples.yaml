@@ -175,6 +175,25 @@ jobs:
           find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
           find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
 
+      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
+        with:
+          artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
+          image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
+          image-name: apicurio/apicurio-registry
+          tag: ${{ inputs.image-tag }}
+
+      # The *-maven-with-references examples register their schemas with the Maven plugin
+      # during the build, against this registry on localhost:8080.
+      - name: Run Apicurio Registry application
+        run: |
+          docker run -d -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
+          for _ in $(seq 1 60); do
+            curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null && exit 0
+            sleep 2
+          done
+          echo "::error::the registry did not start"
+          exit 1
+
       - name: Build Apicurio Registry with Examples
         run: |
           # -T 1: single-threaded (overrides .mvn/maven.config's -T 1C to prevent module ordering issues with examples)

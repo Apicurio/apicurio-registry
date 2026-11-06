@@ -55,6 +55,9 @@ import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.REQUE
  * applies {@link #BEFORE_MARKER_GROUP}; starting at the position does not.</li>
  * <li>{@value #POSITION_PAST_MARKER}: the position points at the record after the marker, which the
  * registry must detect and fall back to reading the journal from the beginning.</li>
+ * <li>{@value #POSITION_AT_JOURNAL_END}: the position is the journal end offset once the registry has
+ * appended its bootstrap record, which the registry must reject and read the journal from the
+ * beginning instead.</li>
  * </ul>
  */
 public class KafkaSqlSnapshotRestoreTestResource extends KafkaTestContainerManager {
@@ -69,6 +72,7 @@ public class KafkaSqlSnapshotRestoreTestResource extends KafkaTestContainerManag
     static final String SCENARIO = "scenario";
     static final String SEEK_TO_MARKER = "seek-to-marker";
     static final String POSITION_PAST_MARKER = "position-past-marker";
+    static final String POSITION_AT_JOURNAL_END = "position-at-journal-end";
 
     private static final long SEED_TIMEOUT_SECONDS = 30;
 
@@ -194,9 +198,16 @@ public class KafkaSqlSnapshotRestoreTestResource extends KafkaTestContainerManag
         List<Header> markerPosition = List.of();
         if (scenario != null) {
             int markerIndex = messages.lastIndexOf(marker);
-            int positionIndex = POSITION_PAST_MARKER.equals(scenario) ? markerIndex + 1 : markerIndex;
-            markerPosition = new JournalPosition(0, offsets.get(positionIndex))
-                    .toHeaders();
+            long position = switch (scenario) {
+                case POSITION_PAST_MARKER -> offsets.get(markerIndex + 1);
+                // startConsumerThread appends one bootstrap record (submitBootstrap) before it
+                // subscribes, so the journal then ends two past the last seeded offset. If that ever
+                // changes, this position stops being the end and the scenario tests something else.
+                case POSITION_AT_JOURNAL_END -> offsets.get(offsets.size() - 1) + 2;
+                case SEEK_TO_MARKER -> offsets.get(markerIndex);
+                default -> throw new IllegalArgumentException("Unknown scenario " + scenario);
+            };
+            markerPosition = new JournalPosition(0, position).toHeaders();
         }
         // The rejected record is sent second so its timestamp is newer: the registry has to skip it
         // rather than merely prefer the older valid one.

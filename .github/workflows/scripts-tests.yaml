@@ -82,6 +82,7 @@ jobs:
       - name: Run shell script tests
         run: |
           bash .github/scripts/scalpel-summary.test.sh
+          bash .github/scripts/discover-examples.test.sh
           bash .github/actions/newer-than-published/newer-than-published.test.sh
 
       # test_classify.py (no _unit suffix) is deliberately not run here — it is

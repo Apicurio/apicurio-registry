@@ -481,6 +481,14 @@ jobs:
     with:
       image-tag: ${{ github.sha }}
 
+  examples:
+    name: Examples
+    needs: [decide, build-java, build-ui]
+    if: needs.decide.outputs.run-examples == 'true'
+    uses: ./.github/workflows/verify-examples.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
   operator:
     name: Operator Tests
     needs: [decide]
@@ -521,7 +529,7 @@ jobs:
           || needs.decide.outputs.lifecycle-ready == 'true')
     needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
             cli-verify, ard-conformance, agent-quickstart, go-sdk-freshness, sdk, console-plugin,
-            integration-tests, extras, operator, docs]
+            integration-tests, extras, examples, operator, docs]
     runs-on: ubuntu-latest
     timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min
     steps:

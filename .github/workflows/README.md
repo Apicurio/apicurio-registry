@@ -66,11 +66,12 @@ disagree with one that started after — Decide re-evaluates live, every time.
 
 | Flag | Paths | Phases |
 |------|-------|--------|
-| `java` | `app/`, `common/`, `schema-*/`, `serdes/`, `config-index/`, `java-sdk/`, `mcp/`, `distro/`, `pom.xml`, and the code or generated parts of `docs/` (`docs/pom.xml`, `docs/config-generator/`, `docs/rest-api/`, `ref-registry-all-configs.*`) | build, unit-tests, extras, sdk |
-| `ui` | `ui/` | build, extras |
+| `java` | `app/`, `common/`, `schema-*/`, `serdes/`, `config-index/`, `java-sdk/`, `mcp/`, `distro/`, `pom.xml`, and the code or generated parts of `docs/` (`docs/pom.xml`, `docs/config-generator/`, `docs/rest-api/`, `ref-registry-all-configs.*`) | build, unit-tests, extras, examples, sdk |
+| `ui` | `ui/` | build, extras, examples |
 | `integration` | `app/`, `common/`, `integration-tests/`, `schema-*/`, `serdes/`, `distro/`, `pom.xml` | integration-tests |
 | `sdk` | `java-sdk/`, `go-sdk/`, `python-sdk/`, `typescript-sdk/` | build, sdk |
 | `cli` | `cli/`, `java-sdk/`, `verify-cli.yaml` | build, cli-verify |
+| `examples` | `examples/`, `.github/scripts/discover-examples.sh` | build, examples |
 | `ci` | `.github/workflows/**` | all test phases except cli-verify |
 | `docs` | `docs/`, `docs-playbook/` | docs (Docs Check) |
 
@@ -361,7 +362,8 @@ non-Java changes (docs, UI).
 | `verify-unit-tests.yaml` | Called by verify | Unit tests in 7 parallel shards (see above) | ~14 min (critical path) |
 | `scalpel-report` (job in `verify.yaml`) | PR with java changes | Scalpel affected-module analysis in report mode; uploads a JSON artifact plus a summary for offline analysis (see [Reading the Scalpel report](#reading-the-scalpel-report)). Not in the Verification Gate. Opt out per PR with the `ci/disable-scalpel` label, which also turns off Scalpel in the `non-app` unit-test shard | ~2 min |
 | `verify-integration-tests.yaml` | Called by verify | 13-job matrix across storage backends, each with Minikube | ~15 min per job |
-| `verify-extras.yaml` | Called by verify | 5 parallel jobs: extra tests, UI Playwright tests, legacy V2 compatibility tests, TypeScript SDK tests, example builds | ~13 min |
+| `verify-extras.yaml` | Called by verify | 3 parallel jobs: UI Playwright tests, legacy V2 compatibility tests, TypeScript SDK tests | ~19 min |
+| `verify-examples.yaml` | Called by verify | One job per runnable example (`examples/*/demo.sh` with a Compose file, run twice against this commit's images; see `examples/TEMPLATE.md`), plus compilation of the Java examples | ~13 min |
 | `verify-sdk.yaml` | Called by verify | Go and Python SDK verification | ~2 min |
 | `verify-cli.yaml` | Called by verify | CLI native build (GraalVM) + tests on Linux and macOS. Conditional on `cli/` or `java-sdk/` changes | ~15-25 min |
 | `verify-publish.yaml` | Called by verify | Push Docker images (app, UI, MCP, GitOps) to DockerHub and Quay.io. Main branch only, one run at a time, and only a commit newer than the one `latest-snapshot` holds (see [Re-runs and snapshot publishing on main](#re-runs-and-snapshot-publishing-on-main)). Uses `reusable-docker-build.yaml` for multi-arch builds | ~30-40 min |

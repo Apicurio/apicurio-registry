@@ -41,9 +41,11 @@ non-obvious line.
 - **Compose is commented**: every non-default setting says why it is there. Use health checks and
   `depends_on: condition: service_healthy` instead of sleeps. Reuse shared files (for example
   `distro/docker-compose/config/realm.json`) rather than copying them.
-- **Select the Registry images through `REGISTRY_IMAGE` and `REGISTRY_UI_IMAGE`**, defaulting to
-  `latest-snapshot` (`image: ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}`). CI
-  sets them to the images built for the pull request; locally they also run a local build.
+- **Select the Registry images through `REGISTRY_IMAGE`, `REGISTRY_UI_IMAGE` and
+  `MCP_SERVER_IMAGE`**, defaulting to `latest-snapshot`
+  (`image: ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}`). CI sets them to the images
+  built for the pull request, and fails an example that would run any other Apicurio Registry image;
+  locally they also run a local build.
 - **Say what is not production-ready** (dev-mode Keycloak, relaxed issuer checks, in-memory storage).
 - **Link both ways:** the README links the user documentation and the ADR; the ADR links the example.
 - **Replaces older examples?** Delete them in the same PR, and update [`README.md`](README.md).
@@ -54,8 +56,9 @@ Every directory under `examples/` with an executable `demo.sh` and a Compose fil
 ([`verify-examples.yaml`](../.github/workflows/verify-examples.yaml)), in its own job, on every pull
 request that changes an example, the server or the UI, and on every push to `main`:
 
-1. `docker compose up -d`, with `REGISTRY_IMAGE` and `REGISTRY_UI_IMAGE` set to the images under test.
-   Other images are pulled, with retries.
+1. `docker compose up -d`, with `REGISTRY_IMAGE`, `REGISTRY_UI_IMAGE` and `MCP_SERVER_IMAGE` set to
+   the images built for the pull request. The job fails first if the stack would run any other
+   Apicurio Registry image. Other images (Keycloak, Kafka, ...) are pulled, with retries.
 2. `./demo.sh`, then `./demo.sh` again. Both must exit 0.
 3. `docker compose down -v`. On failure, the Compose logs are uploaded as an artifact.
 

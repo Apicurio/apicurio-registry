@@ -9,8 +9,10 @@ name: Examples
 #   ./demo.sh              must exit 0
 #   ./demo.sh              again: an example must be safe to run twice
 #   docker compose down -v
-# Compose files select the images under test through REGISTRY_IMAGE and REGISTRY_UI_IMAGE
-# (UI_IMAGE is also set for older examples), defaulting to latest-snapshot for local runs.
+# Compose files select the images under test through REGISTRY_IMAGE, REGISTRY_UI_IMAGE and
+# MCP_SERVER_IMAGE (UI_IMAGE is also set for older examples), defaulting to latest-snapshot for
+# local runs. Every Apicurio Registry image an example runs must be one built for this commit: the
+# job fails if the stack would use any other (for example a published snapshot).
 # Optional per-example settings live in examples/<name>/ci.env; see examples/TEMPLATE.md.
 
 on:
@@ -62,6 +64,7 @@ jobs:
       REGISTRY_IMAGE: apicurio/apicurio-registry:${{ inputs.image-tag }}
       REGISTRY_UI_IMAGE: apicurio/apicurio-registry-ui:${{ inputs.image-tag }}
       UI_IMAGE: apicurio/apicurio-registry-ui:${{ inputs.image-tag }}
+      MCP_SERVER_IMAGE: apicurio/apicurio-registry-mcp-server:${{ inputs.image-tag }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -80,11 +83,33 @@ jobs:
           image-name: apicurio/apicurio-registry-ui
           tag: ${{ inputs.image-tag }}
 
+      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
+        with:
+          artifact-name: apicurio-registry-mcp-server-${{ inputs.image-tag }}.tar
+          image-file: /tmp/apicurio-registry-mcp-server-${{ inputs.image-tag }}.tar
+          image-name: apicurio/apicurio-registry-mcp-server
+          tag: ${{ inputs.image-tag }}
+
       - name: Apply ci.env
         run: |
           # Every line except comments and the CI_* runner settings becomes job environment.
           if [ -f ci.env ]; then
             grep -vE '^\s*(#|$)|^CI_' ci.env | tee -a "$GITHUB_ENV"
+          fi
+
+      - name: Check that the stack runs this commit's images
+        env:
+          TAG: ${{ inputs.image-tag }}
+        run: |
+          # An Apicurio Registry image with any other tag (latest-snapshot, a release) would test
+          # published code instead of this commit's, and pass while the change is broken.
+          images=$(docker compose config --images)
+          echo "$images"
+          stale=$(echo "$images" | grep -E '(^|/)apicurio-registry[a-z-]*:' | grep -v ":$TAG\$" || true)
+          if [ -n "$stale" ]; then
+            echo "::error::these images are not built from this commit; select them with REGISTRY_IMAGE, REGISTRY_UI_IMAGE or MCP_SERVER_IMAGE (see examples/TEMPLATE.md):"
+            echo "$stale"
+            exit 1
           fi
 
       - name: Start the stack

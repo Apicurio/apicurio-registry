@@ -1813,17 +1813,6 @@
           <name>Confluent</name>
           <url>https://packages.confluent.io/maven/</url>
         </repository>
-        <!-- Kroxylicious snapshots, while kroxylicious.version is a snapshot. Remove with the move to a release. -->
-        <repository>
-          <id>central-snapshots</id>
-          <url>https://central.sonatype.com/repository/maven-snapshots/</url>
-          <releases>
-            <enabled>false</enabled>
-          </releases>
-          <snapshots>
-            <enabled>true</enabled>
-          </snapshots>
-        </repository>
       </repositories>
     </profile>
     <!-- Report-only reactor-wide dependency analysis, see DEVELOPING.md for the required

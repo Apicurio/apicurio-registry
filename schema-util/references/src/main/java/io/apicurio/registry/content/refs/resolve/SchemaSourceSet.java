@@ -141,7 +141,8 @@ public final class SchemaSourceSet {
 
     /**
      * Normalizes a location to a POSIX path: backslashes become slashes, "." and ".." segments are
-     * resolved, and any leading "./" or "/" is stripped.
+     * resolved, and any leading "./" or "/" is stripped. This is a pure string transformation producing a
+     * lookup key; the result is never resolved against the filesystem.
      *
      * @param location the raw location
      * @return the normalized location

@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RegistryUrlReferenceResolverTest {
 
@@ -30,6 +32,17 @@ class RegistryUrlReferenceResolverTest {
         assertEquals("master group", RegistryUrlReferenceResolver.decodePathSegment("master%20group"));
         assertEquals("branch=latest", RegistryUrlReferenceResolver.decodePathSegment("branch%3Dlatest"));
         assertEquals("a b", RegistryUrlReferenceResolver.decodePathSegment("a b"));
+        assertEquals("a+b", RegistryUrlReferenceResolver.decodePathSegment("a+b"));
+        assertEquals("a+b c", RegistryUrlReferenceResolver.decodePathSegment("a%2Bb%20c"));
+        assertEquals("caf\u00e9", RegistryUrlReferenceResolver.decodePathSegment("caf%C3%A9"));
+    }
+
+    @Test
+    void decodePathSegmentRejectsMalformedEscapes() {
+        IllegalArgumentException e1 = assertThrows(IllegalArgumentException.class,
+                () -> RegistryUrlReferenceResolver.decodePathSegment("a%zz"));
+        assertTrue(e1.getMessage().contains("escape"), e1.getMessage());
+        assertThrows(IllegalArgumentException.class, () -> RegistryUrlReferenceResolver.decodePathSegment("a%2"));
     }
 
     @Test

@@ -1,6 +1,7 @@
 package io.apicurio.registry.client.refs;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.content.refs.resolve.ExistingArtifact;
 import io.apicurio.registry.content.refs.resolve.PlanOptions;
 import io.apicurio.registry.content.refs.resolve.PlannedArtifact;
@@ -10,12 +11,17 @@ import io.apicurio.registry.content.refs.resolve.RegistrationPlan;
 import io.apicurio.registry.content.refs.resolve.RootArtifact;
 import io.apicurio.registry.content.refs.resolve.SchemaSourceSet;
 import io.apicurio.registry.rest.client.RegistryClient;
+import io.apicurio.registry.rest.client.groups.item.artifacts.item.versions.item.WithVersionExpressionItemRequestBuilder;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
+import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
+import io.apicurio.registry.rest.client.models.VersionState;
+import io.apicurio.registry.rest.client.models.WrappedVersionState;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -91,11 +97,18 @@ public final class ReferenceRegistrar {
         Map<PlannedArtifact, VersionMetaData> registered = new LinkedHashMap<>();
         Map<LatestKey, VersionMetaData> latestCache = new HashMap<>();
         for (PlannedArtifact artifact : plan.artifacts()) {
-            List<ArtifactReference> references = new ArrayList<>();
-            for (PlannedReference ref : artifact.references()) {
-                references.add(toReference(ref, registered, latestCache));
+            VersionMetaData vmd;
+            try {
+                List<ArtifactReference> references = new ArrayList<>();
+                for (PlannedReference ref : artifact.references()) {
+                    references.add(toReference(ref, registered, latestCache));
+                }
+                vmd = registerOne(artifact, references);
+            } catch (RegistrationException e) {
+                throw e;
+            } catch (RuntimeException e) {
+                throw failure(artifact, e, registered);
             }
-            VersionMetaData vmd = registerOne(artifact, references);
             registered.put(artifact, vmd);
             listener.onRegistered(artifact, vmd);
         }
@@ -153,14 +166,109 @@ public final class ReferenceRegistrar {
         createArtifact.setArtifactType(artifact.artifactType());
         createArtifact.setFirstVersion(createVersion);
 
-        return client.groups().byGroupId(group(artifact.coordinates().groupId())).artifacts()
-                .post(createArtifact, config -> {
-                    config.queryParameters.ifExists = ifExists;
-                    config.queryParameters.canonical = canonical;
-                    if (dryRun) {
-                        config.queryParameters.dryRun = true;
-                    }
-                }).getVersion();
+        String groupId = group(artifact.coordinates().groupId());
+        String artifactId = artifact.coordinates().artifactId();
+        try {
+            return client.groups().byGroupId(groupId).artifacts()
+                    .post(createArtifact, config -> {
+                        config.queryParameters.ifExists = ifExists;
+                        config.queryParameters.canonical = canonical;
+                        if (dryRun) {
+                            config.queryParameters.dryRun = true;
+                        }
+                    }).getVersion();
+        } catch (ApiException e) {
+            if (!isProblem(e) || e.getResponseStatusCode() != 409) {
+                throw e;
+            }
+            if (shouldUpdateDraftContentOnConflict(version)) {
+                versionClient(groupId, artifactId, version.version()).content().put(versionContent);
+                return versionClient(groupId, artifactId, version.version()).get();
+            }
+            if (shouldPromoteDraftOnConflict(version)) {
+                return promoteExistingDraftVersion(groupId, artifactId, versionContent, version.version(), e);
+            }
+            throw e;
+        }
+    }
+
+    private VersionMetaData promoteExistingDraftVersion(String groupId, String artifactId,
+            VersionContent versionContent, String version, ApiException registrationError) {
+        VersionMetaData existing = versionClient(groupId, artifactId, version).get();
+        if (!VersionState.DRAFT.equals(existing.getState())) {
+            throw registrationError;
+        }
+        versionClient(groupId, artifactId, version).content().put(versionContent);
+        WrappedVersionState enabled = new WrappedVersionState();
+        enabled.setState(VersionState.ENABLED);
+        versionClient(groupId, artifactId, version).state().put(enabled);
+        return versionClient(groupId, artifactId, version).get();
+    }
+
+    private WithVersionExpressionItemRequestBuilder versionClient(String groupId, String artifactId, String version) {
+        return client.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .byVersionExpression(version);
+    }
+
+    private static boolean shouldUpdateDraftContentOnConflict(ResolvedVersion version) {
+        return Boolean.TRUE.equals(version.draft()) && version.version() != null;
+    }
+
+    private static boolean shouldPromoteDraftOnConflict(ResolvedVersion version) {
+        return version.fromApiInfo() && !version.fromSnapshot() && !Boolean.TRUE.equals(version.draft())
+                && version.version() != null;
+    }
+
+    private static boolean isProblem(ApiException e) {
+        return e instanceof ProblemDetails || e instanceof RuleViolationProblemDetails;
+    }
+
+    private RegistrationException failure(PlannedArtifact artifact, RuntimeException e,
+            Map<PlannedArtifact, VersionMetaData> registered) {
+        RegistrationResult partial = new RegistrationResult(registered, dryRun);
+        String coordinates = "[" + group(artifact.coordinates().groupId()) + "] / ["
+                + artifact.coordinates().artifactId() + "]";
+        InterruptedException interrupt = findInterrupt(e);
+        if (interrupt != null) {
+            Thread.currentThread().interrupt();
+            return new RegistrationException("Interrupted while registering artifact " + coordinates, artifact,
+                    null, partial, interrupt);
+        }
+        if (e instanceof ApiException api && isProblem(api)) {
+            return new RegistrationException("Failed to register artifact " + coordinates + ": "
+                    + describe(api), artifact, api, partial, e);
+        }
+        return new RegistrationException("Failed to register artifact " + coordinates, artifact, null, partial, e);
+    }
+
+    private static String describe(ApiException e) {
+        String title;
+        String detail;
+        if (e instanceof RuleViolationProblemDetails rv) {
+            title = rv.getTitle();
+            detail = rv.getDetail();
+        } else {
+            ProblemDetails pd = (ProblemDetails) e;
+            title = pd.getTitle();
+            detail = pd.getDetail();
+        }
+        StringBuilder sb = new StringBuilder("HTTP ").append(e.getResponseStatusCode());
+        if (title != null) {
+            sb.append(" ").append(title);
+        }
+        if (detail != null) {
+            sb.append(" - ").append(detail);
+        }
+        return sb.toString();
+    }
+
+    private static InterruptedException findInterrupt(Throwable t) {
+        for (Throwable c = t; c != null; c = c.getCause() == c ? null : c.getCause()) {
+            if (c instanceof InterruptedException ie) {
+                return ie;
+            }
+        }
+        return null;
     }
 
     private String content(PlannedArtifact artifact) {

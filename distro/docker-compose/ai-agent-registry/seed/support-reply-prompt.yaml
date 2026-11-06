@@ -1,0 +1,23 @@
+$schema: https://apicur.io/schemas/prompt-template/v1
+templateId: support-reply
+name: Support reply
+description: Drafts a reply to a customer message in the customer's language.
+version: "1.0"
+
+template: |
+  You are a support agent. Reply to the customer message below in {{language}}.
+  Keep the reply under {{max_words}} words and match the customer's tone.
+
+  Customer message:
+  {{message}}
+
+variables:
+  language:
+    type: string
+    required: true
+  max_words:
+    type: integer
+    default: 120
+  message:
+    type: string
+    required: true

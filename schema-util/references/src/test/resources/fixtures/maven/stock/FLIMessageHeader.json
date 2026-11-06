@@ -1,0 +1,96 @@
+{
+	"$schema": "https://json-schema.org/draft/2019-09/schema",
+	"$id": "FLIMessageHeader.json",
+	"$defs": {
+		"MsgHeaderType": {
+			"type": "object",
+			"properties": {
+				"MsgName": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 36
+				},
+				"MsgVersNo": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 10
+				},
+				"MsgDateTime": {
+					"type": "string",
+					"format": "date-time",
+					"pattern": "^(.{20})([0-9]{3})[+-]((2[0-3]|[01][0-9])[:]([0-5][0-9]))$"
+				},
+				"MsgReference": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 36
+				},
+				"SendingSystem": {
+					"type": "string",
+					"minLength": 1,
+					"maxLength": 20
+				},
+				"SendingUnit": {
+					"type": "object",
+					"properties": {
+						"BUCode": {
+							"type": "string",
+							"minLength": 3,
+							"maxLength": 5
+						},
+						"BUType": {
+							"type": "string",
+							"minLength": 2,
+							"maxLength": 3
+						}
+					},
+					"required": [
+						"BUCode",
+						"BUType"
+					],
+					"additionalProperties": false
+				},
+				"LogicalRoutingIdentifier": {
+					"type": "object",
+					"properties": {
+						"SourceCode": {
+							"type": "string",
+							"minLength": 1
+						},
+						"SourceType": {
+							"type": "string",
+							"minLength": 1
+						},
+						"SourceLookupType": {
+							"type": "string",
+							"minLength": 1
+						}
+					},
+					"required": [
+						"SourceCode",
+						"SourceType"
+					],
+					"additionalProperties": false
+				}
+			},
+			"additionalProperties": false,
+			"required": [
+				"MsgName",
+				"MsgVersNo",
+				"MsgDateTime",
+				"MsgReference",
+				"SendingSystem"
+			]
+		}
+	},
+	"type": "object",
+	"properties": {
+		"MsgHeader": {
+			"$ref": "#/$defs/MsgHeaderType"
+		}
+	},
+	"required": [
+		"MsgHeader"
+	],
+	"additionalProperties": false
+}

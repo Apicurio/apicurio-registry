@@ -602,6 +602,7 @@ The following example shows the `Exchange` schema:
 `autoRefsNamingStrategy`:: Optional. Controls how the artifact IDs of automatically registered references are derived.
 `LEGACY` (default) keeps the naming used by earlier plug-in versions.
 `DEFAULT` names Avro references by their full name and all other references by their normalized source location relative to the parent file, in the parent group.
+The `avroAutoRefsNamingStrategy` option applies only with `LEGACY`; `DEFAULT` ignores it.
 You can also set this option on the command line, for example, `-Dartifacts.autoRefsNamingStrategy=DEFAULT`.
 +
 [NOTE]

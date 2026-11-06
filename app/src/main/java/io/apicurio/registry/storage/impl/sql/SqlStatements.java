@@ -551,6 +551,8 @@ public interface SqlStatements {
 
     public String getNextSequenceValue();
 
+    public String getNextSequenceValueBlock();
+
     public String selectCurrentSequenceValue();
 
     public String resetSequenceValue();

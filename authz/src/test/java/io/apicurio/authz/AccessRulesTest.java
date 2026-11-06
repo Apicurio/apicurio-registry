@@ -249,7 +249,7 @@ class AccessRulesTest {
     /**
      * Rules after {@code otherwise deny;} would never apply, so the file is rejected rather than read
      * as if they were not there: a deny rule appended at the end would otherwise be silently ignored.
-     * Kroxylicious's {@code AclAuthorizerService} (0.25.1) ignores them; Registry is stricter, and this
+     * Kroxylicious's {@code AclAuthorizerService} ignores them; Registry is stricter, and this
      * pins the difference so an upstream change is noticed.
      */
     @Test

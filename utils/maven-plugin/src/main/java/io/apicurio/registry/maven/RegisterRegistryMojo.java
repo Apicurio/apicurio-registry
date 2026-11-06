@@ -541,6 +541,13 @@ public class RegisterRegistryMojo extends AbstractRegistryMojo {
                         public void onWarning(String message) {
                             getLog().warn(message);
                         }
+
+                        @Override
+                        public void onSkipped(PlannedArtifact a, String reason) {
+                            getLog().warn(String.format("[%s] / [%s]: %s",
+                                    a.coordinates().groupId() == null ? "default" : a.coordinates().groupId(),
+                                    a.coordinates().artifactId(), reason));
+                        }
                     }).build().execute(plan);
         } catch (ReferenceCycleException | UnresolvedReferencesException e) {
             throw new MojoExecutionException(e.getMessage(), e);

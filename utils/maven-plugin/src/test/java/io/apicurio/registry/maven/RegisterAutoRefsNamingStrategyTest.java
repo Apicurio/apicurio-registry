@@ -92,18 +92,31 @@ class RegisterAutoRefsNamingStrategyTest {
     }
 
     @Test
-    void dryRunWithoutIfExistsSendsDryRun() throws Exception {
+    void dryRunSendsOnlyLeavesAndWarnsAboutSkippedArtifacts() throws Exception {
         RegisterArtifact artifact = rootArtifact();
         mojo.setArtifacts(List.of(artifact));
         mojo.dryRun = true;
+        List<String> warnings = new ArrayList<>();
+        mojo.setLog(new SystemStreamLog() {
+            @Override
+            public void warn(CharSequence content) {
+                warnings.add(content.toString());
+            }
+        });
 
         mojo.execute();
 
         List<LoggedRequest> requests = server.findAll(postRequestedFor(urlPathEqualTo(ARTIFACTS_PATH)));
-        assertEquals(4, requests.size());
+        assertEquals(3, requests.size());
         for (LoggedRequest request : requests) {
             assertEquals("true", request.queryParameter("dryRun").firstValue());
         }
+        assertEquals(List.of("./city.json", "./qualification/qualification.json", "citizenIdentifier.json"),
+                postedArtifactIds());
+        assertEquals(List.of("[test-group] / [citizen]: Skipped in dry run: depends on artifacts that are not "
+                + "registered yet: test-group/./city.json, test-group/./qualification/qualification.json, "
+                + "test-group/citizenIdentifier.json"),
+                warnings.stream().filter(w -> w.contains("Skipped in dry run")).toList());
     }
 
     @Test

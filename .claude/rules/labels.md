@@ -39,12 +39,20 @@ use. A feature's keys need to be enumerable for the storage layer to protect the
 
 Any caller with `AuthorizedLevel.Write` on an artifact can replace its entire label map
 through the v3 metadata endpoints. The storage layer applies that as a wholesale replace,
-so a label the caller does not send is deleted.
+so a label the caller does not send is deleted, unless a feature registered it (below).
 
-Two consequences for anything storing metadata in labels:
+A feature that stores its metadata in labels registers its prefixes with a
+`FeatureLabelOwner` bean (`io.apicurio.registry.extensions`). `FeatureLabelPreservingDecorator`
+then keeps those labels when a metadata update replaces the map without them. A caller that
+sends one of those keys still overwrites it. Do not register labels that users manage, such
+as `apicurio.agent.visibility`.
 
-- **Assume the label can disappear.** Read paths need a defined behaviour when it is
-  absent — a documented fallback, or a clear error. Do not assume a label written on
+Two consequences for anything storing metadata in labels, even when registered:
+
+- **Assume the label can change or disappear.** Registration guards against accidental
+  deletion only: callers can still overwrite the key, and unregistered labels are not kept.
+  Read paths need a defined behaviour when it is absent — a documented fallback, or a
+  clear error. Do not assume a label written on
   create is still present on read.
 - **Do not store anything security-relevant in a label.** A label is writable by anyone
   with v3 write access to the artifact, which is not necessarily the same set of callers

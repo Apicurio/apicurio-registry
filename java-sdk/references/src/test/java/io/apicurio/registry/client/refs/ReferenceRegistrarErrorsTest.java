@@ -23,6 +23,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -39,6 +40,7 @@ import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.put;
 import static com.github.tomakehurst.wiremock.client.WireMock.putRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
+import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -223,7 +225,7 @@ class ReferenceRegistrarErrorsTest {
     @Test
     void interruptDuringRequestPropagates() throws Exception {
         server.stubFor(post(urlPathEqualTo(ROOT_ARTIFACTS)).willReturn(aResponse().withStatus(200)
-                .withHeader("Content-Type", "application/json").withFixedDelay(3000)
+                .withHeader("Content-Type", "application/json").withFixedDelay(30_000)
                 .withBody("{\"version\":{\"groupId\":\"g\",\"artifactId\":\"R\",\"version\":\"1\"}}")));
         RegistrationPlan plan = avroRoot(null, null);
         AtomicReference<Throwable> thrown = new AtomicReference<>();
@@ -239,13 +241,9 @@ class ReferenceRegistrarErrorsTest {
 
         long start = System.nanoTime();
         worker.start();
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
-        while (server.getAllServeEvents().isEmpty() && System.nanoTime() < deadline) {
-            Thread.sleep(10);
-        }
-        assertFalse(server.getAllServeEvents().isEmpty());
+        await().atMost(Duration.ofSeconds(10)).until(() -> !server.getAllServeEvents().isEmpty());
         worker.interrupt();
-        worker.join(10_000);
+        worker.join(15_000);
         long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
 
         assertFalse(worker.isAlive());
@@ -253,6 +251,8 @@ class ReferenceRegistrarErrorsTest {
         assertInstanceOf(InterruptedException.class, ex.getCause());
         assertEquals("Interrupted while registering artifact [g] / [R]", ex.getMessage());
         assertTrue(interruptedAfter.get());
-        assertTrue(elapsedMs < 2900, "execute should abort before the 3s delay elapsed, took " + elapsedMs);
+        // generous bound: the stub delays 30s, so finishing well before that proves the interrupt aborted it
+        assertTrue(elapsedMs < 15_000, "execute should abort long before the 30s delay, took " + elapsedMs);
+        assertEquals(1, server.getAllServeEvents().size());
     }
 }

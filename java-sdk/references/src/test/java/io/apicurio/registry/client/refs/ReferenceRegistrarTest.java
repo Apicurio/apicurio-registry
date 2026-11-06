@@ -204,6 +204,23 @@ class ReferenceRegistrarTest {
                 body(posts().get(0)).at("/firstVersion/content/content").asText());
     }
 
+    @Test
+    void minifyLeavesYamlContentUnchanged() throws Exception {
+        server.stubFor(post(urlPathEqualTo("/apis/registry/v3/groups/g/artifacts"))
+                .willReturn(aResponse().withStatus(200).withHeader("Content-Type", "application/json")
+                        .withBody("{\"version\":{\"groupId\":\"g\",\"artifactId\":\"R\",\"version\":\"1\"}}")));
+        String yaml = openApiYaml("1.0.0");
+        RegistrationPlan plan = ReferenceResolver.plan(List.of(RootArtifact.of("api.yaml", "g", "R")),
+                SchemaSourceSet.of(InMemorySchemaSource.of("api.yaml", yaml, ContentTypes.APPLICATION_YAML)),
+                PlanOptions.builder().build());
+
+        ReferenceRegistrar.builder(client).minify(true).build().execute(plan);
+
+        JsonNode content = body(posts().get(0)).at("/firstVersion/content");
+        assertEquals(yaml, content.get("content").asText());
+        assertEquals(ContentTypes.APPLICATION_YAML, content.get("contentType").asText());
+    }
+
     private JsonNode registerApiRoot(String location, String content, String contentType, String artifactType,
             String explicitVersion) throws Exception {
         server.stubFor(post(urlPathEqualTo("/apis/registry/v3/groups/g/artifacts"))

@@ -14,7 +14,9 @@ public class ReferenceCycleException extends RuntimeException {
     /**
      * Creates the exception.
      *
-     * @param cycle the source locations forming the cycle; the first location is repeated at the end
+     * @param cycle the source locations forming the cycle, starting at the first source that is
+     *        referenced again; that location is repeated at the end (e.g. {@code B -> C -> B}). Sources
+     *        that merely lead into the cycle are not included.
      */
     public ReferenceCycleException(List<String> cycle) {
         super("Artifact reference loop detected: " + String.join(" -> ", cycle));

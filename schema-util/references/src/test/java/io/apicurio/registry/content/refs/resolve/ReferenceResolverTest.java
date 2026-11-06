@@ -61,6 +61,77 @@ class ReferenceResolverTest {
     }
 
     @Test
+    void cycleNotIncludingRootReportsOnlyTheLoop() {
+        SchemaSource a = avro("A.avsc", "A", "n", "{\"name\":\"x\",\"type\":\"n.B\"}");
+        SchemaSource b = avro("B.avsc", "B", "n", "{\"name\":\"x\",\"type\":\"n.C\"}");
+        SchemaSource c = avro("C.avsc", "C", "n", "{\"name\":\"x\",\"type\":\"n.B\"}");
+        ReferenceCycleException e = assertThrows(ReferenceCycleException.class, () -> ReferenceResolver.plan(
+                List.of(RootArtifact.of("A.avsc", "g", "A")), SchemaSourceSet.of(a, b, c),
+                PlanOptions.builder().build()));
+        assertEquals(List.of("B.avsc", "C.avsc", "B.avsc"), e.cycle());
+        assertEquals("Artifact reference loop detected: B.avsc -> C.avsc -> B.avsc", e.getMessage());
+    }
+
+    @Test
+    void selfReferenceIsACycle() {
+        // Avro treats a reference to its own full name as an internal recursive type, so use a file reference
+        SchemaSource a = InMemorySchemaSource.of("A.json",
+                "{\"$schema\":\"s\",\"properties\":{\"self\":{\"$ref\":\"A.json\"}}}",
+                ContentTypes.APPLICATION_JSON);
+        ReferenceCycleException e = assertThrows(ReferenceCycleException.class, () -> ReferenceResolver.plan(
+                List.of(RootArtifact.of("A.json", "g", "A")), SchemaSourceSet.of(a), PlanOptions.builder().build()));
+        assertEquals(List.of("A.json", "A.json"), e.cycle());
+    }
+
+    @Test
+    void duplicateAvroNameFirstWinsAndWarns() {
+        SchemaSource first = avro("v1/Common.avsc", "Common", "c", "");
+        SchemaSource second = avro("v2/Common.avsc", "Common", "c", "{\"name\":\"y\",\"type\":\"string\"}");
+        SchemaSource a = avro("A.avsc", "A", "a", "{\"name\":\"x\",\"type\":\"c.Common\"}");
+        RegistrationPlan plan = ReferenceResolver.plan(List.of(RootArtifact.of("A.avsc", "g", "A")),
+                SchemaSourceSet.of(first, second, a), PlanOptions.builder().build());
+        assertEquals(2, plan.artifacts().size());
+        assertEquals("v1/Common.avsc", ((PlannedArtifact) plan.artifacts().get(1).references().get(0).target()).source().location());
+        assertEquals(List.of("Duplicate Avro name 'c.Common' in v2/Common.avsc; using v1/Common.avsc"),
+                plan.warnings());
+    }
+
+    @Test
+    void indexWarningsPrecedeResolutionWarnings() {
+        SchemaSource x1 = InMemorySchemaSource.of("x1.json", "{\"$schema\":\"s\",\"$id\":\"urn:x\"}",
+                ContentTypes.APPLICATION_JSON);
+        SchemaSource x2 = InMemorySchemaSource.of("x2.json", "{\"$schema\":\"s\",\"$id\":\"urn:x\"}",
+                ContentTypes.APPLICATION_JSON);
+        SchemaSource root = InMemorySchemaSource.of("root.json",
+                "{\"$schema\":\"s\",\"properties\":{\"a\":{\"$ref\":\"https://other.example/a.json\"}}}",
+                ContentTypes.APPLICATION_JSON);
+        RegistrationPlan plan = ReferenceResolver.plan(List.of(RootArtifact.of("root.json", "g", "root")),
+                SchemaSourceSet.of(x1, x2, root), PlanOptions.builder().build());
+        assertEquals(List.of("Duplicate JSON Schema $id 'urn:x' in x2.json; using x1.json",
+                "Skipping external reference not managed by Apicurio Registry: https://other.example/a.json"),
+                plan.warnings());
+    }
+
+    @Test
+    void jsonLocalDefinitionRefIsIgnoredAndExternalRefIsPlanned() {
+        SchemaSource addr = InMemorySchemaSource.of("Address.json", "{\"$schema\":\"s\",\"type\":\"object\"}",
+                ContentTypes.APPLICATION_JSON);
+        SchemaSource root = InMemorySchemaSource.of("Person.json", "{\"$schema\":\"s\","
+                + "\"definitions\":{\"Name\":{\"type\":\"string\"}},"
+                + "\"properties\":{\"name\":{\"$ref\":\"#/definitions/Name\"},"
+                + "\"address\":{\"$ref\":\"Address.json\"}}}", ContentTypes.APPLICATION_JSON);
+        RegistrationPlan plan = ReferenceResolver.plan(List.of(RootArtifact.of("Person.json", "g", "Person")),
+                SchemaSourceSet.of(addr, root), PlanOptions.builder().build());
+        assertEquals(List.of("Address.json", "Person.json"),
+                plan.artifacts().stream().map(p -> p.source().location()).toList());
+        List<PlannedReference> refs = plan.artifacts().get(1).references();
+        assertEquals(1, refs.size());
+        assertEquals("Address.json", refs.get(0).name());
+        assertSame(plan.artifacts().get(0), refs.get(0).target());
+        assertEquals(List.of(), plan.warnings());
+    }
+
+    @Test
     void reportsAllUnresolvedTogether() {
         SchemaSource a = avro("A.avsc", "A", "n",
                 "{\"name\":\"x\",\"type\":\"n.X\"},{\"name\":\"y\",\"type\":\"n.Y\"}");

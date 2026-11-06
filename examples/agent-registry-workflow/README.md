@@ -11,15 +11,13 @@ discovery extensions to demonstrate:
 
 ## Sample source and instructions
 
-**Preview:** the sample is published on a contributor branch and has not yet merged
-into Quarkus LangChain4j:
+The sample is part of Quarkus LangChain4j:
 
-- [Sample README and run instructions](https://github.com/carlesarnal/quarkus-langchain4j/tree/sample/agent-registry-workflow/samples/agent-registry-workflow)
-- [Verification record](https://github.com/carlesarnal/quarkus-langchain4j/blob/sample/agent-registry-workflow/samples/agent-registry-workflow/VERIFICATION.md)
+- [Sample README and run instructions](https://github.com/quarkiverse/quarkus-langchain4j/tree/main/samples/agent-registry-workflow)
+- [Verification record](https://github.com/quarkiverse/quarkus-langchain4j/blob/main/samples/agent-registry-workflow/VERIFICATION.md)
 
 The implementation and detailed setup instructions live in the Quarkus LangChain4j
-repository. This directory is a reference only. Once the sample merges upstream,
-replace the preview links with its canonical upstream location.
+repository. This directory is a reference only.
 
 The sample uses these existing upstream extensions:
 

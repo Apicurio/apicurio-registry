@@ -1,6 +1,8 @@
 package io.apicurio.registry.content.refs.resolve;
 
 import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
@@ -50,6 +52,7 @@ public final class RegistryUrlReferenceResolver implements ReferenceUrlResolver 
         if (!matcher.matches()) {
             return Optional.empty();
         }
+        // URI.create above already rejected malformed percent-escapes, so decoding cannot fail here
         return Optional.of(new ExistingArtifact(registryReferenceName(fullReference),
                 decodePathSegment(matcher.group(1)), decodePathSegment(matcher.group(2)),
                 decodePathSegment(matcher.group(3))));
@@ -84,14 +87,12 @@ public final class RegistryUrlReferenceResolver implements ReferenceUrlResolver 
      * Percent-decodes a single URI path segment.
      *
      * @param segment the raw segment
-     * @return the decoded segment, or the input if it is not a valid segment
+     * @return the decoded segment; a {@code +} is kept literally
+     * @throws IllegalArgumentException if the segment contains a malformed percent-escape
      */
     static String decodePathSegment(String segment) {
-        try {
-            return URI.create("https://xxx/" + segment).getPath().substring(1);
-        } catch (IllegalArgumentException e) {
-            return segment;
-        }
+        // percent-decode only: '+' is a literal character in path segments, not a space
+        return URLDecoder.decode(segment.replace("+", "%2B"), StandardCharsets.UTF_8);
     }
 
     private boolean isSameServer(String resource) {

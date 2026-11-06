@@ -69,10 +69,8 @@ public final class TypeDetector {
             }
             String ext = name.substring(dot + 1).toLowerCase(Locale.ROOT);
             Map<String, String> map = factory.getFileExtensionToTypeMap();
-            String type = map.get(ext);
-            if (type == null) {
-                type = map.get("." + ext);
-            }
+            // the factory normalizes keys to lower case with a leading dot
+            String type = map.get("." + ext);
             if (type == null) {
                 type = FALLBACK_EXTENSIONS.get(ext);
             }

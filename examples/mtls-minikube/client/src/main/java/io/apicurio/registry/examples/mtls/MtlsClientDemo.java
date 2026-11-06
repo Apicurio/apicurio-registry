@@ -157,7 +157,7 @@ public class MtlsClientDemo {
                 System.err.println("Please ensure:");
                 System.err.println("  1. Certificates were generated: ../certs/generate-certs.sh");
                 System.err.println("  2. Registry is deployed with mTLS enabled");
-                System.err.println("  3. Port forwarding is active: kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 8443:8443");
+                System.err.println("  3. Port forwarding is active: kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 8443:443");
             }
 
             System.err.println();

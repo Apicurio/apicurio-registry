@@ -1,0 +1,24 @@
+{
+  "namespace": "com.example.trade",
+  "type": "record",
+  "name": "Instrument",
+  "doc": "Financial instrument information",
+  "fields": [
+    {
+      "name": "symbol",
+      "type": "string"
+    },
+    {
+      "name": "name",
+      "type": "string"
+    },
+    {
+      "name": "type",
+      "type": {
+        "type": "enum",
+        "name": "InstrumentType",
+        "symbols": ["STOCK", "BOND", "OPTION", "FUTURE"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "namespace": "com.example.trade",
+  "type": "record",
+  "name": "TradeOrder",
+  "doc": "A trade order that references other types using relative names",
+  "fields": [
+    {
+      "name": "orderId",
+      "type": "string"
+    },
+    {
+      "name": "customer",
+      "type": "Customer"
+    },
+    {
+      "name": "instrument",
+      "type": "Instrument"
+    },
+    {
+      "name": "quantity",
+      "type": "int"
+    },
+    {
+      "name": "price",
+      "type": "double"
+    }
+  ]
+}

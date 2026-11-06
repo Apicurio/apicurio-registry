@@ -1,0 +1,100 @@
+{
+    "$schema": "https://json-schema.org/draft/2019-09/schema",
+    "$id": "FLIStockAdjustment.json",
+    "title": "Stock adjustment schema for GIS",
+    "description": "Schema for the validation of stock adjustment messages.",
+    "$defs": {
+        "LUStockAdjustment": {
+            "type": "object",
+            "properties": {
+                "LogId": {
+                    "type": "integer"
+                },
+                "TransactionType": {
+                    "type": "string",
+                    "maxLength": 3
+                },
+                "ReportDateTime": {
+                    "$ref": "FLIServiceTypes.json#/$defs/fliDateTime"
+                },
+                "TransactionDateTime": {
+                    "$ref": "FLIServiceTypes.json#/$defs/fliDateTime"
+                },
+                "AdjustmentQuantity": {
+                    "$ref": "FLIServiceTypes.json#/$defs/decimal11-2"
+                },
+                "UOMCodeQuantity": {
+                    "$ref": "FLIServiceTypes.json#/$defs/nonEmptyString10"
+                },
+                "ChangeNote": {
+                    "$ref": "FLIServiceTypes.json#/$defs/nonEmptyString35"
+                },
+                "OutBoundReferences": {
+                    "$ref": "FLIStockTypes.json#/$defs/OutBoundReferences"
+                },
+                "RuleIdentifier": {
+                    "type": "integer"
+                },
+                "SubCode": {
+                    "$ref": "FLIStockTypes.json#/$defs/StockStatusSubCode"
+                }
+            },
+            "required": [
+                "LogId",
+                "TransactionType",
+                "ReportDateTime",
+                "TransactionDateTime",
+                "AdjustmentQuantity",
+                "UOMCodeQuantity"
+            ],
+            "additionalProperties": false
+        },
+        "StockAdjustment": {
+            "type": "object",
+            "properties": {
+                "LogisticUnitReference": {
+                    "$ref": "FLIBusinessUnitBaseTypes.json#/$defs/BusinessUnitReferenceType"
+                },
+                "LUStock": {
+                    "$ref": "FLIStockTypes.json#/$defs/LUStock"
+                },
+                "LUStockAdjustment": {
+                    "$ref": "#/$defs/LUStockAdjustment"
+                }
+            },
+            "required": [
+                "LogisticUnitReference",
+                "LUStock",
+                "LUStockAdjustment"
+            ],
+            "additionalProperties": false
+        }
+    },
+    "type": "object",
+    "properties": {
+        "MsgHeader": {
+            "$ref": "FLIMessageHeader.json#/$defs/MsgHeaderType"
+        },
+        "MsgBody": {
+            "type": "object",
+            "properties": {
+                "StockAdjustments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/$defs/StockAdjustment"
+                    },
+                    "minItems": 1
+                }
+            },
+            "required": [
+                "StockAdjustments"
+            ],
+            "additionalProperties": false
+        }
+    },
+    "required": [
+        "MsgHeader",
+        "MsgBody"
+    ],
+    "additionalProperties": false
+}

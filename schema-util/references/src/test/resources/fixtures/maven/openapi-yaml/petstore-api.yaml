@@ -1,0 +1,48 @@
+openapi: 3.0.2
+info:
+  title: Pet Store API
+  version: 1.0.0
+  description: A simple pet store API to demonstrate YAML OpenAPI with references
+paths:
+  /pets:
+    get:
+      summary: List all pets
+      operationId: listPets
+      responses:
+        '200':
+          description: An array of pets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: './Pet.yaml#/components/schemas/Pet'
+    post:
+      summary: Create a pet
+      operationId: createPet
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: './Pet.yaml#/components/schemas/Pet'
+      responses:
+        '201':
+          description: Pet created
+  /pets/{petId}:
+    get:
+      summary: Get a pet by ID
+      operationId: getPetById
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A pet
+          content:
+            application/json:
+              schema:
+                $ref: './Pet.yaml#/components/schemas/Pet'

@@ -189,9 +189,10 @@ public class OdcsExporter {
 
             OdcsFieldMetadata field = fields.computeIfAbsent(fieldPath,
                     k -> OdcsFieldMetadata.builder().tags(new ArrayList<>()).build());
-            if ("PII".equals(tagName)) {
+            // Case-insensitive: tags projected before label keys kept their case are lower-case
+            if ("PII".equalsIgnoreCase(tagName)) {
                 field.setPii(true);
-            } else if (tagName.startsWith("CLASSIFICATION:")) {
+            } else if (tagName.regionMatches(true, 0, "CLASSIFICATION:", 0, "CLASSIFICATION:".length())) {
                 field.setClassification(tagName.substring("CLASSIFICATION:".length())
                         .toLowerCase(Locale.ROOT));
             } else {

@@ -98,6 +98,13 @@ public class SqlArtifactRepository {
             handle.createUpdate(sqlStatements.deleteArtifactRules()).bind(0, normalizeGroupId(groupId))
                     .bind(1, artifactId).execute();
 
+            // Delete the artifact-level contract rules and contract audit entries, which have no
+            // foreign key to the artifact (version-level contract rules cascade with the versions)
+            handle.createUpdate(sqlStatements.deleteContractRulesByArtifact())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
+            handle.createUpdate(sqlStatements.deleteContractAuditEntriesByArtifact())
+                    .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
+
             // Delete artifact row
             int rowCount = handle.createUpdate(sqlStatements.deleteArtifact())
                     .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
@@ -120,6 +127,12 @@ public class SqlArtifactRepository {
         handles.withHandle(handle -> {
             // Delete artifact rules
             handle.createUpdate(sqlStatements.deleteArtifactRulesByGroupId())
+                    .bind(0, normalizeGroupId(groupId)).execute();
+
+            // Delete artifact-level contract rules and contract audit entries
+            handle.createUpdate(sqlStatements.deleteContractRulesByGroupId())
+                    .bind(0, normalizeGroupId(groupId)).execute();
+            handle.createUpdate(sqlStatements.deleteContractAuditEntriesByGroupId())
                     .bind(0, normalizeGroupId(groupId)).execute();
 
             // Delete all artifacts

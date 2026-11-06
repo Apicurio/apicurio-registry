@@ -2,7 +2,8 @@
 # Creates the sample data and verifies the ODCS data contract example against the running registry.
 # Usage: ./demo.sh   (after `docker compose up -d`; requires curl and jq)
 #
-# Safe to run again: it deletes the "orders" group and the global contract ruleset, then starts over.
+# Safe to run again: it deletes the "orders" group (with its contract rules and audit log) and the
+# global contract ruleset, then starts over.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -76,8 +77,8 @@ expect "status label (ODCS active -> STABLE)" STABLE "$(echo "$labels" | jq -r '
 expect "classification label" CONFIDENTIAL "$(echo "$labels" | jq -r '."contract.orders-contract.classification"')"
 expect "rule projected from quality.accuracy" "odcs:orders-contract:positive-amount totalAmount > 0" \
   "$(json GET "$ORDER/contract/ruleset" | jq -r '.domainRules[0] | "\(.name) \(.expr)"')"
-expect "field tags on version 1" \
-  "field-tag.orders-contract:customeremail|email field-tag.orders-contract:customeremail|pii" \
+expect "field tags on version 1 (from the schema, and from the contract)" \
+  "field-tag.customerEmail|PII field-tag.orders-contract:customerEmail|EMAIL field-tag.orders-contract:customerEmail|PII" \
   "$(json GET "$ORDER/versions/1" | jq -r '.labels | keys | join(" ")')"
 expect "metadata view" "STABLE orders-team" \
   "$(json GET "$ORDER/contract/metadata" | jq -r '"\(.status) \(.ownerTeam)"')"

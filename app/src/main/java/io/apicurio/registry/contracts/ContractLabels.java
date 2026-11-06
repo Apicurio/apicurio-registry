@@ -1,5 +1,6 @@
 package io.apicurio.registry.contracts;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -39,6 +40,19 @@ public final class ContractLabels {
     // ODCS source tracking suffixes
     public static final String SUFFIX_ID = "id";
     public static final String SUFFIX_VERSION = "version";
+
+    /** The suffixes PUT .../contract/metadata replaces; every other contract label is kept. */
+    private static final List<String> EDITABLE_METADATA_SUFFIXES = List.of(SUFFIX_STATUS,
+            SUFFIX_OWNER_TEAM, SUFFIX_OWNER_DOMAIN, SUFFIX_SUPPORT_CONTACT, SUFFIX_CLASSIFICATION,
+            SUFFIX_STAGE, SUFFIX_COMPATIBILITY_GROUP);
+
+    /**
+     * Whether the label key holds a field of the editable contract metadata, under the given
+     * contract prefix.
+     */
+    public static boolean isEditableMetadataKey(String prefix, String key) {
+        return EDITABLE_METADATA_SUFFIXES.stream().anyMatch(suffix -> key.equals(prefix + suffix));
+    }
 
     /**
      * Builds the full prefix for a specific contract: "contract.{contractId}."

@@ -27,10 +27,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Step 8 of GUIDE.md: produces two order events with the Apicurio Avro serializer, with contract
+ * Step 9 of GUIDE.md: produces three order events with the Apicurio Avro serializer, with contract
  * rules enabled. The serializer fetches the contract rules of orders/OrderEvent from the registry
- * and runs them before writing each record: the valid order is sent, the order with a negative
- * amount is rejected before it reaches Kafka. A consumer then reads back what was sent.
+ * (global, artifact and version rules) and runs them before writing each record: the valid order is
+ * sent, while the order with a negative amount and the order without an ID are rejected before they
+ * reach Kafka. A consumer then reads back what was sent.
  *
  * <p>Requires the example to be running (docker compose up -d) and ./demo.sh to have been run.
  * Override the endpoints with the REGISTRY_URL and KAFKA_BOOTSTRAP environment variables.
@@ -48,6 +49,8 @@ public class ContractSerdesDemo {
         try (KafkaProducer<String, GenericRecord> producer = new KafkaProducer<>(producerConfig())) {
             send(producer, order(schema, "ORD-1001", 99.99));
             send(producer, order(schema, "ORD-1002", -5.00));
+            // Rejected by the global rule of step 8, if it is still set
+            send(producer, order(schema, "", 25.00));
         }
 
         try (KafkaConsumer<String, GenericRecord> consumer = new KafkaConsumer<>(consumerConfig())) {

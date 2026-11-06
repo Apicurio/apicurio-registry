@@ -28,7 +28,7 @@ ODCS format:: Contracts are submitted as ODCS v3.1 YAML documents and projected 
 Metadata:: Ownership, classification, SLA, and support information are projected as labels.
 Lifecycle:: Status tracking (DRAFT, STABLE, DEPRECATED) and promotion stages (DEV, STAGE, PROD).
 Quality rules:: ODCS accuracy rules are projected as CEL contract rules; completeness and freshness settings are stored as labels.
-Field tags:: PII and classification annotations from ODCS contracts are stored as version labels. Inline tags in schema content are not extracted yet.
+Field tags:: PII and classification annotations, from ODCS contracts or declared in the schema content, are stored as version labels.
 Multi-contract support:: Multiple contracts can reference the same schema artifact without overwriting each other.
 
 NOTE: Data contracts are always available. No special configuration is required: submitting a contract is an explicit opt-in action.
@@ -54,7 +54,7 @@ Contract "orders-contract" → contract.orders-contract.owner.team = orders-team
 Contract "billing-contract" → contract.billing-contract.owner.team = billing-team
 ----
 
-Updating a contract only affects its own namespaced labels, rules, and tags. Deleting a contract removes only the `ODCS_CONTRACT` artifact: its projected labels, `odcs:{contractId}:*` rules (which are still enforced), and field tags remain on the schema artifacts.
+Updating a contract only affects its own namespaced labels, rules, and tags. Deleting a contract deletes the `ODCS_CONTRACT` artifact and removes everything the contract projected from every schema artifact any of its versions referenced: its labels, its `odcs:{contractId}:*` rules, and its field tags.
 
 [id="data-contracts-odcs-projection_{context}"]
 == ODCS projection mapping
@@ -102,7 +102,7 @@ When you submit an ODCS contract, {registry} parses the YAML, stores it as an `O
 
 Other ODCS sections, such as `info.title` and descriptions, are kept only in the stored contract YAML.
 
-NOTE: SQL storage lowercases label keys. For example, the `PII` tag on field `customerEmail` is stored as `field-tag.orders-contract:customeremail|pii`.
+A status from `info.status` that becomes `STABLE` or `DEPRECATED` also sets `contract.{contractId}.lifecycle.stable-date` or `contract.{contractId}.lifecycle.deprecated-date`. A field tag whose label key would be longer than 256 characters is skipped, with a warning in the response.
 
 ODCS accuracy rule thresholds (default 1.0) determine the rule's `onFailure` action. The rule `params` contain the `source` and `threshold` values.
 
@@ -188,14 +188,18 @@ When submitted, this contract results in the following projections:
 . Namespaced labels are set on the `orders/OrderEvent` artifact, for example `contract.orders-contract.status=STABLE`, `contract.orders-contract.owner.team=orders-team`, and `contract.orders-contract.classification=CONFIDENTIAL`.
 . Two CEL contract rules are created: `odcs:orders-contract:positive-amount` with `onFailure=ERROR`, and `odcs:orders-contract:valid-email` with `onFailure=DLQ`.
 . Completeness thresholds are stored as labels, such as `contract.orders-contract.quality.completeness.orderId=1.0`.
-. Field tags are set on version 3: `field-tag.orders-contract:customerEmail|PII=EXTERNAL` and `field-tag.orders-contract:customerEmail|EMAIL=EXTERNAL` (keys are lowercased in SQL storage).
+. Field tags are set on version 3: `field-tag.orders-contract:customerEmail|PII=EXTERNAL` and `field-tag.orders-contract:customerEmail|EMAIL=EXTERNAL`.
 . SLA labels are stored for external monitoring tools.
 
 When you update an ODCS contract with `PUT /groups/\{g}/contracts/\{contractId}`, a new contract version is added (re-submitting an existing `info.version` returns HTTP 409) and the contract is re-projected:
 
-* All `contract.{contractId}.*` labels are replaced with the values from the YAML. Status, stage, compatibility group, and lifecycle dates set through the API are lost; the status returns to the value of `info.status`.
-* Rules named `odcs:{contractId}:*` are replaced. Other rules, such as rules added manually through the contract ruleset API, are preserved.
-* Schemas removed from `schemas[]` keep their old projection.
+* The `contract.{contractId}.*` labels taken from the YAML are replaced. The stage, compatibility group, and lifecycle dates set through the API are kept.
+* The status from `info.status` is applied only if the contract lifecycle allows moving to it from the current status (see <<data-contracts-lifecycle_{context}>>). Otherwise the current status is kept, and the response contains a warning.
+* Rules named `odcs:{contractId}:*` are replaced; a version without `quality.accuracy` rules removes them. Other rules, such as rules added manually through the contract ruleset API, are preserved.
+* Field tags are replaced on the target version; a version without field metadata removes them.
+* Schemas the previous version referenced and the new version does not lose the contract's labels, rules, and field tags.
+
+If a projection fails for any reason other than a missing schema artifact or an invalid location, the new contract version is deleted (or the new contract artifact, on a first submission), the previous version is projected again, and the request fails with HTTP 400.
 
 [id="data-contracts-odcs-location_{context}"]
 == Schema location format
@@ -271,11 +275,10 @@ NOTE: **Upgrade note:** Earlier releases projected field tags from every `schema
 [role="_abstract"]
 Field tags provide semantic annotation of schema fields, enabling you to identify sensitive data and apply tag-based governance.
 
-Field tags are stored as version labels. Currently they come from one source:
+Field tags are stored as version labels. They come from two sources:
 
-External tags:: Projected from ODCS contracts (label value `EXTERNAL`) or set manually by using the version labels API.
-
-Inline tags in schema content are not extracted when schemas are registered. Inline extraction is planned but not yet active.
+Inline tags:: Declared in the schema content (see <<data-contracts-field-tags-formats_{context}>>). When a version is created through the Core Registry API v3, they are stored as `field-tag.{fieldPath}|{tagName}` labels with value `INLINE`. Labels submitted with the version take precedence over extracted tags with the same key. Versions created through the Confluent Schema Registry compatibility API, and draft content updates, do not get inline tags.
+External tags:: Projected from ODCS contracts as `field-tag.{contractId}:{fieldPath}|{tagName}` labels with value `EXTERNAL`, or set manually by using the version labels API.
 
 The following tag names are commonly used:
 
@@ -309,7 +312,7 @@ The following tag names are commonly used:
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Inline tag extraction from schema content is planned but not yet active: tags written in schema content are not extracted when the schema is registered, and no field-tag labels are created from them. The tag extractors that exist recognize the following syntax.
+{registry} extracts inline field tags from the following syntax in schema content.
 
 Avro:: `tags` and `confluent:tags` field properties.
 +
@@ -361,7 +364,7 @@ Contract rules define validation and transformation logic associated with artifa
 
 When you submit an ODCS contract, its `quality.accuracy` rules are automatically projected as CEL domain rules on the referenced schema artifact.
 
-Contract rules are evaluated server-side by the rule execution REST endpoint, and client-side by the Java Kafka SerDes, which evaluate the artifact-level ruleset locally.
+Contract rules are evaluated server-side by the rule execution REST endpoint, and client-side by the Java Kafka SerDes. Both merge the global, artifact-level, and version-level rules in the same way (see <<data-contracts-global-rules_{context}>>).
 
 Rules are classified by kind:
 
@@ -422,7 +425,7 @@ DRAFT ──────► STABLE ──────► DEPRECATED
          (skip stable)
 ----
 
-NOTE: Reverse transitions are not allowed. The `POST /groups/\{g}/artifacts/\{a}/contract/status` endpoint enforces these transitions and sets the lifecycle dates. Any transition from `DEPRECATED` is rejected with HTTP 409. The contract metadata API (`PUT .../contract/metadata`) does not validate transitions.
+NOTE: Reverse transitions are not allowed. The `POST /groups/\{g}/artifacts/\{a}/contract/status` endpoint enforces these transitions and sets the lifecycle dates. Any transition from `DEPRECATED` is rejected with HTTP 409. The contract metadata API (`PUT .../contract/metadata`) applies the same rules when it changes the status.
 
 Independently of status, a contract also tracks a promotion stage:
 
@@ -430,7 +433,7 @@ Independently of status, a contract also tracks a promotion stage:
 DEV ──────► STAGE ──────► PROD
 ----
 
-Promotion is enforced via the `POST /groups/\{g}/artifacts/\{a}/contract/promote` endpoint. Promotion is forward-only and stages cannot be skipped once a stage is set (for example, promoting from `DEV` to `PROD` fails with "Cannot skip stages. Promote to STAGE first."). Promoting to `PROD` requires status `STABLE`. If no stage is set yet, any target stage is accepted. The response is `{"stage": "..."}`. The promotion stage can also be set directly via the contract metadata API, which does not validate it.
+Promotion is enforced via the `POST /groups/\{g}/artifacts/\{a}/contract/promote` endpoint. Promotion is forward-only, starts at `DEV`, and cannot skip stages (for example, promoting from `DEV` to `PROD` fails with "Cannot skip stages. Promote to STAGE first."). Promoting to `PROD` requires status `STABLE`. The response is `{"stage": "..."}`. The contract metadata API applies the same rules when it changes the stage.
 
 [id="data-contracts-migration_{context}"]
 == Schema migration
@@ -535,7 +538,7 @@ Enable contract rule evaluation by setting these properties on your Kafka produc
 
 Contract rule evaluation works as follows:
 
-Rule source:: The SerDes fetch the artifact-level ruleset (`GET .../contract/ruleset`), cache it, and evaluate the rules locally in the client. Global and version-level rules are not applied by the SerDes.
+Rule source:: The SerDes fetch the global, artifact-level, and version-level rulesets of the schema version, merge their domain rules by name (the narrowest scope wins), cache them, and evaluate the rules locally in the client. Empty rulesets are cached too.
 Record conversion:: Records are converted to maps by parsing the JSON output of their `toString()` method.
 Producer (serializer):: Runs `WRITE` rules before serialization.
 Consumer (deserializer):: Runs `READ` rules after deserialization.
@@ -562,14 +565,19 @@ KafkaProducer<String, GenericRecord> producer = new KafkaProducer<>(props);
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The contract audit log records contract status and metadata changes on an artifact.
+The contract audit log records every change to the contract state of an artifact.
 
 The audit log records the following operations:
 
+* `CONTRACT_PROJECTED`: an ODCS contract version was projected onto the artifact, for example `orders-contract 1.0.0`
+* `CONTRACT_REMOVED`: a contract's projection was removed, because the contract was deleted or its new version no longer references the artifact
 * `STATUS_CHANGED`: status transitions through the contract status endpoint, for example `STABLE -> DEPRECATED`
 * `METADATA_UPDATED`: contract metadata updates through `PUT .../contract/metadata`
+* `PROMOTED`: promotions, for example `orders-contract: DEV -> STAGE`
+* `COMPATIBILITY_GROUP_SET`: compatibility group changes
+* `RULESET_CONFIGURED` and `RULESET_DELETED`: changes to the artifact-level ruleset, or to a version-level ruleset (the entry's `version` is then set)
 
-Ruleset changes, contract submission, update and deletion, promotion, and compatibility group changes are not recorded.
+Changes to the global contract ruleset do not belong to an artifact and are not in this log. Deleting an artifact, or the group that contains it, deletes its audit entries.
 
 Query the audit log for an artifact (`limit` defaults to 20, maximum 500):
 
@@ -635,7 +643,7 @@ curl "http://localhost:8080/apis/registry/v3/search/contracts?status=STABLE&owne
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Global contract rulesets provide a baseline set of rules for all artifacts. Artifact-level and version-level rules override global rules by name. Global rules are applied by the rule execution endpoint; the Kafka SerDes do not apply them. Reading the global ruleset requires read access; setting or deleting it requires the admin role.
+Global contract rulesets provide a baseline set of rules for all artifacts. Artifact-level and version-level rules override global rules by name. Global rules are applied by the rule execution endpoint and by the Kafka SerDes. Reading the global ruleset requires read access; setting or deleting it requires the admin role.
 
 You can also manage the global contract ruleset in the {registry} web console. Click the *Contract rules* tab in the console navigation to add, delete, or clear global contract rules without calling the REST API directly.
 
@@ -704,11 +712,11 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 
 |DELETE
 |`/groups/{groupId}/contracts/{contractId}`
-|Delete the ODCS contract artifact. Projected labels, rules, and field tags remain on schema artifacts.
+|Delete the ODCS contract artifact, and remove its projected labels, rules, and field tags from the schema artifacts
 
 |GET
 |`/groups/{groupId}/artifacts/{artifactId}/contract/export`
-|Export an artifact's projected contract data as ODCS YAML (lossy)
+|Export an artifact's projected contract data as ODCS YAML
 |===
 
 .Contract metadata REST API endpoints
@@ -722,7 +730,7 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 
 |PUT
 |`/groups/{groupId}/artifacts/{artifactId}/contract/metadata`
-|Replace contract metadata. All `contract.{contractId}.*` labels are replaced with the given fields; status transitions are not validated
+|Replace the editable contract metadata fields. Other contract labels are kept; status and stage changes follow the lifecycle rules
 |===
 
 .Contract ruleset REST API endpoints
@@ -884,7 +892,7 @@ curl "http://localhost:8080/apis/registry/v3/groups/my-group/contracts?limit=10&
 curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/export
 ----
 
-Rebuilds ODCS v3.1 YAML from the artifact's projected contract labels, rules, and field tags. Field tags are read from the latest version only, and `location` is set to `group/artifact:latestVersion`. The export is lossy: field names are lowercased, `pii` comes back as a tag, and sections that are not projected (such as the title and descriptions) are missing. Returns 404 if the artifact has no `contract.{contractId}.id` label.
+Rebuilds ODCS v3.1 YAML from the artifact's projected contract labels, rules, and field tags. Field tags are read from the latest version only, and `location` is set to `group/artifact:latestVersion`. Sections that are not projected, such as the title and descriptions, are missing from the export. Returns 404 if the artifact has no `contract.{contractId}.id` label.
 
 .Promoting a contract
 [source,bash]
@@ -946,7 +954,7 @@ curl -X PUT \
   }'
 ----
 
-WARNING: This call replaces all `contract.{contractId}.*` labels with the given fields and does not validate status transitions. Projected labels such as `id`, `version`, `sla.*`, and `quality.*` are removed, after which the export endpoint returns 404.
+NOTE: This call replaces the editable fields: `status`, `ownerTeam`, `ownerDomain`, `supportContact`, `classification`, `stage`, and `compatibilityGroup`. A field you omit is removed. Other contract labels, such as the projected `id`, `version`, `sla.*`, and `quality.*`, are kept. A status or stage change that the lifecycle does not allow is rejected (HTTP 409 for the status, HTTP 400 for the stage).
 
 .Transitioning contract status
 [source,bash]

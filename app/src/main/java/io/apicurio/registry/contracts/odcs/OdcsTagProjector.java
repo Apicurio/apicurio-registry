@@ -17,13 +17,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @ApplicationScoped
 public class OdcsTagProjector {
 
     private static final Logger log = LoggerFactory.getLogger(OdcsTagProjector.class);
     static final String FIELD_TAG_PREFIX = "field-tag.";
-    private static final int MAX_LABEL_KEY_LENGTH = 512;
+    /** The longest label key every storage variant accepts. */
+    static final int MAX_LABEL_KEY_LENGTH = 256;
 
     @Inject
     @Current
@@ -57,7 +59,8 @@ public class OdcsTagProjector {
                 }
             }
 
-            if (count > 0) {
+            // Also write when there are no tags, to clear the tags of an earlier projection
+            if (count > 0 || hasLabelWithPrefix(groupId, artifactId, targetVersion, tagPrefix)) {
                 storage.mergeVersionLabels(groupId, artifactId, targetVersion,
                         tagPrefix, labels);
             }
@@ -67,6 +70,25 @@ public class OdcsTagProjector {
             log.warn("Failed to project field tags for {}/{}", groupId, artifactId, e);
             return 0;
         }
+    }
+
+    /**
+     * Removes the contract's field tags from every version of the artifact.
+     */
+    public void remove(String contractId, String groupId, String artifactId) {
+        String tagPrefix = FIELD_TAG_PREFIX + contractId + ":";
+        for (String version : storage.getArtifactVersions(groupId, artifactId, Set.of())) {
+            if (hasLabelWithPrefix(groupId, artifactId, version, tagPrefix)) {
+                storage.mergeVersionLabels(groupId, artifactId, version, tagPrefix, Map.of());
+            }
+        }
+    }
+
+    private boolean hasLabelWithPrefix(String groupId, String artifactId, String version,
+            String prefix) {
+        Map<String, String> labels = storage.getArtifactVersionMetaData(groupId, artifactId, version)
+                .getLabels();
+        return labels != null && labels.keySet().stream().anyMatch(key -> key.startsWith(prefix));
     }
 
     /**

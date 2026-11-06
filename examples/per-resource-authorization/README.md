@@ -9,8 +9,9 @@ A complete, local example of Apicurio Registry's per-resource authorization:
   [Kroxylicious ACL rules format](https://github.com/kroxylicious/design/blob/main/proposals/009-authorizer.md).
   RBAC is enabled here, so the rules restrict within what each role allows; they never widen it.
 
-**New to this? Follow the [step-by-step guide](GUIDE.md).** It walks through every feature with
-commands and expected output, in about 30 minutes, and works as a script for a team demo.
+**New to this? Follow the [step-by-step guide](GUIDE.md).** It walks through every feature in the
+API and in the UI, with commands, expected output and screenshots, in about 30 minutes, and works
+as a script for a team demo.
 
 ## Quick start
 
@@ -61,12 +62,13 @@ owner of a resource bypasses the access rules for it (see step 11 of the guide).
 
 | File | Purpose |
 |------|---------|
-| [`GUIDE.md`](GUIDE.md) | Step-by-step walkthrough and presenter notes |
+| [`GUIDE.md`](GUIDE.md) | Step-by-step walkthrough (API and UI) and presenter notes |
+| [`images/`](images) | The guide's UI screenshots |
 | [`docker-compose.yml`](docker-compose.yml) | The three services; the Registry configuration is in its `environment` |
 | [`access.rules`](access.rules) | The access rules; this directory is mounted read-only, and edits apply within seconds |
 | [`demo.sh`](demo.sh) | Creates the sample data and checks the expected access |
 | [`demo-env.sh`](demo-env.sh) | Shell helpers (`status`, `call`, `visible`, `denials`) to call the API as any user |
-| [`../config/realm.json`](../config/realm.json) | The Keycloak realm: users, roles and clients |
+| [`../../distro/docker-compose/config/realm.json`](../../distro/docker-compose/config/realm.json) | The Keycloak realm: users, roles and clients |
 
 ## Notes
 
@@ -75,6 +77,8 @@ owner of a resource bypasses the access rules for it (see step 11 of the guide).
 - **Podman on macOS:** run Compose from a path under your home directory, not under `/tmp`. The
   `/tmp` symlink cannot be shared into the Podman VM, and the registry then fails at startup with
   `Access rules file not found`.
+- **Run from this directory:** `docker-compose.yml` mounts the shared Keycloak realm from
+  `distro/docker-compose/config/`, so keep the example inside the repository checkout.
 - **Local build:** the example uses the `latest-snapshot` images. To run a locally built registry,
   build it (`./mvnw install -pl distro/docker -am -DskipTests`), then build
   `distro/docker/target/docker/Dockerfile.jvm` as `apicurio/apicurio-registry:latest-snapshot`.
@@ -85,6 +89,6 @@ owner of a resource bypasses the access rules for it (see step 11 of the guide).
 ## Learn more
 
 - *Configuring per-resource authorization* in the Registry documentation
-  ([source](../../../docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc)):
+  ([source](../../docs/modules/ROOT/pages/getting-started/assembly-configuring-resource-authorization.adoc)):
   the rules format, configuration, and limitations.
-- [ADR-0005](../../../adr/0005-per-resource-authorization.md): how it is implemented.
+- [ADR-0005](../../adr/0005-per-resource-authorization.md): how it is implemented.

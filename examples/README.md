@@ -29,6 +29,12 @@ This example application demonstrates the basics of using the registry in a very
 publish/subscribe application using Apache Avro as the schema technology used to serialize
 and deserialize message payloads.
 
+## Per-resource Authorization Example
+This example runs Apicurio Registry, its web console and Keycloak with Docker Compose, with
+per-resource authorization: an access rules file decides which groups and artifacts each user can
+read or write, on top of the Keycloak roles. Its [step-by-step guide](per-resource-authorization/GUIDE.md)
+walks through each feature in the REST API and the UI, and works as a script for a team demo.
+
 ## Simple JSON Schema Example
 This example application demonstrates the basics of using the registry in a very simple Kafka
 publish/subscribe application using JSON Schema to validate message payloads when both producing

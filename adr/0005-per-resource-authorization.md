@@ -585,7 +585,7 @@ From the repository root, after building the dependencies as described in
 ./mvnw test -pl app -Dtest=GrantsAccessControllerTest,GrantsAuthorizationTest,GrantsInteractionsTest,GrantsIndirectAccessTest,SearchPermissionsTest
 ```
 
-The [Keycloak Compose example](../distro/docker-compose/in-memory-with-authz-grants/) supplies
+The [per-resource authorization example](../examples/per-resource-authorization/) supplies
 `access.rules` and `demo.sh` for a running-system walkthrough. It demonstrates point decisions,
 search filtering, anonymous reads, and denied creation; consult its README for ports and setup.
 

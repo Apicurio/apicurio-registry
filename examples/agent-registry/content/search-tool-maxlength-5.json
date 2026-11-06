@@ -1,0 +1,11 @@
+{
+  "name": "search_guides",
+  "description": "Search the city guide for places to visit",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "query": { "type": "string", "maxLength": 5 }
+    },
+    "required": ["query"]
+  }
+}

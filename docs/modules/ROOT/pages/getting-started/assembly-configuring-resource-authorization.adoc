@@ -45,7 +45,7 @@ The access rules file uses the Kroxylicious ACL rules format, which Kroxylicious
 [role="_abstract"]
 You enable per-resource authorization by pointing {registry} at an access rules file. Protected resource operations then use the rules alongside other enabled checks. Administrator and owner bypasses still apply.
 
-A complete Docker Compose example with {keycloak} is available in the `distro/docker-compose/in-memory-with-authz-grants/` directory of the {registry} source repository. It includes a script that verifies the expected access, and a step-by-step guide (`GUIDE.md`) that walks through each feature with commands and expected output.
+To try per-resource authorization before configuring your own deployment, use the link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/per-resource-authorization[per-resource authorization example] in the {registry} source repository. It runs {registry}, its web console and {keycloak} with Docker Compose, and includes a step-by-step guide that walks through each feature in the REST API and the web console.
 
 .Prerequisites
 * You have enabled authentication in {registry}, for example with OpenID Connect (OIDC), HTTP basic authentication, or proxy header authentication. The authentication check also recognizes Kubernetes and form authentication when configured.

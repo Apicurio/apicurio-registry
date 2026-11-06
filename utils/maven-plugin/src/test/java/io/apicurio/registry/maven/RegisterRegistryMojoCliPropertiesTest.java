@@ -112,6 +112,22 @@ public class RegisterRegistryMojoCliPropertiesTest {
     }
 
     @Test
+    void testLoadsAutoRefsNamingStrategyFromCliProperties() throws IOException, MojoExecutionException {
+        Path artifactFile = Files.createFile(tempDir.resolve("schema.json"));
+
+        System.setProperty("artifacts.groupId", "my.group.id");
+        System.setProperty("artifacts.artifactId", "my-artifact-id");
+        System.setProperty("artifacts.file", artifactFile.toString());
+        System.setProperty("artifacts.autoRefsNamingStrategy", "DEFAULT");
+
+        RegisterRegistryMojo mojo = new RegisterRegistryMojo();
+        mojo.validate();
+
+        assertEquals(RegisterArtifact.AutoRefsNamingStrategy.DEFAULT,
+                mojo.artifacts.get(0).getAutoRefsNamingStrategy());
+    }
+
+    @Test
     void testCliSupportedFieldsStayAlignedWithRegisterArtifactProperties() throws IntrospectionException {
         // If a new writable RegisterArtifact property is added, update the CLI system-property
         // support and the expected set below.
@@ -127,6 +143,7 @@ public class RegisterRegistryMojoCliPropertiesTest {
                 "autoRefs",
                 "versionStrategy",
                 "avroAutoRefsNamingStrategy",
+                "autoRefsNamingStrategy",
                 "isDraft",
                 "contentType",
                 "references",

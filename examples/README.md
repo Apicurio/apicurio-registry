@@ -44,6 +44,13 @@ Quarkus LangChain4j agents publish their Agent Cards and discover each other and
 through the Registry. Its [step-by-step guide](agent-registry/GUIDE.md) walks through each feature,
 with screenshots, and works as a script for a team demo.
 
+## ODCS Data Contracts Example
+This example runs Apicurio Registry, its web console and Kafka with Docker Compose, and governs an
+Avro schema with an Open Data Contract Standard (ODCS) contract: the registry projects the contract
+onto the schema as labels, field tags and rules, and the Kafka serializer enforces those rules
+before records are sent. Its [step-by-step guide](odcs-data-contracts/GUIDE.md) walks through each
+feature in the REST API and the UI, and works as a script for a team demo.
+
 ## Simple JSON Schema Example
 This example application demonstrates the basics of using the registry in a very simple Kafka
 publish/subscribe application using JSON Schema to validate message payloads when both producing

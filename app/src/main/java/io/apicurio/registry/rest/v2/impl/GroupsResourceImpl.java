@@ -14,6 +14,7 @@ import io.apicurio.registry.content.extract.ContentExtractor;
 import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.content.util.ContentTypeUtil;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.AuditExempt;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
@@ -443,6 +444,7 @@ public class GroupsResourceImpl implements GroupsResource {
     }
 
     @Override
+    @AuditExempt(reason = "Looks up existing content by the content in the request body; changes nothing.")
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId,
             Boolean canonical, ArtifactContent artifactContent) {
@@ -455,6 +457,7 @@ public class GroupsResourceImpl implements GroupsResource {
      *      java.lang.String, java.lang.Boolean, java.io.InputStream)
      */
     @Override
+    @AuditExempt(reason = "Looks up existing content by the content in the request body; changes nothing.")
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Read)
     public VersionMetaData getArtifactVersionMetaDataByContent(String groupId, String artifactId,
             Boolean canonical, InputStream data) {
@@ -626,6 +629,7 @@ public class GroupsResourceImpl implements GroupsResource {
      *      java.io.InputStream)
      */
     @Override
+    @AuditExempt(reason = "Dry run of the artifact rules for a candidate update; changes nothing.")
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     public void testUpdateArtifact(String groupId, String artifactId, InputStream data) {
         ParameterValidationUtils.requireParameter("groupId", groupId);

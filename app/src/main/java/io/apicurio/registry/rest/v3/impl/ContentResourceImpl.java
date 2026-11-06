@@ -8,6 +8,7 @@ import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinder;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.AuditExempt;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.v3.ContentResource;
@@ -53,6 +54,7 @@ public class ContentResourceImpl implements ContentResource {
      * @see io.apicurio.registry.rest.v3.ContentResource#detectContentReferences(String, VersionContent)
      */
     @Override
+    @AuditExempt(reason = "Parses the content in the request body for references; changes nothing.")
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public List<ArtifactReference> detectContentReferences(String artifactType, VersionContent body) {
         ContentHandle content = ContentHandle.create(body.getContent());
@@ -79,6 +81,7 @@ public class ContentResourceImpl implements ContentResource {
     }
 
     @Override
+    @AuditExempt(reason = "Returns the canonical form of the content in the request body; changes nothing.")
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public Response canonicalizeContent(String artifactType, InputStream data) {
         ContentHandle content = ContentHandle.create(data);

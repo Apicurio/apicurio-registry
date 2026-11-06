@@ -918,6 +918,16 @@ The following {registry} configuration options are available for each component 
 |Default
 |Available from
 |Description
+|`apicurio.audit.enabled`
+|`boolean`
+|`true`
+|`3.4.0`
+|Emit one audit event for every REST request that changes data, every request denied by authentication or authorization, and every call to an explicitly audited read operation such as data export. Each audited response carries the event's id in the `Audit-ID` header.
+|`apicurio.audit.log.enabled`
+|`boolean`
+|`true`
+|`3.4.0`
+|Write audit events, one JSON object per line, to the `io.apicurio.registry.audit.events` logger at INFO level. Has no effect when `apicurio.audit.enabled` is false.
 |`apicurio.log.level`
 |`string [dynamic]`
 |`INFO`

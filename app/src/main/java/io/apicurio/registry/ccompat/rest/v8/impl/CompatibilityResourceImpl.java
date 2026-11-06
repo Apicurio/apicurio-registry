@@ -4,6 +4,7 @@ import io.apicurio.registry.ccompat.rest.v8.CompatibilityResource;
 import io.apicurio.registry.ccompat.rest.v8.beans.CompatibilityCheckResponse;
 import io.apicurio.registry.ccompat.rest.v8.beans.RegisterSchemaRequest;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.AuditExempt;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import jakarta.inject.Inject;
@@ -22,6 +23,7 @@ public class CompatibilityResourceImpl implements CompatibilityResource {
     io.apicurio.registry.ccompat.rest.v7.impl.CompatibilityResourceImpl v7CompatibilityResource;
 
     @Override
+    @AuditExempt(reason = "Checks the schema in the request body against the compatibility rules; changes nothing.")
     public CompatibilityCheckResponse checkAllCompatibility(String subject, Boolean verbose,
             Boolean normalize, String xRegistryGroupId, RegisterSchemaRequest data) {
         io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest v7Request = convertToV7Request(data);
@@ -31,6 +33,7 @@ public class CompatibilityResourceImpl implements CompatibilityResource {
     }
 
     @Override
+    @AuditExempt(reason = "Checks the schema in the request body against the compatibility rules; changes nothing.")
     public CompatibilityCheckResponse checkCompatibility(String subject, String version, Boolean verbose,
             Boolean normalize, String xRegistryGroupId, RegisterSchemaRequest data) {
         io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest v7Request = convertToV7Request(data);

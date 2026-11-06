@@ -6,6 +6,7 @@ import io.apicurio.registry.ccompat.rest.v8.beans.Schema;
 import io.apicurio.registry.ccompat.rest.v8.beans.SchemaId;
 import io.apicurio.registry.ccompat.rest.v8.beans.SchemaReference;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.AuditExempt;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import jakarta.inject.Inject;
@@ -32,6 +33,7 @@ public class SubjectsResourceImpl implements SubjectsResource {
     }
 
     @Override
+    @AuditExempt(reason = "Looks up existing content by the content in the request body; changes nothing.")
     public Schema lookupSchemaByContent(String subject, Boolean normalize, String format,
             String xRegistryGroupId, Boolean deleted, RegisterSchemaRequest data) {
         io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest v7Request = convertToV7Request(data);
@@ -88,6 +90,7 @@ public class SubjectsResourceImpl implements SubjectsResource {
     }
 
     @Override
+    @AuditExempt(reason = "Looks up existing content by the content in the request body; changes nothing.")
     public Schema lookupSchemaByVersion(String subject, String version, Boolean normalize,
             String format, String xRegistryGroupId, Boolean deleted, RegisterSchemaRequest data) {
         io.apicurio.registry.ccompat.rest.v7.beans.RegisterSchemaRequest v7Request = convertToV7Request(data);

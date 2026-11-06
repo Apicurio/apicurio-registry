@@ -9,6 +9,7 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.AuditAlways;
 import io.apicurio.registry.logging.audit.Audited;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
@@ -231,6 +232,7 @@ public class AdminResourceImpl implements AdminResource {
      * @see io.apicurio.registry.rest.v2.AdminResource#exportData(java.lang.Boolean)
      */
     @Override
+    @AuditAlways(reason = "Exports all registry data, an audit-relevant read.")
     @MethodMetadata(extractParameters = {"0", MPK_FOR_BROWSER})
     @Audited
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)

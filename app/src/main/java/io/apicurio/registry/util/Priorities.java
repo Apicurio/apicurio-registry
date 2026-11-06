@@ -41,7 +41,9 @@ public final class Priorities {
     public static final class RequestResponseFilters {
 
         /**
-         * Priority for {@link io.apicurio.registry.logging.audit.HttpRequestsAuditFilter}.
+         * Priority for {@link io.apicurio.registry.logging.audit.HttpRequestsAuditFilter} and
+         * {@link io.apicurio.registry.logging.audit.AuditEventFilter}. The two are independent of each other,
+         * so their relative order does not matter.
          */
         public static final int AUDIT = jakarta.ws.rs.Priorities.AUTHENTICATION - 100; // 900
 

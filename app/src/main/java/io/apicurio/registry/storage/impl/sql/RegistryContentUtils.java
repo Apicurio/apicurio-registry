@@ -15,7 +15,6 @@ import io.apicurio.registry.types.RegistryException;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProvider;
 import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import io.apicurio.registry.utils.StringUtil;
-import io.quarkus.security.ForbiddenException;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,26 +101,19 @@ public class RegistryContentUtils {
                     String newRefName = coordinatePointer.toString();
 
                     if (!partialRecursivelyResolvedReferences.containsKey(newRefName)) {
-                        try {
-                            var nested = loader.apply(reference);
-                            if (nested != null) {
-                                ArtifactTypeUtilProvider typeUtilProvider = artifactTypeUtilProviderFactory
-                                        .getArtifactTypeProvider(nested.getArtifactType());
-                                RewrittenContentHolder rewrittenContentHolder = resolveReferencesWithContext(
-                                        artifactTypeUtilProviderFactory,
-                                        TypedContent.create(nested.getContent(), nested.getContentType()),
-                                        nested.getArtifactType(), partialRecursivelyResolvedReferences,
-                                        nested.getReferences(), loader, referencesRewrites);
-                                referencesRewrites.put(refName, newRefName);
-                                TypedContent rewrittenContent = rewriteReferencesIfSupported(typeUtilProvider,
-                                        rewrittenContentHolder.getRewrittenContent(), referencesRewrites);
-                                partialRecursivelyResolvedReferences.put(newRefName, rewrittenContent);
-                            }
-                        } catch (ForbiddenException ex) {
-                            // The caller may not read the referenced artifact: fail, never skip
-                            throw ex;
-                        } catch (Exception ex) {
-                            log.error("Could not resolve reference " + reference + ".", ex);
+                        var nested = loader.apply(reference);
+                        if (nested != null) {
+                            ArtifactTypeUtilProvider typeUtilProvider = artifactTypeUtilProviderFactory
+                                    .getArtifactTypeProvider(nested.getArtifactType());
+                            RewrittenContentHolder rewrittenContentHolder = resolveReferencesWithContext(
+                                    artifactTypeUtilProviderFactory,
+                                    TypedContent.create(nested.getContent(), nested.getContentType()),
+                                    nested.getArtifactType(), partialRecursivelyResolvedReferences,
+                                    nested.getReferences(), loader, referencesRewrites);
+                            referencesRewrites.put(refName, newRefName);
+                            TypedContent rewrittenContent = rewriteReferencesIfSupported(typeUtilProvider,
+                                    rewrittenContentHolder.getRewrittenContent(), referencesRewrites);
+                            partialRecursivelyResolvedReferences.put(newRefName, rewrittenContent);
                         }
                     }
                 }

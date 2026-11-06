@@ -32,8 +32,8 @@ Two Linux Foundation discovery standards have emerged for the agentic AI ecosyst
 
 Apicurio Registry already implements much of the underlying capability (A2A v1.0 `AGENT_CARD`
 artifacts, `MCP_TOOL` artifacts, well-known endpoints, visibility tiers, structured content
-extraction). Converging with these two standards positions Apicurio as an early reference
-implementation and gives the project a voice in governance that is still forming.
+extraction). Converging with these two standards lets standard discovery clients find agents and
+tools registered in Apicurio without Apicurio-specific integration.
 
 ### Where Apicurio already overlaps
 
@@ -79,7 +79,6 @@ Implement convergence in two increments, followed by optional later work.
    `POST /ard/explore` (optional), plus an MCP tool wrapping ARD search.
 3. **Step 3 — Deferred.** Trust Manifest passthrough and a catalog importer.
 4. **Step 4 — `representativeQueries`.** Populate it for `AGENT_CARD` entries.
-5. **Step 5 — Get listed** on the AI Catalog and ARD implementation pages.
 
 ### Step 1 — Publishing / conformance
 
@@ -95,7 +94,7 @@ into the AI Catalog / ARD entry envelope.
 - Includes a self-describing `application/ai-registry+json` entry pointing at
   `/.well-known/ard/search` whenever `apicurio.ard.enabled=true`, so a crawler that only ingests the
   static manifest can still discover the live search API (gap 7, fixed).
-- Result: Apicurio becomes crawlable and can be listed on the ai-catalog.io "Implementations" page.
+- Result: Apicurio becomes crawlable by AI Catalog and ARD clients.
 
 ### Step 2 — ARD API
 
@@ -117,14 +116,12 @@ mirrored under `/apis/registry/v3/well-known/ard/*`):
   by the same `query` used by `/ard/search`.
 - **MCP tool wrapping ARD search**, moved here from Step 3. Every reviewed reference implementation
   (Hugging Face Discover Tool, GitHub Agent Finder, Ora Directory) exposes its ARD search as an MCP
-  tool as a first-class feature, not an afterthought. Apicurio already has an `mcp/` module;
-  wrapping `POST /ard/search` there is low-effort relative to its value for "looking like a real
-  reference implementation." Tracked as a child issue of #6991.
+  tool as a first-class feature, not an afterthought. Apicurio already has an `mcp/` module, so
+  wrapping `POST /ard/search` there is low effort. Tracked as a child issue of #6991.
 
 ### Step 3 — Deferred
 
-- Trust Manifest passthrough via artifact labels/metadata. Optional in the spec and not required
-  for the initial listing goal.
+- Trust Manifest passthrough via artifact labels/metadata. Optional in the spec.
 - Catalog importer (crawl external `ai-catalog.json`/`ard.json` and register entries). New scope,
   separate discussion.
 
@@ -137,22 +134,6 @@ example utterances per skill) and, where absent, a generated fallback from
 source field exists yet in the MCP Tool artifact schema; separate follow-up). This directly improves
 both conformance-tool scoring (§D.2 flags a missing/undersized `representativeQueries` as a warning)
 and real semantic-search relevance in any ARD registry that crawls Apicurio's catalog.
-
-### Step 5 — Get listed
-
-The two target listing pages have different, concrete requirements:
-
-- **`ai-catalog.io/implementations/`**: low friction. "Community Projects" are added by opening a PR
-  against `Agent-Card/ai-catalog`'s docs. No live endpoint is required for this list (it currently
-  includes SDKs/libraries alongside one live testbed service).
-- **`agenticresourcediscovery.org/ref_implementations/`**: every entry on this page (Hugging Face,
-  GitHub, Cisco, Ora, ANS Finder, MCP Gateway Registry) is a live, HTTPS-reachable endpoint, and at
-  least one (ANS Finder) documents having run and passed the official
-  `ard-spec/conformance/bin/conformance-test registry <url>` CLI. Getting listed here requires:
-  (a) a publicly reachable demo/staging Apicurio instance with
-  `apicurio.ai-catalog.enabled`/`apicurio.ard.enabled` turned on (the feature currently defaults to
-  disabled Developer Preview, with no public instance), and (b) actually running the conformance
-  CLI against it and recording the result.
 
 ### ARD v0.91 changes
 
@@ -175,8 +156,7 @@ and it changes two things this ADR did not anticipate:
   are resolved as IRIs under the ARD base context, not matched as literal strings.
 
 These findings, plus the self-describing-entry fix and the `representativeQueries` gap, came out of
-a review against two live community pages: [ai-catalog.io](https://ai-catalog.io/) and
-[agenticresourcediscovery.org/ref_implementations](https://agenticresourcediscovery.org/ref_implementations/).
+a review of the published specifications and reference implementations.
 
 ### Behaviour across storage variants
 
@@ -212,7 +192,7 @@ All properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix,
 2. ARD search scores are a constant `100`; relevance ranking depends on #7230.
 3. Only `federation: none` is implemented; other values are accepted but ignored.
 4. No Trust Manifest support and no catalog importer (Step 3).
-5. No public instance and no recorded conformance CLI run, which the ARD listing requires (Step 5).
+5. No recorded run of the official ARD conformance CLI.
 6. The ADR is still **Proposed**; it must be accepted or superseded by the planned agent registry
    umbrella ADR.
 
@@ -228,43 +208,9 @@ All properties follow `.claude/rules/config-properties.md` (`apicurio.*` prefix,
 
 ## Consequences
 
-- **Benefits:** Apicurio becomes crawlable by ARD/AI Catalog clients with no storage change, and is
-  positioned as an early reference implementation with a voice in governance.
+- **Benefits:** Apicurio becomes crawlable by ARD/AI Catalog clients with no storage change.
 - **Costs:** two well-known paths to maintain; an evolving spec (JSON-LD framing, v0.91 path change)
-  that can require further amendments; listing requires running and maintaining a public instance.
-
-### Community engagement plan
-
-These are LF (not CNCF) efforts, with two distinct venues.
-
-**AI Catalog — LF Agent Card Working Group** (`Agent-Card/ai-catalog`)
-
-- Discord: `discord.gg/wh4XQQG4tt` (day-to-day).
-- Open TSC community meetings (LF Zoom); agendas/notes in a public Google Doc.
-- Normative changes: open an issue first; TSC seats currently held by Google, Microsoft, Anthropic,
-  PulseMCP.
-- Governance is explicitly **temporary** and will move to a permanent model later; early active
-  implementers are well positioned for the steady-state TSC.
-
-**ARD** (`ards-project/ard-spec`)
-
-- Normative spec changes: open an issue to discuss first; a maintainer lands it.
-- Non-normative (examples, conformance tooling, reference implementations, docs): PRs welcome
-  directly.
-- The conformance test CLI is the lowest-friction contribution entry point.
-
-Recommended tactical path:
-
-1. Join Discord + watch both repos; introduce yourself as working on Apicurio's A2A/MCP agent
-   registry.
-2. Attend one AI Catalog TSC community meeting (open, no invite needed).
-3. File 1–2 well-scoped issues from real implementation experience:
-   - **URN ↔ registry identity mapping** (existing registries key artifacts differently from
-     `urn:air:`),
-   - **registry-backed vs. static-manifest catalog behavior** (how `/.well-known/ai-catalog.json`
-     should behave behind a permissioned, visibility-tiered registry).
-4. Once Apicurio support lands, contribute Apicurio as a listed implementation and as an ARD
-   conformance target.
+  that can require further amendments.
 
 ### Success criteria
 
@@ -273,12 +219,7 @@ Recommended tactical path:
 - The catalog includes a self-describing `application/ai-registry+json` entry when ARD is enabled
   (done).
 - Agent Card entries carry `representativeQueries`.
-- ARD `POST /search` passes the official ARD conformance CLI in registry mode, run against a live,
-  publicly reachable demo instance (not just locally).
-- Apicurio listed on the ai-catalog.io implementations page (Community Projects).
-- Apicurio listed on the agenticresourcediscovery.org reference-implementations page.
-- Active participation in at least one working-group venue (Discord + one meeting or one accepted
-  issue/PR).
+- ARD `POST /search` passes the official ARD conformance CLI in registry mode.
 
 ## Example and verification
 
@@ -302,9 +243,7 @@ Recommended tactical path:
 
 - Epic: https://github.com/Apicurio/apicurio-registry/issues/6991
 - AI Catalog: https://ai-catalog.io/ · https://github.com/Agent-Card/ai-catalog
-- AI Catalog implementations: https://ai-catalog.io/implementations/
 - ARD: https://agenticresourcediscovery.org/ · https://github.com/ards-project/ard-spec
-- ARD reference implementations: https://agenticresourcediscovery.org/ref_implementations/
 - ARD "how to publish" guide: https://agenticresourcediscovery.org/how_to_publish/
 - A2A Protocol v1.0: https://a2a-protocol.org/latest/specification/
 - A2A community Agent Registry proposal: https://github.com/a2aproject/A2A/discussions/741
@@ -316,5 +255,5 @@ Recommended tactical path:
 | Milestone | Result |
 |---|---|
 | 2026-08-22 | First version: Steps 1–3 |
-| 2026-09-02 amendment | ARD v0.91: serve both well-known paths; JSON-LD framing noted; self-describing entry fixed; MCP search tool moved into Step 2; Steps 4 and 5 added |
+| 2026-09-02 amendment | ARD v0.91: serve both well-known paths; JSON-LD framing noted; self-describing entry fixed; MCP search tool moved into Step 2; Step 4 added |
 | This ADR reformatted to [the ADR template](TEMPLATE.md) | Structure only; no change to the decisions |

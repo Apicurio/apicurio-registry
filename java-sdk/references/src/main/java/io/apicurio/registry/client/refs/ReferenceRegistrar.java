@@ -36,6 +36,25 @@ import java.util.Objects;
 /**
  * Registers the artifacts of a {@link RegistrationPlan} in dependency order, wiring each artifact's
  * references to the versions registered (or found) for its dependencies.
+ *
+ * <p>Example:</p>
+ * <pre>{@code
+ * SchemaSourceSet sources = SchemaSourceSet.fromDirectories(
+ *         List.of(Path.of("src/main/resources/schemas")), SchemaSourceSet.DEFAULT_FILTER);
+ * RootArtifact root = RootArtifact.of("order.json", "my-group", "Order");
+ * PlanOptions options = PlanOptions.builder().build();
+ *
+ * RegistrationResult result = ReferenceRegistrar.builder(client)
+ *         .ifExists(IfArtifactExists.FIND_OR_CREATE_VERSION)
+ *         .build()
+ *         .execute(ReferenceResolver.plan(List.of(root), sources, options));
+ *
+ * // or, with default registrar settings:
+ * RegistrationResult same = ReferenceRegistrar.register(client, sources, root, options);
+ * }</pre>
+ *
+ * <p>If registration fails, a {@link RegistrationException} is thrown that carries the artifacts registered
+ * so far in {@link RegistrationException#partialResult()}.</p>
  */
 public final class ReferenceRegistrar {
 

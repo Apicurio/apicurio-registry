@@ -8,7 +8,6 @@ import io.apicurio.common.apps.config.Info;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
-import io.apicurio.registry.auth.GlobalIdCoordinatesCache;
 import io.apicurio.registry.auth.ResourceAccessGuard;
 import io.apicurio.registry.auth.RoleBasedAccessApiOperation;
 import io.apicurio.registry.cdi.Current;
@@ -167,9 +166,6 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     ImportExportConfigProperties importExportProps;
-
-    @Inject
-    GlobalIdCoordinatesCache globalIdCoordinatesCache;
 
     @Inject
     io.apicurio.registry.services.LogLevelValidator logLevelValidator;
@@ -382,9 +378,6 @@ public class AdminResourceImpl implements AdminResource {
                 this.storage.importData(stream, preserveGlobalId, preserveContentId);
             }
         } finally {
-            // An import or upgrade may rebind a global ID this process already cached
-            // (preserveGlobalId reuses the originally exported IDs), even on partial failure.
-            globalIdCoordinatesCache.invalidateAll();
             // Clean up the temp work directory whether the import succeeded or failed.
             cleanupImportWorkDir(tempDirectory);
         }

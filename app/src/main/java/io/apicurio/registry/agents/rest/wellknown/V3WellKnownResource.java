@@ -1,5 +1,6 @@
 package io.apicurio.registry.agents.rest.wellknown;
 
+import io.apicurio.registry.logging.audit.AuditExempt;
 import io.apicurio.registry.rest.v3.WellResource;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
@@ -81,6 +82,7 @@ public class V3WellKnownResource implements WellResource {
     }
 
     @Override
+    @AuditExempt(reason = "Queries the agent catalog with the filter in the request body; changes nothing.")
     public ArdSearchResponse ardSearch(ArdSearchRequest data) {
         return delegate.ardSearch(data);
     }
@@ -92,6 +94,7 @@ public class V3WellKnownResource implements WellResource {
     }
 
     @Override
+    @AuditExempt(reason = "Queries the agent catalog with the filter in the request body; changes nothing.")
     public ArdExploreResponse ardExplore(ArdExploreRequest data) {
         return delegate.ardExplore(data);
     }

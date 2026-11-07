@@ -5,6 +5,7 @@ import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.logging.audit.AuditExempt;
 import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.rest.v3.beans.AgentCard;
@@ -107,6 +108,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
     }
 
     @Override
+    @AuditExempt(reason = "Queries the agent catalog with the filter in the request body; changes nothing.")
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ArdSearchResponse ardSearch(ArdSearchRequest request) {
         return aiCatalogDiscovery.ardSearch(request);
@@ -119,6 +121,7 @@ public class WellKnownResourceImpl implements WellKnownResource {
     }
 
     @Override
+    @AuditExempt(reason = "Queries the agent catalog with the filter in the request body; changes nothing.")
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Read)
     public ArdExploreResponse ardExplore(ArdExploreRequest request) {
         return aiCatalogDiscovery.ardExplore(request);

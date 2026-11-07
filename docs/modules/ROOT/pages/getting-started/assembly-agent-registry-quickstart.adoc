@@ -388,7 +388,7 @@ Replace `<registry-url>` with the URL of your {registry} instance. For local dev
 .Verification
 . Verify the connection by asking Claude a question about {registry}, for example: "What groups are present in {registry}?"
 +
-The MCP server provides tools for working with groups, artifacts, versions, and configuration properties in {registry}.
+The MCP server provides tools for working with groups, artifacts, versions, configuration properties, prompt templates, and rules in {registry}. It also discovers the A2A agents and MCP tools stored there.
 endif::[]
 
 [role="_additional-resources"]

@@ -152,20 +152,18 @@ class KafkaSqlCoordinatorRaceTest {
     @Test
     @Timeout(value = TEST_TIMEOUT_MS, unit = TimeUnit.MILLISECONDS)
     @BMRules(rules = {
-        // The location matches because KafkaSqlCoordinator.pending is declared as
-        // ConcurrentHashMap rather than Map. Widening that field to the interface would silently
-        // stop this rule matching.
+        // The location names only the method, not the receiver type, so it keeps matching
+        // however KafkaSqlCoordinator.pending is declared.
         //
-        // javac duplicates the finally block, so waitForResponse compiles to two
-        // ConcurrentHashMap.remove call sites, one on the normal path and one on the exceptional
-        // one. Byteman's default count of 1 picks the first, which is the normal path the waiter
-        // takes here. Should that ordering change, or a new remove appear earlier in the method,
-        // the freeze moves to a path this test does not exercise and the notifier's arm budget
-        // expires.
+        // javac duplicates the finally block, so waitForResponse compiles to two remove call
+        // sites, one on the normal path and one on the exceptional one. Byteman's default count
+        // of 1 picks the first, which is the normal path the waiter takes here. Should that
+        // ordering change, or a new remove appear earlier in the method, the freeze moves to a
+        // path this test does not exercise and the notifier's arm budget expires.
         @BMRule(name = "freeze waiter in finally before remove",
             targetClass = "io.apicurio.registry.storage.impl.kafkasql.KafkaSqlCoordinator",
             targetMethod = "waitForResponse",
-            targetLocation = "AT INVOKE java.util.concurrent.ConcurrentHashMap.remove",
+            targetLocation = "AT INVOKE remove",
             condition = ON_RACE_THREAD + " AND NOT flagged(\"" + FLAG_WAITER_FROZEN + "\")",
             action = "flag(\"" + FLAG_WAITER_FROZEN + "\");"
                     + "java.lang.System.setProperty(\"" + PROP_WAITER_FROZEN + "\", \"true\");"

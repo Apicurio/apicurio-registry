@@ -207,7 +207,7 @@ Tests that use Byteman to force a specific thread interleaving live in
 ```
 
 That command also runs the regular `app` suite. To run only the Byteman tests, name them
-with `-Dtest=ConcurrentVersionCreationTest,...`.
+with `-Dtest=ConcurrentVersionCreationTest,KafkaSqlCoordinatorRaceTest,...`.
 
 They sit in their own source root because Byteman is LGPL and may not appear in the
 default build. Only the profile adds that root, so a new test put anywhere else will

@@ -6,6 +6,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,9 +29,7 @@ public class KafkaSqlCoordinator {
     @Inject
     Instance<KafkaSqlConfiguration> configuration;
 
-    // Declared as ConcurrentHashMap rather than Map: the Byteman rule in KafkaSqlCoordinatorRaceTest
-    // matches on ConcurrentHashMap.remove.
-    private final ConcurrentHashMap<UUID, CompletableFuture<Object>> pending = new ConcurrentHashMap<>();
+    private final Map<UUID, CompletableFuture<Object>> pending = new ConcurrentHashMap<>();
 
     /**
      * Creates a UUID for a single operation and registers a pending entry under it. The
@@ -45,6 +44,8 @@ public class KafkaSqlCoordinator {
 
     /**
      * Blocks until the operation with the given UUID completes or times out, then removes its entry.
+     * Throws a RegistryException immediately when nothing is registered under the UUID, which the
+     * old dual-map design surfaced as a NullPointerException instead.
      */
     public Object waitForResponse(UUID uuid) {
         CompletableFuture<Object> future = pending.get(uuid);
@@ -69,8 +70,11 @@ public class KafkaSqlCoordinator {
                     "[KafkaSqlCoordinator] Timed out waiting for a Kafka Sql response for operation " + uuid);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            // No cause, for the same reason as the timeout above: the InterruptedException
+            // also has a null message, so chaining it would reduce detail to
+            // "InterruptedException: " and drop the operation UUID.
             throw new RegistryException(
-                    "[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response.", e);
+                    "[KafkaSqlCoordinator] Thread interrupted waiting for a Kafka Sql response for operation " + uuid);
         } catch (ExecutionException e) {
             // Unreachable: notifyResponse uses complete(), never completeExceptionally().
             // Required because CompletableFuture.get() declares this checked exception.
@@ -97,10 +101,12 @@ public class KafkaSqlCoordinator {
         // If there is no pending future, then there is no HTTP thread waiting for
         // a response on this node. Among the reasons: we're in a cluster and the HTTP
         // thread is on another node, we're starting up and consuming old journal entries,
-        // or the entry was already removed (see createUUID). Dropping the response is
-        // correct in all of them.
+        // or the entry was already removed (see waitForResponse's finally and forget).
+        // Dropping the response is correct in all of them.
         CompletableFuture<Object> future = pending.get(uuid);
         if (future != null) {
+            // First response wins: complete() drops a second notify, where the old
+            // dual-map design let a later notify overwrite an undelivered earlier one.
             future.complete(returnValue);
         }
     }

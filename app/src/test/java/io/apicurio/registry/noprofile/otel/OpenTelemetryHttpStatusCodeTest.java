@@ -92,7 +92,10 @@ class OpenTelemetryHttpStatusCodeTest extends AbstractResourceTestBase {
                     "quarkus.otel.sdk.disabled", "false",
                     "quarkus.otel.traces.sampler", "always_on",
                     "quarkus.otel.logs.exporter", "none",
-                    "quarkus.otel.metrics.exporter", "none"
+                    "quarkus.otel.metrics.exporter", "none",
+                    // The batch span processor flushes on a free-running 5 s timer by default, so a
+                    // span usually misses the 5 s window that awaitSpanWithPath waits for.
+                    "quarkus.otel.bsp.schedule.delay", "100ms"
             );
         }
     }

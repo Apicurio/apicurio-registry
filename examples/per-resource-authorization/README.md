@@ -53,7 +53,7 @@ Passwords equal the user name, except `developer2` (password `developer`).
 | `developer` | sr-developer | Write group `team-a` and `team-a/*`, except the denied `team-a/secret-schema`; read group `team-b` and `team-b/public-schema`; read group `shared` and `shared/*` (role rule) |
 | `developer2`| sr-developer | Read group `shared` and `shared/*` only (role rule): same role as `developer`, different access |
 | `user`      | sr-readonly  | Read group `shared` and `shared/*` (role rule) |
-| _anonymous_ | none         | Read `shared/common-types` only (`$anonymous` role rule) |
+| _anonymous_ | none         | Read `shared/common-types` only (`anonymous User` rule) |
 
 `demo.sh` creates the sample data as `admin`, so `admin` owns it. That matters: by default, the
 owner of a resource bypasses the access rules for it (see step 11 of the guide).

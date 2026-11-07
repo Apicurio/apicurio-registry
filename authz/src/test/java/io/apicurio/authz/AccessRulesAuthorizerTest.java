@@ -34,7 +34,7 @@ class AccessRulesAuthorizerTest {
             allow Role with name = "team-a-dev" to WRITE Artifact with name like "team-a/*";
             allow Role with name = "team-a-dev" to READ Group with name = "team-a";
             allow User with name = "carol" to READ Artifact with name in {"x/1", "x/2"};
-            allow Role with name = "$anonymous" to READ Artifact with name like "public/*";
+            allow anonymous User to READ Artifact with name like "public/*";
             otherwise deny;
             """;
 
@@ -80,14 +80,15 @@ class AccessRulesAuthorizerTest {
     }
 
     @Test
-    void anonymousCallersMatchOnlyTheAnonymousRole() throws Exception {
+    void anonymousCallersMatchOnlyTheAnonymousRules() throws Exception {
         AccessRulesAuthorizer rules = AccessRulesAuthorizer.create(write(RULES, 0), REGISTRY_TYPES);
 
-        assertEquals(Decision.ALLOW, decide(rules, subject(new Role("$anonymous")), Artifact.READ, "public/a"));
-        // A subject with no principals matches no rule
-        assertEquals(Decision.DENY, decide(rules, Subject.anonymous(), Artifact.READ, "public/a"));
-        // A user named like the role is not the role
-        assertEquals(Decision.DENY, decide(rules, subject(new User("$anonymous")), Artifact.READ, "public/a"));
+        assertEquals(Decision.ALLOW, decide(rules, Subject.anonymous(), Artifact.READ, "public/a"));
+        assertEquals(Decision.DENY, decide(rules, Subject.anonymous(), Artifact.WRITE, "public/a"));
+        assertEquals(Decision.DENY, decide(rules, Subject.anonymous(), Artifact.READ, "team-a/schema"));
+        // An authenticated caller does not match the anonymous rules
+        assertEquals(Decision.DENY, decide(rules, subject(new User("carol")), Artifact.READ, "public/a"));
+        assertEquals(Decision.DENY, decide(rules, subject(new User("anonymous")), Artifact.READ, "public/a"));
     }
 
     /**

@@ -49,12 +49,6 @@ public class GrantsAccessController extends AbstractAccessController {
     private static final Logger LOG = LoggerFactory.getLogger(GrantsAccessController.class);
     private static final Logger AUDIT = LoggerFactory.getLogger("io.apicurio.registry.audit.authz");
 
-    /**
-     * Role given to unauthenticated callers, so access rules can allow anonymous access explicitly
-     * with {@code Role with name = "$anonymous"}. Never matches a {@code User} rule.
-     */
-    public static final String ANONYMOUS_ROLE = "$anonymous";
-
     private static final String TYPE_ARTIFACT = "artifact";
     private static final String TYPE_GROUP = "group";
     private static final String TYPE_CONTENT = "content";
@@ -281,12 +275,12 @@ public class GrantsAccessController extends AbstractAccessController {
     /**
      * Maps the current Quarkus {@link SecurityIdentity} to a Kroxylicious {@link Subject}: one
      * {@link User} principal, the Kroxylicious user class that access rules use for {@code User}
-     * by default, plus one {@link Role} per role. Unauthenticated callers get only the
-     * {@link #ANONYMOUS_ROLE} role.
+     * by default, plus one {@link Role} per role. Unauthenticated callers get the anonymous subject,
+     * which only {@code anonymous User} rules match.
      */
     public Subject currentSubject() {
         if (securityIdentity == null || securityIdentity.isAnonymous()) {
-            return new Subject(Set.of(new Role(ANONYMOUS_ROLE)));
+            return Subject.anonymous();
         }
         Set<Principal> principals = new HashSet<>();
         principals.add(new User(securityIdentity.getPrincipal().getName()));

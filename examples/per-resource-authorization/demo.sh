@@ -80,7 +80,7 @@ expect "developer creates group team-c (no group rule)" 403 -X POST -H "Authoriz
 expect "developer creates team-a/secret-schema (name denied)" 403 -X POST -H "Authorization: Bearer $DEV" \
   -H 'Content-Type: application/json' \
   -d '{"artifactId": "secret-schema", "artifactType": "JSON"}' "$API/registry/v3/groups/team-a/artifacts?ifExists=FAIL"
-expect "anonymous reads shared/common-types (\$anonymous rule)" 200 "$(art shared common-types)"
+expect "anonymous reads shared/common-types (anonymous User rule)" 200 "$(art shared common-types)"
 expect "anonymous reads shared/error-schema (no rule)" 401 "$(art shared error-schema)"
 
 echo "Search filtering:"

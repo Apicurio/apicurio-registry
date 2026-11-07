@@ -22,6 +22,7 @@ can check it works before changing anything.
 | `demo.sh` | Seeds the data, then checks the expected behaviour; exits non-zero on any failure |
 | `demo-env.sh` | Optional: shell helpers to call the API by hand (`source ./demo-env.sh`) |
 | `images/` | Optional: screenshots, named `NN-what-it-shows.png` in step order |
+| `ci.env` | Optional: settings for CI (see [In CI](#in-ci)) |
 
 Example-specific files (rules, schemas, configuration) live next to these, with a comment on each
 non-obvious line.
@@ -40,7 +41,40 @@ non-obvious line.
 - **Compose is commented**: every non-default setting says why it is there. Use health checks and
   `depends_on: condition: service_healthy` instead of sleeps. Reuse shared files (for example
   `distro/docker-compose/config/realm.json`) rather than copying them.
-- **Use `latest-snapshot` images** and say in the README how to run a local build.
+- **Select the Registry images through `REGISTRY_IMAGE`, `REGISTRY_UI_IMAGE` and
+  `MCP_SERVER_IMAGE`**, defaulting to `latest-snapshot`
+  (`image: ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}`). CI sets them to the images
+  built for the pull request, and fails an example that would run any other Apicurio Registry image;
+  locally they also run a local build.
 - **Say what is not production-ready** (dev-mode Keycloak, relaxed issuer checks, in-memory storage).
 - **Link both ways:** the README links the user documentation and the ADR; the ADR links the example.
 - **Replaces older examples?** Delete them in the same PR, and update [`README.md`](README.md).
+
+## In CI
+
+Every directory under `examples/` with an executable `demo.sh` and a Compose file runs in CI
+([`verify-examples.yaml`](../.github/workflows/verify-examples.yaml)), in its own job, on every pull
+request that changes an example, the server or the UI, and on every push to `main`:
+
+1. `docker compose up -d`, with `REGISTRY_IMAGE`, `REGISTRY_UI_IMAGE` and `MCP_SERVER_IMAGE` set to
+   the images built for the pull request. The job fails first if the stack would run any other
+   Apicurio Registry image. Other images (Keycloak, Kafka, ...) are pulled, with retries.
+2. `./demo.sh`, then `./demo.sh` again. Both must exit 0.
+3. `docker compose down -v`. On failure, the Compose logs are uploaded as an artifact.
+
+There is nothing to register: adding the example is enough. A failure blocks the merge.
+
+Optional settings go in `ci.env` next to `demo.sh`, one `KEY=value` per line, each with a comment
+saying why:
+
+| Key | Default | Meaning |
+|---|---|---|
+| `CI_TIMEOUT_MINUTES` | `20` | Job timeout |
+| `CI_ENABLED` | `true` | `false` skips the example in CI; say why, and prefer fixing it |
+| any other key | | Exported to `docker compose` and `demo.sh`, for example `SKIP_LLM=1` |
+
+To run the same check locally against a local build:
+
+```bash
+REGISTRY_IMAGE=apicurio/apicurio-registry:latest-snapshot docker compose up -d && ./demo.sh && ./demo.sh
+```

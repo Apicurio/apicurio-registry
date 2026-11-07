@@ -1596,11 +1596,11 @@ async function handleTestResult({ github, context, core }) {
 // or no summary is posted at all. pr-lifecycle.test.js checks the two match.
 const DECISION_KEYS = new Set([
   'lifecycle-ready', 'run-build', 'run-unit-tests', 'run-scalpel-report',
-  'run-integration', 'run-extras', 'run-sdk', 'run-cli',
+  'run-integration', 'run-extras', 'run-examples', 'run-sdk', 'run-cli',
   'run-operator', 'run-console-plugin', 'run-go-sdk-freshness', 'run-docs', 'scalpel-enabled',
 ]);
 const CHANGES_KEYS = new Set([
-  'java', 'ui', 'integration', 'sdk', 'cli', 'go-sdk-gen', 'operator', 'console-plugin', 'docs', 'ci',
+  'java', 'ui', 'integration', 'sdk', 'cli', 'go-sdk-gen', 'operator', 'console-plugin', 'examples', 'docs', 'ci',
 ]);
 
 // One summary row per Verify phase: [label, decision key, job name prefix,
@@ -1618,6 +1618,7 @@ const SUMMARY_PHASES = [
   ['Scalpel Report', 'run-scalpel-report', 'Scalpel Report', ['scalpel-enabled']],
   ['Integration Tests', 'run-integration', 'Integration Tests /'],
   ['Extra Tests', 'run-extras', 'Extra Tests /'],
+  ['Examples', 'run-examples', 'Examples /'],
   ['SDK Verification', 'run-sdk', 'SDK Verification /'],
   ['CLI Verification', 'run-cli', 'CLI Verification'],
   ['Operator Tests', 'run-operator', 'Operator Tests /'],

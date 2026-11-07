@@ -31,7 +31,7 @@ services:
       retries: 30
 
   apicurio-registry:
-    image: apicurio/apicurio-registry:latest-snapshot
+    image: ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}
     container_name: apicurio-registry-api-resource-authz
     environment:
       apicurio.rest.deletion.group.enabled: "true"
@@ -64,7 +64,7 @@ services:
       - ./:/opt/apicurio/authz:ro
 
   apicurio-registry-ui:
-    image: apicurio/apicurio-registry-ui:latest-snapshot
+    image: ${REGISTRY_UI_IMAGE:-apicurio/apicurio-registry-ui:latest-snapshot}
     container_name: apicurio-registry-ui-resource-authz
     environment:
       REGISTRY_API_URL: "http://localhost:${REGISTRY_PORT:-8081}/apis/registry/v3"

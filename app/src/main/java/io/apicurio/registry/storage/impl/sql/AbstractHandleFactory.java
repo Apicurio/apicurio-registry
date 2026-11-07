@@ -37,16 +37,12 @@ public abstract class AbstractHandleFactory implements HandleFactory {
     public <R, X extends Exception> R withHandle(HandleCallback<R, X> callback) throws X {
         LocalState state = state();
         R result = null;
-        Exception callbackFailure = null;
+        Throwable callbackFailure = null;
         RuntimeException transactionFailure;
         try {
             // Create a new handle if necessary. Increment the "level" if a handle already exists.
             if (state.handle == null) {
-                Connection connection = ConnectionRetryUtil.getConnectionWithRetry(dataSource, retryConfig,
-                        log);
-                // We must disable autocommit since we're managing the transactions ourselves.
-                connection.setAutoCommit(false);
-                state.handle = new HandleImpl(connection);
+                state.handle = new HandleImpl(openConnection());
                 state.level = 0;
             } else {
                 state.level++;
@@ -58,17 +54,18 @@ public abstract class AbstractHandleFactory implements HandleFactory {
         } catch (SQLException e) {
             // If a SQL exception is thrown, set the handle to rollback.
             if (state.handle != null) {
-                log.debug("Transaction will rollback.", e);
                 state.handle.setRollback(true);
+                log.debug("Transaction will rollback.", e);
             }
             // Wrap the SQL exception.
             RegistryStorageException wrapped = new RegistryStorageException(e);
             callbackFailure = wrapped;
-        } catch (Exception e) {
-            // If any other exception is thrown, also set the handle to rollback.
+        } catch (Exception | Error e) {
+            // If any other exception, or an Error such as StackOverflowError, is thrown, also set the
+            // handle to rollback. The callback did not finish, so its work must not be committed.
             if (state.handle != null) {
-                log.debug("Transaction will rollback.", e);
                 state.handle.setRollback(true);
+                log.debug("Transaction will rollback.", e);
             }
             callbackFailure = e;
         } finally {
@@ -82,12 +79,32 @@ public abstract class AbstractHandleFactory implements HandleFactory {
                 throw transactionFailure;
             }
         }
+        if (callbackFailure instanceof Error error) {
+            throw error;
+        }
         if (callbackFailure != null) {
             @SuppressWarnings("unchecked")
             X failure = (X) callbackFailure;
             throw failure;
         }
         return result;
+    }
+
+    private Connection openConnection() throws SQLException {
+        Connection connection = ConnectionRetryUtil.getConnectionWithRetry(dataSource, retryConfig, log);
+        try {
+            // We must disable autocommit since we're managing the transactions ourselves.
+            connection.setAutoCommit(false);
+            return connection;
+        } catch (Throwable e) {
+            // No handle holds this connection yet, so releaseHandle cannot close it.
+            try {
+                connection.close();
+            } catch (Exception closeFailure) {
+                e.addSuppressed(closeFailure);
+            }
+            throw e;
+        }
     }
 
     private RuntimeException releaseHandle(LocalState state) {
@@ -115,8 +132,15 @@ public abstract class AbstractHandleFactory implements HandleFactory {
             log.error("Could not release database connection/transaction", e);
             transactionFailure = new RegistryStorageException(
                     "Could not release database connection/transaction.", e);
+        } finally {
+            // Also runs when commit or rollback throws an Error. A handle left in place would make
+            // every later call on this thread join it as a nested call, which never commits.
+            closeHandle(state);
         }
+        return transactionFailure;
+    }
 
+    private void closeHandle(LocalState state) {
         try {
             if (state.handle != null) {
                 state.handle.close();
@@ -128,7 +152,6 @@ public abstract class AbstractHandleFactory implements HandleFactory {
             state.handle = null;
             state.level = 0;
         }
-        return transactionFailure;
     }
 
     @Override

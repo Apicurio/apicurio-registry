@@ -6,12 +6,16 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import jakarta.inject.Inject;
 import org.eclipse.jgit.api.Git;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
@@ -25,7 +29,9 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 @TestProfile(GitopsTestProfile.class)
@@ -341,6 +347,50 @@ public class GitOpsValidateTest {
                     .body("state", equalTo("failed"))
                     .body("errors.detail", hasItem("Invalid checkout path"));
         });
+    }
+
+    /**
+     * Regression test for #9740: deleting a task must unlink a symlink found inside
+     * the task directory, never delete through it. The sentinel lives outside the
+     * workspace, so a cleanup that follows the link destroys it and the test fails.
+     */
+    @Test
+    void deleteTaskRemovesSymlinkWithoutFollowingIt(@TempDir Path sentinelDir) throws Exception {
+        final var taskId = given()
+                .contentType("application/json")
+                .body("""
+                        {"type": "pull", "repoId": "%s", "ref": "main"}
+                        """.formatted(repoId()))
+                .when()
+                .post("/apis/registry/v3/admin/gitops/validate")
+                .then()
+                .statusCode(200)
+                .extract().path("taskId").toString();
+
+        // The sidecar creates this directory during a real fetch.
+        final var validateDir = Path.of(gitOpsConfig.getWorkspace()).resolve("validate");
+        final var taskDir = validateDir.resolve(taskId);
+        final var requestFile = validateDir.resolve(taskId + ".json");
+        Files.createDirectories(taskDir);
+        final var sentinel = sentinelDir.resolve("sentinel.txt");
+        Files.writeString(sentinel, "must survive the cleanup");
+        try {
+            Files.createSymbolicLink(taskDir.resolve("link"), sentinelDir);
+        } catch (UnsupportedOperationException | FileSystemException e) {
+            Assumptions.assumeTrue(false, "symbolic links are not available on this platform: " + e);
+        }
+
+        assertTrue(Files.exists(requestFile), "precondition: the request file must exist before the delete");
+
+        given()
+                .when()
+                .delete("/apis/registry/v3/admin/gitops/validate/" + taskId)
+                .then()
+                .statusCode(204);
+
+        assertFalse(Files.exists(requestFile, LinkOption.NOFOLLOW_LINKS), "the request file should be deleted with the task");
+        assertFalse(Files.exists(taskDir, LinkOption.NOFOLLOW_LINKS), "the task directory should be gone");
+        assertTrue(Files.exists(sentinel), "the sentinel file was deleted through the link");
     }
 
     /**

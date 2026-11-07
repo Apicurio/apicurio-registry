@@ -5,6 +5,7 @@ import {
     Button,
     PageSection,
     PageSectionVariants,
+    Pagination,
     Toolbar,
     ToolbarContent,
     ToolbarItem
@@ -26,10 +27,9 @@ import { isErrorStatus } from "@utils/rest.utils.ts";
 import { Paging } from "@models/Paging.ts";
 import { NewPeer, Peer, UpdatePeer } from "@sdk/lib/generated-client/models";
 
-// The server allows at most 16 enabled remote peers, so a single page of this size holds them all.
-const PEERS_PAGING: Paging = {
+const DEFAULT_PAGING: Paging = {
     page: 1,
-    pageSize: 100
+    pageSize: 10
 };
 
 /**
@@ -39,6 +39,7 @@ const PEERS_PAGING: Paging = {
 export const PeersPage: FunctionComponent<PageProperties> = () => {
     const [pageError, setPageError] = useState<PageError>();
     const [loaders, setLoaders] = useState<Promise<any> | Promise<any>[] | undefined>();
+    const [paging, setPaging] = useState<Paging>(DEFAULT_PAGING);
     const [peers, setPeers] = useState<Peer[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [isFederationDisabled, setIsFederationDisabled] = useState(false);
@@ -50,10 +51,17 @@ export const PeersPage: FunctionComponent<PageProperties> = () => {
     const config: ConfigService = useConfigService();
     const isReadOnly: boolean = config.featureReadOnly();
 
-    const loadPeers = (): Promise<void> => {
-        return admin.getPeers(PEERS_PAGING).then(results => {
-            setPeers(results.peers || []);
-            setTotalCount(results.count || 0);
+    const loadPeers = (requested: Paging): Promise<void> => {
+        return admin.getPeers(requested).then(results => {
+            const count: number = results.count || 0;
+            const pagePeers: Peer[] = results.peers || [];
+            if (pagePeers.length === 0 && requested.page > 1 && count > 0) {
+                // The page is past the end, for example after its last peer was removed: show the last page.
+                return loadPeers({ page: Math.ceil(count / requested.pageSize), pageSize: requested.pageSize });
+            }
+            setPaging(requested);
+            setPeers(pagePeers);
+            setTotalCount(count);
             setIsFederationDisabled(false);
         }).catch(error => {
             if (isErrorStatus(error, 409)) {
@@ -65,6 +73,14 @@ export const PeersPage: FunctionComponent<PageProperties> = () => {
                 setPageError(toPageError(error, "Error loading remote registries."));
             }
         });
+    };
+
+    const onSetPage = (_event: any, newPage: number, perPage?: number): void => {
+        loadPeers({ page: newPage, pageSize: perPage ? perPage : paging.pageSize });
+    };
+
+    const onPerPageSelect = (_event: any, newPerPage: number, newPage: number): void => {
+        loadPeers({ page: newPage, pageSize: newPerPage });
     };
 
     const onAddPeer = (): void => {
@@ -100,21 +116,21 @@ export const PeersPage: FunctionComponent<PageProperties> = () => {
         }
         return request.then(() => {
             closeModal();
-            return loadPeers();
+            return loadPeers(paging);
         });
     };
 
     const removePeer = (peer: Peer): void => {
         setActionError(undefined);
         admin.deletePeer(peer.peerId!).then(() => {
-            return loadPeers();
+            return loadPeers(paging);
         }).catch(error => {
             setActionError(peerErrorMessage(error, "The remote registry could not be removed."));
         });
     };
 
     useEffect(() => {
-        setLoaders(loadPeers());
+        setLoaders(loadPeers(DEFAULT_PAGING));
     }, []);
 
     return (
@@ -135,19 +151,29 @@ export const PeersPage: FunctionComponent<PageProperties> = () => {
                         <PeersEmptyState isReadOnly={isReadOnly} onAddPeer={onAddPeer} /> : null }
                     { !isFederationDisabled && peers.length > 0 ?
                         <>
-                            { isReadOnly ? null :
-                                <Toolbar>
-                                    <ToolbarContent>
+                            <Toolbar>
+                                <ToolbarContent>
+                                    { isReadOnly ? null :
                                         <ToolbarItem>
                                             <Button variant="primary" data-testid="btn-add-peer" onClick={onAddPeer}>
                                                 Add remote registry
                                             </Button>
-                                        </ToolbarItem>
-                                    </ToolbarContent>
-                                </Toolbar> }
-                            { totalCount > peers.length ?
-                                <Alert variant="info" isInline className="ps_peers-alert" data-testid="peers-truncated"
-                                    title={`Showing the first ${peers.length} of ${totalCount} remote registries.`} /> : null }
+                                        </ToolbarItem> }
+                                    <ToolbarItem align={{ default: "alignEnd" }}>
+                                        <Pagination
+                                            variant="top"
+                                            dropDirection="down"
+                                            itemCount={totalCount}
+                                            perPage={paging.pageSize}
+                                            page={paging.page}
+                                            onSetPage={onSetPage}
+                                            onPerPageSelect={onPerPageSelect}
+                                            widgetId="peer-list-pagination"
+                                            className="peer-list-pagination"
+                                        />
+                                    </ToolbarItem>
+                                </ToolbarContent>
+                            </Toolbar>
                             <PeerList peers={peers} isReadOnly={isReadOnly} onEdit={onEditPeer} onRemove={removePeer} />
                         </> : null }
                 </PageSection>

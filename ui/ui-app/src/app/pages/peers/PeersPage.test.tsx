@@ -69,6 +69,25 @@ const openRowMenu = (peerId: string): void => {
     fireEvent.click(within(screen.getByTestId(`peer-row-${peerId}`)).getByLabelText("Kebab toggle"));
 };
 
+const paginationText = (): string => document.querySelector(".peer-list-pagination")?.textContent || "";
+
+const manyPeers = (count: number): any[] => Array.from({ length: count }, (_, i) => {
+    const peerId = `peer-${String(i + 1).padStart(2, "0")}`;
+    return { peerId, url: `https://${peerId}.example.com`, enabled: true };
+});
+
+// Answers like the server's peers endpoint over a list that removals change, one page at a time.
+const servePeers = (all: any[]): void => {
+    adminMock.getPeers.mockImplementation((paging: { page: number; pageSize: number }) => {
+        const start = (paging.page - 1) * paging.pageSize;
+        return Promise.resolve({ count: all.length, peers: all.slice(start, start + paging.pageSize) });
+    });
+    adminMock.deletePeer.mockImplementation((peerId: string) => {
+        all.splice(all.findIndex(peer => peer.peerId === peerId), 1);
+        return Promise.resolve(undefined);
+    });
+};
+
 beforeEach(() => {
     configMock.readOnly = false;
 });
@@ -85,8 +104,8 @@ describe("PeersPage", () => {
 
         expect(await screen.findByTestId("peer-row-eu-west")).toBeInTheDocument();
         expect(screen.getByTestId("peer-row-us-east")).toBeInTheDocument();
-        expect(adminMock.getPeers).toHaveBeenCalledWith({ page: 1, pageSize: 100 });
-        expect(screen.queryByTestId("peers-truncated")).not.toBeInTheDocument();
+        expect(adminMock.getPeers).toHaveBeenCalledWith({ page: 1, pageSize: 10 });
+        expect(paginationText()).toMatch(/1\s*-\s*2\s*of\s*2/);
     });
 
     it("explains that federation is not enabled when the server answers with a conflict", async () => {
@@ -223,6 +242,7 @@ describe("PeersPage", () => {
         await screen.findByTestId("peer-row-eu-west");
         expect(screen.queryByTestId("btn-add-peer")).not.toBeInTheDocument();
         expect(screen.queryByLabelText("Kebab toggle")).not.toBeInTheDocument();
+        expect(paginationText()).toMatch(/1\s*-\s*1\s*of\s*1/);
     });
 
     it("does not offer to add a first remote registry when the UI is read-only", async () => {
@@ -234,10 +254,91 @@ describe("PeersPage", () => {
         expect(screen.queryByTestId("btn-add-peer-empty")).not.toBeInTheDocument();
     });
 
-    it("says so when only part of the list is shown", async () => {
-        adminMock.getPeers.mockResolvedValue({ count: 120, peers: [eu, us] });
+    it("shows the peers a page at a time with the total count", async () => {
+        servePeers(manyPeers(25));
         render(<PeersPage />);
 
-        expect(await screen.findByTestId("peers-truncated")).toHaveTextContent("Showing the first 2 of 120 remote registries.");
+        expect(await screen.findByTestId("peer-row-peer-01")).toBeInTheDocument();
+        expect(screen.getByTestId("peer-row-peer-10")).toBeInTheDocument();
+        expect(screen.queryByTestId("peer-row-peer-11")).not.toBeInTheDocument();
+        expect(adminMock.getPeers).toHaveBeenCalledTimes(1);
+        expect(adminMock.getPeers).toHaveBeenCalledWith({ page: 1, pageSize: 10 });
+        expect(paginationText()).toMatch(/1\s*-\s*10\s*of\s*25/);
+    });
+
+    it("loads the later pages from the server", async () => {
+        servePeers(manyPeers(25));
+        render(<PeersPage />);
+        await screen.findByTestId("peer-row-peer-01");
+
+        fireEvent.click(screen.getAllByLabelText("Go to next page")[0]);
+        expect(await screen.findByTestId("peer-row-peer-11")).toBeInTheDocument();
+        expect(screen.queryByTestId("peer-row-peer-01")).not.toBeInTheDocument();
+        expect(adminMock.getPeers).toHaveBeenLastCalledWith({ page: 2, pageSize: 10 });
+
+        fireEvent.click(screen.getAllByLabelText("Go to next page")[0]);
+        expect(await screen.findByTestId("peer-row-peer-25")).toBeInTheDocument();
+        expect(screen.getByTestId("peer-row-peer-21")).toBeInTheDocument();
+        expect(screen.queryByTestId("peer-row-peer-20")).not.toBeInTheDocument();
+        expect(adminMock.getPeers).toHaveBeenLastCalledWith({ page: 3, pageSize: 10 });
+        expect(paginationText()).toMatch(/21\s*-\s*25\s*of\s*25/);
+    });
+
+    it("edits a peer that is not on the first page", async () => {
+        servePeers(manyPeers(12));
+        adminMock.updatePeer.mockResolvedValue(undefined);
+        render(<PeersPage />);
+        await screen.findByTestId("peer-row-peer-01");
+        fireEvent.click(screen.getAllByLabelText("Go to next page")[0]);
+        await screen.findByTestId("peer-row-peer-12");
+
+        openRowMenu("peer-12");
+        fireEvent.click(screen.getByText("Edit"));
+        type("peer-url", "https://peer-12b.example.com");
+        fireEvent.click(screen.getByTestId("modal-btn-save"));
+
+        await waitFor(() => expect(adminMock.updatePeer).toHaveBeenCalledTimes(1));
+        expect(adminMock.updatePeer.mock.calls[0][0]).toBe("peer-12");
+        expect(adminMock.updatePeer.mock.calls[0][1].url).toBe("https://peer-12b.example.com");
+        // The list is refreshed on the page the peer was edited on.
+        await waitFor(() => expect(adminMock.getPeers).toHaveBeenLastCalledWith({ page: 2, pageSize: 10 }));
+        expect(adminMock.getPeers).toHaveBeenCalledTimes(3);
+    });
+
+    it("goes back to the last page that has peers when the only peer on a later page is removed", async () => {
+        servePeers(manyPeers(11));
+        render(<PeersPage />);
+        await screen.findByTestId("peer-row-peer-01");
+        fireEvent.click(screen.getAllByLabelText("Go to next page")[0]);
+        await screen.findByTestId("peer-row-peer-11");
+
+        openRowMenu("peer-11");
+        fireEvent.click(screen.getByText("Remove"));
+        fireEvent.click(screen.getByTestId("modal-btn-remove"));
+
+        expect(await screen.findByTestId("peer-row-peer-01")).toBeInTheDocument();
+        expect(adminMock.deletePeer).toHaveBeenCalledWith("peer-11");
+        expect(screen.queryByTestId("peer-row-peer-11")).not.toBeInTheDocument();
+        expect(screen.queryByTestId("no-peers")).not.toBeInTheDocument();
+        expect(adminMock.getPeers.mock.calls.map(call => call[0])).toEqual([
+            { page: 1, pageSize: 10 },
+            { page: 2, pageSize: 10 },
+            { page: 2, pageSize: 10 },
+            { page: 1, pageSize: 10 }
+        ]);
+        expect(paginationText()).toMatch(/1\s*-\s*10\s*of\s*10/);
+    });
+
+    it("shows the empty state when the last peer of all is removed", async () => {
+        servePeers(manyPeers(1));
+        render(<PeersPage />);
+        await screen.findByTestId("peer-row-peer-01");
+
+        openRowMenu("peer-01");
+        fireEvent.click(screen.getByText("Remove"));
+        fireEvent.click(screen.getByTestId("modal-btn-remove"));
+
+        expect(await screen.findByTestId("no-peers")).toBeInTheDocument();
+        expect(adminMock.getPeers).toHaveBeenLastCalledWith({ page: 1, pageSize: 10 });
     });
 });

@@ -315,7 +315,7 @@ List endpoints (`GET /subjects`, `GET /schemas/ids/\{id}/subjects`, `GET /schema
 
 |*Data Contracts - Rules Enforcement*
 |The ccompat API accepts `metadata` and `ruleSet` fields in requests but does not enforce or store them. The API does not execute schema rules.
-|Use {registry} native Data Contracts feature (`apicurio.contracts.enabled=true`) for contract metadata and rulesets.
+|Use the {registry} native Data Contracts feature for contract metadata and rulesets. See xref:getting-started/assembly-data-contracts.adoc#data-contracts_{context}[{registry} data contracts].
 |===
 
 **Schema Linking / Exporters**

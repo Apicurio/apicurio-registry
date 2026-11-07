@@ -1,4 +1,4 @@
-import { FunctionComponent, useEffect, useState } from "react";
+import { FunctionComponent, ReactElement, useEffect, useMemo, useRef, useState } from "react";
 import "./CompatibilityReport.css";
 import {
     Button,
@@ -6,14 +6,21 @@ import {
     DataListCell,
     DataListItemCells,
     DataListItemRow,
+    Drawer,
+    DrawerContent,
+    DrawerContentBody,
+    DrawerPanelContent,
     Label,
     Title
 } from "@patternfly/react-core";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
+import type { editor } from "monaco-editor";
+import type { Monaco } from "@monaco-editor/react";
 import { RegistryCodeEditor } from "@app/components/codeEditor/RegistryEditors.tsx";
 import { DiffView } from "@app/components/common/DiffView.tsx";
 import { draftContentToLanguage } from "@utils/content.utils.ts";
 import { newLoaderGuard } from "@utils/loader.utils.ts";
+import { buildContentMarkers, ContentIssue, ContentMarker } from "@utils/marker.utils.ts";
 import {
     comparedVersionOf,
     groupCausesByLocation,
@@ -42,18 +49,39 @@ const DIRECTION_LABELS: Record<string, string> = {
     BOTH: "Breaks backward and forward compatibility"
 };
 
-const EDITOR_LINE_HEIGHT = 19;
-const EDITOR_MAX_HEIGHT = 300;
+const MARKER_OWNER: string = "apicurio-compatibility-report";
 
-/** Sizes an editor to the longest of its contents, up to a limit, so short content does not leave a large gap. */
-const editorHeight = (...contents: string[]): string => {
-    const lines: number = Math.max(...contents.map(content => content.split("\n").length));
-    return `${Math.min(EDITOR_MAX_HEIGHT, (lines + 1) * EDITOR_LINE_HEIGHT)}px`;
+/**
+ * Where a cause is in the submitted content: `proposed.pointer`, or `context` when the server sends no
+ * location. A location in a referenced artifact is not in the submitted document, so it gets no highlight.
+ */
+const proposedIssueOf = (cause: ViolationCause): ContentIssue | undefined => {
+    if (cause.proposed?.reference !== undefined) {
+        return undefined;
+    }
+    const pointer: string | undefined = cause.proposed?.pointer ?? cause.context;
+    return pointer === undefined ? undefined : { pointer, message: cause.description };
 };
+
+/** Where a cause is in the compared version, when the server reports it and it is not in a referenced artifact. */
+const existingIssueOf = (cause: ViolationCause): ContentIssue | undefined => {
+    if (cause.existing?.pointer === undefined || cause.existing.reference !== undefined) {
+        return undefined;
+    }
+    return { pointer: cause.existing.pointer, message: cause.description };
+};
+
+const issuesOf = (causes: ViolationCause[], issueOf: (cause: ViolationCause) => ContentIssue | undefined): ContentIssue[] =>
+    causes.map(issueOf).filter((issue): issue is ContentIssue => issue !== undefined);
+
+/** The narrowest either side of the report can be dragged to. */
+const MINIMUM_PANE_WIDTH = "300px";
 
 /**
  * Shows the causes of a compatibility violation grouped by location, with the content that was submitted.
  * With only `description` and `context` on each cause it shows the same rows as the plain cause list.
+ * With content, the causes and the content are side by side, each scrolling on its own, so a location
+ * clicked in a long list of causes is shown next to it.
  */
 export const CompatibilityReport: FunctionComponent<CompatibilityReportProps> = (props: CompatibilityReportProps) => {
     const groups: ViolationGroup[] = groupCausesByLocation(props.causes);
@@ -77,7 +105,44 @@ export const CompatibilityReport: FunctionComponent<CompatibilityReportProps> = 
         return () => guard.cancel();
     }, [isComparing, comparedVersion]);
 
+    const proposedMarkers: ContentMarker[] = useMemo(() => props.content === undefined ? [] :
+        buildContentMarkers(props.content, issuesOf(props.causes, proposedIssueOf)).markers, [props.content, props.causes]);
+    const existingMarkers: ContentMarker[] = useMemo(() => comparedContent === undefined ? [] :
+        buildContentMarkers(comparedContent, issuesOf(props.causes, existingIssueOf)).markers, [comparedContent, props.causes]);
+    // Where each group's location is in the submitted content, so its title can scroll there.
+    const groupMarkers: (ContentMarker | undefined)[] = useMemo(() => groups.map(group => {
+        const issue: ContentIssue | undefined = proposedIssueOf(group.causes[0]);
+        return props.content === undefined || issue === undefined ? undefined :
+            buildContentMarkers(props.content, [issue]).markers[0];
+    }), [props.content, props.causes]);
+
+    const [codeEditor, setCodeEditor] = useState<editor.IStandaloneCodeEditor>();
+    const monacoRef = useRef<Monaco | undefined>(undefined);
+    const [revealInComparison, setRevealInComparison] = useState<ContentMarker>();
+
+    useEffect(() => {
+        const model: editor.ITextModel | null | undefined = codeEditor?.getModel();
+        const monaco: Monaco | undefined = monacoRef.current;
+        if (!model || !monaco) {
+            return;
+        }
+        monaco.editor.setModelMarkers(model, MARKER_OWNER, proposedMarkers.map(marker => ({
+            ...marker,
+            severity: monaco.MarkerSeverity.Error
+        })));
+    }, [codeEditor, proposedMarkers]);
+
     const isShowingComparison: boolean = isComparing && comparedContent !== undefined;
+
+    const revealLocation = (marker: ContentMarker): void => {
+        if (isShowingComparison) {
+            // A new object each time, so a second click on the same location scrolls again.
+            setRevealInComparison({ ...marker });
+        } else {
+            codeEditor?.revealRangeInCenter(marker);
+            codeEditor?.setSelection(marker);
+        }
+    };
     const isLoadingComparison: boolean = isComparing && comparedContent === undefined && compareError === undefined;
 
     const toggleComparison = (): void => {
@@ -98,75 +163,119 @@ export const CompatibilityReport: FunctionComponent<CompatibilityReportProps> = 
             </div>
         ));
 
-    return (
-        <div className="compatibility-report" data-testid="compatibility-report">
-            <DataList aria-label="Compatibility violations by location" className="error-causes">
-                {groups.map((group, idx) => (
-                    <DataListItemRow key={idx} className="error-causes-item" data-testid="compatibility-report-group">
-                        <DataListItemCells
-                            dataListCells={[
-                                <DataListCell key="error icon" className="type-icon-cell">
-                                    <ExclamationCircleIcon />
-                                </DataListCell>,
-                                <DataListCell key="main content">
-                                    <div className="error-causes-item-title">
-                                        {group.location !== undefined ? <b>{locationTitle(group.location)}</b> : group.causes[0].description}
+    /** A location's title, which scrolls the content to it when the location is found there. */
+    const locationLink = (location: string, marker: ContentMarker | undefined): ReactElement => marker === undefined ?
+        <b>{locationTitle(location)}</b> : (
+            <Button variant="link" isInline={true} data-testid="compatibility-report-location" onClick={() => revealLocation(marker)}>
+                <b>{locationTitle(location)}</b>
+            </Button>
+        );
+
+    const causeList = (
+        <DataList aria-label="Compatibility violations by location" className="error-causes">
+            {groups.map((group, idx) => (
+                <DataListItemRow key={idx} className="error-causes-item" data-testid="compatibility-report-group">
+                    <DataListItemCells
+                        dataListCells={[
+                            <DataListCell key="error icon" className="type-icon-cell">
+                                <ExclamationCircleIcon />
+                            </DataListCell>,
+                            <DataListCell key="main content">
+                                <div className="error-causes-item-title">
+                                    {group.location === undefined ? group.causes[0].description : locationLink(group.location, groupMarkers[idx])}
+                                </div>
+                                {group.reference !== undefined && (
+                                    <div className="compatibility-report-reference">
+                                        In referenced artifact <code>{group.reference}</code>
                                     </div>
-                                    {group.reference !== undefined && (
-                                        <div className="compatibility-report-reference">
-                                            In referenced artifact <code>{group.reference}</code>
-                                        </div>
-                                    )}
-                                    <div className="error-causes-item-description">{causeRows(group)}</div>
-                                </DataListCell>
-                            ]}
-                        />
-                    </DataListItemRow>
-                ))}
-            </DataList>
-            {props.content !== undefined && (
-                <div className="compatibility-report-content" data-testid="compatibility-report-content">
-                    <div className="compatibility-report-content-header">
-                        <Title headingLevel="h3" size="md">
-                            {isShowingComparison ? `Submitted content compared with version ${comparedVersion}` : "Submitted content"}
-                        </Title>
-                        {comparedVersion !== undefined && props.loadComparedContent && (
-                            <Button variant="link" isInline={true} data-testid="compatibility-report-compare"
-                                onClick={toggleComparison}>
-                                {isComparing ? "Show submitted content only" : `Compare with version ${comparedVersion}`}
-                            </Button>
-                        )}
-                    </div>
-                    {compareError !== undefined && <p className="compatibility-report-compare-error">{compareError}</p>}
-                    {isLoadingComparison && (
-                        <p className="compatibility-report-compare-loading" data-testid="compatibility-report-compare-loading">
-                            Loading version {comparedVersion}...
-                        </p>
-                    )}
-                    {isShowingComparison && comparedContent !== undefined ? (
-                        <DiffView
-                            original={comparedContent}
-                            originalLabel={`Version ${comparedVersion}`}
-                            modified={props.content}
-                            modifiedLabel="Submitted"
-                            height={editorHeight(comparedContent, props.content)}
-                        />
-                    ) : (
-                        <RegistryCodeEditor
-                            className="compatibility-report-editor"
-                            height={editorHeight(props.content)}
-                            language={language}
-                            value={props.content}
-                            options={{
-                                readOnly: true,
-                                automaticLayout: true,
-                                minimap: { enabled: false },
-                                wordWrap: "on"
-                            }}
-                        />
-                    )}
-                </div>
-            )}
+                                )}
+                                <div className="error-causes-item-description">{causeRows(group)}</div>
+                            </DataListCell>
+                        ]}
+                    />
+                </DataListItemRow>
+            ))}
+        </DataList>
+    );
+
+    if (props.content === undefined) {
+        return (
+            <div className="compatibility-report" data-testid="compatibility-report">
+                {causeList}
+            </div>
+        );
+    }
+
+    return (
+        <div className="compatibility-report compatibility-report-split" data-testid="compatibility-report">
+            <Drawer isExpanded={true} isInline={true} position="start" onExpand={() => {}}>
+                <DrawerContent
+                    panelContent={
+                        <DrawerPanelContent
+                            className="compatibility-report-causes"
+                            isResizable={true}
+                            defaultSize="40%"
+                            minSize={MINIMUM_PANE_WIDTH}
+                            maxSize={`calc(100% - ${MINIMUM_PANE_WIDTH})`}
+                            resizeAriaLabel="Resize the causes and the content"
+                        >
+                            {causeList}
+                        </DrawerPanelContent>
+                    }
+                >
+                    <DrawerContentBody hasPadding={false}>
+                        <div className="compatibility-report-content" data-testid="compatibility-report-content">
+                            <div className="compatibility-report-content-header">
+                                <Title headingLevel="h3" size="md">
+                                    {isShowingComparison ? `Submitted content compared with version ${comparedVersion}` : "Submitted content"}
+                                </Title>
+                                {comparedVersion !== undefined && props.loadComparedContent && (
+                                    <Button variant="link" isInline={true} data-testid="compatibility-report-compare"
+                                        onClick={toggleComparison}>
+                                        {isComparing ? "Show submitted content only" : `Compare with version ${comparedVersion}`}
+                                    </Button>
+                                )}
+                            </div>
+                            {compareError !== undefined && <p className="compatibility-report-compare-error">{compareError}</p>}
+                            {isLoadingComparison && (
+                                <p className="compatibility-report-compare-loading" data-testid="compatibility-report-compare-loading">
+                                    Loading version {comparedVersion}...
+                                </p>
+                            )}
+                            <div className="compatibility-report-editor">
+                                {isShowingComparison && comparedContent !== undefined ? (
+                                    <DiffView
+                                        original={comparedContent}
+                                        originalLabel={`Version ${comparedVersion}`}
+                                        modified={props.content}
+                                        modifiedLabel="Submitted"
+                                        originalMarkers={existingMarkers}
+                                        modifiedMarkers={proposedMarkers}
+                                        revealModified={revealInComparison}
+                                    />
+                                ) : (
+                                    <RegistryCodeEditor
+                                        language={language}
+                                        value={props.content}
+                                        onMount={(mountedEditor, monaco) => {
+                                            monacoRef.current = monaco;
+                                            setCodeEditor(mountedEditor);
+                                        }}
+                                        options={{
+                                            readOnly: true,
+                                            // Monaco hides markers in read-only editors unless told otherwise.
+                                            renderValidationDecorations: "on",
+                                            automaticLayout: true,
+                                            minimap: { enabled: false },
+                                            wordWrap: "on"
+                                        }}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    </DrawerContentBody>
+                </DrawerContent>
+            </Drawer>
         </div>
     );
 };

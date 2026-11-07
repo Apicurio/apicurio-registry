@@ -44,6 +44,9 @@ export const InvalidContentModal: FunctionComponent<InvalidContentModalProps> = 
     const loadComparedContent = artifactId === undefined ? undefined : (version: string): Promise<string> =>
         groups.getArtifactVersionContent(props.groupId ?? null, artifactId, version);
 
+    // A report with content shows it next to the causes, in a modal that fills the viewport height.
+    const isFullHeight: boolean = props.content !== undefined && isCompatibilityViolation(props.error);
+
     const errorDetail = (): React.ReactElement => {
         if (props.error) {
             if (isCompatibilityViolation(props.error)) {
@@ -96,7 +99,7 @@ export const InvalidContentModal: FunctionComponent<InvalidContentModalProps> = 
             variant={ModalVariant.large}
             isOpen={props.isOpen}
             onClose={props.onClose}
-            className="edit-artifact-metaData pf-m-redhat-font"
+            className={`edit-artifact-metaData pf-m-redhat-font${isFullHeight ? " invalid-content-modal-report" : ""}`}
             actions={[
                 <Button key="close" variant="link" data-testid="modal-btn-close" onClick={props.onClose}>Close</Button>
             ]}

@@ -16,7 +16,11 @@
 
 package io.apicurio.registry.rest.v3.impl;
 
+import io.apicurio.registry.rest.InvalidParameterValueException;
+import io.apicurio.registry.rest.v3.beans.CreateRule;
+import io.apicurio.registry.rest.v3.beans.Rule;
 import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
+import io.apicurio.registry.types.RuleType;
 import jakarta.ws.rs.BadRequestException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -204,5 +208,25 @@ class AdminResourceImplTest {
             closed = true;
             super.close();
         }
+    }
+
+    @Test
+    void testCreateGlobalRule_InvalidConfig_ThrowsInvalidParameterValueException() {
+        AdminResourceImpl resource = new AdminResourceImpl();
+        CreateRule data = new CreateRule();
+        data.setRuleType(RuleType.VALIDITY);
+        data.setConfig("NOT_A_VALID_LEVEL");
+
+        assertThrows(InvalidParameterValueException.class, () -> resource.createGlobalRule(data));
+    }
+
+    @Test
+    void testUpdateGlobalRuleConfig_InvalidConfig_ThrowsInvalidParameterValueException() {
+        AdminResourceImpl resource = new AdminResourceImpl();
+        Rule data = new Rule();
+        data.setConfig("NOT_A_VALID_LEVEL");
+
+        assertThrows(InvalidParameterValueException.class,
+                () -> resource.updateGlobalRuleConfig(RuleType.VALIDITY, data));
     }
 }

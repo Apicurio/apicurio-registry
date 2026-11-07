@@ -220,7 +220,7 @@ jobs:
         include:
           - runner: ubuntu-latest
             os-name: linux-x86_64
-          - runner: macos-14
+          - runner: macos-15
             os-name: osx-aarch_64
           - runner: windows-latest
             os-name: windows-x86_64

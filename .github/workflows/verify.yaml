@@ -415,6 +415,14 @@ jobs:
     with:
       image-tag: ${{ github.sha }}
 
+  agent-quickstart:
+    name: AI Agent Registry Quickstart
+    needs: [decide, build-java]
+    if: needs.decide.outputs.run-agent-quickstart == 'true'
+    uses: ./.github/workflows/verify-agent-quickstart.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
   go-sdk-freshness:
     name: Go SDK Freshness
     runs-on: ubuntu-latest
@@ -512,7 +520,7 @@ jobs:
           || needs.decide.result != 'success'
           || needs.decide.outputs.lifecycle-ready == 'true')
     needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
-            cli-verify, ard-conformance, go-sdk-freshness, sdk, console-plugin,
+            cli-verify, ard-conformance, agent-quickstart, go-sdk-freshness, sdk, console-plugin,
             integration-tests, extras, operator, docs]
     runs-on: ubuntu-latest
     timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min

@@ -21,7 +21,8 @@ services:
     ports:
       - "${KEYCLOAK_PORT:-8080}:8080"
     volumes:
-      - ../config/realm.json:/opt/keycloak/data/import/realm.json
+      # The shared example realm (users, roles and clients), not a copy
+      - ../../distro/docker-compose/config/realm.json:/opt/keycloak/data/import/realm.json
     # Registry starts only once the realm is imported and Keycloak answers (the image has no curl)
     healthcheck:
       test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]

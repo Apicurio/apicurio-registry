@@ -40,6 +40,7 @@ public class StatusManager {
         conditionManagers = List.of(
                 new OperatorErrorConditionManager(),
                 new ValidationErrorConditionManager(),
+                new CertificateExpiringConditionManager(),
                 new ReadyConditionManager()
         );
     }

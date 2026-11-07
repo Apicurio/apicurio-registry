@@ -632,6 +632,9 @@ spec:
 .Additional resources
 
 * xref:getting-started/assembly-configuring-registry-security.adoc[]
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-configuring-resource-authorization.adoc#enabling-resource-authorization_{context}[Enabling per-resource authorization]
+endif::[]
 
 // ref-configuring-basic-auth-credentials
 [id="configuring-basic-auth-credentials_{context}"]

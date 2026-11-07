@@ -1106,6 +1106,96 @@ class SchemaNormalizerTest {
                 "Avro field order is significant and must not be normalized away");
     }
 
+    @Test
+    void normalizeSchema_SelfReferencingRecordWithNullableUnionWithoutDefault_Equal() {
+        String schemaWithoutDefault = """
+                {
+                  "type": "record",
+                  "name": "Node",
+                  "namespace": "com.example",
+                  "fields": [
+                    {"name": "value", "type": "string"},
+                    {"name": "next", "type": ["null", "Node"]}
+                  ]
+                }""";
+
+        String schemaWithDefault = """
+                {
+                  "type": "record",
+                  "name": "Node",
+                  "namespace": "com.example",
+                  "fields": [
+                    {"name": "value", "type": "string"},
+                    {"name": "next", "type": ["null", "Node"], "default": null}
+                  ]
+                }""";
+
+        Schema normalizedWithoutDefault = EnhancedAvroContentCanonicalizer
+                .normalizeSchema(schemaWithoutDefault);
+        Schema normalizedWithDefault = EnhancedAvroContentCanonicalizer.normalizeSchema(schemaWithDefault);
+
+        assertEquals(normalizedWithDefault, normalizedWithoutDefault);
+    }
+
+    @Test
+    void normalizeSchema_RepeatedNestedRecordWithNullableUnionWithoutDefault_Equal() {
+        String schemaWithoutDefault = """
+                {
+                  "type": "record",
+                  "name": "Order",
+                  "namespace": "com.example",
+                  "fields": [
+                    {
+                      "name": "billingAddress",
+                      "type": {
+                        "type": "record",
+                        "name": "Address",
+                        "fields": [
+                          {"name": "street", "type": "string"},
+                          {"name": "apartment", "type": ["null", "string"]}
+                        ]
+                      }
+                    },
+                    {
+                      "name": "shippingAddress",
+                      "type": "Address"
+                    }
+                  ]
+                }""";
+
+        String schemaWithDefault = """
+                {
+                  "type": "record",
+                  "name": "Order",
+                  "namespace": "com.example",
+                  "fields": [
+                    {
+                      "name": "billingAddress",
+                      "type": {
+                        "type": "record",
+                        "name": "Address",
+                        "fields": [
+                          {"name": "street", "type": "string"},
+                          {"name": "apartment", "type": ["null", "string"], "default": null}
+                        ]
+                      }
+                    },
+                    {
+                      "name": "shippingAddress",
+                      "type": "Address"
+                    }
+                  ]
+                }""";
+
+        Schema normalizedWithoutDefault = EnhancedAvroContentCanonicalizer
+                .normalizeSchema(schemaWithoutDefault);
+        Schema normalizedWithDefault = EnhancedAvroContentCanonicalizer.normalizeSchema(schemaWithDefault);
+
+        assertEquals(normalizedWithoutDefault.getField("billingAddress").schema(),
+                normalizedWithoutDefault.getField("shippingAddress").schema());
+        assertEquals(normalizedWithDefault, normalizedWithoutDefault);
+    }
+
     private String getSchemaFromResource(String resourcePath) throws IOException {
         ClassLoader classLoader = getClass().getClassLoader();
         URL resourceURL = classLoader.getResource(resourcePath);

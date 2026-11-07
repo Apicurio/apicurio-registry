@@ -26,6 +26,7 @@ import io.apicurio.registry.storage.error.RuleNotFoundException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -38,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static java.net.HttpURLConnection.HTTP_BAD_REQUEST;
 import static java.net.HttpURLConnection.HTTP_CONFLICT;
 import static java.net.HttpURLConnection.HTTP_INTERNAL_ERROR;
 
@@ -48,6 +50,7 @@ public class CCompatExceptionMapperService implements ExceptionMapperService {
 
     static {
         Map<Class<? extends Exception>, Integer> map = new HashMap<>();
+        map.put(BadRequestException.class, HTTP_BAD_REQUEST);
         map.put(AlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactAlreadyExistsException.class, HTTP_CONFLICT);
         map.put(ArtifactNotFoundException.class, ErrorCode.SUBJECT_NOT_FOUND.value());
@@ -102,17 +105,18 @@ public class CCompatExceptionMapperService implements ExceptionMapperService {
         }
 
         Response.ResponseBuilder builder;
-        if (response != null) {
+        if (response != null && response.hasEntity()) {
             builder = Response.fromResponse(response);
         } else {
-            Error error = toError(t);
-            builder = Response.status(code).entity(error);
+            Error error = toError(t, code);
+            builder = response == null ? Response.status(code) : Response.fromResponse(response);
+            builder.entity(error);
         }
 
         return builder.type(MediaType.APPLICATION_JSON).build();
     }
 
-    private Error toError(Throwable t) {
+    private Error toError(Throwable t, int responseCode) {
         Error error;
 
         if (t instanceof RuleViolationException) {
@@ -123,7 +127,7 @@ public class CCompatExceptionMapperService implements ExceptionMapperService {
             error = new Error();
         }
 
-        error.setErrorCode(CONFLUENT_CODE_MAP.getOrDefault(t.getClass(), 0));
+        error.setErrorCode(CONFLUENT_CODE_MAP.getOrDefault(t.getClass(), responseCode));
         error.setMessage(toConfluentMessage(t));
         return error;
     }

@@ -18,7 +18,7 @@ endif::[]
 
 == Getting help with {registry} 
 
-See the link:https://github.com/Apicurio/apicurio-registry[{registry}] and https://github.com/Apicurio/apicurio-registry-operator[{operator}] projects on GitHub. Any contributions, suggestions, and issue reports are welcome.
+See the link:https://github.com/Apicurio/apicurio-registry[{registry}] and link:https://github.com/Apicurio/apicurio-registry/tree/main/operator[{operator}] projects on GitHub. Any contributions, suggestions, and issue reports are welcome.
 
 ifdef::apicurio-registry[]
 link:https://github.com/Apicurio/apicurio-registry/issues/new[Create an issue] on GitHub if you find any problems.

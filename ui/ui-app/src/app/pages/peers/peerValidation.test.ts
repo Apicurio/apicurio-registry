@@ -66,6 +66,12 @@ describe("validatePeerUrl", () => {
         expect(validatePeerUrl("https://registry.example.com:70000")).toContain("absolute URL");
     });
 
+    it("rejects port 0, which the browser accepts but the server does not", () => {
+        expect(validatePeerUrl("https://registry.example.com:0")).toBe("The URL port must be between 1 and 65535.");
+        expect(validatePeerUrl("https://registry.example.com:1/base")).toBeUndefined();
+        expect(validatePeerUrl("https://registry.example.com:65535")).toBeUndefined();
+    });
+
     it("rejects urls longer than the limit", () => {
         const url = "https://registry.example.com/" + "a".repeat(MAX_URL_LENGTH);
         expect(validatePeerUrl(url)).toBe(`The URL can be at most ${MAX_URL_LENGTH} characters long.`);

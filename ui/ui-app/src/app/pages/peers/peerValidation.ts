@@ -43,6 +43,10 @@ export const validatePeerUrl = (url: string): string | undefined => {
     if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
         return "The URL must start with https:// (or http:// if your administrator allows it).";
     }
+    // The browser accepts port 0 (and rejects ports above 65535 when parsing), the server accepts 1 to 65535.
+    if (parsed.port === "0") {
+        return "The URL port must be between 1 and 65535.";
+    }
     if (parsed.username || parsed.password) {
         return "The URL must not contain a user name or password.";
     }

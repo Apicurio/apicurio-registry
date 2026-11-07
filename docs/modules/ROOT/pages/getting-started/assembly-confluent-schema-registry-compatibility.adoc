@@ -62,7 +62,7 @@ schema.registry.url=http://my-registry:8080/apis/ccompat/v7
 |Complete create, retrieve, update, and delete operations for subjects including listing, registration, lookup by content (`POST /subjects/\{subject}`), lookup by version (`POST /subjects/\{subject}/versions/\{version}`), and deletion. Supports pagination with `offset`, `limit`, `deleted`, and `deletedOnly` parameters.
 
 |*Compatibility API*
-|Schema compatibility checking against specific versions or all versions. Supports `verbose` and `normalize` parameters. Defaults to `BACKWARD` compatibility when you do not configure an explicit rule, matching the Confluent behavior.
+|Schema compatibility checking against specific versions or all versions. Supports `verbose` and `normalize` parameters. With `verbose=true`, an incompatible result includes a `messages` array that explains each violation. Otherwise the response contains only `is_compatible`. Defaults to `BACKWARD` compatibility when you do not configure an explicit rule, matching the Confluent behavior.
 
 |*Config API*
 |Global and subject-level compatibility configuration. Supports `GET`, `PUT`, and `DELETE` operations, including `defaultToGlobal` parameter for subject config. The `PUT` response includes `compatibility` and `normalize` fields.
@@ -214,6 +214,22 @@ This normalization applies only to ccompat API responses (`/apis/ccompat/*`). Th
 When you do not configure an explicit compatibility rule at the artifact, group, or global level, the ccompat compatibility check endpoint (`POST /compatibility/subjects/\{subject}/versions/\{version}`) defaults to `BACKWARD` compatibility. This matches the default behavior of Confluent Schema Registry.
 
 NOTE: This default only applies to the compatibility _check_ endpoint. Schema registration does not enforce this default unless you explicitly configure a compatibility rule by using `PUT /config` or `PUT /config/\{subject}`.
+
+**Compatibility check response**
+
+The `POST /compatibility/subjects/\{subject}/versions/\{version}` and `POST /compatibility/subjects/\{subject}/versions` endpoints return `is_compatible`. When you set `verbose=true` and the schema is incompatible, the response also includes `messages`. Each entry is one rule violation. When the violation has a context, the entry has the form `<description> at <context>`:
+
+[source,json]
+----
+{
+  "is_compatible": false,
+  "messages": [
+    "The 'maxLength' string-length limit was decreased. at /properties/name/maxLength"
+  ]
+}
+----
+
+The response omits `messages` when you do not set `verbose=true` or when the schema is compatible. If {registry} cannot process the submitted schema, for example because it is not well formed or {registry} cannot resolve a reference, the endpoint returns HTTP status 422.
 
 **Config response format**
 

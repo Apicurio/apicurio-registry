@@ -3,7 +3,7 @@ package io.apicurio.registry.federation;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.apicurio.registry.federation.PeerAddressPolicy.AddressVerdict;
+import io.apicurio.registry.http.OutboundAddressPolicy.AddressVerdict;
 import io.apicurio.registry.rest.v3.beans.AgentSearchResults;
 import io.apicurio.registry.storage.dto.PeerDto;
 import io.apicurio.registry.storage.error.InvalidPeerException;

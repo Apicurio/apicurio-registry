@@ -2,6 +2,7 @@ package io.apicurio.registry.agents.noprofile.rest.mcptools;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.agents.noprofile.rest.a2a.ExperimentalFeaturesEnabledProfile;
+import io.apicurio.registry.rest.client.models.ArtifactMetaData;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.VersionContent;
@@ -24,6 +25,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Tests for the MCP tool well-known discovery endpoints.
@@ -696,6 +698,171 @@ public class WellKnownMcpToolsTest extends AbstractResourceTestBase {
 
     private static String artifactIdsInGroup(String groupId) {
         return "tools.findAll { it.groupId == '" + groupId + "' }.artifactId";
+    }
+
+    @Test
+    public void testCreateExtractsNameAndDescriptionFromContent() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        String contentName = uniqueToolName("content_name");
+
+        createMcpTool(groupId, artifactId, SEARCH_DATABASE_TOOL.replace("search_database", contentName));
+
+        ArtifactMetaData metaData = getArtifactMetaData(groupId, artifactId);
+        assertEquals(contentName, metaData.getName());
+        assertEquals("Search the product database with filters", metaData.getDescription());
+    }
+
+    @Test
+    public void testExplicitRequestValuesOverrideContentMetadata() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        String contentName = uniqueToolName("content_name");
+        String explicitName = uniqueToolName("explicit_name");
+
+        CreateArtifact createArtifact = mcpToolCreateRequest(artifactId,
+                SEARCH_DATABASE_TOOL.replace("search_database", contentName));
+        createArtifact.setName(explicitName);
+        createArtifact.setDescription("Explicit description");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        ArtifactMetaData metaData = getArtifactMetaData(groupId, artifactId);
+        assertEquals(explicitName, metaData.getName());
+        assertEquals("Explicit description", metaData.getDescription());
+
+        givenAtRoot()
+                .when()
+                .queryParam("name", contentName)
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(0));
+    }
+
+    @Test
+    public void testBlankRequestNameFallsBackToContentName() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        String contentName = uniqueToolName("content_name");
+
+        CreateArtifact createArtifact = mcpToolCreateRequest(artifactId,
+                SEARCH_DATABASE_TOOL.replace("search_database", contentName));
+        createArtifact.setName("  ");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        assertEquals(contentName, getArtifactMetaData(groupId, artifactId).getName());
+    }
+
+    @Test
+    public void testCreateMcpToolWithoutFirstVersionDoesNotExtractLater() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        String contentName = uniqueToolName("content_name");
+
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.MCP_TOOL);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        assertNull(getArtifactMetaData(groupId, artifactId).getName());
+
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(mcpToolVersion(SEARCH_DATABASE_TOOL.replace("search_database", contentName)));
+
+        assertNull(getArtifactMetaData(groupId, artifactId).getName());
+    }
+
+    @Test
+    public void testNewVersionDoesNotChangeArtifactName() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        String firstName = uniqueToolName("first_name");
+        String secondName = uniqueToolName("second_name");
+
+        createMcpTool(groupId, artifactId, SEARCH_DATABASE_TOOL.replace("search_database", firstName));
+        clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).versions()
+                .post(mcpToolVersion(SEARCH_DATABASE_TOOL.replace("search_database", secondName)));
+
+        assertEquals(firstName, getArtifactMetaData(groupId, artifactId).getName());
+    }
+
+    @Test
+    public void testSearchMcpToolsByContentDerivedName() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+        String contentName = uniqueToolName("content_name");
+
+        createMcpTool(groupId, artifactId, SEARCH_DATABASE_TOOL.replace("search_database", contentName));
+
+        givenAtRoot()
+                .when()
+                .queryParam("name", contentName)
+                .get("/.well-known/mcp-tools")
+                .then()
+                .statusCode(200)
+                .body("count", equalTo(1))
+                .body("tools", hasSize(1))
+                .body("tools[0].artifactId", equalTo(artifactId));
+    }
+
+    @Test
+    public void testNonMcpToolArtifactDoesNotExtractMetadataFromContent() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.AVRO);
+        CreateVersion createVersion = new CreateVersion();
+        VersionContent content = new VersionContent();
+        content.setContent("{\"type\": \"record\", \"name\": \"Test\", \"doc\": \"Some doc\", \"fields\": []}");
+        content.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(content);
+        createArtifact.setFirstVersion(createVersion);
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        ArtifactMetaData metaData = getArtifactMetaData(groupId, artifactId);
+        assertNull(metaData.getName());
+        assertNull(metaData.getDescription());
+    }
+
+    @Test
+    public void testNonMcpToolArtifactKeepsEmptyRequestName() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        String artifactId = TestUtils.generateArtifactId();
+
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.JSON);
+        createArtifact.setName("");
+        clientV3.groups().byGroupId(groupId).artifacts().post(createArtifact);
+
+        assertEquals("", getArtifactMetaData(groupId, artifactId).getName());
+    }
+
+    private static String uniqueToolName(String prefix) {
+        return prefix + "_" + TestUtils.generateArtifactId().replace("-", "");
+    }
+
+    private ArtifactMetaData getArtifactMetaData(String groupId, String artifactId) {
+        return clientV3.groups().byGroupId(groupId).artifacts().byArtifactId(artifactId).get();
+    }
+
+    private static CreateVersion mcpToolVersion(String content) {
+        CreateVersion createVersion = new CreateVersion();
+        VersionContent versionContent = new VersionContent();
+        versionContent.setContent(content);
+        versionContent.setContentType(ContentTypes.APPLICATION_JSON);
+        createVersion.setContent(versionContent);
+        return createVersion;
+    }
+
+    private static CreateArtifact mcpToolCreateRequest(String artifactId, String content) {
+        CreateArtifact createArtifact = new CreateArtifact();
+        createArtifact.setArtifactId(artifactId);
+        createArtifact.setArtifactType(ArtifactType.MCP_TOOL);
+        createArtifact.setFirstVersion(mcpToolVersion(content));
+        return createArtifact;
     }
 
     private void createMcpTool(String groupId, String artifactId, String content) throws Exception {

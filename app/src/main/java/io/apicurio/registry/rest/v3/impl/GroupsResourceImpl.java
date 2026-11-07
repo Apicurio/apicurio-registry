@@ -10,6 +10,8 @@ import io.apicurio.registry.auth.AuthorizedStyle;
 import io.apicurio.registry.auth.ISearchAuthorizer;
 import io.apicurio.registry.auth.OwnershipTransferAuthorizer;
 import io.apicurio.registry.content.ContentHandle;
+import io.apicurio.registry.content.extract.ContentExtractor;
+import io.apicurio.registry.content.extract.ExtractedMetaData;
 import io.apicurio.registry.contracts.ContractLabels;
 import io.apicurio.registry.storage.dto.PromotionStage;
 import io.apicurio.registry.contracts.odcs.OdcsContract;
@@ -1559,9 +1561,31 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 }
             }
 
-            // Create the artifact (with optional first version)
-            EditableArtifactMetaDataDto artifactMetaData = EditableArtifactMetaDataDto.builder()
-                    .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
+            // Create the artifact (with optional first version).
+            //
+            // MCP_TOOL is a special case: per the MCP spec, a tool's "name" is part of its
+            // content, and the well-known discovery endpoint (/.well-known/mcp-tools?name=)
+            // searches artifact metadata. For MCP_TOOL only, metadata is extracted from the
+            // first version's content and then overridden by any non-blank request values.
+            // This happens only at artifact creation; later versions never change the
+            // artifact metadata. All other types keep v3's request-only behavior (#8622).
+            EditableArtifactMetaDataDto artifactMetaData;
+            if (ArtifactType.MCP_TOOL.equals(artifactType)) {
+                artifactMetaData = extractMetaData(artifactType, effectiveContent);
+                if (data.getName() != null && !data.getName().isBlank()) {
+                    artifactMetaData.setName(data.getName());
+                }
+                if (data.getDescription() != null && !data.getDescription().isBlank()) {
+                    artifactMetaData.setDescription(data.getDescription());
+                }
+                if (data.getLabels() != null && !data.getLabels().isEmpty()) {
+                    artifactMetaData.setLabels(data.getLabels());
+                }
+            } else {
+                artifactMetaData = EditableArtifactMetaDataDto.builder()
+                        .description(data.getDescription()).name(data.getName()).labels(data.getLabels())
+                        .build();
+            }
             String firstVersion = null;
             ContentWrapperDto firstVersionContent = null;
             EditableVersionMetaDataDto firstVersionMetaData = null;
@@ -3037,5 +3061,25 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         compatibilityGroupService.setCompatibilityGroup(
                 rawGroupId, artifactId, contractId, compatGroup);
+    }
+
+    /**
+     * Extracts metadata (name, description, labels) from the given content using the
+     * {@link ContentExtractor} registered for the artifact type. Returns empty metadata when
+     * there is no content (an artifact created without a first version) or nothing was
+     * extracted.
+     */
+    private EditableArtifactMetaDataDto extractMetaData(String artifactType, ContentHandle content) {
+        if (content == null) {
+            return EditableArtifactMetaDataDto.builder().build();
+        }
+        ArtifactTypeUtilProvider provider = factory.getArtifactTypeProvider(artifactType);
+        ContentExtractor extractor = provider.getContentExtractor();
+        ExtractedMetaData emd = extractor.extract(content);
+        if (emd == null) {
+            return EditableArtifactMetaDataDto.builder().build();
+        }
+        return EditableArtifactMetaDataDto.builder().name(emd.getName())
+                .description(emd.getDescription()).labels(emd.getLabels()).build();
     }
 }

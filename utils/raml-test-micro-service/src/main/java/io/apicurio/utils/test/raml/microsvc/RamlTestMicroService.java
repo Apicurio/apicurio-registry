@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
@@ -44,9 +45,22 @@ public class RamlTestMicroService extends AbstractVerticle {
     private final int port;
     private HttpServer server;
     private AtomicInteger requestCounter = new AtomicInteger(0);
+    private final Map<String, String> canonicalizerReferenceContentTypes = new ConcurrentHashMap<>();
 
     public RamlTestMicroService(int port) {
         this.port = port;
+    }
+
+    /**
+     * Returns the content type of each reference (keyed by reference name) received by the most recent
+     * content canonicalizer requests since the last call to {@link #clearCanonicalizerReferenceContentTypes()}.
+     */
+    public Map<String, String> getCanonicalizerReferenceContentTypes() {
+        return Map.copyOf(canonicalizerReferenceContentTypes);
+    }
+
+    public void clearCanonicalizerReferenceContentTypes() {
+        canonicalizerReferenceContentTypes.clear();
     }
 
     @Override
@@ -172,6 +186,9 @@ public class RamlTestMicroService extends AbstractVerticle {
 
     private void handleContentCanonicalizer(HttpServerRequest req, String body) throws Exception {
         ContentCanonicalizerRequest request = objectMapper.readValue(body, ContentCanonicalizerRequest.class);
+        for (ResolvedReference ref : request.getResolvedReferences()) {
+            canonicalizerReferenceContentTypes.put(ref.getName(), ref.getContentType());
+        }
         RamlContentCanonicalizer canonicalizer = new RamlContentCanonicalizer();
         TypedContent typedContent = toServerBean(request.getContent());
         Map<String, TypedContent> resolvedRefs = toServerBean(request.getResolvedReferences());

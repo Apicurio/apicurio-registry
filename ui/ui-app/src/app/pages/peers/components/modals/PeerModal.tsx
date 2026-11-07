@@ -187,6 +187,8 @@ export const PeerModal: FunctionComponent<PeerModalProps> = (props: PeerModalPro
                             <HelperTextItem>
                                 Optional. The name of a key in the registry's peer credentials directory.
                                 Only the name is stored; the credential itself is never shown here.
+                                Federated search does not use it yet: remote registries are searched
+                                anonymously, for their public agents only.
                             </HelperTextItem>
                         </HelperText>
                     </FormHelperText>

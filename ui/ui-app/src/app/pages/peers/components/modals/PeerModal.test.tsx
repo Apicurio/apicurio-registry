@@ -118,6 +118,13 @@ describe("PeerModal when editing", () => {
         enabled: false
     };
 
+    it("says that searches do not use the credential reference yet", () => {
+        render(modal(true, peer));
+
+        expect(screen.getByText(/Federated search does not use it yet: remote registries are searched\s+anonymously, for their public agents only\./))
+            .toBeInTheDocument();
+    });
+
     it("shows the peer with its id locked", () => {
         render(modal(true, peer));
 

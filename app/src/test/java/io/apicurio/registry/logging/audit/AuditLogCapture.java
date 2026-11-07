@@ -46,6 +46,8 @@ public class AuditLogCapture extends Handler implements AutoCloseable {
 
     @Override
     public void flush() {
+        // java.util.logging Handler requires this override; the capture buffers in memory, so
+        // there is nothing to flush.
     }
 
     @Override

@@ -2,7 +2,6 @@ package io.apicurio.registry.tls;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.serde.config.SerdeConfig;
 import io.apicurio.registry.serde.kafka.config.KafkaSerdeConfig;
@@ -87,12 +86,10 @@ public class MtlsSerdeTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(keystoreUrl, "Client keystore file not found");
 
         // Initialize API client with mTLS and Basic Auth
-        clientV3 = RegistryClientFactory.create(RegistryClientOptions.create()
-                .registryUrl(registryV3ApiUrl)
+        clientV3 = RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .trustStoreJks(truststoreUrl.getPath(), "registrytest")
                 .keystoreJks(keystoreUrl.getPath(), "registrytest")
-                .basicAuth("alice", "alice")
-                .vertx(vertx));
+                .basicAuth("alice", "alice"));
     }
 
     /**

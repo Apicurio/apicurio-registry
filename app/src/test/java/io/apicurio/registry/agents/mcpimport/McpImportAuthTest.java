@@ -2,7 +2,6 @@ package io.apicurio.registry.agents.mcpimport;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateVersion;
@@ -66,7 +65,7 @@ public class McpImportAuthTest extends AbstractResourceTestBase {
     }
 
     private RegistryClient clientFor(Vertx vertx, String clientId) {
-        return RegistryClientFactory.create(RegistryClientOptions.create(registryV3ApiUrl, vertx)
+        return RegistryClientFactory.create(boundedClientOptions(registryV3ApiUrl, vertx)
                 .oauth2(authServerUrlConfigured, clientId, "test1"));
     }
 

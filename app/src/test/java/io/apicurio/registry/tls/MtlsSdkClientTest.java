@@ -2,7 +2,6 @@ package io.apicurio.registry.tls;
 
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.client.RegistryClientFactory;
-import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.client.RegistryV2ClientFactory;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.SystemInfo;
@@ -59,7 +58,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(keystoreUrl, "Client keystore file not found");
 
         RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                         .trustStoreJks(truststoreUrl.getPath(), "registrytest")
                         .keystoreJks(keystoreUrl.getPath(), "registrytest"));
 
@@ -83,7 +82,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(keystoreUrl, "Client keystore file not found");
 
         io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
-                RegistryClientOptions.create(registryV2ApiUrl, vertx)
+                boundedClientOptions(registryV2ApiUrl, vertx)
                         .trustStoreJks(truststoreUrl.getPath(), "registrytest")
                         .keystoreJks(keystoreUrl.getPath(), "registrytest"));
 
@@ -106,7 +105,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(keystoreUrl, "Client keystore file not found");
 
         RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                         .trustStorePkcs12(truststoreUrl.getPath(), "registrytest")
                         .keystorePkcs12(keystoreUrl.getPath(), "registrytest"));
 
@@ -130,7 +129,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(keystoreUrl, "Client keystore file not found");
 
         io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
-                RegistryClientOptions.create(registryV2ApiUrl, vertx)
+                boundedClientOptions(registryV2ApiUrl, vertx)
                         .trustStorePkcs12(truststoreUrl.getPath(), "registrytest")
                         .keystorePkcs12(keystoreUrl.getPath(), "registrytest"));
 
@@ -155,7 +154,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(clientKeyUrl, "Client key PEM file not found");
 
         RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                         .trustStorePem(truststoreUrl.getPath())
                         .keystorePem(clientCertUrl.getPath(), clientKeyUrl.getPath()));
 
@@ -179,7 +178,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
         Assertions.assertNotNull(clientKeyUrl, "Client key PEM file not found");
 
         io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
-                RegistryClientOptions.create(registryV2ApiUrl, vertx)
+                boundedClientOptions(registryV2ApiUrl, vertx)
                         .trustStorePem(truststoreUrl.getPath())
                         .keystorePem(clientCertUrl.getPath(), clientKeyUrl.getPath()));
 
@@ -209,7 +208,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
                 java.nio.file.Paths.get(clientKeyUrl.toURI())));
 
         RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                         .trustStorePemContent(pemTrustContent)
                         .keystorePemContent(pemCertContent, pemKeyContent));
 
@@ -240,7 +239,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
                 java.nio.file.Paths.get(clientKeyUrl.toURI())));
 
         io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
-                RegistryClientOptions.create(registryV2ApiUrl, vertx)
+                boundedClientOptions(registryV2ApiUrl, vertx)
                         .trustStorePemContent(pemTrustContent)
                         .keystorePemContent(pemCertContent, pemKeyContent));
 
@@ -265,7 +264,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
 
         // Create client with only truststore (no client certificate)
         RegistryClient client = RegistryClientFactory.create(
-                RegistryClientOptions.create(registryV3ApiUrl, vertx)
+                boundedClientOptions(registryV3ApiUrl, vertx)
                         .trustStoreJks(truststoreUrl.getPath(), "registrytest"));
 
         // Should fail because server requires client certificate
@@ -302,7 +301,7 @@ public class MtlsSdkClientTest extends AbstractResourceTestBase {
 
         // Create client with only truststore (no client certificate)
         io.apicurio.registry.rest.client.v2.RegistryClient client = RegistryV2ClientFactory.create(
-                RegistryClientOptions.create(registryV2ApiUrl, vertx)
+                boundedClientOptions(registryV2ApiUrl, vertx)
                         .trustStoreJks(truststoreUrl.getPath(), "registrytest"));
 
         // Should fail because server requires client certificate

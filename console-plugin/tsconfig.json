@@ -11,6 +11,8 @@
     "resolveJsonModule": true,
     "declaration": false,
     "sourceMap": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
     "outDir": "./dist",
     "baseUrl": "./src",
     "paths": {

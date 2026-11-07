@@ -38,6 +38,12 @@ module.exports = {
         ],
       },
       {
+        test: /\.m?js$/,
+        resolve: {
+          fullySpecified: false,
+        },
+      },
+      {
         test: /\.css$/,
         use: ["style-loader", "css-loader"],
       },
@@ -47,6 +53,12 @@ module.exports = {
   devtool: "source-map",
   devServer: {
     port: 9001,
+    static: {
+      directory: path.resolve(__dirname, "dist"),
+    },
+    devMiddleware: {
+      writeToDisk: true,
+    },
     headers: {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",

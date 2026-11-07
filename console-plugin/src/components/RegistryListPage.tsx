@@ -43,10 +43,15 @@ const columns: TableColumn<ApicurioRegistry3>[] = [
 
 const ExternalLinkCell: React.FC<{ url: string | null }> = ({ url }) => {
   if (!url) return <span>-</span>;
-  const host = new URL(url).host;
+  let label = url;
+  try {
+    label = new URL(url).host;
+  } catch {
+    label = url;
+  }
   return (
     <a href={url} target="_blank" rel="noopener noreferrer">
-      {host} ↗
+      {label} ↗
     </a>
   );
 };
@@ -140,7 +145,11 @@ const RegistryListPage: React.FC<{ namespace: string }> = ({ namespace }) => {
     filters
   );
 
-  const [activeColumns] = useActiveColumns({ columns });
+  const [activeColumns] = useActiveColumns({
+    columns,
+    showNamespaceOverride: false,
+    columnManagementID: ApicurioRegistry3Model.kind,
+  });
 
   return (
     <>

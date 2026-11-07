@@ -316,11 +316,6 @@ public interface SqlStatements {
     public String insertArtifactStructuredContent();
 
     /**
-     * A statement to delete version labels matching a key prefix.
-     */
-    public String deleteVersionLabelsByPrefix();
-
-    /**
      * A statement to delete the labels for a single artifact version.
      */
     public String deleteVersionLabelsByGAV();
@@ -898,9 +893,21 @@ public interface SqlStatements {
 
     String selectContractRulesByTag();
 
-    String updateVersionLabels();
+    /**
+     * A statement to delete the artifact-level contract rules of every artifact in a group.
+     * Version-level rules are removed with their versions (foreign key cascade).
+     */
+    String deleteContractRulesByGroupId();
 
-    String selectVersionLabels();
+    /**
+     * A statement to delete the contract audit entries of an artifact.
+     */
+    String deleteContractAuditEntriesByArtifact();
+
+    /**
+     * A statement to delete the contract audit entries of every artifact in a group.
+     */
+    String deleteContractAuditEntriesByGroupId();
 
     String selectGlobalContractRules();
 

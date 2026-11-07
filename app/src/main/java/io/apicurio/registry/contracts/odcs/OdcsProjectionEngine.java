@@ -21,8 +21,8 @@ public class OdcsProjectionEngine {
             String groupId, String artifactId) {
         var result = OdcsProjectionResult.builder().build();
 
-        result.setLabelsApplied(
-                labelProjector.project(contract, contractId, groupId, artifactId));
+        result.setLabelsApplied(labelProjector.project(contract, contractId, groupId,
+                artifactId, result.getWarnings()));
         result.setRulesApplied(
                 ruleProjector.project(contract, contractId, groupId, artifactId));
         result.setTagsApplied(tagProjector.project(contract, contractId, groupId,
@@ -33,5 +33,17 @@ public class OdcsProjectionEngine {
                 result.getLabelsApplied(), result.getTagsApplied());
 
         return result;
+    }
+
+    /**
+     * Removes everything the contract projected onto the artifact: its labels (including state
+     * set through the API), its rules, and its field tags on every version.
+     */
+    public void remove(String contractId, String groupId, String artifactId) {
+        labelProjector.remove(contractId, groupId, artifactId);
+        ruleProjector.remove(contractId, groupId, artifactId);
+        tagProjector.remove(contractId, groupId, artifactId);
+        log.info("Removed the projection of ODCS contract {} from {}/{}", contractId, groupId,
+                artifactId);
     }
 }

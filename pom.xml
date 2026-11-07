@@ -389,7 +389,7 @@
     <iceberg.version>1.12.0</iceberg.version>
 
     <!-- CEL (Common Expression Language) -->
-    <cel-standalone.version>0.6.0</cel-standalone.version>
+    <cel-standalone.version>0.8.0</cel-standalone.version>
 
     <!-- Kroxylicious Authorizer API (shared authorization contract) -->
     <kroxylicious.version>0.25.1</kroxylicious.version>

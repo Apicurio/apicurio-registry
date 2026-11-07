@@ -46,6 +46,67 @@ public class ContractRuleSerdeTest extends AbstractClientFacadeTestBase {
         HttpClient.newHttpClient().send(req, HttpResponse.BodyHandlers.ofString());
     }
 
+    private void send(String method, String path, String json) throws Exception {
+        HttpRequest.Builder req = HttpRequest.newBuilder()
+                .uri(URI.create(TestUtils.getRegistryV3ApiUrl(testPort) + path))
+                .header("Content-Type", "application/json");
+        req = json == null ? req.method(method, HttpRequest.BodyPublishers.noBody())
+                : req.method(method, HttpRequest.BodyPublishers.ofString(json));
+        HttpResponse<String> response = HttpClient.newHttpClient().send(req.build(),
+                HttpResponse.BodyHandlers.ofString());
+        Assertions.assertTrue(response.statusCode() < 300, method + " " + path + ": " + response.body());
+    }
+
+    private static String nonEmptyOrderIdRule(String expr) {
+        return "{\"domainRules\":[{\"name\":\"order-id-present\",\"kind\":\"CONDITION\",\"type\":\"CEL\","
+                + "\"mode\":\"WRITE\",\"expr\":\"" + expr + "\",\"onFailure\":\"ERROR\"}],\"migrationRules\":[]}";
+    }
+
+    private Serializer<GenericData.Record> contractSerializer(String groupId) {
+        Map<String, Object> config = new HashMap<>();
+        config.put(SerdeConfig.REGISTRY_URL, TestUtils.getRegistryV3ApiUrl(testPort));
+        config.put(SerdeConfig.EXPLICIT_ARTIFACT_GROUP_ID, groupId);
+        config.put(SerdeConfig.ARTIFACT_RESOLVER_STRATEGY, TopicRecordIdStrategy.class.getName());
+        config.put(AvroSerdeConfig.AVRO_DATUM_PROVIDER, DefaultAvroDatumProvider.class.getName());
+        config.put(SerdeConfig.CONTRACT_RULES_ENABLED, "true");
+        config.put(SerdeConfig.CONTRACT_RULES_FAIL_ON_ERROR, "true");
+        Serializer<GenericData.Record> serializer = new AvroKafkaSerializer<>();
+        serializer.configure(config, false);
+        return serializer;
+    }
+
+    @Test
+    public void testGlobalRulesAreEnforcedAndVersionRulesOverrideThem() throws Exception {
+        Schema schema = new Schema.Parser().parse(SCHEMA);
+        String groupId = TestUtils.generateGroupId();
+        String topic = generateArtifactId();
+        String artifactId = topic + "-OrderEvent";
+        createArtifact(groupId, artifactId, ArtifactType.AVRO, SCHEMA, ContentTypes.APPLICATION_JSON);
+        GenericData.Record emptyId = new GenericData.Record(schema);
+        emptyId.put("orderId", "");
+        emptyId.put("totalAmount", 10.0);
+
+        send("PUT", "/admin/contracts/ruleset", nonEmptyOrderIdRule("size(orderId) > 0"));
+        try {
+            // The global rule applies, and the message names the rule and why it failed
+            Serializer<GenericData.Record> serializer = contractSerializer(groupId);
+            RuntimeException ex = Assertions.assertThrows(RuntimeException.class,
+                    () -> serializer.serialize(topic, emptyId));
+            Assertions.assertTrue(ex.getMessage().contains(
+                    "order-id-present (ERROR): Condition failed: order-id-present"), ex.getMessage());
+            serializer.close();
+
+            // A version rule with the same name replaces it. A new serializer has an empty cache.
+            send("PUT", "/groups/" + groupId + "/artifacts/" + artifactId + "/versions/1/contract/ruleset",
+                    nonEmptyOrderIdRule("true"));
+            Serializer<GenericData.Record> overridden = contractSerializer(groupId);
+            Assertions.assertTrue(overridden.serialize(topic, emptyId).length > 0);
+            overridden.close();
+        } finally {
+            send("DELETE", "/admin/contracts/ruleset", null);
+        }
+    }
+
     @Test
     public void testContractRulesPassDuringSerialization() throws Exception {
         Schema schema = new Schema.Parser().parse(SCHEMA);

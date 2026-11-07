@@ -117,13 +117,21 @@ public class SqlRoleMappingRepository {
             throws RegistryStorageException {
         log.debug("Searching role mappings.");
         return handles.withHandleNoException(handle -> {
-            String query = sqlStatements.selectRoleMappings() + " LIMIT ? OFFSET ?";
+            String query = sqlStatements.selectRoleMappings();
+            if ("mssql".equals(sqlStatements.dbType())) {
+                query += " OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+            } else {
+                query += " LIMIT ? OFFSET ?";
+            }
             String countQuery = sqlStatements.countRoleMappings();
-            List<RoleMappingDto> mappings = handle.createQuery(query)
-                    .bind(0, limit)
-                    .bind(1, offset)
-                    .map(RoleMappingDtoMapper.instance)
-                    .list();
+
+            var mappingsQuery = handle.createQuery(query);
+            if ("mssql".equals(sqlStatements.dbType())) {
+                mappingsQuery.bind(0, offset).bind(1, limit);
+            } else {
+                mappingsQuery.bind(0, limit).bind(1, offset);
+            }
+            List<RoleMappingDto> mappings = mappingsQuery.map(RoleMappingDtoMapper.instance).list();
             Integer count = handle.createQuery(countQuery)
                     .mapTo(Integer.class)
                     .one();

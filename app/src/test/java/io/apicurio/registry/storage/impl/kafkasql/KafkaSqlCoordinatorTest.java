@@ -20,7 +20,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -263,7 +262,10 @@ class KafkaSqlCoordinatorTest {
 
             RegistryException thrown = waiter.get(5, TimeUnit.SECONDS);
             assertTrue(flagAfterThrow.get(), "The interrupt flag must survive the RegistryException");
-            assertInstanceOf(InterruptedException.class, thrown.getCause());
+            assertNull(thrown.getCause(),
+                    "ProblemDetails.detail renders the root cause only, and chaining the null-message "
+                            + "InterruptedException would drop the operation UUID from it");
+            assertTrue(thrown.getMessage().contains(uuid.toString()));
             assertEquals(0, coordinator.pendingCount());
         } finally {
             executor.shutdownNow();
@@ -321,6 +323,8 @@ class KafkaSqlCoordinatorTest {
                 assertEquals("result-" + i,
                         waitFutures.get(i).get(RESPONSE_TIMEOUT_MS + 5000L, TimeUnit.MILLISECONDS));
             }
+            assertEquals(0, coordinator.pendingCount(),
+                    "Concurrent cycles must each clean up their pending entry");
         } finally {
             executor.shutdownNow();
         }

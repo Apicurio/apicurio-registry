@@ -13,10 +13,10 @@ import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -96,7 +96,11 @@ class KafkaSqlUsageSubmissionTest {
 
         ProducerRecord<KafkaSqlMessageKey, KafkaSqlMessage> sent = sentRecord();
         assertEquals("DeleteOldUsageEvents1Message", sent.key().getMessageType());
-        assertNotNull(sent.headers().lastHeader(KafkaSqlSubmitter.REQUEST_ID_HEADER));
+        // KafkaSqlSink parses this header with UUID.fromString, so anything but a real
+        // UUID would break response routing while this test still passed.
+        assertEquals(4, UUID.fromString(new String(
+                sent.headers().lastHeader(KafkaSqlSubmitter.REQUEST_ID_HEADER).value(), StandardCharsets.UTF_8))
+                .version(), "The request ID must be a well-formed random UUID");
         assertEquals("DeleteOldUsageEvents1Message", new String(
                 sent.headers().lastHeader(KafkaSqlSubmitter.MESSAGE_TYPE_HEADER).value(), StandardCharsets.UTF_8));
     }

@@ -99,22 +99,20 @@ public class KafkaSqlSubmitter {
         // replace the send failure the caller is waiting on with the lookup failure.
         KafkaSqlCoordinator kafkaSqlCoordinator = coordinator.get();
         UUID requestId = kafkaSqlCoordinator.createUUID();
-        CompletableFuture<UUID> produced;
         try {
-            produced = send(key, message, requestId);
+            return send(key, message, requestId).whenComplete((uuid, error) -> {
+                if (error != null) {
+                    // Forgets even if the record did reach the log. A response arriving
+                    // later then finds no entry, and notifyResponse drops it.
+                    kafkaSqlCoordinator.forget(requestId);
+                }
+            });
         } catch (Throwable e) {
             // The record never reached the broker, so no response will ever arrive for
             // this UUID; the entry registered above must not linger in the coordinator.
             kafkaSqlCoordinator.forget(requestId);
             throw e;
         }
-        return produced.whenComplete((uuid, error) -> {
-            if (error != null) {
-                // Forgets even if the record did reach the log. A response arriving
-                // later then finds no entry, and notifyResponse drops it.
-                kafkaSqlCoordinator.forget(requestId);
-            }
-        });
     }
 
     /**

@@ -1,0 +1,272 @@
+package io.apicurio.tests.serdes.apicurio;
+
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.WakeupException;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import static io.apicurio.deployment.Constants.SMOKE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+/**
+ * Covers the consume helper itself, with no broker and no registry. A consume that times out or is
+ * interrupted must stop its consumer instead of leaving it running.
+ */
+@Tag(SMOKE)
+class KafkaSerdesTesterIT {
+
+    private static final String TOPIC = "topic";
+
+    private final KafkaSerdesTester<String, String, String> tester = new KafkaSerdesTester<>();
+
+    @Test
+    void consumeReturnsOnceTheExpectedMessagesArrive() throws Exception {
+        Consumer<String, String> consumer = consumerReturning(
+                new ConsumerRecord<>(TOPIC, 0, 0L, "key", "value"));
+
+        tester.consumeMessages(consumer, TOPIC, 1, "value"::equals);
+
+        verify(consumer).subscribe(Collections.singletonList(TOPIC));
+        verify(consumer).close();
+        verify(consumer, never()).wakeup();
+    }
+
+    @Test
+    void consumeTimeoutWakesUpAndClosesTheBlockedConsumer() {
+        CountDownLatch woken = new CountDownLatch(1);
+        Consumer<String, String> consumer = mockConsumer();
+        // Models KafkaConsumer: a blocked poll() ends with a WakeupException once wakeup() is called.
+        // The bound keeps the consumer thread from parking for the rest of the JVM if wakeup() is lost.
+        when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
+            woken.await(30, TimeUnit.SECONDS);
+            throw new WakeupException();
+        });
+        doAnswer(invocation -> {
+            woken.countDown();
+            return null;
+        }).when(consumer).wakeup();
+
+        // One expected message gives a 2.7 s wait.
+        assertThrows(TimeoutException.class, () -> tester.consumeMessages(consumer, TOPIC, 1, null));
+
+        verify(consumer).wakeup();
+        // The consumer thread has exited by now, so close() has already run.
+        verify(consumer).close();
+    }
+
+    @Test
+    void consumeTimeoutLeavesTheConsumerOpenWhenAutoCloseIsOff() {
+        CountDownLatch woken = new CountDownLatch(1);
+        AtomicBoolean pollExited = new AtomicBoolean();
+        Consumer<String, String> consumer = mockConsumer();
+        when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
+            woken.await(30, TimeUnit.SECONDS);
+            pollExited.set(true);
+            throw new WakeupException();
+        });
+        doAnswer(invocation -> {
+            woken.countDown();
+            return null;
+        }).when(consumer).wakeup();
+        tester.setAutoClose(false);
+
+        assertThrows(TimeoutException.class, () -> tester.consumeMessages(consumer, TOPIC, 1, null));
+
+        // The caller owns a reused consumer and closes it itself, so the helper only stops the poll.
+        verify(consumer).wakeup();
+        assertTrue(pollExited.get(), "consumeMessages returned while poll() was still running");
+        verify(consumer, never()).close();
+    }
+
+    @Test
+    void consumeTimeoutWaitsForTheConsumerThreadBeforeReturningControl() {
+        CountDownLatch woken = new CountDownLatch(1);
+        AtomicBoolean pollExited = new AtomicBoolean();
+        Consumer<String, String> consumer = mockConsumer();
+        // poll() needs a moment to unwind after wakeup(), as a real consumer inside a network wait does.
+        when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
+            woken.await(30, TimeUnit.SECONDS);
+            Thread.sleep(300);
+            pollExited.set(true);
+            throw new WakeupException();
+        });
+        doAnswer(invocation -> {
+            woken.countDown();
+            return null;
+        }).when(consumer).wakeup();
+
+        assertThrows(TimeoutException.class, () -> tester.consumeMessages(consumer, TOPIC, 1, null));
+
+        // A caller that reuses the consumer closes it right after this exception; poll() must be over.
+        assertTrue(pollExited.get(), "consumeMessages returned while poll() was still running");
+    }
+
+    @Test
+    void consumeTimeoutKeepsWaitingForTheConsumerThreadWhenTheCallerIsInterrupted() throws Exception {
+        CountDownLatch wakeupCalled = new CountDownLatch(1);
+        CountDownLatch releasePoll = new CountDownLatch(1);
+        AtomicBoolean pollExited = new AtomicBoolean();
+        Consumer<String, String> consumer = mockConsumer();
+        // A poll() that ignores wakeup() until the test releases it, so the helper stays in its wait for
+        // the thread to end.
+        when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
+            releasePoll.await(30, TimeUnit.SECONDS);
+            pollExited.set(true);
+            throw new WakeupException();
+        });
+        doAnswer(invocation -> {
+            wakeupCalled.countDown();
+            return null;
+        }).when(consumer).wakeup();
+        AtomicReference<Throwable> thrown = new AtomicReference<>();
+        AtomicBoolean pollExitedOnReturn = new AtomicBoolean();
+        AtomicBoolean interruptKept = new AtomicBoolean();
+        Thread caller = new Thread(() -> {
+            try {
+                tester.consumeMessages(consumer, TOPIC, 1, null);
+            } catch (Throwable t) {
+                thrown.set(t);
+            }
+            pollExitedOnReturn.set(pollExited.get());
+            interruptKept.set(Thread.currentThread().isInterrupted());
+        });
+        caller.start();
+        boolean aliveAfterInterrupt;
+        try {
+            // wakeup() is the last call before the helper waits for the thread, so its timeout has expired.
+            assertTrue(wakeupCalled.await(10, TimeUnit.SECONDS));
+            caller.interrupt();
+            // A helper that stops waiting on the interrupt would return within this time.
+            caller.join(500);
+            aliveAfterInterrupt = caller.isAlive();
+        } finally {
+            releasePoll.countDown();
+        }
+        caller.join(10_000);
+
+        assertTrue(aliveAfterInterrupt, "the interrupt cut the wait for the consumer thread short");
+        assertFalse(caller.isAlive(), "the caller thread did not finish");
+        assertTrue(pollExitedOnReturn.get(), "consumeMessages returned while poll() was still running");
+        assertInstanceOf(TimeoutException.class, thrown.get());
+        assertEquals(1, thrown.get().getSuppressed().length);
+        assertInstanceOf(InterruptedException.class, thrown.get().getSuppressed()[0]);
+        assertTrue(interruptKept.get(), "the caller's interrupt flag was cleared");
+    }
+
+    @Test
+    void consumeStopsTheConsumerWhenTheCallerIsInterruptedWhileWaitingForMessages() throws Exception {
+        CountDownLatch pollEntered = new CountDownLatch(1);
+        CountDownLatch woken = new CountDownLatch(1);
+        Consumer<String, String> consumer = mockConsumer();
+        when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
+            pollEntered.countDown();
+            woken.await(30, TimeUnit.SECONDS);
+            throw new WakeupException();
+        });
+        doAnswer(invocation -> {
+            woken.countDown();
+            return null;
+        }).when(consumer).wakeup();
+        AtomicReference<Throwable> thrown = new AtomicReference<>();
+        Thread caller = new Thread(() -> {
+            try {
+                tester.consumeMessages(consumer, TOPIC, 1, null);
+            } catch (Throwable t) {
+                thrown.set(t);
+            }
+        });
+        caller.start();
+        assertTrue(pollEntered.await(10, TimeUnit.SECONDS));
+        // The caller is now inside the helper's timed wait for messages, long before it expires.
+        caller.interrupt();
+        caller.join(10_000);
+
+        assertFalse(caller.isAlive(), "the caller thread did not finish");
+        assertInstanceOf(InterruptedException.class, thrown.get());
+        verify(consumer).wakeup();
+        verify(consumer).close();
+    }
+
+    @Test
+    void consumeTimeoutIsStillReportedWhenWakeupFails() {
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicBoolean pollExited = new AtomicBoolean();
+        Consumer<String, String> consumer = mockConsumer();
+        when(consumer.poll(any(Duration.class))).thenAnswer(invocation -> {
+            release.await(30, TimeUnit.SECONDS);
+            Thread.sleep(300);
+            pollExited.set(true);
+            throw new WakeupException();
+        });
+        IllegalStateException wakeupFailure = new IllegalStateException("consumer already closed");
+        doAnswer(invocation -> {
+            release.countDown();
+            throw wakeupFailure;
+        }).when(consumer).wakeup();
+
+        try {
+            TimeoutException e = assertThrows(TimeoutException.class,
+                    () -> tester.consumeMessages(consumer, TOPIC, 1, null));
+
+            assertEquals(1, e.getSuppressed().length);
+            assertSame(wakeupFailure, e.getSuppressed()[0]);
+            // The helper still waited for the consumer thread after the failed wakeup().
+            assertTrue(pollExited.get(), "consumeMessages returned while poll() was still running");
+        } finally {
+            release.countDown();
+        }
+    }
+
+    @Test
+    void consumeReportsAValidatorFailureAndStillClosesTheConsumer() {
+        Consumer<String, String> consumer = consumerReturning(
+                new ConsumerRecord<>(TOPIC, 0, 0L, "key", "unexpected"));
+
+        ExecutionException e = assertThrows(ExecutionException.class,
+                () -> tester.consumeMessages(consumer, TOPIC, 1, "value"::equals));
+
+        assertInstanceOf(AssertionError.class, e.getCause());
+        String message = e.getCause().getMessage();
+        assertTrue(message.startsWith("Consumed record validation failed"), () -> "actual: " + message);
+        // close() runs in the helper's finally block before the failure reaches the caller.
+        verify(consumer).close();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Consumer<String, String> mockConsumer() {
+        return mock(Consumer.class);
+    }
+
+    private static Consumer<String, String> consumerReturning(ConsumerRecord<String, String> record) {
+        Consumer<String, String> consumer = mockConsumer();
+        TopicPartition partition = new TopicPartition(record.topic(), record.partition());
+        when(consumer.poll(any(Duration.class)))
+                .thenReturn(new ConsumerRecords<>(Map.of(partition, List.of(record))));
+        return consumer;
+    }
+}

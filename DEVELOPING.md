@@ -238,22 +238,23 @@ section before changing storage code or adding a write path.
 
 KafkaSQL serializes journaled mutations. Every storage mutation that goes through the
 journal becomes a message sent to Kafka, and a single consumer thread in
-`KafkaSqlRegistryStorage` applies those messages one at a time. Those mutations
-therefore never interleave. Writes that the plain SQL variant has to protect with a
-lock or an UPSERT, described below, are ordered by the journal instead: two concurrent
-`createArtifactVersion` calls for the same artifact, the race behind duplicate
-`versionOrder` values in #9775, are applied in journal order, and so are two
+`KafkaSqlRegistryStorage` applies those messages one at a time. The applied code is
+the same SQL code the plain SQL variant runs, locks and UPSERTs included; journal
+order is what removes the submission races, not the absence of those mechanisms: two
+concurrent `createArtifactVersion` calls for the same artifact, the race behind
+duplicate `versionOrder` values in #9775, are applied in journal order, and so are two
 concurrent `setConfigProperty` calls for the same property. Only the apply step is
 serialized: checks that run on the request thread before the message is submitted,
 such as rule and compatibility validation against the current latest version, can
 still race, on KafkaSQL as on plain SQL.
 
-The known exceptions are maintenance operations. `deleteAllOrphanedContent()` and
-`deleteAllExpiredDownloads()` bypass the journal and write directly to the pod's own
-SQL store from scheduled jobs that run independently on every pod. They can interleave
-with consumer-thread operations, so journal serialization does not protect against
-races between them and journaled writes. The orphaned content race described under
-"Content inserts and the orphan reaper" applies to KafkaSQL for this reason. Any
+The known exception is `deleteAllExpiredDownloads()`, a maintenance operation that
+bypasses the journal and writes directly to the pod's own SQL store from a scheduled
+job that runs independently on every pod; it can interleave with consumer-thread
+operations. `deleteAllOrphanedContent()` is the opposite by design: it goes through
+the journal so every replica applies the deletion at the same position and content ID
+allocation stays consistent across replicas; its javadoc carries the reasoning, and
+moving it to a direct `sqlStore` write would reintroduce the divergence. Any
 `KafkaSqlRegistryStorage` method that writes to the local SQL store directly, through
 `sqlStore` or the inherited delegate, after the consumer thread has started is another
 exception of the same kind.
@@ -263,27 +264,38 @@ consumer thread that delivers the result through `KafkaSqlCoordinator` are a dif
 class of bug, and that coordination is where the KafkaSQL-specific concurrency work
 lives.
 
-The plain SQL variant runs each write operation in its own request thread, in its own
+The plain SQL variant runs each write operation in its own thread, a request thread for
+API-driven writes or a scheduler thread for jobs like the reapers, in its own
 transaction (content inserts run in an earlier one, see below), against the shared
 database, and in a multi-replica deployment from
-separate JVMs. Nothing in the application serializes writes. Correctness comes from
-database isolation plus explicit row locks, so every new write path needs to name the
-lock that makes it safe.
+separate JVMs. No application-level mechanism serializes whole write operations; the
+database is the only serialization point. Correctness comes from database isolation
+plus explicit row locks, so every new write path needs to name the lock that makes it
+safe.
 
 ### Row locking in the SQL variant
 
-Version creation takes a lock on the artifact's parent row. The version-creating entry
-points open the transaction and then call `lockArtifactForVersionWrite`, a no-op update
-of the artifact's `artifacts` row whose only effect is acquiring the row lock. It also
-fails with `ArtifactNotFoundException` when the artifact does not exist, so it doubles
-as the existence check. Concurrent creators for the same artifact therefore take turns,
-and the `MAX(versionOrder) + 1` computed inside the insert cannot run twice against the
-same state.
+Version creation takes a lock on the artifact's parent row. The entry points that add a
+version to an existing artifact open the transaction and then call
+`lockArtifactForVersionWrite`, a no-op update of the artifact's `artifacts` row, taken
+only for its lock. It also fails with `ArtifactNotFoundException` when the artifact
+does not exist, so it doubles as the existence check. The first version of a new
+artifact cannot take that lock, because no artifacts row exists yet; its serialization
+comes from the uncommitted insert of the artifacts row, which a concurrent creator of
+the same artifact blocks on. The `MAX(versionOrder) + 1` computed inside the
+subsequent-version insert therefore cannot run twice against the same state.
 
 The lock is taken on the `artifacts` row rather than on `versions` rows because a lock
 on existing version rows does not block the insert of a new version row; the comment in
 `createArtifactVersionIfLatest` carries the PostgreSQL-specific reasoning and is the
-source to keep in sync with the code.
+source to keep in sync with the code. ConcurrentVersionCreationTest, in the Byteman
+concurrency-tests section above, exercises exactly this serialization.
+
+Not tied to any one artifact: every create also takes the lock on the single
+`sequences` row that allocates the global ID, holding it until commit, and every
+concurrent create in the registry queues on it; the content ID allocation has the same
+shape. That registry-wide serialization point is what the sizing guide's
+write-throughput discussion is about.
 
 `createArtifactVersionIfLatest` additionally re-reads the current maximum `versionOrder`
 under lock and fails with `CommitFailedException` if it is not the value the caller read
@@ -292,11 +304,13 @@ earlier.
 The database enforces `UNIQUE (groupId, artifactId, version)` (`UQ_versions_1`).
 `UQ_versions_2` includes `versionOrder`, but it is keyed on `globalId`, which is the
 primary key, so the constraint is satisfied by every row and cannot stop two versions
-of the same artifact from sharing a `versionOrder`. That guarantee comes from the
-parent-row lock, not from a constraint. If you ever see a duplicate `versionOrder`,
-treat it as a bug in the locking, not as something to deduplicate in application code.
-(#9775 proposes a database constraint as extra hardening; its lock-related premise
-predates the current parent-row lock.)
+of the same artifact from sharing a `versionOrder`. `UQ_versions_3 (groupId,
+artifactId, versionOrder)`, added in upgrade 113, does reject a duplicate
+`versionOrder`; its upgrader, `DuplicateVersionOrderUpgrader`, refuses to run over an
+existing duplicate. The constraint backstops the parent-row lock, so if you ever see a
+duplicate `versionOrder`, treat it as a bug in the locking, not as something to
+deduplicate in application code. (The constraint is the hardening #9775 asked for; its
+lock-related premise predates the current parent-row lock.)
 
 `setConfigProperty` writes with an UPSERT rather than DELETE followed by INSERT,
 because runtime threads update config properties concurrently. Keep new write paths on
@@ -304,20 +318,32 @@ UPSERT wherever the row may already exist.
 
 ### Content inserts and the orphan reaper
 
-This applies to every variant that writes through `AbstractSqlRegistryStorage`, which
-means plain SQL and KafkaSQL. Content is inserted by `ensureContentAndGetId` before the
-version-creating transaction opens, so a content row is briefly visible to the
-scheduled `OrphanedContentReaper` while no version points at it yet (#9571, fix tracked
-in #9777). The general rule this violates: writes that belong together go inside the
-same `withHandle` nesting.
+Content is inserted by `ensureContentAndGetId` (in `AbstractSqlRegistryStorage`, shared
+by both variants) before the version-creating transaction opens, so a content row is
+briefly visible to the scheduled `OrphanedContentReaper` while no version points at it
+yet (#9571, fix tracked in #9777). On the plain SQL variant the window is thread
+timing: the reaper runs on its own scheduler thread against the same database. On
+KafkaSQL the create path carries the content and the version in one journal message,
+and the reaper's deletion is journaled too, so journal order protects it; the import
+path does not have that protection. `importContent` and `importArtifactVersion` are
+separate journal messages, and an export writes every content before any version, so a
+reaper deletion can land between an import's content message and its version message
+by journal position, the same race mediated by the journal instead of by thread
+timing. When it fires, the version message fails its foreign key and the sink logs the
+rejection at WARN, and the importer then drops that version with a WARN of its own, so
+the symptom is a registry silently missing imported versions. The general rule this
+violates: writes that belong together go inside the same `withHandle` nesting.
 
 ### The HandleFactory transaction model
 
-`AbstractHandleFactory` keeps one JDBC connection per thread per datasource in a
-`ThreadLocal`, with autocommit disabled. The first `withHandle` call on a thread opens
-the connection; nested `withHandle` calls reuse it and increment a level counter. Only
-the outermost call commits or rolls back, and any exception at any nesting level marks
-the whole handle for rollback.
+`AbstractHandleFactory` keeps at most one JDBC connection per thread per datasource in
+a `ThreadLocal`, with autocommit disabled. A top-level `withHandle` call opens the
+connection; nested `withHandle` calls on the same thread reuse it and increment a
+level counter. Only the outermost call commits or rolls back, and it then closes the
+connection, so two sequential (non-nested) `withHandle` calls on one thread are two
+separate transactions. Any exception at any nesting level marks the whole handle for
+rollback. The `HandleFactory` interface javadoc is the code-side source for these
+semantics.
 
 Consequences for new code:
 
@@ -337,7 +363,8 @@ threads. Use a concurrent collection with atomic compound operations, or design 
 state away. The OIDC token cache stampede (#9776) was a check-then-act on a shared
 map, the KafkaSQL snapshot race #9778 was a lost update on a single-slot field of
 `KafkaSqlRegistryStorage`, the coordinator race #9780 was a map TOCTOU, and all three
-lived on `@ApplicationScoped` beans. Note that `volatile`, which #9778's field already
+lived on objects with a single shared instance, whether an `@ApplicationScoped` bean
+or a plain class an application-scoped bean created once. Note that `volatile`, which #9778's field already
 had, gives visibility, not atomicity; the
 pattern to look for is a compound operation, not a missing keyword.
 
@@ -354,6 +381,8 @@ or expired has to be removed or replaced explicitly. For request/response
 coordination across threads, prefer one map
 whose value carries the whole operation, such as `Map<UUID, CompletableFuture<...>>`,
 over two parallel maps that can disagree.
+
+### Deployment tradeoffs
 
 Deployment tradeoffs between the two variants, including throughput under concurrent
 write load, are covered in the operator docs: see the

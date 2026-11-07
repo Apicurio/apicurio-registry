@@ -1,10 +1,16 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.rules.compatibility.CompatibilityLevel;
+import io.apicurio.registry.rules.integrity.IntegrityLevel;
+import io.apicurio.registry.rules.validity.ValidityLevel;
+import io.apicurio.registry.types.RuleType;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigInteger;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Unit tests for the pagination normalization helpers in {@link ParameterValidationUtils}.
@@ -64,6 +70,79 @@ class ParameterValidationUtilsTest {
     void normalizeLimitUnboundedClampsOverflowToMaxInt() {
         BigInteger overflow = BigInteger.valueOf(Integer.MAX_VALUE).add(BigInteger.ONE);
         assertEquals(Integer.MAX_VALUE, ParameterValidationUtils.normalizeLimitUnbounded(overflow));
+    }
+
+    @Test
+    void validateRuleConfigValidityValid() {
+        for (ValidityLevel level : ValidityLevel.values()) {
+            assertDoesNotThrow(() -> ParameterValidationUtils.validateRuleConfig(RuleType.VALIDITY, level.name()));
+        }
+    }
+
+    @Test
+    void validateRuleConfigValidityInvalid() {
+        assertThrows(InvalidParameterValueException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.VALIDITY, "NOT_A_VALID_LEVEL"));
+    }
+
+    @Test
+    void validateRuleConfigCompatibilityValid() {
+        for (CompatibilityLevel level : CompatibilityLevel.values()) {
+            assertDoesNotThrow(() -> ParameterValidationUtils.validateRuleConfig(RuleType.COMPATIBILITY, level.name()));
+        }
+    }
+
+    @Test
+    void validateRuleConfigCompatibilityInvalid() {
+        assertThrows(InvalidParameterValueException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.COMPATIBILITY, "INVALID"));
+    }
+
+    @Test
+    void validateRuleConfigIntegrityValidSingle() {
+        for (IntegrityLevel level : IntegrityLevel.values()) {
+            assertDoesNotThrow(() -> ParameterValidationUtils.validateRuleConfig(RuleType.INTEGRITY, level.name()));
+        }
+    }
+
+    @Test
+    void validateRuleConfigIntegrityValidMultiple() {
+        assertDoesNotThrow(() -> ParameterValidationUtils.validateRuleConfig(RuleType.INTEGRITY, "REFS_EXIST, NO_DUPLICATES"));
+        assertDoesNotThrow(() -> ParameterValidationUtils.validateRuleConfig(RuleType.INTEGRITY, "ALL_REFS_MAPPED,NO_CIRCULAR_REFERENCES"));
+    }
+
+    @Test
+    void validateRuleConfigIntegrityInvalid() {
+        assertThrows(InvalidParameterValueException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.INTEGRITY, "INVALID"));
+        assertThrows(InvalidParameterValueException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.INTEGRITY, "REFS_EXIST, INVALID"));
+    }
+
+    @Test
+    void validateRuleConfigIntegrityMalformedList() {
+        assertThrows(InvalidParameterValueException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.INTEGRITY, "REFS_EXIST,"));
+        assertThrows(InvalidParameterValueException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.INTEGRITY, ",REFS_EXIST"));
+        assertThrows(InvalidParameterValueException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.INTEGRITY, ","));
+    }
+
+    @Test
+    void validateRuleConfigNullOrBlankConfigThrowsMissingRequiredParameter() {
+        assertThrows(MissingRequiredParameterException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.VALIDITY, null));
+        assertThrows(MissingRequiredParameterException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.VALIDITY, ""));
+        assertThrows(MissingRequiredParameterException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(RuleType.VALIDITY, "   "));
+    }
+
+    @Test
+    void validateRuleConfigNullRuleTypeThrowsMissingRequiredParameter() {
+        assertThrows(MissingRequiredParameterException.class,
+                () -> ParameterValidationUtils.validateRuleConfig(null, "FULL"));
     }
 
 }

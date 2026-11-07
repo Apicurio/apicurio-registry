@@ -1,5 +1,6 @@
 package io.apicurio.registry.noprofile.rest.v3;
 
+import com.microsoft.kiota.ApiException;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.rest.client.models.CreateGroup;
 import io.apicurio.registry.rest.client.models.CreateRule;
@@ -40,6 +41,16 @@ public class GroupRulesTest extends AbstractResourceTestBase {
         Rule rule = clientV3.groups().byGroupId(groupId).rules().byRuleType(RuleType.VALIDITY.name()).get();
         Assertions.assertEquals(ValidityLevel.FULL.name(), rule.getConfig());
 
+        // Try to add a rule with invalid config - should get a 400
+        CreateRule invalidCreateRule = new CreateRule();
+        invalidCreateRule.setRuleType(RuleType.VALIDITY);
+        invalidCreateRule.setConfig("NOT_A_VALID_LEVEL");
+        var rulesRequest = clientV3.groups().byGroupId(groupId).rules();
+        ProblemDetails invalidConfigError = Assertions.assertThrows(ProblemDetails.class,
+                () -> rulesRequest.post(invalidCreateRule));
+        Assertions.assertEquals(400, invalidConfigError.getStatus());
+        Assertions.assertEquals("InvalidParameterValueException", invalidConfigError.getName());
+
         // Try to add the rule again - should get a 409
         ProblemDetails error = Assertions.assertThrows(ProblemDetails.class, () -> {
             CreateRule cr = new CreateRule();
@@ -72,6 +83,16 @@ public class GroupRulesTest extends AbstractResourceTestBase {
         rule = clientV3.groups().byGroupId(groupId).rules().byRuleType(RuleType.COMPATIBILITY.name())
                 .put(updateRule);
         Assertions.assertEquals(CompatibilityLevel.FULL.name(), rule.getConfig());
+
+        // Try to update a rule with invalid config - should get a 400
+        Rule invalidUpdateRule = new Rule();
+        invalidUpdateRule.setRuleType(RuleType.COMPATIBILITY);
+        invalidUpdateRule.setConfig("NOT_A_VALID_LEVEL");
+        var ruleRequest = clientV3.groups().byGroupId(groupId).rules()
+                .byRuleType(RuleType.COMPATIBILITY.name());
+        ApiException putError = Assertions.assertThrows(ApiException.class,
+                () -> ruleRequest.put(invalidUpdateRule));
+        Assertions.assertEquals(400, putError.getResponseStatusCode());
 
         // Get a single (updated) rule by name
         rule = clientV3.groups().byGroupId(groupId).rules().byRuleType(RuleType.COMPATIBILITY.name()).get();

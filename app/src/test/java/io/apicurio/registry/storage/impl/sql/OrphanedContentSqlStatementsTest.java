@@ -17,11 +17,16 @@ import java.util.UUID;
 class OrphanedContentSqlStatementsTest {
 
     @Test
-    void testCommonDeleteOrphanedContentReferencesCorrelatesWithOuterTable() {
-        String sql = new H2SqlStatements().deleteOrphanedContentReferences();
+    void testLockingContentIdLookupPerDialect() {
+        String base = "SELECT c.contentId FROM content c WHERE c.contentHash = ?";
+        Assertions.assertEquals(base + " FOR UPDATE", new H2SqlStatements().selectContentIdByHashAndLock());
+        Assertions.assertEquals(base + " FOR KEY SHARE",
+                new PostgreSQLSqlStatements().selectContentIdByHashAndLock());
+        Assertions.assertEquals(base + " LOCK IN SHARE MODE",
+                new MySQLSqlStatements().selectContentIdByHashAndLock());
         Assertions.assertEquals(
-                "DELETE FROM content_references WHERE NOT EXISTS (SELECT 1 FROM versions v WHERE v.contentId = content_references.contentId)",
-                sql);
+                "SELECT c.contentId FROM content c WITH (UPDLOCK, ROWLOCK) WHERE c.contentHash = ?",
+                new SQLServerSqlStatements().selectContentIdByHashAndLock());
     }
 
     @Test
@@ -42,7 +47,7 @@ class OrphanedContentSqlStatementsTest {
      * PostgreSQL does not override {@code deleteAllOrphanedContent()}, so it runs the same
      * correlated query inherited from {@link CommonSqlStatements}. This is the path that matters
      * for PostgreSQL: {@code content_references} is cleaned up there by the {@code ON DELETE CASCADE}
-     * foreign key rather than {@code deleteOrphanedContentReferences()}.
+     * foreign key.
      */
     @Test
     void testPostgreSQLDeleteAllOrphanedContentCorrelatesWithOuterTable() {
@@ -53,18 +58,10 @@ class OrphanedContentSqlStatementsTest {
     }
 
     @Test
-    void testH2ExecutionDeletesOrphanedContentReferencesAndOrphanedContent() throws SQLException {
+    void testH2ExecutionDeletesOrphanedContentAndItsReferences() throws SQLException {
         try (Connection conn = createH2Database()) {
             Assertions.assertEquals(3, countRows(conn, "content"));
             Assertions.assertEquals(2, countRows(conn, "content_references"));
-
-            try (Statement stmt = conn.createStatement()) {
-                int deletedRefs = stmt.executeUpdate(new H2SqlStatements().deleteOrphanedContentReferences());
-                Assertions.assertEquals(1, deletedRefs);
-            }
-
-            Assertions.assertEquals(3, countRows(conn, "content"));
-            Assertions.assertEquals(1, countRows(conn, "content_references"));
 
             try (Statement stmt = conn.createStatement()) {
                 int deletedContent = stmt.executeUpdate(new H2SqlStatements().deleteAllOrphanedContent());

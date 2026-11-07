@@ -48,6 +48,17 @@ describe("PeerList", () => {
         expect(usRow.getByText("None")).toBeInTheDocument();
     });
 
+    it("shows whether a peer is used by federated search as a setting, apart from connection health", () => {
+        render(list(false));
+
+        expect(screen.getByRole("columnheader", { name: "Federated search" })).toBeInTheDocument();
+        expect(screen.queryByRole("columnheader", { name: "Status" })).not.toBeInTheDocument();
+        // Green is what a healthy source looks like on the Agents page, so the setting does not use it.
+        const enabled = within(screen.getByTestId("peer-row-eu-west")).getByText("Enabled").closest(".pf-v6-c-label");
+        expect(enabled).toHaveClass("pf-m-blue");
+        expect(enabled).not.toHaveClass("pf-m-green");
+    });
+
     it("offers no actions when the UI is read-only", () => {
         render(list(true));
 

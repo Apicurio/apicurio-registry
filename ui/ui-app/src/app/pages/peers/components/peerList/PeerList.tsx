@@ -60,7 +60,7 @@ export const PeerList: FunctionComponent<PeerListProps> = (props: PeerListProps)
                     <Tr>
                         <Th>Registry</Th>
                         <Th>URL</Th>
-                        <Th>Status</Th>
+                        <Th>Federated search</Th>
                         <Th>Credential reference</Th>
                     </Tr>
                 </Thead>
@@ -73,10 +73,11 @@ export const PeerList: FunctionComponent<PeerListProps> = (props: PeerListProps)
                                 <div className="peer-description">{ peer.description }</div>
                             </Td>
                             <Td dataLabel="URL">{ peer.url }</Td>
-                            <Td dataLabel="Status">
+                            <Td dataLabel="Federated search">
+                                {/* A setting, not connection health: health is only known from a search's source outcomes. */}
                                 { peer.enabled === false ?
                                     <Label color="grey">Disabled</Label> :
-                                    <Label color="green">Enabled</Label> }
+                                    <Label color="blue">Enabled</Label> }
                             </Td>
                             <Td dataLabel="Credential reference">{ peer.credentialSecretRef || "None" }</Td>
                             { props.isReadOnly ? null :

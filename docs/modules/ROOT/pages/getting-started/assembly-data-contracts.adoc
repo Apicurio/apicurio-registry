@@ -707,7 +707,7 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 |Delete the contract ruleset
 |===
 
-Version-level rulesets are also available at `.../versions/{version}/contract/ruleset`.
+Version-level rulesets are also available at `.../versions/\{version}/contract/ruleset`.
 
 .Contract status transition endpoint
 [cols="1,4,3", options="header"]
@@ -739,7 +739,7 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Method |Endpoint |Description
 
 |POST
-|`/groups/{groupId}/artifacts/{artifactId}/versions/{version}/contract/execute`
+|`/groups/\{groupId}/artifacts/\{artifactId}/versions/\{version}/contract/execute`
 |Execute contract rules against a data record. Body: `{"mode": "WRITE", "record": {...}}`
 
 |POST

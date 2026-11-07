@@ -1662,5 +1662,29 @@ public class PromptRenderingServiceTest {
                 "Should contain question substitution");
         Assertions.assertTrue(response.getValidationErrors().isEmpty());
     }
-}
+    @Test
+    public void testAdjacentIfAndIfElseBlocks() {
+        String yamlContent = """
+            templateId: adjacent-test
+            template: "{{#if a}}A{{/if}} | {{#if b}}B{{else}}notB{{/if}}"
+            """;
 
+        ContentHandle content = ContentHandle.create(yamlContent);
+
+        RenderPromptResponse r1 = renderingService.render(
+                content, Map.of("a", true, "b", true), "default", "adj", "1.0");
+        Assertions.assertEquals("A | B", r1.getRendered());
+
+        RenderPromptResponse r2 = renderingService.render(
+                content, Map.of("a", true, "b", false), "default", "adj", "1.0");
+        Assertions.assertEquals("A | notB", r2.getRendered());
+
+        RenderPromptResponse r3 = renderingService.render(
+                content, Map.of("a", false, "b", true), "default", "adj", "1.0");
+        Assertions.assertEquals(" | B", r3.getRendered());
+
+        RenderPromptResponse r4 = renderingService.render(
+                content, Map.of("a", false, "b", false), "default", "adj", "1.0");
+        Assertions.assertEquals(" | notB", r4.getRendered());
+    }
+}

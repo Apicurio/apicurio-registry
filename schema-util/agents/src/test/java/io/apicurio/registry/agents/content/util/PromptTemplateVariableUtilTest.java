@@ -160,4 +160,168 @@ class PromptTemplateVariableUtilTest {
         Assertions.assertFalse(PromptTemplateVariableUtil.isControlKeyword("Else"));
         Assertions.assertFalse(PromptTemplateVariableUtil.isControlKeyword(null));
     }
+    @Test
+    void testAdjacentIfAndIfElseBlocks() {
+        String template = "{{#if a}}A{{/if}} | {{#if b}}B{{else}}notB{{/if}}";
+
+        // All four true/false combinations
+        Assertions.assertEquals("A | B",
+                PromptTemplateVariableUtil.processConditionalBlocks(template, Map.of("a", true, "b", true)));
+        Assertions.assertEquals("A | notB",
+                PromptTemplateVariableUtil.processConditionalBlocks(template, Map.of("a", true, "b", false)));
+        Assertions.assertEquals(" | B",
+                PromptTemplateVariableUtil.processConditionalBlocks(template, Map.of("a", false, "b", true)));
+        Assertions.assertEquals(" | notB",
+                PromptTemplateVariableUtil.processConditionalBlocks(template, Map.of("a", false, "b", false)));
+    }
+
+    @Test
+    void testPlainIfAfterIfElse() {
+        String template = "{{#if b}}B{{else}}notB{{/if}} | {{#if a}}A{{/if}}";
+        Assertions.assertEquals("B | A",
+                PromptTemplateVariableUtil.processConditionalBlocks(template, Map.of("a", true, "b", true)));
+        Assertions.assertEquals("notB | ",
+                PromptTemplateVariableUtil.processConditionalBlocks(template, Map.of("a", false, "b", false)));
+    }
+
+    @Test
+    void testLoneIfElse() {
+        String template = "{{#if b}}B{{else}}notB{{/if}}";
+        Assertions.assertEquals("B",
+                PromptTemplateVariableUtil.processConditionalBlocks(template, Map.of("b", true)));
+        Assertions.assertEquals("notB",
+                PromptTemplateVariableUtil.processConditionalBlocks(template, Map.of("b", false)));
+    }
+
+    @Test
+    void testIfBlockTruthy() {
+        Assertions.assertEquals("Hello Alice",
+                PromptTemplateVariableUtil.processConditionalBlocks("{{#if premium}}Hello Alice{{/if}}",
+                        Map.of("premium", true)));
+    }
+
+    @Test
+    void testIfBlockFalsy() {
+        Assertions.assertEquals("",
+                PromptTemplateVariableUtil.processConditionalBlocks("{{#if premium}}Hello Alice{{/if}}",
+                        Map.of("premium", false)));
+    }
+
+    @Test
+    void testIfBlockEmptyStringIsFalsy() {
+        Assertions.assertEquals("",
+                PromptTemplateVariableUtil.processConditionalBlocks("{{#if premium}}Hello Alice{{/if}}",
+                        Map.of("premium", "")));
+    }
+
+    @Test
+    void testIfBlockMissingVariableIsFalsy() {
+        Assertions.assertEquals("",
+                PromptTemplateVariableUtil.processConditionalBlocks("{{#if premium}}Hello Alice{{/if}}",
+                        Map.of()));
+    }
+
+    @Test
+    void testIfElseBlockTruthy() {
+        Assertions.assertEquals("Welcome admin!",
+                PromptTemplateVariableUtil.processConditionalBlocks("{{#if admin}}Welcome admin!{{else}}Welcome guest!{{/if}}",
+                        Map.of("admin", true)));
+    }
+
+    @Test
+    void testIfElseBlockFalsy() {
+        Assertions.assertEquals("Welcome guest!",
+                PromptTemplateVariableUtil.processConditionalBlocks("{{#if admin}}Welcome admin!{{else}}Welcome guest!{{/if}}",
+                        Map.of("admin", false)));
+    }
+
+    @Test
+    void testIfElseBlockEmptyStringIsFalsy() {
+        Assertions.assertEquals("Welcome guest!",
+                PromptTemplateVariableUtil.processConditionalBlocks("{{#if admin}}Welcome admin!{{else}}Welcome guest!{{/if}}",
+                        Map.of("admin", "")));
+    }
+
+    @Test
+    void testIfElseBlockMissingVariableIsFalsy() {
+        Assertions.assertEquals("Welcome guest!",
+                PromptTemplateVariableUtil.processConditionalBlocks("{{#if admin}}Welcome admin!{{else}}Welcome guest!{{/if}}",
+                        Map.of()));
+    }
+
+    @Test
+    void testUnlessBlockFalsy() {
+        Assertions.assertEquals("Active item",
+                PromptTemplateVariableUtil.processConditionalBlocks("{{#unless archived}}Active item{{/unless}}",
+                        Map.of("archived", false)));
+    }
+
+    @Test
+    void testUnlessBlockTruthy() {
+        Assertions.assertEquals("",
+                PromptTemplateVariableUtil.processConditionalBlocks("{{#unless archived}}Active item{{/unless}}",
+                        Map.of("archived", true)));
+    }
+
+    @Test
+    void testUnlessBlockEmptyStringIsFalsy() {
+        Assertions.assertEquals("Active item",
+                PromptTemplateVariableUtil.processConditionalBlocks("{{#unless archived}}Active item{{/unless}}",
+                        Map.of("archived", "")));
+    }
+
+    @Test
+    void testUnlessBlockMissingVariableIsFalsy() {
+        Assertions.assertEquals("Active item",
+                PromptTemplateVariableUtil.processConditionalBlocks("{{#unless archived}}Active item{{/unless}}",
+                        Map.of()));
+    }
+
+    @Test
+    void testMultilineConditionalBlocks() {
+        String template = """
+                {{#if admin}}
+                Role: Administrator
+                {{else}}
+                Role: Standard User
+                {{/if}}""";
+        Assertions.assertEquals("""
+
+                Role: Administrator
+                """,
+                PromptTemplateVariableUtil.processConditionalBlocks(template, Map.of("admin", true)));
+    }
+
+    @Test
+    void testProcessConditionalBlocksNullTemplateAndVariables() {
+        Assertions.assertNull(PromptTemplateVariableUtil.processConditionalBlocks(null, Map.of()));
+        Assertions.assertEquals("static content",
+                PromptTemplateVariableUtil.processConditionalBlocks("static content", null));
+    }
+
+    @Test
+    void testFormatValue() {
+        Assertions.assertEquals("[\"alpha\",\"beta\"]",
+                PromptTemplateVariableUtil.formatValue(List.of("alpha", "beta")));
+        Assertions.assertEquals("{\"env\":\"prod\"}",
+                PromptTemplateVariableUtil.formatValue(Map.of("env", "prod")));
+        Assertions.assertEquals("123", PromptTemplateVariableUtil.formatValue(123));
+        Assertions.assertEquals("hello", PromptTemplateVariableUtil.formatValue("hello"));
+        Assertions.assertEquals("true", PromptTemplateVariableUtil.formatValue(true));
+    }
+
+    @Test
+    void testIsTruthy() {
+        Assertions.assertTrue(PromptTemplateVariableUtil.isTruthy(true));
+        Assertions.assertTrue(PromptTemplateVariableUtil.isTruthy("hello"));
+        Assertions.assertTrue(PromptTemplateVariableUtil.isTruthy(0));
+        Assertions.assertTrue(PromptTemplateVariableUtil.isTruthy(1));
+        Assertions.assertTrue(PromptTemplateVariableUtil.isTruthy(List.of()));
+        Assertions.assertTrue(PromptTemplateVariableUtil.isTruthy(Map.of()));
+
+        Assertions.assertFalse(PromptTemplateVariableUtil.isTruthy(null));
+        Assertions.assertFalse(PromptTemplateVariableUtil.isTruthy(false));
+        Assertions.assertFalse(PromptTemplateVariableUtil.isTruthy(Boolean.FALSE));
+        Assertions.assertFalse(PromptTemplateVariableUtil.isTruthy(""));
+    }
 }

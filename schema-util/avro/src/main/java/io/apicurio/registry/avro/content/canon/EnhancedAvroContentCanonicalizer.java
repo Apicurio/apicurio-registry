@@ -58,27 +58,22 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
      * Normalize a schema.
      *
      * @param schema a schema.
-     * @param alreadyNormalized a Map indicating if the fields in the schema were already normalized.
+     * @param alreadyNormalized a Map of already normalized record schemas by key.
      * @return the same schema functionally, in normalized form.
      */
-    private static Schema normalizeSchema(Schema schema, Map<String, Boolean> alreadyNormalized) {
-
-        // if it's a nested type RECORD, check if it was already normalized and update our administration
-        if (schema.getType().equals(Schema.Type.RECORD)) {
-            String key = createKey(schema);
-            if (alreadyNormalized.containsKey(key)) {
-                // don't normalize again
-                return schema;
-            } else {
-                alreadyNormalized.put(key, true);
-            }
-        }
+    private static Schema normalizeSchema(Schema schema, Map<String, Schema> alreadyNormalized) {
 
         final Schema result;
         switch (schema.getType()) {
             case RECORD:
-                result = Schema.createRecord(schema.getName(), EMPTY_DOC, schema.getNamespace(), false,
-                        normalizeFields(schema.getFields(), alreadyNormalized));
+                String key = createKey(schema);
+                if (alreadyNormalized.containsKey(key)) {
+                    // don't normalize again
+                    return alreadyNormalized.get(key);
+                }
+                result = Schema.createRecord(schema.getName(), EMPTY_DOC, schema.getNamespace(), false);
+                alreadyNormalized.put(key, result);
+                result.setFields(normalizeFields(schema.getFields(), alreadyNormalized));
                 break;
             case ENUM:
                 result = Schema.createEnum(schema.getName(), EMPTY_DOC, schema.getNamespace(),
@@ -105,7 +100,7 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
     }
 
     private static List<Schema> normalizeSchemasList(List<Schema> schemas,
-            Map<String, Boolean> alreadyNormalized) {
+            Map<String, Schema> alreadyNormalized) {
         final List<Schema> result = new ArrayList<>(schemas.size());
         for (Schema schema : schemas) {
             result.add(normalizeSchema(schema, alreadyNormalized));
@@ -113,7 +108,7 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
         return result;
     }
 
-    private static Schema.Field normalizeField(Schema.Field field, Map<String, Boolean> alreadyNormalized) {
+    private static Schema.Field normalizeField(Schema.Field field, Map<String, Schema> alreadyNormalized) {
         Object defaultVal = field.defaultVal();
         if (defaultVal == null && field.schema().getType() == Schema.Type.UNION) {
             List<Schema> unionTypes = field.schema().getTypes();
@@ -129,7 +124,7 @@ public class EnhancedAvroContentCanonicalizer implements ContentCanonicalizer {
     }
 
     private static List<Schema.Field> normalizeFields(List<Schema.Field> fields,
-            Map<String, Boolean> alreadyNormalized) {
+            Map<String, Schema> alreadyNormalized) {
         List<Schema.Field> result = new ArrayList<>(fields.size());
         for (Schema.Field field : fields) {
             result.add(normalizeField(field, alreadyNormalized));

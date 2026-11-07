@@ -54,7 +54,7 @@ Contract "orders-contract" → contract.orders-contract.owner.team = orders-team
 Contract "billing-contract" → contract.billing-contract.owner.team = billing-team
 ----
 
-Updating a contract only affects its own namespaced labels, rules, and tags. Deleting a contract deletes the `ODCS_CONTRACT` artifact and removes everything the contract projected from every schema artifact any of its versions referenced: its labels, its `odcs:{contractId}:*` rules, and its field tags.
+Updating a contract only affects its own namespaced labels, rules, and tags. Deleting a contract deletes the `ODCS_CONTRACT` artifact and removes everything the contract projected from every schema artifact any of its versions referenced: its labels, its `odcs:\{contractId}:*` rules, and its field tags.
 
 [id="data-contracts-odcs-projection_{context}"]
 == ODCS projection mapping
@@ -70,39 +70,39 @@ When you submit an ODCS contract, {registry} parses the YAML, stores it as an `O
 |ODCS section |Projected to
 
 |`info.status`
-|`contract.{contractId}.status` label (case-insensitive: draft->DRAFT, active->STABLE, deprecated or retired->DEPRECATED, any other value->DRAFT)
+|`contract.\{contractId}.status` label (case-insensitive: draft->DRAFT, active->STABLE, deprecated or retired->DEPRECATED, any other value->DRAFT)
 
 |`info.version`
-|`contract.{contractId}.version` label
+|`contract.\{contractId}.version` label
 
 |`id`
-|`contract.{contractId}.id` label
+|`contract.\{contractId}.id` label
 
 |`info.dataClassification`
-|`contract.{contractId}.classification` label
+|`contract.\{contractId}.classification` label
 
 |`team.name` / `team.domain` / `team.contact`
-|`contract.{contractId}.owner.team`, `.owner.domain`, `.support.contact` labels
+|`contract.\{contractId}.owner.team`, `.owner.domain`, `.support.contact` labels
 
 |`quality.accuracy` rules
-|Artifact-level CEL domain rules named `odcs:{contractId}:{name}` (kind `CONDITION`, mode `WRITE`)
+|Artifact-level CEL domain rules named `odcs:\{contractId}:\{name}` (kind `CONDITION`, mode `WRITE`)
 
 |`quality.completeness` rules
-|`contract.{contractId}.quality.completeness.{field}` labels
+|`contract.\{contractId}.quality.completeness.{field}` labels
 
 |`quality.freshness.maxStaleness`
-|`contract.{contractId}.quality.freshness.maxStaleness` label
+|`contract.\{contractId}.quality.freshness.maxStaleness` label
 
 |`schemas[].fields[].pii` / `.classification` / `.tags`
-|`field-tag.{contractId}:{fieldPath}\|{tagName}` labels with value `EXTERNAL`, set on the version named in `location` (latest version if omitted)
+|`field-tag.\{contractId}:\{fieldPath}\|\{tagName}` labels with value `EXTERNAL`, set on the version named in `location` (latest version if omitted)
 
 |`serviceLevel.availability`, `serviceLevel.latency.p50`, `serviceLevel.latency.p99`
-|`contract.{contractId}.sla.availability`, `.sla.latency.p50`, `.sla.latency.p99` labels (stored, not enforced by registry). Other `serviceLevel` fields, such as throughput, are not projected.
+|`contract.\{contractId}.sla.availability`, `.sla.latency.p50`, `.sla.latency.p99` labels (stored, not enforced by registry). Other `serviceLevel` fields, such as throughput, are not projected.
 |===
 
 Other ODCS sections, such as `info.title` and descriptions, are kept only in the stored contract YAML.
 
-A status from `info.status` that becomes `STABLE` or `DEPRECATED` also sets `contract.{contractId}.lifecycle.stable-date` or `contract.{contractId}.lifecycle.deprecated-date`. A field tag whose label key would be longer than 256 characters is skipped, with a warning in the response.
+A status from `info.status` that becomes `STABLE` or `DEPRECATED` also sets `contract.\{contractId}.lifecycle.stable-date` or `contract.\{contractId}.lifecycle.deprecated-date`. A field tag whose label key would be longer than 256 characters is skipped, with a warning in the response.
 
 ODCS accuracy rule thresholds (default 1.0) determine the rule's `onFailure` action. The rule `params` contain the `source` and `threshold` values.
 
@@ -193,9 +193,9 @@ When submitted, this contract results in the following projections:
 
 When you update an ODCS contract with `PUT /groups/\{g}/contracts/\{contractId}`, a new contract version is added (re-submitting an existing `info.version` returns HTTP 409) and the contract is re-projected:
 
-* The `contract.{contractId}.*` labels taken from the YAML are replaced. The stage, compatibility group, and lifecycle dates set through the API are kept.
+* The `contract.\{contractId}.*` labels taken from the YAML are replaced. The stage, compatibility group, and lifecycle dates set through the API are kept.
 * The status from `info.status` is applied only if the contract lifecycle allows moving to it from the current status (see <<data-contracts-lifecycle_{context}>>). Otherwise the current status is kept, and the response contains a warning.
-* Rules named `odcs:{contractId}:*` are replaced; a version without `quality.accuracy` rules removes them. Other rules, such as rules added manually through the contract ruleset API, are preserved.
+* Rules named `odcs:\{contractId}:*` are replaced; a version without `quality.accuracy` rules removes them. Other rules, such as rules added manually through the contract ruleset API, are preserved.
 * Field tags are replaced on the target version; a version without field metadata removes them.
 * Schemas the previous version referenced and the new version does not lose the contract's labels, rules, and field tags.
 
@@ -277,8 +277,8 @@ Field tags provide semantic annotation of schema fields, enabling you to identif
 
 Field tags are stored as version labels. They come from two sources:
 
-Inline tags:: Declared in the schema content (see <<data-contracts-field-tags-formats_{context}>>). When a version is created through the Core Registry API v3, they are stored as `field-tag.{fieldPath}|{tagName}` labels with value `INLINE`. Labels submitted with the version take precedence over extracted tags with the same key. Versions created through the Confluent Schema Registry compatibility API, and draft content updates, do not get inline tags.
-External tags:: Projected from ODCS contracts as `field-tag.{contractId}:{fieldPath}|{tagName}` labels with value `EXTERNAL`, or set manually by using the version labels API.
+Inline tags:: Declared in the schema content (see <<data-contracts-field-tags-formats_{context}>>). When a version is created through the Core Registry API v3, they are stored as `field-tag.\{fieldPath}|\{tagName}` labels with value `INLINE`. Labels submitted with the version take precedence over extracted tags with the same key. Versions created through the Confluent Schema Registry compatibility API, and draft content updates, do not get inline tags.
+External tags:: Projected from ODCS contracts as `field-tag.\{contractId}:\{fieldPath}|\{tagName}` labels with value `EXTERNAL`, or set manually by using the version labels API.
 
 The following tag names are commonly used:
 
@@ -486,7 +486,7 @@ The service walks the versions between `fromVersion` and `toVersion` in artifact
 {"passed": true, "transformedRecord": {...}, "violations": [], "executedRules": 1, "failedRules": 0}
 ----
 
-Compatibility groups are stored as the artifact label `contract.{contractId}.compatibility.group`. Compatibility checks do not use them yet.
+Compatibility groups are stored as the artifact label `contract.\{contractId}.compatibility.group`. Compatibility checks do not use them yet.
 
 [source,bash]
 ----
@@ -651,7 +651,7 @@ When rules are executed through the rule execution endpoint, domain rules are me
 
 . Global rules apply to all artifacts and are set through `/admin/contracts/ruleset`.
 . Artifact rules apply to a specific artifact and are set through `/groups/\{g}/artifacts/\{a}/contract/ruleset`.
-. Version rules apply to a specific version and are set through `.../versions/{v}/contract/ruleset`.
+. Version rules apply to a specific version and are set through `.../versions/\{v}/contract/ruleset`.
 
 If a rule with the same name exists at multiple levels, the most specific scope wins.
 
@@ -695,27 +695,27 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 |Method |Endpoint |Description
 
 |POST
-|`/groups/{groupId}/contracts`
+|`/groups/\{groupId}/contracts`
 |Submit an ODCS contract YAML. Creates the contract artifact and projects onto referenced schema artifacts.
 
 |GET
-|`/groups/{groupId}/contracts?limit=&offset=`
+|`/groups/\{groupId}/contracts?limit=&offset=`
 |List ODCS contracts in a group as `[{"contractId": "...", "name": "..."}]` (paginated, default 20, max 500)
 
 |GET
-|`/groups/{groupId}/contracts/{contractId}`
+|`/groups/\{groupId}/contracts/\{contractId}`
 |Retrieve the ODCS contract YAML
 
 |PUT
-|`/groups/{groupId}/contracts/{contractId}`
+|`/groups/\{groupId}/contracts/\{contractId}`
 |Update an ODCS contract (creates a new version and re-projects). Returns 409 if `info.version` already exists.
 
 |DELETE
-|`/groups/{groupId}/contracts/{contractId}`
+|`/groups/\{groupId}/contracts/\{contractId}`
 |Delete the ODCS contract artifact, and remove its projected labels, rules, and field tags from the schema artifacts
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/export`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/export`
 |Export an artifact's projected contract data as ODCS YAML
 |===
 
@@ -725,11 +725,11 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 |Method |Endpoint |Description
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/metadata`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/metadata`
 |Get contract metadata for an artifact
 
 |PUT
-|`/groups/{groupId}/artifacts/{artifactId}/contract/metadata`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/metadata`
 |Replace the editable contract metadata fields. Other contract labels are kept; status and stage changes follow the lifecycle rules
 |===
 
@@ -739,19 +739,19 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 |Method |Endpoint |Description
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/ruleset`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/ruleset`
 |Get the contract ruleset for an artifact
 
 |PUT
-|`/groups/{groupId}/artifacts/{artifactId}/contract/ruleset`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/ruleset`
 |Create or replace the contract ruleset
 
 |DELETE
-|`/groups/{groupId}/artifacts/{artifactId}/contract/ruleset`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/ruleset`
 |Delete the contract ruleset
 |===
 
-Version-level rulesets are also available at `.../versions/{version}/contract/ruleset` (GET, PUT, DELETE).
+Version-level rulesets are also available at `.../versions/\{version}/contract/ruleset` (GET, PUT, DELETE).
 
 .Contract status transition endpoint
 [cols="1,4,3", options="header"]
@@ -759,7 +759,7 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Method |Endpoint |Description
 
 |POST
-|`/groups/{groupId}/artifacts/{artifactId}/contract/status`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/status`
 |Change lifecycle status with transition validation. Body: `{"status": "STABLE"}`. Returns 409 for transitions from `DEPRECATED`
 |===
 
@@ -769,11 +769,11 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Method |Endpoint |Description
 
 |POST
-|`/groups/{groupId}/artifacts/{artifactId}/contract/promote`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/promote`
 |Promote the contract stage from DEV to STAGE to PROD. Body: `{"contractId": "...", "targetStage": "STAGE"}`. Response: `{"stage": "STAGE"}`
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/quality?contractId=`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/quality?contractId=`
 |Get quality score (overall, completeness, compliance, stability). `contractId` is required (400 without it)
 |===
 
@@ -783,11 +783,11 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Method |Endpoint |Description
 
 |POST
-|`/groups/{groupId}/artifacts/{artifactId}/versions/{version}/contract/execute`
+|`/groups/\{groupId}/artifacts/\{artifactId}/versions/\{version}/contract/execute`
 |Execute contract rules against a data record. Body: `{"mode": "WRITE", "record": {...}}`. Returns 200 even when rules fail
 
 |POST
-|`/groups/{groupId}/artifacts/{artifactId}/contract/migrate`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/migrate`
 |Migrate a record between versions. Body: `{"fromVersion": "1", "toVersion": "3", "record": {...}}`
 |===
 
@@ -797,7 +797,7 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Method |Endpoint |Description
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/audit?offset=&limit=`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/audit?offset=&limit=`
 |Get contract audit log entries for an artifact (default limit 20, max 500)
 |===
 
@@ -807,11 +807,11 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Method |Endpoint |Description
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group?contractId=`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/compatibility-group?contractId=`
 |Get the compatibility group for a contract on an artifact. Response: `{"compatibilityGroup": "..."}`
 
 |PUT
-|`/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/compatibility-group`
 |Set the compatibility group label. Body: `{"contractId": "...", "compatibilityGroup": "..."}`. Returns 204
 |===
 
@@ -892,7 +892,7 @@ curl "http://localhost:8080/apis/registry/v3/groups/my-group/contracts?limit=10&
 curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/export
 ----
 
-Rebuilds ODCS v3.1 YAML from the artifact's projected contract labels, rules, and field tags. Field tags are read from the latest version only, and `location` is set to `group/artifact:latestVersion`. Sections that are not projected, such as the title and descriptions, are missing from the export. Returns 404 if the artifact has no `contract.{contractId}.id` label.
+Rebuilds ODCS v3.1 YAML from the artifact's projected contract labels, rules, and field tags. Field tags are read from the latest version only, and `location` is set to `group/artifact:latestVersion`. Sections that are not projected, such as the title and descriptions, are missing from the export. Returns 404 if the artifact has no `contract.\{contractId}.id` label.
 
 .Promoting a contract
 [source,bash]

@@ -95,6 +95,8 @@ You can use the {registry} web console to browse the schema and API artifacts st
 ** *Search*: Select *Artifacts* from the *Search for* menu to browse artifacts. You can filter the results by criteria such as *Name*, *Group*, *Labels*, or *Global Id*. The *Name* filter ignores letter case. When you filter by *Type*, select the value from a list instead of typing it. The *State* filter is available when you select *Versions* from *Search for*. For this filter, you also select the value from a list.
 ** *Dashboard*: Click an artifact in the *Recent Artifacts* list.
 +
+NOTE: The *Name* filter matches any part of the artifact name or artifact ID and ignores case. To match only names or artifact IDs that start with a value, add `*` after it, for example `payment*`. The REST API `name` filter matches the whole name exactly unless you add `*`.
++
 .Artifacts in {registry} web console
 image::images/getting-started/registry-web-console.png[Artifacts in Registry web console]
 +
@@ -129,6 +131,12 @@ image::images/getting-started/registry-web-console-artifact-version.png[Artifact
 * xref:changing-version-state-using-console_{context}[]
 * xref:viewing-json-schema-using-console_{context}[]
 * {registry-rule-reference}
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-managing-registry-artifacts-api.adoc#searching-artifacts-using-rest-api_{context}[]
+endif::[]
+ifdef::service-registry-downstream[]
+* xref:searching-artifacts-using-rest-api_{context}[]
+endif::[]
 * xref:getting-started/assembly-data-contracts.adoc[]
 * xref:getting-started/assembly-usage-telemetry.adoc[]
 

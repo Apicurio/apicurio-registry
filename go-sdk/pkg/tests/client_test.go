@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -179,4 +180,33 @@ func TestCreateAnArtifact(t *testing.T) {
 	assert.Nil(t, err)
 
 	assert.Equal(t, contentStr, string(resultArtifact[:]))
+}
+
+func TestMcpToolCompatibilityNotFoundIsProblemDetails(t *testing.T) {
+	teardownSuite := setupSuite(t)
+	defer teardownSuite(t)
+
+	authProvider := auth.AnonymousAuthenticationProvider{}
+
+	adapter, err := kiotaHttp.NewNetHttpRequestAdapter(&authProvider)
+	assert.Nil(t, err)
+	adapter.SetBaseUrl(RegistryUrl)
+	client := registryclientv3.NewApiClient(adapter)
+	tool := client.WellKnown().McpTools().ByGroupId("default").ByArtifactId("nonexistent-mcp-tool")
+
+	// A missing tool is a 404 whether or not MCP tools support is enabled
+	_, err = tool.Compatible().Get(context.Background(), nil)
+	assertNotFoundProblem(t, err)
+
+	_, err = tool.Compatibility().Get(context.Background(), nil)
+	assertNotFoundProblem(t, err)
+}
+
+func assertNotFoundProblem(t *testing.T, err error) {
+	var problem *models.ProblemDetails
+	if assert.True(t, errors.As(err, &problem), "expected ProblemDetails, got %v", err) {
+		assert.Equal(t, 404, problem.ResponseStatusCode)
+		assert.Equal(t, int32(404), *problem.GetStatus())
+		assert.NotEmpty(t, *problem.GetTitle())
+	}
 }

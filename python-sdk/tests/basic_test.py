@@ -18,6 +18,7 @@ from apicurioregistrysdk.client.groups.item.artifacts.artifacts_request_builder 
 )
 from apicurioregistrysdk.client.models.create_version import CreateVersion
 from apicurioregistrysdk.client.models.if_artifact_exists import IfArtifactExists
+from apicurioregistrysdk.client.models.problem_details import ProblemDetails
 from apicurioregistrysdk.client.models.version_content import VersionContent
 from apicurioregistrysdk.client.registry_client import RegistryClient
 from apicurioregistrysdk.client.models.create_artifact import CreateArtifact
@@ -137,3 +138,22 @@ async def test_issue_3465():
         payload, request_configuration=request_configuration
     )
     assert caResponse.artifact.artifact_id == "foo"
+
+
+@pytest.mark.asyncio
+async def test_mcp_tool_compatibility_not_found_is_problem_details():
+    auth_provider = AnonymousAuthenticationProvider()
+    request_adapter = HttpxRequestAdapter(auth_provider)
+    request_adapter.base_url = REGISTRY_URL
+    client = RegistryClient(request_adapter)
+    tool = client.well_known.mcp_tools.by_group_id("default").by_artifact_id(
+        "nonexistent-mcp-tool"
+    )
+
+    # a missing tool is a 404 whether or not MCP tools support is enabled
+    for operation in (tool.compatible, tool.compatibility):
+        with pytest.raises(ProblemDetails) as error:
+            await operation.get()
+        assert error.value.response_status_code == 404
+        assert error.value.status == 404
+        assert error.value.title

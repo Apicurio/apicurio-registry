@@ -26,8 +26,8 @@ export type ReconciledVariable = {
 };
 
 /**
- * Shared placeholder matcher used by extractTemplateVariableNames and
- * PromptTemplateViewer.highlightVariables.
+ * Placeholder matcher used by extractTemplateVariableNames(). PromptTemplateViewer
+ * does not use this regex; it classifies tags via classifyHandlebarsTag().
  *
  * Captures optional block prefix (group 1) and variable name (group 2).
  * Optional whitespace inside the braces matches the backend canonical plain-
@@ -51,6 +51,62 @@ export const TEMPLATE_VARIABLE_REGEX = /\{\{\s*(#?\/?(?:if|unless|each|with)\s+)
  * (e.g. `{{else}}`, `{{this}}`) are excluded the same way prefix keywords are.
  */
 const BLOCK_KEYWORDS = new Set(["if", "unless", "each", "with", "else", "this", "lookup", "log"]);
+
+export type HandlebarsTagKind = "block" | "variable" | "plain";
+
+const stripTagBraces = (tag: string): string => {
+    return tag.replace(/^\{+|\}+$/g, "").trim();
+};
+
+/**
+ * Strip braces, trim, and remove Handlebars whitespace-control tildes
+ * from the edges of a tag body. Used for block detection only.
+ */
+export const parseHandlebarsTagInner = (tag: string): { inner: string; head: string } => {
+    const inner = stripTagBraces(tag).replace(/^~+|~+$/g, "").trim();
+    const head = inner.split(/\s+/, 1)[0];
+    return { inner, head };
+};
+
+const isBlockHelperHead = (head: string): boolean => {
+    return head.startsWith("#") || head.startsWith("/") || head.startsWith("^") || head === "else";
+};
+
+export const isBlockHelperTag = (tag: string): boolean => {
+    return isBlockHelperHead(parseHandlebarsTagInner(tag).head);
+};
+
+// Tildes are kept: extractTemplateVariableNames() and the backend do not
+// substitute whitespace-control variables like {{~name~}}.
+const isSubstitutablePlainVariableTag = (tag: string): boolean => {
+    const inner = stripTagBraces(tag);
+    if (!/^\w+$/.test(inner)) {
+        return false;
+    }
+    return !BLOCK_KEYWORDS.has(inner);
+};
+
+/**
+ * Classify a single handlebars tag for Template preview highlighting.
+ * Mirrors extractTemplateVariableNames() / Test Prompt panel scope for variables.
+ */
+export function classifyHandlebarsTag(tag: string): HandlebarsTagKind {
+    if (isBlockHelperTag(tag)) {
+        return "block";
+    }
+    if (isSubstitutablePlainVariableTag(tag)) {
+        return "variable";
+    }
+    return "plain";
+}
+
+/**
+ * Whether a single handlebars tag is a substitutable variable per
+ * extractTemplateVariableNames() / backend `\w+` scope.
+ */
+export function isSubstitutableVariableTag(tag: string): boolean {
+    return classifyHandlebarsTag(tag) === "variable";
+}
 
 /**
  * Extract de-duplicated variable names from template text in first-seen order.

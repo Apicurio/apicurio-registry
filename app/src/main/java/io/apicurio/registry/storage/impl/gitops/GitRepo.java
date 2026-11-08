@@ -57,6 +57,14 @@ class GitRepo {
     }
 
     /**
+     * Forgets the commit last reported as a change, so it is reported again on the next poll.
+     * Used when a poll is aborted before the reported change could be loaded.
+     */
+    void resetReportedCommit() {
+        lastReportedCommit = null;
+    }
+
+    /**
      * Attempts to open the Git repository. Returns true if successful.
      */
     boolean tryOpen() {

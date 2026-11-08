@@ -406,7 +406,7 @@ Independently of status, a contract also tracks a promotion stage:
 DEV ──────► STAGE ──────► PROD
 ----
 
-Promotion is enforced via the `POST /groups/{g}/artifacts/{a}/contract/promote` endpoint, which validates that the target stage follows the allowed progression. The promotion stage can also be set directly via the contract metadata API.
+Promotion is enforced via the `POST /groups/\{g}/artifacts/\{a}/contract/promote` endpoint, which validates that the target stage follows the allowed progression. The promotion stage can also be set directly via the contract metadata API.
 
 [id="data-contracts-migration_{context}"]
 == Schema migration
@@ -606,7 +606,7 @@ You can also manage the global contract ruleset in the {registry} web console. C
 When rules are executed, they are merged from three scopes:
 
 . Global rules apply to all artifacts and are set through `/admin/contracts/ruleset`.
-. Artifact rules apply to a specific artifact and are set through `/groups/{g}/artifacts/{a}/contract/ruleset`.
+. Artifact rules apply to a specific artifact and are set through `/groups/\{g}/artifacts/\{a}/contract/ruleset`.
 . Version rules apply to a specific version and are set through `.../versions/{v}/contract/ruleset`.
 
 If a rule with the same name exists at multiple levels, the most specific scope wins.

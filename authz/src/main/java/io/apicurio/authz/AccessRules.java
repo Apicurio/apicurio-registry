@@ -131,6 +131,13 @@ final class AccessRules {
         parser.removeErrorListeners();
         parser.addErrorListener(collect);
         AclRulesParser.RuleContext file = parser.rule_();
+        // The grammar ends at 'otherwise deny;' without requiring the end of the input, so anything
+        // after it would be dropped silently: a deny rule appended there would never apply
+        Token trailing = parser.getCurrentToken();
+        if (trailing.getType() != Token.EOF) {
+            errors.add(trailing.getLine() + ":" + trailing.getCharPositionInLine() + ": unexpected '"
+                    + trailing.getText() + "' after 'otherwise deny;'. Every rule must come before it.");
+        }
         throwIfAny("syntax errors", errors);
 
         Builder builder = new Builder(errors);

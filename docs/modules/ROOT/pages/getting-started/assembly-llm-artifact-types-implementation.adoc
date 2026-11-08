@@ -127,7 +127,7 @@ The PROMPT_TEMPLATE schema is aligned with the Microsoft Prompty specification f
 
 |`template`
 |Body content
-|{{variable}} syntax
+|{\{variable}} syntax
 
 |`model`
 |`model`
@@ -492,7 +492,7 @@ The `validate()` function checks the following rules:
 
 * `templateId` must be a non-empty string.
 * `template` must be a non-empty string.
-* All `{{variable}}` placeholders in the template must have corresponding definitions in `variables`.
+* All `{\{variable}}` placeholders in the template must have corresponding definitions in `variables`.
 * Variable types must be valid: `string`, `integer`, `number`, `boolean`, `array`, `object`.
 * Numeric constraints (`minimum`, `maximum`) must be numbers.
 * Enum values must be arrays.
@@ -726,7 +726,7 @@ The `PromptRenderingService` class (`app/src/main/java/io/apicurio/registry/agen
 |Parses YAML or JSON prompt templates
 
 |Variable substitution
-|Replaces `{{variable}}` placeholders with provided values
+|Replaces `{\{variable}}` placeholders with provided values
 
 |Type validation
 |Validates that variable values match their defined types
@@ -741,7 +741,7 @@ The `PromptRenderingService` class (`app/src/main/java/io/apicurio/registry/agen
 |Validates numeric values against minimum/maximum constraints
 |===
 
-A variable placeholder is a word-character name with optional surrounding whitespace, so `{{name}}` and `{{ name }}` both resolve to the variable `name`. The render endpoint does not resolve a name that contains any other character, for example `{{user.name}}` or `{{my-var}}`, and leaves it in the rendered output as literal text. Earlier versions of the render endpoint resolved such names. The MCP prompt converter also resolved a placeholder such as `{{user.name}}` when you supplied an argument of the same name. Both now use the same grammar as the prompt template validity rule.
+A variable placeholder is a word-character name with optional surrounding whitespace, so `{\{name}}` and `{{ name }}` both resolve to the variable `name`. The render endpoint does not resolve a name that contains any other character, for example `{{user.name}}` or `{\{my-var}}`, and leaves it in the rendered output as literal text. Earlier versions of the render endpoint resolved such names. The MCP prompt converter also resolved a placeholder such as `{{user.name}}` when you supplied an argument of the same name. Both now use the same grammar as the prompt template validity rule.
 
 When validation fails, the response includes validation errors:
 

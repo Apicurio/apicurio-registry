@@ -1,0 +1,9 @@
+syntax = "proto3";
+package test.mma;
+
+import "test.mma3.proto";
+
+message OtherRecord2 {
+  string f1 = 1;
+  OtherRecord3 f2 = 2;
+}

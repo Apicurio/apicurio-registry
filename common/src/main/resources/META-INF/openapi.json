@@ -7883,6 +7883,10 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/ResourcePermissions",
+            "description": "The operations the caller may perform on this resource. Present only when resource-based authorization is enabled."
           }
         },
         "example": {
@@ -8057,6 +8061,10 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/ResourcePermissions",
+            "description": "The operations the caller may perform on this resource. Present only when resource-based authorization is enabled."
           }
         },
         "example": {
@@ -8199,6 +8207,34 @@
           "value": "true"
         }
       },
+      "ResourcePermissions": {
+        "description": "The operations the caller may perform on a resource returned by a search or list operation. Each flag is true when a request at that level on the resource would be authorized.",
+        "required": [
+          "read",
+          "write",
+          "admin"
+        ],
+        "type": "object",
+        "properties": {
+          "read": {
+            "description": "Whether the caller may read the resource.",
+            "type": "boolean"
+          },
+          "write": {
+            "description": "Whether the caller may modify the resource.",
+            "type": "boolean"
+          },
+          "admin": {
+            "description": "Whether the caller may administer the resource.",
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "read": true,
+          "write": true,
+          "admin": false
+        }
+      },
       "SearchedGroup": {
         "description": "Models a single group from the result set returned when searching for groups.",
         "required": [
@@ -8239,6 +8275,10 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/ResourcePermissions",
+            "description": "The operations the caller may perform on this resource. Present only when resource-based authorization is enabled."
           }
         },
         "example": {

@@ -363,13 +363,13 @@ NOTE: When testing artifacts using the Maven plug-in, even if the artifact passe
 [role="_abstract"]
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
 
-The following artifact types support artifact references:
-
-* Apache Avro
-* Google Protobuf
-* JSON Schema
-* OpenAPI
-* AsyncAPI
+For the artifact types that support artifact references, see
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-artifact-reference.adoc#registry-artifact-type-reference-support_{context}[Artifact reference support by type].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:registry-artifact-type-reference-support_{context}[].
+endif::[]
 
 This section shows a simple example of using the {registry} Maven plug-in to manually register an artifact reference to a simple Avro schema artifact stored in {registry}. This example assumes that the following `Exchange` schema artifact has already been created in {registry}:
 
@@ -493,13 +493,16 @@ The following `TradeKey` schema contains a nested reference to the `Exchange` sc
 [role="_abstract"]
 Some {registry} artifact types can include _artifact references_ from one artifact file to another. You can create efficiencies by defining reusable schema or API artifacts, and then referencing them from multiple locations in artifact references.
 
-The following artifact types support artifact references:
+The {registry} Maven plug-in detects artifact references automatically for the following artifact types:
 
 * Apache Avro
 * Google Protobuf
 * JSON Schema
 * OpenAPI
 * AsyncAPI
+* OpenRPC
+
+For other artifact types, such as XSD, WSDL, or GraphQL, add the references manually. See xref:adding-artifact-references-manually-using-maven-plugin_{context}[].
 
 You can specify a single artifact and configure the {registry} Maven plugin to automatically detect all references to artifacts located in the same directory, and to automatically register those references. This is a Technology Preview feature.
 
@@ -596,6 +599,30 @@ The following example shows the `Exchange` schema:
 `groupId`:: Specify the parent artifact group ID that contains the references. You can specify the `default` group if you do not want to use a unique group ID.
 `file`:: Specify the location of the parent artifact file. All referenced artifacts must also be located in the same directory.
 `autoRefs`:: Set the `<autoRefs>` option to true to automatically detect and register all references to artifacts in the same directory. You can register multiple artifact references in this way.
+`autoRefsNamingStrategy`:: Optional. Controls how the artifact IDs of automatically registered references are derived.
+`LEGACY` (default) keeps the naming used by earlier plug-in versions.
+`DEFAULT` registers each Avro reference in a group named after its Avro namespace (or in the parent group if the schema has no namespace), with the simple schema name as artifact ID.
+All other references are registered in the parent group, with an artifact ID equal to the normalized location of the referenced file relative to the indexed directory (the directory of the parent file, or the `protoPaths` directories when set).
+The `avroAutoRefsNamingStrategy` option applies only with `LEGACY`; `DEFAULT` ignores it.
+You can also set this option on the command line, for example, `-Dartifacts.autoRefsNamingStrategy=DEFAULT`.
++
+[NOTE]
+====
+Switching an existing build from `LEGACY` to `DEFAULT` changes the artifact IDs of non-Avro referenced artifacts, for example, `./common/foo.json` becomes `common/foo.json`.
+It also changes the coordinates of Avro referenced artifacts whenever `LEGACY` used the `INHERIT_PARENT_GROUP` Avro mode, which is the default for non-Avro parent artifacts such as AsyncAPI documents.
+For example, group `parent` with artifact ID `com.example.Money` becomes group `com.example` with artifact ID `Money`.
+The next build therefore registers new artifacts instead of new versions of the existing ones.
+Only switch when you are prepared to migrate consumers to the new artifact IDs.
+====
++
+Even with the `LEGACY` naming strategy, the reference detection behaves differently from earlier plug-in versions:
++
+* `dryRun` works without setting `ifExists`.
+* With `dryRun`, only artifacts whose references all point to artifacts that already exist in {registry} are sent for validation.
+Artifacts that reference other artifacts of the same build are not sent, because those dependencies are not persisted in a dry run; the plug-in logs a warning for each skipped artifact.
+* Avro schemas that do not declare a namespace are indexed and can be referenced.
+* GraphQL, XSD, and WSDL files are indexed in addition to the other supported types.
+* All unresolved references are reported together in a single error, instead of failing on the first one.
 
 . Build your Maven project, for example, by using the `mvn package` command.
 
@@ -604,6 +631,91 @@ The following example shows the `Exchange` schema:
 * link:https://maven.apache.org/index.html[Apache Maven documentation]
 * link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/avro-maven-with-references-auto[avro-maven-with-references-auto demonstration example]
 * {registry-client-serdes-config}
+
+[id="registering-artifact-references-using-java_{context}"]
+== Registering schemas with references from Java
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+The reference detection used by the Maven plug-in `autoRefs` option is also available as a Java library.
+You can use it to register a root schema together with all the schemas it references, in dependency order, from your own application or build tool.
+
+The functionality is split into two artifacts:
+
+* `apicurio-registry-schema-util-references` (package `io.apicurio.registry.content.refs.resolve`) builds a registration plan from a set of schema sources, without contacting {registry}.
+* `apicurio-registry-java-sdk-references` (package `io.apicurio.registry.client.refs`) executes a plan against {registry} by using the Java SDK. It depends on the planning library transitively.
+
+.Prerequisites
+* You have a Java project that uses the {registry} Java SDK.
+
+.Procedure
+. Add the dependencies to your `pom.xml` file.
+The `apicurio-registry-java-sdk-references` artifact excludes the SDK HTTP adapters, so you must also depend on `apicurio-registry-java-sdk` together with an HTTP adapter, for example, the default Vert.x adapter or the JDK adapter (`apicurio-registry-java-sdk-adapter-jdk`):
++
+[source,xml]
+----
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-java-sdk-references</artifactId>
+    <version>${apicurio-registry.version}</version>
+</dependency>
+<dependency>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-java-sdk</artifactId>
+    <version>${apicurio-registry.version}</version>
+</dependency>
+----
+
+. Collect the schema sources, describe the root artifact, and register it:
++
+[source,java]
+----
+RegistryClient client = ...;
+
+// Index all schema files under one or more directories...
+SchemaSourceSet sources = SchemaSourceSet.fromDirectories(
+        List.of(Path.of("src/main/resources/schemas")), SchemaSourceSet.DEFAULT_FILTER);
+// ...or provide the content in memory
+SchemaSourceSet inMemory = SchemaSourceSet.of(
+        InMemorySchemaSource.of("order.json", orderJson, "application/json"),
+        InMemorySchemaSource.of("common/address.json", addressJson, "application/json"));
+
+RootArtifact root = RootArtifact.of("order.json", "my-group", "Order");
+
+PlanOptions options = PlanOptions.builder()
+        .namingStrategy(DefaultNamingStrategy.INSTANCE) // the default
+        .existingArtifacts(List.of(
+                new ExistingArtifact("https://example.com/money.json", "shared", "Money", "latest")))
+        .build();
+
+// One-liner with default registrar settings
+RegistrationResult result = ReferenceRegistrar.register(client, inMemory, root, options);
+
+// Or configure the registrar explicitly
+RegistrationResult result2 = ReferenceRegistrar.builder(client)
+        .ifExists(IfArtifactExists.FIND_OR_CREATE_VERSION)
+        .build()
+        .execute(ReferenceResolver.plan(List.of(root), sources, options));
+----
++
+`SchemaSourceSet`:: The schemas that references can resolve to. Locations are normalized, relative paths.
+`RootArtifact`:: The schema to register and its coordinates. Referenced schemas are registered as separate artifacts.
+`namingStrategy`:: `DefaultNamingStrategy` (default) registers Avro references in the group of their namespace (or the parent group when there is none) with the simple name as artifact ID, and other references in the parent group with their normalized location as artifact ID. `LegacyNamingStrategy` reproduces the naming used by the Maven plug-in `LEGACY` setting.
+`existingArtifacts`:: Maps reference names to artifacts that already exist in {registry} instead of local sources. A `null` or `latest` version is resolved to the latest version at registration time.
+
+.Behavior
+* Planning fails with `UnresolvedReferencesException`, listing every reference that could not be resolved, and with `ReferenceCycleException` when the references form a cycle.
+* When you call `dryRun(true)` on the builder, requests are sent with the {registry} `dryRun` option, so nothing is persisted. `RegistrationResult.isDryRun()` reports this.
+Because dry-run artifacts are not persisted, an artifact that references another artifact of the same plan cannot be validated: it is not sent, and neither is anything that depends on it.
+Such artifacts are reported through `RegistrationListener.onSkipped()` and `RegistrationResult.skipped()`; `RegistrationResult.registered()` contains only the artifacts that were actually validated.
+References to `existingArtifacts` do not cause an artifact to be skipped.
+In a dry run, a `409 Conflict` response is always reported as a failure; existing draft versions are never updated or promoted.
+* If registering an artifact fails, `ReferenceRegistrar` throws a `RegistrationException`. Use `failed()` to get the artifact that failed, `problem()` to get the {registry} error, and `partialResult()` to get the artifacts that were already registered.
+
+[role="_additional-resources"]
+.Additional resources
+* xref:adding-artifact-references-automatically-using-maven-plugin_{context}[]
 
 [id="configuring-tls-maven-plugin_{context}"]
 == TLS configuration options for the Maven plug-in

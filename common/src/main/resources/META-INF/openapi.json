@@ -9178,6 +9178,10 @@
           "isDraft": {
             "description": "",
             "type": "boolean"
+          },
+          "autoReferences": {
+            "description": "Detect references in the content and match them to existing artifacts in the same group. Available since 3.4.0.",
+            "type": "boolean"
           }
         },
         "example": {

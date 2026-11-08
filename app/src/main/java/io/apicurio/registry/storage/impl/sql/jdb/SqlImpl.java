@@ -11,7 +11,7 @@ public abstract class SqlImpl<Q> implements Sql<Q> {
 
     protected final Connection connection;
     protected final String sql;
-    /** Not final: addBatch transfers this list into the statement's batch and replaces it with a fresh one. */
+    /** Not final: UpdateImpl.addBatch transfers this list into its batch and replaces it; query binds only append. */
     protected List<SqlParam> parameters;
 
     /**

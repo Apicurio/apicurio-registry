@@ -263,6 +263,15 @@ endif::[]
 has no dereferencer, so `DEREFERENCE` and `REWRITE` return the content unchanged.
 |===
 
+When you create a version, you can set `autoReferences` to `true` so that {registry} matches the references
+in the content to existing artifacts instead of requiring explicit mappings. For the matching rules, see
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-managing-registry-artifacts-api.adoc#matching-references-using-rest-api_{context}[Matching references to existing artifacts].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:matching-references-using-rest-api_{context}[].
+endif::[]
+
 // ref-registry-ai-ml-artifact-types
 [id="registry-ai-ml-artifact-types_{context}"]
 == AI/ML artifact types

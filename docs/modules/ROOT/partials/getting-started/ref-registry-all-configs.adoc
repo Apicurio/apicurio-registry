@@ -2010,7 +2010,7 @@ The following {registry} configuration options are available for each component 
 |`int`
 |`180`
 |`3.3.0`
-|Number of days to retain raw usage events before cleanup
+|Number of days to retain usage data before cleanup; a value of 0 or less disables retention. Usage is stored as one row per schema identifier, client, operation and UTC day, and retention deletes whole days when the aggregation job runs, so data can be kept up to one day plus one aggregation interval longer
 |`apicurio.usage.stale-threshold-days`
 |`int`
 |`30`

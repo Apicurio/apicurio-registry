@@ -14,7 +14,8 @@ public class RuntimeSqlException extends RuntimeException {
         super(message);
     }
 
-    public RuntimeSqlException(String message, SQLException cause) {
+    /** Describes a failed operation, whose cause is the SQLException it failed with or an earlier failure. */
+    public RuntimeSqlException(String message, Throwable cause) {
         super(message, cause);
     }
 

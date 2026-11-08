@@ -1,6 +1,8 @@
 package io.apicurio.registry.storage.impl.sql;
 
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Returns SQL statements used by the JDB artifactStore implementation. There are different implementations of
@@ -24,6 +26,34 @@ public interface SqlStatements {
      * Returns true if the given exception represents a foreign key violation.
      */
     public boolean isForeignKeyViolation(Exception error);
+
+    /**
+     * Returns true if the given exception is a deadlock or serialization failure that the database rolled
+     * back and that may succeed when the transaction is run again.
+     */
+    public boolean isTransientConflict(Exception error);
+
+    /**
+     * Returns true if the given exception is the primary key violation that {@link #upsertSchemaUsageDaily()}
+     * raises when concurrent writers insert the same new key. Only a dialect whose upsert is not atomic
+     * raises it; the row then exists, so running the upsert again takes the update branch.
+     */
+    public boolean isUpsertKeyRace(Exception error);
+
+    /**
+     * Returns the SQLException that makes the given exception a data error, one about the data of the
+     * statement rather than the connection or the database, or empty if it is not one. It is an SQLException
+     * in the cause or next-exception chain, a batch's row error before the batch exception that chains it,
+     * with an SQLState of class 22 (data exception) or 23 (integrity constraint violation), or with a vendor
+     * error code the dialect knows as a data error.
+     */
+    public Optional<SQLException> findDataError(Exception error);
+
+    /**
+     * Returns true if the database rejected the operation: the cause or next-exception chain holds an
+     * SQLException or a RuntimeSqlException, which the JDBC layer also throws without an SQLException cause.
+     */
+    public boolean isDatabaseFailure(Exception error);
 
     /**
      * A statement that returns 'true' if the database has already been initialized.
@@ -797,13 +827,13 @@ public interface SqlStatements {
 
     // ========== Usage Telemetry ==========
 
-    public String insertSchemaUsage();
+    public String upsertSchemaUsageDaily();
 
     public String selectArtifactUsageMetrics();
 
     public String selectUsageSummaryCounts();
 
-    public String deleteOldSchemaUsageEvents();
+    public String deleteOldSchemaUsageDays();
 
     public String selectConsumerVersionHeatmap();
 

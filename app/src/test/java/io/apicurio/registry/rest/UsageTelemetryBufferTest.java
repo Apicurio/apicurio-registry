@@ -1,16 +1,21 @@
 package io.apicurio.registry.rest;
 
+import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.UsageTelemetryConfig;
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import org.junit.jupiter.api.Test;
 
-import java.lang.reflect.Field;
-import java.util.Collection;
-import java.util.Map;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class UsageTelemetryBufferTest {
 
@@ -25,7 +30,7 @@ class UsageTelemetryBufferTest {
         telemetry.addEvent(event(1));
         telemetry.addEvent(event(1));
 
-        assertEquals(1, buffer(telemetry).size());
+        assertEquals(1, telemetry.buffer.size());
     }
 
     @Test
@@ -33,10 +38,10 @@ class UsageTelemetryBufferTest {
         UsageTelemetryBuffer telemetry = new UsageTelemetryBuffer();
         telemetry.addEvent(event(1));
 
-        dedupMap(telemetry).put("g1:" + CLIENT_ID, System.currentTimeMillis() - 120_000);
+        telemetry.dedupMap.put("g1:" + CLIENT_ID, System.currentTimeMillis() - 120_000);
         telemetry.addEvent(event(1));
 
-        assertEquals(2, buffer(telemetry).size());
+        assertEquals(2, telemetry.buffer.size());
     }
 
     /**
@@ -50,9 +55,11 @@ class UsageTelemetryBufferTest {
         CountDownLatch finished = new CountDownLatch(THREADS);
 
         for (int i = 0; i < THREADS; i++) {
-            new Thread(() -> {
+            Thread writer = new Thread(() -> {
                 try {
-                    start.await();
+                    if (!start.await(30, TimeUnit.SECONDS)) {
+                        return;
+                    }
                     for (int key = 1; key <= KEYS; key++) {
                         telemetry.addEvent(event(key));
                     }
@@ -61,33 +68,40 @@ class UsageTelemetryBufferTest {
                 } finally {
                     finished.countDown();
                 }
-            }).start();
+            });
+            writer.setDaemon(true);
+            writer.start();
         }
 
         start.countDown();
         assertTrue(finished.await(30, TimeUnit.SECONDS), "threads did not finish in time");
-        assertEquals(KEYS, buffer(telemetry).size());
+        assertEquals(KEYS, telemetry.buffer.size());
+    }
+
+    /**
+     * The dedup window keeps one event per key, but the flush still hands its whole batch to the storage in
+     * one call, so a storage that folds events by day can do so across the batch.
+     */
+    @Test
+    void testFlushHandsTheWholeBatchToTheStorageInOneCall() throws Exception {
+        UsageTelemetryBuffer telemetry = new UsageTelemetryBuffer();
+        telemetry.storage = mock(RegistryStorage.class);
+        telemetry.config = mock(UsageTelemetryConfig.class);
+        when(telemetry.config.isEnabled()).thenReturn(true);
+        SchemaUsageEventDto first = event(1);
+        SchemaUsageEventDto second = event(2);
+        telemetry.addEvent(first);
+        telemetry.addEvent(second);
+
+        telemetry.flush();
+
+        verify(telemetry.storage).recordUsageEvents(List.of(first, second));
+        verify(telemetry.storage, never()).recordUsageEvent(any());
+        assertEquals(0, telemetry.buffer.size());
     }
 
     private static SchemaUsageEventDto event(long globalId) {
         return SchemaUsageEventDto.builder().globalId(globalId).clientId(CLIENT_ID)
                 .operation("read").eventTimestamp(System.currentTimeMillis()).build();
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Collection<SchemaUsageEventDto> buffer(UsageTelemetryBuffer telemetry)
-            throws Exception {
-        return (Collection<SchemaUsageEventDto>) field(telemetry, "buffer");
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Map<String, Long> dedupMap(UsageTelemetryBuffer telemetry) throws Exception {
-        return (Map<String, Long>) field(telemetry, "dedupMap");
-    }
-
-    private static Object field(UsageTelemetryBuffer telemetry, String name) throws Exception {
-        Field field = UsageTelemetryBuffer.class.getDeclaredField(name);
-        field.setAccessible(true);
-        return field.get(telemetry);
     }
 }

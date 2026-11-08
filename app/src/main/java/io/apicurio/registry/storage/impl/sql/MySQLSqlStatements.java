@@ -1,10 +1,21 @@
 package io.apicurio.registry.storage.impl.sql;
 
+import java.sql.SQLException;
+import java.util.Set;
+
 /**
  * MySQL implementation of the sql statements interface. Provides sql statements that are specific to MySQL,
  * where applicable.
  */
 public class MySQLSqlStatements extends CommonSqlStatements {
+
+    private static final Set<Integer> TRANSIENT_CONFLICT_ERROR_CODES = Set.of(1213);
+    private static final int LOCK_WAIT_TIMEOUT_ERROR_CODE = 1205;
+    /**
+     * Incorrect string value (1366) and data too long (1406). Connector/J 9.6.0 maps 1406 to 22001 but leaves
+     * 1366 at the server's HY000 (MysqlErrorNumbers.mysqlToSqlstate), so 1366 is caught only by its code.
+     */
+    private static final Set<Integer> DATA_ERROR_CODES = Set.of(1366, 1406);
 
     /**
      * Constructor.
@@ -26,6 +37,27 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     @Override
     public boolean isPrimaryKeyViolation(Exception error) {
         return error.getMessage().contains("Duplicate entry");
+    }
+
+    /** Deadlock (1213). */
+    @Override
+    protected Set<Integer> transientConflictErrorCodes() {
+        return TRANSIENT_CONFLICT_ERROR_CODES;
+    }
+
+    @Override
+    protected Set<Integer> dataErrorCodes() {
+        return DATA_ERROR_CODES;
+    }
+
+    /**
+     * A lock wait timeout (1205) is not a transient conflict: it has already waited for the whole timeout,
+     * and a retry would wait again. Connector/J reports it with SQLState 40001, because the server sends
+     * HY000 and the driver maps 1205 to 40001 (MysqlErrorNumbers.mysqlToSqlstate), so it is excluded here.
+     */
+    @Override
+    protected boolean isTransientConflictException(SQLException e) {
+        return e.getErrorCode() != LOCK_WAIT_TIMEOUT_ERROR_CODE && super.isTransientConflictException(e);
     }
 
     /**
@@ -65,6 +97,15 @@ public class MySQLSqlStatements extends CommonSqlStatements {
     public String upsertConfigProperty() {
         return "INSERT INTO config (propName, propValue, modifiedOn) VALUES (?, ?, ?) "
                 + "ON DUPLICATE KEY UPDATE propValue = VALUES(propValue), modifiedOn = VALUES(modifiedOn)";
+    }
+
+    @Override
+    public String upsertSchemaUsageDaily() {
+        return "INSERT INTO schema_usage_daily (globalId, contentId, clientId, operation, usageDay, fetchCount, firstEventTimestamp, lastEventTimestamp) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+                + "ON DUPLICATE KEY UPDATE fetchCount = fetchCount + VALUES(fetchCount), "
+                + "firstEventTimestamp = LEAST(firstEventTimestamp, VALUES(firstEventTimestamp)), "
+                + "lastEventTimestamp = GREATEST(lastEventTimestamp, VALUES(lastEventTimestamp))";
     }
 
     @Override

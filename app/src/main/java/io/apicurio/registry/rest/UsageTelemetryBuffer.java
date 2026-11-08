@@ -35,8 +35,9 @@ public class UsageTelemetryBuffer {
     @Inject
     UsageTelemetryConfig config;
 
-    private final ConcurrentLinkedQueue<SchemaUsageEventDto> buffer = new ConcurrentLinkedQueue<>();
-    private final ConcurrentHashMap<String, Long> dedupMap = new ConcurrentHashMap<>();
+    // Package-private so that tests can read the queue and the dedup window without reflection.
+    final ConcurrentLinkedQueue<SchemaUsageEventDto> buffer = new ConcurrentLinkedQueue<>();
+    final ConcurrentHashMap<String, Long> dedupMap = new ConcurrentHashMap<>();
 
     public void addEvent(SchemaUsageEventDto event) {
         if (dedupMap.size() >= MAX_DEDUP_MAP_SIZE) {
@@ -73,9 +74,7 @@ public class UsageTelemetryBuffer {
         }
         if (!batch.isEmpty()) {
             try {
-                for (SchemaUsageEventDto e : batch) {
-                    storage.recordUsageEvent(e);
-                }
+                storage.recordUsageEvents(batch);
             } catch (Exception e) {
                 log.warn("Failed to flush usage telemetry events", e);
             }

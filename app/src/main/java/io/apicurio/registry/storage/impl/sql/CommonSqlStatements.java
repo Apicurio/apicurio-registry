@@ -1,14 +1,25 @@
 package io.apicurio.registry.storage.impl.sql;
 
+import io.apicurio.registry.storage.impl.sql.jdb.RuntimeSqlException;
+
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Predicate;
 
 /**
  * Shared base class for all sql statements.
  */
 public abstract class CommonSqlStatements implements SqlStatements {
+
+    /** Standard SQLStates of a deadlock or serialization failure: 40001 everywhere, 40P01 on PostgreSQL. */
+    private static final Set<String> TRANSIENT_CONFLICT_STATES = Set.of("40001", "40P01");
 
     /**
      * Constructor.
@@ -43,6 +54,90 @@ public abstract class CommonSqlStatements implements SqlStatements {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Classified by SQLState and vendor error code, never by message text. The SQLException can sit anywhere
+     * in the cause chain, and a batch reports the failing row through {@link SQLException#getNextException()}.
+     */
+    @Override
+    public boolean isTransientConflict(Exception error) {
+        return anySqlException(error, this::isTransientConflictException);
+    }
+
+    @Override
+    public Optional<SQLException> findDataError(Exception error) {
+        return firstSqlException(error, e -> (e.getSQLState() != null
+                && (e.getSQLState().startsWith("22") || e.getSQLState().startsWith("23")))
+                || dataErrorCodes().contains(e.getErrorCode()));
+    }
+
+    /** Classifies one SQLException of the chain; a dialect can narrow it. */
+    protected boolean isTransientConflictException(SQLException e) {
+        // Set.of rejects a null lookup, and drivers may leave the SQLState unset.
+        return (e.getSQLState() != null && TRANSIENT_CONFLICT_STATES.contains(e.getSQLState()))
+                || transientConflictErrorCodes().contains(e.getErrorCode());
+    }
+
+    @Override
+    public boolean isDatabaseFailure(Exception error) {
+        return firstInChain(error, e -> e instanceof SQLException || e instanceof RuntimeSqlException)
+                .isPresent();
+    }
+
+    /**
+     * Tests every SQLException in the cause chain and, for each, every exception a batch chained through
+     * {@link SQLException#getNextException()}.
+     */
+    protected static boolean anySqlException(Throwable error, Predicate<SQLException> test) {
+        return firstSqlException(error, test).isPresent();
+    }
+
+    private static Optional<SQLException> firstSqlException(Throwable error, Predicate<SQLException> test) {
+        return firstInChain(error, e -> e instanceof SQLException sqlError && test.test(sqlError))
+                .map(SQLException.class::cast);
+    }
+
+    /**
+     * Walks the cause chain and, for each SQLException in it, the exceptions chained through
+     * {@link SQLException#getNextException()}, which are tested before the SQLException that chains them: a
+     * batch wrapper such as PostgreSQL's carries the same SQLState as the row's error, but its message copies
+     * the statement and the bound values. Each exception is visited once, so a cyclic chain ends the walk
+     * instead of looping forever on the thread that classifies the failure.
+     */
+    private static Optional<Throwable> firstInChain(Throwable error, Predicate<Throwable> test) {
+        Set<Throwable> causes = Collections.newSetFromMap(new IdentityHashMap<>());
+        Set<Throwable> nextExceptions = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Throwable cause = error; cause != null && causes.add(cause); cause = cause.getCause()) {
+            if (cause instanceof SQLException sqlError) {
+                for (SQLException e = sqlError.getNextException(); e != null && nextExceptions.add(e);
+                        e = e.getNextException()) {
+                    if (test.test(e)) {
+                        return Optional.of(e);
+                    }
+                }
+            }
+            if (test.test(cause)) {
+                return Optional.of(cause);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /** Vendor error codes of a transient conflict that the database does not report as SQLState 40001. */
+    protected Set<Integer> transientConflictErrorCodes() {
+        return Set.of();
+    }
+
+    /** Vendor error codes of a data error that the driver does not report with an SQLState of class 22 or 23. */
+    protected Set<Integer> dataErrorCodes() {
+        return Set.of();
+    }
+
+    /** The upserts of PostgreSQL, MySQL and SQL Server are atomic, so they never lose this race. */
+    @Override
+    public boolean isUpsertKeyRace(Exception error) {
+        return false;
     }
 
     /**
@@ -1478,18 +1573,13 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
-    public String insertSchemaUsage() {
-        return "INSERT INTO schema_usage (globalId, contentId, clientId, operation, eventTimestamp) VALUES (?, ?, ?, ?, ?)";
-    }
-
-    @Override
     public String selectArtifactUsageMetrics() {
         // One row per (version, client). The per-version totals and the client list are folded in
         // SqlUsageRepository, because string aggregation differs per database (STRING_AGG, LISTAGG,
         // GROUP_CONCAT with a length cap) and DISTINCT inside it is not portable.
-        return "SELECT v.version, v.globalId, v.versionOrder, su.clientId, COUNT(*) AS fetches, "
-                + "MIN(su.eventTimestamp) AS firstFetchedOn, MAX(su.eventTimestamp) AS lastFetchedOn "
-                + "FROM schema_usage su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
+        return "SELECT v.version, v.globalId, v.versionOrder, su.clientId, SUM(su.fetchCount) AS fetches, "
+                + "MIN(su.firstEventTimestamp) AS firstFetchedOn, MAX(su.lastEventTimestamp) AS lastFetchedOn "
+                + "FROM schema_usage_daily su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
                 + "WHERE v.groupId = ? AND v.artifactId = ? "
                 + "GROUP BY v.globalId, v.version, v.versionOrder, su.clientId "
                 + "ORDER BY v.versionOrder, su.clientId";
@@ -1505,12 +1595,12 @@ public abstract class CommonSqlStatements implements SqlStatements {
                 + "SUM(CASE WHEN (? - maxTs) > ? THEN 1 ELSE 0 END) AS dead "
                 + "FROM ("
                 + "SELECT globalId, MAX(maxTs) AS maxTs FROM ("
-                + "SELECT v.globalId, MAX(su.eventTimestamp) AS maxTs FROM schema_usage su "
+                + "SELECT v.globalId, MAX(su.lastEventTimestamp) AS maxTs FROM schema_usage_daily su "
                 + "JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
                 + "GROUP BY v.globalId "
                 + "UNION ALL "
-                + "SELECT rv.globalId, MAX(su.eventTimestamp) AS maxTs "
-                + "FROM schema_usage su "
+                + "SELECT rv.globalId, MAX(su.lastEventTimestamp) AS maxTs "
+                + "FROM schema_usage_daily su "
                 + "JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
                 + "JOIN content_references cr ON v.contentId = cr.contentId "
                 + "JOIN versions rv ON rv.groupId = cr.groupId AND rv.artifactId = cr.artifactId AND rv.version = cr.version "
@@ -1520,14 +1610,14 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
-    public String deleteOldSchemaUsageEvents() {
-        return "DELETE FROM schema_usage WHERE eventTimestamp < ?";
+    public String deleteOldSchemaUsageDays() {
+        return "DELETE FROM schema_usage_daily WHERE usageDay < ?";
     }
 
     @Override
     public String selectConsumerVersionHeatmap() {
-        return "SELECT su.clientId, v.globalId, v.version, v.versionOrder, COUNT(*) AS fetchCount "
-                + "FROM schema_usage su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
+        return "SELECT su.clientId, v.globalId, v.version, v.versionOrder, SUM(su.fetchCount) AS fetchCount "
+                + "FROM schema_usage_daily su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
                 + "WHERE v.groupId = ? AND v.artifactId = ? "
                 + "GROUP BY su.clientId, v.globalId, v.version, v.versionOrder "
                 + "ORDER BY su.clientId, v.versionOrder";
@@ -1535,8 +1625,8 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String selectDeprecationReadiness() {
-        return "SELECT su.clientId, MAX(su.eventTimestamp) AS lastFetched, COUNT(*) AS fetchCount "
-                + "FROM schema_usage su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
+        return "SELECT su.clientId, MAX(su.lastEventTimestamp) AS lastFetched, SUM(su.fetchCount) AS fetchCount "
+                + "FROM schema_usage_daily su JOIN versions v ON (su.globalId = v.globalId OR (su.contentId > 0 AND su.contentId = v.contentId)) "
                 + "WHERE v.groupId = ? AND v.artifactId = ? AND v.version = ? "
                 + "GROUP BY su.clientId ORDER BY su.clientId";
     }

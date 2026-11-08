@@ -27,23 +27,23 @@ Implement server-side usage telemetry that records schema fetch events and expos
   │ Kafka/NATS/  │  GET /ids/globalIds/42 │                          │
   │ Pulsar app   │──────────────────────▶ │  UsageTelemetryFilter    │
   │              │  + X-Registry-Client-Id│  (ContainerResponseFilter│
-  │              │  + X-Registry-Operation│   records to schema_usage│
-  └─────────────┘                        │   table on 200 response) │
+  │              │  + X-Registry-Operation│   adds to schema_usage_  │
+  └─────────────┘                        │   daily on 200 response) │
                                          │                          │
   Dashboard/API                          │  Query Endpoints         │
   ┌─────────────┐                        │  ┌──────────────────┐    │
   │ GET /admin/  │◀───────────────────── │  │ Direct SQL agg   │    │
-  │ usage/...    │  (aggregates directly  │  │ on schema_usage  │    │
-  └─────────────┘   from raw events)     │  └──────────────────┘    │
+  │ usage/...    │  (aggregates the daily │  │ on daily rollup  │    │
+  └─────────────┘   rollup rows)         │  └──────────────────┘    │
                                          └──────────────────────────┘
 ```
 
 ### How It Works
 
 1. The SerDes SDK adds `X-Registry-Client-Id` and `X-Registry-Operation` headers to existing schema fetch requests (no extra HTTP calls).
-2. A JAX-RS `ContainerResponseFilter` (`UsageTelemetryFilter`) intercepts successful responses to `GET /ids/globalIds/{id}` and `GET /ids/contentIds/{id}`, and records a row in the `schema_usage` table (with either `globalId` or `contentId` depending on the fetch path).
-3. Query endpoints aggregate directly from the raw events table using SQL GROUP BY. No summary table or materialization step.
-4. A scheduled job periodically updates OTel gauge metrics (Active/Stale/Dead counts) and cleans up events older than the retention period.
+2. A JAX-RS `ContainerResponseFilter` (`UsageTelemetryFilter`) intercepts successful responses to `GET /ids/globalIds/{id}` and `GET /ids/contentIds/{id}`, and records an event (with either `globalId` or `contentId` depending on the fetch path). Events are stored in the `schema_usage_daily` table as one row per `(globalId, contentId, clientId, operation, UTC day)`: each event is an atomic upsert that adds to `fetchCount` and widens `firstEventTimestamp` and `lastEventTimestamp`.
+3. Query endpoints aggregate the daily rows with SQL GROUP BY, summing `fetchCount` and taking the earliest `firstEventTimestamp` and latest `lastEventTimestamp`, so they answer as if every event were its own row. A row per event measured 246 bytes of H2 heap, which would not fit a 180-day retention in memory.
+4. A scheduled job periodically updates OTel gauge metrics (Active/Stale/Dead counts) and cleans up events older than the retention period. Retention deletes whole days: the cutoff is rounded down to its UTC day, so an event can outlive the retention by up to one day.
 5. Referenced schemas inherit liveness from the schemas that directly reference them: the summary statement joins `content_references` to the referenced versions, combines that result with the directly fetched versions using `UNION ALL`, and keeps the latest timestamp per version.
 
 ### Components
@@ -54,7 +54,7 @@ Implement server-side usage telemetry that records schema fetch events and expos
 | `UsageTelemetryConfig` | Configuration properties (`enabled`, thresholds, retention) |
 | `UsageAggregationJob` | Periodic OTel gauge updates and retention cleanup |
 | `SqlUsageRepository` | SQL queries for recording and querying usage data |
-| `schema_usage` table | Raw usage events (globalId, contentId, clientId, operation, timestamp) |
+| `schema_usage_daily` table | Usage per (globalId, contentId, clientId, operation, UTC day) with fetch count and first and last event timestamps |
 | `AdminResourceImpl` | REST endpoints for metrics, heatmap, deprecation readiness |
 | `RegistryClientFacadeImpl` | Adds telemetry headers to SDK schema fetch requests |
 | `DefaultSchemaResolver` | ThreadLocal for propagating SERIALIZE/DESERIALIZE operation |
@@ -110,8 +110,15 @@ A `schema_usage_summary` table was maintained by a scheduled aggregation job tha
 **Rejected because:**
 - Data was stale between aggregation runs
 - Required an extra DDL table, aggregation SQL, and DB-specific string aggregation overrides (STRING_AGG vs LISTAGG vs GROUP_CONCAT)
-- Direct SQL aggregation from the raw table is simpler and always up-to-date
-- For typical deployment sizes, the aggregation queries are fast enough
+
+The `schema_usage_daily` table that replaced the raw events table is a rollup too, but not this one. It is written when each event is recorded, as an upsert into the row of its schema identifier, client, operation and UTC day, so it is never stale, and the queries still aggregate it with plain `SUM`, `MIN` and `MAX` and no database-specific string aggregation. The raw table could not stay: a row per event measured 246 bytes of H2 heap, about 32 GB per replica for 10 clients fetching 50 schemas over the default 180-day retention.
+
+Concurrent writers of one row are handled as follows:
+- **Atomic upserts per dialect:** `ON CONFLICT DO UPDATE` on PostgreSQL, `ON DUPLICATE KEY UPDATE` on MySQL and `MERGE WITH (HOLDLOCK)` on SQL Server, each adding to `fetchCount` and widening the first and last timestamps.
+- **H2:** its `MERGE` is not atomic for a key that does not exist yet, so two writers of a new row can both insert and the later one fails on the primary key. That error (code 23505) is retried, and the retry takes the update branch.
+- **Retry policy:** a deadlock or serialization failure (SQLState 40001 or 40P01, MySQL 1213, SQL Server 1205, H2 90131) is retried on every dialect, and the H2 duplicate key only on H2; at most 3 attempts, with a 20 to 60 ms randomized pause before each retry, and never for a write that joined an enclosing transaction. A lock timeout is not retried on any dialect; on MySQL this needs an explicit exclusion of error 1205, because Connector/J reports it with SQLState 40001. A lock timeout is not a data error, so it also stops the chunk loop below, and the flush that hits one loses the rest of its rows.
+- **Lock order:** a flush is folded into daily keys and written in one order shared by every writer, comparing client id and operation ignoring case and trailing spaces first, so rows that already exist are locked in the same order by concurrent writers.
+- **Chunking:** on the SQL storages the sorted rows are written in chunks of at most 200, one transaction each, so each transaction holds its locks for less time. A chunk that still fails after its retries with a data error (SQLState class 22 or 23, or a vendor code the dialect lists, such as MySQL 1366 or SQL Server 2628) costs only its own rows, and the remaining chunks are written. Any other failure, such as a lost connection or a lock timeout, stops the flush at that chunk, so an outage does not make every chunk wait out the connection backoff; so does any failure when the thread is interrupted or the write joined an enclosing transaction. The exception thrown carries the range of rows not stored, the SQLState and vendor code of each data error, and, for the failure that decided the outcome, its reason: the message of the SQLException that classified the failure, or the first line of the failure's message. KafkaSQL records a batch one event at a time with the default `recordUsageEvents`, and each event is a separate journal send: a send that fails completes its future exceptionally and is logged at WARN at most once a minute and at DEBUG otherwise, and the remaining events are still sent. When the consumer cannot apply an event, `KafkaSqlSink` logs a `RuntimeSqlException` at WARN and any other failure at DEBUG; a usage write the database rejected (an `SQLException` or `RuntimeSqlException` in the cause chain) ends in a `RuntimeSqlException` and is logged at WARN. Any other failure of the write ends in a `RegistryStorageException`, and a replayed event with a null client id or operation fails with a `NullPointerException` before any chunk is written; both are logged at DEBUG. Either way the other events are not affected. The polling read-only storages (GitOps, KubernetesOps) record nothing.
 
 ### OpenTelemetry-only approach (rejected)
 
@@ -126,9 +133,9 @@ Export usage data purely as OTel metrics to external dashboards.
 
 The following concerns were identified during design review and addressed in the implementation:
 
-- **Asynchronous writes:** The filter buffers events in-memory and flushes to the database on a background thread every 10 seconds (a flush writes at most 2,000 events; the rest wait for the next flush). Schema fetch requests are never blocked by database writes.
-- **Server-side deduplication:** Fetches of the same schema identifier by the same client are deduplicated within a 60-second window, so a client with a 30-second cache TTL generates at most 1 row per minute per identifier instead of 1 per fetch. The key is the `globalId` or the `contentId` of the request plus the client, so the same schema fetched both ways yields two events. The map is per instance, and `addEvent` drops every event while it holds 10,000 entries; see gap 19 for why it may not empty again.
-- **Data retention:** Events older than `apicurio.usage.retention-days` (default 180 days) are cleaned up by the scheduled aggregation job.
+- **Asynchronous writes:** The filter buffers events in-memory and flushes to the database on a background thread every 10 seconds. A flush takes at most 2,000 events and the rest wait for the next flush, except that the flush loop on main drops the one event it polls once the batch is full (#10611, fixed by pull request #10632; see gap 1). Schema fetch requests are never blocked by database writes.
+- **Server-side deduplication:** Fetches of the same schema identifier by the same client are deduplicated within a 60-second window, so a client with a 30-second cache TTL generates at most 1 event per minute per identifier instead of 1 per fetch, and the events of one UTC day share one stored row per identifier, client and operation. The key is the `globalId` or the `contentId` of the request plus the client, so the same schema fetched both ways yields two events. The map is per instance, and `addEvent` drops every event while it holds 10,000 entries; see gap 19 for why it may not empty again.
+- **Data retention:** Usage older than `apicurio.usage.retention-days` (default 180 days) is cleaned up by the scheduled aggregation job, by whole UTC days, so data can stay up to one day plus one aggregation interval longer.
 - **Reference liveness:** Referenced schemas inherit Active status from the schemas that reference them. The summary statement joins `content_references`, merges the result with the direct fetches with `UNION ALL` and keeps the latest timestamp per version.
 - **clientId validation:** Restricted to `[a-zA-Z0-9._-]` with a 256-character limit to prevent delimiter collisions and DoS.
 - **Cached summary counts:** The `GET /admin/usage/summary` endpoint serves cached counts from the aggregation job, avoiding the expensive summary statement on every API call. Falls back to live query only on the first call before the job has run.
@@ -145,7 +152,7 @@ Adding `SUNSET` to the `VersionState` enum may cause issues for existing clients
 
 ### 3. Table growth under extreme throughput
 
-Multiple mitigations in place: server-side dedup (60s window), retention cleanup (default 180 days), async buffered writes. For very high-throughput deployments, reduce `apicurio.usage.retention-days`. Feature can be disabled entirely with zero overhead.
+The table holds one row per schema identifier, client, operation and UTC day, so it grows with the number of active pairs and the retention, not with the fetch rate: 10 clients fetching 50 schemas for 180 days is about 90,000 rows. Retention cleanup (default 180 days) bounds it; for many clients and schemas, reduce `apicurio.usage.retention-days`. Feature can be disabled entirely with zero overhead.
 
 ## Scalability Guidance
 
@@ -160,7 +167,7 @@ The feature can be disabled (`apicurio.usage.telemetry.enabled=false`) with zero
 ## Consequences
 
 - Operators can now identify dead schemas, stale consumers, and version drift without external tooling
-- The `schema_usage` table adds a new storage concern that must be monitored in production
+- The `schema_usage_daily` table adds a new storage concern that must be monitored in production
 - Client SDKs must be updated to send telemetry headers (backward compatible — headers are optional)
 - The `SUNSET` state enriches the version lifecycle but requires SDK updates for full support
 
@@ -178,28 +185,28 @@ General availability is deferred, and the reason is gap 14. On KafkaSQL every us
 | KafkaSQL | Yes | Yes | Yes | `KafkaSqlUsageStorageTest` ran against a Kafka container |
 | PostgreSQL | Yes | Yes | Yes | `PostgresqlUsageStorageTest` ran on embedded PostgreSQL (x64 binaries under Rosetta); the statements also ran on PostgreSQL 16 |
 | MySQL | Yes | Yes | Yes | `MysqlUsageStorageTest` ran against a MySQL 8 container; the statements also ran on MySQL 8.4 with `ONLY_FULL_GROUP_BY` |
-| SQL Server | Yes | Yes | Yes | `MssqlUsageStorageTest` ran in CI on Linux against a SQL Server container (4 tests passed in the `app-sql` shard of Verify run 40010792021 on c7c88d95e); it is disabled on macOS. The statements use no database-specific function after this change |
+| SQL Server | Yes | Yes | Yes | `MssqlUsageStorageTest` ran in CI on Linux against a SQL Server container (4 tests passed in the `app-sql` shard of Verify run 40010792021 on c7c88d95e); it is disabled on macOS. The upsert is the SQL Server-specific `MERGE WITH (HOLDLOCK)`; the read statements use no database-specific function |
 | GitOps, KubernetesOps | Dropped on purpose | Empty results | No-op | Unit test; read-only storages record nothing |
 
 ### Gaps
 
 | # | Gap | Status |
 |---|-----|--------|
-| 1 | The buffer flush loses one event per cycle when more than 2000 events are queued (#10611) | Open. Fixed by pull request #10632. A failing write still discards the rest of its batch, and the queue has no size bound |
+| 1 | The buffer flush loses one event per cycle when more than 2000 events are queued (#10611) | Open. Fixed by pull request #10632. On the SQL storages a write that still fails after its retries with a data error loses one chunk of at most 200 rows, and any other failure loses the rest of the batch from that chunk on. On KafkaSQL a failed journal send, or a failure while the consumer applies an event, loses only that event. The queue has no size bound |
 | 2 | KafkaSQL could not deserialize `RecordUsageEvent1Message` and `DeleteOldUsageEvents1Message`, so it recorded nothing and never ran retention (#9532) | Closed. Both messages are registered, `KafkaSqlMessageIndexTest` fails when any message class is missing, and `KafkaSqlUsageStorageTest` timed out without the fix and passes with it |
 | 3 | Read-only storages threw `UnreachableCodeException` on every flush (#9580). The retention run never reached it, because `UsageAggregationJob` skips `deleteOldUsageEvents` when `isReadOnly()` is true | Closed in the storage classes. The decorator is unchanged on purpose: failing the write would turn every background flush into an error, and `ReadOnlyRegistryStorageTest` expects usage writes to pass through |
 | 4 | The per-artifact metrics statement selected a column that is not in its `GROUP BY` and fails on PostgreSQL and on MySQL with `ONLY_FULL_GROUP_BY`; H2 accepted it | Closed. One row per version and client, folded in `SqlUsageRepository` |
 | 5 | The same statement used `STRING_AGG(DISTINCT ...)`, which SQL Server does not support, and MySQL cut the client list at 1024 bytes | Closed by the same change. `MssqlUsageStorageTest` passed in CI on c7c88d95e |
 | 6 | The summary counted a version twice when it was fetched directly and also referenced by a fresher schema | Closed. One row per version, the latest timestamp wins |
 | 7 | `apicurio.usage.dead-threshold-days` is never read. Dead means older than the stale threshold, not 90 days. A version with no event and no fetched referrer is not counted in the summary | Property closed by deprecation (maintainer decision): registered in `DeprecatedPropertiesCheck` since 3.4.0 with removal in 4.0.0, no default changed, the unused getters removed. The summary exclusion stays as documented |
-| 8 | MySQL compares client identifiers case-insensitively, and SQL Server probably does as well because its column has no explicit collation (not checked); PostgreSQL does not | Open, untracked but recorded here, documented. A fix needs a column collation change and a schema upgrade |
+| 8 | MySQL compares client identifiers case-insensitively, and SQL Server does with its default collation; PostgreSQL and H2 do not | Documented. The collation is now part of the primary key: on MySQL and SQL Server client identifiers that differ only in case share one stored row, and `DefaultUsageStorageTest` asserts one merged row on MySQL (SQL Server against the container default in CI) and two rows on H2 and PostgreSQL. Making them distinct would need a column collation change and a schema upgrade |
 | 9 | The heatmap lists versions in the order of its result rows, which are sorted by client, so the list is not in version order | Open. The code is being changed by pull request #10671 |
 | 10 | `apicurio.usage.flush.every` had no declaration and showed as type `unknown` in the generated configuration reference | Closed. Declared with the existing default of 10 seconds |
 | 11 | Nothing proved that the application starts with telemetry on and the experimental gate off | Not applicable while the feature is experimental: startup with telemetry on and the gate off fails with the standard experimental-features error, and the test profiles set the gate. Re-open for GA |
 | 12 | No test denied a non-admin caller access to the usage endpoints | Closed. `UsageAdminAuthTest` checks four endpoints for an admin, a developer and a read-only user |
 | 13 | No test counted rows before and after retention or the aggregation job | Closed. `UsageAggregationJobTest` and `AbstractUsageStorageTest` |
 | 14 | On KafkaSQL every usage event is a journal record, and the journal topic keeps records forever by default | Open and blocking GA. Measured, see the section below. The feature stays experimental until the journal growth is bounded and a snapshot restore is shown to work |
-| 15 | `deleteAllUserData` leaves `schema_usage` rows of deleted versions until retention removes them | Open, untracked but recorded here, low impact. The rows match no version, so no endpoint shows them |
+| 15 | `deleteAllUserData` leaves `schema_usage_daily` rows of deleted versions until retention removes them | Open, untracked but recorded here, low impact. The rows match no version, so no endpoint shows them |
 | 16 | The OpenAPI document declares `404` for the artifact metrics endpoint but the implementation returns an empty list for an unknown artifact | Open, untracked but recorded here, cosmetic |
 | 17 | A fetch by `contentId` counts for every version that has that content, in any artifact or group, because the event stores only the content id. Identical content registered in several artifacts shares its fetches, which can raise Active counts and make deprecation readiness more conservative | Open, untracked but recorded here, documented |
 | 18 | Reference liveness follows one level only: a version inherits the fetches of the schemas that directly reference it, not of schemas that reference those in turn | Open, untracked but recorded here, documented |
@@ -223,7 +230,7 @@ Measured.
 | Replay of usage events, no snapshot | 0.17 to 0.18 s per 10,000 records (two least-squares fits: 0.18 s over 22 timings, 0.173 s over 40 timings, R squared 0.96 in both): the replay phase (first "Subscribing to" line to the "bootstrapped" line) took 5.2 to 5.3 s after 100,000 events and 3.2 to 3.8 s with none |
 | Retention | 110,000 SQL rows deleted by `deleteOldUsageEvents`; journal end offset 110,059 before and 110,060 after (one delete record, +416 bytes); begin offset 0 before and after; log size 49,149,819 before and 49,150,235 after |
 
-Consequences. Retention removes SQL rows and never shrinks the journal. A restart replays every usage record ever written, including those already deleted by retention (a replay after retention reached 0 rows in the same 5 s). The journal topic has `retention.ms=-1` and `retention.bytes=-1` (`KafkaSqlConfiguration`), so only a snapshot, or a manual cleanup after a backup, bounds it. Every node runs the retention job (`UsageAggregationJob` skips only read-only storages), so a cluster of N nodes adds N delete records per run and every node applies all of them. Journals written by releases that had telemetry on before the two usage messages were registered already hold usage records that were skipped at the time. After this change the first start replays and applies all of them, including events older than the retention period, so the first start after the upgrade is slower and `schema_usage` is filled with old rows until the next retention run deletes them.
+Consequences. Retention removes SQL rows and never shrinks the journal. A restart replays every usage record ever written, including those already deleted by retention (a replay after retention reached 0 rows in the same 5 s). The journal topic has `retention.ms=-1` and `retention.bytes=-1` (`KafkaSqlConfiguration`), so only a snapshot, or a manual cleanup after a backup, bounds it. Every node runs the retention job (`UsageAggregationJob` skips only read-only storages), so a cluster of N nodes adds N delete records per run and every node applies all of them. Journals written by releases that had telemetry on before the two usage messages were registered already hold usage records that were skipped at the time. After this change the first start replays and applies all of them, including events older than the retention period, so the first start after the upgrade is slower and `schema_usage_daily` is filled with old rows until the next retention run deletes them.
 
 Projections, not measurements. They multiply 446.5 bytes and 0.018 ms per record by one event per client and schema pair per minute, 1,440 a day, for 180 days, the retention default. They assume one instance, constant traffic and the measured per-record cost holding at scale. The dedup map of one instance holds at most 10,000 keys (`UsageTelemetryBuffer.MAX_DEDUP_MAP_SIZE`) and drops events while it is full, so a single instance cannot reach the ceiling above 10,000 pairs; the second row of each profile applies that limit. Replicas multiply the figure by their number.
 

@@ -1317,7 +1317,16 @@ public interface RegistryStorage extends DynamicConfigStorage {
     void recordUsageEvent(SchemaUsageEventDto event);
 
     /**
-     * Deletes usage events older than the given cutoff timestamp.
+     * Records a batch of schema usage events. The default records them one by one; a storage may override it
+     * to write the batch together.
+     */
+    default void recordUsageEvents(List<SchemaUsageEventDto> events) {
+        events.forEach(this::recordUsageEvent);
+    }
+
+    /**
+     * Deletes usage older than the given cutoff timestamp. Usage is kept by UTC day, so this deletes whole
+     * days before the cutoff's day, and events from that day are kept until the day has passed.
      */
     void deleteOldUsageEvents(long cutoffTimestamp);
 

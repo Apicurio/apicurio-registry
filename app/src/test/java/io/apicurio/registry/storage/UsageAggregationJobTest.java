@@ -22,7 +22,7 @@ import java.util.Map;
 
 /**
  * Runs the aggregation job by hand, with the scheduler off so that no scheduled run can change the table
- * between an assertion and the next, and checks what it does to the {@code schema_usage} rows.
+ * between an assertion and the next, and checks what it does to the {@code schema_usage_daily} rows.
  */
 @QuarkusTest
 @TestProfile(UsageAggregationJobTest.Profile.class)
@@ -40,7 +40,6 @@ public class UsageAggregationJobTest extends AbstractResourceTestBase {
     }
 
     private static final long DAY_MS = Duration.ofDays(1).toMillis();
-    private static final String CLIENT_PREFIX = "job-test-";
 
     @Inject
     UsageAggregationJob job;
@@ -60,19 +59,20 @@ public class UsageAggregationJobTest extends AbstractResourceTestBase {
         long oldId = createArtifact(group, "old", ArtifactType.JSON, "{\"type\":\"integer\"}",
                 ContentTypes.APPLICATION_JSON).getVersion().getGlobalId();
         long now = System.currentTimeMillis();
+        String clients = "job-test-" + group + "-";
         UsageSummaryCountsDto before = storage.getUsageSummaryCounts(now, 7 * DAY_MS, 30 * DAY_MS);
 
-        storage.recordUsageEvent(event(activeId, "recent-1", now - DAY_MS));
-        storage.recordUsageEvent(event(activeId, "recent-2", now - 2 * DAY_MS));
-        storage.recordUsageEvent(event(oldId, "expired-1", now - 100 * DAY_MS));
-        storage.recordUsageEvent(event(oldId, "expired-2", now - 120 * DAY_MS));
-        storage.recordUsageEvent(event(oldId, "expired-3", now - 31 * DAY_MS));
+        storage.recordUsageEvent(event(activeId, clients + "recent-1", now - DAY_MS));
+        storage.recordUsageEvent(event(activeId, clients + "recent-2", now - 2 * DAY_MS));
+        storage.recordUsageEvent(event(oldId, clients + "expired-1", now - 100 * DAY_MS));
+        storage.recordUsageEvent(event(oldId, clients + "expired-2", now - 120 * DAY_MS));
+        storage.recordUsageEvent(event(oldId, clients + "expired-3", now - 31 * DAY_MS));
 
-        Assertions.assertEquals(5, usageRows(), "rows before the job runs");
+        Assertions.assertEquals(5, usageRows(clients), "rows before the job runs");
 
         job.run();
 
-        Assertions.assertEquals(2, usageRows(), "only the two events inside the 30 day retention remain");
+        Assertions.assertEquals(2, usageRows(clients), "only the two events inside the 30 day retention remain");
         UsageSummaryCountsDto counts = job.getCachedCounts();
         Assertions.assertEquals(1, counts.getActive() - before.getActive());
         Assertions.assertEquals(0, counts.getStale() - before.getStale());
@@ -82,21 +82,21 @@ public class UsageAggregationJobTest extends AbstractResourceTestBase {
         job.run();
 
         UsageSummaryCountsDto afterCleanup = job.getCachedCounts();
-        Assertions.assertEquals(2, usageRows(), "a second run has nothing left to delete");
+        Assertions.assertEquals(2, usageRows(clients), "a second run has nothing left to delete");
         Assertions.assertEquals(1, afterCleanup.getActive() - before.getActive());
         Assertions.assertEquals(0, afterCleanup.getDead() - before.getDead(),
                 "a version whose events were all removed by retention is no longer counted");
     }
 
-    private int usageRows() {
+    private int usageRows(String clients) {
         return handles.<Integer, RuntimeException> withHandle(handle -> handle
-                .createQuery("SELECT COUNT(*) FROM schema_usage WHERE clientId LIKE '" + CLIENT_PREFIX
-                        + "%'")
+                .createQuery("SELECT COUNT(*) FROM schema_usage_daily WHERE clientId LIKE ?")
+                .bind(0, clients + "%")
                 .mapTo(Integer.class).one());
     }
 
     private static SchemaUsageEventDto event(long globalId, String client, long timestamp) {
         return SchemaUsageEventDto.builder().globalId(globalId).contentId(0)
-                .clientId(CLIENT_PREFIX + client).operation("SERIALIZE").eventTimestamp(timestamp).build();
+                .clientId(client).operation("SERIALIZE").eventTimestamp(timestamp).build();
     }
 }

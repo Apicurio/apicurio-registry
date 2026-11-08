@@ -2116,6 +2116,11 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     }
 
     @Override
+    public void recordUsageEvents(List<SchemaUsageEventDto> events) {
+        usageRepository.recordUsageEvents(events);
+    }
+
+    @Override
     public List<SchemaUsageSummaryDto> getArtifactUsageMetrics(String groupId, String artifactId) {
         return usageRepository.getArtifactUsageMetrics(groupId, artifactId);
     }

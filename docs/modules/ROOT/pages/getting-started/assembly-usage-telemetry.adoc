@@ -27,7 +27,7 @@ Usage telemetry answers key governance questions:
 Usage tracking is **server-side** and **zero-configuration for the client**. The registry records usage events automatically when it serves schema content. Clients opt in by setting an HTTP header that identifies the application:
 
 `X-Registry-Client-Id`:: Identifies the client application (for example, `payments-svc`). Must contain only letters, digits, dots, hyphens, and underscores. Maximum 256 characters.
-`X-Registry-Operation`:: Optional. The operation type: `SERIALIZE` or `DESERIALIZE`.
+`X-Registry-Operation`:: Optional. The operation type, for example `SERIALIZE` or `DESERIALIZE`. The registry trims surrounding spaces and accepts 1 to 32 printable ASCII characters; a missing value or any other value is recorded as `UNKNOWN`.
 
 If no `X-Registry-Client-Id` header is present, the request is not tracked.
 
@@ -35,7 +35,7 @@ Both `globalId` and `contentId` based schema fetches are tracked. Clients config
 
 Referenced schemas (shared types, base schemas) inherit liveness from the schemas that directly reference them in the global usage summary. If `UserEvent v3` is Active and references `SharedTypes v1`, then `SharedTypes v1` is counted as Active in `GET /admin/usage/summary`, even if nobody ever fetched `SharedTypes v1` itself. The per-artifact endpoints do not apply this rule, so check the schemas that reference a version before you deprecate it.
 
-NOTE: Usage telemetry is an **experimental** feature and is disabled by default. It requires `apicurio.features.experimental.enabled=true` in addition to `apicurio.usage.telemetry.enabled=true`. It is tested with the H2, PostgreSQL, MySQL, SQL Server and KafkaSQL storage types; the tests do not check how client identifiers compare under each database collation (see below). It does nothing on the read-only GitOps and KubernetesOps storage types: events are dropped and the usage endpoints return empty results.
+NOTE: Usage telemetry is an **experimental** feature and is disabled by default. It requires `apicurio.features.experimental.enabled=true` in addition to `apicurio.usage.telemetry.enabled=true`. It is tested with the H2, PostgreSQL, MySQL, SQL Server and KafkaSQL storage types, including how client identifiers compare under each database collation (see below). It does nothing on the read-only GitOps and KubernetesOps storage types: events are dropped and the usage endpoints return empty results.
 
 [id="con-usage-telemetry-classification_{context}"]
 == How versions are classified
@@ -55,11 +55,11 @@ IMPORTANT: The classification uses only the active and stale thresholds. `apicur
 
 On KafkaSQL, every usage event is one record in the journal topic, and retention removes database rows but never shrinks the journal. A journal written by an earlier release with telemetry enabled can hold usage records that were skipped until now. The first start of this release applies them all, including events older than the retention period, and the next retention run deletes the expired ones. During a rolling upgrade, nodes that still run the earlier release log an error for every usage record they cannot read.
 
-Events older than `apicurio.usage.retention-days` (default 180 days) are deleted on every aggregation run, which happens hourly by default (`apicurio.usage.aggregation.every`). Setting `apicurio.usage.retention-days` to `0` or less turns the cleanup off, and the events then accumulate without bound. Because events are deleted, a version whose last fetch is older than the retention period drops out of the counts instead of becoming Dead. Keep the retention period longer than the stale threshold, or Dead versions disappear.
+Usage is stored as one row per schema identifier, client, operation and UTC day. Usage older than `apicurio.usage.retention-days` (default 180 days) is deleted on every aggregation run, which happens hourly by default (`apicurio.usage.aggregation.every`), by whole UTC days: a day is deleted once all of it is older than the retention period, so usage can stay up to one day plus one aggregation interval longer. Setting `apicurio.usage.retention-days` to `0` or less turns the cleanup off, and the rows then accumulate without bound. Because old usage is deleted, a version whose last fetch is older than the retention period drops out of the counts instead of becoming Dead. Keep the retention period longer than the stale threshold, or Dead versions disappear.
 
 A fetch by `contentId` counts for every version that has the same content, in any artifact or group, because the identifier does not say which version was meant. Identical content registered in several artifacts therefore shares its fetches.
 
-Client identifiers are compared with the collation of the database column. On MySQL the default comparison is case-insensitive, so `Payments` and `payments` count as one client; on PostgreSQL they are two clients. SQL Server follows its database collation, which is usually case-insensitive; this was not checked.
+Client identifiers are compared with the collation of the database column, which is part of the stored row's key. On MySQL and SQL Server the default comparison is case-insensitive, so `Payments` and `payments` share one stored row and count as one client; on PostgreSQL and H2 they are two clients. The tests assert this on MySQL, and on SQL Server against the default collation of its container image.
 
 [id="con-usage-telemetry-reading-the-heatmap_{context}"]
 == Reading the consumer heatmap
@@ -119,12 +119,12 @@ The registry server exposes the following properties to configure usage telemetr
 |`apicurio.usage.retention-days`
 |int
 |`180`
-|Number of days to retain raw usage events. Older events are cleaned up automatically.
+|Number of days to retain usage data. Older usage is cleaned up automatically by whole UTC days, so it can stay up to one day plus one aggregation interval longer. `0` or less disables the cleanup.
 
 |`apicurio.usage.aggregation.every`
 |duration
 |`1h`
-|How often the usage metrics are refreshed and old events are cleaned up. Uses Quarkus scheduler expression syntax (for example, `1h`, `30m`, or `10s`).
+|How often the usage metrics are refreshed and old usage is cleaned up. Uses Quarkus scheduler expression syntax (for example, `1h`, `30m`, or `10s`).
 
 |`apicurio.usage.flush.every`
 |duration
@@ -423,7 +423,7 @@ No message content:: Only schema coordinates and the client identifier are recor
 No user identity:: The `clientId` is a configured application name, not a user or personal identifier.
 Client-controlled:: Each client application decides whether to set the `X-Registry-Client-Id` header.
 Zero overhead when disabled:: No headers are sent, no events are recorded, and no database writes occur.
-Automatic cleanup:: Events older than the retention period are deleted automatically.
+Automatic cleanup:: Whole UTC days older than the retention period are deleted automatically.
 
 [id="proc-usage-telemetry-demo-script_{context}"]
 == Running the usage telemetry demo script

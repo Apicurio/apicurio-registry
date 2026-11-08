@@ -1,10 +1,20 @@
 package io.apicurio.registry.storage.impl.sql;
 
+import java.util.Set;
+
 /**
  * MS SQL Server implementation of the SQL statements interface. Provides sql statements that are specific to
  * MS SQL Server, where applicable.
  */
 public class SQLServerSqlStatements extends CommonSqlStatements {
+
+    private static final Set<Integer> TRANSIENT_CONFLICT_ERROR_CODES = Set.of(1205);
+    /**
+     * String or binary data would be truncated: 2628 since compatibility level 150, 8152 before it.
+     * mssql-jdbc 13.4.0 (SQLServerException.generateStateCode) reports 8152 as 22001 but 2628 as "S" plus
+     * the zero-padded error state (S0001 for state 1), and with xopenStates=true it reports both as 42000.
+     */
+    private static final Set<Integer> DATA_ERROR_CODES = Set.of(2628, 8152);
 
     /**
      * Constructor.
@@ -27,6 +37,17 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
     public boolean isPrimaryKeyViolation(Exception error) {
         return error.getMessage().contains("Violation of PRIMARY KEY constraint")
                 || error.getMessage().contains("Violation of UNIQUE KEY constraint");
+    }
+
+    /** Deadlock victim (1205). */
+    @Override
+    protected Set<Integer> transientConflictErrorCodes() {
+        return TRANSIENT_CONFLICT_ERROR_CODES;
+    }
+
+    @Override
+    protected Set<Integer> dataErrorCodes() {
+        return DATA_ERROR_CODES;
     }
 
     /**
@@ -60,6 +81,27 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
                 WHEN NOT MATCHED THEN
                 INSERT (propName, propValue, modifiedOn)
                 VALUES (source.propName, source.propValue, source.modifiedOn);
+                """;
+    }
+
+    /**
+     * HOLDLOCK keeps the key range locked between the match and the insert, so concurrent writers of a new
+     * key serialize instead of both inserting. LEAST and GREATEST need SQL Server 2022, hence the CASEs.
+     */
+    @Override
+    public String upsertSchemaUsageDaily() {
+        return """
+                MERGE INTO schema_usage_daily WITH (HOLDLOCK) AS target
+                USING (VALUES (?, ?, ?, ?, ?, ?, ?, ?)) AS source (globalId, contentId, clientId, operation, usageDay, fetchCount, firstEventTimestamp, lastEventTimestamp)
+                ON (target.globalId = source.globalId AND target.contentId = source.contentId AND target.clientId = source.clientId
+                AND target.operation = source.operation AND target.usageDay = source.usageDay)
+                WHEN MATCHED THEN
+                UPDATE SET fetchCount = target.fetchCount + source.fetchCount,
+                firstEventTimestamp = CASE WHEN source.firstEventTimestamp < target.firstEventTimestamp THEN source.firstEventTimestamp ELSE target.firstEventTimestamp END,
+                lastEventTimestamp = CASE WHEN source.lastEventTimestamp > target.lastEventTimestamp THEN source.lastEventTimestamp ELSE target.lastEventTimestamp END
+                WHEN NOT MATCHED THEN
+                INSERT (globalId, contentId, clientId, operation, usageDay, fetchCount, firstEventTimestamp, lastEventTimestamp)
+                VALUES (source.globalId, source.contentId, source.clientId, source.operation, source.usageDay, source.fetchCount, source.firstEventTimestamp, source.lastEventTimestamp);
                 """;
     }
 

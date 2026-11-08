@@ -33,11 +33,93 @@ import static org.awaitility.Awaitility.await;
 public abstract class AbstractUsageStorageTest extends AbstractResourceTestBase {
 
     private static final long DAY_MS = Duration.ofDays(1).toMillis();
+    private static final long HOUR_MS = Duration.ofHours(1).toMillis();
     private static final long ACTIVE_MS = 7 * DAY_MS;
     private static final long STALE_MS = 30 * DAY_MS;
     private static final Duration VISIBLE_WITHIN = Duration.ofSeconds(30);
 
     protected abstract RegistryStorage storage();
+
+    /**
+     * One version's stored day rows of the client ids with the given prefix, as clientId|day|count|first|last
+     * in a stable order. Callers wait for KafkaSQL's journal to be applied before they read.
+     */
+    protected abstract List<String> rows(long globalId, String clientPrefix);
+
+    /**
+     * Three events of one key on one UTC day and one on the next are stored as two rows, each with the exact
+     * count and the earliest and latest timestamp of its day, and read as four separate fetches with the
+     * earliest and latest timestamp across both days.
+     */
+    @Test
+    public void eventsOfOneKeyAcrossTwoDaysAreOneRowPerDayAndSeparateFetches() {
+        long now = System.currentTimeMillis();
+        long day = Math.floorDiv(now, DAY_MS) - 3;
+        long dayStart = day * DAY_MS;
+        String group = TestUtils.generateGroupId("usage");
+        String client = group + "-fold";
+        Fixture f = createFixture(group);
+        UsageSummaryCountsDto before = storage().getUsageSummaryCounts(now, ACTIVE_MS, STALE_MS);
+
+        recordEvent(f.a1, client, dayStart + 3 * HOUR_MS);
+        recordEvent(f.a1, client, dayStart + HOUR_MS);
+        recordEvent(f.a1, client, dayStart + 20 * HOUR_MS);
+        recordEvent(f.a1, client, dayStart + DAY_MS + 2 * HOUR_MS);
+        awaitFetches(group, "A", 4);
+
+        Assertions.assertEquals(List.of(
+                client + "|" + day + "|3|" + (dayStart + HOUR_MS) + "|" + (dayStart + 20 * HOUR_MS),
+                client + "|" + (day + 1) + "|1|" + (dayStart + DAY_MS + 2 * HOUR_MS) + "|"
+                        + (dayStart + DAY_MS + 2 * HOUR_MS)),
+                rows(f.a1, client));
+
+        List<SchemaUsageSummaryDto> metrics = storage().getArtifactUsageMetrics(group, "A");
+        Assertions.assertEquals(1, metrics.size());
+        Assertions.assertEquals(f.a1, metrics.get(0).getGlobalId());
+        Assertions.assertEquals(4, metrics.get(0).getTotalFetches());
+        Assertions.assertEquals(1, metrics.get(0).getUniqueClients());
+        Assertions.assertEquals(dayStart + HOUR_MS, metrics.get(0).getFirstFetchedOn());
+        Assertions.assertEquals(dayStart + DAY_MS + 2 * HOUR_MS, metrics.get(0).getLastFetchedOn());
+        Assertions.assertEquals(client, metrics.get(0).getClientList());
+
+        Assertions.assertEquals(List.of(client + "|1|1|4"), storage().getConsumerVersionHeatmap(group, "A")
+                .stream().map(AbstractUsageStorageTest::describe).toList());
+        Assertions.assertEquals(List.of(client + "|" + (dayStart + DAY_MS + 2 * HOUR_MS) + "|4"),
+                storage().getDeprecationReadiness(group, "A", "1").stream()
+                        .map(AbstractUsageStorageTest::describe).toList());
+
+        UsageSummaryCountsDto after = storage().getUsageSummaryCounts(now, ACTIVE_MS, STALE_MS);
+        Assertions.assertEquals(2, after.getActive() - before.getActive(), "A and B (through A)");
+        Assertions.assertEquals(0, after.getStale() - before.getStale());
+        Assertions.assertEquals(0, after.getDead() - before.getDead());
+    }
+
+    /**
+     * The cutoff falls at noon. The event one millisecond before midnight is in an earlier day and goes; the
+     * event one millisecond after midnight is older than the cutoff but shares its day, so it stays.
+     * Retention deletes across the whole registry, not only this fixture. That is safe because tests run one
+     * at a time, every test writes its own events after any earlier deletion, and the assertions here wait
+     * until the deletion is visible, so a later test never sees it land halfway.
+     */
+    @Test
+    public void retentionRemovesWholeDaysOnly() {
+        long cutoffDayStart = (Math.floorDiv(System.currentTimeMillis(), DAY_MS) - 10) * DAY_MS;
+        String group = TestUtils.generateGroupId("usage");
+        Fixture f = createFixture(group);
+
+        recordEvent(f.a1, "before", cutoffDayStart - 1);
+        recordEvent(f.a1, "sameday", cutoffDayStart + 1);
+        recordEvent(f.a1, "after", cutoffDayStart + DAY_MS + 1);
+        awaitFetches(group, "A", 3);
+
+        storage().deleteOldUsageEvents(cutoffDayStart + 12 * HOUR_MS);
+
+        awaitFetches(group, "A", 2);
+        SchemaUsageSummaryDto left = storage().getArtifactUsageMetrics(group, "A").get(0);
+        Assertions.assertEquals("after,sameday", left.getClientList());
+        Assertions.assertEquals(cutoffDayStart + 1, left.getFirstFetchedOn());
+        Assertions.assertEquals(cutoffDayStart + DAY_MS + 1, left.getLastFetchedOn());
+    }
 
     @Test
     public void metricsHeatmapAndReadinessAgreeOnTheSameEvents() {
@@ -105,6 +187,7 @@ public abstract class AbstractUsageStorageTest extends AbstractResourceTestBase 
         Assertions.assertEquals(1, after.getDead() - before.getDead(), "C");
     }
 
+    /** Retention deletes across the whole registry; see retentionRemovesWholeDaysOnly for why that is safe. */
     @Test
     public void retentionRemovesOnlyEventsOlderThanTheCutoff() {
         long now = System.currentTimeMillis();

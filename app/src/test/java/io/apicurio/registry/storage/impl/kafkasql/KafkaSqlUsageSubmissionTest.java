@@ -2,6 +2,7 @@ package io.apicurio.registry.storage.impl.kafkasql;
 
 import io.apicurio.registry.storage.dto.SchemaUsageEventDto;
 import io.apicurio.registry.storage.impl.kafkasql.messages.DeleteOldUsageEvents1Message;
+import io.apicurio.registry.storage.impl.kafkasql.messages.RecordUsageEvent1Message;
 import io.apicurio.registry.storage.impl.util.ProducerActions;
 import jakarta.enterprise.inject.Instance;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -12,9 +13,12 @@ import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -75,6 +79,28 @@ class KafkaSqlUsageSubmissionTest {
         assertEquals(0, coordinator.pendingCount());
     }
 
+    /**
+     * KafkaSqlRegistryStorage inherits delegation to the local SQL store, so a batch must still go through
+     * the journal, one record per event, for every replica to apply it.
+     */
+    @Test
+    void aBatchOfUsageEventsIsJournaledOneRecordPerEvent() {
+        storage.recordUsageEvents(List.of(
+                SchemaUsageEventDto.builder().globalId(1).contentId(0).clientId("client").operation("SERIALIZE")
+                        .eventTimestamp(1000L).build(),
+                SchemaUsageEventDto.builder().globalId(1).contentId(0).clientId("client").operation("SERIALIZE")
+                        .eventTimestamp(2000L).build()));
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<ProducerRecord<KafkaSqlMessageKey, KafkaSqlMessage>> captor = ArgumentCaptor
+                .forClass(ProducerRecord.class);
+        verify(producer, times(2)).apply(captor.capture());
+        assertEquals(List.of(1000L, 2000L), captor.getAllValues().stream()
+                .map(sent -> ((RecordUsageEvent1Message) sent.value()).getEventTimestamp()).toList());
+        assertEquals(List.of("RecordUsageEvent1Message", "RecordUsageEvent1Message"), captor.getAllValues()
+                .stream().map(sent -> sent.key().getMessageType()).toList());
+    }
+
     @Test
     void awaitedMessagesStillRegisterWithTheCoordinator() {
         submitter.submitMessage(new DeleteOldUsageEvents1Message(5000L));
@@ -93,7 +119,10 @@ class KafkaSqlUsageSubmissionTest {
         verify(producer).apply(captor.capture());
         ProducerRecord<KafkaSqlMessageKey, KafkaSqlMessage> sent = captor.getValue();
         assertEquals("DeleteOldUsageEvents1Message", sent.key().getMessageType());
-        assertNotNull(sent.headers().lastHeader(KafkaSqlSubmitter.REQUEST_ID_HEADER));
+        String requestId = new String(sent.headers().lastHeader(KafkaSqlSubmitter.REQUEST_ID_HEADER).value(),
+                StandardCharsets.UTF_8);
+        assertNotNull(requestId, "the request id header must be present");
+        assertDoesNotThrow(() -> UUID.fromString(requestId), "the request id must be a UUID");
         assertEquals("DeleteOldUsageEvents1Message", new String(
                 sent.headers().lastHeader(KafkaSqlSubmitter.MESSAGE_TYPE_HEADER).value(), StandardCharsets.UTF_8));
     }

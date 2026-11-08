@@ -20,6 +20,11 @@ public class UsageTelemetryFilter implements ContainerResponseFilter {
     private static final String CONTENT_ID_PATH_SEGMENT = "/ids/contentIds/";
     private static final int MAX_CLIENT_ID_LENGTH = 256;
     private static final Pattern VALID_CLIENT_ID = Pattern.compile("^[a-zA-Z0-9._-]+$");
+    /**
+     * Printable ASCII that fits the operation VARCHAR(32) column and MySQL's ascii charset. SerDes send
+     * SERIALIZE and DESERIALIZE; other clients may send values such as "schema:read".
+     */
+    private static final Pattern VALID_OPERATION = Pattern.compile("^[\\x20-\\x7E]{1,32}$");
 
     @Inject
     UsageTelemetryConfig config;
@@ -50,8 +55,11 @@ public class UsageTelemetryFilter implements ContainerResponseFilter {
             return;
         }
 
+        // An operation the table cannot store would fail the whole flush batch, so it is recorded as UNKNOWN.
+        // Surrounding spaces are trimmed so that " SERIALIZE" and "SERIALIZE" count as one operation.
         String operation = requestContext.getHeaderString(OPERATION_HEADER);
-        if (operation == null || operation.isEmpty()) {
+        operation = operation == null ? null : operation.strip();
+        if (operation == null || !VALID_OPERATION.matcher(operation).matches()) {
             operation = DEFAULT_OPERATION;
         }
 

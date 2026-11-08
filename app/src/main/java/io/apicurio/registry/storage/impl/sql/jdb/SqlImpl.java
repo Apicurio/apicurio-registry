@@ -2,8 +2,8 @@ package io.apicurio.registry.storage.impl.sql.jdb;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.LinkedList;
 import java.util.List;
 
 @SuppressWarnings("unchecked")
@@ -11,7 +11,8 @@ public abstract class SqlImpl<Q> implements Sql<Q> {
 
     protected final Connection connection;
     protected final String sql;
-    protected final List<SqlParam> parameters;
+    /** Not final: addBatch transfers this list into the statement's batch and replaces it with a fresh one. */
+    protected List<SqlParam> parameters;
 
     /**
      * @param connection
@@ -20,7 +21,7 @@ public abstract class SqlImpl<Q> implements Sql<Q> {
     public SqlImpl(Connection connection, String sql) {
         this.connection = connection;
         this.sql = sql;
-        this.parameters = new LinkedList<>();
+        this.parameters = new ArrayList<>();
     }
 
     /**
@@ -84,9 +85,11 @@ public abstract class SqlImpl<Q> implements Sql<Q> {
     }
 
     protected void bindParametersTo(PreparedStatement statement) {
-        this.parameters.forEach(param -> {
-            param.bindTo(statement);
-        });
+        bindParametersTo(statement, this.parameters);
+    }
+
+    protected static void bindParametersTo(PreparedStatement statement, List<SqlParam> parameters) {
+        parameters.forEach(p -> p.bindTo(statement));
     }
 
 }

@@ -45,7 +45,7 @@ public class UsageTelemetryConfig {
     String aggregationEvery;
 
     @ConfigProperty(name = "apicurio.usage.retention-days", defaultValue = "180")
-    @Info(category = CATEGORY_USAGE, description = "Number of days to retain raw usage events before cleanup", availableSince = "3.3.0")
+    @Info(category = CATEGORY_USAGE, description = "Number of days to retain usage data before cleanup; a value of 0 or less disables retention. Usage is stored as one row per schema identifier, client, operation and UTC day, and retention deletes whole days when the aggregation job runs, so data can be kept up to one day plus one aggregation interval longer", availableSince = "3.3.0")
     int retentionDays;
 
     public boolean isEnabled() {

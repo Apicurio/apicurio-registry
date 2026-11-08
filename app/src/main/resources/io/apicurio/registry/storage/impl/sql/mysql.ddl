@@ -7,7 +7,7 @@ CREATE TABLE apicurio (
     propValue VARCHAR(255),
     PRIMARY KEY (propName)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
-INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 113);
+INSERT INTO apicurio (propName, propValue) VALUES ('db_version', 114);
 
 CREATE TABLE sequences (
     seqName  VARCHAR(32) NOT NULL,
@@ -283,14 +283,18 @@ CREATE TABLE contract_audit_log (
 CREATE INDEX IDX_contract_audit_1 ON contract_audit_log(groupId(255), artifactId(255));
 CREATE INDEX IDX_contract_audit_2 ON contract_audit_log(createdOn);
 
-CREATE TABLE schema_usage (
-    globalId        BIGINT       NOT NULL,
-    contentId       BIGINT       NOT NULL DEFAULT 0,
-    clientId        VARCHAR(256) NOT NULL,
-    operation       VARCHAR(32)  NOT NULL,
-    eventTimestamp  BIGINT       NOT NULL,
-    recordedOn      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+-- ascii_general_ci compares clientId case-insensitively, so client ids that differ only in case
+-- share one row; the usage queries already grouped them together.
+CREATE TABLE schema_usage_daily (
+    globalId            BIGINT       NOT NULL,
+    contentId           BIGINT       NOT NULL DEFAULT 0,
+    clientId            VARCHAR(256) NOT NULL,
+    operation           VARCHAR(32)  NOT NULL,
+    usageDay            BIGINT       NOT NULL,
+    fetchCount          BIGINT       NOT NULL,
+    firstEventTimestamp BIGINT       NOT NULL,
+    lastEventTimestamp  BIGINT       NOT NULL,
+    PRIMARY KEY (globalId, contentId, clientId, operation, usageDay)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;
-CREATE INDEX IDX_schema_usage_1 ON schema_usage(globalId);
-CREATE INDEX IDX_schema_usage_2 ON schema_usage(clientId);
-CREATE INDEX IDX_schema_usage_3 ON schema_usage(eventTimestamp);
+CREATE INDEX IDX_schema_usage_daily_1 ON schema_usage_daily(clientId);
+CREATE INDEX IDX_schema_usage_daily_2 ON schema_usage_daily(usageDay);

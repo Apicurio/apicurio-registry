@@ -11,10 +11,18 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.LongAdder;
+import java.util.function.Predicate;
 
 public abstract class AbstractHandleFactory implements HandleFactory {
 
+    private static final long RETRY_PAUSE_MIN_MS = 20;
+    private static final long RETRY_PAUSE_MAX_MS = 60;
+
     private static final ThreadLocal<Map<String, LocalState>> local = ThreadLocal.withInitial(HashMap::new);
+
+    private final LongAdder retriedAttempts = new LongAdder();
 
     private AgroalDataSource dataSource;
 
@@ -148,6 +156,52 @@ public abstract class AbstractHandleFactory implements HandleFactory {
             action.withHandle(handle);
             return null;
         });
+    }
+
+    /*
+     * The retry is hand-rolled rather than a MicroProfile @Retry: its callers are plain objects built with
+     * new, not CDI beans, and it must not repeat an action that joined an enclosing transaction, which an
+     * interceptor cannot see.
+     */
+    @Override
+    public <X extends Exception> void withRetryingHandle(HandleAction<X> action,
+            Predicate<RuntimeException> retryable, int maxAttempts) {
+        if (state().handle != null) {
+            withHandleNoException(action);
+            return;
+        }
+        for (int attempt = 1;; attempt++) {
+            try {
+                withHandleNoException(action);
+                return;
+            } catch (RuntimeException e) {
+                if (attempt >= maxAttempts || !retryable.test(e)) {
+                    throw e;
+                }
+                pauseBeforeRetry(e);
+                retriedAttempts.increment();
+            }
+        }
+    }
+
+    @Override
+    public boolean isInHandle() {
+        return state().handle != null;
+    }
+
+    /** Number of times withRetryingHandle has repeated an action since startup; read by tests. */
+    long retriedAttempts() {
+        return retriedAttempts.sum();
+    }
+
+    /** 20 to 60 ms, randomized so that writers that collided do not collide again in step. */
+    private static void pauseBeforeRetry(RuntimeException failure) {
+        try {
+            Thread.sleep(ThreadLocalRandom.current().nextLong(RETRY_PAUSE_MIN_MS, RETRY_PAUSE_MAX_MS + 1));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw failure;
+        }
     }
 
     private LocalState state() {

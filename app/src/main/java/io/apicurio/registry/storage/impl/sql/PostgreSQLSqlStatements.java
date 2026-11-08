@@ -73,6 +73,16 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     @Override
+    public String upsertSchemaUsageDaily() {
+        return "INSERT INTO schema_usage_daily (globalId, contentId, clientId, operation, usageDay, fetchCount, firstEventTimestamp, lastEventTimestamp) "
+                + "VALUES (?, ?, ?, ?, ?, ?, ?, ?) "
+                + "ON CONFLICT (globalId, contentId, clientId, operation, usageDay) DO UPDATE SET "
+                + "fetchCount = schema_usage_daily.fetchCount + EXCLUDED.fetchCount, "
+                + "firstEventTimestamp = LEAST(schema_usage_daily.firstEventTimestamp, EXCLUDED.firstEventTimestamp), "
+                + "lastEventTimestamp = GREATEST(schema_usage_daily.lastEventTimestamp, EXCLUDED.lastEventTimestamp)";
+    }
+
+    @Override
     public String createDataSnapshot() {
         throw new IllegalStateException("Snapshot creation is not supported for Postgresql storage");
     }

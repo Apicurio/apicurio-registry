@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
 
 /**
  * Server-side reference matching ({@code autoReferences}) with per-resource authorization: artifacts the
@@ -74,6 +75,11 @@ public class GrantsAutoReferencesTest extends AbstractResourceTestBase {
         Map<String, Object> request = Map.of("artifactId", invoiceId, "artifactType", ArtifactType.JSON,
                 "firstVersion", Map.of("autoReferences", true,
                         "content", Map.of("content", content, "contentType", ContentTypes.APPLICATION_JSON)));
+        String hiddenVersionPath = "/registry/v3/groups/" + group + "/artifacts/" + hiddenArtifactId
+                + "/versions/1";
+        as("alice").get(hiddenVersionPath).then().statusCode(200)
+                .body("artifactId", equalTo(hiddenArtifactId)).body("version", equalTo("1"));
+        as("bob1").get(hiddenVersionPath).then().statusCode(403);
 
         String body = as("bob1").contentType(CT_JSON).body(request)
                 .post("/registry/v3/groups/" + group + "/artifacts").then().statusCode(400)

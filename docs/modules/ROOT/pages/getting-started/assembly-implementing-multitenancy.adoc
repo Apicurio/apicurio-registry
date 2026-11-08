@@ -133,17 +133,13 @@ Deploy {registry} using the namespace-per-tenant pattern (Pattern B) to provide 
 
 .Procedure
 
-. Install the operator in a dedicated {kubernetes-namespace}. By default, it watches all namespaces. The installation manifest contains the `PLACEHOLDER_NAMESPACE` placeholder, which you must replace with the target {kubernetes-namespace} before you apply the manifest, because the `-n` option does not override a namespace that is set in the manifest:
+. Install the operator in a dedicated {kubernetes-namespace}. By default, it watches all namespaces:
 +
 [source,bash,subs="attributes"]
 ----
 {kubernetes-client} create namespace apicurio-system
-sed "s/PLACEHOLDER_NAMESPACE/apicurio-system/g" operator/install/install.yaml | {kubernetes-client} apply -f -
+{kubernetes-client} apply -f operator/install/install.yaml -n apicurio-system
 ----
-ifndef::service-registry-downstream[]
-+
-For the single-namespace installation variant, see xref:getting-started/assembly-installing-registry-openshift.adoc#installing-operator-manifests_{context}[Installing the {operator} with installation manifests].
-endif::[]
 
 . Verify that the operator is running:
 +

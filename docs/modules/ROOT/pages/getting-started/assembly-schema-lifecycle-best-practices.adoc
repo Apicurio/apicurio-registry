@@ -77,14 +77,14 @@ An _intra-schema reference_ points to a type defined within the same artifact fi
 
 A _cross-schema reference_ points to a type registered as a separate artifact in {registry}. Cross-schema references maintain a single source of truth for shared types and enable reuse across multiple schemas.
 
-{registry} supports cross-schema references for several artifact types, for example:
+{registry} supports cross-schema references for several artifact types, including the following:
 
 * *Avro*: references by using namespace-qualified type names
 * *JSON Schema*: references by using `$ref` statements
 * *Protobuf*: references by using `import` statements
 * *OpenAPI and AsyncAPI*: references by using `$ref` statements
 
-For the complete list of artifact types that support references, see
+For the full list of artifact types that support references, see
 ifndef::service-registry-downstream[]
 xref:getting-started/assembly-artifact-reference.adoc#registry-artifact-type-reference-support_{context}[Artifact reference support by type].
 endif::[]

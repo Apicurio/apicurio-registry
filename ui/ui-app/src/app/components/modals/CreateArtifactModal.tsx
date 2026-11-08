@@ -27,7 +27,7 @@ import {
 import {
     Modal
 } from "@patternfly/react-core/deprecated";
-import { CreateArtifact } from "@sdk/lib/generated-client/models";
+import { CreateArtifact, CreateVersion, Labels } from "@sdk/lib/generated-client/models";
 import { If, UrlUpload } from "@apitomy/common-ui-components";
 import { ExclamationCircleIcon } from "@patternfly/react-icons";
 import { UrlService, useUrlService } from "@services/useUrlService.ts";
@@ -82,6 +82,14 @@ const validateField = (value: string | undefined | null): ValidType => {
 
 
 const EMPTY_FORM_DATA: CreateArtifact = {
+};
+
+/**
+ * Converts the labels shown in the form to the SDK model, or undefined when there are none, so that
+ * no empty labels object is sent.
+ */
+const labelsOrUndefined = (labels: ArtifactLabel[]): Labels | undefined => {
+    return labels.length === 0 ? undefined : listToLabels(labels);
 };
 
 
@@ -190,14 +198,6 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
         });
     };
 
-    const _setArtifactLabels = (newLabels: ArtifactLabel[]): void => {
-        setArtifactLabels(newLabels);
-        setData({
-            ...data,
-            labels: listToLabels(newLabels)
-        });
-    };
-
     const onFileTextChange = (_event: any, value: string | undefined): void => {
         // Auto-detect the version from the content (e.g. "info.version" in an OpenAPI or
         // AsyncAPI spec), but only while the user has not edited the version themselves.
@@ -268,31 +268,6 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
         });
     };
 
-    const _setVersionLabels = (newLabels: ArtifactLabel[]): void => {
-        setVersionLabels(newLabels);
-        setData({
-            ...data,
-            firstVersion: {
-                ...data.firstVersion,
-                labels: listToLabels(newLabels)
-            }
-        });
-    };
-
-    const _setVersionReferences = (newReferences: ArtifactReferenceFormItem[]): void => {
-        setVersionReferences(newReferences);
-        setData({
-            ...data,
-            firstVersion: {
-                ...data.firstVersion,
-                content: {
-                    ...data.firstVersion?.content,
-                    references: formItemsToReferences(newReferences)
-                }
-            }
-        });
-    };
-
     const onDetectReferences = (): void => {
         const content = data.firstVersion?.content?.content;
         if (!content) {
@@ -308,7 +283,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                 artifactId: ref.artifactId || "",
                 version: ref.version || ""
             }));
-            _setVersionReferences(formItems);
+            setVersionReferences(formItems);
         }).catch(error => {
             console.error("[CreateArtifactModal] Failed to detect references:", error);
         }).finally(() => {
@@ -320,8 +295,32 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
         props.onClose();
     };
 
+    /**
+     * Builds the request from the state the form renders. Labels and references live in their own
+     * state (that is what the form groups show), so they are merged in here, at submit time, rather
+     * than copied into `data` on every change, where later edits could silently drop them.
+     */
+    const buildCreateArtifact = (): CreateArtifact => {
+        const firstVersion: CreateVersion | null | undefined = data.firstVersion?.content?.content === undefined ?
+            data.firstVersion :
+            {
+                ...data.firstVersion,
+                labels: labelsOrUndefined(versionLabels),
+                content: {
+                    ...data.firstVersion.content,
+                    references: formItemsToReferences(versionReferences)
+                }
+            };
+        return {
+            ...data,
+            artifactType: selectedType.value,
+            labels: labelsOrUndefined(artifactLabels),
+            firstVersion
+        };
+    };
+
     const fireCreateEvent = (): void => {
-        props.onCreate(groupId, data);
+        props.onCreate(groupId, buildCreateArtifact());
     };
 
     useEffect(() => {
@@ -331,6 +330,9 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
     useEffect(() => {
         if (props.isOpen) {
             setData(EMPTY_FORM_DATA);
+            setSelectedType(DEFAULT_ARTIFACT_TYPE);
+            setArtifactLabels([]);
+            setVersionLabels([]);
             setVersionReferences([]);
             setAutoDetectedVersion(undefined);
             versionIsDirty.current = false;
@@ -545,7 +547,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                     />
                                 </FormGroup>
                             </GridItem>
-                            <LabelsFormGroup labels={artifactLabels} onChange={_setArtifactLabels} />
+                            <LabelsFormGroup labels={artifactLabels} onChange={setArtifactLabels} />
                         </Grid>
                     </Form>
                 </WizardStep>
@@ -648,7 +650,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                     <Form>
                         <ReferencesFormGroup
                             references={versionReferences}
-                            onChange={_setVersionReferences}
+                            onChange={setVersionReferences}
                             onDetect={onDetectReferences}
                             isDetecting={isDetectingRefs}
                         />
@@ -694,7 +696,7 @@ export const CreateArtifactModal: FunctionComponent<CreateArtifactModalProps> = 
                                     />
                                 </FormGroup>
                             </GridItem>
-                            <LabelsFormGroup labels={versionLabels} onChange={_setVersionLabels} />
+                            <LabelsFormGroup labels={versionLabels} onChange={setVersionLabels} />
                         </Grid>
                     </Form>
                 </WizardStep>

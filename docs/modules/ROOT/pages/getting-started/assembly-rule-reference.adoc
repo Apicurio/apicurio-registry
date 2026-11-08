@@ -57,7 +57,7 @@ a| Enforces artifact reference integrity when creating or updating artifacts. Th
 * `FULL`: All artifact reference integrity checks are enabled.
 * `NO_DUPLICATES`: Detect if there are any duplicate artifact references.
 * `NO_CIRCULAR_REFERENCES`: Detect circular reference chains among artifacts.
-* `REFS_EXIST`: Detect if there are any references to non-existent artifacts. For the `AGENT_CARD`, `MCP_SERVER`, and `MCP_TOOL` artifact types, also detect references to artifact types that they are not allowed to reference.
+* `REFS_EXIST`: Detect if there are any references to non-existent artifacts. For `AGENT_CARD`, `MCP_SERVER`, and `MCP_TOOL` artifacts, also detect references to artifact types that they cannot reference.
 * `ALL_REFS_MAPPED`: Ensure that all artifact references are mapped.
 * `NONE`: All artifact reference integrity checks are disabled.
 |===
@@ -141,8 +141,8 @@ the mapped artifact references and never fetches them from the network or file s
 fails with `Unresolved reference: <location>`. For WSDL 1.1, `FULL` validity also compiles the schemas
 embedded in `wsdl:types` by using the same resolution. For WSDL 2.0, `FULL` validity checks syntax only.
 
-NOTE: For Thrift artifacts, the `ALL_REFS_MAPPED` and `FULL` integrity levels check that every `include`
-directive is mapped to an artifact reference. An unmapped include fails with `Unmapped Thrift include detected.`
+NOTE: For Thrift artifacts, the `ALL_REFS_MAPPED` and `FULL` integrity levels require a mapped artifact
+reference for every `include` directive. An unmapped include fails with `Unmapped Thrift include detected.`
 
 
 
@@ -163,31 +163,6 @@ With the `FULL` level, the `VALIDITY` rule checks that a JSON Schema artifact is
 Each rule violation has a JSON Pointer to the problem as its `context`, for example `/items/properties/price/exclusiveMinimum`. More than one problem can be reported at once.
 
 The `SYNTAX_ONLY` level checks only that the content is well-formed JSON.
-
-// ref-registry-rule-json-schema-validity-changes
-[id="registry-rule-json-schema-validity-changes_{context}"]
-== Changes to JSON Schema validity checking in {registry} 3.4
-
-:_mod-docs-content-type: REFERENCE
-
-[role="_abstract"]
-Earlier versions of {registry} checked JSON Schema validity by loading the schema with a different library, based on the everit library for drafts 4, 6, and 7.
-If you used the `VALIDITY` rule with JSON Schema artifacts before version 3.4, note the following differences:
-
-* {registry} now checks artifacts in draft 2019-09.
-The earlier checker rejected them at the `FULL` level with a message that ends with `JSON schema version 2019-09 is not supported yet.`
-
-* {registry} now validates a schema against the meta-schema of its draft, rather than only loading it, and rejects a schema that its draft forbids.
-For example, in draft 4, `exclusiveMinimum` is a boolean that requires `minimum`, and in draft 2020-12, `$dynamicAnchor` must not be empty.
-
-* The `context` of each rule violation is now a JSON Pointer, such as `/properties/price/minimum`, instead of the earlier location that started with `#`.
-Update anything that matches the previous contexts.
-
-* {registry} now reports all problems at once, at most one per location.
-The earlier checker reported one problem at a time.
-
-* {registry} does not check stored versions again.
-The changes apply when you add content.
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc

@@ -12,20 +12,33 @@ agent sweeps: `concurrency`, `timing`, `waste`, `lifecycle`, `correctness`, `hyg
 
 ## When to use
 
-- Before committing any change that touches `**/src/test/**`
+- Before committing any change that touches `**/src/test/**` or an alternate test source
+  root such as `**/src/test-concurrency/**`
 - As part of the DoD (after /simplify, before /code-review)
 - On CI as a PR quality gate
 
 ## Phase 1: Identify Test Changes
 
+Honor the supplied review scope, including relevant untracked tests. When invoked
+by a workflow skill, reuse its criteria, stage, and review level. Read
+`AGENT-VERIFICATION.md` for the evidence format; do not restart that workflow.
+During `verify-change` or `challenge-change`, this skill is report-only, including
+Phase 4. Carry this constraint into all detector-agent prompts.
+
 ```bash
 # Changed test files in the current diff
-git diff --name-only HEAD | grep -E 'src/test/.*\.java$'
+git diff --name-only HEAD | grep -E 'src/test[^/]*/.*\.java$'
 # Or vs main for PR scope
-git diff main...HEAD --name-only | grep -E 'src/test/.*\.java$'
+git diff main...HEAD --name-only | grep -E 'src/test[^/]*/.*\.java$'
 ```
 
-If no test files are changed, report "No test files in diff, score: 10/10" and stop.
+The `[^/]*` is what reaches alternate test source roots such as `src/test-concurrency/java`,
+added by the `concurrency-tests` profile in `app/pom.xml`. A plain `src/test/` pattern misses them
+and the gate then stops as not applicable on a diff whose riskiest file it never read.
+Widen this again if another source root appears.
+
+If no test files are changed, report "No test files in scope; test-quality review
+not applicable" and stop. This does not establish that behavioral coverage is adequate.
 
 Read the full content of each changed test file (not just the diff). Also read the
 production code they test (to understand shared state, lifecycle, config properties).
@@ -153,9 +166,18 @@ The overall score is the weighted average:
 - Infra & Lifecycle: weight 2
 - Race Test Quality: weight 2
 
+Also report how assertions support the behavioral acceptance criteria, any removed
+or weakened coverage, and plausible wrong behavior the tests would miss. Include
+available before/after regression evidence; do not infer it from a static review.
+Distinguish test execution results from pattern-review scores. A score of 7.0 or
+higher satisfies this quality threshold, not the complete verification framework;
+scores below 7.0 block submission regardless of the report's WARN/FAIL label.
+
 ## Phase 4: Fix (if score < 7.0)
 
-For each finding scored 6 or below, apply the fix directly. Use the pattern catalog
+In report-only mode, describe the required fixes and stop without editing tests or
+production code. Otherwise, for each finding scored 6 or below, apply the fix directly.
+Use the pattern catalog
 (`claudedocs/test-fix-pattern-catalog.md`) for the fix template.
 
 After fixing, re-run the affected detectors to verify the score improved.

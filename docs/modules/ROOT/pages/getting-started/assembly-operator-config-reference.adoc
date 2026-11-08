@@ -17,7 +17,7 @@ custom resource.
 
 [role="_abstract"]
 The `ApicurioRegistry3` custom resource defines the desired state of an instance of {registry}. The resource is
-organized into three sections under `spec`:
+organized into two main sections under `spec`:
 
 [source,yaml,subs="attributes"]
 ----
@@ -30,8 +30,6 @@ spec:
     # Configuration for the {registry-app}.
   ui:
     # Configuration for the {registry-ui}.
-  consolePlugin:
-    # Configuration for the OpenShift Console plugin component.
 ----
 
 // ref-operator-app-spec-reference
@@ -126,26 +124,6 @@ The following fields are specific to `spec.app`:
 |TLS configuration for the application
 |xref:tls-spec_{context}[TLSSpec]
 |See below
-
-|`otel`
-|OpenTelemetry observability configuration
-|xref:otel-spec_{context}[OTelSpec]
-|See below
-
-|`searchIndex`
-|Elasticsearch-based content search indexing (experimental)
-|xref:search-index-spec_{context}[SearchIndexSpec]
-|See below
-
-|`sql` _(deprecated)_
-|Use `storage.type` and `storage.sql` instead. When this field is set, the operator attempts to move the values to `storage` and updates the custom resource automatically
-|DeprecatedSqlSpec
-|None
-
-|`kafkasql` _(deprecated)_
-|Use `storage.type` and `storage.kafkasql` instead. When this field is set, the operator attempts to move the values to `storage` and updates the custom resource automatically
-|DeprecatedKafkasqlSpec
-|None
 |===
 
 Configure optional features for {registry}:
@@ -190,33 +168,16 @@ Configure TLS certificates for the application:
 |Type
 |Default
 
-|`insecureRequests`
-|Controls the plain HTTP port when TLS is configured. `enabled` keeps the HTTP port open, `redirect` keeps the port open but redirects all requests to HTTPS, and `disabled` does not open the HTTP port
-|String (`enabled`, `redirect`, `disabled`)
-|`enabled`
-
 |`keystoreSecretRef`
-|Reference to a Secret containing the keystore (PKCS12 format). Default key: `user.p12`
+|Reference to a Secret containing the keystore (PKCS12 format). Default key: `keystore.p12`
 |xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 
 |`keystorePasswordSecretRef`
-|Reference to a Secret containing the keystore password. Default key: `user.password`
-|xref:secret-key-ref_{context}[SecretKeyRef]
-|None
-
-|`truststoreSecretRef`
-|Reference to a Secret containing the truststore (PKCS12 format). Default key: `ca.p12`
-|xref:secret-key-ref_{context}[SecretKeyRef]
-|None
-
-|`truststorePasswordSecretRef`
-|Reference to a Secret containing the truststore password. Default key: `ca.password`
+|Reference to a Secret containing the keystore password. Default key: `password`
 |xref:secret-key-ref_{context}[SecretKeyRef]
 |None
 |===
-
-NOTE: The default keys match the layout of the Secrets that the {kafka-streams} Operator creates for a `KafkaUser` (`user.p12` and `user.password`) and for the cluster CA (`ca.p12` and `ca.password`). With other Secrets, set the `key` explicitly.
 
 Example:
 [source,yaml]
@@ -224,7 +185,6 @@ Example:
 spec:
   app:
     tls:
-      insecureRequests: redirect
       keystoreSecretRef:
         name: registry-tls
         key: keystore.p12
@@ -233,111 +193,11 @@ spec:
         key: keystore.password
 ----
 
-Configure OpenTelemetry observability for the application:
-
-.OTelSpec
-[id="otel-spec_{context}",cols="1,2,1,2",options="header"]
-|===
-|Field
-|Description
-|Type
-|Default
-
-|`enabled`
-|Enable OpenTelemetry. When enabled, the operator sets `QUARKUS_OTEL_SDK_DISABLED=false` so that {registry} exports traces and metrics to an OpenTelemetry collector and correlates logs with traces
-|Boolean
-|`false`
-
-|`endpoint`
-|Endpoint URL of the OpenTelemetry collector, for example `http://otel-collector:4317` for gRPC or `http://otel-collector:4318` for HTTP
-|String
-|None (application default `http://localhost:4317`)
-
-|`protocol`
-|Protocol of the OTLP exporter: `grpc` or `http/protobuf`
-|String
-|`grpc` (application default)
-
-|`traceSamplingRatio`
-|Ratio of traces to sample, between `0.0` and `1.0`. When set, the operator configures the `parentbased_traceidratio` sampler with this ratio. When not set, the operator does not set the sampler and the application default applies (`parentbased_traceidratio` with ratio `0.1`)
-|Double
-|None
-|===
-
-Example:
-[source,yaml]
-----
-spec:
-  app:
-    otel:
-      enabled: true
-      endpoint: http://otel-collector:4317
-      protocol: grpc
-      traceSamplingRatio: 0.1
-----
-
-Configure Elasticsearch-based content search indexing (experimental):
-
-.SearchIndexSpec
-[id="search-index-spec_{context}",cols="1,2,1,2",options="header"]
-|===
-|Field
-|Description
-|Type
-|Default
-
-|`enabled`
-|Enable content search indexing. When enabled, the operator also enables the experimental features gate
-|Boolean
-|`false`
-
-|`hosts`
-|Elasticsearch hosts to connect to, for example `elasticsearch:9200`
-|String
-|None
-
-|`indexName`
-|Name of the Elasticsearch index
-|String
-|`apicurio-registry` (application default)
-
-|`username`
-|Username for a secured Elasticsearch cluster
-|String
-|None
-
-|`password`
-|Reference to a Secret containing the password for a secured Elasticsearch cluster. Default key: `password`
-|xref:secret-key-ref_{context}[SecretKeyRef]
-|None
-|===
-
-Example:
-[source,yaml]
-----
-spec:
-  app:
-    searchIndex:
-      enabled: true
-      hosts: elasticsearch:9200
-      username: registry-search
-      password:
-        name: elasticsearch-credentials
-        key: password
-----
-
 [role="_additional-resources"]
 .Additional resources
 * xref:operator-storage-reference_{context}[]
 * xref:operator-auth-reference_{context}[]
 * xref:operator-ingress-reference_{context}[]
-ifndef::service-registry-downstream[]
-* xref:getting-started/assembly-configuring-the-registry.adoc#configuring-registry-observability_{context}[{registry} observability with OpenTelemetry]
-* xref:getting-started/assembly-configuring-content-search.adoc#configuring-content-search-operator_{context}[Configuring content search with the {operator}]
-endif::[]
-ifdef::service-registry-downstream[]
-* xref:configuring-registry-observability_{context}[]
-endif::[]
 
 // ref-operator-ui-spec-reference
 [id="operator-ui-spec-reference_{context}"]
@@ -399,7 +259,7 @@ The `spec.app.storage` section configures the storage backend for {registry}.
 |Default
 
 |`type`
-|Storage type: `<empty>` (embedded H2 database), `postgresql`, `mysql`, `kafkasql`, `kubernetesops`, or `gitops`. When left empty, {registry} uses SQL storage with an embedded H2 database.
+|Storage type: `<empty>` (embedded H2 database), `postgresql`, `mysql`, `kafkasql`, or `kubernetesops`. When left empty, {registry} uses SQL storage with an embedded H2 database.
 |String
 |`""` (embedded H2, development only)
 
@@ -416,11 +276,6 @@ The `spec.app.storage` section configures the storage backend for {registry}.
 |`kubernetesops`
 |KubernetesOps storage configuration (read-only, experimental). Required when `type` is `kubernetesops`
 |xref:kubernetes-ops-spec_{context}[KubernetesOpsSpec]
-|None
-
-|`gitops`
-|GitOps storage configuration (read-only, experimental). Used when `type` is `gitops`
-|xref:git-ops-spec_{context}[GitOpsSpec]
 |None
 |===
 
@@ -688,9 +543,9 @@ Configure KubernetesOps storage (read-only, experimental). Loads registry data f
 |Current namespace
 
 |`refreshEvery`
-|Minimum period between polls for ConfigMap changes. Supports duration formats such as `10s`, `1m`, or ISO 8601 `PT10S`. When omitted, the operator does not set the property and the application default applies.
+|Polling interval for ConfigMap changes. Supports duration format (e.g., `10s`, `1m`).
 |String
-|`10s` (application default `PT10S`)
+|`30s`
 
 |`labelRegistryId`
 |Label key used to identify ConfigMaps belonging to this registry.
@@ -739,149 +594,10 @@ spec:
 
 NOTE: KubernetesOps storage is read-only. All changes must be made by creating or updating ConfigMaps. For more details on ConfigMap format and RBAC requirements, see the additional resources.
 
-Configure GitOps storage (read-only, experimental). Loads registry data from Git repositories through a sync sidecar container:
-
-.GitOpsSpec
-[id="git-ops-spec_{context}",cols="1,2,1,2",options="header"]
-|===
-|Field
-|Description
-|Type
-|Default
-
-|`mode`
-|Sync mode. `pull` periodically fetches from the remote repositories. `push` starts an SSH server in the sidecar that accepts `git push`; the operator then creates an additional Service, named `<cr-name>-gitops-ssh-service`, on port `2222`, and allows that port in the NetworkPolicy of the app component
-|String (`pull`, `push`)
-|`pull`
-
-|`repos`
-|List of Git repositories to sync from. For a single repository, provide a list with one entry
-|Array of xref:git-ops-repo-spec_{context}[GitOpsRepoSpec]
-|`[]`
-
-|`registryId`
-|Registry instance identifier. Only data files that reference this identifier are loaded. When omitted, the operator does not set the property and the application default `main` applies
-|String
-|None
-
-|`pull`
-|SSH Secrets for pull mode
-|xref:git-ops-pull-spec_{context}[GitOpsPullSpec]
-|None
-
-|`push`
-|SSH Secrets for push mode
-|xref:git-ops-push-spec_{context}[GitOpsPushSpec]
-|None
-|===
-
-.GitOpsRepoSpec
-[id="git-ops-repo-spec_{context}",cols="1,2,1,2",options="header"]
-|===
-|Field
-|Description
-|Type
-|Default
-
-|`url`
-|URL of the remote Git repository. HTTPS and SSH URLs are supported, for example `https://github.com/my-org/my-schemas.git` or `git@github.com:my-org/my-schemas.git`
-|String
-|None
-
-|`branch`
-|Branch to track
-|String
-|`main` (application default)
-
-|`dir`
-|Directory under the shared `/repos` workspace where the repository is cloned. Required when you configure more than one repository
-|String
-|`default`
-|===
-
-.GitOpsPullSpec
-[id="git-ops-pull-spec_{context}",cols="1,2,1,2",options="header"]
-|===
-|Field
-|Description
-|Type
-|Default
-
-|`sshKeys`
-|Reference to a Secret containing the SSH private key for authenticating to remote Git servers. Default key: `id_ed25519`. The operator mounts the key with file mode `0400`
-|xref:secret-key-ref_{context}[SecretKeyRef]
-|None
-
-|`knownHosts`
-|Reference to a Secret containing a `known_hosts` file for verifying the host keys of remote Git servers. Default key: `known_hosts`
-|xref:secret-key-ref_{context}[SecretKeyRef]
-|None
-|===
-
-.GitOpsPushSpec
-[id="git-ops-push-spec_{context}",cols="1,2,1,2",options="header"]
-|===
-|Field
-|Description
-|Type
-|Default
-
-|`authorizedKeys`
-|Reference to a Secret containing the `authorized_keys` file that controls which SSH public keys can push. Default key: `authorized_keys`
-|xref:secret-key-ref_{context}[SecretKeyRef]
-|None
-
-|`hostKey`
-|Reference to a Secret containing a persistent SSH host key for the SSH server of the sidecar, so that the host fingerprint stays stable across pod restarts. Default key: `ssh_host_key`. The operator mounts the key with file mode `0400`
-|xref:secret-key-ref_{context}[SecretKeyRef]
-|None
-|===
-
-IMPORTANT: GitOps storage is an experimental feature. The operator automatically enables the experimental features gate when this storage type is configured.
-
-Example with pull mode over HTTPS:
-[source,yaml]
-----
-spec:
-  app:
-    storage:
-      type: gitops
-      gitops:
-        registryId: prod
-        repos:
-          - url: https://github.com/my-org/my-registry-data.git
-            branch: main
-----
-
-Example with push mode:
-[source,yaml]
-----
-spec:
-  app:
-    storage:
-      type: gitops
-      gitops:
-        mode: push
-        registryId: prod
-        push:
-          authorizedKeys:
-            name: gitops-push-authorized-keys
-          hostKey:
-            name: gitops-push-host-key
-----
-
-NOTE: GitOps storage is read-only. All changes must be made through Git. The operator injects the sync sidecar container, named `apicurio-registry-gitops-sync`, and a shared `emptyDir` volume mounted at `/repos` in both containers. To override the sidecar image or to add environment variables to the sidecar, use `spec.app.podTemplateSpec` with the container name `apicurio-registry-gitops-sync`. For details on the repository data format and the sync container, see the additional resources.
-
 [role="_additional-resources"]
 .Additional resources
 * xref:getting-started/assembly-config-reference.adoc[]
 * xref:getting-started/assembly-configuring-kubernetesops-storage.adoc[]
-ifndef::service-registry-downstream[]
-* xref:getting-started/assembly-configuring-gitops-storage.adoc[]
-endif::[]
-ifdef::service-registry-downstream[]
-* xref:assembly-configuring-gitops-storage_{context}[]
-endif::[]
 
 // ref-operator-auth-reference
 [id="operator-auth-reference_{context}"]
@@ -889,7 +605,7 @@ endif::[]
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The `spec.app.auth` section configures OIDC or Kubernetes-native authentication and role-based authorization.
+The `spec.app.auth` section configures OIDC authentication and role-based authorization.
 
 .AuthSpec
 [id="auth-spec_{context}",cols="1,2,1,2",options="header"]
@@ -942,11 +658,6 @@ The `spec.app.auth` section configures OIDC or Kubernetes-native authentication 
 |`basicAuth`
 |Client credentials basic authentication configuration
 |xref:basic-auth-spec_{context}[BasicAuthSpec]
-|See below
-
-|`kubernetesAuth`
-|Kubernetes-native authentication configuration (experimental). Bearer tokens are validated with the Kubernetes TokenReview API
-|xref:kubernetes-auth-spec_{context}[KubernetesAuthSpec]
 |See below
 
 |`tls`
@@ -1164,94 +875,6 @@ spec:
         cacheExpiration: 25m
 ----
 
-Configure Kubernetes-native authentication (experimental):
-
-.KubernetesAuthSpec
-[id="kubernetes-auth-spec_{context}",cols="1,2,1,2",options="header"]
-|===
-|Field
-|Description
-|Type
-|Default
-
-|`enabled`
-|Enable authentication with the Kubernetes TokenReview API. When enabled, the operator sets `APICURIO_AUTHN_KUBERNETES_ENABLED=true` and, unless you set the `APICURIO_AUTHN_MECHANISM_PRIORITY` environment variable yourself, the mechanism priority `kubernetes,basic,proxy-header,oidc`
-|Boolean
-|`false`
-
-|`apiAudiences`
-|Comma-separated list of API audiences for TokenReview validation. When empty, the audience is not validated
-|String
-|None
-
-|`cacheExpiration`
-|TokenReview result cache expiration, in minutes
-|Integer
-|`5` (application default)
-
-|`groupMapping`
-|Mapping of Kubernetes groups to {registry} roles. When set, the operator sets the role source to `kubernetes`
-|xref:kubernetes-group-mapping-spec_{context}[KubernetesGroupMappingSpec]
-|None
-|===
-
-.KubernetesGroupMappingSpec
-[id="kubernetes-group-mapping-spec_{context}",cols="1,2,1,2",options="header"]
-|===
-|Field
-|Description
-|Type
-|Default
-
-|`adminGroups`
-|Comma-separated Kubernetes groups that map to the `sr-admin` role
-|String
-|None
-
-|`developerGroups`
-|Comma-separated Kubernetes groups that map to the `sr-developer` role
-|String
-|None
-
-|`readOnlyGroups`
-|Comma-separated Kubernetes groups that map to the `sr-readonly` role
-|String
-|None
-|===
-
-[IMPORTANT]
-====
-Kubernetes-native authentication is an experimental feature. The operator does not enable the experimental features gate for it, so you must also add the `APICURIO_FEATURES_EXPERIMENTAL_ENABLED` environment variable with the value `true` to `spec.app.env`; otherwise, the {registry} pod fails at startup. Do not set `spec.app.auth.enabled` to `true` at the same time, because Kubernetes-native authentication and OpenID Connect cannot be enabled together.
-====
-
-Example:
-[source,yaml]
-----
-spec:
-  app:
-    env:
-      - name: APICURIO_FEATURES_EXPERIMENTAL_ENABLED
-        value: "true"
-    auth:
-      kubernetesAuth:
-        enabled: true
-        apiAudiences: https://kubernetes.default.svc
-        groupMapping:
-          adminGroups: cluster-admins
-          developerGroups: developers
-          readOnlyGroups: viewers
-      authz:
-        enabled: true
-----
-
-The {registry} service account also needs permission to call the TokenReview API. For the required ClusterRoleBinding and the corresponding environment variables, see
-ifndef::service-registry-downstream[]
-xref:getting-started/assembly-configuring-registry-security.adoc#registry-security-kubernetes-auth_{context}[Configuring {registry} Kubernetes-native authentication].
-endif::[]
-ifdef::service-registry-downstream[]
-xref:registry-security-kubernetes-auth_{context}[].
-endif::[]
-
 Configure TLS for OIDC connections:
 
 .AuthTLSSpec
@@ -1329,16 +952,6 @@ The `ingress` section is available for both `spec.app` and `spec.ui` components.
 |Additional annotations for the Ingress resource
 |Map[String]String
 |`{}`
-
-|`tlsSecretName`
-|Name of a Secret of type `kubernetes.io/tls` to use for TLS on the operator-managed Ingress. When set, the operator adds a `tls` section that references this Secret and the configured host. For edge-terminated TLS, set this field and do not configure application TLS (`spec.app.tls`). For TLS passthrough, configure both this field and application TLS
-|String
-|None
-
-|`tlsTermination`
-|TLS termination type for the operator-managed Ingress. The operator also sets the `route.openshift.io/termination` annotation, which on OpenShift controls the termination of the Route that is generated from the Ingress. Use `edge` to terminate TLS at the router or Ingress; on OpenShift, you can omit `tlsSecretName` to use the default router certificate. Use `passthrough` when application TLS is configured and {registry} handles HTTPS directly
-|String (`edge`, `passthrough`, `reencrypt`)
-|None
 |===
 
 Example:
@@ -1357,25 +970,6 @@ spec:
       ingressClassName: nginx
       annotations:
         nginx.org/proxy-connect-timeout: "30s"
-----
-
-Example with edge-terminated TLS:
-[source,yaml]
-----
-spec:
-  app:
-    ingress:
-      host: registry-api.example.com
-      tlsTermination: edge
-      tlsSecretName: registry-tls-cert
-  ui:
-    ingress:
-      host: registry-ui.example.com
-      tlsTermination: edge
-      tlsSecretName: registry-tls-cert
-    env:
-      - name: REGISTRY_API_URL
-        value: https://registry-api.example.com/apis/registry/v3
 ----
 
 Many configuration fields use `SecretKeyRef` to reference Kubernetes Secrets:
@@ -1405,37 +999,6 @@ Example:
 password:
   name: db-credentials
   key: db-password
-----
-
-// ref-operator-cr-status
-[id="operator-cr-status_{context}"]
-== Custom resource status
-:_mod-docs-content-type: REFERENCE
-
-[role="_abstract"]
-The {operator} reports the state of each `ApicurioRegistry3` resource in `status.conditions`. Each condition has a `type`, a `status` of `True`, `False`, or `Unknown`, a `reason`, a human-readable `message`, a `lastTransitionTime`, and a `lastUpdateTime`. The `status.observedGeneration` field records the generation of the resource that the status describes.
-
-.Status conditions
-[id="operator-status-conditions_{context}",cols="1,3",options="header"]
-|===
-|Condition type
-|Meaning
-
-|`Ready`
-|Always reported. `True` with reason `ActiveDeploymentsAvailable` when all active Deployments of the instance are available. `False` with reason `ActiveDeploymentUnavailable` when at least one Deployment is not available; the message names the unavailable Deployments.
-
-|`ValidationError`
-|Reported only while it is `True`, with reason `Error`. The custom resource contains an invalid combination of fields, for example both `replicas` and `autoscaling` on the same component, a container without a name in `podTemplateSpec`, or environment variables set on the component container in `podTemplateSpec` instead of in `env`. The message lists the validation errors.
-
-|`OperatorError`
-|Reported only while it is `True`. The {operator} encountered an unexpected error while reconciling the resource. The reason is the name of the exception class, and the message contains the error details.
-|===
-
-To inspect the conditions of an instance, display the resource and read its `status.conditions` field. The resource is also available under the short name `registry3`:
-
-[source,bash,subs="attributes"]
-----
-{kubernetes-client} get apicurioregistries3 example-registry -o yaml
 ----
 
 // ref-operator-for-developers

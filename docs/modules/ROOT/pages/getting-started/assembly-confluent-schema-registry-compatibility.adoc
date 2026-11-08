@@ -62,7 +62,7 @@ schema.registry.url=http://my-registry:8080/apis/ccompat/v7
 |Complete create, retrieve, update, and delete operations for subjects including listing, registration, lookup by content (`POST /subjects/\{subject}`), lookup by version (`POST /subjects/\{subject}/versions/\{version}`), and deletion. Supports pagination with `offset`, `limit`, `deleted`, and `deletedOnly` parameters.
 
 |*Compatibility API*
-|Schema compatibility checking against specific versions or all versions. Supports `verbose` and `normalize` parameters. When you set `verbose=true`, an incompatible result includes a `messages` array that explains each violation; otherwise the response contains only `is_compatible`. Defaults to `BACKWARD` compatibility when you do not configure an explicit rule, matching the Confluent behavior.
+|Schema compatibility checking against specific versions or all versions. Supports `verbose` and `normalize` parameters. Defaults to `BACKWARD` compatibility when you do not configure an explicit rule, matching the Confluent behavior.
 
 |*Config API*
 |Global and subject-level compatibility configuration. Supports `GET`, `PUT`, and `DELETE` operations, including `defaultToGlobal` parameter for subject config. The `PUT` response includes `compatibility` and `normalize` fields.
@@ -129,7 +129,7 @@ For most use cases, use the default content ID mode, because it matches the Conf
 
 **Schema format parameter**
 
-The `format` query parameter changes the representation of a returned schema. {registry} applies it on the following operations, in both `/apis/ccompat/v7` and `/apis/ccompat/v8`:
+The `format` query parameter selects how the following operations return a schema, in both `/apis/ccompat/v7` and `/apis/ccompat/v8`:
 
 * `GET /schemas/ids/\{id}`
 * `GET /schemas/ids/\{id}/schema`
@@ -146,7 +146,7 @@ The `format` query parameter changes the representation of a returned schema. {r
 
 |`resolved`
 |Avro
-|Inlines the content of the referenced schemas. When the schema has no references, the API returns the schema as re-serialized by the Avro parser.
+|Inlines the referenced schemas. For a schema without references, the API returns the schema as re-serialized by the Avro parser.
 
 |`ignore_extensions`
 |Protobuf
@@ -157,9 +157,9 @@ The `format` query parameter changes the representation of a returned schema. {r
 |Returns the schema as a serialized Protobuf `FileDescriptor`.
 |===
 
-Any other value for an Avro or Protobuf schema returns HTTP `400` with the valid values listed in the error message. For JSON Schema, the parameter is ignored.
+Any other value for an Avro or Protobuf schema returns HTTP `400`, and the error message lists the valid values. For JSON Schema, {registry} ignores the parameter.
 
-When the `apicurio.rest.artifact.references.default-handling` property is set to `DEREFERENCE`, the `GET /schemas/ids/\{id}` operation applies the `resolved` format to Avro schemas when the request has no `format` parameter.
+When `apicurio.rest.artifact.references.default-handling` is `DEREFERENCE` and the request has no `format` parameter, `GET /schemas/ids/\{id}` returns Avro schemas in the `resolved` format.
 
 **Configuration properties**
 
@@ -214,22 +214,6 @@ This normalization applies only to ccompat API responses (`/apis/ccompat/*`). Th
 When you do not configure an explicit compatibility rule at the artifact, group, or global level, the ccompat compatibility check endpoint (`POST /compatibility/subjects/\{subject}/versions/\{version}`) defaults to `BACKWARD` compatibility. This matches the default behavior of Confluent Schema Registry.
 
 NOTE: This default only applies to the compatibility _check_ endpoint. Schema registration does not enforce this default unless you explicitly configure a compatibility rule by using `PUT /config` or `PUT /config/\{subject}`.
-
-**Compatibility check response**
-
-The `POST /compatibility/subjects/\{subject}/versions/\{version}` and `POST /compatibility/subjects/\{subject}/versions` endpoints return `is_compatible`. When you set `verbose=true` and the schema is incompatible, the response also includes `messages`, with one entry for each rule violation in the form `<description> at <context>`:
-
-[source,json]
-----
-{
-  "is_compatible": false,
-  "messages": [
-    "The 'maxLength' string-length limit was decreased. at /properties/name/maxLength"
-  ]
-}
-----
-
-Without `verbose=true`, or when the schema is compatible, the response omits `messages`. If the check cannot process the submitted schema, for example because the schema is not well formed or a reference cannot be resolved, the endpoint returns HTTP status 422 instead of a result.
 
 **Config response format**
 
@@ -331,7 +315,7 @@ List endpoints (`GET /subjects`, `GET /schemas/ids/\{id}/subjects`, `GET /schema
 
 |*Data Contracts - Rules Enforcement*
 |The ccompat API accepts `metadata` and `ruleSet` fields in requests but does not enforce or store them. The API does not execute schema rules.
-|Use the {registry} native Data Contracts feature for contract metadata and rulesets. For more information, see xref:getting-started/assembly-data-contracts.adoc#data-contracts_{context}[{registry} data contracts].
+|Use {registry} native Data Contracts feature (`apicurio.contracts.enabled=true`) for contract metadata and rulesets.
 |===
 
 **Schema Linking / Exporters**

@@ -16,7 +16,6 @@
 
 package io.apicurio.registry.rest.v3.impl;
 
-import io.apicurio.registry.auth.GlobalIdCoordinatesCache;
 import io.apicurio.registry.storage.importing.ImportExportConfigProperties;
 import jakarta.ws.rs.BadRequestException;
 import org.junit.jupiter.api.Test;
@@ -58,7 +57,6 @@ class AdminResourceImplTest {
 
         AdminResourceImpl resource = new AdminResourceImpl();
         resource.importExportProps = props;
-        resource.globalIdCoordinatesCache = new GlobalIdCoordinatesCache();
 
         CloseTrackingInputStream data = new CloseTrackingInputStream(
                 new ByteArrayInputStream(zipWithTwoEntries()));
@@ -85,7 +83,6 @@ class AdminResourceImplTest {
 
         AdminResourceImpl resource = new AdminResourceImpl();
         resource.importExportProps = props;
-        resource.globalIdCoordinatesCache = new GlobalIdCoordinatesCache();
 
         ByteArrayInputStream data = new ByteArrayInputStream(zipWithTwoEntries());
 
@@ -115,7 +112,6 @@ class AdminResourceImplTest {
 
         AdminResourceImpl resource = new AdminResourceImpl();
         resource.importExportProps = props;
-        resource.globalIdCoordinatesCache = new GlobalIdCoordinatesCache();
 
         ByteArrayInputStream data = new ByteArrayInputStream(emptyZip());
 
@@ -148,7 +144,6 @@ class AdminResourceImplTest {
 
         AdminResourceImpl resource = new AdminResourceImpl();
         resource.importExportProps = props;
-        resource.globalIdCoordinatesCache = new GlobalIdCoordinatesCache();
 
         ByteArrayInputStream data = new ByteArrayInputStream(zipWithMalformedManifest());
 

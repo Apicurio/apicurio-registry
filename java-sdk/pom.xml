@@ -23,6 +23,7 @@
     <module>adapter-vertx</module>
     <module>adapter-jdk</module>
     <module>client</module>
+    <module>references</module>
     <module>client-v2</module>
   </modules>
 

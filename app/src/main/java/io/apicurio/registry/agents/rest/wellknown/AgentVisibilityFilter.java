@@ -5,6 +5,7 @@ import io.apicurio.registry.agents.a2a.A2AConstants;
 import io.apicurio.registry.auth.AdminOverride;
 import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.ReadAccessChecker;
+import io.apicurio.registry.auth.RoleBasedAccessController;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -39,6 +40,9 @@ public class AgentVisibilityFilter {
     @Inject
     ReadAccessChecker readAccess;
 
+    @Inject
+    RoleBasedAccessController rbac;
+
     /**
      * Same notion of "authentication enabled" as the authorization interceptor: any mechanism (OIDC,
      * basic, proxy header, Kubernetes, form). Checking only OIDC and basic auth skipped visibility
@@ -62,7 +66,10 @@ public class AgentVisibilityFilter {
         }
 
         boolean isAuthenticated = !securityIdentity.isAnonymous();
-        boolean isAdmin = isAuthenticated && adminOverride.isAdmin();
+        // An administrator is one by RBAC or by admin override, as for every other authorization check
+        // (AuthorizedInterceptor).
+        boolean isAdmin = isAuthenticated
+                && ((authConfig.isRbacEnabled() && rbac.isAdmin()) || adminOverride.isAdmin());
         // "entitled" means entitled to read the card. The discovery endpoint itself is open to
         // anonymous callers (for public cards), so the read check other endpoints get from
         // @Authorized(level = Read) is applied here, through the same shared rules. That includes

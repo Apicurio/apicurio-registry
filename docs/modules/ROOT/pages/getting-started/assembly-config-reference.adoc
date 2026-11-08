@@ -24,10 +24,9 @@ You can use the following reference information to configure {registry}.
 [role="_abstract"]
 You can configure {registry} by setting properties that are grouped by component category. Each property lists its name, type, default value, the version it is available from, and a description.
 
-// The tables in this section are generated from the application code by the config generator
-// (docs/config-generator) into the ref-registry-all-configs.adoc partial. Do not edit them by hand.
-// lines=6..-1 skips the id, title and introduction that the partial carries in its first five lines
-// (see ref-registry-all-configs.template), because this section provides them.
+// The config generator in docs/config-generator writes these tables into the
+// ref-registry-all-configs.adoc partial. Do not edit them by hand.
+// lines=6..-1 skips the partial's id, title, and introduction, because this section provides them.
 include::{mod-loc}getting-started/ref-registry-all-configs.adoc[leveloffset=+1,lines=6..-1]
 
 // ref-migration-table

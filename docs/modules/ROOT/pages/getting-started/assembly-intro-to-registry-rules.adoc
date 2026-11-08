@@ -39,93 +39,12 @@ You can enable optional content rules using the {registry} web console, REST API
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Rules are applied when content is added to {registry}, and when a draft version leaves the `DRAFT` state. This includes the following REST operations:
+Rules are applied only when content is added to {registry}. This includes the following REST operations:
 
 * Adding an artifact
 * Adding an artifact version
-* Changing the state of a `DRAFT` version, for example to finalize it
-
-Each of these operations also applies the rules when you set `dryRun=true`, and reports the result without storing anything. Adding an artifact or version in the `DRAFT` state does not apply the rules, unless the `apicurio.rest.draft.production-mode.enabled` property is set to `true`. {registry} applies the rules when you finalize the draft.
-
-The compatibility check endpoints of the Confluent-compatible API also apply the configured rules to the submitted schema, or check `BACKWARD` compatibility when no `COMPATIBILITY` rule is configured, without storing the content.
 
 If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
-
-[role="_additional-resources"]
-.Additional resources
-* xref:registry-rules-violation-response_{context}[]
-
-[id="registry-rules-violation-response_{context}"]
-== Rule violation responses from the REST API
-
-:_mod-docs-content-type: REFERENCE
-
-[role="_abstract"]
-When content that you submit violates a configured content rule, the Core Registry API v3 rejects the request and returns a problem details body that describes each violation.
-
-The following operations apply content rules and can return a rule violation response:
-
-* `POST /groups/\{groupId}/artifacts`, which creates an artifact
-* `POST /groups/\{groupId}/artifacts/\{artifactId}/versions`, which creates an artifact version
-* `PUT /groups/\{groupId}/artifacts/\{artifactId}/versions/\{versionExpression}/state`, when the version is in the `DRAFT` state, for example when you finalize a draft
-
-Each of these operations also applies the rules when you set `dryRun=true`, and returns the same response without storing anything.
-
-The response has HTTP status `400`. If the `apicurio.rest.legacy-error-codes.enabled` property is set to `true`, the status is `409` instead. The response body has the following fields:
-
-`title`::
-A short summary of the violation.
-
-`detail`::
-The summary, followed by each cause in the form `<description> at <context>`.
-
-`status`::
-The HTTP status code.
-
-`name`::
-The name of the error.
-
-`ruleViolation`::
-The details of the violation:
-+
-* `ruleType`: the type of rule that was violated, one of `VALIDITY`, `COMPATIBILITY`, or `INTEGRITY`.
-* `causes`: one entry for each problem that the rule found, with a `description` sentence and a `context` that locates the problem in the content, for example a JSON Pointer.
-
-`causes`::
-The same list as `ruleViolation.causes`. This top-level field is deprecated and is kept for compatibility with earlier clients. Use `ruleViolation.causes` instead.
-
-The following example shows the response when a new version of a JSON Schema artifact violates a `COMPATIBILITY` rule:
-
-[source,json]
-----
-{
-  "status": 400,
-  "name": "RuleViolationException",
-  "title": "Incompatible artifact: my-schema [JSON], num of incompatible diffs: {1}, list of diff types: [The 'maxLength' string-length limit was decreased. at /properties/name/maxLength]",
-  "detail": "Incompatible artifact: my-schema [JSON], num of incompatible diffs: {1}, list of diff types: [The 'maxLength' string-length limit was decreased. at /properties/name/maxLength] Causes: The 'maxLength' string-length limit was decreased. at /properties/name/maxLength",
-  "ruleViolation": {
-    "ruleType": "COMPATIBILITY",
-    "causes": [
-      {
-        "description": "The 'maxLength' string-length limit was decreased.",
-        "context": "/properties/name/maxLength"
-      }
-    ]
-  },
-  "causes": [
-    {
-      "description": "The 'maxLength' string-length limit was decreased.",
-      "context": "/properties/name/maxLength"
-    }
-  ]
-}
-----
-
-Each cause can also declare the optional `code`, `direction`, `proposed`, and `existing` fields. These fields are defined in the API for a later release, and no built-in rule returns them yet. Treat them as optional in client code.
-
-[role="_additional-resources"]
-.Additional resources
-* {registry-rest-api}
 
 [id="registry-rules-precedence_{context}"]
 == Order of precedence of rules

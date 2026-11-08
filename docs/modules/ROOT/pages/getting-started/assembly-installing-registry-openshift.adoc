@@ -53,12 +53,8 @@ NOTE: You can install more than one replica of {registry} depending on your envi
 . Select your subscription settings:
 +
 ** *Update Channel*: Select one of the following:
-*** *3.x*: Rolling channel that includes all minor and patch updates, such as 3.3.4 and 3.4.0. For example, an installation on 3.3.x upgrades to 3.4.x. New installations use this channel by default.
-*** *3.<minor>.x*, for example *3.4.x*: Includes patch updates only within that minor version, such as 3.4.1 and 3.4.2. For example, an installation on 3.3.x ignores 3.4.0.
-ifndef::service-registry-downstream[]
-+
-For more information about the channels and about moving between them, see xref:getting-started/assembly-versioning-support-policy.adoc#olm-channels_{context}[OLM channels].
-endif::[]
+*** *2.x*: Includes all minor and patch updates, such as 2.3.0 and 2.0.3. For example, an installation on 2.0.x upgrades to 2.3.x.
+*** *2.0.x*: Includes patch updates only, such as 2.0.1 and 2.0.2. For example, an installation on 2.0.x ignores 2.3.x.
 ** *Installation Mode*: Select one of the following:
 *** *All namespaces on the cluster (default)*
 *** *A specific namespace on the cluster*, and then select *my-project*.
@@ -69,75 +65,4 @@ endif::[]
 .Additional resources
 
 * link:{LinkOpenShiftAddOperator}[{NameOpenShiftAddOperator}]
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/operator[{operator} source code in GitHub]
-
-ifndef::service-registry-downstream[]
-// proc-installing-operator-manifests
-[id="installing-operator-manifests_{context}"]
-== Installing the {operator} with installation manifests
-
-:_mod-docs-content-type: PROCEDURE
-
-[role="_abstract"]
-You can install the {operator} on a Kubernetes cluster without Operator Lifecycle Manager (OLM) by applying an installation manifest. The {registry} repository provides two manifests for each release in the `operator/install` directory:
-
-* `apicurio-registry-operator-<version>.yaml` installs the {operator} with cluster-wide RBAC. The {operator} watches `ApicurioRegistry3` resources in all namespaces.
-* `apicurio-registry-operator-namespaced-<version>.yaml` installs the {operator} with namespace-scoped RBAC and a small ClusterRole that lets the {operator} list `ApicurioRegistry3` resources and read the custom resource definition. The {operator} watches only the namespace that it is deployed into. This least-privilege variant is available starting with version 3.3.2. You can apply it once per namespace, because it suffixes the names of its ClusterRole and ClusterRoleBinding with the namespace. All installations share the custom resource definition.
-
-Both manifests contain the placeholder `PLACEHOLDER_NAMESPACE` wherever a namespace is required. You must replace the placeholder with the target namespace before you apply the manifest. The `-n` option of `{kubernetes-client}` does not override a namespace that is already set in the manifest.
-
-.Prerequisites
-
-* You have cluster administrator access to a Kubernetes cluster.
-* You have installed the `{kubernetes-client}` command-line tool.
-
-.Procedure
-
-. Create the namespace for the {operator}:
-+
-[source,bash,subs="+attributes"]
-----
-{kubernetes-client} create namespace apicurio-system
-----
-
-. Download the installation manifest for your version from the link:https://github.com/Apicurio/apicurio-registry/tree/main/operator/install[`operator/install` directory] of the {registry} repository.
-
-. Replace the namespace placeholder and apply the manifest. For the all-namespaces variant:
-+
-[source,bash,subs="+attributes"]
-----
-sed "s/PLACEHOLDER_NAMESPACE/apicurio-system/g" apicurio-registry-operator-<version>.yaml | {kubernetes-client} apply -f -
-----
-+
-For the single-namespace variant:
-+
-[source,bash,subs="+attributes"]
-----
-sed "s/PLACEHOLDER_NAMESPACE/apicurio-system/g" apicurio-registry-operator-namespaced-<version>.yaml | {kubernetes-client} apply -f -
-----
-
-. Verify that the {operator} pod is running:
-+
-[source,bash,subs="+attributes"]
-----
-{kubernetes-client} get pods -n apicurio-system
-----
-
-The all-namespaces variant reads the `APICURIO_OPERATOR_WATCHED_NAMESPACES` environment variable from the `olm.targetNamespaces` annotation of the {operator} pod. Outside OLM, the annotation is empty, so the {operator} watches all namespaces. The single-namespace variant sets the variable to the namespace of the {operator}.
-
-[IMPORTANT]
-====
-If you replace an all-namespaces installation with the single-namespace variant in the same namespace, the previous ClusterRole and ClusterRoleBinding remain and keep granting cluster-wide permissions to the {operator} service account. Delete them after you apply the single-namespace manifest, but only when no all-namespaces installation remains on the cluster, because all all-namespaces installations share them:
-
-[source,bash,subs="+attributes"]
-----
-{kubernetes-client} delete clusterrolebinding apicurio-registry-operator-clusterrolebinding
-{kubernetes-client} delete clusterrole apicurio-registry-operator-clusterrole
-----
-====
-
-[role="_additional-resources"]
-.Additional resources
-
-* xref:getting-started/assembly-implementing-multitenancy.adoc#multitenancy-namespace-per-tenant_{context}[Deploying with namespace-per-tenant isolation]
-endif::[]
+* link:https://github.com/Apicurio/apicurio-registry-operator[Apicurio Registry Operator community in GitHub]

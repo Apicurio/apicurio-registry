@@ -846,7 +846,7 @@ The following {registry} configuration options are available for each component 
 |`long`
 |`-1`
 |`2.2.3.Final`
-|Max artifact labels
+|Max number of labels on a group, artifact or version
 |`apicurio.limits.config.max-artifact-properties`
 |`long`
 |`-1`
@@ -866,7 +866,7 @@ The following {registry} configuration options are available for each component 
 |`long`
 |`-1`
 |`2.1.0.Final`
-|Max artifact label size
+|Max size of one label, in UTF-8 bytes of its key plus its value
 |`apicurio.limits.config.max-name-length`
 |`long`
 |`-1`
@@ -1591,16 +1591,6 @@ The following {registry} configuration options are available for each component 
 |`true`
 |`3.0.15`
 |Enable automatic creation of group when creating an artifact
-|`apicurio.storage.global-id-cache.enabled`
-|`boolean`
-|`true`
-|`3.4.0`
-|Enable an in-memory, cross-request cache of the (group, artifact, version) coordinates a global ID resolves to. The cache is never invalidated: a global ID is assigned once and never reassigned, so its coordinates never change
-|`apicurio.storage.global-id-cache.max-size`
-|`long`
-|`100000`
-|`3.4.0`
-|Maximum number of entries in the global ID coordinates cache described by apicurio.storage.global-id-cache.enabled
 |`apicurio.storage.kind`
 |`string`
 |`sql`

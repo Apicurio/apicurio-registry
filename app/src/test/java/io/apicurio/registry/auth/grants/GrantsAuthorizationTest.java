@@ -1,14 +1,19 @@
 package io.apicurio.registry.auth.grants;
 
 import io.apicurio.registry.AbstractResourceTestBase;
+import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.client.RegistryClientFactory;
 import io.apicurio.registry.client.common.RegistryClientOptions;
 import io.apicurio.registry.rest.client.RegistryClient;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.EditableArtifactMetaData;
+import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
+import io.apicurio.registry.types.VersionState;
 import io.apicurio.registry.utils.tests.ApicurioTestTags;
+import io.apicurio.registry.utils.impexp.v3.ArtifactEntity;
+import io.apicurio.registry.utils.impexp.v3.ArtifactVersionEntity;
 import io.apicurio.registry.utils.tests.TestUtils;
 import io.quarkus.scheduler.Scheduler;
 import io.quarkus.test.junit.QuarkusTest;
@@ -127,6 +132,10 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
     @Inject
     Scheduler scheduler;
 
+    @Inject
+    @Current
+    RegistryStorage storage;
+
     @Test
     public void noReloadJobWhenReloadIsDisabled() {
         assertNull(scheduler.getScheduledJob(GrantsAccessControllerInitializer.RELOAD_JOB));
@@ -225,12 +234,44 @@ public class GrantsAuthorizationTest extends AbstractResourceTestBase {
     // ==================== Global IDs ====================
 
     /**
-     * {@code ids/globalIds/{id}} resolves the caller's access through the cached global ID
-     * coordinates ({@link io.apicurio.registry.auth.GlobalIdCoordinatesCache}), consulted by
-     * {@link io.apicurio.registry.auth.AbstractAccessController#isAuthorized}. Unlike role-based or
-     * owner-only authorization on a Read operation (which never resolve the target resource), grants
-     * always do, so this exercises the cache on the actual authorization path — not just the
-     * business logic's own direct, uncached storage read.
+     * Regression test: a data import that preserves global IDs can rebind a global ID to a different
+     * artifact (here, after the artifact it named was deleted). A request by global ID must then be
+     * authorized against the artifact the ID names now, even when the same global ID was read before
+     * the rebind, so it can never serve another artifact's content under the old artifact's grants.
+     */
+    @Test
+    public void aGlobalIdRebindByImportIsAuthorizedAgainstTheNewArtifact() throws Exception {
+        String readable = createAsAdmin(TEAM_A, "rebind-");
+        String hidden = createAsAdmin(TEAM_B, "hidden-rebind-");
+        long globalId = globalIdOf(TEAM_A, readable);
+        long hiddenContentId = contentIdOf(TEAM_B, hidden);
+
+        // bob1 may read the TEAM_A artifact by its global ID
+        as("bob1").get("/registry/v3/ids/globalIds/" + globalId).then().statusCode(200);
+
+        // The artifact is deleted, then an import that preserves global IDs reuses its global ID for
+        // an artifact in TEAM_B, whose content bob1 may not read
+        String rebound = "hidden-rebound-" + TestUtils.generateArtifactId();
+        storage.deleteArtifact(TEAM_A, readable);
+        long now = System.currentTimeMillis();
+        storage.importArtifact(ArtifactEntity.builder().groupId(TEAM_B).artifactId(rebound)
+                .artifactType(ArtifactType.JSON).owner("alice").createdOn(now).modifiedBy("alice").modifiedOn(now)
+                .build());
+        storage.importArtifactVersion(ArtifactVersionEntity.builder().globalId(globalId).groupId(TEAM_B)
+                .artifactId(rebound).version("1").versionOrder(1).state(VersionState.ENABLED).owner("alice")
+                .createdOn(now).modifiedBy("alice").modifiedOn(now).contentId(hiddenContentId).build());
+
+        // The same global ID now names the TEAM_B artifact: bob1 is denied, the admin still reads it
+        as("bob1").get("/registry/v3/ids/globalIds/" + globalId).then().statusCode(403);
+        as("bob1").get("/registry/v2/ids/globalIds/" + globalId).then().statusCode(403);
+        as("alice").get("/registry/v3/ids/globalIds/" + globalId).then().statusCode(200);
+    }
+
+    /**
+     * {@code ids/globalIds/{id}} authorizes the caller against the artifact the global ID names,
+     * resolved by {@link io.apicurio.registry.auth.AbstractAccessController#resolveResource}. Unlike
+     * role-based or owner-only authorization on a Read operation (which never resolve the target
+     * resource), grants always do, so this exercises global ID resolution on the authorization path.
      */
     @Test
     public void globalIdRequiresAccessToTheArtifactItNames() throws Exception {

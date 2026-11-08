@@ -1,6 +1,5 @@
 include::{mod-loc}shared/all-attributes.adoc[]
 
-:dp-support-scope: link:https://access.redhat.com/support/offerings/devpreview[Developer Preview Support Scope]
 [id="mcp-registry-api_{context}"]
 = MCP Registry API (Developer Preview)
 
@@ -8,10 +7,6 @@ include::{mod-loc}shared/all-attributes.adoc[]
 
 [role="_abstract"]
 {registry} exposes an experimental Model Context Protocol (MCP) Registry API at `/apis/mcp-registry/v0.1`. You can use it to publish, read, list, and manage MCP server definitions, which {registry} stores as artifacts.
-
-ifdef::service-registry-downstream[]
-WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
-endif::[]
 
 // con-mcp-registry-api-overview
 [id="mcp-registry-api-overview_{context}"]
@@ -51,7 +46,7 @@ apicurio.mcp-registry.enabled=true
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The MCP Registry API provides operations to publish a server definition, read and list published server versions, update their status, and soft delete them.
+The MCP Registry API provides operations to publish a server definition, read a published version, and list published server versions.
 
 .MCP Registry API operations
 [cols="1,2,3",options="header"]
@@ -64,35 +59,11 @@ The MCP Registry API provides operations to publish a server definition, read an
 
 |Read a server version
 |`GET /apis/mcp-registry/v0.1/servers/\{serverName}/versions/\{version}`
-|Returns one published version. The `serverName` path segment is the URL-encoded server name, for example `io.github.example%2Fweather`. Use `latest` as the version to read the most recently published version.
-
-|Read the latest server version
-|`GET /apis/mcp-registry/v0.1/servers/\{serverName}`
-|Returns the most recently published version of one server. Add `include_deleted=true` to include deleted versions.
-
-|List the versions of a server
-|`GET /apis/mcp-registry/v0.1/servers/\{serverName}/versions`
-|Returns the published versions of one server, newest first, and HTTP 404 for an unknown server. Accepts the `cursor`, `limit`, and `include_deleted` query parameters.
+|Returns one published version. The `serverName` path segment is the URL-encoded server name, for example `io.github.example%2Fweather`.
 
 |List server versions
 |`GET /apis/mcp-registry/v0.1/servers`
 |Returns all published server versions, newest first. Query parameters filter the list and page through it.
-
-|Update the status of a server version
-|`PATCH /apis/mcp-registry/v0.1/servers/\{serverName}/versions/\{version}/status`
-|Sets the status of one published version. The JSON request body contains a required `status` of `active`, `deprecated`, or `deleted`, and an optional `statusMessage` of up to 500 characters. Requires a concrete version, not `latest`. Returns HTTP 400 when the requested status and message match the current ones.
-
-|Update the status of all server versions
-|`PATCH /apis/mcp-registry/v0.1/servers/\{serverName}/status`
-|Applies the same status update, with the same request body, to every published version of the server. Returns `updatedCount` and the updated `servers`.
-
-|Delete a server version
-|`DELETE /apis/mcp-registry/v0.1/servers/\{serverName}/versions/\{version}`
-|Soft deletes one published version by setting its status to `deleted`, and returns HTTP 200 with the updated record. Requires a concrete version, not `latest`.
-
-|Update a server version
-|`PUT /apis/mcp-registry/v0.1/servers/\{serverName}/versions/\{version}`
-|Not supported. Returns HTTP 501. Publish a new version instead.
 |===
 
 A compatibility rule can protect existing package installation and remote connection choices across versions. Package version and hash upgrades are allowed; removing or changing an existing connection or its configuration is considered backward-incompatible.
@@ -131,14 +102,6 @@ The following query parameters filter the list of server versions:
 `include_deleted=true`:: Includes deleted records in reads that exclude them by default.
 
 To page through results, reuse `metadata.nextCursor` with the same filters. Both explicit and default page limits respect `apicurio.mcp-registry.max-page-size`.
-
-.Example status update request
-[source,shell]
-----
-curl -X PATCH 'http://localhost:8080/apis/mcp-registry/v0.1/servers/io.github.example%2Fweather/versions/1.0.0/status' \
-  -H 'Content-Type: application/json' \
-  -d '{"status": "deprecated", "statusMessage": "Superseded by version 2.0.0"}'
-----
 
 // ref-mcp-registry-api-operational-considerations
 [id="mcp-registry-api-operational-considerations_{context}"]

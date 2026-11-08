@@ -109,23 +109,23 @@ type.
 |Yes
 |Yes
 |No (returns HTTP `400`)
-|References are named types (for example `com.example.Foo`) found in named-type fields. Requesting
-`REWRITE` returns HTTP `400` (`DereferencingNotSupportedException`); use `DEREFERENCE` instead.
+|References are named types (for example `com.example.Foo`) found in named-type fields. `REWRITE`
+fails with `DereferencingNotSupportedException`. Use `DEREFERENCE` instead.
 
 |`PROTOBUF`
 |Yes
 |Yes
 |No (returns HTTP `400`)
-|References are resolved from `import` statements. Requesting `REWRITE` returns HTTP `400`
-(`DereferencingNotSupportedException`); use `DEREFERENCE` instead.
+|{registry} finds references in `import` statements. `REWRITE` fails with
+`DereferencingNotSupportedException`. Use `DEREFERENCE` instead.
 
 |`JSON`
 |Yes
 |Yes
 |Yes
-|References are `$ref` pointers to external documents. The reference name is the literal `$ref` value. A
-reference that is registered under the URI that the `$ref` value resolves to against the enclosing `$id`
-is matched as well.
+|References are `$ref` pointers to external documents. The reference name is the literal `$ref` value.
+{registry} also matches a reference that is registered under the URI that the `$ref` value resolves to against the
+enclosing `$id`.
 
 |`OPENAPI`
 |Yes
@@ -196,8 +196,8 @@ and `REWRITE`, but is intentionally left unresolved on `DEREFERENCE` (the direct
 unchanged), since inlining the whole referenced file would ignore the requested name list and
 risks introducing conflicting or duplicate type definitions. Text that merely resembles an
 `#import` line inside a `"""..."""` block-string description is never treated as a directive. The
-`INTEGRITY` rule does not detect unmapped `#import` directives for GraphQL: the `ALL_REFS_MAPPED` level has
-no effect for this type.
+`INTEGRITY` rule does not detect unmapped `#import` directives, so the `ALL_REFS_MAPPED` level has no effect
+for GraphQL.
 
 |`XML`
 |No
@@ -233,8 +233,8 @@ no effect for this type.
 |No
 |No
 |No
-|`server.json` has no reference fields; there is nothing in the content to map to a reference. Explicit
-references to `MCP_TOOL` artifacts are supported; see
+|`server.json` has no reference fields, so there is nothing in the content to map to a reference. You can add
+explicit references to `MCP_TOOL` artifacts. See
 ifndef::service-registry-downstream[]
 xref:getting-started/assembly-a2a-features.adoc#a2a-artifact-references_{context}[References between agents, MCP servers, and tools].
 endif::[]
@@ -246,8 +246,8 @@ endif::[]
 |No
 |No
 |No
-|Agent card content has no defined reference mechanism in {registry}. Explicit references to allowed
-artifact types are supported; see
+|Agent card content has no defined reference mechanism in {registry}. You can add explicit references to
+the allowed artifact types. See
 ifndef::service-registry-downstream[]
 xref:getting-started/assembly-a2a-features.adoc#a2a-artifact-references_{context}[References between agents, MCP servers, and tools].
 endif::[]
@@ -259,8 +259,8 @@ endif::[]
 |Yes
 |No
 |No
-|References are `include "shared.thrift"` directives; `cpp_include` directives are ignored. No dereferencer
-is registered for this type, so `DEREFERENCE` and `REWRITE` return the content unchanged.
+|References are `include "shared.thrift"` directives. {registry} ignores `cpp_include` directives. This type
+has no dereferencer, so `DEREFERENCE` and `REWRITE` return the content unchanged.
 |===
 
 // ref-registry-ai-ml-artifact-types
@@ -503,7 +503,7 @@ Replace the URL and artifact coordinates with values from your deployment, and s
 
 Compatibility APIs::
 When no explicit parameter is supplied, the v2 API treats a configured `DEREFERENCE` value as `dereference=true`.
-When this default is `DEREFERENCE`, the Confluent-compatible API applies its `resolved` format to Avro schemas that are retrieved by ID through the `GET /apis/ccompat/v7/schemas/ids/\{id}` operation and its `/apis/ccompat/v8` equivalent.
+When this default is `DEREFERENCE`, `GET /apis/ccompat/v7/schemas/ids/\{id}` and its `/apis/ccompat/v8` equivalent return Avro schemas in the `resolved` format.
 Without the property, each API retains its existing default behavior.
 
 [role="_additional-resources"]

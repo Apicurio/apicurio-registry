@@ -255,7 +255,7 @@ attribute (`xs:import`, `xs:include`, `xs:redefine`, and `xs:override`, includin
 An `xs:import` element that specifies only a `namespace`, without a `schemaLocation`, does not require a
 reference mapping.
 
-For the complete list of artifact types that support references, and how each type finds, dereferences, and rewrites them, see
+For the full list of artifact types that support references, and what each type supports, see
 ifndef::service-registry-downstream[]
 xref:getting-started/assembly-artifact-reference.adoc#registry-artifact-type-reference-support_{context}[Artifact reference support by type].
 endif::[]
@@ -307,20 +307,20 @@ This example then creates a schema artifact named `Item`, which includes a refer
 
 In some situations, having an artifact's content with the referenced content inlined might be helpful. For those situations, the Core Registry API v3 supports the _references parameter_ in certain operations.
 
-Support for the `DEREFERENCE` and `REWRITE` values varies by artifact type. For the artifact types that support each value, see
+Support for `DEREFERENCE` and `REWRITE` varies by artifact type. For the types that support each value, see
 ifndef::service-registry-downstream[]
 xref:getting-started/assembly-artifact-reference.adoc#registry-artifact-type-reference-support_{context}[Artifact reference support by type].
 endif::[]
 ifdef::service-registry-downstream[]
 xref:registry-artifact-type-reference-support_{context}[].
 endif::[]
-When you request `DEREFERENCE`, {registry} resolves the references transitively; if the reference graph is deeper than the `apicurio.storage.references.max-depth` limit (default `100`), the request returns HTTP `409`.
+`DEREFERENCE` resolves references transitively. If the reference graph is deeper than `apicurio.storage.references.max-depth` (default `100`), the request returns HTTP `409`.
 
 NOTE: For Avro and Protobuf artifacts, requesting `references=REWRITE` returns HTTP `400`
 (`DereferencingNotSupportedException`).
 For XSD and WSDL artifacts, requesting `references=DEREFERENCE` returns HTTP `400`
-(`DereferencingNotSupportedException`); `REWRITE` replaces each mapped `schemaLocation` or `location` value with the
-{registry} content URL of the referenced artifact.
+(`DereferencingNotSupportedException`). For those types, `REWRITE` replaces each mapped `schemaLocation` or
+`location` value with the {registry} content URL of the referenced artifact.
 
 .Prerequisites
 
@@ -349,7 +349,7 @@ hostname on which {registry} is deployed. For example: `\http://localhost:8080`.
 {"artifact":{"owner":"","createdOn":"2024-09-26T16:27:38Z","modifiedBy":"","modifiedOn":"2024-09-26T16:27:38Z","artifactType":"AVRO","groupId":"my-group","artifactId":"ItemId"},"version":{"version":"1.0.0","owner":"","createdOn":"2024-09-26T16:27:38Z","artifactType":"AVRO","globalId":2,"state":"ENABLED","groupId":"my-group","contentId":2,"artifactId":"ItemId"}}
 ----
 
-. Optional: Use the `/content/references` operation to detect the external references in the content of the `Item` schema before you register it, so that you know the reference names that you must map:
+. Optional: Before you register the `Item` schema, use the `/content/references` operation to find the reference names that you must map:
 +
 [source,bash]
 ----
@@ -359,7 +359,7 @@ $ curl -X POST "MY-REGISTRY-URL/apis/registry/v3/content/references?artifactType
    --data '{"content":"{\"namespace\":\"com.example.common\",\"name\":\"Item\",\"type\":\"record\",\"fields\":[{\"name\":\"itemId\",\"type\":\"com.example.common.ItemId\"}]}","contentType":"application/json"}'
 ----
 +
-The response lists each reference that was found in the content, with only the `name` field populated. For this schema, the name is `com.example.common.ItemId`. If you omit the `artifactType` parameter, {registry} detects the artifact type from the content.
+The response lists each reference found in the content, with only the `name` field set. For this schema, the name is `com.example.common.ItemId`. If you omit the `artifactType` parameter, {registry} detects the type from the content.
 
 . Add the `Item` schema artifact that includes the artifact reference to the `ItemId` schema using the `/groups/\{groupId\}/artifacts` operation:
 +
@@ -410,7 +410,7 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3
 [{"groupId":"my-group","artifactId":"ItemId","version":"1.0.0","name":"com.example.common.ItemId"}]
 ----
 
-. Optional: To list the artifact versions that reference a version instead, add the `refType=INBOUND` query parameter. For example, the following request lists the versions that reference version `1.0.0` of `ItemId`, which include the `Item` artifact that you created:
+. Optional: To list the versions that reference a version instead, add the `refType=INBOUND` query parameter. The following request lists the versions that reference `ItemId` version `1.0.0`, including the `Item` artifact that you created:
 +
 [source,bash]
 ----
@@ -431,7 +431,7 @@ $ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3
 {"type":"record","name":"Item","namespace":"com.example.common","fields":[{"name":"itemId","type":{"type":"record","name":"ItemId","fields":[{"name":"id","type":"int"}]}}]}
 ----
 +
-The `references=DEREFERENCE` query parameter is supported only for the artifact types that are listed with dereferencing support in
+For the artifact types that support `references=DEREFERENCE`, see
 ifndef::service-registry-downstream[]
 xref:getting-started/assembly-artifact-reference.adoc#registry-artifact-type-reference-support_{context}[Artifact reference support by type].
 endif::[]
@@ -442,7 +442,7 @@ For XSD and WSDL artifacts, dereferencing returns HTTP `400`.
 +
 NOTE: For Protobuf artifacts, dereferencing content is supported only when all the schemas belong to the same package.
 +
-NOTE: Circular references between artifact versions can be stored. Reference resolution stops when it reaches a version that is already in the graph, and the reference graph operation reports cycles in the `metadata.hasCycles` field. To reject circular references when a version is created, configure the `INTEGRITY` rule with the `NO_CIRCULAR_REFERENCES` or `FULL` value.
+NOTE: {registry} stores circular references between artifact versions. Reference resolution stops at a version that is already in the graph. The reference graph operation reports cycles in the `metadata.hasCycles` field. To reject circular references when you create a version, set the `INTEGRITY` rule to `NO_CIRCULAR_REFERENCES` or `FULL`.
 
 [role="_additional-resources"]
 .Additional resources
@@ -499,7 +499,7 @@ A larger graph can take longer to retrieve.
 +
 The graph reports the references traversed within the requested depth.
 A `hasCycles` value of `false` does not rule out cycles beyond that depth.
-Cycle detection compares artifacts, not versions, so a chain that passes through two versions of the same artifact is also reported as a cycle.
+Cycle detection compares artifacts, not versions. A chain that passes through two versions of the same artifact also counts as a cycle.
 
 // proc-exporting-protobuf-using-rest-api
 [id="exporting-protobuf-using-rest-api_{context}"]
@@ -586,7 +586,7 @@ $ curl "http://localhost:8080/apis/registry/v3/search/versions?name=*payment*"
 ----
 +
 The `description` filter is different: it always matches substrings.
-. To ignore letter case when you search by name, set the `nameCaseInsensitive` parameter to `true`. The parameter applies to the `name` filter on the artifact and version search endpoints and defaults to `false`:
+. To ignore letter case in the `name` filter, set the `nameCaseInsensitive` parameter to `true`. The parameter defaults to `false` and applies to the artifact and version search endpoints:
 +
 [source,bash]
 ----

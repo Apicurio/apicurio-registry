@@ -1,0 +1,15 @@
+{
+  "name": "Trip planner",
+  "description": "Plans a day out from the forecast and the city guide",
+  "version": "1.0.0",
+  "supportedInterfaces": [
+    { "url": "https://agents.example.com/trip-planner", "protocolBinding": "JSONRPC", "protocolVersion": "1.0" }
+  ],
+  "capabilities": { "streaming": false },
+  "skills": [
+    { "id": "plan-day", "name": "Plan a day", "description": "Plans a day in a city", "tags": ["travel"] },
+    { "id": "check-weather", "name": "Check weather", "description": "Reads the forecast", "tags": ["weather"] }
+  ],
+  "defaultInputModes": ["text"],
+  "defaultOutputModes": ["text"]
+}

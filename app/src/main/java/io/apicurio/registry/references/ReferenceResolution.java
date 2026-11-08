@@ -44,7 +44,9 @@ public final class ReferenceResolution {
      * Resolves {@code references} to a name-to-content map, exactly as the generic walker this replaces
      * did: see {@link ResolvedReferences#asNameMap()} for how same-named collisions and ordering are
      * decided now. {@code loader} is called once per distinct target coordinate in the graph (not once per
-     * reference, and not once per occurrence of a name), via the batching {@link ReferenceGraphWalker}.
+     * reference, and not once per occurrence of a name), via the batching {@link ReferenceGraphWalker}. If it
+     * is an {@link AuthorizingReferenceLoader}, each level of the graph is authorized at once, before any of
+     * it is loaded.
      *
      * @param references the references to resolve; {@code null} or empty returns an empty map
      * @param loader loads one artifact version's content by its coordinates; a {@code null} return means
@@ -54,6 +56,9 @@ public final class ReferenceResolution {
     public static Map<String, TypedContent> recursivelyResolveReferences(List<ArtifactReferenceDto> references,
             Function<ArtifactReferenceDto, ContentWrapperDto> loader) {
         ReferenceLoader batchLoader = coordinates -> {
+            // The whole level at once, before loading any of it: one authorizer call per level
+            AuthorizingReferenceLoader.authorizeAll(loader,
+                    coordinates.stream().map(ReferenceResolution::toReference).toList());
             Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
             for (GAV coordinate : coordinates) {
                 ContentWrapperDto content = loadOne(coordinate, loader);
@@ -110,9 +115,7 @@ public final class ReferenceResolution {
      * the caller being forbidden to read a reference is never the same as the reference not existing.
      */
     private static <T> T loadOne(GAV coordinates, Function<ArtifactReferenceDto, T> loader) {
-        ArtifactReferenceDto reference = ArtifactReferenceDto.builder()
-                .groupId(coordinates.getRawGroupIdWithNull()).artifactId(coordinates.getRawArtifactId())
-                .version(coordinates.getRawVersionId()).build();
+        ArtifactReferenceDto reference = toReference(coordinates);
         try {
             return loader.apply(reference);
         } catch (ForbiddenException ex) {
@@ -121,5 +124,10 @@ public final class ReferenceResolution {
             log.error("Could not resolve reference {}.", coordinates, ex);
             return null;
         }
+    }
+
+    private static ArtifactReferenceDto toReference(GAV coordinates) {
+        return ArtifactReferenceDto.builder().groupId(coordinates.getRawGroupIdWithNull())
+                .artifactId(coordinates.getRawArtifactId()).version(coordinates.getRawVersionId()).build();
     }
 }

@@ -66,8 +66,6 @@ NOTE: The {operator} automatically configures the UI component with the REST API
 `REGISTRY_FEATURE_READ_ONLY`: Set to `true` to enable read-only mode. Defaults to `false`.
 +
 NOTE: Read-only mode disables all write operations in the {registry} web console. When enabled, users cannot create groups, create artifacts, upload new artifact versions, update artifact metadata, or delete artifacts.
-+
-NOTE: The web console also enters read-only mode automatically when the storage is read-only: when {registry} uses a read-only storage variant such as GitOps or KubernetesOps storage, or when an administrator enables the *Storage read-only mode* setting. You do not need to set `REGISTRY_FEATURE_READ_ONLY` in these cases. The console shows a dismissible banner that states that the registry is in read-only mode; with GitOps storage, the banner also tells users to update the source Git repository. When the storage rejects a write request, the console shows the *Read-Only Mode* page.
 
 
 
@@ -94,7 +92,7 @@ You can use the {registry} web console to browse the schema and API artifacts st
 . In the {registry} web console, find the artifact by using one of the following tabs:
 +
 ** *Explore*: Browse the list of groups, click a group, and then click an artifact in the *Artifacts in group* list.
-** *Search*: Select *Artifacts* from the *Search for* menu to browse artifacts. You can filter the results by criteria such as *Name*, *Group*, *Labels*, or *Global Id*. The *Name* filter matches any part of the artifact name or artifact ID and is not case-sensitive. To anchor the match, include the `*` wildcard yourself, for example, `payment*` matches only names or artifact IDs that start with `payment`. The REST API `name` filter matches exactly by default. When you filter by *Type*, select the value from a list instead of typing it. The *State* filter is available when you select *Versions* from *Search for*. For this filter, you also select the value from a list.
+** *Search*: Select *Artifacts* from the *Search for* menu to browse artifacts. You can filter the results by criteria such as *Name*, *Group*, *Labels*, or *Global Id*. The *Name* filter ignores letter case. When you filter by *Type*, select the value from a list instead of typing it. The *State* filter is available when you select *Versions* from *Search for*. For this filter, you also select the value from a list.
 ** *Dashboard*: Click an artifact in the *Recent Artifacts* list.
 +
 .Artifacts in {registry} web console
@@ -105,7 +103,7 @@ image::images/getting-started/registry-web-console.png[Artifacts in Registry web
 ** *Overview*: Displays artifact metadata and the *Versions in artifact* list. The list is empty if the artifact has no versions.
 ** *Rules*: Displays the content rules that you can configure for the artifact.
 ** *Branches*: Displays a list of branches for the artifact. The tab displays at least the `latest` branch and might display other generated branches depending on your configuration.
-** *Contract*: Displays the data contract metadata, quality score, contract rules, and audit log for the artifact. When the artifact has a contract, you can also click *Edit YAML* or *Edit ODCS Contract* to edit the ODCS contract YAML and re-project it, click *Change* next to *Status* to mark the contract as stable or to deprecate it, and click *Promote to DEV*, *Promote to STAGE*, or *Promote to PROD* to move the contract to the next promotion stage. Promotion to `PROD` requires the `STABLE` status. The ODCS editing controls are hidden when the web console is in read-only mode.
+** *Contract*: Displays the data contract metadata, quality score, contract rules, and audit log for the artifact.
 ** *Usage*: Displays which client applications fetch each version of the artifact. The tab displays data only to administrators, and only when usage telemetry is enabled.
 +
 .Artifact details in {registry} web console
@@ -116,7 +114,7 @@ image::images/getting-started/registry-web-console-artifact.png[Artifacts in Reg
 ** *Overview*: Displays artifact version metadata such as version name, description, status, global ID, content ID, and labels. Also displays any comments created for the artifact version.
 ** *Documentation*: Displays a visualization for supported artifact types. For OpenAPI and AsyncAPI, it displays API documentation. For JSON Schema, it displays schema properties and a generated example. The tab is also available for the `AGENT_CARD`, `MCP_TOOL`, `MODEL_SCHEMA`, and `PROMPT_TEMPLATE` artifact types, and is hidden for disabled versions.
 ** *Content*: Displays a read-only view of the full artifact version content. For JSON content, you can click *JSON* or *YAML* to display your preferred format.
-** *References*: Displays a read-only view of all artifacts referenced by this artifact version. You can also click *View artifacts that reference this artifact version*. Click *Graph* to display the references as a graph instead of a list, and use the *Graph Depth* slider to choose how many levels of references, from 1 to 5, the graph includes. To add references to a new artifact or version, use the *Artifact References* step when you create it.
+** *References*: Displays a read-only view of all artifacts referenced by this artifact version. You can also click *View artifacts that reference this artifact version*. Click *Graph* to display the references as a graph instead of a list. Use the *Graph Depth* slider to set how many levels, from 1 to 5, the graph includes. To add references to a new artifact or version, use the *Artifact References* step when you create it.
 +
 .Artifact version details in {registry} web console
 image::images/getting-started/registry-web-console-artifact-version.png[Artifacts in Registry web console]
@@ -131,12 +129,6 @@ image::images/getting-started/registry-web-console-artifact-version.png[Artifact
 * xref:changing-version-state-using-console_{context}[]
 * xref:viewing-json-schema-using-console_{context}[]
 * {registry-rule-reference}
-ifndef::service-registry-downstream[]
-* xref:getting-started/assembly-managing-registry-artifacts-api.adoc#searching-artifacts-using-rest-api_{context}[]
-endif::[]
-ifdef::service-registry-downstream[]
-* xref:searching-artifacts-using-rest-api_{context}[]
-endif::[]
 * xref:getting-started/assembly-data-contracts.adoc[]
 * xref:getting-started/assembly-usage-telemetry.adoc[]
 
@@ -217,7 +209,7 @@ Use a version number that does not already exist for the artifact. You can leave
 The web console opens the draft in the editor. To edit an existing draft, select *Edit draft* from its Action menu (three vertical dots) on the *Drafts* tab.
 . Edit the content, and then click *Save*.
 +
-Studio provides dedicated editors for OpenAPI, AsyncAPI, and Protobuf, a prompt template editor for `PROMPT_TEMPLATE` drafts, and a text editor for other types. The prompt template editor highlights `+{{variable}}+` placeholders and the `+{{#if}}+`, `+{{else}}+`, and `+{{#unless}}+` conditional blocks, and marks unsupported placeholder syntax, such as dotted names. The highlighting does not validate the content. Saving updates the same draft version. It does not publish the draft.
+Studio provides dedicated editors for OpenAPI, AsyncAPI, and Protobuf, and a text editor for other types. Saving updates the same draft version. It does not publish the draft.
 
 .Verification
 * Return to the *Drafts* tab, select *Edit draft* for the same version, and verify that the editor displays your saved content.
@@ -243,7 +235,7 @@ You can validate a saved draft against the configured content rules, and then fi
 . On the *Drafts* tab, select *Finalize draft* from the draft's Action menu (three vertical dots).
 . Optional: Turn on *Dry run only*, and then click *Finalize (dry run)* to check the content rules without publishing the version.
 +
-If the content violates a rule, the web console displays the *Invalid Content Error* dialog. For a compatibility violation, the dialog lists each violation with its location and keeps the content that you submitted visible under *Submitted content*, so that you can copy it. Correct the content in the editor and save it before trying again. A successful dry run leaves the version in the `DRAFT` state.
+If the content violates a rule, correct the content in the editor and save it before trying again. A successful dry run leaves the version in the `DRAFT` state.
 . Select *Finalize draft* again if you performed a dry run. Ensure that *Dry run only* is off, and then click *Finalize*.
 +
 {registry} applies the content rules and changes the version to `ENABLED`. If a rule fails, the version remains a draft. After publication, you cannot edit the version's content or return it to `DRAFT`. To prepare further changes, select *Create draft from...* on the published version page and create a new draft version.
@@ -322,7 +314,7 @@ For a draft version, the only available value is *Enabled*. For other versions, 
 Alternatively, you can publish a draft by selecting *Finalize draft* from the Action menu (three vertical dots) in the version page header, or edit its content by clicking *Edit draft*.
 . Click *Change state*.
 +
-When you publish a draft, {registry} applies the configured content rules. If the content violates a rule, the web console displays the *Invalid Content Error* dialog with the rule violations, and the version remains a draft. For a compatibility violation, the dialog lists each violation with its location and keeps the content that you submitted visible under *Submitted content*, so that you can copy it.
+When you publish a draft, {registry} applies the configured content rules. If the content violates a rule, the web console displays the *Invalid Content Error* dialog with the rule violations, and the version remains a draft.
 
 .Verification
 * Verify that *Status* on the version's *Overview* tab displays the selected state. In the *Versions in artifact* list, the version displays a *Deprecated* or *Disabled* badge, or no badge if you enabled the version.
@@ -630,48 +622,6 @@ NOTE: To disable a rule, click the trash icon next to the rule. If you do this a
 * {registry-rule-reference}
 
 
-[id="managing-global-contract-rules-using-console_{context}"]
-== Managing global contract rules using the {registry} web console
-:_mod-docs-content-type: PROCEDURE
-
-[role="_abstract"]
-You can use the {registry} web console to add and delete global contract rules, which the server-side rule execution endpoint applies to all artifacts.
-
-.Prerequisites
-
-* {registry} is installed and running in your environment.
-* You are logged in to the {registry} web console:
-+
-`{registry-url}`
-* When role-based authorization is enabled, you have administrator access.
-* The web console is not in read-only mode.
-
-.Procedure
-
-. Click the *Contract rules* tab.
-+
-The page lists the global *Domain Rules* and *Migration Rules*.
-. To add a rule, click *Add domain rule* or *Add migration rule*, and complete the following fields:
-+
-** *Name*: A name for the rule. Required.
-** *Kind*: *Condition (validate)* or *Transform (modify)*.
-** *Type*: *CEL* or *JSONata*.
-** *Mode*: *Write*, *Read*, *Write + Read*, *Upgrade*, or *Downgrade*.
-** *Expression*: The CEL or JSONata expression. Required.
-** *On Failure*: *Error (reject)*, *DLQ (dead letter queue)*, or *None (log only)*.
-. Click *Add rule*.
-. To delete a rule, click the trash icon in its row.
-. To delete every global contract rule, click *Delete all global contract rules*.
-
-[role="_additional-resources"]
-.Additional resources
-ifndef::service-registry-downstream[]
-* xref:getting-started/assembly-data-contracts.adoc#data-contracts-global-rules_{context}[Global contract rules]
-endif::[]
-ifdef::service-registry-downstream[]
-* xref:data-contracts-global-rules_{context}[]
-endif::[]
-
 
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
@@ -708,53 +658,6 @@ IMPORTANT: This feature is experimental and subject to backwards-incompatible ch
 .Verification
 
 * The dialog lists each tool with its result: `CREATED`, `NEW_VERSION`, `UNCHANGED`, `REJECTED`, or `REMOVED`. For a rejected tool, it shows the rule violations. When you close the dialog after an import, the artifact page shows the new version.
-
-[id="browsing-agent-cards-using-console_{context}"]
-== Browsing and registering agent cards using the {registry} web console
-
-:_mod-docs-content-type: PROCEDURE
-
-[role="_abstract"]
-You can use the *Agents* tab of the {registry} web console to find the A2A agent cards that are stored as `AGENT_CARD` artifacts, and to register new agent cards by entering their content or by importing them from a URL.
-
-IMPORTANT: This feature is experimental and subject to backwards-incompatible change or removal.
-
-.Prerequisites
-
-* {registry} is started with `apicurio.features.experimental.enabled=true`, because the *Agents* tab is an experimental feature.
-* The *Agents* tab is enabled. Set `apicurio.ui.features.agents.enabled=true` on the {registry} server, or, as an administrator, select *Agents tab* in the *Web console settings* on the *Settings* tab. The setting is dynamic, so you can change it at runtime, but the experimental features property must be set when {registry} starts.
-* To register or edit agent cards, the web console is not in read-only mode and you have permission to create artifacts.
-
-.Procedure
-
-. In the {registry} web console, click the *Agents* tab.
-+
-The tab shows a card for each registered agent with its name, version, description, the URL and protocol binding of its first supported interface, its capabilities and skills, and its group, creation time, and owner.
-
-. To narrow the list, enter a name in *Search by name*, enter a skill ID in *Filter by skill*, or select *Streaming* or *Push Notifications* from the *All Capabilities* list, and then click *Search*.
-
-. To open the `AGENT_CARD` artifact of an agent, click its card.
-
-. To register an agent card by entering its content, click *Create Agent* and complete the *Create Agent Card* wizard:
-.. On the *Agent Coordinates* page, enter the *Group ID*, the *Artifact ID*, and the initial *Version*. When you leave the group ID empty, the web console uses the `default` group. When you leave the artifact ID empty, {registry} generates one.
-.. On the *Agent Card Content* page, enter the agent card. You can continue only when the card has a name, a description, a version, at least one supported interface with a URL, a protocol binding, and a protocol version, capabilities, and at least one skill.
-.. On the *Metadata* page, optionally enter the artifact *Name* and *Description*, and click *Create*.
-
-. To import the agent card that an agent publishes, click *Import Agent* and complete the *Import Agent from URL* wizard:
-.. On the *Agent Card URL* page, enter the URL of the agent card, for example `\https://agent.example.com/.well-known/agent.json`. The web console fetches the content and rejects it when it is not a JSON object with a `name` string, or when two skills share the same ID.
-.. On the *Preview* page, review the fetched agent card.
-.. On the *Import Settings* page, optionally enter the *Group ID* and the *Artifact ID*, and click *Import*. When you leave them empty, the web console uses the `default` group and {registry} generates an artifact ID.
-
-. To edit an agent card, open a version of the `AGENT_CARD` artifact and select *Edit Agent Card* from the version actions menu. The action is shown when the web console is not in read-only mode and you have write access to the artifact. The web console saves the edited card as a new version of the artifact.
-
-.Verification
-
-ifndef::service-registry-downstream[]
-* The new or edited agent card appears on the *Agents* tab, and the `GET /.well-known/agents` endpoint returns it, as described in xref:getting-started/assembly-a2a-features.adoc#a2a-well-known-endpoints_{context}[A2A well-known endpoints].
-endif::[]
-ifdef::service-registry-downstream[]
-* The new or edited agent card appears on the *Agents* tab, and the `GET /.well-known/agents` endpoint returns it.
-endif::[]
 
 [id="changing-artifact-owner-using-console_{context}"]
 == Changing an artifact owner using the {registry} web console

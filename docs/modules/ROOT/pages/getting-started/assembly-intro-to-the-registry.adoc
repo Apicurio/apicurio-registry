@@ -41,8 +41,8 @@ endif::[]
 {registry} provides the following capabilities for managing event schemas and API designs across event-driven and API architectures:
 
 * Multiple payload formats for standard event schema and API specifications such as Apache Avro, JSON Schema, Google Protobuf, AsyncAPI, OpenAPI, OpenRPC, and more.
-* AI/ML artifact types for LLMOps and agent registries: MODEL_SCHEMA for model input/output contracts, PROMPT_TEMPLATE for version-controlled prompts with variable schemas, AGENT_CARD for A2A agent cards, and MCP_TOOL and MCP_SERVER for Model Context Protocol (MCP) tool and server definitions.
-* Pluggable {registry} storage options for storing content in Apache Kafka or PostgreSQL database, or for serving read-only content from a Git repository.
+* AI/ML artifact types for LLMOps: MODEL_SCHEMA for model input/output contracts and PROMPT_TEMPLATE for version-controlled prompts with variable schemas.
+* Pluggable {registry} storage options for storing content in Apache Kafka or PostgreSQL database.
 * Rules for content validation, compatibility, and integrity to govern how {registry} content evolves over time.
 * {registry} content management using web console, REST API, command line, Maven plug-in, or language SDKs.
 * Full Apache Kafka schema registry support, including integration with Kafka Connect for external systems.
@@ -215,7 +215,7 @@ An artifact reference is stored in {registry} as a collection of artifact metada
 
 You can manage artifact references using the {registry} core REST API, Maven plug-in, and Java serializers/deserializers (SerDes). {registry} stores the artifact references along with the artifact content. {registry} also maintains a collection of all artifact references so you can search them or list all references for a specific artifact.
 
-Reference support varies by artifact type. To see which artifact types find, dereference, or rewrite references, see
+Reference support varies by artifact type. For the types that find, dereference, or rewrite references, see
 ifndef::service-registry-downstream[]
 xref:getting-started/assembly-artifact-reference.adoc#registry-artifact-type-reference-support_{context}[Artifact reference support by type].
 endif::[]
@@ -343,9 +343,6 @@ endif::[]
 
 |Apache Kafka
 |Kafka storage is provided for production environments where database management expertise is not available, or where storage in Kafka is a specific requirement.
-
-|GitOps storage
-|GitOps storage is a read-only option that loads registry data from a Git repository and requires no external database. All changes flow through Git commits instead of REST API calls.
 |===
 
 [role="_additional-resources"]
@@ -354,9 +351,6 @@ ifdef::apicurio-registry[]
 * {installing-the-registry-docker}
 * {installing-the-registry-openshift}
 * {installing-the-registry-storage-openshift}
-endif::[]
-ifndef::service-registry-downstream[]
-* xref:getting-started/assembly-configuring-gitops-storage.adoc[]
 endif::[]
 ifdef::rh-service-registry[]
 * link:{LinkServiceRegistryInstall}[{NameServiceRegistryInstall}]
@@ -477,7 +471,7 @@ ifdef::apicurio-registry[]
 |User Interface
 |https://hub.docker.com/r/apicurio/apicurio-registry-ui
 |{operator}
-|https://quay.io/repository/apicurio/apicurio-registry-3-operator
+|https://hub.docker.com/r/apicurio/apicurio-registry-operator
 |===
 
 [role="_additional-resources"]

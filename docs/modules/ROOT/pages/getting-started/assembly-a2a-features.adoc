@@ -69,11 +69,7 @@ You can control A2A features by using the following configuration properties.
 
 |`apicurio.a2a.enabled`
 |`false`
-|Enable or disable A2A protocol support (experimental)
-
-|`apicurio.features.experimental.enabled`
-|`false`
-|Set to `true` to use experimental features such as A2A protocol support
+|Enable or disable A2A protocol support
 
 |`apicurio.a2a.agent.name`
 |`Apicurio Registry`
@@ -123,14 +119,6 @@ You can control A2A features by using the following configuration properties.
 |`false`
 |Advertise API key authentication with the `X-API-Key` header in the Agent Card security schemes
 |===
-
-To enable A2A protocol support, set both properties:
-
-[source,properties]
-----
-apicurio.features.experimental.enabled=true
-apicurio.a2a.enabled=true
-----
 
 // ref-a2a-well-known-endpoints
 [id="a2a-well-known-endpoints_{context}"]
@@ -338,7 +326,7 @@ curl -X PUT "http://localhost:8080/apis/registry/v3/groups/my-agents/artifacts/m
 
 |`apicurio.a2a.default-visibility`
 |`entitled`
-|Visibility of any Agent Card that has no `apicurio.agent.visibility` label (`public`, `entitled`, or `private`). {registry} applies the value to each discovery request when authentication is enabled and does not write the label to the artifact, so a change to this property changes the visibility of every unlabeled Agent Card, including existing ones.
+|Default visibility for new Agent Card artifacts (`public`, `entitled`, or `private`)
 |===
 
 Visibility labels control which Agent Cards appear in `/.well-known/agents` search results and in the AI Catalog and ARD responses. When you retrieve a card by ID through `/.well-known/agents/\{groupId}/\{artifactId}` or the core REST API, only read authorization applies. {registry} does not check the visibility label.
@@ -366,79 +354,65 @@ curl -X POST "http://localhost:8080/apis/registry/v3/groups/ai-agents/artifacts"
       "version": "1.0.0",
       "content": {
         "contentType": "application/json",
-        "content": "{\"name\": \"My Agent\", \"description\": \"Executes tasks on request\", \"version\": \"1.0.0\", \"supportedInterfaces\": [{\"url\": \"https://my-agent.example.com\", \"protocolBinding\": \"http+json\", \"protocolVersion\": \"1.0\"}], \"capabilities\": {\"streaming\": false, \"pushNotifications\": false}, \"skills\": [{\"id\": \"task\", \"name\": \"Task Execution\", \"description\": \"Runs a task and returns the result\", \"tags\": [\"task\"]}], \"defaultInputModes\": [\"text\"], \"defaultOutputModes\": [\"text\"]}"
+        "content": "{\"name\": \"My Agent\", \"skills\": [{\"id\": \"task\", \"name\": \"Task Execution\"}]}"
       }
     }
   }'
 ----
 
-Agent Cards must conform to the A2A protocol v1.0 Agent Card schema, summarized in the following table. When a `VALIDITY` rule at the `FULL` level applies to the artifact, {registry} enforces the required fields and field types that xref:a2a-validation-rules_{context}[] lists; it does not evaluate the JSON schema itself. The schema allows additional properties. A v1.0 Agent Card declares its endpoints in `supportedInterfaces` and its authentication in `securitySchemes`; the schema has no top-level `url` or `authentication` field.
+Agent Cards must conform to the A2A specification:
 
-.Agent Card fields (A2A v1.0)
-[cols="2,1,4",options="header"]
-|===
-|Field |Required |Description
-
-|`name`
-|Yes
-|Name of the agent. A non-empty string.
-
-|`description`
-|Yes
-|Description of what the agent does. A non-empty string.
-
-|`version`
-|Yes
-|Version of the agent, as a string.
-
-|`protocolVersion`
-|No
-|A2A protocol version that the agent supports, for example `1.0`.
-
-|`supportedInterfaces`
-|Yes
-|Array with at least one interface. Each interface has a `url`, a `protocolBinding` (for example, `jsonrpc`, `grpc`, or `http+json`), and a `protocolVersion`, and an optional `tenant`.
-
-|`provider`
-|No
-|Organization that provides the agent. When present, the object must contain `organization` and `url`.
-
-|`capabilities`
-|Yes
-|Object with the boolean capabilities `streaming`, `pushNotifications`, and `extendedAgentCard`, an optional `extensions` array, and any other boolean capability.
-
-|`skills`
-|Yes
-|Array with at least one skill. Each skill has an `id`, a `name`, a `description`, and a non-empty `tags` array, and optional `examples`, `inputModes`, `outputModes`, and `securityRequirements`.
-
-|`defaultInputModes`
-|Yes
-|Non-empty array of the input modes that the agent supports, for example `text` or `application/json`.
-
-|`defaultOutputModes`
-|Yes
-|Non-empty array of the output modes that the agent supports.
-
-|`securitySchemes`
-|No
-|Named security scheme definitions. The scheme `type` is one of `apiKey`, `httpAuth`, `oauth2`, `openIdConnect`, or `mutualTls`.
-
-|`securityRequirements`
-|No
-|Array of objects that map security scheme names to the required scopes.
-
-|`iconUrl`
-|No
-|URL of an icon for the agent.
-
-|`documentationUrl`
-|No
-|URL of the agent documentation.
-
-|`signatures`
-|No
-|Array of JSON Web Signature (JWS) signatures for verifying the Agent Card. Each signature has `protected` and `signature`, and an optional `header`.
-|===
+.Agent Card JSON schema
+[source,json]
+----
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {"type": "string"},
+    "description": {"type": "string"},
+    "version": {"type": "string"},
+    "url": {"type": "string", "format": "uri"},
+    "provider": {
+      "type": "object",
+      "properties": {
+        "organization": {"type": "string"},
+        "url": {"type": "string", "format": "uri"}
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "properties": {
+        "streaming": {"type": "boolean"},
+        "pushNotifications": {"type": "boolean"}
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "properties": {
+          "id": {"type": "string"},
+          "name": {"type": "string"},
+          "description": {"type": "string"},
+          "tags": {"type": "array", "items": {"type": "string"}},
+          "examples": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    },
+    "defaultInputModes": {"type": "array", "items": {"type": "string"}},
+    "defaultOutputModes": {"type": "array", "items": {"type": "string"}},
+    "authentication": {
+      "type": "object",
+      "properties": {
+        "schemes": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}
+----
 
 // ref-a2a-openapi-agent-card
 [id="a2a-openapi-agent-card_{context}"]
@@ -465,7 +439,7 @@ If you already document your API with OpenAPI, you can embed Agent Card metadata
 |Update the generated Agent Card whenever its source OpenAPI artifact is updated
 |===
 
-NOTE: `apicurio.a2a.openapi-integration.enabled` is an experimental property, like `apicurio.a2a.enabled`. You must also set `apicurio.features.experimental.enabled=true` to use either property.
+NOTE: `apicurio.a2a.openapi-integration.enabled` is an experimental property. You must also set `apicurio.features.experimental.enabled=true` to use it.
 
 .Example `x-agent-card` extension
 [source,yaml]
@@ -558,10 +532,10 @@ Agent Cards have three validation levels that control how much validation occurs
 a|Complete schema validation including:
 
 * Required `name` field (non-empty string)
-* `description` (non-empty string) and `version` (string) fields
-* `supportedInterfaces` array with at least one interface, where each interface has `url`, `protocolBinding`, and `protocolVersion`
-* `provider` object with `organization` and `url`, when present
-* `skills` array with at least one skill, where each skill has `id`, `name`, `description`, and a non-empty `tags` array
+* `description` and `version` fields
+* `supportedInterfaces` array, where each interface has `url`, `protocolBinding`, and `protocolVersion`
+* `provider` object with `organization` and `url`
+* `skills` array, where each skill has `id` and `name`
 * `capabilities` object with boolean values
 * `defaultInputModes` and `defaultOutputModes` arrays
 * Authentication and security scheme validation
@@ -846,9 +820,7 @@ var agents = client.wellKnown().agents()
     });
 
 for (var agent : agents.getAgents()) {
-    var interfaces = agent.getSupportedInterfaces();
-    String url = (interfaces == null || interfaces.isEmpty()) ? "no interface" : interfaces.get(0).getUrl();
-    System.out.println("Found: " + agent.getName() + " @ " + url);
+    System.out.println("Found: " + agent.getName() + " @ " + agent.getUrl());
 }
 ----
 
@@ -913,123 +885,6 @@ client.groups().byGroupId("ai-agents").artifacts()
 |Get Agent Card content
 |===
 
-// ref-a2a-peer-registries
-[id="a2a-peer-registries_{context}"]
-== Peer registries for federation
-
-:_mod-docs-content-type: REFERENCE
-
-[role="_abstract"]
-A peer registry is another {registry} instance that this registry federates with. When federation is enabled, administrators register, update, and delete peer registries by using the admin REST API, and {registry} stores the peer definitions with its other configuration. In this release, {registry} stores and manages the peer definitions and does not query peer registries.
-
-IMPORTANT: Federation is an experimental feature. You must set `apicurio.features.experimental.enabled=true` together with `apicurio.federation.enabled=true`; otherwise {registry} does not start.
-
-.Federation configuration properties
-[cols="2,1,3",options="header"]
-|===
-|Property |Default |Description
-
-|`apicurio.federation.enabled`
-|`false`
-|Enable federation with peer registries, including the peer management API (experimental)
-
-|`apicurio.federation.peer.insecure-http.enabled`
-|`false`
-|Allow peer URLs that use plain `http` instead of `https`. The property applies to every peer, whether you create it through the admin API or declare it in GitOps or KubernetesOps storage.
-
-|`apicurio.federation.peer.loopback.enabled`
-|`false`
-|Allow peer URLs that point at a loopback address or a localhost name, for development and tests. The property applies to every peer.
-
-|`apicurio.features.experimental.enabled`
-|`false`
-|Set to `true` to use experimental features such as federation
-|===
-
-.Peer fields
-[cols="1,1,4",options="header"]
-|===
-|Field |Required |Description
-
-|`peerId`
-|Yes
-|Unique ID of the peer. Lowercase letters, digits, `.`, `_`, and `-` only, at most 256 characters. The ID `local` is reserved.
-
-|`url`
-|Yes
-|Base URL of the peer registry, for example `https://registry.eu.example.com`. The URL must satisfy the peer URL policy.
-
-|`name`
-|No
-|Display name of the peer, at most 512 characters.
-
-|`description`
-|No
-|Description of the peer, at most 1024 characters.
-
-|`enabled`
-|On update
-|Whether {registry} uses the peer for federation. When you create a peer without this field, it defaults to `true`. The update operation requires it.
-
-|`credentialSecretRef`
-|No
-|Name of a key in the peer credentials directory of {registry} that holds the credential for this peer, for example a key of a mounted Secret. Letters, digits, `.`, `_`, and `-` only, at most 253 characters, case-sensitive, and not starting with `..`. The field is a reference only: {registry} never stores or returns a credential value.
-|===
-
-Peer URL policy::
-{registry} validates the `url` when you create or update a peer, and rejects the request with HTTP 400 in the following cases:
-+
-* The URL is not an absolute `https` URL with a host. Plain `http` is accepted only when `apicurio.federation.peer.insecure-http.enabled` is `true`.
-* The URL contains user information, a query, or a fragment, has a port outside the range 1 to 65535, or is longer than 1024 characters.
-* The host is a link-local, unspecified, multicast, reserved, or cloud metadata address. A loopback address or a localhost name is accepted only when `apicurio.federation.peer.loopback.enabled` is `true`.
-
-.Peer management operations
-[cols="3,1,4",options="header"]
-|===
-|Endpoint |Method |Description
-
-|`/apis/registry/v3/admin/peers`
-|GET
-|List the peer registries, including disabled peers, ordered by `peerId`. The `limit` and `offset` query parameters page the result. The response contains the `peers` of the page and the total `count`.
-
-|`/apis/registry/v3/admin/peers`
-|POST
-|Register a peer registry. The request body is the peer definition. Returns HTTP 409 when a peer with the same `peerId` exists.
-
-|`/apis/registry/v3/admin/peers/\{peerId}`
-|GET
-|Get the definition of a peer registry.
-
-|`/apis/registry/v3/admin/peers/\{peerId}`
-|PUT
-|Replace the definition of a peer registry. The body must contain `url` and `enabled`; optional fields that you omit are cleared.
-
-|`/apis/registry/v3/admin/peers/\{peerId}`
-|DELETE
-|Delete a peer registry.
-|===
-
-All peer operations require administrator access. When `apicurio.federation.enabled` is `false`, every peer operation returns HTTP 409. The operations that create, update, or delete a peer also return HTTP 409 when the storage is read-only.
-
-.Example: registering a peer registry
-[source,bash]
-----
-curl -X POST "http://localhost:8080/apis/registry/v3/admin/peers" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "peerId": "eu-registry",
-    "url": "https://registry.eu.example.com",
-    "name": "EU registry",
-    "description": "Registry serving the EU region.",
-    "enabled": true,
-    "credentialSecretRef": "eu-registry"
-  }'
-----
-
-ifndef::service-registry-downstream[]
-The read-only GitOps and KubernetesOps storage types load the peer list from the `peers` field of the `registry-v0` metadata instead. The peer URL policy applies to these peers too. For the field format, see xref:getting-started/assembly-configuring-gitops-storage.adoc#gitops-repository-data-format_{context}[GitOps repository data format] and xref:getting-started/assembly-configuring-kubernetesops-storage.adoc#kubernetesops-field-reference_{context}[KubernetesOps field reference].
-endif::[]
-
 // ref-a2a-troubleshooting
 [id="a2a-troubleshooting_{context}"]
 == A2A troubleshooting
@@ -1040,20 +895,18 @@ endif::[]
 Use the following information to troubleshoot common issues with A2A features in {registry}.
 
 A2A endpoints return 404::
-Set `apicurio.a2a.enabled=true` in your configuration. Because A2A protocol support is experimental, also set `apicurio.features.experimental.enabled=true`; without it, {registry} does not start:
+Set `apicurio.a2a.enabled=true` in your configuration:
 +
 [source,properties]
 ----
-apicurio.features.experimental.enabled=true
 apicurio.a2a.enabled=true
 ----
 
 Agent Card validation fails::
 Verify the following conditions:
 +
-* The `name` and `description` fields are present and non-empty, and the `version` field is a string.
-* The `supportedInterfaces`, `capabilities`, `defaultInputModes`, and `defaultOutputModes` fields are present, and `supportedInterfaces` contains at least one interface.
-* Each skill has `id`, `name`, `description`, and a non-empty `tags` array.
+* The `name` field is present and non-empty.
+* Skills have both `id` and `name` fields.
 * Capabilities are boolean values.
 * The JSON is well-formed.
 

@@ -33,6 +33,7 @@ import java.util.Set;
  * - Removing security schemes: Backward incompatible
  * - Changing an existing security scheme's definition: Backward incompatible
  * - Changing an existing security scheme's description: Always compatible
+ * - Changing only the letter case of an HTTP auth scheme name: Always compatible
  * - Withdrawing an OAuth2 scope: Backward incompatible
  * - Rewording an OAuth2 scope's description: Always compatible
  * - Adding input/output modes: Always compatible
@@ -60,6 +61,8 @@ public class AgentCardCompatibilityChecker
      */
     private static final List<String> SECURITY_SCHEME_FIELDS = List.of("type", "scheme",
             "bearerFormat", "name", "location", "oauth2MetadataUrl", "openIdConnectUrl");
+
+    private static final String HTTP_AUTH_SCHEME_FIELD = "scheme";
 
     private static final String FLOWS_FIELD = "flows";
 
@@ -294,7 +297,7 @@ public class AgentCardCompatibilityChecker
                     continue;
                 }
                 JsonNode proposedValue = getComparableValue(proposedScheme, field);
-                if (!existingValue.equals(proposedValue)) {
+                if (!isSameSchemeFieldValue(field, existingValue, proposedValue)) {
                     differences.add(new SimpleCompatibilityDifference(
                             describeSchemeFieldChange(schemeName, field, existingValue,
                                     proposedValue),
@@ -420,6 +423,20 @@ public class AgentCardCompatibilityChecker
         differences.add(new SimpleCompatibilityDifference(
                 "The agent protocolVersion " + describeChange(existingVersion, proposedVersion),
                 CONTEXT_PROTOCOL_VERSION));
+    }
+
+    /**
+     * HTTP authentication scheme names are case-insensitive (RFC 9110 section 11.1), so a client
+     * that sends "Bearer" keeps working when the card switches to "bearer". Every other field is
+     * compared exactly: the schema defines type and location as case-sensitive enums.
+     */
+    private boolean isSameSchemeFieldValue(String field, JsonNode existingValue,
+            JsonNode proposedValue) {
+        if (HTTP_AUTH_SCHEME_FIELD.equals(field) && existingValue.isTextual()
+                && proposedValue != null && proposedValue.isTextual()) {
+            return existingValue.asText().equalsIgnoreCase(proposedValue.asText());
+        }
+        return existingValue.equals(proposedValue);
     }
 
     private String describeSchemeFieldChange(String schemeName, String field,

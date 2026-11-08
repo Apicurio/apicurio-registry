@@ -604,6 +604,59 @@ class AgentCardCompatibilityCheckerTest {
     }
 
     @Test
+    void testBackwardCompatibleHttpAuthSchemeCaseChange() {
+        String existing = cardWithScheme("bearer", BEARER_SCHEME);
+        String proposed = cardWithScheme("bearer",
+                "{ \"type\": \"httpAuth\", \"scheme\": \"bearer\" }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertTrue(result.isCompatible(),
+                "HTTP auth scheme names are case-insensitive (RFC 9110 section 11.1), so changing"
+                        + " only the case of the scheme breaks no client");
+    }
+
+    @Test
+    void testBackwardIncompatibleHttpAuthSchemeChange() {
+        String existing = cardWithScheme("bearer", BEARER_SCHEME);
+        String proposed = cardWithScheme("bearer",
+                "{ \"type\": \"httpAuth\", \"scheme\": \"Basic\" }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "Ignoring case must not stop a different scheme from being reported");
+        assertTrue(reports(result,
+                "Security scheme 'bearer' field 'scheme' changed from 'Bearer' to 'Basic'"));
+    }
+
+    @Test
+    void testBackwardIncompatibleSecuritySchemeTypeCaseChange() {
+        String existing = cardWithScheme("bearer", BEARER_SCHEME);
+        String proposed = cardWithScheme("bearer",
+                "{ \"type\": \"HttpAuth\", \"scheme\": \"Bearer\" }");
+
+        CompatibilityExecutionResult result = checker.testCompatibility(
+                CompatibilityLevel.BACKWARD,
+                List.of(createAgentCard(existing)),
+                createAgentCard(proposed),
+                Map.of());
+
+        assertFalse(result.isCompatible(),
+                "The schema defines type as a case-sensitive enum, so only scheme ignores case");
+        assertTrue(reports(result,
+                "Security scheme 'bearer' field 'type' changed from 'httpAuth' to 'HttpAuth'"));
+    }
+
+    @Test
     void testBackwardIncompatibleRemovingSecuritySchemeField() {
         String existing = cardWithScheme("bearer",
                 "{ \"type\": \"httpAuth\", \"scheme\": \"Bearer\", \"bearerFormat\": \"JWT\" }");

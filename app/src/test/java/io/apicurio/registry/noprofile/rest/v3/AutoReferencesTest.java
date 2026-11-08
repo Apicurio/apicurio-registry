@@ -5,9 +5,11 @@ import io.apicurio.registry.references.auto.ReferenceAutoMatchException;
 import io.apicurio.registry.rest.client.models.ArtifactReference;
 import io.apicurio.registry.rest.client.models.CreateArtifact;
 import io.apicurio.registry.rest.client.models.CreateArtifactResponse;
+import io.apicurio.registry.rest.client.models.CreateRule;
 import io.apicurio.registry.rest.client.models.CreateVersion;
 import io.apicurio.registry.rest.client.models.IfArtifactExists;
 import io.apicurio.registry.rest.client.models.ProblemDetails;
+import io.apicurio.registry.rest.client.models.RuleType;
 import io.apicurio.registry.rest.client.models.RuleViolationProblemDetails;
 import io.apicurio.registry.rest.client.models.VersionContent;
 import io.apicurio.registry.rest.client.models.VersionMetaData;
@@ -193,6 +195,22 @@ public class AutoReferencesTest extends AbstractResourceTestBase {
 
         Assertions.assertEquals("2", vmd.getVersion());
         assertRefs(g, "Order", "2", List.of(ref("com.acme.Address", g, "com.acme.Address", "1")));
+    }
+
+    @Test
+    public void explicitReferenceWinsUnderNoDuplicatesRule() throws Exception {
+        String g = newGroup();
+        createArtifact(g, "com.acme.Address", ArtifactType.AVRO, ADDRESS, ContentTypes.APPLICATION_JSON);
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.INTEGRITY);
+        rule.setConfig("NO_DUPLICATES");
+        clientV3.groups().byGroupId(g).rules().post(rule);
+
+        ArtifactReference explicit = ref("com.acme.Address", g, "com.acme.Address", "1");
+        createAuto(g, "Order", ArtifactType.AVRO, order("com.acme", "com.acme.Address"),
+                ContentTypes.APPLICATION_JSON, List.of(explicit), null);
+
+        assertRefs(g, "Order", "1", List.of(ref("com.acme.Address", g, "com.acme.Address", "1")));
     }
 
     @Test

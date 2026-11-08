@@ -11,4 +11,5 @@ allow User with name in {"bob1", "bob2"} to WRITE Artifact with name like "io.gi
 allow User with name in {"bob1", "bob2"} to WRITE Group with name like "io.github.shared*";
 allow User with name = "bob1" to WRITE Artifact with name like "grants-autoref/invoice-*";
 allow User with name = "bob1" to WRITE Group with name = "grants-autoref";
+allow User with name = "bob1" to READ Artifact with name like "com.acme.autorefreadable*";
 otherwise deny;

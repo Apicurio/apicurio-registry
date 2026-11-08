@@ -98,6 +98,54 @@ public class GrantsAutoReferencesTest extends AbstractResourceTestBase {
         as("alice").get("/registry/v3/groups/" + group + "/artifacts/" + invoiceId).then().statusCode(404);
     }
 
+    @Test
+    public void unreadableNamespaceGroupDependencyIsNotMatched() throws Exception {
+        String group = "grants-autoref";
+        String ns = "com.acme.autorefhidden" + UUID.randomUUID().toString().replace("-", "");
+        String parentId = "invoice-" + UUID.randomUUID();
+        createArtifact(ns, "Name", ArtifactType.AVRO, record(ns, "Name", "[]"), ContentTypes.APPLICATION_JSON);
+        String depPath = "/registry/v3/groups/" + ns + "/artifacts/Name/versions/1";
+        as("alice").get(depPath).then().statusCode(200)
+                .body("artifactId", equalTo("Name")).body("version", equalTo("1"));
+        as("bob1").get(depPath).then().statusCode(403);
+
+        String body = as("bob1").contentType(CT_JSON).body(avroAutoCreate(parentId, ns + ".Name"))
+                .post("/registry/v3/groups/" + group + "/artifacts").then().statusCode(400)
+                .extract().asString();
+
+        JsonPath error = JsonPath.from(body);
+        Assertions.assertEquals("ReferenceAutoMatchException", error.getString("name"));
+        Assertions.assertEquals(List.of(ns + ".Name"), error.getList("causes.context"));
+        Assertions.assertEquals(List.of("No matching artifact found in group '" + group + "'."),
+                error.getList("causes.description"));
+        as("alice").get("/registry/v3/groups/" + group + "/artifacts/" + parentId).then().statusCode(404);
+    }
+
+    @Test
+    public void readableNamespaceGroupDependencyIsMatched() throws Exception {
+        String group = "grants-autoref";
+        String ns = "com.acme.autorefreadable" + UUID.randomUUID().toString().replace("-", "");
+        String parentId = "invoice-" + UUID.randomUUID();
+        createArtifact(ns, "Name", ArtifactType.AVRO, record(ns, "Name", "[]"), ContentTypes.APPLICATION_JSON);
+
+        as("bob1").contentType(CT_JSON).body(avroAutoCreate(parentId, ns + ".Name"))
+                .post("/registry/v3/groups/" + group + "/artifacts").then().statusCode(200);
+
+        List<Map<String, Object>> refs = as("alice")
+                .get("/registry/v3/groups/" + group + "/artifacts/" + parentId + "/versions/1/references")
+                .then().statusCode(200).extract().jsonPath().getList("$");
+        Assertions.assertEquals(List.of(Map.of("name", ns + ".Name", "groupId", ns,
+                "artifactId", "Name", "version", "1")), refs);
+    }
+
+    private static Map<String, Object> avroAutoCreate(String artifactId, String fieldType) {
+        String content = record("com.acme.parent", "Parent",
+                "[{\"name\":\"a\",\"type\":\"" + fieldType + "\"}]");
+        return Map.of("artifactId", artifactId, "artifactType", ArtifactType.AVRO,
+                "firstVersion", Map.of("autoReferences", true,
+                        "content", Map.of("content", content, "contentType", ContentTypes.APPLICATION_JSON)));
+    }
+
     private static String uniqueNamespace() {
         return "com.acme.g" + UUID.randomUUID().toString().replace("-", "");
     }

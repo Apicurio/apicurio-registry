@@ -183,7 +183,8 @@ public class ReferenceMatcher {
     }
 
     /**
-     * Per-call caches of lookups.
+     * Per-call cache of artifact lookups, so that repeated references to the same artifact during a single
+     * {@link #match} invocation hit the storage only once. Not thread-safe; never shared across calls.
      */
     private final class Context {
         private final Map<String, Optional<String>> versions = new HashMap<>();
@@ -200,6 +201,10 @@ public class ReferenceMatcher {
         }
     }
 
+    /**
+     * Result of resolving a single reference: either a matched artifact version (group, artifactId and
+     * version set), a problem message (e.g. ambiguity), or {@link #NOT_FOUND} when all fields are null.
+     */
     private record Outcome(String groupId, String artifactId, String version, String problem) {
         static final Outcome NOT_FOUND = new Outcome(null, null, null, null);
 

@@ -5,7 +5,7 @@ import type { AgentProvider } from "./AgentCardViewer";
  * treats both fields as optional and can leave a provider as `{}` after a user clears
  * both inputs, so the viewer must treat the empty case as "no provider".
  */
-export const hasProviderContent = (provider: AgentProvider | undefined): boolean => {
+export const hasProviderContent = (provider: AgentProvider | undefined): provider is AgentProvider => {
     if (!provider) return false;
     return !!(provider.organization || provider.url);
 };

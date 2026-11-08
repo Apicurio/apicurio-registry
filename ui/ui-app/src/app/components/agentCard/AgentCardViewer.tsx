@@ -135,13 +135,13 @@ export const AgentCardViewer: FunctionComponent<AgentCardViewerProps> = (props: 
             <DescriptionListGroup>
                 <DescriptionListTerm>Provider</DescriptionListTerm>
                 <DescriptionListDescription>
-                    {provider!.url ? (
-                        <a href={provider!.url} target="_blank" rel="noopener noreferrer" className="provider-url">
-                            {providerLinkText(provider!)}
+                    {provider.url ? (
+                        <a href={provider.url} target="_blank" rel="noopener noreferrer" className="provider-url">
+                            {providerLinkText(provider)}
                             <ExternalLinkAltIcon className="external-link-icon" />
                         </a>
                     ) : (
-                        provider!.organization
+                        provider.organization
                     )}
                 </DescriptionListDescription>
             </DescriptionListGroup>

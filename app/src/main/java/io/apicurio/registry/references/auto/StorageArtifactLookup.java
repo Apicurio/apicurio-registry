@@ -22,6 +22,7 @@ import jakarta.inject.Inject;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -54,11 +55,14 @@ public class StorageArtifactLookup implements ArtifactLookup {
     @Override
     public List<String> searchByStructure(String groupId, List<String> structureFilters) {
         Set<SearchFilter> filters = new HashSet<>();
-        filters.add(SearchFilter.ofGroupId(new GroupId(groupId).getRawGroupIdWithNull()));
+        String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
+        filters.add(SearchFilter.ofGroupId(rawGroupId));
         structureFilters.forEach(f -> filters.add(SearchFilter.ofStructure(f)));
         ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.artifactId,
                 OrderDirection.asc, 0, MAX_SEARCH_RESULTS, true);
+        // The groupId filter is a wildcard match ('*' is legal in group ids), so keep exact matches only.
         return results.getArtifacts().stream()
+                .filter(artifact -> Objects.equals(rawGroupId, artifact.getGroupId()))
                 .map(SearchedArtifactDto::getArtifactId)
                 .filter(artifactId -> accessGuard.canRead(groupId, artifactId))
                 .toList();

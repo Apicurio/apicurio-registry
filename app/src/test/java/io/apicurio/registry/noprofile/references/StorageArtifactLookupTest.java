@@ -61,4 +61,18 @@ public class StorageArtifactLookupTest extends AbstractResourceTestBase {
                 lookup.searchByStructure("default", List.of("avro:namespace:" + namespace)));
         Assertions.assertEquals(schema, lookup.latestContent("default", artifactId).get().content());
     }
+
+    @Test
+    public void testSearchByStructureMatchesGroupExactly() throws Exception {
+        String prefix = UUID.randomUUID().toString();
+        String wildcardGroup = prefix + "-a*";
+        String otherGroup = prefix + "-ab";
+        createArtifact(wildcardGroup, "addr-star", ArtifactType.AVRO, ADDRESS_V1, ContentTypes.APPLICATION_JSON);
+        createArtifact(otherGroup, "addr-other", ArtifactType.AVRO, ADDRESS_V1, ContentTypes.APPLICATION_JSON);
+
+        Assertions.assertEquals(List.of("addr-star"), lookup.searchByStructure(wildcardGroup,
+                List.of("avro:name:Address", "avro:namespace:com.acme")));
+        Assertions.assertEquals(List.of("addr-other"), lookup.searchByStructure(otherGroup,
+                List.of("avro:name:Address", "avro:namespace:com.acme")));
+    }
 }

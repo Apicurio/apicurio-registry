@@ -168,6 +168,14 @@ public class SqlContentRepository {
     }
 
     /**
+     * Get contentId from hash and keep the content row from being deleted until the transaction ends.
+     */
+    public Optional<Long> lockedContentIdFromHashRaw(Handle handle, String contentHash) {
+        return handle.createQuery(sqlStatements.selectContentIdByHashAndLock()).bind(0, contentHash)
+                .mapTo(Long.class).findOne();
+    }
+
+    /**
      * Insert content into the database.
      */
     public void ensureContent(Handle handle, long contentId, TypedContent content, String contentHash,
@@ -281,13 +289,14 @@ public class SqlContentRepository {
     }
 
     /**
-     * Delete all orphaned content.
+     * Delete all orphaned content. The references of a content row go with it through the ON DELETE CASCADE
+     * of {@code content_references}. Deleting them in a statement of their own first would let a concurrent
+     * write reuse the content row in between and keep it without its references.
      */
     public void deleteAllOrphanedContentRaw(Handle handle) {
         log.debug("Deleting all orphaned content");
-        int references = handle.createUpdate(sqlStatements.deleteOrphanedContentReferences()).execute();
         int contents = handle.createUpdate(sqlStatements.deleteAllOrphanedContent()).execute();
-        log.debug("Deleted {} orphaned content references and {} orphaned content rows", references, contents);
+        log.debug("Deleted {} orphaned content rows", contents);
     }
 
     /**
@@ -574,15 +583,26 @@ public class SqlContentRepository {
     // ==================== CONTENT CREATION ====================
 
     /**
-     * Make sure the content exists in the database (try to insert it). Regardless of whether it already
-     * existed or not, return the contentId of the content in the DB.
+     * The hashes and serialized references of a piece of content, computed by
+     * {@link #hashContent} so that the CPU work does not run inside the transaction that stores it.
+     */
+    public record HashedContent(TypedContent content, String contentHash, String canonicalContentHash,
+            String serializedReferences, List<ArtifactReferenceDto> references) {
+    }
+
+    /**
+     * Compute the content hash, the canonical content hash and the serialized references of the content,
+     * without writing anything. Resolving references reads through {@code handles.withHandle}, which joins
+     * the caller's transaction when one is open. Call this before opening the transaction that stores the
+     * content whenever the content is known up front, so the hashing does not run while that transaction
+     * holds locks.
      *
      * @param artifactType The type of artifact
      * @param contentDto The content wrapper containing the content and references
      * @param isDraft Whether this is draft content
      * @param draftProductionMode When true and isDraft is true, use real content hashes instead of draft: prefix
      */
-    public Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft,
+    public HashedContent hashContent(String artifactType, ContentWrapperDto contentDto, boolean isDraft,
             boolean draftProductionMode) {
         List<ArtifactReferenceDto> references = contentDto.getReferences();
 
@@ -626,52 +646,74 @@ public class SqlContentRepository {
             serializedReferences = null;
         }
 
-        // Ensure the content is in the DB.
-        final String finalContentHash = contentHash;
-        final String finalCanonicalContentHash = canonicalContentHash;
-        final String finalSerializedReferences = serializedReferences;
-        final List<ArtifactReferenceDto> finalReferences = references;
+        return new HashedContent(content, contentHash, canonicalContentHash, serializedReferences,
+                references);
+    }
 
-        handles.withHandleNoException(handle -> {
-            // Look the hash up BEFORE allocating: nextContentIdRaw locks the shared contentId
-            // sequence row until commit, and every concurrent content write queues on that lock,
-            // so no extra round trip may run while it is held. A row inserted concurrently after
-            // this check is still handled below by insertContentIfAbsent / the PK-violation path.
-            boolean exists = contentIdFromHashRaw(handle, finalContentHash).isPresent();
-            // Always allocate so contentId allocation is unchanged from the insert-and-catch-duplicate
-            // behavior; the check only avoids a failing INSERT.
-            long contentId = sequenceRepository.nextContentIdRaw(handle);
-            if (exists) {
-                return null;
+    /**
+     * Make sure the content exists in the database (try to insert it), using the caller's handle so the
+     * insert shares the caller's transaction. Regardless of whether it already existed or not, return the
+     * contentId of the content in the DB.
+     */
+    public long ensureContentAndGetIdRaw(Handle handle, HashedContent prepared) {
+        // Look the hash up BEFORE allocating: nextContentIdRaw locks the shared contentId
+        // sequence row until commit, and every concurrent content write queues on that lock,
+        // so no extra round trip may run while it is held. A row inserted concurrently after
+        // this check is still handled below by insertContentIfAbsent / the PK-violation path.
+        boolean exists = contentIdFromHashRaw(handle, prepared.contentHash()).isPresent();
+        // Always allocate, also on a hit, as this code always did, so the contentId sequence advances the same
+        // way for every write that reaches this point on every node that replays the same journal (KafkaSQL).
+        long contentId = sequenceRepository.nextContentIdRaw(handle);
+        if (exists) {
+            // The row may be an orphan that the cleanup is about to delete. Lock it so it stays until this
+            // transaction commits its version. The lock comes after the sequence, the same order the insert
+            // below takes them in; locking the row first could deadlock with a writer that holds the
+            // sequence and waits for a lock the cleanup holds. The lock is taken only on a hit: on MySQL a
+            // locking read of a missing hash takes a gap lock, and two writers of new content would then
+            // deadlock on their inserts.
+            Optional<Long> locked = lockedContentIdFromHashRaw(handle, prepared.contentHash());
+            if (locked.isPresent()) {
+                return locked.get();
             }
-            try {
-                int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())
-                        .bind(0, contentId)
-                        .bind(1, finalCanonicalContentHash)
-                        .bind(2, finalContentHash)
-                        .bind(3, content.getContentType())
-                        .bind(4, content.getContent().bytes())
-                        .bind(5, finalSerializedReferences)
-                        .execute();
-                if (inserted == 0) {
-                    return null;
-                }
-            } catch (Exception e) {
-                if (sqlStatements.isPrimaryKeyViolation(e)) {
-                    log.debug("Content with content hash {} already exists: {}", finalContentHash, content);
-                    return null;
-                } else {
-                    throw e;
-                }
+            // The cleanup deleted the row meanwhile, so store the content again.
+        }
+        // A row that blocks the insert can be an orphan that the cleanup deletes before it is read back.
+        // Nothing stands in the way of storing the content then, so insert once more with the same id.
+        return insertContentRaw(handle, contentId, prepared)
+                .or(() -> insertContentRaw(handle, contentId, prepared))
+                .orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
+    }
+
+    /**
+     * Insert the content and its references. When another transaction stored the same content first, return
+     * the id of its row instead, read with a locking read because this transaction may read from a snapshot
+     * older than that commit. Empty when that row is gone again.
+     */
+    private Optional<Long> insertContentRaw(Handle handle, long contentId, HashedContent prepared) {
+        TypedContent content = prepared.content();
+        try {
+            int inserted = handle.createUpdate(sqlStatements.insertContentIfAbsent())
+                    .bind(0, contentId)
+                    .bind(1, prepared.canonicalContentHash())
+                    .bind(2, prepared.contentHash())
+                    .bind(3, content.getContentType())
+                    .bind(4, content.getContent().bytes())
+                    .bind(5, prepared.serializedReferences())
+                    .execute();
+            if (inserted == 0) {
+                return lockedContentIdFromHashRaw(handle, prepared.contentHash());
             }
+        } catch (Exception e) {
+            if (sqlStatements.isPrimaryKeyViolation(e)) {
+                log.debug("Content with content hash {} already exists: {}", prepared.contentHash(), content);
+                return lockedContentIdFromHashRaw(handle, prepared.contentHash());
+            } else {
+                throw e;
+            }
+        }
 
-            // If we get here, then the content was inserted and we need to insert the references.
-            insertReferencesRaw(handle, contentId, finalReferences);
-            return null;
-        });
-
-        // Get the contentId using the unique contentHash.
-        Optional<Long> contentId = contentIdFromHash(contentHash);
-        return contentId.orElseThrow(() -> new RegistryStorageException("Failed to ensure content."));
+        // If we get here, then the content was inserted and we need to insert the references.
+        insertReferencesRaw(handle, contentId, prepared.references());
+        return Optional.of(contentId);
     }
 }

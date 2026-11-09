@@ -37,6 +37,18 @@ public class SQLServerSqlStatements extends CommonSqlStatements {
         return error.getMessage().contains("conflicted with the FOREIGN KEY constraint");
     }
 
+    /**
+     * UPDLOCK holds an update lock on the row until the transaction ends, so a DELETE of the row waits.
+     * Unlike HOLDLOCK it takes no key-range lock when the row is missing, which two writers of the same
+     * new content could deadlock on.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentIdByHashAndLock()
+     */
+    @Override
+    public String selectContentIdByHashAndLock() {
+        return "SELECT c.contentId FROM content c WITH (UPDLOCK, ROWLOCK) WHERE c.contentHash = ?";
+    }
+
     @Override
     public String upsertBranch() {
         return """

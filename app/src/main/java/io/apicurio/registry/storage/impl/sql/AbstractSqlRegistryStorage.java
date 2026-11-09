@@ -570,15 +570,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
             }
         }
 
-        // Ensure the content exists. If this is a dryRun, or if the create fails, this
-        // could result in orphaned content. That's OK because we have an async process
-        // that will later delete any orphaned content.
-        long cid = -1;
-        if (versionContent != null) {
-            // Put the content in the DB and get the unique content ID back.
-            cid = ensureContentAndGetId(artifactType, versionContent, versionIsDraft);
-        }
-        final long contentId = cid;
+        SqlContentRepository.HashedContent preparedContent = versionContent == null ? null
+            : hashContent(artifactType, versionContent, versionIsDraft);
 
         try {
             return handles.withHandle(handle -> {
@@ -626,6 +619,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     if (!versionIsDraft) {
                         updateStructuredContentRaw(handle, groupId, artifactId, artifactType, versionContent);
                     }
+                    // Content insert placement and lock order: see createArtifactVersion.
+                    long contentId = contentRepository.ensureContentAndGetIdRaw(handle, preparedContent);
                     ArtifactVersionMetaDataDto vmdDto = createArtifactVersionRaw(handle, true, groupId,
                             artifactId, version, versionMetaData, owner, createdOn, contentId,
                             versionBranches, versionIsDraft);
@@ -777,8 +772,10 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 metaData, owner, createdOn, contentId, branches, isDraft);
     }
 
-    private Long ensureContentAndGetId(String artifactType, ContentWrapperDto contentDto, boolean isDraft) {
-        return contentRepository.ensureContentAndGetId(artifactType, contentDto, isDraft,
+    /** Hashes the content before the transaction opens; see {@link SqlContentRepository#hashContent}. */
+    private SqlContentRepository.HashedContent hashContent(String artifactType, ContentWrapperDto contentDto,
+            boolean isDraft) {
+        return contentRepository.hashContent(artifactType, contentDto, isDraft,
                 restConfig.isDraftProductionModeEnabled());
     }
 
@@ -804,9 +801,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
         log.debug("Creating new artifact version for {} {} (version {}).", groupId, artifactId, version);
 
         Date createdOn = new Date();
-
-        // Put the content in the DB and get the unique content ID back.
-        long contentId = ensureContentAndGetId(artifactType, content, isDraft);
+        SqlContentRepository.HashedContent preparedContent = hashContent(artifactType, content, isDraft);
 
         try {
             // Create version and return
@@ -816,9 +811,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                     handle.setRollback(true);
                 }
 
+                // The content is inserted in this transaction, so the orphaned content cleanup cannot
+                // delete it before the version references it (#9777). Lock order: artifact row, then
+                // contentId sequence, then globalId sequence. The insert goes right before the version
+                // insert because both sequence locks are held until commit.
                 lockArtifactForVersionWrite(handle, groupId, artifactId);
                 boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
                 indexNewVersionBeforeGlobalIdRaw(handle, groupId, artifactId, content, isDraft);
+                long contentId = contentRepository.ensureContentAndGetIdRaw(handle, preparedContent);
 
                 // Now create the version and return the new version metadata.
                 return createArtifactVersionRaw(handle, isFirstVersion,
@@ -842,7 +842,7 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
 
         Date createdOn = new Date();
-        long contentId = ensureContentAndGetId(artifactType, content, isDraft);
+        SqlContentRepository.HashedContent preparedContent = hashContent(artifactType, content, isDraft);
 
         try {
             return handles.withHandle(handle -> {
@@ -865,6 +865,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 // Safe to proceed — we hold the FOR UPDATE lock
                 boolean isFirstVersion = countArtifactVersionsRaw(handle, groupId, artifactId) == 0;
                 indexNewVersionBeforeGlobalIdRaw(handle, groupId, artifactId, content, isDraft);
+                // Same placement and lock order as createArtifactVersion.
+                long contentId = contentRepository.ensureContentAndGetIdRaw(handle, preparedContent);
                 ArtifactVersionMetaDataDto result = createArtifactVersionRaw(handle, isFirstVersion,
                         groupId, artifactId, version,
                         metaData == null ? EditableVersionMetaDataDto.builder().build() : metaData,
@@ -1267,13 +1269,14 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
 
         log.debug("Updating content for artifact version: {} {} @ {}", groupId, artifactId, version);
 
-        // Put the new content in the DB and get the unique content ID back.
-        long contentId = ensureContentAndGetId(artifactType, content, true);
+        SqlContentRepository.HashedContent preparedContent = hashContent(artifactType, content, true);
 
         // Update the version content and its structured-content index in a single transaction so the
-        // index can never be left pointing at a previous version's content.
+        // index can never be left pointing at a previous version's content. The content goes in the same
+        // transaction (see createArtifactVersion); no globalId is allocated here.
         handles.withHandleNoException(handle -> {
             lockArtifactForVersionWrite(handle, groupId, artifactId);
+            long contentId = contentRepository.ensureContentAndGetIdRaw(handle, preparedContent);
             versionRepository.updateArtifactVersionContentRaw(handle, groupId, artifactId, version,
                     contentId);
             // The structured-content index is artifact-scoped and reflects the artifact's latest version.
@@ -1438,7 +1441,8 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
                 ContentWrapperDto contentDto = contentRepository.getContentById(versionMeta.getContentId());
                 if (contentDto.getContentHash() != null && contentDto.getContentHash().startsWith("draft:")) {
                     String artifactType = versionMeta.getArtifactType();
-                    long newContentId = ensureContentAndGetId(artifactType, contentDto, false);
+                    long newContentId = contentRepository.ensureContentAndGetIdRaw(handle,
+                            hashContent(artifactType, contentDto, false));
                     if (newContentId != versionMeta.getContentId()) {
                         versionRepository.updateArtifactVersionContent(groupId, artifactId, version, newContentId);
                     }

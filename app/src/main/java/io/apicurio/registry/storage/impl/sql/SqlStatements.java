@@ -208,6 +208,19 @@ public interface SqlStatements {
     public String selectContentIdByHash();
 
     /**
+     * Like {@link #selectContentIdByHash()}, but takes a lock on the row that is held until the transaction
+     * ends, and sees the latest committed row even when the transaction reads from an older snapshot. The
+     * lock keeps the orphaned content cleanup from deleting a content row that the transaction is about to
+     * reference from a version. It is also the read to use after an insert lost a race with another
+     * transaction storing the same content, because the winner's row may have been committed after this
+     * transaction's snapshot. This assumes the default isolation (READ COMMITTED, REPEATABLE READ on
+     * MySQL). The default is the H2 form, the other dialects override it.
+     */
+    default String selectContentIdByHashAndLock() {
+        return selectContentIdByHash() + " FOR UPDATE";
+    }
+
+    /**
      * A statement used to select artifact rules by artifactId.
      */
     public String selectArtifactRules();
@@ -713,8 +726,6 @@ public interface SqlStatements {
     public String selectStaleConfigProperties();
 
     public String deleteAllContentReferences();
-
-    public String deleteOrphanedContentReferences();
 
     /*
      * The next statements relate to comments.

@@ -42,6 +42,17 @@ public class PostgreSQLSqlStatements extends CommonSqlStatements {
     }
 
     /**
+     * A key share lock blocks a DELETE of the row, which is all that is needed, and concurrent writers of
+     * the same content can hold it together.
+     *
+     * @see io.apicurio.registry.storage.impl.sql.SqlStatements#selectContentIdByHashAndLock()
+     */
+    @Override
+    public String selectContentIdByHashAndLock() {
+        return selectContentIdByHash() + " FOR KEY SHARE";
+    }
+
+    /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#getNextSequenceValue()
      */
     @Override

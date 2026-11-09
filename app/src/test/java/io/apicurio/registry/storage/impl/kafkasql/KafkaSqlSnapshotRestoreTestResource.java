@@ -15,6 +15,7 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.config.TopicConfig;
+import org.apache.kafka.common.header.Header;
 import org.apache.kafka.common.header.internals.RecordHeader;
 import org.apache.kafka.common.serialization.StringSerializer;
 
@@ -27,6 +28,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +46,19 @@ import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.REQUE
  * journal with one record before the snapshot marker, the marker itself, and one record after it,
  * and a two-partition snapshots topic. Partition 0 holds the valid snapshot record; partition 1
  * holds a newer record whose path lies outside the snapshot store, which the registry must skip.
+ * <p>
+ * By default the snapshot record has no journal position, as written before the position was
+ * recorded. The {@value #SCENARIO} init argument selects a record that has one:
+ * <ul>
+ * <li>{@value #SEEK_TO_MARKER}: the journal starts with an earlier copy of the same marker, and the
+ * position points at the real marker. Reading the journal from the beginning stops at the copy and
+ * applies {@link #BEFORE_MARKER_GROUP}; starting at the position does not.</li>
+ * <li>{@value #POSITION_PAST_MARKER}: the position points at the record after the marker, which the
+ * registry must detect and fall back to reading the journal from the beginning.</li>
+ * <li>{@value #POSITION_AT_JOURNAL_END}: the position is the journal end offset once the registry has
+ * appended its bootstrap record, which the registry must reject and read the journal from the
+ * beginning instead.</li>
+ * </ul>
  */
 public class KafkaSqlSnapshotRestoreTestResource extends KafkaTestContainerManager {
 
@@ -54,7 +69,19 @@ public class KafkaSqlSnapshotRestoreTestResource extends KafkaTestContainerManag
     /** Journaled after the marker: it must be applied on top of the restored snapshot. */
     static final String AFTER_MARKER_GROUP = "after-marker-group";
 
+    static final String SCENARIO = "scenario";
+    static final String SEEK_TO_MARKER = "seek-to-marker";
+    static final String POSITION_PAST_MARKER = "position-past-marker";
+    static final String POSITION_AT_JOURNAL_END = "position-at-journal-end";
+
     private static final long SEED_TIMEOUT_SECONDS = 30;
+
+    private String scenario;
+
+    @Override
+    public void init(Map<String, String> initArgs) {
+        scenario = initArgs.get(SCENARIO);
+    }
 
     /** Holds the snapshot store and, next to it, the file the rejected snapshot record points at. */
     private Path tempRoot;
@@ -84,7 +111,8 @@ public class KafkaSqlSnapshotRestoreTestResource extends KafkaTestContainerManag
             Path outsideStore = Files.writeString(
                     tempRoot.resolve(UUID.randomUUID() + SqlStatements.COMPRESSED_SNAPSHOT_EXTENSION),
                     "not a snapshot");
-            seedTopics(bootstrapServers, journalTopic, snapshotsTopic, snapshotId, snapshotFile, outsideStore);
+            seedTopics(bootstrapServers, journalTopic, snapshotsTopic, snapshotId, snapshotFile, outsideStore,
+                    scenario);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException(e);
@@ -140,7 +168,7 @@ public class KafkaSqlSnapshotRestoreTestResource extends KafkaTestContainerManag
     }
 
     private static void seedTopics(String bootstrapServers, String journalTopic, String snapshotsTopic,
-            String snapshotId, Path snapshotFile, Path outsideStore) throws Exception {
+            String snapshotId, Path snapshotFile, Path outsideStore, String scenario) throws Exception {
         Map<String, String> retainForever = Map.of(TopicConfig.CLEANUP_POLICY_CONFIG,
                 TopicConfig.CLEANUP_POLICY_DELETE, TopicConfig.RETENTION_MS_CONFIG, "-1",
                 TopicConfig.RETENTION_BYTES_CONFIG, "-1");
@@ -152,19 +180,41 @@ public class KafkaSqlSnapshotRestoreTestResource extends KafkaTestContainerManag
 
         Map<String, Object> producerConfig = Map.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers,
                 ProducerConfig.ACKS_CONFIG, "all");
+        KafkaSqlMessage marker = new CreateSnapshot1Message(snapshotFile.toString(), snapshotId);
+        List<KafkaSqlMessage> messages = new ArrayList<>();
+        if (SEEK_TO_MARKER.equals(scenario)) {
+            messages.add(marker);
+        }
+        messages.addAll(List.of(createGroup(BEFORE_MARKER_GROUP), marker, createGroup(AFTER_MARKER_GROUP)));
+        // Offsets of the journal records, in the order above (one partition, one send per record).
+        List<Long> offsets = new ArrayList<>();
         try (KafkaProducer<KafkaSqlMessageKey, KafkaSqlMessage> journal = new KafkaProducer<>(producerConfig,
                 new KafkaSqlKeySerializer(), new KafkaSqlValueSerializer())) {
-            for (KafkaSqlMessage message : List.of(createGroup(BEFORE_MARKER_GROUP),
-                    new CreateSnapshot1Message(snapshotFile.toString(), snapshotId),
-                    createGroup(AFTER_MARKER_GROUP))) {
-                journal.send(journalRecord(journalTopic, message)).get(SEED_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            for (KafkaSqlMessage message : messages) {
+                offsets.add(journal.send(journalRecord(journalTopic, message))
+                        .get(SEED_TIMEOUT_SECONDS, TimeUnit.SECONDS).offset());
             }
+        }
+        List<Header> markerPosition = List.of();
+        if (scenario != null) {
+            int markerIndex = messages.lastIndexOf(marker);
+            long position = switch (scenario) {
+                case POSITION_PAST_MARKER -> offsets.get(markerIndex + 1);
+                // startConsumerThread appends one bootstrap record (submitBootstrap) before it
+                // subscribes, so the journal then ends two past the last seeded offset. If that ever
+                // changes, this position stops being the end and the scenario tests something else.
+                case POSITION_AT_JOURNAL_END -> offsets.get(offsets.size() - 1) + 2;
+                case SEEK_TO_MARKER -> offsets.get(markerIndex);
+                default -> throw new IllegalArgumentException("Unknown scenario " + scenario);
+            };
+            markerPosition = new JournalPosition(0, position).toHeaders();
         }
         // The rejected record is sent second so its timestamp is newer: the registry has to skip it
         // rather than merely prefer the older valid one.
         try (KafkaProducer<String, String> snapshots = new KafkaProducer<>(producerConfig,
                 new StringSerializer(), new StringSerializer())) {
-            snapshots.send(new ProducerRecord<>(snapshotsTopic, 0, snapshotId, snapshotFile.toString()))
+            snapshots.send(new ProducerRecord<>(snapshotsTopic, 0, snapshotId, snapshotFile.toString(),
+                    markerPosition))
                     .get(SEED_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             snapshots.send(new ProducerRecord<>(snapshotsTopic, 1, UUID.randomUUID().toString(),
                     outsideStore.toString())).get(SEED_TIMEOUT_SECONDS, TimeUnit.SECONDS);

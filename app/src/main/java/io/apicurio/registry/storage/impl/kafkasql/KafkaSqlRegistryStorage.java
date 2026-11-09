@@ -91,12 +91,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.HashMap;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.apicurio.registry.storage.impl.kafkasql.KafkaSqlSubmitter.BOOTSTRAP_MESSAGE_TYPE;
 import static io.apicurio.registry.utils.ConcurrentUtil.blockOnResult;
@@ -172,10 +172,12 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
     private volatile boolean stopped = true;
     private volatile boolean snapshotProcessed = false;
 
-    // Snapshot ids triggered by this replica. A concurrent set prevents lost updates when
+    // Snapshot ids triggered by this replica. A concurrent map prevents lost updates when
     // two API threads call triggerSnapshotCreation concurrently (the old volatile String
     // was a single-slot register where the second write silently overwrote the first).
-    private final Set<String> triggeredSnapshots = ConcurrentHashMap.newKeySet();
+    // Each value is the triggering thread's slot for the journal position of the snapshot's
+    // marker, filled in by the consumer thread before it takes the snapshot.
+    private final Map<String, AtomicReference<JournalPosition>> triggeredSnapshots = new ConcurrentHashMap<>();
 
     // Reference to the consumer thread for health checks
     private volatile Thread consumerThread = null;
@@ -209,7 +211,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
         // Try to restore the internal database from a snapshot
         final long bootstrapStart = System.currentTimeMillis();
-        String snapshotId = consumeSnapshotsTopic(snapshotsConsumer);
+        RestoredSnapshot restoredSnapshot = consumeSnapshotsTopic(snapshotsConsumer);
 
         // Once the topics are created, and the snapshots processed, initialize the internal SQL Storage.
         sqlStore.initialize();
@@ -217,7 +219,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
 
         // Once the SQL storage has been initialized, start the Kafka consumer thread.
         log.info("SQL store initialized, starting consumer thread.");
-        startConsumerThread(journalConsumer, snapshotId, bootstrapStart);
+        startConsumerThread(journalConsumer, restoredSnapshot, bootstrapStart);
     }
 
     @Override
@@ -279,7 +281,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
      * restores the internal database using the snapshot's content. Polls in a loop until all messages
      * are consumed from the topic.
      */
-    private String consumeSnapshotsTopic(KafkaConsumer<String, String> snapshotsConsumer) {
+    private RestoredSnapshot consumeSnapshotsTopic(KafkaConsumer<String, String> snapshotsConsumer) {
         // Subscribe to the snapshots topic
         Collection<String> topics = Collections.singleton(configuration.getSnapshotsTopic());
         snapshotsConsumer.subscribe(topics);
@@ -299,7 +301,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         var endOffsets = snapshotsConsumer.endOffsets(assigned);
 
         List<ConsumerRecord<String, String>> snapshots = new ArrayList<>();
-        String snapshotRecordKey = null;
+        ConsumerRecord<String, String> restoredRecord = null;
 
         // Poll until we reach the original end offsets or get an empty result
         ConsumerRecords<String, String> records;
@@ -338,7 +340,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                     }
                     if (Files.exists(Path.of(path))) {
                         log.debug("Snapshot with path {} found.", path);
-                        snapshotRecordKey = snapshotFound.key();
+                        restoredRecord = snapshotFound;
                         mostRecentSnapshotPath = Path.of(path);
                     }
                 } catch (IllegalArgumentException ex) {
@@ -356,7 +358,20 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
             }
         }
 
-        return snapshotRecordKey;
+        if (restoredRecord == null) {
+            return new RestoredSnapshot(null, null);
+        }
+        return new RestoredSnapshot(restoredRecord.key(), readMarkerPosition(restoredRecord));
+    }
+
+    private JournalPosition readMarkerPosition(ConsumerRecord<String, String> snapshotRecord) {
+        try {
+            return JournalPosition.ofSnapshotRecord(snapshotRecord);
+        } catch (IllegalArgumentException e) {
+            log.warn("Snapshot {} has an invalid journal position ({}), the journal will be read from the "
+                    + "beginning.", snapshotRecord.key(), e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -384,19 +399,27 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
      * model.
      */
     private void startConsumerThread(final KafkaConsumer<KafkaSqlMessageKey, KafkaSqlMessage> consumer,
-                                     String snapshotId, long bootstrapStart) {
+                                     RestoredSnapshot restoredSnapshot, long bootstrapStart) {
         log.info("Starting KSQL consumer thread on topic: {}", configuration.getTopic());
         log.info("Bootstrap servers: {}", configuration.getBootstrapServers());
 
         final String bootstrapId = UUID.randomUUID().toString();
         submitter.submitBootstrap(bootstrapId);
 
+        final String snapshotId = restoredSnapshot.snapshotId();
+        // Set while the consumer may be positioned at the recorded marker (see SnapshotMarkerSeek) and
+        // the record found there has not been checked yet. Only the consumer thread reads or writes it.
+        final AtomicReference<JournalPosition> unverifiedMarker = new AtomicReference<>(
+                restoredSnapshot.markerPosition());
+
         Runnable runner = () -> {
             try {
                 log.info("Subscribing to {}", configuration.getTopic());
-                // Subscribe to the journal topic
+                // Subscribe to the journal topic. When the restored snapshot recorded where its marker
+                // is, start that partition at the marker instead of reading everything before it.
                 Collection<String> topics = Collections.singleton(configuration.getTopic());
-                consumer.subscribe(topics);
+                consumer.subscribe(topics, new SnapshotMarkerSeek(consumer, configuration.getTopic(),
+                        unverifiedMarker, () -> snapshotProcessed));
 
                 // Main consumer loop
                 while (!stopped) {
@@ -411,7 +434,21 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                                     .iterator();
                             while (it.hasNext() && !snapshotProcessed) {
                                 ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
-                                if (processSnapshot(snapshotId, record)) {
+                                boolean isMarker = processSnapshot(snapshotId, record);
+                                JournalPosition marker = unverifiedMarker.get();
+                                if (marker != null && record.partition() == marker.partition()) {
+                                    unverifiedMarker.set(null);
+                                    if (record.offset() != marker.offset() || !isMarker) {
+                                        // The recorded position does not hold the marker, so fall back
+                                        // to scanning the whole journal for it, as without a position.
+                                        log.warn("Journal partition {} offset {} is not the marker of snapshot {}, "
+                                                + "reading the journal from the beginning instead.",
+                                                marker.partition(), marker.offset(), snapshotId);
+                                        consumer.seekToBeginning(consumer.assignment());
+                                        break;
+                                    }
+                                }
+                                if (isMarker) {
                                     log.debug(
                                             "Snapshot marker found {} the new messages will be applied on top of the snapshot data.",
                                             record.key());
@@ -492,14 +529,19 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
             return;
         }
 
-        // If the key is a CreateSnapshotMessage key, but this replica does not have the snapshotId, it means
-        // that it wasn't triggered here, so just skip the message.
-        if (record.value() instanceof CreateSnapshot1Message csm
-                && !triggeredSnapshots.contains(csm.getSnapshotId())) {
-            log.debug(
-                    "Snapshot trigger message with id {} being skipped since this replica did not trigger the creation.",
-                    csm.getSnapshotId());
-            return;
+        if (record.value() instanceof CreateSnapshot1Message csm) {
+            // If the key is a CreateSnapshotMessage key, but this replica does not have the snapshotId, it
+            // means that it wasn't triggered here, so just skip the message.
+            AtomicReference<JournalPosition> markerSlot = triggeredSnapshots.get(csm.getSnapshotId());
+            if (markerSlot == null) {
+                log.debug(
+                        "Snapshot trigger message with id {} being skipped since this replica did not trigger the creation.",
+                        csm.getSnapshotId());
+                return;
+            }
+            // Tell triggerSnapshotCreation() where the marker is, so it can publish it with the snapshot.
+            // The sink's response below is what wakes up the triggering thread.
+            markerSlot.set(new JournalPosition(record.partition(), record.offset()));
         }
 
         // If the value is null, then this is a tombstone (or unrecognized) message and should not
@@ -516,8 +558,8 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         // handles response synchronization for write operations.
         kafkaSqlSink.processMessage(record);
 
-        // Once a snapshot triggered by this replica has been processed, remove it from the set
-        // so the set does not grow unboundedly.
+        // Once a snapshot triggered by this replica has been processed, remove it from the map
+        // so the map does not grow unboundedly.
         if (record.value() instanceof CreateSnapshot1Message csm) {
             triggeredSnapshots.remove(csm.getSnapshotId());
         }
@@ -1462,14 +1504,17 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         String snapshotId = UUID.randomUUID().toString();
         Path path = Path.of(configuration.getSnapshotStoreLocation(), snapshotId + SqlStatements.COMPRESSED_SNAPSHOT_EXTENSION);
         var message = new CreateSnapshot1Message(path.toString(), snapshotId);
-        triggeredSnapshots.add(snapshotId);
+        AtomicReference<JournalPosition> markerSlot = new AtomicReference<>();
+        triggeredSnapshots.put(snapshotId, markerSlot);
         log.debug("Snapshot with id {} triggered.", snapshotId);
         var uuid = blockOnResult(submitter.submitMessage(message));
         String snapshotLocation = (String) coordinator.waitForResponse(uuid);
+        JournalPosition markerPosition = markerSlot.get();
         // Then we send a new message to the snapshots topic, using the snapshot id as the key of the snapshot
-        // message.
+        // message and recording where the marker is, so a restore can start reading the journal there.
         ProducerRecord<String, String> record = new ProducerRecord<>(configuration.getSnapshotsTopic(), 0,
-                snapshotId, snapshotLocation, Collections.emptyList());
+                snapshotId, snapshotLocation,
+                markerPosition == null ? Collections.emptyList() : markerPosition.toHeaders());
         RecordMetadata recordMetadata = blockOnResult(snapshotsProducer.apply(record));
         return snapshotLocation;
     }
@@ -1520,4 +1565,11 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         });
     }
 
+    /**
+     * The snapshot restored at startup: its id, which identifies its marker in the journal, or
+     * {@code null} when no snapshot was restored, and where that marker is, or {@code null} when the
+     * snapshot record does not say (written before the position was recorded).
+     */
+    private record RestoredSnapshot(String snapshotId, JournalPosition markerPosition) {
+    }
 }

@@ -4,6 +4,8 @@ import io.apicurio.registry.operator.Configuration;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3;
 import io.apicurio.registry.operator.api.v1.ApicurioRegistry3Spec;
 import io.apicurio.registry.operator.api.v1.spec.AppSpec;
+import io.apicurio.registry.operator.api.v1.spec.AutoscalingSpec;
+import io.apicurio.registry.operator.api.v1.spec.ComponentSpec;
 import io.apicurio.registry.operator.api.v1.spec.GitOpsMode;
 import io.apicurio.registry.operator.api.v1.spec.GitOpsPullSpec;
 import io.apicurio.registry.operator.api.v1.spec.GitOpsPushSpec;
@@ -11,6 +13,8 @@ import io.apicurio.registry.operator.api.v1.spec.GitOpsRepoSpec;
 import io.apicurio.registry.operator.api.v1.spec.GitOpsSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageSpec;
 import io.apicurio.registry.operator.api.v1.spec.StorageType;
+import io.apicurio.registry.operator.status.StatusManager;
+import io.apicurio.registry.operator.status.ValidationErrorConditionManager;
 import io.fabric8.kubernetes.api.model.Container;
 import io.fabric8.kubernetes.api.model.ContainerBuilder;
 import io.fabric8.kubernetes.api.model.ContainerPortBuilder;
@@ -70,6 +74,10 @@ public class GitOps {
 
                     var repos = ofNullable(gitOps.getRepos()).orElse(List.of());
                     var mode = ofNullable(gitOps.getMode()).orElse(GitOpsMode.PULL);
+
+                    if (mode == GitOpsMode.PUSH) {
+                        validatePushModeSingleReplica(primary);
+                    }
 
                     configureRegistryRepoEnvVars(repos, env);
                     configureVolume(deployment);
@@ -284,6 +292,42 @@ public class GitOps {
             sidecarEnv.add(new EnvVarBuilder()
                     .withName("APICURIO_GITOPS_PUSH_SSH_HOST_KEY")
                     .withValue(hostKey.getSecretVolumeKeyPath()).build());
+        }
+    }
+
+    static final String ERROR_PUSH_MODE_MULTI_REPLICA =
+            "GitOps push mode does not support multiple replicas. "
+                    + "In push mode, a git push lands on a single pod via the Service, "
+                    + "so other replicas never receive the data and silently diverge. "
+                    + "Set spec.app.replicas to 1 or switch to pull mode.";
+
+    static final String ERROR_PUSH_MODE_AUTOSCALING =
+            "GitOps push mode does not support autoscaling. "
+                    + "A HorizontalPodAutoscaler can scale the deployment beyond one replica, "
+                    + "which causes data divergence in push mode. "
+                    + "Disable spec.app.autoscaling or switch to pull mode.";
+
+    private static void validatePushModeSingleReplica(ApicurioRegistry3 primary) {
+        final int replicas = ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getApp)
+                .map(ComponentSpec::getReplicas)
+                .orElse(1);
+
+        final boolean autoscalingEnabled = ofNullable(primary.getSpec())
+                .map(ApicurioRegistry3Spec::getApp)
+                .map(ComponentSpec::getAutoscaling)
+                .map(AutoscalingSpec::getEnabled)
+                .orElse(false);
+
+        final var validationManager = StatusManager.get(primary)
+                .getConditionManager(ValidationErrorConditionManager.class);
+
+        if (replicas > 1) {
+            validationManager.recordError(ERROR_PUSH_MODE_MULTI_REPLICA);
+        }
+
+        if (autoscalingEnabled) {
+            validationManager.recordError(ERROR_PUSH_MODE_AUTOSCALING);
         }
     }
 

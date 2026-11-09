@@ -1,0 +1,21 @@
+# Invalid: push mode with autoscaling enabled
+# The operator should report a ValidationError condition.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: gitops-push-hpa
+spec:
+  app:
+    autoscaling:
+      enabled: true
+      minReplicas: 1
+      maxReplicas: 5
+    storage:
+      type: gitops
+      gitops:
+        mode: push
+        registryId: prod
+        push:
+          authorizedKeys:
+            name: gitops-push-authorized-keys
+            key: authorized_keys

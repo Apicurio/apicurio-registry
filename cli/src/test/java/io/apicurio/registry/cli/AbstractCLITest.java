@@ -8,6 +8,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Timeout;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import picocli.CommandLine;
@@ -29,8 +30,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Base class for CLI tests with common setup and utility methods.
  * Subclasses must be annotated with @QuarkusTest.
+ * <p>
+ * The CLI's Registry client has no request timeout, so a command whose connection to the
+ * registry container is lost waits forever. The class-level {@link Timeout} (inherited by every
+ * subclass) interrupts such a test, which makes the blocked command return, instead of letting
+ * it hang until the Surefire fork timeout. It does not cover lifecycle methods, so a subclass
+ * {@code @BeforeEach} that calls the registry needs its own {@code @Timeout}.
  */
 @DockerRequired
+@Timeout(120)
 public abstract class AbstractCLITest {
 
     protected static GenericContainer<?> registryContainer;

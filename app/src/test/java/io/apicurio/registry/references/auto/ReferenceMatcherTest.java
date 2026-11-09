@@ -9,9 +9,12 @@ import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.RuleType;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -24,16 +27,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class ReferenceMatcherTest {
 
-    /** In-memory ArtifactLookup: artifacts keyed "g/a" with version, content and structure entries. */
-    static final class FakeLookup implements ArtifactLookup {
+    /**
+     * In-memory ArtifactLookup: artifacts keyed "g/a" with a latest version and structure entries, and contents
+     * keyed "g/a@version".
+     */
+    static class FakeLookup implements ArtifactLookup {
         final Map<String, String> versions = new HashMap<>();
         final Map<String, String> contents = new HashMap<>();
         final Map<String, Set<String>> structure = new HashMap<>();
         boolean truncated;
+        boolean caseInsensitiveStructure;
+        final List<String> contentRequests = new ArrayList<>();
 
         FakeLookup add(String g, String a, String version, String content, String... structureEntries) {
             versions.put(g + "/" + a, version);
-            contents.put(g + "/" + a, content);
+            contents.put(g + "/" + a + "@" + version, content);
             structure.put(g + "/" + a, Set.of(structureEntries));
             return this;
         }
@@ -43,17 +51,23 @@ class ReferenceMatcherTest {
             return Optional.ofNullable(versions.get(g + "/" + a));
         }
 
+        /** Mimics the SQL structure index, which compares lowercased values when the flag is set. */
+        private List<String> lower(Collection<String> values) {
+            return values.stream().map(v -> caseInsensitiveStructure ? v.toLowerCase(Locale.ROOT) : v).toList();
+        }
+
         @Override
         public StructureSearchResult searchByStructure(String g, List<String> filters) {
             List<String> ids = structure.entrySet().stream()
-                    .filter(e -> e.getKey().startsWith(g + "/") && e.getValue().containsAll(filters))
+                    .filter(e -> e.getKey().startsWith(g + "/") && lower(e.getValue()).containsAll(lower(filters)))
                     .map(e -> e.getKey().substring(g.length() + 1)).sorted().toList();
             return new StructureSearchResult(ids, truncated);
         }
 
         @Override
-        public Optional<ContentHandle> latestContent(String g, String a) {
-            return Optional.ofNullable(contents.get(g + "/" + a)).map(ContentHandle::create);
+        public Optional<ContentHandle> content(String g, String a, String version) {
+            contentRequests.add(g + "/" + a + "@" + version);
+            return Optional.ofNullable(contents.get(g + "/" + a + "@" + version)).map(ContentHandle::create);
         }
     }
 
@@ -120,7 +134,8 @@ class ReferenceMatcherTest {
 
     @Test
     void jsonAbsoluteIdUsesIndex() {
-        FakeLookup lookup = new FakeLookup().add("g", "money", "7", "{}", "json:id:https://ex.com/money.json");
+        FakeLookup lookup = new FakeLookup().add("g", "money", "7", "{\"$id\":\"https://ex.com/money.json\"}",
+                "json:id:https://ex.com/money.json");
         Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("https://ex.com/money.json#/defs/M"));
         ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, Set.of());
         assertEquals("money", m.matched().get(0).getArtifactId());
@@ -139,7 +154,7 @@ class ReferenceMatcherTest {
     @Test
     void artifactWithoutLatestVersionIsNotFound() {
         FakeLookup lookup = new FakeLookup();
-        lookup.contents.put("g/x.proto", "x");
+        lookup.contents.put("g/x.proto@1", "x");
         ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.PROTOBUF, refs("x.proto"), Set.of());
         assertEquals(List.of(new MatchProblem("x.proto", "No matching artifact found in group 'g'.")),
                 m.problems());
@@ -200,6 +215,70 @@ class ReferenceMatcherTest {
         assertEquals(List.of(), m.matched());
         assertEquals(List.of(new MatchProblem("https://ex.com/money.json", "Too many candidate artifacts in group"
                 + " 'g' to match unambiguously. Provide an explicit reference.")), m.problems());
+    }
+
+    @Test
+    void avroEnumMatchedThroughTypeIndex() {
+        String state = "{\"type\":\"enum\",\"namespace\":\"com.acme\",\"name\":\"State\",\"symbols\":[\"A\"]}";
+        FakeLookup lookup = new FakeLookup()
+                .add("orders", "state", "3", state, "avro:type:State", "avro:namespace:com.acme");
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("orders", ArtifactType.AVRO,
+                refs("com.acme.State"), Set.of());
+        assertEquals(List.of(ArtifactReferenceDto.builder().name("com.acme.State").groupId("orders")
+                .artifactId("state").version("3").build()), m.matched());
+        assertEquals(List.of(), m.problems());
+    }
+
+    @Test
+    void jsonIdMustMatchExactlyIncludingCase() {
+        // The structure index is case-insensitive, so both are index hits; only the exact $id is a match.
+        FakeLookup lookup = new FakeLookup()
+                .add("g", "upper", "1", "{\"$id\":\"https://ex.com/A.json\"}", "json:id:https://ex.com/A.json")
+                .add("g", "lower", "1", "{\"$id\":\"https://ex.com/a.json\"}", "json:id:https://ex.com/a.json");
+        lookup.caseInsensitiveStructure = true;
+        Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("https://ex.com/A.json#/defs/X"));
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, Set.of());
+        assertEquals(List.of(ArtifactReferenceDto.builder().name("https://ex.com/A.json#/defs/X").groupId("g")
+                .artifactId("upper").version("1").build()), m.matched());
+        assertEquals(List.of(), m.problems());
+    }
+
+    @Test
+    void jsonIdIndexedFromOlderVersionIsNotMatched() {
+        // The index still lists the artifact, but its latest version has a different $id.
+        FakeLookup lookup = new FakeLookup().add("g", "money", "2", "{\"$id\":\"https://ex.com/money-v2.json\"}",
+                "json:id:https://ex.com/money.json");
+        Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("https://ex.com/money.json"));
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, Set.of());
+        assertEquals(List.of(), m.matched());
+        assertEquals(List.of(new MatchProblem("https://ex.com/money.json", "No matching artifact found in group 'g'.")),
+                m.problems());
+    }
+
+    @Test
+    void pinsTheVersionWhoseContentWasConfirmed() {
+        // A concurrent publish moves "latest" to version 2 (a different type) after the first read. The matcher
+        // must check the content of the exact version it pins, never "whatever is latest now".
+        FakeLookup lookup = new FakeLookup() {
+            private int calls;
+
+            @Override
+            public Optional<String> latestVersion(String g, String a) {
+                if (!"orders/addr".equals(g + "/" + a)) {
+                    return super.latestVersion(g, a);
+                }
+                calls++;
+                return Optional.of(calls == 1 ? "1" : "2");
+            }
+        };
+        lookup.add("orders", "addr", "1", avro("com.acme", "Address"), "avro:name:Address", "avro:namespace:com.acme");
+        lookup.contents.put("orders/addr@2", avro("com.other", "Other"));
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("orders", ArtifactType.AVRO,
+                refs("com.acme.Address"), Set.of());
+        assertEquals(List.of("orders/addr@1"), lookup.contentRequests);
+        assertEquals(List.of(ArtifactReferenceDto.builder().name("com.acme.Address").groupId("orders")
+                .artifactId("addr").version("1").build()), m.matched());
+        assertEquals(List.of(), m.problems());
     }
 
     @Test

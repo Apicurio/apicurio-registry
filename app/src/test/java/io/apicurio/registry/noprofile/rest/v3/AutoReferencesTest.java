@@ -267,6 +267,72 @@ public class AutoReferencesTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void allRefsMappedRuleSeesAutoMatchedReferences() throws Exception {
+        String g = newGroup();
+        createArtifact(g, "com.acme.Address", ArtifactType.AVRO, ADDRESS, ContentTypes.APPLICATION_JSON);
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.INTEGRITY);
+        rule.setConfig("ALL_REFS_MAPPED");
+        clientV3.groups().byGroupId(g).rules().post(rule);
+        String parent = order("com.acme", "com.acme.Address");
+
+        // Without autoReferences the rule rejects the unmapped reference...
+        RuleViolationProblemDetails error = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> clientV3.groups().byGroupId(g).artifacts().post(createRequest("Order", ArtifactType.AVRO,
+                        parent, ContentTypes.APPLICATION_JSON, null)));
+        Assertions.assertEquals("RuleViolationException", error.getName());
+        Assertions.assertEquals(List.of("com.acme.Address"),
+                error.getCauses().stream().map(c -> c.getContext()).toList());
+        assertArtifactMissing(g, "Order");
+
+        // ...and accepts it on every write path when the reference is auto-matched.
+        createAuto(g, "Order", ArtifactType.AVRO, parent);
+        assertRefs(g, "Order", "1", List.of(ref("com.acme.Address", g, "com.acme.Address", "1")));
+
+        CreateVersion version = createRequest("Order", ArtifactType.AVRO, parent.replace("\"name\":\"a\"",
+                "\"name\":\"b\""), ContentTypes.APPLICATION_JSON, true).getFirstVersion();
+        Assertions.assertEquals("2", clientV3.groups().byGroupId(g).artifacts().byArtifactId("Order").versions()
+                .post(version).getVersion());
+        assertRefs(g, "Order", "2", List.of(ref("com.acme.Address", g, "com.acme.Address", "1")));
+
+        CreateArtifact viaIfExists = createRequest("Order", ArtifactType.AVRO, parent.replace("\"name\":\"a\"",
+                "\"name\":\"c\""), ContentTypes.APPLICATION_JSON, true);
+        Assertions.assertEquals("3", clientV3.groups().byGroupId(g).artifacts().post(viaIfExists,
+                config -> config.queryParameters.ifExists = IfArtifactExists.CREATE_VERSION).getVersion()
+                .getVersion());
+        assertRefs(g, "Order", "3", List.of(ref("com.acme.Address", g, "com.acme.Address", "1")));
+    }
+
+    @Test
+    public void avroEnumMatchedThroughStructureIndex() throws Exception {
+        String g = newGroup();
+        createArtifact(g, "state-enum", ArtifactType.AVRO,
+                "{\"type\":\"enum\",\"namespace\":\"com.acme\",\"name\":\"State\",\"symbols\":[\"ON\",\"OFF\"]}",
+                ContentTypes.APPLICATION_JSON);
+
+        createAuto(g, "Order", ArtifactType.AVRO, order("com.acme", "com.acme.State"));
+
+        assertRefs(g, "Order", "1", List.of(ref("com.acme.State", g, "state-enum", "1")));
+    }
+
+    @Test
+    public void jsonAbsoluteIdMatchIsCaseSensitive() throws Exception {
+        // The SQL structure index compares lowercased values, so both artifacts are search hits for the $ref.
+        String g = newGroup();
+        String base = "https://ex.com/" + UUID.randomUUID();
+        createArtifact(g, "upper", ArtifactType.JSON, "{\"$id\":\"" + base + "/Money.json\",\"type\":\"object\"}",
+                ContentTypes.APPLICATION_JSON);
+        createArtifact(g, "lower", ArtifactType.JSON, "{\"$id\":\"" + base + "/money.json\",\"type\":\"object\"}",
+                ContentTypes.APPLICATION_JSON);
+
+        createAuto(g, "invoice", ArtifactType.JSON,
+                "{\"type\":\"object\",\"properties\":{\"m\":{\"$ref\":\"" + base + "/Money.json\"}}}",
+                ContentTypes.APPLICATION_JSON);
+
+        assertRefs(g, "invoice", "1", List.of(ref(base + "/Money.json", g, "upper", "1")));
+    }
+
+    @Test
     public void disabledByDefault() throws Exception {
         String g = newGroup();
         createArtifact(g, "com.acme.Address", ArtifactType.AVRO, ADDRESS, ContentTypes.APPLICATION_JSON);

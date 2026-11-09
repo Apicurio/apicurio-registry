@@ -29,11 +29,12 @@ public interface ArtifactLookup {
     StructureSearchResult searchByStructure(String groupId, List<String> structureFilters);
 
     /**
-     * Content of the latest version, empty if missing/unreadable.
+     * Content of a specific version, empty if missing/unreadable.
      *
      * @param groupId the group id
      * @param artifactId the artifact id
-     * @return the latest content, if any
+     * @param version the version, as returned by {@link #latestVersion}
+     * @return the content, if any
      */
-    Optional<ContentHandle> latestContent(String groupId, String artifactId);
+    Optional<ContentHandle> content(String groupId, String artifactId, String version);
 }

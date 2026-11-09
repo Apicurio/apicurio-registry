@@ -479,12 +479,12 @@ the namespace of the reference):
 |. An artifact whose ID is the full name in the target group.
 . An artifact in the group named after the namespace (`com.example.common`) whose ID is the simple name
 (`ItemId`).
-. A single artifact in the target group whose structure index has the same name and namespace, confirmed by
-the full name in the content of its latest version.
+. A single artifact in the target group whose structure index has the same name and namespace (record, enum,
+or fixed), confirmed by the full name in the content of its latest version.
 
 |JSON Schema absolute `$id` (for example `https://example.com/address.json`)
-|A single JSON Schema artifact in the target group whose `$id` matches, found through the structure index.
-Any `#` fragment is ignored. Absolute URIs are matched only for JSON Schema.
+|A single JSON Schema artifact in the target group whose latest version has exactly that `$id` (case-sensitive),
+found through the structure index. Any `#` fragment is ignored. Absolute URIs are matched only for JSON Schema.
 
 |Relative path (for example `./common/address.json`)
 |. An artifact whose ID is the normalized path (`common/address.json`).
@@ -492,7 +492,10 @@ Any `#` fragment is ignored. Absolute URIs are matched only for JSON Schema.
 |===
 
 Each matched reference is pinned to the version that is currently the latest on the `latest` branch of the
-matched artifact; later versions of that artifact do not change the reference.
+matched artifact; later versions of that artifact do not change the reference. When matching checks the
+content of a candidate, the version whose content was checked is the version that is pinned.
+Integrity rules, such as `ALL_REFS_MAPPED`, evaluate the matched references together with the references that
+you list explicitly.
 References that you list explicitly in `references` take precedence and are not matched again. An explicit
 reference also covers every reference in the content to the same resource, ignoring any `#` fragment: for
 example, an explicit `money.json` covers both `money.json#/$defs/A` and `money.json#/$defs/B`.

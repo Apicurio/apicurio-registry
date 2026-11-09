@@ -95,15 +95,16 @@ public class StorageArtifactLookup implements ArtifactLookup {
      * {@inheritDoc}
      */
     @Override
-    public Optional<ContentHandle> latestContent(String groupId, String artifactId) {
-        return resolveLatest(groupId, artifactId).flatMap(gav -> {
-            try {
-                return Optional.of(storage.getArtifactVersionContent(gav.getRawGroupIdWithNull(),
-                        gav.getRawArtifactId(), gav.getRawVersionId()).getContent());
-            } catch (ArtifactNotFoundException | VersionNotFoundException e) {
-                return Optional.empty();
-            }
-        });
+    public Optional<ContentHandle> content(String groupId, String artifactId, String version) {
+        if (!accessGuard.canRead(groupId, artifactId)) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(storage.getArtifactVersionContent(new GroupId(groupId).getRawGroupIdWithNull(),
+                    artifactId, version).getContent());
+        } catch (ArtifactNotFoundException | VersionNotFoundException e) {
+            return Optional.empty();
+        }
     }
 
     private Optional<GAV> resolveLatest(String groupId, String artifactId) {

@@ -16,11 +16,14 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -101,7 +104,10 @@ public class ReferenceMatcher {
                 if (result.truncated()) {
                     return tooManyCandidates(groupId);
                 }
-                return fromCandidates(ctx, groupId, result.artifactIds());
+                // The structure index is case-insensitive and covers every version of an artifact, so
+                // confirm the exact $id against the content of the version that would be pinned.
+                return confirmCandidates(ctx, groupId, result.artifactIds(),
+                        content -> withoutFragment.equals(jsonSchemaId(content)));
             }
             return Outcome.NOT_FOUND;
         }
@@ -136,19 +142,22 @@ public class ReferenceMatcher {
             }
         }
 
-        List<String> filters = new ArrayList<>();
-        filters.add("avro:name:" + simple);
-        if (ns != null) {
-            filters.add("avro:namespace:" + ns);
+        // Records are indexed under "avro:name", enums and fixed types under "avro:type".
+        Set<String> candidates = new LinkedHashSet<>();
+        for (String kind : List.of("avro:name:", "avro:type:")) {
+            List<String> filters = new ArrayList<>();
+            filters.add(kind + simple);
+            if (ns != null) {
+                filters.add("avro:namespace:" + ns);
+            }
+            StructureSearchResult result = lookup.searchByStructure(groupId, filters);
+            if (result.truncated()) {
+                return tooManyCandidates(groupId);
+            }
+            candidates.addAll(result.artifactIds());
         }
-        StructureSearchResult result = lookup.searchByStructure(groupId, filters);
-        if (result.truncated()) {
-            return tooManyCandidates(groupId);
-        }
-        List<String> confirmed = result.artifactIds().stream()
-                .filter(a -> resource.equals(avroFullName(ctx.latestContent(groupId, a))))
-                .toList();
-        return fromCandidates(ctx, groupId, confirmed);
+        return confirmCandidates(ctx, groupId, List.copyOf(candidates),
+                content -> resource.equals(avroFullName(content)));
     }
 
     private static Outcome tooManyCandidates(String groupId) {
@@ -156,10 +165,18 @@ public class ReferenceMatcher {
                 + "' to match unambiguously. Provide an explicit reference.");
     }
 
-    private Outcome fromCandidates(Context ctx, String groupId, List<String> artifactIds) {
-        Map<String, String> found = new HashMap<>();
+    /**
+     * Resolves each candidate's latest version once, checks the content of that exact version, and keeps the
+     * candidates that pass. The version that was checked is the version that gets pinned, even if a new
+     * version is published concurrently.
+     */
+    private Outcome confirmCandidates(Context ctx, String groupId, List<String> artifactIds,
+            Predicate<ContentHandle> confirm) {
+        Map<String, String> found = new TreeMap<>();
         for (String artifactId : artifactIds) {
-            ctx.latestVersion(groupId, artifactId).ifPresent(v -> found.put(artifactId, v));
+            ctx.latestVersion(groupId, artifactId).ifPresent(v -> ctx.content(groupId, artifactId, v)
+                    .filter(confirm)
+                    .ifPresent(c -> found.put(artifactId, v)));
         }
         if (found.isEmpty()) {
             return Outcome.NOT_FOUND;
@@ -168,16 +185,13 @@ public class ReferenceMatcher {
             Map.Entry<String, String> e = found.entrySet().iterator().next();
             return Outcome.found(groupId, e.getKey(), e.getValue());
         }
-        List<String> names = found.keySet().stream().map(a -> groupId + "/" + a).sorted().toList();
+        List<String> names = found.keySet().stream().map(a -> groupId + "/" + a).toList();
         return Outcome.problem("Ambiguous: matches " + String.join(", ", names) + ".");
     }
 
-    private static String avroFullName(Optional<ContentHandle> content) {
-        if (content.isEmpty()) {
-            return null;
-        }
+    private static String avroFullName(ContentHandle content) {
         try {
-            JsonNode node = MAPPER.readTree(content.get().content());
+            JsonNode node = MAPPER.readTree(content.content());
             String name = node.path("name").asText(null);
             if (name == null) {
                 return null;
@@ -187,6 +201,15 @@ public class ReferenceMatcher {
             }
             String namespace = node.path("namespace").asText("");
             return namespace.isBlank() ? name : namespace + "." + name;
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private static String jsonSchemaId(ContentHandle content) {
+        try {
+            String id = MAPPER.readTree(content.content()).path("$id").asText(null);
+            return id == null ? null : stripFragment(id);
         } catch (IOException e) {
             return null;
         }
@@ -218,9 +241,9 @@ public class ReferenceMatcher {
                     k -> lookup.latestVersion(groupId, artifactId));
         }
 
-        Optional<ContentHandle> latestContent(String groupId, String artifactId) {
-            return contents.computeIfAbsent(groupId + "\u0000" + artifactId,
-                    k -> lookup.latestContent(groupId, artifactId));
+        Optional<ContentHandle> content(String groupId, String artifactId, String version) {
+            return contents.computeIfAbsent(groupId + "\u0000" + artifactId + "\u0000" + version,
+                    k -> lookup.content(groupId, artifactId, version));
         }
     }
 

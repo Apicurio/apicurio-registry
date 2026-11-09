@@ -1583,10 +1583,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 // Convert references to DTOs and merge with auto-extracted references
                 final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(references);
                 referencesAsDtos.addAll(autoReferences);
-                if (Boolean.TRUE.equals(data.getFirstVersion().getAutoReferences())) {
-                    referencesAsDtos.addAll(autoMatchReferences(groupId, artifactType, effectiveContent,
-                            effectiveContentType, referencesAsDtos));
-                }
+                final List<ArtifactReferenceDto> autoMatched = Boolean.TRUE.equals(
+                        data.getFirstVersion().getAutoReferences())
+                        ? autoMatchReferences(groupId, artifactType, effectiveContent, effectiveContentType,
+                                referencesAsDtos)
+                        : List.of();
+                referencesAsDtos.addAll(autoMatched);
 
                 firstVersion = data.getFirstVersion().getVersion();
                 firstVersionContent = ContentWrapperDto.builder().content(effectiveContent).contentType(effectiveContentType)
@@ -1610,8 +1612,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 TypedContent effectiveTypedContent = TypedContent.create(effectiveContent, effectiveContentType);
                 if (!firstVersionIsDraft || restConfig.isDraftProductionModeEnabled()) {
                     rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId,
-                            artifactType, effectiveTypedContent, RuleApplicationType.CREATE, references,
-                            resolvedReferences);
+                            artifactType, effectiveTypedContent, RuleApplicationType.CREATE,
+                            withAutoMatched(references, autoMatched), resolvedReferences);
                 }
                 // Let write hooks inspect the content BEFORE the artifact is persisted, so a hook
                 // rejection (e.g. a malformed 'x-agent-card' extension) fails this write exactly like
@@ -1736,15 +1738,16 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         final List<ArtifactReferenceDto> referencesAsDtos = toReferenceDtos(
                 data.getContent().getReferences());
         referencesAsDtos.addAll(autoReferences);
-        if (Boolean.TRUE.equals(data.getAutoReferences())) {
-            referencesAsDtos.addAll(autoMatchReferences(groupId, artifactType, effectiveContent,
-                    effectiveContentType, referencesAsDtos));
-        }
+        final List<ArtifactReferenceDto> autoMatched = Boolean.TRUE.equals(data.getAutoReferences())
+                ? autoMatchReferences(groupId, artifactType, effectiveContent, effectiveContentType,
+                        referencesAsDtos)
+                : List.of();
+        referencesAsDtos.addAll(autoMatched);
 
         // Apply rules unless the version is DRAFT (unless draft production mode is enabled)
         if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
             applyUpdateRules(groupId, artifactId, artifactType, TypedContent.create(effectiveContent, effectiveContentType),
-                    data.getContent().getReferences(), referencesAsDtos, hookPlan);
+                    withAutoMatched(data.getContent().getReferences(), autoMatched), referencesAsDtos, hookPlan);
         }
 
         // Let write hooks inspect the content BEFORE the version is persisted, so a hook rejection
@@ -2041,12 +2044,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             contentType = hookPlan.content().getContentType();
             references.addAll(hookPlan.content().getReferences());
         }
-        if (Boolean.TRUE.equals(theVersion.getAutoReferences())) {
-            references.addAll(autoMatchReferences(groupId, artifactType, content, contentType, references));
-        }
+        List<ArtifactReferenceDto> autoMatched = Boolean.TRUE.equals(theVersion.getAutoReferences())
+                ? autoMatchReferences(groupId, artifactType, content, contentType, references)
+                : List.of();
+        references.addAll(autoMatched);
         ContentWrapperDto merged = ContentWrapperDto.builder().content(content).contentType(contentType)
                 .references(references).build();
-        return new UpdateContentPlan(merged, hookPlan);
+        return new UpdateContentPlan(merged, hookPlan, autoMatched);
     }
 
     /**
@@ -2054,7 +2058,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * @param hookPlan the write hooks' plan for {@code content}; {@link HookPlan#commit()} must run before
      *                 persisting a version built from it, and never if {@code content} is discarded instead
      */
-    private record UpdateContentPlan(ContentWrapperDto content, HookPlan hookPlan) {
+    /**
+     * Content prepared for a version update.
+     *
+     * @param content the content, content type and all references to store
+     * @param hookPlan the write hooks' plan
+     * @param autoMatched the references added by {@code autoReferences} matching, also in {@code content}
+     */
+    private record UpdateContentPlan(ContentWrapperDto content, HookPlan hookPlan,
+            List<ArtifactReferenceDto> autoMatched) {
     }
 
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
@@ -2065,7 +2077,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String description = theVersion.getDescription();
         List<String> branches = theVersion.getBranches();
         Map<String, String> labels = theVersion.getLabels();
-        List<ArtifactReference> references = theVersion.getContent().getReferences();
+        List<ArtifactReference> references = withAutoMatched(theVersion.getContent().getReferences(),
+                prepared.autoMatched());
         String contentType = prepared.content().getContentType();
         ContentHandle content = prepared.content().getContent();
         boolean isDraftVersion = theVersion.getIsDraft() != null && theVersion.getIsDraft();
@@ -2174,6 +2187,25 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         // Store the raw group ID, exactly as explicit references are stored (see toReferenceDtos)
         match.matched().forEach(ref -> ref.setGroupId(new GroupId(ref.getGroupId()).getRawGroupIdWithNull()));
         return match.matched();
+    }
+
+    /**
+     * The references to give to the rules: the caller's explicit references plus the ones matched by
+     * {@code autoReferences}, so that integrity rules (e.g. {@code ALL_REFS_MAPPED}) see the same mappings
+     * that are stored.
+     *
+     * @param explicit the references supplied in the request, may be null
+     * @param autoMatched the auto-matched references
+     * @return the combined references, or {@code explicit} unchanged if nothing was auto-matched
+     */
+    private static List<ArtifactReference> withAutoMatched(List<ArtifactReference> explicit,
+            List<ArtifactReferenceDto> autoMatched) {
+        if (autoMatched.isEmpty()) {
+            return explicit;
+        }
+        List<ArtifactReference> combined = explicit == null ? new ArrayList<>() : new ArrayList<>(explicit);
+        combined.addAll(V3ApiUtil.referenceDtosToReferences(autoMatched));
+        return combined;
     }
 
     private List<ArtifactReferenceDto> toReferenceDtos(List<ArtifactReference> references) {

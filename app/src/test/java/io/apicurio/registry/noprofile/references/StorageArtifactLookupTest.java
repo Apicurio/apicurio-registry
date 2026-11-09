@@ -36,19 +36,22 @@ public class StorageArtifactLookupTest extends AbstractResourceTestBase {
 
         Assertions.assertEquals(Optional.of("1"), lookup.latestVersion(groupId, "addr"));
         Assertions.assertEquals(Optional.empty(), lookup.latestVersion(groupId, "missing"));
-        Assertions.assertEquals(Optional.empty(), lookup.latestContent(groupId, "missing"));
+        Assertions.assertEquals(Optional.empty(), lookup.content(groupId, "missing", "1"));
         Assertions.assertEquals(StructureSearchResult.complete(List.of("addr")),
                 lookup.searchByStructure(groupId, List.of("avro:name:Address", "avro:namespace:com.acme")));
         Assertions.assertEquals(StructureSearchResult.complete(List.of()),
                 lookup.searchByStructure(groupId, List.of("avro:name:Other")));
 
-        Optional<ContentHandle> content = lookup.latestContent(groupId, "addr");
+        Optional<ContentHandle> content = lookup.content(groupId, "addr", "1");
         Assertions.assertTrue(content.isPresent());
         Assertions.assertEquals(ADDRESS_V1, content.get().content());
 
         createArtifactVersion(groupId, "addr", ADDRESS_V2, ContentTypes.APPLICATION_JSON);
         Assertions.assertEquals(Optional.of("2"), lookup.latestVersion(groupId, "addr"));
-        Assertions.assertEquals(ADDRESS_V2, lookup.latestContent(groupId, "addr").get().content());
+        Assertions.assertEquals(ADDRESS_V2, lookup.content(groupId, "addr", "2").get().content());
+        // Earlier versions stay readable, so the matcher can confirm the exact version it pins.
+        Assertions.assertEquals(ADDRESS_V1, lookup.content(groupId, "addr", "1").get().content());
+        Assertions.assertEquals(Optional.empty(), lookup.content(groupId, "addr", "3"));
     }
 
     @Test
@@ -62,7 +65,7 @@ public class StorageArtifactLookupTest extends AbstractResourceTestBase {
         Assertions.assertEquals(Optional.of("1"), lookup.latestVersion("default", artifactId));
         Assertions.assertEquals(StructureSearchResult.complete(List.of(artifactId)),
                 lookup.searchByStructure("default", List.of("avro:namespace:" + namespace)));
-        Assertions.assertEquals(schema, lookup.latestContent("default", artifactId).get().content());
+        Assertions.assertEquals(schema, lookup.content("default", artifactId, "1").get().content());
     }
 
     @Test

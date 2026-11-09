@@ -50,8 +50,9 @@ public class SqlWebhookSubscriptionStorageTest {
         assertEquals(2L, updated.getRevision());
         assertEquals("second", updated.getName());
 
+        WebhookSubscriptionDto stale = subscription(id, "stale");
         assertThrows(WebhookSubscriptionRevisionConflictException.class,
-                () -> storage.updateWebhookSubscription(id, 1L, subscription(id, "stale")));
+                () -> storage.updateWebhookSubscription(id, 1L, stale));
         assertThrows(WebhookSubscriptionRevisionConflictException.class,
                 () -> storage.softDeleteWebhookSubscription(id, 1L));
         assertEquals("second", storage.getWebhookSubscription(id).getName());

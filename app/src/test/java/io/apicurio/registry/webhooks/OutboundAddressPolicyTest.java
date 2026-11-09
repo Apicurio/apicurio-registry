@@ -26,6 +26,8 @@ class OutboundAddressPolicyTest {
             "[::127.0.0.1]", "[::10.0.0.1]",
             // Ambiguous numeric forms
             "2130706433", "127.1", "0x7f.0.0.1", "0177.0.0.1", "127.0.0.1.", "017700000001", "1.2.3.4.5",
+            // Out-of-range or leading-zero octets are not canonical dotted quads
+            "256.1.1.1", "8.8.8.256", "999.999.999.999", "01.2.3.4", "8.8.8.08", "8.8.008.8",
             // Malformed
             "", "[]", "[not-an-address]"
     })
@@ -35,7 +37,8 @@ class OutboundAddressPolicyTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "93.184.216.34", "8.8.8.8", "172.32.0.1", "192.169.0.1", "[2606:2800:220:1:248:1893:25c8:1946]",
+            "93.184.216.34", "8.8.8.8", "8.8.8.0", "1.0.0.255", "172.32.0.1", "192.169.0.1",
+            "[2606:2800:220:1:248:1893:25c8:1946]",
             "[::ffff:8.8.8.8]", "ci.example.com", "abc1.de", "cafe.example", "1password.com", "xn--bcher-kva.example"
     })
     void allowedLiteralsAndHostNames(String host) {

@@ -19,7 +19,6 @@ import org.junit.jupiter.api.Test;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -211,6 +210,39 @@ public class WebhookSubscriptionResourceTest extends AbstractResourceTestBase {
     }
 
     @Test
+    void createWithoutEventTypesIsRejectedAndCreatesNothing() {
+        int before = admin().get(WEBHOOKS).then().statusCode(200).extract().path("count");
+        admin().contentType(ContentType.JSON)
+                .body(Map.of("endpointUrl", "https://hooks.example.com/x"))
+                .post(WEBHOOKS).then().statusCode(400)
+                .body("status", equalTo(400))
+                .body("title", equalTo("eventTypes: is required"));
+        admin().get(WEBHOOKS).then().statusCode(200).body("count", equalTo(before));
+    }
+
+    @Test
+    void createWithEmptyEventTypesSubscribesToEveryType() {
+        admin().contentType(ContentType.JSON)
+                .body(Map.of("endpointUrl", "https://hooks.example.com/x", "eventTypes", List.of()))
+                .post(WEBHOOKS).then().statusCode(201)
+                .body("eventTypes", equalTo(List.of()));
+    }
+
+    @Test
+    void updateWithoutEventTypesIsRejectedAndChangesNothing() {
+        String id = createDisabled("https://hooks.example.com/x");
+        admin().contentType(ContentType.JSON)
+                .body(Map.of("name", "renamed", "enabled", false, "expectedRevision", 1))
+                .put(WEBHOOKS + "/" + id).then().statusCode(400)
+                .body("status", equalTo(400))
+                .body("title", equalTo("eventTypes: is required"));
+        admin().get(WEBHOOKS + "/" + id).then().statusCode(200)
+                .body("revision", equalTo(1))
+                .body("eventTypes", equalTo(List.of(VERSION_CREATED)))
+                .body("name", nullValue());
+    }
+
+    @Test
     void outOfRangePagingAndRevisionAreRejected() {
         admin().queryParam("limit", 101).get(WEBHOOKS).then().statusCode(400);
         admin().queryParam("limit", 0).get(WEBHOOKS).then().statusCode(400);
@@ -276,7 +308,7 @@ public class WebhookSubscriptionResourceTest extends AbstractResourceTestBase {
                 updateAtRevision1(id, "race-B", VERSION_CREATED));
 
         List<Integer> sorted = new ArrayList<>(statuses);
-        Collections.sort(sorted);
+        sorted.sort(null);
         assertEquals(List.of(200, 409), sorted, statuses::toString);
         // The stored state is exactly the winner's payload, written once.
         boolean firstWon = statuses.get(0) == 200;

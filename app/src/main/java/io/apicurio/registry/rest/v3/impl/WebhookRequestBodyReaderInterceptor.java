@@ -63,6 +63,7 @@ public class WebhookRequestBodyReaderInterceptor implements ReaderInterceptor {
             JsonObjectMapper.MAPPER.readerFor(context.getType())
                     .without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).readValue(node);
             bodyContext.setUnrecognizedFields(unrecognizedFields(node, declared));
+            bodyContext.setPresentFields(presentFields(node));
         } catch (IOException e) {
             bodyContext.setMalformed(true);
             return proceedWith(context, EMPTY_OBJECT);
@@ -73,6 +74,12 @@ public class WebhookRequestBodyReaderInterceptor implements ReaderInterceptor {
     private static Object proceedWith(ReaderInterceptorContext context, byte[] body) throws IOException {
         context.setInputStream(new ByteArrayInputStream(body));
         return context.proceed();
+    }
+
+    private static Set<String> presentFields(JsonNode node) {
+        Set<String> present = new LinkedHashSet<>();
+        node.fieldNames().forEachRemaining(present::add);
+        return present;
     }
 
     private static Set<String> unrecognizedFields(JsonNode node, Set<String> declared) {

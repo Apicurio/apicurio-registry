@@ -174,17 +174,19 @@ public class SqlWebhookSubscriptionRepositoryTest {
         repository.createWebhookSubscription(subscription(id, 1000L));
         repository.updateWebhookSubscription(id, 1L, subscription(id, 1000L));
 
+        WebhookSubscriptionDto stale = subscription(id, 1000L);
         assertThrows(WebhookSubscriptionRevisionConflictException.class,
-                () -> repository.updateWebhookSubscription(id, 1L, subscription(id, 1000L)));
+                () -> repository.updateWebhookSubscription(id, 1L, stale));
 
         assertEquals(2L, repository.getWebhookSubscription(id).getRevision());
     }
 
     @Test
     void updateUnknownIdThrowsNotFound() {
+        String unknownId = "66666666-6666-6666-6666-666666666666";
+        WebhookSubscriptionDto update = subscription(unknownId, 1000L);
         assertThrows(WebhookSubscriptionNotFoundException.class,
-                () -> repository.updateWebhookSubscription("66666666-6666-6666-6666-666666666666", 1L,
-                        subscription("66666666-6666-6666-6666-666666666666", 1000L)));
+                () -> repository.updateWebhookSubscription(unknownId, 1L, update));
     }
 
     @Test
@@ -234,8 +236,9 @@ public class SqlWebhookSubscriptionRepositoryTest {
         // Revision 2 is the deleted row's current revision, so only the deletedOn check can reject these.
         assertThrows(WebhookSubscriptionNotFoundException.class,
                 () -> repository.softDeleteWebhookSubscription(id, 2L));
+        WebhookSubscriptionDto update = subscription(id, 1000L);
         assertThrows(WebhookSubscriptionNotFoundException.class,
-                () -> repository.updateWebhookSubscription(id, 2L, subscription(id, 1000L)));
+                () -> repository.updateWebhookSubscription(id, 2L, update));
     }
 
     private static WebhookSubscriptionDto subscription(String id, long createdOn) {

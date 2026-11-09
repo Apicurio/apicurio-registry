@@ -18,7 +18,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -895,7 +894,7 @@ class WebhookSchemaMysqlMigrationTest {
             }
         }
 
-        Collections.sort(descriptors);
+        descriptors.sort(null);
         return descriptors;
     }
 
@@ -967,7 +966,7 @@ class WebhookSchemaMysqlMigrationTest {
             }
             String ddl = new String(in.readAllBytes(), StandardCharsets.UTF_8);
             // Strip line comments BEFORE splitting on ';' so that a ';' inside a comment
-            // (e.g. "-- DROP TABLE foo; TODO: why?") does not produce a spurious SQL fragment.
+            // (e.g. "-- DROP TABLE foo; see note") does not produce a spurious SQL fragment.
             StringBuilder strippedDdl = new StringBuilder();
             for (String line : ddl.split("\n")) {
                 int commentIdx = line.indexOf("--");

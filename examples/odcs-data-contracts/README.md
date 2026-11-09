@@ -73,9 +73,8 @@ Stop and remove everything with `docker compose down -v`.
   `3.4.0-SNAPSHOT` Apicurio serializer, which is not published to Maven Central. Install it
   once from the repository root with
   `./mvnw install -pl serdes/kafka/avro-serde -am -DskipTests -Dlocal`.
-- **Images:** the example uses the `latest-snapshot` images. To run a locally built registry,
-  build it (`./mvnw install -pl distro/docker -am -DskipTests`), then build
-  `distro/docker/target/docker/Dockerfile.jvm` as `quay.io/apicurio/apicurio-registry:latest-snapshot`.
+- **Images:** the example uses the `latest-snapshot` images. To run a locally built registry or
+  UI, set `REGISTRY_IMAGE` or `REGISTRY_UI_IMAGE` to its image before `docker compose up -d`.
 - **Local only:** no authentication and in-memory storage. Do not use this configuration in
   production.
 

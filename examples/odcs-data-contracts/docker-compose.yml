@@ -3,11 +3,14 @@
 #
 # For local demonstration only: no authentication, in-memory storage (data is lost on restart).
 #
+# The Registry images default to latest-snapshot; set REGISTRY_IMAGE and REGISTRY_UI_IMAGE to run
+# others (CI sets them to the images built for the pull request).
+#
 # Host ports default to 8081 (API), 8888 (UI) and 9092 (Kafka); override them with REGISTRY_PORT,
 # UI_PORT and KAFKA_PORT if they are in use.
 services:
   apicurio-registry:
-    image: quay.io/apicurio/apicurio-registry:latest-snapshot
+    image: ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}
     container_name: apicurio-registry-api-contracts
     environment:
       # Let demo.sh delete the "orders" group, so it can run again
@@ -26,7 +29,7 @@ services:
       retries: 30
 
   apicurio-registry-ui:
-    image: quay.io/apicurio/apicurio-registry-ui:latest-snapshot
+    image: ${REGISTRY_UI_IMAGE:-apicurio/apicurio-registry-ui:latest-snapshot}
     container_name: apicurio-registry-ui-contracts
     environment:
       REGISTRY_API_URL: "http://localhost:${REGISTRY_PORT:-8081}/apis/registry/v3"

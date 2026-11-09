@@ -164,6 +164,31 @@ Each rule violation has a JSON Pointer to the problem as its `context`, for exam
 
 The `SYNTAX_ONLY` level checks only that the content is well-formed JSON.
 
+// ref-registry-rule-json-schema-validity-changes
+[id="registry-rule-json-schema-validity-changes_{context}"]
+== Changes to JSON Schema validity checking in {registry} 3.4
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+Before version 3.4, {registry} checked JSON Schema validity by loading the schema with an everit-based library for drafts 4, 6, and 7.
+If you used the `VALIDITY` rule with JSON Schema artifacts before version 3.4, the following behavior changed:
+
+* {registry} now checks artifacts in draft 2019-09.
+The earlier checker rejected them at the `FULL` level with a message that ends with `JSON schema version 2019-09 is not supported yet.`
+
+* {registry} validates a schema against the meta-schema of its draft instead of only loading it, and rejects a schema that its draft forbids.
+For example, in draft 4, `exclusiveMinimum` is a boolean that requires `minimum`, and in draft 2020-12, `$dynamicAnchor` must not be empty.
+
+* The `context` of each rule violation is now a JSON Pointer, such as `/properties/price/minimum`, instead of the earlier location that started with `#`.
+Update clients that match the earlier contexts.
+
+* {registry} reports all problems at once, at most one per location.
+The earlier checker reported one problem at a time.
+
+* {registry} does not check stored versions again.
+The changes apply when you add content or finalize a draft.
+
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_registry-reference.adoc
 

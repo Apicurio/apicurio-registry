@@ -5,6 +5,10 @@ import io.quarkus.test.junit.QuarkusTest;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -66,6 +70,27 @@ public class ObjectMapperNullSerializationTest {
             "Nested non-null fields should be present");
     }
 
+    @Test
+    public void testEmptyAdditionalDataIsNotSerialized() throws Exception {
+        var json = mapper.readTree(mapper.writeValueAsString(new AdditionalDataObject()));
+
+        assertFalse(json.has("additionalData"),
+            "Empty additionalData should be omitted");
+        assertTrue(json.has("values"),
+            "Other empty collections should preserve the mapper's existing behavior");
+        assertTrue(json.get("values").isArray());
+    }
+
+    @Test
+    public void testNonEmptyAdditionalDataIsSerialized() throws Exception {
+        var object = new AdditionalDataObject();
+        object.getAdditionalData().put("extension", "value");
+
+        var json = mapper.readTree(mapper.writeValueAsString(object));
+
+        assertEquals("value", json.path("additionalData").path("extension").asText());
+    }
+
     /**
      * Test object to verify serialization behavior.
      * Intentionally uses _meta field name to match MCP protocol.
@@ -106,6 +131,19 @@ public class ObjectMapperNullSerializationTest {
 
         public void setNested(TestObject nested) {
             this.nested = nested;
+        }
+    }
+
+    public static class AdditionalDataObject {
+        private final Map<String, Object> additionalData = new LinkedHashMap<>();
+        private final List<String> values = List.of();
+
+        public Map<String, Object> getAdditionalData() {
+            return additionalData;
+        }
+
+        public List<String> getValues() {
+            return values;
         }
     }
 }

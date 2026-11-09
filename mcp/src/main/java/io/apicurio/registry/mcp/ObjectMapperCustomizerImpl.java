@@ -9,6 +9,8 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.quarkus.jackson.ObjectMapperCustomizer;
 import jakarta.enterprise.context.ApplicationScoped;
 
+import java.util.Map;
+
 @ApplicationScoped
 public class ObjectMapperCustomizerImpl implements ObjectMapperCustomizer {
 
@@ -38,5 +40,8 @@ public class ObjectMapperCustomizerImpl implements ObjectMapperCustomizer {
 
     @JsonIgnoreProperties({"fieldDeserializers"})
     public abstract class Mixin {
+
+        @JsonInclude(JsonInclude.Include.NON_EMPTY)
+        public abstract Map<String, Object> getAdditionalData();
     }
 }

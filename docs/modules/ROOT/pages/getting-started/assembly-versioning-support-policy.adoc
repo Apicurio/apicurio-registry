@@ -55,13 +55,13 @@ The following example illustrates how the support window moves forward as new mi
 | Supported versions
 | End-of-life
 
-| 3.3.0 released
-| 3.3.x, 3.2.x
-| 3.1.x and older
-
-| Next minor release (a future 3.4.0)
+| 3.4.0 released
 | 3.4.x, 3.3.x
 | 3.2.x and older
+
+| Next minor release (a future 3.5.0)
+| 3.5.x, 3.4.x
+| 3.3.x and older
 |===
 
 
@@ -89,11 +89,11 @@ Choose the channel type that matches how you deploy {registry}: container images
 | Tag
 | Description
 
-| `3.3.0`
+| `{registry-release}`
 | Pinned to an exact release. Never changes.
 
-| `3.3`
-| Floating tag that always points to the latest patch in the 3.3.x series (for example, 3.3.0, then 3.3.1, then 3.3.2).
+| `{registry-version}`
+| Floating tag that always points to the latest patch in the {registry-version}.x series (for example, {registry-version}.0, then {registry-version}.1, then {registry-version}.2).
 
 | `latest` / `latest-release`
 | Always points to the most recent stable release across all minor versions.
@@ -102,7 +102,7 @@ Choose the channel type that matches how you deploy {registry}: container images
 | Most recent build from the `main` branch. Unstable and not recommended for production.
 |===
 
-Use the minor-series floating tag (for example, `3.3`) to automatically receive security patches without upgrading to a new minor version.
+Use the minor-series floating tag (for example, `{registry-version}`) to automatically receive security patches without upgrading to a new minor version.
 
 
 [id="olm-channels_{context}"]
@@ -118,14 +118,14 @@ If you deploy {registry} by using the {operator}, each minor version has its own
 | Channel
 | Description
 
-| `3.3.x`
-| Receives only patch updates within the 3.3 minor version.
+| `3.<minor>.x`
+| Receives only patch updates within that minor version. Each minor release adds its own channel.
 
 | `3.x`
 | Rolling channel that always tracks the latest minor version.
 |===
 
-Subscribe to a minor-version channel (for example, `3.3.x`) for stability, or to the `3.x` rolling channel to always receive the latest features.
+Subscribe to a minor-version channel (for example, `{registry-version}.x`) for stability, or to the `3.x` rolling channel to always receive the latest features.
 
 
 [id="upgrading-registry_{context}"]

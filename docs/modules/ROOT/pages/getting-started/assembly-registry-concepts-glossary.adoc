@@ -196,6 +196,7 @@ Supported artifact types include:
 * `MCP_SERVER`: MCP server definitions in `server.json` format (Model Context Protocol)
 * `MODEL_SCHEMA`: AI/ML model input/output schema definitions
 * `PROMPT_TEMPLATE`: LLM prompt templates with variable schemas
+* `ODCS_CONTRACT`: Open Data Contract Standard (ODCS) data contract
 
 [role="_additional-resources"]
 .Additional resources

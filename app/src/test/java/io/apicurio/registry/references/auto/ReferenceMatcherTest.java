@@ -71,6 +71,10 @@ class ReferenceMatcherTest {
         }
     }
 
+    private static ArtifactReferenceDto existing(String name, String g, String a, String version) {
+        return ArtifactReferenceDto.builder().name(name).groupId(g).artifactId(a).version(version).build();
+    }
+
     private static Set<ExternalReference> refs(String... names) {
         return Arrays.stream(names).map(ExternalReference::new).collect(Collectors.toSet());
     }
@@ -83,7 +87,7 @@ class ReferenceMatcherTest {
     void avroMatchesFullNameArtifactIdInGroup() {
         FakeLookup lookup = new FakeLookup().add("orders", "com.acme.Address", "3", avro("com.acme", "Address"));
         ReferenceMatch m = new ReferenceMatcher(lookup).match("orders", ArtifactType.AVRO,
-                refs("com.acme.Address"), Set.of());
+                refs("com.acme.Address"), List.of());
         assertEquals(List.of(ArtifactReferenceDto.builder().name("com.acme.Address").groupId("orders")
                 .artifactId("com.acme.Address").version("3").build()), m.matched());
         assertEquals(List.of(), m.problems());
@@ -93,7 +97,7 @@ class ReferenceMatcherTest {
     void avroMatchesNamespaceGroupConvention() {
         FakeLookup lookup = new FakeLookup().add("com.acme", "Address", "1", avro("com.acme", "Address"));
         ReferenceMatch m = new ReferenceMatcher(lookup).match("orders", ArtifactType.AVRO,
-                refs("com.acme.Address"), Set.of());
+                refs("com.acme.Address"), List.of());
         assertEquals("com.acme", m.matched().get(0).getGroupId());
         assertEquals("Address", m.matched().get(0).getArtifactId());
         assertEquals("1", m.matched().get(0).getVersion());
@@ -105,7 +109,7 @@ class ReferenceMatcherTest {
                 .add("orders", "addr", "2", avro("com.acme", "Address"), "avro:name:Address", "avro:namespace:com.acme")
                 .add("orders", "other", "5", avro("com.other", "Address"), "avro:name:Address", "avro:namespace:com.acme");
         ReferenceMatch m = new ReferenceMatcher(lookup).match("orders", ArtifactType.AVRO,
-                refs("com.acme.Address"), Set.of());
+                refs("com.acme.Address"), List.of());
         assertEquals(List.of(ArtifactReferenceDto.builder().name("com.acme.Address").groupId("orders")
                 .artifactId("addr").version("2").build()), m.matched());
     }
@@ -116,7 +120,7 @@ class ReferenceMatcherTest {
                 .add("orders", "a1", "1", avro("com.acme", "Address"), "avro:name:Address", "avro:namespace:com.acme")
                 .add("orders", "a2", "1", avro("com.acme", "Address"), "avro:name:Address", "avro:namespace:com.acme");
         ReferenceMatch m = new ReferenceMatcher(lookup).match("orders", ArtifactType.AVRO,
-                refs("com.acme.Address"), Set.of());
+                refs("com.acme.Address"), List.of());
         assertEquals(List.of(new MatchProblem("com.acme.Address",
                 "Ambiguous: matches orders/a1, orders/a2.")), m.problems());
         assertEquals(List.of(), m.matched());
@@ -127,7 +131,7 @@ class ReferenceMatcherTest {
         FakeLookup lookup = new FakeLookup().add("g", "./acme/legacy.proto", "4", "x");
         lookup.add("g", "acme/address.proto", "1", "x");
         ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.PROTOBUF,
-                refs("./acme/address.proto", "./acme/legacy.proto"), Set.of());
+                refs("./acme/address.proto", "./acme/legacy.proto"), List.of());
         assertEquals(List.of("acme/address.proto", "./acme/legacy.proto"),
                 m.matched().stream().map(ArtifactReferenceDto::getArtifactId).toList());
     }
@@ -137,7 +141,7 @@ class ReferenceMatcherTest {
         FakeLookup lookup = new FakeLookup().add("g", "money", "7", "{\"$id\":\"https://ex.com/money.json\"}",
                 "json:id:https://ex.com/money.json");
         Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("https://ex.com/money.json#/defs/M"));
-        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, Set.of());
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, List.of());
         assertEquals("money", m.matched().get(0).getArtifactId());
         assertEquals("https://ex.com/money.json#/defs/M", m.matched().get(0).getName());
     }
@@ -145,7 +149,7 @@ class ReferenceMatcherTest {
     @Test
     void notFoundListsAllSortedAndExcludedNamesAreSkipped() {
         ReferenceMatch m = new ReferenceMatcher(new FakeLookup()).match("orders", ArtifactType.AVRO,
-                refs("z.Z", "a.A", "m.M"), Set.of("m.M"));
+                refs("z.Z", "a.A", "m.M"), List.of(existing("m.M", "orders", "m", "1")));
         assertEquals(List.of(
                 new MatchProblem("a.A", "No matching artifact found in group 'orders'."),
                 new MatchProblem("z.Z", "No matching artifact found in group 'orders'.")), m.problems());
@@ -155,33 +159,48 @@ class ReferenceMatcherTest {
     void artifactWithoutLatestVersionIsNotFound() {
         FakeLookup lookup = new FakeLookup();
         lookup.contents.put("g/x.proto@1", "x");
-        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.PROTOBUF, refs("x.proto"), Set.of());
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.PROTOBUF, refs("x.proto"), List.of());
         assertEquals(List.of(new MatchProblem("x.proto", "No matching artifact found in group 'g'.")),
                 m.problems());
     }
 
     @Test
-    void explicitResourceNameExcludesFragmentReferences() {
+    void explicitResourceNameIsInheritedByFragmentReferences() {
+        // The registry also has a "money.json" artifact; the explicit target must win over it.
         FakeLookup lookup = new FakeLookup().add("g", "money.json", "1", "{}")
                 .add("g", "other.json", "2", "{}");
         Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("money.json#/defs/A"),
                 new JsonPointerExternalReference("money.json#/defs/B"),
                 new JsonPointerExternalReference("other.json#/defs/C"));
-        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, Set.of("money.json"));
-        assertEquals(List.of(ArtifactReferenceDto.builder().name("other.json#/defs/C").groupId("g")
-                .artifactId("other.json").version("2").build()), m.matched());
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r,
+                List.of(existing("money.json", "shared", "money", "7")));
+        assertEquals(List.of(
+                existing("money.json#/defs/A", "shared", "money", "7"),
+                existing("money.json#/defs/B", "shared", "money", "7"),
+                existing("other.json#/defs/C", "g", "other.json", "2")), m.matched());
         assertEquals(List.of(), m.problems());
     }
 
     @Test
-    void explicitFragmentNameExcludesOtherReferencesToSameResource() {
+    void explicitFragmentNameIsSkippedAndItsTargetInherited() {
         FakeLookup lookup = new FakeLookup().add("g", "money.json", "1", "{}");
         Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("money.json#/defs/A"),
                 new JsonPointerExternalReference("money.json#/defs/B"));
         ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r,
-                Set.of("money.json#/defs/A"));
-        assertEquals(List.of(), m.matched());
+                List.of(existing("money.json#/defs/A", null, "money", "3")));
+        assertEquals(List.of(existing("money.json#/defs/B", null, "money", "3")), m.matched());
         assertEquals(List.of(), m.problems());
+    }
+
+    @Test
+    void conflictingExistingTargetsForSameResourceAreReported() {
+        Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("money.json#/defs/C"));
+        ReferenceMatch m = new ReferenceMatcher(new FakeLookup()).match("g", ArtifactType.JSON, r, List.of(
+                existing("money.json#/defs/A", "g", "money", "1"),
+                existing("money.json#/defs/B", "g", "money", "2")));
+        assertEquals(List.of(), m.matched());
+        assertEquals(List.of(new MatchProblem("money.json#/defs/C", "Supplied references money.json#/defs/A,"
+                + " money.json#/defs/B map the same resource to different artifact versions.")), m.problems());
     }
 
     @Test
@@ -190,7 +209,7 @@ class ReferenceMatcherTest {
                 .add("orders", "addr", "2", avro("com.acme", "Address"), "avro:name:Address", "avro:namespace:com.acme");
         lookup.truncated = true;
         ReferenceMatch m = new ReferenceMatcher(lookup).match("orders", ArtifactType.AVRO,
-                refs("com.acme.Address"), Set.of());
+                refs("com.acme.Address"), List.of());
         assertEquals(List.of(), m.matched());
         assertEquals(List.of(new MatchProblem("com.acme.Address", "Too many candidate artifacts in group 'orders'"
                 + " to match unambiguously. Provide an explicit reference.")), m.problems());
@@ -201,7 +220,7 @@ class ReferenceMatcherTest {
         FakeLookup lookup = new FakeLookup();
         lookup.truncated = true;
         ReferenceMatch m = new ReferenceMatcher(lookup).match("orders", ArtifactType.AVRO,
-                refs("com.acme.Address"), Set.of());
+                refs("com.acme.Address"), List.of());
         assertEquals(List.of(new MatchProblem("com.acme.Address", "Too many candidate artifacts in group 'orders'"
                 + " to match unambiguously. Provide an explicit reference.")), m.problems());
     }
@@ -211,7 +230,7 @@ class ReferenceMatcherTest {
         FakeLookup lookup = new FakeLookup().add("g", "money", "7", "{}", "json:id:https://ex.com/money.json");
         lookup.truncated = true;
         Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("https://ex.com/money.json"));
-        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, Set.of());
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, List.of());
         assertEquals(List.of(), m.matched());
         assertEquals(List.of(new MatchProblem("https://ex.com/money.json", "Too many candidate artifacts in group"
                 + " 'g' to match unambiguously. Provide an explicit reference.")), m.problems());
@@ -223,7 +242,7 @@ class ReferenceMatcherTest {
         FakeLookup lookup = new FakeLookup()
                 .add("orders", "state", "3", state, "avro:type:State", "avro:namespace:com.acme");
         ReferenceMatch m = new ReferenceMatcher(lookup).match("orders", ArtifactType.AVRO,
-                refs("com.acme.State"), Set.of());
+                refs("com.acme.State"), List.of());
         assertEquals(List.of(ArtifactReferenceDto.builder().name("com.acme.State").groupId("orders")
                 .artifactId("state").version("3").build()), m.matched());
         assertEquals(List.of(), m.problems());
@@ -237,7 +256,7 @@ class ReferenceMatcherTest {
                 .add("g", "lower", "1", "{\"$id\":\"https://ex.com/a.json\"}", "json:id:https://ex.com/a.json");
         lookup.caseInsensitiveStructure = true;
         Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("https://ex.com/A.json#/defs/X"));
-        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, Set.of());
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, List.of());
         assertEquals(List.of(ArtifactReferenceDto.builder().name("https://ex.com/A.json#/defs/X").groupId("g")
                 .artifactId("upper").version("1").build()), m.matched());
         assertEquals(List.of(), m.problems());
@@ -249,7 +268,7 @@ class ReferenceMatcherTest {
         FakeLookup lookup = new FakeLookup().add("g", "money", "2", "{\"$id\":\"https://ex.com/money-v2.json\"}",
                 "json:id:https://ex.com/money.json");
         Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("https://ex.com/money.json"));
-        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, Set.of());
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, List.of());
         assertEquals(List.of(), m.matched());
         assertEquals(List.of(new MatchProblem("https://ex.com/money.json", "No matching artifact found in group 'g'.")),
                 m.problems());
@@ -274,7 +293,7 @@ class ReferenceMatcherTest {
         lookup.add("orders", "addr", "1", avro("com.acme", "Address"), "avro:name:Address", "avro:namespace:com.acme");
         lookup.contents.put("orders/addr@2", avro("com.other", "Other"));
         ReferenceMatch m = new ReferenceMatcher(lookup).match("orders", ArtifactType.AVRO,
-                refs("com.acme.Address"), Set.of());
+                refs("com.acme.Address"), List.of());
         assertEquals(List.of("orders/addr@1"), lookup.contentRequests);
         assertEquals(List.of(ArtifactReferenceDto.builder().name("com.acme.Address").groupId("orders")
                 .artifactId("addr").version("1").build()), m.matched());

@@ -14,8 +14,11 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -52,36 +55,48 @@ public class ReferenceMatcher {
     /**
      * Matches the given references to existing artifacts.
      *
+     * <p>
+     * References already supplied (explicitly or by write hooks) take precedence:
+     * </p>
+     * <ul>
+     * <li>a detected reference whose full name is already mapped is skipped;</li>
+     * <li>a detected reference whose resource (the part before any {@code #} fragment) is covered by an existing
+     * reference, e.g. {@code money.json#/defs/M} with an existing {@code money.json} or
+     * {@code money.json#/defs/N}, is mapped under its full name to that existing reference's target, so the
+     * caller's choice of target is kept and every {@code $ref} literal ends up mapped;</li>
+     * <li>everything else is matched against the registry.</li>
+     * </ul>
+     *
      * @param groupId the group of the artifact being created
      * @param artifactType the artifact type
      * @param references the references found in the content
-     * @param excludedNames names of references to skip (e.g. explicitly provided references). A detected
-     *        reference is skipped when one of these names equals its full reference, or when the resource part
-     *        of one of these names (everything before any {@code #} fragment) equals its resource. So an
-     *        explicit {@code money.json} covers {@code money.json#/defs/M}, and vice versa.
+     * @param existing the references already supplied
      * @return the matched references and the problems
      */
     public ReferenceMatch match(String groupId, String artifactType, Set<ExternalReference> references,
-            Set<String> excludedNames) {
+            Collection<ArtifactReferenceDto> existing) {
         Context ctx = new Context();
         List<ArtifactReferenceDto> matched = new ArrayList<>();
         List<MatchProblem> problems = new ArrayList<>();
-        Set<String> excludedResources = excludedNames.stream()
-                .filter(Objects::nonNull)
-                .map(ReferenceMatcher::stripFragment)
-                .collect(Collectors.toSet());
+        Set<String> existingNames = existing.stream().map(ArtifactReferenceDto::getName)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<String, List<ArtifactReferenceDto>> existingByResource = existing.stream()
+                .filter(r -> r.getName() != null)
+                .collect(Collectors.groupingBy(r -> stripFragment(r.getName()), TreeMap::new,
+                        Collectors.toList()));
         List<ExternalReference> sorted = references.stream()
                 .filter(r -> r.getResource() != null)
-                .filter(r -> !excludedNames.contains(r.getFullReference()))
-                .filter(r -> !excludedResources.contains(r.getResource()))
+                .filter(r -> !existingNames.contains(r.getFullReference()))
                 .sorted(Comparator.comparing(ExternalReference::getFullReference))
                 .toList();
         for (ExternalReference ref : sorted) {
             String fullReference = ref.getFullReference();
-            Outcome outcome = resolve(ctx, groupId, artifactType, ref.getResource());
+            List<ArtifactReferenceDto> covering = existingByResource.get(ref.getResource());
+            Outcome outcome = covering != null ? inherit(covering)
+                    : resolve(ctx, groupId, artifactType, ref.getResource());
             if (outcome.problem != null) {
                 problems.add(new MatchProblem(fullReference, outcome.problem));
-            } else if (outcome.groupId == null) {
+            } else if (outcome.artifactId == null) {
                 problems.add(new MatchProblem(fullReference,
                         "No matching artifact found in group '" + groupId + "'."));
             } else {
@@ -90,6 +105,27 @@ public class ReferenceMatcher {
             }
         }
         return new ReferenceMatch(matched, problems);
+    }
+
+    /**
+     * Uses the target of the existing references to the same resource; they must all agree.
+     */
+    private static Outcome inherit(List<ArtifactReferenceDto> covering) {
+        List<ArtifactReferenceDto> targets = covering.stream()
+                .filter(distinctTarget())
+                .toList();
+        if (targets.size() > 1) {
+            List<String> names = covering.stream().map(ArtifactReferenceDto::getName).sorted().toList();
+            return Outcome.problem("Supplied references " + String.join(", ", names)
+                    + " map the same resource to different artifact versions.");
+        }
+        ArtifactReferenceDto target = targets.get(0);
+        return Outcome.found(target.getGroupId(), target.getArtifactId(), target.getVersion());
+    }
+
+    private static Predicate<ArtifactReferenceDto> distinctTarget() {
+        Set<List<String>> seen = new HashSet<>();
+        return r -> seen.add(Arrays.asList(r.getGroupId(), r.getArtifactId(), r.getVersion()));
     }
 
     private Outcome resolve(Context ctx, String groupId, String artifactType, String resource) {

@@ -498,7 +498,9 @@ Integrity rules, such as `ALL_REFS_MAPPED`, evaluate the matched references toge
 you list explicitly.
 References that you list explicitly in `references` take precedence and are not matched again. An explicit
 reference also covers every reference in the content to the same resource, ignoring any `#` fragment: for
-example, an explicit `money.json` covers both `money.json#/$defs/A` and `money.json#/$defs/B`.
+example, if you map `money.json` explicitly, `money.json#/$defs/A` and `money.json#/$defs/B` are each mapped
+under their full name to the same artifact version, so that the `ALL_REFS_MAPPED` integrity rule is satisfied.
+If explicit references map the same resource to different artifact versions, the request fails.
 Artifacts that you are not permitted to read are treated as not found.
 Matching also works with `dryRun=true` and with the `ifExists` parameter. With
 `ifExists=FIND_OR_CREATE_VERSION`, an existing version is returned only if both its content and its references

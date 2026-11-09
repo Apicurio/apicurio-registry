@@ -200,19 +200,53 @@ public class AutoReferencesTest extends AbstractResourceTestBase {
     }
 
     @Test
-    public void explicitResourceNameCoversFragmentReferences() throws Exception {
+    public void explicitResourceNameTargetIsInheritedByFragmentReferences() throws Exception {
         String g = newGroup();
         String money = "{\"$defs\":{\"A\":{\"type\":\"string\"},\"B\":{\"type\":\"number\"}}}";
         createArtifact(g, "money.json", ArtifactType.JSON, money, ContentTypes.APPLICATION_JSON);
         createArtifact(g, "other-money", ArtifactType.JSON, money, ContentTypes.APPLICATION_JSON);
-        String invoice = "{\"type\":\"object\",\"properties\":{"
-                + "\"a\":{\"$ref\":\"money.json#/$defs/A\"},\"b\":{\"$ref\":\"money.json#/$defs/B\"}}}";
 
         ArtifactReference explicit = ref("money.json", g, "other-money", "1");
-        createAuto(g, "invoice", ArtifactType.JSON, invoice, ContentTypes.APPLICATION_JSON, List.of(explicit),
-                null);
+        createAuto(g, "invoice", ArtifactType.JSON, invoiceWithMoneyRefs(), ContentTypes.APPLICATION_JSON,
+                List.of(explicit), null);
 
-        assertRefs(g, "invoice", "1", List.of(ref("money.json", g, "other-money", "1")));
+        // Every $ref is mapped, to the explicitly chosen artifact rather than the "money.json" artifact.
+        assertRefs(g, "invoice", "1", List.of(ref("money.json", g, "other-money", "1"),
+                ref("money.json#/$defs/A", g, "other-money", "1"),
+                ref("money.json#/$defs/B", g, "other-money", "1")));
+    }
+
+    @Test
+    public void explicitResourceNameSatisfiesAllRefsMappedWithAutoReferences() throws Exception {
+        String g = newGroup();
+        String money = "{\"$defs\":{\"A\":{\"type\":\"string\"},\"B\":{\"type\":\"number\"}}}";
+        createArtifact(g, "other-money", ArtifactType.JSON, money, ContentTypes.APPLICATION_JSON);
+        CreateRule rule = new CreateRule();
+        rule.setRuleType(RuleType.INTEGRITY);
+        rule.setConfig("ALL_REFS_MAPPED");
+        clientV3.groups().byGroupId(g).rules().post(rule);
+        ArtifactReference explicit = ref("money.json", g, "other-money", "1");
+
+        // Without autoReferences, the resource-only name does not map the literal $refs...
+        CreateArtifact plain = createRequest("invoice", ArtifactType.JSON, invoiceWithMoneyRefs(),
+                ContentTypes.APPLICATION_JSON, null);
+        plain.getFirstVersion().getContent().setReferences(List.of(explicit));
+        RuleViolationProblemDetails error = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> clientV3.groups().byGroupId(g).artifacts().post(plain));
+        Assertions.assertEquals(List.of("money.json#/$defs/A", "money.json#/$defs/B"),
+                error.getCauses().stream().map(c -> c.getContext()).sorted().toList());
+
+        // ...with autoReferences, they inherit its target and the rule passes.
+        createAuto(g, "invoice", ArtifactType.JSON, invoiceWithMoneyRefs(), ContentTypes.APPLICATION_JSON,
+                List.of(explicit), null);
+        assertRefs(g, "invoice", "1", List.of(ref("money.json", g, "other-money", "1"),
+                ref("money.json#/$defs/A", g, "other-money", "1"),
+                ref("money.json#/$defs/B", g, "other-money", "1")));
+    }
+
+    private static String invoiceWithMoneyRefs() {
+        return "{\"type\":\"object\",\"properties\":{"
+                + "\"a\":{\"$ref\":\"money.json#/$defs/A\"},\"b\":{\"$ref\":\"money.json#/$defs/B\"}}}";
     }
 
     @Test

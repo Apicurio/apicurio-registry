@@ -113,7 +113,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.UUID;
 import java.util.function.Function;
 
@@ -2156,7 +2155,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     /**
      * Detects the references in {@code content} and matches them to existing artifacts in {@code groupId}.
-     * References whose name is already in {@code existing} are left alone.
+     * References already in {@code existing} are left alone; detected references to a resource that an existing
+     * reference covers are mapped to that reference's target (see {@link ReferenceMatcher#match}).
      *
      * @param groupId the group of the artifact being written, as received by the REST method
      * @param artifactType the (resolved) type of the artifact being written
@@ -2179,8 +2179,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             throw new InvalidContentException("Unable to detect references: the content could not be parsed as "
                     + artifactType + ".");
         }
-        Set<String> excluded = existing.stream().map(ArtifactReferenceDto::getName).collect(Collectors.toSet());
-        ReferenceMatch match = referenceMatcher.match(groupId, artifactType, found, excluded);
+        ReferenceMatch match = referenceMatcher.match(groupId, artifactType, found, existing);
         if (match.hasProblems()) {
             throw new ReferenceAutoMatchException(match.problems());
         }

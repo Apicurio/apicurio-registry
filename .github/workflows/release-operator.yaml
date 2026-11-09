@@ -256,21 +256,29 @@ jobs:
             EXCLUDED_GROUPS="${{ matrix.excluded-groups }}" \
             test-remote-group
 
-  # Keeps the branch's generated/bookkeeping files tracking the version bump
-  # release.yaml already pushed, independent of whether release-test passes.
-  # Split out from release-post (#10841): that job gates everything on
-  # release-test, so a test failure — unrelated to whether this housekeeping
-  # itself would succeed — used to skip it entirely, leaving install.yaml,
-  # install-namespaced.yaml, the Makefile's PREVIOUS_PACKAGE_VERSION and the
-  # catalog template silently out of date on the branch (and, for a
+  # Keeps the branch's install files tracking the version bump release.yaml
+  # already pushed, independent of whether release-test passes. Split out
+  # from release-post (#10841): that job gates everything on release-test, so
+  # a test failure — unrelated to whether this housekeeping itself would
+  # succeed — used to skip it entirely, leaving install.yaml and
+  # install-namespaced.yaml silently out of date on the branch (and, for a
   # maintenance release, un-synced to main) until Verify went red from the
-  # drift and someone noticed and fixed it by hand (#10837). Only release-post's
-  # actual external publication (dist archive, Community Operators PRs) has a
-  # real reason to wait on tests passing.
+  # drift and someone noticed and fixed it by hand (#10837).
+  #
+  # The Makefile's PREVIOUS_PACKAGE_VERSION bump and the catalog template
+  # update are NOT here: they record the upgrade graph of what has actually
+  # been published (the next bundle's `replaces` comes from
+  # PREVIOUS_PACKAGE_VERSION), so they stay gated on release-test passing, in
+  # release-post below — otherwise a release abandoned after a test failure
+  # would still advance the catalog graph past a version nothing ever
+  # published to Community Operators.
+  #
+  # `if: !cancelled()` rather than `always()`: a cancelled run should not
+  # still push housekeeping changes.
   release-post-sync:
     name: Post-Release Housekeeping
     needs: [release-build]
-    if: always() && needs.release-build.result == 'success'
+    if: "!cancelled() && needs.release-build.result == 'success'"
     runs-on: ubuntu-26.04
     timeout-minutes: 60
     # Read by the notify job, which leaves out a failure already reported here.
@@ -300,6 +308,18 @@ jobs:
           distribution: temurin
           cache: maven
 
+      # Generates install/apicurio-registry-operator-$RELEASE_VERSION.yaml and its
+      # namespaced counterpart as untracked files in this checkout, from the release
+      # tag (VERSION is read from pom.xml). They used to be a side effect of the old
+      # release-post job's own `make dist`, done in the same job/workspace that later
+      # committed install files; now that this is a separate job, generate them here,
+      # before switching to $BRANCH below — "Sync install files to main" and the
+      # branch commit both expect them to already be on disk.
+      - name: Generate versioned install files
+        working-directory: registry/operator
+        run: |
+          make OPERAND_IMAGE_TAG=$RELEASE_VERSION dist
+
       - name: Prepare post-release changes
         working-directory: registry/operator
         run: |
@@ -308,18 +328,6 @@ jobs:
           git fetch origin
           git checkout "$BRANCH"
           git pull origin "$BRANCH"
-
-      - name: Update Makefile
-        working-directory: registry/operator
-        run: |
-          make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
-          git add Makefile
-
-      - name: Update catalog template
-        working-directory: registry/operator
-        run: |
-          make release-catalog-template-update
-          git add "$(make VAR=CATALOG_DIR variable-get)"
 
       - name: Update install file
         working-directory: registry/operator
@@ -331,13 +339,13 @@ jobs:
       - name: Commit & push post-release changes
         working-directory: registry/operator
         run: |
-          git commit -m "ci(operator): post-release changes for $RELEASE_VERSION"
+          git commit -m "ci(operator): post-release install files for $RELEASE_VERSION"
           # Rebase in case somebody else pushed to the branch
           git fetch origin
           git rebase "origin/$BRANCH"
           git push origin "$BRANCH"
 
-      - name: Sync post-release changes to main
+      - name: Sync install files to main
         if: env.BRANCH != 'main'
         working-directory: registry
         run: |
@@ -355,38 +363,8 @@ jobs:
           cp /tmp/install-file.yaml "$INSTALL_FILE"
           cp /tmp/install-file-namespaced.yaml "$INSTALL_NAMESPACED_FILE"
 
-          RELEASE_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
-          MAIN_CHANNEL=$(cd operator && make VAR=CHANNEL variable-get)
-
-          cd operator
-          if [ "$RELEASE_CHANNEL" = "$MAIN_CHANNEL" ]; then
-            # Same minor as main — full catalog update
-            make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
-            make release-catalog-template-update
-          else
-            # Maintenance release from an older minor — only update its channel
-            # and add the bundle image. Do NOT touch PREVIOUS_PACKAGE_VERSION,
-            # the rolling channel, or other minor channels on main.
-            CATALOG_DIR=$(make VAR=CATALOG_DIR variable-get)
-            CATALOG_FILE="$CATALOG_DIR/catalog.template.yaml"
-            PKG_NAME=$(make VAR=PACKAGE_NAME variable-get)
-            LC_VERSION=$(echo "$PACKAGE_VERSION" | tr A-Z a-z)
-            PREV_PKG=$(make VAR=PREVIOUS_PACKAGE variable-get)
-            BUNDLE_IMG="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$LC_VERSION"
-            YQ=$(make VAR=YQ variable-get)
-
-            echo "Syncing maintenance release $PACKAGE_VERSION to main (channel $RELEASE_CHANNEL only)"
-
-            # Add the new version to its minor channel
-            $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$RELEASE_CHANNEL\") | .entries) |= [{\"name\": \"$PKG_NAME.v$PACKAGE_VERSION\", \"replaces\": \"$PREV_PKG\"}] + ." "$CATALOG_FILE"
-
-            # Add the bundle image
-            $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$CATALOG_FILE"
-          fi
-
-          cd ..
-          git add .
-          git commit -m "ci(operator): sync $RELEASE_VERSION post-release changes from $BRANCH to main"
+          git add "$INSTALL_FILE" "$INSTALL_NAMESPACED_FILE"
+          git commit -m "ci(operator): sync $RELEASE_VERSION install files from $BRANCH to main"
           git rebase origin/main
           git push origin main
 
@@ -616,6 +594,72 @@ jobs:
       - name: Warn if Openshift Community Operators Catalog PR failed
         if: steps.openshift-community-operators-catalog-pr.outcome == 'failure'
         run: echo "::warning::Failed to create Openshift Community Operators Catalog PR. Please create it manually."
+
+      # The Makefile's PREVIOUS_PACKAGE_VERSION and the catalog template record the
+      # upgrade graph of what has actually been published — this job's own gate
+      # (release-test passing or skipped) is what makes it safe to advance them here,
+      # rather than in release-post-sync, which runs independent of test results.
+      - name: Update Makefile and catalog template
+        working-directory: registry/operator
+        run: |
+          git fetch origin
+          git checkout "$BRANCH"
+          git pull origin "$BRANCH"
+          make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
+          git add Makefile
+          make release-catalog-template-update
+          git add "$(make VAR=CATALOG_DIR variable-get)"
+
+      - name: Commit & push catalog bookkeeping
+        working-directory: registry/operator
+        run: |
+          git commit -m "ci(operator): post-release catalog bookkeeping for $RELEASE_VERSION"
+          # Rebase in case somebody else pushed to the branch
+          git fetch origin
+          git rebase "origin/$BRANCH"
+          git push origin "$BRANCH"
+
+      - name: Sync catalog bookkeeping to main
+        if: env.BRANCH != 'main'
+        working-directory: registry
+        run: |
+          git checkout main
+          git pull origin main
+
+          RELEASE_CHANNEL=$(echo "$PACKAGE_VERSION" | sed 's/\([0-9]*\.[0-9]*\)\..*/\1.x/')
+          MAIN_CHANNEL=$(cd operator && make VAR=CHANNEL variable-get)
+
+          cd operator
+          if [ "$RELEASE_CHANNEL" = "$MAIN_CHANNEL" ]; then
+            # Same minor as main — full catalog update
+            make VAR=PREVIOUS_PACKAGE_VERSION "VAL=$PACKAGE_VERSION" variable-set
+            make release-catalog-template-update
+          else
+            # Maintenance release from an older minor — only update its channel
+            # and add the bundle image. Do NOT touch PREVIOUS_PACKAGE_VERSION,
+            # the rolling channel, or other minor channels on main.
+            CATALOG_DIR=$(make VAR=CATALOG_DIR variable-get)
+            CATALOG_FILE="$CATALOG_DIR/catalog.template.yaml"
+            PKG_NAME=$(make VAR=PACKAGE_NAME variable-get)
+            LC_VERSION=$(echo "$PACKAGE_VERSION" | tr A-Z a-z)
+            PREV_PKG=$(make VAR=PREVIOUS_PACKAGE variable-get)
+            BUNDLE_IMG="$(make VAR=IMAGE_REGISTRY variable-get)/$(make VAR=BUNDLE_IMAGE_NAME variable-get):$LC_VERSION"
+            YQ=$(make VAR=YQ variable-get)
+
+            echo "Syncing maintenance release $PACKAGE_VERSION to main (channel $RELEASE_CHANNEL only)"
+
+            # Add the new version to its minor channel
+            $YQ -i "(.entries[] | select(.schema == \"olm.channel\") | select(.name == \"$RELEASE_CHANNEL\") | .entries) |= [{\"name\": \"$PKG_NAME.v$PACKAGE_VERSION\", \"replaces\": \"$PREV_PKG\"}] + ." "$CATALOG_FILE"
+
+            # Add the bundle image
+            $YQ -i ".entries |= . + [{\"schema\": \"olm.bundle\", \"image\": \"$BUNDLE_IMG\"}]" "$CATALOG_FILE"
+          fi
+
+          cd ..
+          git add .
+          git commit -m "ci(operator): sync $RELEASE_VERSION catalog bookkeeping from $BRANCH to main"
+          git rebase origin/main
+          git push origin main
 
       # Before tmate, which holds the job open until it times out, so whoever is
       # notified can still connect. tmate lets in only github.actor's SSH keys,

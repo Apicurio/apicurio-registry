@@ -1,6 +1,9 @@
 package io.apicurio.registry.noprofile.serde;
 
 import io.apicurio.registry.AbstractClientFacadeTestBase;
+import io.apicurio.registry.client.RegistryClientFactory;
+import io.apicurio.registry.client.common.RegistryClientOptions;
+import io.apicurio.registry.resolver.client.RegistryClientFacadeImpl;
 import io.apicurio.registry.serde.avro.AvroKafkaDeserializer;
 import io.apicurio.registry.serde.avro.AvroKafkaSerializer;
 import io.apicurio.registry.serde.avro.DefaultAvroDatumProvider;
@@ -73,6 +76,22 @@ public class ContractRuleSerdeTest extends AbstractClientFacadeTestBase {
         Serializer<GenericData.Record> serializer = new AvroKafkaSerializer<>();
         serializer.configure(config, false);
         return serializer;
+    }
+
+    @Test
+    public void testFacadeTellsMissingRulesetsFromFailedFetches() {
+        // An artifact without rules: an empty ruleset
+        RegistryClientFacadeImpl facade = new RegistryClientFacadeImpl(isolatedClientV3);
+        var empty = facade.getContractRuleset(TestUtils.generateGroupId(), "no-rules");
+        Assertions.assertTrue(empty.getDomainRules() == null || empty.getDomainRules().isEmpty());
+
+        // Unreachable registry: an exception, never "no rules"
+        RegistryClientFacadeImpl unreachable = new RegistryClientFacadeImpl(RegistryClientFactory.create(
+                RegistryClientOptions.create().registryUrl("http://localhost:1/apis/registry/v3").vertx(vertx)));
+        IllegalStateException e = Assertions.assertThrows(IllegalStateException.class,
+                () -> unreachable.getContractRuleset("g", "a"));
+        Assertions.assertTrue(e.getMessage().startsWith("Failed to fetch the contract ruleset of g/a"),
+                e.getMessage());
     }
 
     @Test

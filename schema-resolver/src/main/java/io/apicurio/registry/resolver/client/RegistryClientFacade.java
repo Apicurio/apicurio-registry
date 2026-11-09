@@ -65,6 +65,7 @@ public interface RegistryClientFacade {
     /**
      * Gets the global contract ruleset, which applies to every artifact.
      * Returns null if there is none, or if contract rules are not supported by this facade implementation.
+     * Throws if the registry cannot be reached or refuses the request: a failed fetch is not "no rules".
      */
     default io.apicurio.registry.rest.client.models.ContractRuleSet getGlobalContractRuleset() {
         return null;
@@ -72,7 +73,8 @@ public interface RegistryClientFacade {
 
     /**
      * Gets the contract ruleset of the given artifact (artifact-level rules only).
-     * Returns null if contract rules are not supported by this facade implementation.
+     * Returns null if there is none, or if contract rules are not supported by this facade implementation.
+     * Throws if the registry cannot be reached or refuses the request: a failed fetch is not "no rules".
      */
     default io.apicurio.registry.rest.client.models.ContractRuleSet getContractRuleset(
             String groupId, String artifactId) {
@@ -81,7 +83,8 @@ public interface RegistryClientFacade {
 
     /**
      * Gets the contract ruleset for a specific artifact version (version-level rules only).
-     * Returns null if contract rules are not supported by this facade implementation.
+     * Returns null if there is none, or if contract rules are not supported by this facade implementation.
+     * Throws if the registry cannot be reached or refuses the request: a failed fetch is not "no rules".
      */
     default io.apicurio.registry.rest.client.models.ContractRuleSet getVersionContractRuleset(
             String groupId, String artifactId, String version) {

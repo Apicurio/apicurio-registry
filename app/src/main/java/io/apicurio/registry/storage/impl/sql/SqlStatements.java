@@ -894,10 +894,16 @@ public interface SqlStatements {
     String selectContractRulesByTag();
 
     /**
-     * A statement to delete the artifact-level contract rules of every artifact in a group.
-     * Version-level rules are removed with their versions (foreign key cascade).
+     * A statement to delete the artifact-level contract rules of every artifact in a group, except
+     * the global ruleset. Version-level rules are removed with their versions (foreign key cascade).
      */
     String deleteContractRulesByGroupId();
+
+    /**
+     * A statement to delete the artifact-level contract rules of an artifact that is being deleted.
+     * Unlike deleteContractRulesByArtifact, it never matches the global ruleset.
+     */
+    String deleteContractRulesOfDeletedArtifact();
 
     /**
      * A statement to delete the contract audit entries of an artifact.

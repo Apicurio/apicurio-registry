@@ -100,7 +100,7 @@ public class SqlArtifactRepository {
 
             // Delete the artifact-level contract rules and contract audit entries, which have no
             // foreign key to the artifact (version-level contract rules cascade with the versions)
-            handle.createUpdate(sqlStatements.deleteContractRulesByArtifact())
+            handle.createUpdate(sqlStatements.deleteContractRulesOfDeletedArtifact())
                     .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();
             handle.createUpdate(sqlStatements.deleteContractAuditEntriesByArtifact())
                     .bind(0, normalizeGroupId(groupId)).bind(1, artifactId).execute();

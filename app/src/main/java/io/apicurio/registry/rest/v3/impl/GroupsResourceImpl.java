@@ -32,6 +32,7 @@ import io.apicurio.registry.metrics.health.liveness.ResponseErrorLivenessCheck;
 import io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck;
 import io.apicurio.registry.model.BranchId;
 import io.apicurio.registry.model.GA;
+import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionExpressionParser;
 import io.apicurio.registry.model.VersionId;
@@ -55,6 +56,7 @@ import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.*;
 import io.apicurio.registry.storage.error.ArtifactAlreadyExistsException;
 import io.apicurio.registry.storage.error.ArtifactNotFoundException;
+import io.apicurio.registry.storage.error.BranchNotFoundException;
 import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactIdException;
@@ -2363,7 +2365,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         }
 
         // Replace only the editable fields: the contract id, version, SLA, quality and lifecycle
-        // labels stay, so the artifact keeps its link to its ODCS contract.
+        // labels stay, so the artifact keeps its link to its ODCS contract. An omitted status or
+        // stage is kept too, so the lifecycle cannot be reset by leaving it out.
         Map<String, String> contractLabels = new HashMap<>();
         existingLabels.forEach((key, value) -> {
             if (key.startsWith(prefix) && !ContractLabels.isEditableMetadataKey(prefix, key)) {
@@ -2669,7 +2672,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;
-        OdcsContract previous = latestStoredContract(rawGroupId, contractId);
+        ProjectionPlan plan = planProjection(contract, latestStoredContract(rawGroupId, contractId),
+                contractId, rawGroupId);
 
         boolean createdArtifact = false;
         String createdVersion;
@@ -2692,7 +2696,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             createdVersion = createContractVersion(rawGroupId, contractId, version, data);
         }
 
-        OdcsProjectionResult projection = applyContract(contract, previous, contractId, rawGroupId,
+        OdcsProjectionResult projection = applyContract(contract, plan, contractId, rawGroupId,
                 createdArtifact, createdVersion);
         return toOdcsContractResult(contractId, contract, projection);
     }
@@ -2759,10 +2763,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
 
         String version = contract.getInfo() != null ? contract.getInfo().getVersion() : null;
-        OdcsContract previous = latestStoredContract(rawGroupId, contractId);
+        ProjectionPlan plan = planProjection(contract, latestStoredContract(rawGroupId, contractId),
+                contractId, rawGroupId);
         String createdVersion = createContractVersion(rawGroupId, contractId, version, data);
 
-        OdcsProjectionResult projection = applyContract(contract, previous, contractId, rawGroupId,
+        OdcsProjectionResult projection = applyContract(contract, plan, contractId, rawGroupId,
                 false, createdVersion);
         return toOdcsContractResult(contractId, contract, projection);
     }
@@ -2790,20 +2795,46 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * Projects a newly stored contract version, then removes the projection from the schemas the
-     * previous version targeted and this one does not. If the projection fails, the new version
-     * (or the new contract artifact) is deleted and the previous version is projected again, so
-     * the schemas do not keep a partial projection.
+     * What applying a new contract version will touch, worked out before anything is stored: the
+     * schema artifacts it targets, those the previous version targeted and it does not, and a
+     * snapshot of the contract's current projection on all of them, to restore if projection fails.
      */
-    private OdcsProjectionResult applyContract(OdcsContract contract, OdcsContract previous,
-            String contractId, String rawGroupId, boolean createdArtifact, String createdVersion) {
+    private record ProjectionPlan(Set<GA> targets, Set<GA> dropped,
+            List<OdcsProjectionEngine.Snapshot> snapshots) {
+    }
+
+    private ProjectionPlan planProjection(OdcsContract contract, OdcsContract previous, String contractId,
+            String rawGroupId) {
         Set<GA> targets = projectionTargets(contract, rawGroupId);
         Set<GA> dropped = previous != null ? projectionTargets(previous, rawGroupId) : new LinkedHashSet<>();
         dropped.removeAll(targets);
+        List<OdcsProjectionEngine.Snapshot> snapshots = new ArrayList<>();
+        for (GA target : union(targets, dropped)) {
+            if (artifactExists(target)) {
+                snapshots.add(odcsProjectionEngine.snapshot(contractId, target.getRawGroupIdWithNull(),
+                        target.getRawArtifactId()));
+            }
+        }
+        return new ProjectionPlan(targets, dropped, snapshots);
+    }
+
+    private static Set<GA> union(Set<GA> first, Set<GA> second) {
+        Set<GA> all = new LinkedHashSet<>(first);
+        all.addAll(second);
+        return all;
+    }
+
+    /**
+     * Projects a newly stored contract version, then removes the projection from the schemas the
+     * previous version targeted and this one does not. If anything fails, the new version (or the
+     * new contract artifact) is deleted and every affected schema is put back exactly as it was.
+     */
+    private OdcsProjectionResult applyContract(OdcsContract contract, ProjectionPlan plan,
+            String contractId, String rawGroupId, boolean createdArtifact, String createdVersion) {
         OdcsProjectionResult projection;
         try {
             projection = projectOdcsContract(contract, contractId, rawGroupId);
-            removeProjection(contractId, dropped);
+            removeProjection(contractId, plan.dropped());
         } catch (RuntimeException e) {
             log.warn("Projection of ODCS contract {} failed; rolling back", contractId, e);
             if (createdArtifact) {
@@ -2811,12 +2842,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             } else {
                 storage.deleteArtifactVersion(rawGroupId, contractId, createdVersion);
             }
-            restorePreviousProjection(previous, contractId, rawGroupId, targets);
-            throw new BadRequestException("The contract could not be projected and was not saved: "
-                    + e.getMessage());
+            restoreSnapshots(contractId, plan.snapshots());
+            // The cause is logged above; it can carry storage details that clients must not see
+            throw new BadRequestException("The contract could not be projected onto its schemas and was not"
+                    + " saved. See the server log for details.");
         }
         String details = contractId + " " + (contract.getInfo() != null ? contract.getInfo().getVersion() : "");
-        for (GA target : targets) {
+        for (GA target : plan.targets()) {
             if (artifactExists(target)) {
                 contractAuditService.recordAction(target.getRawGroupIdWithNull(), target.getRawArtifactId(),
                         null, "CONTRACT_PROJECTED", securityIdentity.getPrincipal().getName(), details.trim());
@@ -2825,18 +2857,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return projection;
     }
 
-    private void restorePreviousProjection(OdcsContract previous, String contractId, String rawGroupId,
-            Set<GA> attempted) {
-        try {
-            Set<GA> stale = new LinkedHashSet<>(attempted);
-            if (previous != null) {
-                stale.removeAll(projectionTargets(previous, rawGroupId));
-                projectOdcsContract(previous, contractId, rawGroupId);
+    private void restoreSnapshots(String contractId, List<OdcsProjectionEngine.Snapshot> snapshots) {
+        for (OdcsProjectionEngine.Snapshot snapshot : snapshots) {
+            try {
+                odcsProjectionEngine.restore(contractId, snapshot);
+            } catch (RuntimeException restoreError) {
+                log.error("Could not restore the projection of ODCS contract {} on {}/{}; re-submit the"
+                        + " contract", contractId, snapshot.groupId(), snapshot.artifactId(), restoreError);
             }
-            removeProjection(contractId, stale);
-        } catch (RuntimeException restoreError) {
-            log.error("Could not restore the projection of ODCS contract {}; re-submit the contract",
-                    contractId, restoreError);
         }
     }
 
@@ -2895,13 +2923,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     /** The latest stored version of a contract, or {@code null} if the contract does not exist. */
     private OdcsContract latestStoredContract(String rawGroupId, String contractId) {
-        List<String> versions;
+        GAV latest;
         try {
-            versions = storage.getArtifactVersions(rawGroupId, contractId, Set.of());
-        } catch (ArtifactNotFoundException e) {
+            // The order of getArtifactVersions is not defined: resolve the latest version explicitly
+            latest = storage.getBranchTip(new GA(rawGroupId, contractId), BranchId.LATEST,
+                    RetrievalBehavior.SKIP_DISABLED_LATEST);
+        } catch (ArtifactNotFoundException | BranchNotFoundException | VersionNotFoundException e) {
             return null;
         }
-        return versions.isEmpty() ? null : storedContract(rawGroupId, contractId, versions.get(versions.size() - 1));
+        return storedContract(rawGroupId, contractId, latest.getRawVersionId());
     }
 
     private OdcsContract storedContract(String rawGroupId, String contractId, String version) {

@@ -344,4 +344,106 @@ public class OdcsContractLifecycleTest extends AbstractResourceTestBase {
         // Field tags describe a version's fields; the artifact does not get them
         assertTrue(artifactLabels(artifactId).isEmpty(), "artifact labels: " + artifactLabels(artifactId));
     }
+
+    @Test
+    public void testDeletingTheSentinelGroupOrArtifactKeepsTheGlobalRules() throws Exception {
+        String sentinel = "__GLOBAL__";
+        given().when().contentType(ContentTypes.APPLICATION_JSON)
+                .body("{\"domainRules\":[{\"name\":\"keep-me\",\"kind\":\"CONDITION\",\"type\":\"CEL\","
+                        + "\"mode\":\"WRITE\",\"expr\":\"true\",\"onFailure\":\"ERROR\"}],\"migrationRules\":[]}")
+                .put("/registry/v3/admin/contracts/ruleset").then().statusCode(200);
+        try {
+            createArtifact(sentinel, sentinel, ArtifactType.AVRO, AVRO_SCHEMA, ContentTypes.APPLICATION_JSON);
+            storage.deleteArtifact(sentinel, sentinel);
+            assertEquals(List.of("keep-me"), globalRuleNames());
+
+            createArtifact(sentinel, sentinel, ArtifactType.AVRO, AVRO_SCHEMA, ContentTypes.APPLICATION_JSON);
+            storage.deleteGroup(sentinel);
+            assertEquals(List.of("keep-me"), globalRuleNames());
+        } finally {
+            given().when().delete("/registry/v3/admin/contracts/ruleset").then().statusCode(204);
+        }
+    }
+
+    private static List<String> globalRuleNames() {
+        return given().when().get("/registry/v3/admin/contracts/ruleset").then().statusCode(200)
+                .extract().jsonPath().getList("domainRules.name", String.class);
+    }
+
+    @Test
+    public void testFailedProjectionIsRolledBackWithoutLeakingDetails() throws Exception {
+        String artifactId = newSchema("rollback");
+        String contractId = "c-" + UUID.randomUUID();
+        submit(contract(contractId, "1.0.0", "draft", true, artifactId)).statusCode(200);
+        List<String> rulesBefore = domainRuleNames(artifactId);
+
+        // Version 1.1.0 moves the status forward, then fails: its rule name does not fit the rules table
+        String failing = contract(contractId, "1.1.0", "active", false, artifactId)
+                + "quality:\n  accuracy:\n    - name: " + "x".repeat(600) + "\n      expression: totalAmount > 0\n";
+        String body = update(contractId, failing).statusCode(400).extract().asString();
+
+        assertTrue(body.contains("could not be projected onto its schemas and was not saved"), body);
+        assertFalse(body.toLowerCase(java.util.Locale.ROOT).contains("sql"), body);
+        List<String> versions = given().when().pathParam("groupId", GROUP).pathParam("contractId", contractId)
+                .get("/registry/v3/groups/{groupId}/artifacts/{contractId}/versions").then().statusCode(200)
+                .extract().jsonPath().getList("versions.version", String.class);
+        assertEquals(List.of("1.0.0"), versions);
+        Map<String, String> labels = artifactLabels(artifactId);
+        assertEquals("DRAFT", labels.get("contract." + contractId + ".status"));
+        assertFalse(labels.containsKey("contract." + contractId + ".lifecycle.stable-date"), labels.toString());
+        assertEquals("1.0.0", labels.get("contract." + contractId + ".version"));
+        assertEquals(rulesBefore, domainRuleNames(artifactId));
+    }
+
+    @Test
+    public void testMetadataUpdateKeepsAnOmittedStatusAndStage() throws Exception {
+        String artifactId = newSchema("omitted");
+        String contractId = "c-" + UUID.randomUUID();
+        submit(contract(contractId, "1.0.0", "active", true, artifactId)).statusCode(200);
+        post(artifactId, "/contract/promote", "{\"contractId\":\"" + contractId + "\",\"targetStage\":\"DEV\"}")
+                .statusCode(200);
+        post(artifactId, "/contract/status", "{\"status\":\"DEPRECATED\"}").statusCode(200);
+
+        given().when().contentType(ContentTypes.APPLICATION_JSON).pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId).body("{\"ownerTeam\":\"new-team\"}")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata").then()
+                .statusCode(200).body("status", equalTo("DEPRECATED")).body("stage", equalTo("DEV"));
+
+        // Leaving status and stage out did not reset them, so they cannot be set back from scratch
+        given().when().contentType(ContentTypes.APPLICATION_JSON).pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId).body("{\"status\":\"DRAFT\"}")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/contract/metadata").then()
+                .statusCode(409);
+        assertEquals("DEV", artifactLabels(artifactId).get("contract." + contractId + ".stage"));
+    }
+
+    @Test
+    public void testAnInvalidLocationIsAWarningAndNothingIsHalfSaved() throws Exception {
+        String artifactId = newSchema("valid");
+        String contractId = "c-" + UUID.randomUUID();
+        String yaml = contract(contractId, "1.0.0", "active", true, artifactId)
+                .replace("schemas:\n", "schemas:\n  - location: " + GROUP + "/" + "a".repeat(513) + "\n");
+
+        submit(yaml).statusCode(200).body("projection.warnings", hasItem(containsString("Invalid schema location")));
+
+        assertEquals("orders-team", artifactLabels(artifactId).get("contract." + contractId + ".owner.team"));
+    }
+
+    @Test
+    public void testRemovalAlsoClearsTagsWrittenInLowerCase() throws Exception {
+        String artifactId = newSchema("legacy");
+        String contractId = "Mixed-" + UUID.randomUUID();
+        submit(contract(contractId, "1.0.0", "active", false, artifactId)).statusCode(200);
+        // Before label keys kept their case, the tags of contract "Mixed-..." were stored as "mixed-..."
+        String legacyKey = "field-tag." + contractId.toLowerCase(java.util.Locale.ROOT) + ":customeremail|pii";
+        given().when().contentType(ContentTypes.APPLICATION_JSON).pathParam("groupId", GROUP)
+                .pathParam("artifactId", artifactId)
+                .body("{\"labels\":{\"" + legacyKey + "\":\"EXTERNAL\",\"Team\":\"Orders\"}}")
+                .put("/registry/v3/groups/{groupId}/artifacts/{artifactId}/versions/1").then().statusCode(204);
+
+        given().when().pathParam("groupId", GROUP).pathParam("contractId", contractId)
+                .delete("/registry/v3/groups/{groupId}/contracts/{contractId}").then().statusCode(204);
+
+        assertEquals(Map.of("Team", "Orders"), versionLabels(artifactId, "1"));
+    }
 }

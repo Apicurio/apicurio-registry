@@ -1644,7 +1644,16 @@ public abstract class CommonSqlStatements implements SqlStatements {
 
     @Override
     public String deleteContractRulesByGroupId() {
-        return "DELETE FROM contract_rules WHERE groupId = ? AND globalId IS NULL";
+        // Never the global ruleset, stored under the same sentinel for group and artifact
+        return "DELETE FROM contract_rules WHERE groupId = ? AND globalId IS NULL"
+                + " AND NOT (groupId = '__GLOBAL__' AND artifactId = '__GLOBAL__')";
+    }
+
+    @Override
+    public String deleteContractRulesOfDeletedArtifact() {
+        // Never the global ruleset, stored under the same sentinel for group and artifact
+        return "DELETE FROM contract_rules WHERE groupId = ? AND artifactId = ? AND globalId IS NULL"
+                + " AND NOT (groupId = '__GLOBAL__' AND artifactId = '__GLOBAL__')";
     }
 
     @Override

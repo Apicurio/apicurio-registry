@@ -99,7 +99,8 @@ so all replicas apply them in the same order. Rule projection replaces the rules
 The field-tag key uses `|` before the tag name because field paths contain dots
 (`address.zipCode`). Tags can also be declared in schema content: Avro `tags`, JSON Schema `x-tags`,
 Protobuf `@tag:` comments, and their Confluent equivalents. When a version is created through the
-v3 REST API, `InlineFieldTagService` reads them with the `TagExtractor` for the artifact type and
+v3 REST API, `InlineFieldTagService` reads them with the `TagExtractor` for the artifact type (for
+Avro, from the JSON when the schema references named types defined elsewhere) and
 adds `field-tag.{fieldPath}|{tag}` = `INLINE` to the version's labels; labels submitted with the
 version win over extracted ones with the same key.
 
@@ -120,13 +121,16 @@ the contract to the end:
 - **Deleting a contract removes its projection** from every schema any of its versions targeted,
   before the `ODCS_CONTRACT` artifact is deleted, so a failure leaves a contract that can be
   deleted again.
-- **A failed projection is rolled back.** Missing schema artifacts and invalid locations are
-  warnings; any other failure deletes the new contract version (or the new contract artifact),
-  projects the previous version again, removes the projection from schemas only the failed
-  version targeted, and returns 400.
+- **A failed projection is rolled back.** Missing schema artifacts, invalid locations and missing
+  versions are warnings. Before storing the new version, the contract's projection on every
+  affected schema is captured (labels, the artifact's contract ruleset, field tags on each
+  version). Any other failure deletes the new contract version (or the new contract artifact),
+  puts every captured projection back as it was, and returns 400 with a fixed message; the cause
+  is only logged.
 
 Each projection and removal is recorded in the schema artifact's audit log (`CONTRACT_PROJECTED`,
-`CONTRACT_REMOVED`).
+`CONTRACT_REMOVED`). The "previous version" of a contract is its `latest` branch tip, not the last
+entry of the version list, whose order is not defined.
 
 `GET .../contract/export` (`OdcsExporter`) goes the other way: it rebuilds an ODCS document from
 the labels, rules and field tags on one artifact. It is a view of the projection, not of the
@@ -143,10 +147,10 @@ same `contract.{id}.*` artifact labels, so the metadata view, search and export 
 - **Promotion stage** (`POST .../contract/promote`, `PromotionService`): `DEV → STAGE → PROD`,
   forward and one step at a time, starting at DEV; PROD requires status `STABLE`.
 - **Compatibility group** (`PUT .../contract/compatibility-group`): a label only.
-- **Metadata** (`PUT .../contract/metadata`): replaces the editable fields (status, owner, domain,
-  contact, classification, stage, compatibility group) and keeps every other contract label, so the
-  artifact stays linked to its ODCS contract. A status or stage change follows the same rules as
-  the status and promote endpoints.
+- **Metadata** (`PUT .../contract/metadata`): replaces the descriptive fields (owner, domain,
+  contact, classification, compatibility group) and keeps every other contract label, so the
+  artifact stays linked to its ODCS contract. Status and stage change only when given, by the same
+  rules as the status and promote endpoints; omitting them keeps them.
 
 `GET .../contract/metadata` maps the labels to a DTO (`ContractMetadataMapper`); it finds the
 contract through the `contract.{id}.id` label and falls back to un-namespaced `contract.*` labels
@@ -203,7 +207,10 @@ TRANSFORM rules and of deserializer migrations is not applied to the record (see
 [Limitations](#limitations-and-open-work)).
 
 Running the rules in the client keeps the serializer's hot path free of a registry call per record,
-at the cost of a rules cache that can be up to one TTL out of date.
+at the cost of a rules cache that can be up to one TTL out of date. A ruleset that cannot be
+fetched (timeout, 401, 5xx) is never cached as "no rules": the failure propagates, so with
+`fail-on-error` the record is rejected, and the next record fetches again. Rules keep their order
+within their own scope, so rules of different scopes interleave as on the server.
 
 ### Search and audit
 

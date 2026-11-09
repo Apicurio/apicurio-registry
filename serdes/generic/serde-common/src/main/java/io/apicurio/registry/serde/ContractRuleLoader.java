@@ -16,8 +16,10 @@ import java.util.function.Supplier;
 /**
  * Loads the contract rules a serializer or deserializer evaluates, with the same scoping as the
  * registry's rule execution endpoint: the global, artifact and version rulesets, merged by rule
- * name so that the narrowest scope wins. Rulesets are cached for the configured TTL, including
- * empty ones, so that an artifact without rules costs no request per record.
+ * name so that the narrowest scope wins, and ordered as the server orders them. Rulesets are cached
+ * for the configured TTL, including empty ones, so that an artifact without rules costs no request
+ * per record. A failed fetch is not cached: it propagates, so the caller fails closed (or logs, with
+ * fail-on-error disabled) and the next record fetches again.
  */
 final class ContractRuleLoader {
 
@@ -38,7 +40,7 @@ final class ContractRuleLoader {
      * replacing any rule of the same name from a broader scope.
      */
     List<RuleDefinition> domainRules(String groupId, String artifactId, String version) {
-        Map<String, ContractRule> merged = new LinkedHashMap<>();
+        Map<String, RuleDefinition> merged = new LinkedHashMap<>();
         addDomainRules(merged, ruleset(GLOBAL, GLOBAL, null, RegistryClientFacade::getGlobalContractRuleset));
         addDomainRules(merged, ruleset(groupId, artifactId, null,
                 f -> f.getContractRuleset(groupId, artifactId)));
@@ -46,7 +48,7 @@ final class ContractRuleLoader {
             addDomainRules(merged, ruleset(groupId, artifactId, version,
                     f -> f.getVersionContractRuleset(groupId, artifactId, version)));
         }
-        return toRuleDefinitions(merged.values());
+        return List.copyOf(merged.values());
     }
 
     /**
@@ -75,14 +77,20 @@ final class ContractRuleLoader {
         return result;
     }
 
-    private static void addDomainRules(Map<String, ContractRule> merged, ContractRuleSet ruleset) {
+    /**
+     * Merges one scope into the rules collected so far, as the server's RuleExecutionService does:
+     * a rule replaces the broader rule of the same name and moves to the end, and keeps its
+     * position within its own scope as order index. The engine then sorts by order index (a stable
+     * sort), so rules of different scopes interleave exactly as on the server.
+     */
+    private static void addDomainRules(Map<String, RuleDefinition> merged, ContractRuleSet ruleset) {
         if (ruleset.getDomainRules() == null) {
             return;
         }
+        int order = 0;
         for (ContractRule rule : ruleset.getDomainRules()) {
-            // Remove first, so that an overriding rule takes the position of its own scope
             merged.remove(rule.getName());
-            merged.put(rule.getName(), rule);
+            merged.put(rule.getName(), toRuleDefinition(rule, order++));
         }
     }
 

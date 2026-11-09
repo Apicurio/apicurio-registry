@@ -199,7 +199,7 @@ When you update an ODCS contract with `PUT /groups/\{g}/contracts/\{contractId}`
 * Field tags are replaced on the target version; a version without field metadata removes them.
 * Schemas the previous version referenced and the new version does not lose the contract's labels, rules, and field tags.
 
-If a projection fails for any reason other than a missing schema artifact or an invalid location, the new contract version is deleted (or the new contract artifact, on a first submission), the previous version is projected again, and the request fails with HTTP 400.
+If a projection fails for any reason other than a missing schema artifact, an invalid location, or a missing version, the new contract version is deleted (or the new contract artifact, on a first submission), the contract's labels, rules, and field tags on every affected schema artifact are put back as they were before the request, and the request fails with HTTP 400. The cause is written to the server log.
 
 [id="data-contracts-odcs-location_{context}"]
 == Schema location format
@@ -314,7 +314,7 @@ The following tag names are commonly used:
 [role="_abstract"]
 {registry} extracts inline field tags from the following syntax in schema content.
 
-Avro:: `tags` and `confluent:tags` field properties.
+Avro:: `tags` and `confluent:tags` field properties. Tags are also read when the schema references named types defined in other artifacts.
 +
 [source,json]
 ----
@@ -538,7 +538,7 @@ Enable contract rule evaluation by setting these properties on your Kafka produc
 
 Contract rule evaluation works as follows:
 
-Rule source:: The SerDes fetch the global, artifact-level, and version-level rulesets of the schema version, merge their domain rules by name (the narrowest scope wins), cache them, and evaluate the rules locally in the client. Empty rulesets are cached too.
+Rule source:: The SerDes fetch the global, artifact-level, and version-level rulesets of the schema version, merge their domain rules by name (the narrowest scope wins), cache them, and evaluate the rules locally in the client. Empty rulesets are cached too. A ruleset that cannot be fetched, for example because the registry is unreachable or refuses the request, is not cached: with `fail-on-error=true` the record is rejected, and the next record fetches the ruleset again.
 Record conversion:: Records are converted to maps by parsing the JSON output of their `toString()` method.
 Producer (serializer):: Runs `WRITE` rules before serialization.
 Consumer (deserializer):: Runs `READ` rules after deserialization.
@@ -730,7 +730,7 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 
 |PUT
 |`/groups/\{groupId}/artifacts/\{artifactId}/contract/metadata`
-|Replace the editable contract metadata fields. Other contract labels are kept; status and stage changes follow the lifecycle rules
+|Replace the descriptive contract metadata fields. Other contract labels are kept; status and stage change only when given, following the lifecycle rules
 |===
 
 .Contract ruleset REST API endpoints
@@ -954,7 +954,7 @@ curl -X PUT \
   }'
 ----
 
-NOTE: This call replaces the editable fields: `status`, `ownerTeam`, `ownerDomain`, `supportContact`, `classification`, `stage`, and `compatibilityGroup`. A field you omit is removed. Other contract labels, such as the projected `id`, `version`, `sla.*`, and `quality.*`, are kept. A status or stage change that the lifecycle does not allow is rejected (HTTP 409 for the status, HTTP 400 for the stage).
+NOTE: This call replaces the descriptive fields: `ownerTeam`, `ownerDomain`, `supportContact`, `classification`, and `compatibilityGroup`. A descriptive field you omit is removed. `status` and `stage` change only when given; omitting them keeps them. Other contract labels, such as the projected `id`, `version`, `sla.*`, and `quality.*`, are kept. A status or stage change that the lifecycle does not allow is rejected (HTTP 409 for the status, HTTP 400 for the stage).
 
 .Transitioning contract status
 [source,bash]

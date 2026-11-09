@@ -104,6 +104,11 @@ jobs:
       - name: Test scalpel summary script
         run: bash .github/scripts/scalpel-summary.test.sh
 
+      # Same reasoning for the example discovery suite: a discovery regression can drop an
+      # example from verify-examples.yaml's matrix while Verify stays green.
+      - name: Test example discovery script
+        run: bash .github/scripts/discover-examples.test.sh
+
       # Discovers the test_*.py files sitting directly in .github/scripts rather
       # than naming one of them. A test that CI does not run stops nothing:
       # test_parse_flaky_tests.py sat in the tree unreferenced under the old
@@ -210,6 +215,22 @@ jobs:
           tag: '${{ github.sha }}'
           output-path: '/tmp/apicurio-registry-${{ github.sha }}.tar'
           artifact-name: 'apicurio-registry-${{ github.sha }}.tar'
+
+      # The examples run the MCP server too (verify-examples.yaml); build it from this commit,
+      # like the release does (release-images.yaml), rather than test a published snapshot.
+      - name: Build MCP Server Docker Image
+        run: |
+          docker build -f ./mcp/target/docker/Dockerfile.jvm \
+            -t apicurio/apicurio-registry-mcp-server:${{ github.sha }} \
+            ./mcp/target/docker
+
+      - name: Save MCP Server Docker Image
+        uses: apicurio/apicurio-github-actions/save-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
+        with:
+          image-name: apicurio/apicurio-registry-mcp-server
+          tag: '${{ github.sha }}'
+          output-path: '/tmp/apicurio-registry-mcp-server-${{ github.sha }}.tar'
+          artifact-name: 'apicurio-registry-mcp-server-${{ github.sha }}.tar'
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
@@ -481,6 +502,14 @@ jobs:
     with:
       image-tag: ${{ github.sha }}
 
+  examples:
+    name: Examples
+    needs: [decide, build-java, build-ui]
+    if: needs.decide.outputs.run-examples == 'true'
+    uses: ./.github/workflows/verify-examples.yaml
+    with:
+      image-tag: ${{ github.sha }}
+
   operator:
     name: Operator Tests
     needs: [decide]
@@ -521,7 +550,7 @@ jobs:
           || needs.decide.outputs.lifecycle-ready == 'true')
     needs: [decide, lint-and-validate, build-java, build-ui, unit-tests,
             cli-verify, ard-conformance, agent-quickstart, go-sdk-freshness, sdk, console-plugin,
-            integration-tests, extras, operator, docs]
+            integration-tests, extras, examples, operator, docs]
     runs-on: ubuntu-latest
     timeout-minutes: 10  # longest green run, week to 2026-10-01: 0 min
     steps:

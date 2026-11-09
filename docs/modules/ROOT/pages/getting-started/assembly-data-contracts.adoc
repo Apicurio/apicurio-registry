@@ -27,8 +27,8 @@ A data contract in {registry} combines the following elements:
 ODCS format:: Contracts are submitted as ODCS v3.1 YAML documents and projected onto schema artifacts.
 Metadata:: Ownership, classification, SLA, and support information are projected as labels.
 Lifecycle:: Status tracking (DRAFT, STABLE, DEPRECATED) and promotion stages (DEV, STAGE, PROD).
-Quality rules:: Accuracy and completeness rules from ODCS are projected as CEL contract rules.
-Field tags:: PII and classification annotations are stored as version labels, with automatic extraction from Avro, JSON Schema, and Protobuf schemas.
+Quality rules:: ODCS accuracy rules are projected as CEL contract rules; completeness and freshness settings are stored as labels.
+Field tags:: PII and classification annotations, from ODCS contracts or declared in the schema content, are stored as version labels.
 Multi-contract support:: Multiple contracts can reference the same schema artifact without overwriting each other.
 
 NOTE: Data contracts are always available. No special configuration is required: submitting a contract is an explicit opt-in action.
@@ -54,7 +54,7 @@ Contract "orders-contract" → contract.orders-contract.owner.team = orders-team
 Contract "billing-contract" → contract.billing-contract.owner.team = billing-team
 ----
 
-Updating or deleting a contract only affects its own namespaced labels, rules, and tags.
+Updating a contract only affects its own namespaced labels, rules, and tags. Deleting a contract deletes the `ODCS_CONTRACT` artifact and removes everything the contract projected from every schema artifact any of its versions referenced: its labels, its `odcs:\{contractId}:*` rules, and its field tags.
 
 [id="data-contracts-odcs-projection_{context}"]
 == ODCS projection mapping
@@ -70,48 +70,58 @@ When you submit an ODCS contract, {registry} parses the YAML, stores it as an `O
 |ODCS section |Projected to
 
 |`info.status`
-|`contract.{contractId}.status` label (draft->DRAFT, active->STABLE, deprecated->DEPRECATED)
+|`contract.\{contractId}.status` label (case-insensitive: draft->DRAFT, active->STABLE, deprecated or retired->DEPRECATED, any other value->DRAFT)
+
+|`info.version`
+|`contract.\{contractId}.version` label
+
+|`id`
+|`contract.\{contractId}.id` label
 
 |`info.dataClassification`
-|`contract.{contractId}.classification` label
+|`contract.\{contractId}.classification` label
 
 |`team.name` / `team.domain` / `team.contact`
-|`contract.{contractId}.owner.team`, `.owner.domain`, `.support.contact` labels
+|`contract.\{contractId}.owner.team`, `.owner.domain`, `.support.contact` labels
 
 |`quality.accuracy` rules
-|CEL contract rules prefixed `odcs:{contractId}:` in the contract_rules table
+|Artifact-level CEL domain rules named `odcs:\{contractId}:\{name}` (kind `CONDITION`, mode `WRITE`)
 
 |`quality.completeness` rules
-|`contract.{contractId}.quality.completeness.{field}` labels
+|`contract.\{contractId}.quality.completeness.{field}` labels
 
-|`quality.freshness`
-|`contract.{contractId}.quality.freshness.maxStaleness` label
+|`quality.freshness.maxStaleness`
+|`contract.\{contractId}.quality.freshness.maxStaleness` label
 
-|`schemas[].fields[].pii` / `.tags`
-|`field-tag.{contractId}:{fieldPath}\|{tagName}` version labels
+|`schemas[].fields[].pii` / `.classification` / `.tags`
+|`field-tag.\{contractId}:\{fieldPath}\|\{tagName}` labels with value `EXTERNAL`, set on the version named in `location` (latest version if omitted)
 
-|`serviceLevel.*`
-|`contract.{contractId}.sla.*` labels (stored, not enforced by registry)
+|`serviceLevel.availability`, `serviceLevel.latency.p50`, `serviceLevel.latency.p99`
+|`contract.\{contractId}.sla.availability`, `.sla.latency.p50`, `.sla.latency.p99` labels (stored, not enforced by registry). Other `serviceLevel` fields, such as throughput, are not projected.
 |===
 
-ODCS accuracy rule thresholds determine what happens when a rule fails:
+Other ODCS sections, such as `info.title` and descriptions, are kept only in the stored contract YAML.
+
+A status from `info.status` that becomes `STABLE` or `DEPRECATED` also sets `contract.\{contractId}.lifecycle.stable-date` or `contract.\{contractId}.lifecycle.deprecated-date`. A field tag whose label key would be longer than 256 characters is skipped, with a warning in the response.
+
+ODCS accuracy rule thresholds (default 1.0) determine the rule's `onFailure` action. The rule `params` contain the `source` and `threshold` values.
 
 .Accuracy rule threshold mapping
 [cols="1,1,3", options="header"]
 |===
 |Threshold |Failure action |Behavior
 
-|1.0 (100%)
+|1.0 or higher
 |`ERROR`
-|Zero tolerance. Non-compliant data is rejected.
+|Rule evaluation stops at this failure.
 
-|0.95-0.99
+|0.95 to below 1.0
 |`DLQ`
-|Near-100% tolerance. Violations are routed to a dead letter queue.
+|The violation is recorded and evaluation continues. No dead letter queue routing is implemented.
 
 |Below 0.95
 |`NONE`
-|Soft constraint. Violations are logged only.
+|The violation is recorded and evaluation continues.
 |===
 
 [id="data-contracts-odcs-example_{context}"]
@@ -175,13 +185,21 @@ serviceLevel:
 When submitted, this contract results in the following projections:
 
 . An `ODCS_CONTRACT` artifact is created to store the YAML.
-. Namespaced labels are set on the `orders/OrderEvent` artifact: `contract.orders-contract.status=STABLE`, `contract.orders-contract.owner.team=orders-team`, and `contract.orders-contract.classification=CONFIDENTIAL`.
+. Namespaced labels are set on the `orders/OrderEvent` artifact, for example `contract.orders-contract.status=STABLE`, `contract.orders-contract.owner.team=orders-team`, and `contract.orders-contract.classification=CONFIDENTIAL`.
 . Two CEL contract rules are created: `odcs:orders-contract:positive-amount` with `onFailure=ERROR`, and `odcs:orders-contract:valid-email` with `onFailure=DLQ`.
 . Completeness thresholds are stored as labels, such as `contract.orders-contract.quality.completeness.orderId=1.0`.
-. Field tags are set: `field-tag.orders-contract:customerEmail|PII=EXTERNAL` and `field-tag.orders-contract:customerEmail|EMAIL=EXTERNAL`.
+. Field tags are set on version 3: `field-tag.orders-contract:customerEmail|PII=EXTERNAL` and `field-tag.orders-contract:customerEmail|EMAIL=EXTERNAL`.
 . SLA labels are stored for external monitoring tools.
 
-When you update an ODCS contract, only rules prefixed with `odcs:{contractId}:` are replaced. Rules added manually through the contract ruleset API are preserved.
+When you update an ODCS contract with `PUT /groups/\{g}/contracts/\{contractId}`, a new contract version is added (re-submitting an existing `info.version` returns HTTP 409) and the contract is re-projected:
+
+* The `contract.\{contractId}.*` labels taken from the YAML are replaced. The stage, compatibility group, and lifecycle dates set through the API are kept.
+* The status from `info.status` is applied only if the contract lifecycle allows moving to it from the current status (see <<data-contracts-lifecycle_{context}>>). Otherwise the current status is kept, and the response contains a warning.
+* Rules named `odcs:\{contractId}:*` are replaced; a version without `quality.accuracy` rules removes them. Other rules, such as rules added manually through the contract ruleset API, are preserved.
+* Field tags are replaced on the target version; a version without field metadata removes them.
+* Schemas the previous version referenced and the new version does not lose the contract's labels, rules, and field tags.
+
+If a projection fails for any reason other than a missing schema artifact, an invalid location, or a missing version, the new contract version is deleted (or the new contract artifact, on a first submission), the contract's labels, rules, and field tags on every affected schema artifact are put back as they were before the request, and the request fails with HTTP 400. The cause is written to the server log.
 
 [id="data-contracts-odcs-location_{context}"]
 == Schema location format
@@ -215,9 +233,9 @@ IMPORTANT: Each entry under `schemas[]` is independent. Projection and field met
 [role="_abstract"]
 Schema artifacts can reference other artifacts (for example an Avro `OrderEvent` that references a shared `Address` record). Data contracts stay scoped to each artifact. {registry} does not walk those cross-artifact references when projecting ODCS field metadata.
 
-*What works at evaluation time*
+*What happens at evaluation time*
 
-When a Kafka record is serialized, nested objects are fully materialized. An Avro `GenericRecord` contains the nested `Address` values inline, not a pointer to another registry artifact. After conversion to a map, CEL rules can reach nested paths:
+When a Kafka record is serialized, nested objects are fully materialized. An Avro `GenericRecord` contains the nested `Address` values inline, not a pointer to another registry artifact. The SerDes convert the record to a map by parsing its JSON `toString()` output:
 
 [source,json]
 ----
@@ -227,7 +245,7 @@ When a Kafka record is serialized, nested objects are fully materialized. An Avr
 }
 ----
 
-A CEL expression such as `address.zipCode != ""` works at rule evaluation time because the nested fields are present on the record.
+Each top-level field becomes a CEL variable. CEL expressions that reach into nested records, such as `address.zipCode != ""`, currently fail with an "undeclared reference" error, which counts as a rule failure. Write CEL rules against top-level fields only.
 
 *What projection does not do*
 
@@ -244,7 +262,7 @@ So you cannot tag `address.street` as PII from an `OrderEvent` contract if `stre
 *Practical guidance*
 
 * Put field-level PII and tags on the contract (or `schemas[]` entry) for the artifact that actually defines those fields.
-* Use CEL quality rules on the parent artifact when you need to validate nested values on the wire; those rules see the materialized record.
+* Use CEL quality rules on the parent artifact for its top-level fields. Rules on nested values are not supported yet (see above).
 * List every governed schema under `schemas[]` when one ODCS document should cover several related artifacts.
 
 NOTE: **Upgrade note:** Earlier releases projected field tags from every `schemas[]` entry onto each target artifact. Field-tag projection now uses only the entry whose `location` resolves to the target artifact. Artifacts with no matching entry receive no projected field tags. Contracts that previously relied on cross-entry tag bleed-through should add a dedicated `schemas[]` entry per governed artifact.
@@ -257,12 +275,12 @@ NOTE: **Upgrade note:** Earlier releases projected field tags from every `schema
 [role="_abstract"]
 Field tags provide semantic annotation of schema fields, enabling you to identify sensitive data and apply tag-based governance.
 
-Tags come from two sources:
+Field tags are stored as version labels. They come from two sources:
 
-Inline tags:: Extracted automatically from schema content during registration by tag extractors.
-External tags:: Projected from ODCS contracts or set manually by using the version labels API.
+Inline tags:: Declared in the schema content (see <<data-contracts-field-tags-formats_{context}>>). When a version is created through the Core Registry API v3, they are stored as `field-tag.\{fieldPath}|\{tagName}` labels with value `INLINE`. Labels submitted with the version take precedence over extracted tags with the same key. Versions created through the Confluent Schema Registry compatibility API, and draft content updates, do not get inline tags.
+External tags:: Projected from ODCS contracts as `field-tag.\{contractId}:\{fieldPath}|\{tagName}` labels with value `EXTERNAL`, or set manually by using the version labels API.
 
-{registry} recognizes the following common tags:
+The following tag names are commonly used:
 
 .Common field tags
 [cols="1,3", options="header"]
@@ -294,9 +312,9 @@ External tags:: Projected from ODCS contracts or set manually by using the versi
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Tag extractors read field-level tags from schema content for Avro, JSON Schema, and Protobuf.
+{registry} extracts inline field tags from the following syntax in schema content.
 
-Avro:: Tags are extracted from `tags` and `confluent:tags` field properties.
+Avro:: `tags` and `confluent:tags` field properties. Tags are also read when the schema references named types defined in other artifacts.
 +
 [source,json]
 ----
@@ -311,7 +329,7 @@ Avro:: Tags are extracted from `tags` and `confluent:tags` field properties.
 }
 ----
 
-JSON Schema:: Tags are extracted from `x-tags` and `x-confluent-tags` extension properties. Supports nested objects, arrays, `additionalProperties`, and `allOf`/`oneOf`/`anyOf` compositions.
+JSON Schema:: `x-tags` and `x-confluent-tags` extension properties.
 +
 [source,json]
 ----
@@ -326,7 +344,7 @@ JSON Schema:: Tags are extracted from `x-tags` and `x-confluent-tags` extension 
 }
 ----
 
-Protobuf:: Tags are extracted from documentation comments using the `@tag:` annotation. Also supports Confluent `confluent.field_meta` field options.
+Protobuf:: The `@tag:` annotation in documentation comments, and Confluent `confluent.field_meta` field options.
 +
 [source,protobuf]
 ----
@@ -346,30 +364,39 @@ Contract rules define validation and transformation logic associated with artifa
 
 When you submit an ODCS contract, its `quality.accuracy` rules are automatically projected as CEL domain rules on the referenced schema artifact.
 
-Contract rules are enforced both server-side, via the rule execution REST endpoint, and client-side, via Java Kafka SerDes integration.
+Contract rules are evaluated server-side by the rule execution REST endpoint, and client-side by the Java Kafka SerDes. Both merge the global, artifact-level, and version-level rules in the same way (see <<data-contracts-global-rules_{context}>>).
 
 Rules are classified by kind:
 
 `CONDITION`:: Validates a condition and either passes or fails.
-`TRANSFORM`:: Modifies data.
+`TRANSFORM`:: Modifies data. If the output is a map, it is passed to the next rule.
 
 Rules run in one of the following modes:
 
 `WRITE`:: Executes on serialize (producer side).
 `READ`:: Executes on deserialize (consumer side).
-`WRITEREAD`:: Executes on both.
+`WRITEREAD`:: Executes on both. A rule with no mode also matches any mode.
 `UPGRADE` / `DOWNGRADE`:: Executes during schema migration.
 
-{registry} supports the following rule types:
+{registry} supports the following rule types. Rules of any other type are skipped with a warning.
 
-`CEL`:: Common Expression Language for validation conditions and simple transforms, implemented with the `cel-standalone` library. Supports the full CEL specification, including `has()`, `size()`, `contains()`, `startsWith()`, parenthesized grouping, and ternary expressions.
-`JSONATA`:: JSONata expressions for data transformation. Supports both `CONDITION` (truthy check) and `TRANSFORM` (returns transformed data) kinds. Useful for schema migration transforms.
+`CEL`:: Common Expression Language for validation conditions and simple transforms, implemented with the `cel-standalone` library. Supports the full CEL specification, including `has()`, `size()`, `contains()`, `startsWith()`, parenthesized grouping, and ternary expressions. Each top-level field of the record is a CEL variable: write `totalAmount > 0`, not `record.totalAmount` or `message.totalAmount`. References to fields of nested records fail with an "undeclared reference" error.
+`JSONATA`:: JSONata expressions for data transformation. Supports both `CONDITION` and `TRANSFORM` (returns transformed data) kinds. Useful for schema migration transforms.
 
-When a rule fails, one of the following actions occurs:
+Rules are evaluated as follows:
 
-`NONE`:: Processing continues and the violation is logged only.
-`ERROR`:: An exception is thrown and the operation is rejected.
-`DLQ`:: The message is routed to a dead letter queue.
+. Disabled rules, and rules whose mode does not match, are skipped.
+. The remaining rules run in the order in which they are listed in the ruleset.
+. A `CONDITION` rule passes only if its result is exactly the boolean `true`, for both CEL and JSONata. Compilation and evaluation errors count as failures.
+. When a rule fails, a violation is recorded. The overall result is failed (`passed=false`) whatever the `onFailure` action.
+
+The `onFailure` action controls whether evaluation continues after a failure:
+
+`NONE`:: Evaluation continues with the next rule.
+`ERROR`:: Evaluation stops.
+`DLQ`:: Evaluation continues with the next rule. No dead letter queue routing is implemented.
+
+How a failed result affects Kafka clients depends on the SerDes `fail-on-error` setting, not on the `onFailure` action.
 
 [role="_additional-resources"]
 .Additional resources
@@ -398,7 +425,7 @@ DRAFT ──────► STABLE ──────► DEPRECATED
          (skip stable)
 ----
 
-NOTE: Reverse transitions are not allowed.
+NOTE: Reverse transitions are not allowed. The `POST /groups/\{g}/artifacts/\{a}/contract/status` endpoint enforces these transitions and sets the lifecycle dates. Any transition from `DEPRECATED` is rejected with HTTP 409. The contract metadata API (`PUT .../contract/metadata`) applies the same rules when it changes the status.
 
 Independently of status, a contract also tracks a promotion stage:
 
@@ -406,7 +433,7 @@ Independently of status, a contract also tracks a promotion stage:
 DEV ──────► STAGE ──────► PROD
 ----
 
-Promotion is enforced via the `POST /groups/\{g}/artifacts/\{a}/contract/promote` endpoint, which validates that the target stage follows the allowed progression. The promotion stage can also be set directly via the contract metadata API.
+Promotion is enforced via the `POST /groups/\{g}/artifacts/\{a}/contract/promote` endpoint. Promotion is forward-only, starts at `DEV`, and cannot skip stages (for example, promoting from `DEV` to `PROD` fails with "Cannot skip stages. Promote to STAGE first."). Promoting to `PROD` requires status `STABLE`. The response is `{"stage": "..."}`. The contract metadata API applies the same rules when it changes the stage.
 
 [id="data-contracts-migration_{context}"]
 == Schema migration
@@ -416,9 +443,9 @@ Promotion is enforced via the `POST /groups/\{g}/artifacts/\{a}/contract/promote
 [role="_abstract"]
 Schema migration allows you to transform data records between different schema versions using migration rules.
 
-Migration rules use the UPGRADE or DOWNGRADE mode and are typically JSONata TRANSFORM rules that reshape data from one version to another:
+Migration rules use the UPGRADE or DOWNGRADE mode and are typically JSONata TRANSFORM rules that reshape data from one version to another. Migration uses only version-level migration rules, set through `PUT /groups/\{g}/artifacts/\{a}/versions/\{v}/contract/ruleset`. Artifact-level and global migration rules are not used for migration.
 
-.Migration rule example
+.Migration rule example (version ruleset)
 [source,json]
 ----
 {
@@ -445,26 +472,32 @@ curl -X POST \
   http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/migrate \
   -H 'Content-Type: application/json' \
   -d '{
-    "sourceVersion": "1",
-    "targetVersion": "3",
+    "fromVersion": "1",
+    "toVersion": "3",
     "record": {"firstName": "John", "lastName": "Doe", "amount": 100}
   }'
 ----
 
-The service determines the direction (upgrade or downgrade), loads migration rules for each intermediate version, and chains the transforms sequentially.
+The service walks the versions between `fromVersion` and `toVersion` in artifact version order. For each step it applies the migration rules of the version being moved to: in mode `UPGRADE` when moving forward, or in mode `DOWNGRADE` when moving backward. The transforms are chained sequentially.
 
-Compatibility groups partition the version history for compatibility checking. Versions in different groups are not compared against each other during compatibility validation.
+.Response (HTTP 200)
+[source,json]
+----
+{"passed": true, "transformedRecord": {...}, "violations": [], "executedRules": 1, "failedRules": 0}
+----
+
+Compatibility groups are stored as the artifact label `contract.\{contractId}.compatibility.group`. Compatibility checks do not use them yet.
 
 [source,bash]
 ----
-# Set compatibility group
+# Set compatibility group (returns HTTP 204)
 curl -X PUT \
   http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/compatibility-group \
   -H 'Content-Type: application/json' \
-  -d '{"group": "v2-family"}'
+  -d '{"contractId": "orders-contract", "compatibilityGroup": "v2-family"}'
 
-# Get compatibility group
-curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/compatibility-group
+# Get compatibility group (returns {"compatibilityGroup": "v2-family"})
+curl "http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/compatibility-group?contractId=orders-contract"
 ----
 
 [id="data-contracts-serdes_{context}"]
@@ -473,29 +506,43 @@ curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifac
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Contract rules can be enforced during normal Kafka serialization and deserialization using the Apicurio Registry SerDes libraries. Rules are executed transparently; no code changes are required beyond configuration.
+Contract rules can be evaluated during normal Kafka serialization and deserialization using the Apicurio Registry SerDes libraries. No code changes are required beyond configuration.
 
-Enable contract rule enforcement by setting these properties on your Kafka producer or consumer:
+Enable contract rule evaluation by setting these properties on your Kafka producer or consumer:
 
 .SerDes contract rule properties
 [cols="3,1,3", options="header"]
 |===
 |Property |Default |Description
 
-|`apicurio.registry.contract-rules.enabled`
+|`apicurio.registry.serde.contract-rules.enabled`
 |`false`
 |Enable contract rule execution during serialize/deserialize
 
-|`apicurio.registry.contract-rules.fail-on-error`
+|`apicurio.registry.serde.contract-rules.fail-on-error`
 |`true`
-|When `true`, rule violations throw a `RuntimeException`. When `false`, violations are logged but serialization proceeds (for DLQ routing by the application)
+|When `true`, any failed rule throws an exception, whatever its `onFailure` action. When `false`, violations are logged as warnings (`java.util.logging`) and processing continues
+
+|`apicurio.registry.serde.contract-rules.cache.ttl.seconds`
+|`60`
+|How long the fetched ruleset is cached in the client
+
+|`apicurio.registry.serde.contract-rules.migration.enabled`
+|`false`
+|Enable migration in the deserializer
+
+|`apicurio.registry.serde.contract-rules.migration.target-version`
+|None
+|Target version for deserializer migration
 |===
 
-Contract rule enforcement works as follows:
+Contract rule evaluation works as follows:
 
-Producer (serializer):: After schema resolution and before serialization, the serializer calls the server-side rule execution endpoint with mode `WRITE`. If any `CONDITION` rule with `onFailure=ERROR` fails, serialization is rejected.
-Consumer (deserializer):: After deserialization, the deserializer calls the rule execution endpoint with mode `READ`. This enables read-side validation rules.
-DLQ pattern:: Set `fail-on-error=false` to allow serialization to proceed even when rules fail. Your application can inspect the violations and route the message to a dead letter queue.
+Rule source:: The SerDes fetch the global, artifact-level, and version-level rulesets of the schema version, merge their domain rules by name (the narrowest scope wins), cache them, and evaluate the rules locally in the client. Empty rulesets are cached too. A ruleset that cannot be fetched, for example because the registry is unreachable or refuses the request, is not cached: with `fail-on-error=true` the record is rejected, and the next record fetches the ruleset again.
+Record conversion:: Records are converted to maps by parsing the JSON output of their `toString()` method.
+Producer (serializer):: Runs `WRITE` rules before serialization.
+Consumer (deserializer):: Runs `READ` rules after deserialization.
+Results:: `TRANSFORM` output and deserializer migration results are not applied to the record. No dead letter queue routing is implemented; with `fail-on-error=false`, violations are only logged.
 
 .Producer with contract rules example
 [source,java]
@@ -518,20 +565,25 @@ KafkaProducer<String, GenericRecord> producer = new KafkaProducer<>(props);
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The contract audit log records all contract operations for compliance and debugging.
+The contract audit log records every change to the contract state of an artifact.
 
 The audit log records the following operations:
 
-* Metadata updates (owner, classification, status changes)
-* Ruleset configuration (create, update, delete)
-* Status transitions, for example from `DRAFT` to `STABLE`
-* Contract submission and re-projection
+* `CONTRACT_PROJECTED`: an ODCS contract version was projected onto the artifact, for example `orders-contract 1.0.0`
+* `CONTRACT_REMOVED`: a contract's projection was removed, because the contract was deleted or its new version no longer references the artifact
+* `STATUS_CHANGED`: status transitions through the contract status endpoint, for example `STABLE -> DEPRECATED`
+* `METADATA_UPDATED`: contract metadata updates through `PUT .../contract/metadata`
+* `PROMOTED`: promotions, for example `orders-contract: DEV -> STAGE`
+* `COMPATIBILITY_GROUP_SET`: compatibility group changes
+* `RULESET_CONFIGURED` and `RULESET_DELETED`: changes to the artifact-level ruleset, or to a version-level ruleset (the entry's `version` is then set)
 
-Query the audit log for an artifact:
+Changes to the global contract ruleset do not belong to an artifact and are not in this log. Deleting an artifact, or the group that contains it, deletes its audit entries.
+
+Query the audit log for an artifact (`limit` defaults to 20, maximum 500):
 
 [source,bash]
 ----
-curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/audit
+curl "http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/audit?offset=0&limit=20"
 ----
 
 .Response
@@ -539,16 +591,14 @@ curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifac
 ----
 [
   {
-    "action": "STATUS_TRANSITION",
-    "detail": "Status changed from DRAFT to STABLE",
-    "userId": "admin",
+    "auditId": 2,
+    "groupId": "my-group",
+    "artifactId": "my-artifact",
+    "version": null,
+    "action": "STATUS_CHANGED",
+    "principal": "admin",
+    "details": "STABLE -> DEPRECATED",
     "createdOn": "2026-05-19T10:30:00Z"
-  },
-  {
-    "action": "RULESET_CONFIGURED",
-    "detail": "Contract ruleset updated",
-    "userId": "admin",
-    "createdOn": "2026-05-19T10:25:00Z"
   }
 ]
 ----
@@ -572,17 +622,11 @@ Search for contracts across the registry using metadata filters.
 |`ownerTeam`
 |Filter by owner team name
 
-|`classification`
-|Filter by data classification (for example, `CONFIDENTIAL` or `PUBLIC`)
-
-|`groupId`
-|Filter by group
-
-|`artifactId`
-|Filter by artifact
+|`compatibilityGroup`
+|Filter by compatibility group
 
 |`limit` / `offset`
-|Pagination (default limit: 20, max: 500)
+|Pagination (default limit: 20, max: 1000)
 
 |`orderby` / `order`
 |Sort by field and direction
@@ -599,15 +643,15 @@ curl "http://localhost:8080/apis/registry/v3/search/contracts?status=STABLE&owne
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-Global contract rulesets provide a baseline set of rules applied to all artifacts. Artifact-level and version-level rules override global rules by name.
+Global contract rulesets provide a baseline set of rules for all artifacts. Artifact-level and version-level rules override global rules by name. Global rules are applied by the rule execution endpoint and by the Kafka SerDes. Reading the global ruleset requires read access; setting or deleting it requires the admin role.
 
 You can also manage the global contract ruleset in the {registry} web console. Click the *Contract rules* tab in the console navigation to add, delete, or clear global contract rules without calling the REST API directly.
 
-When rules are executed, they are merged from three scopes:
+When rules are executed through the rule execution endpoint, domain rules are merged from three scopes:
 
 . Global rules apply to all artifacts and are set through `/admin/contracts/ruleset`.
 . Artifact rules apply to a specific artifact and are set through `/groups/\{g}/artifacts/\{a}/contract/ruleset`.
-. Version rules apply to a specific version and are set through `.../versions/{v}/contract/ruleset`.
+. Version rules apply to a specific version and are set through `.../versions/\{v}/contract/ruleset`.
 
 If a rule with the same name exists at multiple levels, the most specific scope wins.
 
@@ -623,7 +667,7 @@ curl -X PUT \
       "kind": "CONDITION",
       "type": "CEL",
       "mode": "WRITE",
-      "expr": "size(record) > 0",
+      "expr": "size(orderId) > 0",
       "onFailure": "ERROR",
       "disabled": false
     }],
@@ -651,28 +695,28 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 |Method |Endpoint |Description
 
 |POST
-|`/groups/{groupId}/contracts`
+|`/groups/\{groupId}/contracts`
 |Submit an ODCS contract YAML. Creates the contract artifact and projects onto referenced schema artifacts.
 
 |GET
-|`/groups/{groupId}/contracts?limit=&offset=`
-|List ODCS contracts in a group (paginated, default 20, max 500)
+|`/groups/\{groupId}/contracts?limit=&offset=`
+|List ODCS contracts in a group as `[{"contractId": "...", "name": "..."}]` (paginated, default 20, max 500)
 
 |GET
-|`/groups/{groupId}/contracts/{contractId}`
+|`/groups/\{groupId}/contracts/\{contractId}`
 |Retrieve the ODCS contract YAML
 
 |PUT
-|`/groups/{groupId}/contracts/{contractId}`
-|Update an ODCS contract (creates a new version and re-projects)
+|`/groups/\{groupId}/contracts/\{contractId}`
+|Update an ODCS contract (creates a new version and re-projects). Returns 409 if `info.version` already exists.
 
 |DELETE
-|`/groups/{groupId}/contracts/{contractId}`
-|Delete an ODCS contract artifact
+|`/groups/\{groupId}/contracts/\{contractId}`
+|Delete the ODCS contract artifact, and remove its projected labels, rules, and field tags from the schema artifacts
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/export`
-|Export an artifact's contract data as ODCS YAML
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/export`
+|Export an artifact's projected contract data as ODCS YAML
 |===
 
 .Contract metadata REST API endpoints
@@ -681,12 +725,12 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 |Method |Endpoint |Description
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/metadata`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/metadata`
 |Get contract metadata for an artifact
 
 |PUT
-|`/groups/{groupId}/artifacts/{artifactId}/contract/metadata`
-|Create or update contract metadata
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/metadata`
+|Replace the descriptive contract metadata fields. Other contract labels are kept; status and stage change only when given, following the lifecycle rules
 |===
 
 .Contract ruleset REST API endpoints
@@ -695,19 +739,19 @@ The Data Contracts REST API provides endpoints for managing ODCS contracts, cont
 |Method |Endpoint |Description
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/ruleset`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/ruleset`
 |Get the contract ruleset for an artifact
 
 |PUT
-|`/groups/{groupId}/artifacts/{artifactId}/contract/ruleset`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/ruleset`
 |Create or replace the contract ruleset
 
 |DELETE
-|`/groups/{groupId}/artifacts/{artifactId}/contract/ruleset`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/ruleset`
 |Delete the contract ruleset
 |===
 
-Version-level rulesets are also available at `.../versions/{version}/contract/ruleset`.
+Version-level rulesets are also available at `.../versions/\{version}/contract/ruleset` (GET, PUT, DELETE).
 
 .Contract status transition endpoint
 [cols="1,4,3", options="header"]
@@ -715,8 +759,8 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Method |Endpoint |Description
 
 |POST
-|`/groups/{groupId}/artifacts/{artifactId}/contract/status`
-|Change lifecycle status with transition validation
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/status`
+|Change lifecycle status with transition validation. Body: `{"status": "STABLE"}`. Returns 409 for transitions from `DEPRECATED`
 |===
 
 .Governance REST API endpoints
@@ -725,12 +769,12 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Method |Endpoint |Description
 
 |POST
-|`/groups/{groupId}/artifacts/{artifactId}/contract/promote`
-|Promote the contract stage from DEV to STAGE to PROD. Body: `{"contractId": "...", "targetStage": "STAGE"}`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/promote`
+|Promote the contract stage from DEV to STAGE to PROD. Body: `{"contractId": "...", "targetStage": "STAGE"}`. Response: `{"stage": "STAGE"}`
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/quality?contractId=`
-|Get quality score (overall, completeness, compliance, stability)
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/quality?contractId=`
+|Get quality score (overall, completeness, compliance, stability). `contractId` is required (400 without it)
 |===
 
 .Rule execution REST API endpoints
@@ -739,12 +783,12 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Method |Endpoint |Description
 
 |POST
-|`/groups/{groupId}/artifacts/{artifactId}/versions/{version}/contract/execute`
-|Execute contract rules against a data record. Body: `{"mode": "WRITE", "record": {...}}`
+|`/groups/\{groupId}/artifacts/\{artifactId}/versions/\{version}/contract/execute`
+|Execute contract rules against a data record. Body: `{"mode": "WRITE", "record": {...}}`. Returns 200 even when rules fail
 
 |POST
-|`/groups/{groupId}/artifacts/{artifactId}/contract/migrate`
-|Migrate a record between versions. Body: `{"sourceVersion": "1", "targetVersion": "3", "record": {...}}`
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/migrate`
+|Migrate a record between versions. Body: `{"fromVersion": "1", "toVersion": "3", "record": {...}}`
 |===
 
 .Contract audit log REST API endpoint
@@ -753,8 +797,8 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Method |Endpoint |Description
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/audit`
-|Get contract audit log entries for an artifact
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/audit?offset=&limit=`
+|Get contract audit log entries for an artifact (default limit 20, max 500)
 |===
 
 .Compatibility group REST API endpoints
@@ -763,12 +807,12 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Method |Endpoint |Description
 
 |GET
-|`/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group`
-|Get the compatibility group for an artifact
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/compatibility-group?contractId=`
+|Get the compatibility group for a contract on an artifact. Response: `{"compatibilityGroup": "..."}`
 
 |PUT
-|`/groups/{groupId}/artifacts/{artifactId}/contract/compatibility-group`
-|Set the compatibility group for an artifact
+|`/groups/\{groupId}/artifacts/\{artifactId}/contract/compatibility-group`
+|Set the compatibility group label. Body: `{"contractId": "...", "compatibilityGroup": "..."}`. Returns 204
 |===
 
 .Contract search REST API endpoint
@@ -777,7 +821,7 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 |Method |Endpoint |Description
 
 |GET
-|`/search/contracts?status=&ownerTeam=&classification=&limit=&offset=`
+|`/search/contracts?status=&ownerTeam=&compatibilityGroup=&offset=&limit=&order=&orderby=`
 |Search contracts across the registry
 |===
 
@@ -788,15 +832,15 @@ Version-level rulesets are also available at `.../versions/{version}/contract/ru
 
 |GET
 |`/admin/contracts/ruleset`
-|Get the global contract ruleset
+|Get the global contract ruleset (read access)
 
 |PUT
 |`/admin/contracts/ruleset`
-|Set the global contract ruleset
+|Set the global contract ruleset (admin role)
 
 |DELETE
 |`/admin/contracts/ruleset`
-|Delete the global contract ruleset
+|Delete the global contract ruleset (admin role)
 |===
 
 [role="_additional-resources"]
@@ -829,7 +873,7 @@ curl -X POST \
   "version": "1.0.0",
   "projection": {
     "rulesApplied": 2,
-    "labelsApplied": 8,
+    "labelsApplied": 12,
     "tagsApplied": 3,
     "warnings": []
   }
@@ -848,7 +892,7 @@ curl "http://localhost:8080/apis/registry/v3/groups/my-group/contracts?limit=10&
 curl http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/contract/export
 ----
 
-Returns the reconstructed ODCS v3.1 YAML from the artifact's current contract labels, rules, and field tags.
+Rebuilds ODCS v3.1 YAML from the artifact's projected contract labels, rules, and field tags. Field tags are read from the latest version only, and `location` is set to `group/artifact:latestVersion`. Sections that are not projected, such as the title and descriptions, are missing from the export. Returns 404 if the artifact has no `contract.\{contractId}.id` label.
 
 .Promoting a contract
 [source,bash]
@@ -871,20 +915,28 @@ curl "http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifa
 {"overall": 0.85, "completeness": 0.83, "compliance": 1.0, "stability": 0.67}
 ----
 
+The score is informational only. It is weighted as follows:
+
+* Completeness (30%): artifact description, owner team, support contact, classification, SLA availability, and owner domain are set.
+* Compliance (40%): the artifact has domain rules, and a status is set.
+* Stability (30%): status is `STABLE`, the artifact has more than one version, and the contract ID label is set.
+
 .Executing contract rules
 [source,bash]
 ----
 curl -X POST \
   http://localhost:8080/apis/registry/v3/groups/my-group/artifacts/my-artifact/versions/1/contract/execute \
   -H 'Content-Type: application/json' \
-  -d '{"mode": "WRITE", "record": {"message": {"totalAmount": 100, "status": "active"}}}'
+  -d '{"mode": "WRITE", "record": {"totalAmount": 100, "status": "active"}}'
 ----
 
-.Response
+.Response (HTTP 200, also when rules fail)
 [source,json]
 ----
 {"passed": true, "violations": [], "executedRules": 2, "failedRules": 0}
 ----
+
+The endpoint merges global, artifact, and version domain rules by name (the narrowest scope wins). `transformedRecord` is included only if a rule changed the record. Each violation has `ruleName`, `message`, and `action` fields.
 
 .Setting contract metadata directly
 [source,bash]
@@ -901,6 +953,8 @@ curl -X PUT \
     "stage": "DEV"
   }'
 ----
+
+NOTE: This call replaces the descriptive fields: `ownerTeam`, `ownerDomain`, `supportContact`, `classification`, and `compatibilityGroup`. A descriptive field you omit is removed. `status` and `stage` change only when given; omitting them keeps them. Other contract labels, such as the projected `id`, `version`, `sla.*`, and `quality.*`, are kept. A status or stage change that the lifecycle does not allow is rejected (HTTP 409 for the status, HTTP 400 for the stage).
 
 .Transitioning contract status
 [source,bash]
@@ -923,9 +977,9 @@ Contract rule enforcement in Kafka client applications is controlled by the SerD
 
 Data contracts work across all storage variants:
 
-SQL (PostgreSQL):: Full support with immediate consistency. The `contract_audit_log` table is created automatically (database upgrade 106).
+SQL (PostgreSQL, MySQL, MSSQL, H2):: Full support with immediate consistency. The `contract_rules` table (database upgrade 103) and the `contract_audit_log` table (database upgrade 106) are created automatically. The global contract ruleset is also stored in `contract_rules`.
 KafkaSQL:: Full support. Label writes go through the Kafka journal for multi-node consistency.
-GitOps / KubernetesOps:: Read-only safe. Write operations are rejected by the read-only decorator.
+GitOps / KubernetesOps:: Read-only. Contracts cannot be submitted, and other write operations are rejected.
 
 [role="_additional-resources"]
 .Additional resources

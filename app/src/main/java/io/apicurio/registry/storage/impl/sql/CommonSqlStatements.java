@@ -498,11 +498,6 @@ public abstract class CommonSqlStatements implements SqlStatements {
         return "INSERT INTO artifact_structured_content (groupId, artifactId, elementType, elementValue) VALUES (?, ?, ?, ?)";
     }
 
-    @Override
-    public String deleteVersionLabelsByPrefix() {
-        return "DELETE FROM version_labels WHERE globalId = ? AND labelKey LIKE ?";
-    }
-
     /**
      * @see io.apicurio.registry.storage.impl.sql.SqlStatements#deleteVersionLabelsByGlobalId()
      */
@@ -1648,13 +1643,27 @@ public abstract class CommonSqlStatements implements SqlStatements {
     }
 
     @Override
-    public String updateVersionLabels() {
-        return "UPDATE versions SET labels = ? WHERE globalId = ?";
+    public String deleteContractRulesByGroupId() {
+        // Never the global ruleset, stored under the same sentinel for group and artifact
+        return "DELETE FROM contract_rules WHERE groupId = ? AND globalId IS NULL"
+                + " AND NOT (groupId = '__GLOBAL__' AND artifactId = '__GLOBAL__')";
     }
 
     @Override
-    public String selectVersionLabels() {
-        return "SELECT labelKey, labelValue FROM version_labels WHERE globalId = ?";
+    public String deleteContractRulesOfDeletedArtifact() {
+        // Never the global ruleset, stored under the same sentinel for group and artifact
+        return "DELETE FROM contract_rules WHERE groupId = ? AND artifactId = ? AND globalId IS NULL"
+                + " AND NOT (groupId = '__GLOBAL__' AND artifactId = '__GLOBAL__')";
+    }
+
+    @Override
+    public String deleteContractAuditEntriesByArtifact() {
+        return "DELETE FROM contract_audit_log WHERE groupId = ? AND artifactId = ?";
+    }
+
+    @Override
+    public String deleteContractAuditEntriesByGroupId() {
+        return "DELETE FROM contract_audit_log WHERE groupId = ?";
     }
 
     @Override

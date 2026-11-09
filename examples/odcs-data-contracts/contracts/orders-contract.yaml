@@ -1,13 +1,12 @@
+# An ODCS v3.1 data contract for the OrderEvent schema.
+# Submit it with: POST /apis/registry/v3/groups/orders/contracts (Content-Type: application/x-yaml)
 apiVersion: v3.1.0
 kind: DataContract
 id: orders-contract
 info:
   title: Orders Data Contract
   version: 1.0.0
-  description: |
-    Data contract for order events published to the orders Kafka topic.
-    This contract governs the OrderEvent schema, defining quality rules,
-    field-level PII tags, and service-level objectives.
+  description: Order events published to the orders topic.
   status: active
   dataClassification: confidential
 team:
@@ -15,25 +14,21 @@ team:
   domain: commerce
   contact: orders-team@example.com
 schemas:
-  # each schemas[] entry is independent — field PII/tags apply only to this artifact.
-  # nested types stored as separate registry artifacts need their own entry (or contract).
+  # [groupId/]artifactId[:version]. Without a version, field tags go on the latest version.
   - name: OrderEvent
     type: avro
-    location: ${GROUP_ID}/${ARTIFACT_ID}:latest
+    location: orders/OrderEvent
     fields:
       orderId:
         description: Unique order identifier
         pii: false
-        classification: internal
       customerEmail:
         description: Customer email address
         pii: true
-        classification: confidential
         tags:
-          - PII
           - EMAIL
       totalAmount:
-        description: Total order amount in cents
+        description: Total order amount
         pii: false
 quality:
   accuracy:
@@ -45,5 +40,4 @@ quality:
 serviceLevel:
   availability: 0.999
   latency:
-    p50: PT0.1S
     p99: PT1S

@@ -15,6 +15,8 @@ import io.javaoperatorsdk.operator.api.reconciler.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Optional;
+
 import static io.apicurio.registry.operator.utils.Utils.isBlank;
 import static java.util.Optional.ofNullable;
 import static java.util.UUID.randomUUID;
@@ -64,86 +66,9 @@ public class SqlCRUpdater {
         var newPassword = newDataSource
                 .map(DataSourceSpec::getPassword);
 
-        if (oldUrl.isPresent()) {
-            log.warn("CR field `app.sql.dataSource.url` is DEPRECATED and should not be used.");
-            if (newUrl.isEmpty() || oldUrl.equals(newUrl)) { // We need to handle a situation where the fields are partially migrated.
-                if (storageType.isEmpty() || storageType.orElse(StorageType.POSTGRESQL).isSql()) {
-
-                    log.info("Performing automatic CR update from `app.sql.dataSource.url` to `app.storage.sql.dataSource.url`.");
-                    primary.getSpec().withApp().withStorage().setType(storageType.orElse(null));
-                    primary.getSpec().getApp().getSql().getDataSource().setUrl(null);
-                    primary.getSpec().getApp().getStorage().withSql().withDataSource().setUrl(oldUrl.get());
-
-                    updated = true;
-                } else {
-                    storageTypeWarn();
-                }
-            } else {
-                log.warn("Automatic update cannot be performed, because the target field `app.storage.sql.dataSource.url` is already set.");
-            }
-        }
-
-        if (oldUsername.isPresent()) {
-            log.warn("CR field `app.sql.dataSource.username` is DEPRECATED and should not be used.");
-            if (newUsername.isEmpty() || oldUsername.equals(newUsername)) { // We need to handle a situation where the fields are partially migrated.
-                if (storageType.isEmpty() || storageType.orElse(StorageType.POSTGRESQL).isSql()) {
-
-                    log.info("Performing automatic CR update from `app.sql.dataSource.username` to `app.storage.sql.dataSource.username`.");
-                    primary.getSpec().withApp().withStorage().setType(storageType.orElse(null));
-                    primary.getSpec().getApp().getStorage().withSql().withDataSource().setUsername(oldUsername.get());
-                    primary.getSpec().getApp().getSql().getDataSource().setUsername(null);
-
-                    updated = true;
-                } else {
-                    storageTypeWarn();
-                }
-            } else {
-                log.warn("Automatic update cannot be performed, because the target field `app.storage.sql.dataSource.username` is already set.");
-            }
-        }
-        if (oldPassword.isPresent()) {
-            log.warn("CR field `app.sql.dataSource.password` is DEPRECATED and should not be used.");
-
-            // Get existing Secret, if it exists. We need to handle a situation where the fields are partially migrated.
-            var newPasswordValue = newPassword
-                    .map(x -> context.getClient()
-                            .secrets()
-                            .inNamespace(primary.getMetadata().getNamespace())
-                            .withName(x.getName())
-                            .get()
-                    )
-                    .map(x -> x.getData().get(DEFAULT_SECRET_PASSWORD_FIELD));
-
-            if (newPassword.isEmpty() || oldPassword.equals(newPasswordValue)) {
-                if (storageType.isEmpty() || storageType.orElse(null).isSql()) {
-
-                    log.info("Performing automatic CR update from `app.sql.dataSource.password` to `app.storage.sql.dataSource.password`.");
-                    primary.getSpec().withApp().withStorage().setType(storageType.orElse(StorageType.POSTGRESQL));
-                    if (newPasswordValue.isEmpty()) {
-                        // Create the Secret
-                        var secretName = primary.getMetadata().getName() + "-datasource-password-" + randomUUID().toString().substring(0, 7);
-                        // @formatter:off
-                        var secret = new SecretBuilder()
-                                .withNewMetadata()
-                                    .withNamespace(primary.getMetadata().getNamespace())
-                                    .withName(secretName)
-                                .endMetadata()
-                                .addToData(DEFAULT_SECRET_PASSWORD_FIELD, oldPassword.get())
-                                .build();
-                        // @formatter:on
-                        context.getClient().resource(secret).create();
-                        primary.getSpec().getApp().getStorage().withSql().withDataSource().setPassword(SecretKeyRef.builder().name(secretName).build());
-                    }
-                    primary.getSpec().getApp().getSql().getDataSource().setPassword(null);
-
-                    updated = true;
-                } else {
-                    storageTypeWarn();
-                }
-            } else {
-                log.warn("Automatic update cannot be performed, because the target field `app.storage.sql.dataSource.password` is already set.");
-            }
-        }
+        updated |= migrateUrl(primary, storageType, oldUrl, newUrl);
+        updated |= migrateUsername(primary, storageType, oldUsername, newUsername);
+        updated |= migratePassword(primary, context, storageType, oldPassword, newPassword);
 
         oldDataSource = ofNullable(primary.getSpec())
                 .map(ApicurioRegistry3Spec::getApp)
@@ -165,6 +90,104 @@ public class SqlCRUpdater {
         }
 
         return updated;
+    }
+
+    private static boolean migrateUrl(ApicurioRegistry3 primary, Optional<StorageType> storageType,
+            Optional<String> oldUrl, Optional<String> newUrl) {
+        if (oldUrl.isEmpty()) {
+            return false;
+        }
+        log.warn("CR field `app.sql.dataSource.url` is DEPRECATED and should not be used.");
+        if (newUrl.isEmpty() || oldUrl.equals(newUrl)) { // We need to handle a situation where the fields are partially migrated.
+            if (storageType.isEmpty() || storageType.orElse(StorageType.POSTGRESQL).isSql()) {
+
+                log.info("Performing automatic CR update from `app.sql.dataSource.url` to `app.storage.sql.dataSource.url`.");
+                primary.getSpec().withApp().withStorage().setType(storageType.orElse(null));
+                primary.getSpec().getApp().getSql().getDataSource().setUrl(null);
+                primary.getSpec().getApp().getStorage().withSql().withDataSource().setUrl(oldUrl.get());
+
+                return true;
+            } else {
+                storageTypeWarn();
+            }
+        } else {
+            log.warn("Automatic update cannot be performed, because the target field `app.storage.sql.dataSource.url` is already set.");
+        }
+        return false;
+    }
+
+    private static boolean migrateUsername(ApicurioRegistry3 primary, Optional<StorageType> storageType,
+            Optional<String> oldUsername, Optional<String> newUsername) {
+        if (oldUsername.isEmpty()) {
+            return false;
+        }
+        log.warn("CR field `app.sql.dataSource.username` is DEPRECATED and should not be used.");
+        if (newUsername.isEmpty() || oldUsername.equals(newUsername)) { // We need to handle a situation where the fields are partially migrated.
+            if (storageType.isEmpty() || storageType.orElse(StorageType.POSTGRESQL).isSql()) {
+
+                log.info("Performing automatic CR update from `app.sql.dataSource.username` to `app.storage.sql.dataSource.username`.");
+                primary.getSpec().withApp().withStorage().setType(storageType.orElse(null));
+                primary.getSpec().getApp().getStorage().withSql().withDataSource().setUsername(oldUsername.get());
+                primary.getSpec().getApp().getSql().getDataSource().setUsername(null);
+
+                return true;
+            } else {
+                storageTypeWarn();
+            }
+        } else {
+            log.warn("Automatic update cannot be performed, because the target field `app.storage.sql.dataSource.username` is already set.");
+        }
+        return false;
+    }
+
+    @SuppressWarnings("deprecation")
+    private static boolean migratePassword(ApicurioRegistry3 primary, Context<ApicurioRegistry3> context,
+            Optional<StorageType> storageType, Optional<String> oldPassword, Optional<SecretKeyRef> newPassword) {
+        if (oldPassword.isEmpty()) {
+            return false;
+        }
+        log.warn("CR field `app.sql.dataSource.password` is DEPRECATED and should not be used.");
+
+        // Get existing Secret, if it exists. We need to handle a situation where the fields are partially migrated.
+        var newPasswordValue = newPassword
+                .map(x -> context.getClient()
+                        .secrets()
+                        .inNamespace(primary.getMetadata().getNamespace())
+                        .withName(x.getName())
+                        .get()
+                )
+                .map(x -> x.getData().get(DEFAULT_SECRET_PASSWORD_FIELD));
+
+        if (newPassword.isEmpty() || oldPassword.equals(newPasswordValue)) {
+            if (storageType.isEmpty() || storageType.orElse(null).isSql()) {
+
+                log.info("Performing automatic CR update from `app.sql.dataSource.password` to `app.storage.sql.dataSource.password`.");
+                primary.getSpec().withApp().withStorage().setType(storageType.orElse(StorageType.POSTGRESQL));
+                if (newPasswordValue.isEmpty()) {
+                    // Create the Secret
+                    var secretName = primary.getMetadata().getName() + "-datasource-password-" + randomUUID().toString().substring(0, 7);
+                    // @formatter:off
+                    var secret = new SecretBuilder()
+                            .withNewMetadata()
+                                .withNamespace(primary.getMetadata().getNamespace())
+                                .withName(secretName)
+                            .endMetadata()
+                            .addToData(DEFAULT_SECRET_PASSWORD_FIELD, oldPassword.get())
+                            .build();
+                    // @formatter:on
+                    context.getClient().resource(secret).create();
+                    primary.getSpec().getApp().getStorage().withSql().withDataSource().setPassword(SecretKeyRef.builder().name(secretName).build());
+                }
+                primary.getSpec().getApp().getSql().getDataSource().setPassword(null);
+
+                return true;
+            } else {
+                storageTypeWarn();
+            }
+        } else {
+            log.warn("Automatic update cannot be performed, because the target field `app.storage.sql.dataSource.password` is already set.");
+        }
+        return false;
     }
 
     private static void storageTypeWarn() {

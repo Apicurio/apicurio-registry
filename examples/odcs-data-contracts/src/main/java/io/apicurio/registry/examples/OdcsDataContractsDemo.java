@@ -38,6 +38,10 @@ import java.util.stream.Collectors;
 
 public class OdcsDataContractsDemo {
 
+    private static final String ARTIFACTS_PATH = "/artifacts/";
+    private static final String GROUPS_PATH = "/groups/";
+    private static final String APPLICATION_JSON = "application/json";
+
     private static final String REGISTRY_URL = "http://localhost:8080/apis/registry/v3";
     private static final String GROUP_ID = "odcs-example";
     private static final String ARTIFACT_ID = "OrderEvent";
@@ -127,12 +131,7 @@ public class OdcsDataContractsDemo {
                     "Verify what the projection created on the schema artifact");
             List<OdcsContractSummary> contracts = client.groups()
                     .byGroupId(GROUP_ID).contracts().get();
-            if (contracts != null) {
-                for (OdcsContractSummary summary : contracts) {
-                    data("Contract: " + summary.getContractId()
-                            + " (" + summary.getName() + ")");
-                }
-            }
+            printContracts(contracts);
 
             ContractMetadata metadata = client.groups().byGroupId(GROUP_ID)
                     .artifacts().byArtifactId(ARTIFACT_ID)
@@ -189,12 +188,7 @@ public class OdcsDataContractsDemo {
                     "ODCS quality rules → CEL rules. JSONata for schema migration.");
             ContractRuleSet existingRules = client.groups().byGroupId(GROUP_ID)
                     .artifacts().byArtifactId(ARTIFACT_ID).contract().ruleset().get();
-            if (existingRules.getDomainRules() != null) {
-                for (var r : existingRules.getDomainRules()) {
-                    data("ODCS rule: " + r.getName() + " [" + r.getType()
-                            + "] → " + r.getExpr());
-                }
-            }
+            printDomainRules(existingRules);
 
             ContractRule jsonataRule = new ContractRule();
             jsonataRule.setName("add-currency-default");
@@ -217,14 +211,14 @@ public class OdcsDataContractsDemo {
             step(7, "Execute CEL Rules Against Data",
                     "Server-side rule execution via POST .../contract/execute");
             var passResponse = httpPost(
-                    "/groups/" + GROUP_ID + "/artifacts/" + ARTIFACT_ID
+                    GROUPS_PATH + GROUP_ID + ARTIFACTS_PATH + ARTIFACT_ID
                             + "/versions/branch%3Dlatest/contract/execute",
                     "{\"mode\":\"WRITE\",\"record\":{\"orderId\":\"ORD-123\","
                             + "\"customerEmail\":\"alice@example.com\",\"totalAmount\":99.99}}");
             ok("Valid record (totalAmount=99.99): " + passResponse);
 
             var failResponse = httpPost(
-                    "/groups/" + GROUP_ID + "/artifacts/" + ARTIFACT_ID
+                    GROUPS_PATH + GROUP_ID + ARTIFACTS_PATH + ARTIFACT_ID
                             + "/versions/branch%3Dlatest/contract/execute",
                     "{\"mode\":\"WRITE\",\"record\":{\"orderId\":\"ORD-456\","
                             + "\"customerEmail\":\"bob@example.com\",\"totalAmount\":-5.0}}");
@@ -247,7 +241,7 @@ public class OdcsDataContractsDemo {
             ok("Schema v2 registered (adds 'currency' field)");
 
             var migrateResponse = httpPost(
-                    "/groups/" + GROUP_ID + "/artifacts/" + ARTIFACT_ID + "/contract/migrate",
+                    GROUPS_PATH + GROUP_ID + ARTIFACTS_PATH + ARTIFACT_ID + "/contract/migrate",
                     "{\"fromVersion\":\"1\",\"toVersion\":\"2\",\"record\":"
                             + "{\"orderId\":\"ORD-456\",\"customerEmail\":\"bob@example.com\","
                             + "\"totalAmount\":50.0}}");
@@ -262,23 +256,7 @@ public class OdcsDataContractsDemo {
             ArtifactSearchResults searchResults = client.search().contracts().get();
             ok("Found " + searchResults.getCount() + " contract(s)");
 
-            try {
-                List<Audit> auditEntries = client.groups().byGroupId(GROUP_ID)
-                        .artifacts().byArtifactId(ARTIFACT_ID)
-                        .contract().audit().get(config -> {
-                            config.queryParameters.limit = 5;
-                            config.queryParameters.offset = 0;
-                        });
-                if (auditEntries != null) {
-                    ok("Audit log (" + auditEntries.size() + " entries):");
-                    for (Audit entry : auditEntries) {
-                        data("  " + entry.getAction() + " by " + entry.getPrincipal()
-                                + " at " + entry.getCreatedOn());
-                    }
-                }
-            } catch (Exception e) {
-                warn("Audit log: " + e.getMessage());
-            }
+            printAuditLog(client);
 
             // ═══════════════════ Phase 8: Global Rules ═══════════════════
 
@@ -318,85 +296,15 @@ public class OdcsDataContractsDemo {
 
             step(12, "Produce Valid Message",
                     "contract-rules.enabled=true — CEL rules pass, message sent");
-            {
-                var schema = new org.apache.avro.Schema.Parser().parse(AVRO_SCHEMA_V1);
-                var props = kafkaProducerProps(bootstrapServers);
-                var producer = new org.apache.kafka.clients.producer.KafkaProducer<String,
-                        org.apache.avro.generic.GenericRecord>(props);
-                var validRecord = new org.apache.avro.generic.GenericData.Record(schema);
-                validRecord.put("orderId", "ORD-KAFKA-001");
-                validRecord.put("customerEmail", "alice@example.com");
-                validRecord.put("totalAmount", 99.99);
-
-                var record = new org.apache.kafka.clients.producer.ProducerRecord<>(
-                        topic, "key1", (org.apache.avro.generic.GenericRecord) validRecord);
-                producer.send(record).get();
-                ok("Message sent: orderId=ORD-KAFKA-001, totalAmount=99.99");
-                producer.close();
-            }
+            produceValidMessage(bootstrapServers, topic);
 
             step(13, "Produce Invalid Message",
                     "totalAmount=-5.0 violates CEL rule → serialization rejected");
-            {
-                var schema = new org.apache.avro.Schema.Parser().parse(AVRO_SCHEMA_V1);
-                var props = kafkaProducerProps(bootstrapServers);
-                var producer = new org.apache.kafka.clients.producer.KafkaProducer<String,
-                        org.apache.avro.generic.GenericRecord>(props);
-                var invalidRecord = new org.apache.avro.generic.GenericData.Record(schema);
-                invalidRecord.put("orderId", "ORD-KAFKA-002");
-                invalidRecord.put("customerEmail", "bob@example.com");
-                invalidRecord.put("totalAmount", -5.00);
-
-                try {
-                    var record = new org.apache.kafka.clients.producer.ProducerRecord<>(
-                            topic, "key2", (org.apache.avro.generic.GenericRecord) invalidRecord);
-                    producer.send(record).get();
-                    fail("ERROR: Message should have been rejected!");
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    fail("Interrupted while waiting for message rejection: " + e.getMessage());
-                } catch (Exception e) {
-                    ok("Message correctly REJECTED by contract rule!");
-                    String cause = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
-                    fail("Violation: " + cause);
-                }
-                producer.close();
-            }
+            produceInvalidMessage(bootstrapServers, topic);
 
             step(14, "Consume Valid Message",
                     "Consumer reads the valid message — read-side rules pass");
-            {
-                var props = new java.util.Properties();
-                props.put("bootstrap.servers", bootstrapServers);
-                props.put("group.id", "odcs-demo-consumer");
-                props.put("auto.offset.reset", "earliest");
-                props.put("key.deserializer",
-                        "org.apache.kafka.common.serialization.StringDeserializer");
-                props.put("value.deserializer",
-                        "io.apicurio.registry.serde.avro.AvroKafkaDeserializer");
-                props.put("apicurio.registry.url", REGISTRY_URL);
-                props.put("apicurio.registry.serde.contract-rules.enabled", "true");
-                props.put("apicurio.registry.serde.contract-rules.fail-on-error", "true");
-
-                var consumer = new org.apache.kafka.clients.consumer.KafkaConsumer<String, Object>(props);
-                consumer.subscribe(java.util.Collections.singletonList(topic));
-                int totalConsumed = 0;
-                for (int attempt = 0; attempt < 5; attempt++) {
-                    try {
-                        var records = consumer.poll(java.time.Duration.ofSeconds(5));
-                        for (var r : records) {
-                            ok("Consumed: key=" + r.key() + " value=" + r.value());
-                            totalConsumed++;
-                        }
-                        if (totalConsumed > 0) break;
-                    } catch (Exception e) {
-                        fail("Consumer error: " + e.getMessage());
-                        break;
-                    }
-                }
-                data("Total consumed: " + totalConsumed + " message(s)");
-                consumer.close();
-            }
+            consumeValidMessage(bootstrapServers, topic);
 
             System.out.println("\n" + Y + "  Stopping Kafka..." + X);
             kafka.stop();
@@ -425,6 +333,120 @@ public class OdcsDataContractsDemo {
         } finally {
             if (scanner != null) scanner.close();
             DefaultVertxInstance.close();
+        }
+    }
+
+    private static void produceValidMessage(String bootstrapServers, String topic) throws Exception {
+        var schema = new org.apache.avro.Schema.Parser().parse(AVRO_SCHEMA_V1);
+        var props = kafkaProducerProps(bootstrapServers);
+        var producer = new org.apache.kafka.clients.producer.KafkaProducer<String,
+                org.apache.avro.generic.GenericRecord>(props);
+        var validRecord = new org.apache.avro.generic.GenericData.Record(schema);
+        validRecord.put("orderId", "ORD-KAFKA-001");
+        validRecord.put("customerEmail", "alice@example.com");
+        validRecord.put("totalAmount", 99.99);
+
+        var record = new org.apache.kafka.clients.producer.ProducerRecord<>(
+                topic, "key1", (org.apache.avro.generic.GenericRecord) validRecord);
+        producer.send(record).get();
+        ok("Message sent: orderId=ORD-KAFKA-001, totalAmount=99.99");
+        producer.close();
+    }
+
+    private static void produceInvalidMessage(String bootstrapServers, String topic) {
+        var schema = new org.apache.avro.Schema.Parser().parse(AVRO_SCHEMA_V1);
+        var props = kafkaProducerProps(bootstrapServers);
+        var producer = new org.apache.kafka.clients.producer.KafkaProducer<String,
+                org.apache.avro.generic.GenericRecord>(props);
+        var invalidRecord = new org.apache.avro.generic.GenericData.Record(schema);
+        invalidRecord.put("orderId", "ORD-KAFKA-002");
+        invalidRecord.put("customerEmail", "bob@example.com");
+        invalidRecord.put("totalAmount", -5.00);
+
+        try {
+            var record = new org.apache.kafka.clients.producer.ProducerRecord<>(
+                    topic, "key2", (org.apache.avro.generic.GenericRecord) invalidRecord);
+            producer.send(record).get();
+            fail("ERROR: Message should have been rejected!");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            fail("Interrupted while waiting for message rejection: " + e.getMessage());
+        } catch (Exception e) {
+            ok("Message correctly REJECTED by contract rule!");
+            String cause = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+            fail("Violation: " + cause);
+        }
+        producer.close();
+    }
+
+    private static void consumeValidMessage(String bootstrapServers, String topic) {
+        var props = new java.util.Properties();
+        props.put("bootstrap.servers", bootstrapServers);
+        props.put("group.id", "odcs-demo-consumer");
+        props.put("auto.offset.reset", "earliest");
+        props.put("key.deserializer",
+                "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("value.deserializer",
+                "io.apicurio.registry.serde.avro.AvroKafkaDeserializer");
+        props.put("apicurio.registry.url", REGISTRY_URL);
+        props.put("apicurio.registry.serde.contract-rules.enabled", "true");
+        props.put("apicurio.registry.serde.contract-rules.fail-on-error", "true");
+
+        var consumer = new org.apache.kafka.clients.consumer.KafkaConsumer<String, Object>(props);
+        consumer.subscribe(java.util.Collections.singletonList(topic));
+        int totalConsumed = 0;
+        for (int attempt = 0; attempt < 5; attempt++) {
+            try {
+                var records = consumer.poll(java.time.Duration.ofSeconds(5));
+                for (var r : records) {
+                    ok("Consumed: key=" + r.key() + " value=" + r.value());
+                    totalConsumed++;
+                }
+                if (totalConsumed > 0) break;
+            } catch (Exception e) {
+                fail("Consumer error: " + e.getMessage());
+                break;
+            }
+        }
+        data("Total consumed: " + totalConsumed + " message(s)");
+        consumer.close();
+    }
+
+    private static void printContracts(List<OdcsContractSummary> contracts) {
+        if (contracts != null) {
+            for (OdcsContractSummary summary : contracts) {
+                data("Contract: " + summary.getContractId()
+                        + " (" + summary.getName() + ")");
+            }
+        }
+    }
+
+    private static void printDomainRules(ContractRuleSet existingRules) {
+        if (existingRules.getDomainRules() != null) {
+            for (var r : existingRules.getDomainRules()) {
+                data("ODCS rule: " + r.getName() + " [" + r.getType()
+                        + "] → " + r.getExpr());
+            }
+        }
+    }
+
+    private static void printAuditLog(RegistryClient client) {
+        try {
+            List<Audit> auditEntries = client.groups().byGroupId(GROUP_ID)
+                    .artifacts().byArtifactId(ARTIFACT_ID)
+                    .contract().audit().get(config -> {
+                        config.queryParameters.limit = 5;
+                        config.queryParameters.offset = 0;
+                    });
+            if (auditEntries != null) {
+                ok("Audit log (" + auditEntries.size() + " entries):");
+                for (Audit entry : auditEntries) {
+                    data("  " + entry.getAction() + " by " + entry.getPrincipal()
+                            + " at " + entry.getCreatedOn());
+                }
+            }
+        } catch (Exception e) {
+            warn("Audit log: " + e.getMessage());
         }
     }
 
@@ -510,7 +532,7 @@ public class OdcsDataContractsDemo {
         firstVersion.setVersion("1");
         VersionContent content = new VersionContent();
         content.setContent(schema);
-        content.setContentType("application/json");
+        content.setContentType(APPLICATION_JSON);
         firstVersion.setContent(content);
         createArtifact.setFirstVersion(firstVersion);
         client.groups().byGroupId(GROUP_ID).artifacts().post(createArtifact);
@@ -522,7 +544,7 @@ public class OdcsDataContractsDemo {
         createVersion.setVersion(version);
         VersionContent content = new VersionContent();
         content.setContent(schema);
-        content.setContentType("application/json");
+        content.setContentType(APPLICATION_JSON);
         createVersion.setContent(content);
         client.groups().byGroupId(GROUP_ID).artifacts().byArtifactId(ARTIFACT_ID)
                 .versions().post(createVersion);
@@ -531,8 +553,8 @@ public class OdcsDataContractsDemo {
     private static String httpPost(String path, String json) throws Exception {
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(REGISTRY_URL + path))
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
+                .header("Content-Type", APPLICATION_JSON)
+                .header("Accept", APPLICATION_JSON)
                 .POST(HttpRequest.BodyPublishers.ofString(json)).build();
         return HTTP.send(req, HttpResponse.BodyHandlers.ofString()).body();
     }

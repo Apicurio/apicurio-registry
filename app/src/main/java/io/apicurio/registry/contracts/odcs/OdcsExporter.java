@@ -106,6 +106,28 @@ public class OdcsExporter {
         ContractRuleSetDto ruleset = storage.getArtifactContractRuleset(groupId,
                 artifactId);
 
+        List<OdcsAccuracyRule> accuracy = buildAccuracyRules(ruleset, rulePrefix);
+
+        String maxStaleness = labels.get(
+                prefix + ContractLabels.SUFFIX_QUALITY_FRESHNESS_MAX_STALENESS);
+        OdcsFreshness freshness = maxStaleness != null
+                ? OdcsFreshness.builder().maxStaleness(maxStaleness).build()
+                : null;
+
+        String completenessPrefix = prefix + "quality.completeness.";
+        List<OdcsCompletenessRule> completeness = buildCompletenessRules(labels, completenessPrefix);
+
+        if (accuracy.isEmpty() && freshness == null && completeness.isEmpty()) {
+            return null;
+        }
+        return OdcsQuality.builder()
+                .accuracy(accuracy.isEmpty() ? null : accuracy)
+                .freshness(freshness)
+                .completeness(completeness.isEmpty() ? null : completeness)
+                .build();
+    }
+
+    private List<OdcsAccuracyRule> buildAccuracyRules(ContractRuleSetDto ruleset, String rulePrefix) {
         List<OdcsAccuracyRule> accuracy = new ArrayList<>();
         if (ruleset != null && ruleset.getDomainRules() != null) {
             for (ContractRuleDto rule : ruleset.getDomainRules()) {
@@ -129,14 +151,11 @@ public class OdcsExporter {
                         .build());
             }
         }
+        return accuracy;
+    }
 
-        String maxStaleness = labels.get(
-                prefix + ContractLabels.SUFFIX_QUALITY_FRESHNESS_MAX_STALENESS);
-        OdcsFreshness freshness = maxStaleness != null
-                ? OdcsFreshness.builder().maxStaleness(maxStaleness).build()
-                : null;
-
-        String completenessPrefix = prefix + "quality.completeness.";
+    private List<OdcsCompletenessRule> buildCompletenessRules(Map<String, String> labels,
+            String completenessPrefix) {
         List<OdcsCompletenessRule> completeness = new ArrayList<>();
         for (Map.Entry<String, String> entry : labels.entrySet()) {
             if (entry.getKey().startsWith(completenessPrefix)) {
@@ -148,15 +167,7 @@ public class OdcsExporter {
                 }
             }
         }
-
-        if (accuracy.isEmpty() && freshness == null && completeness.isEmpty()) {
-            return null;
-        }
-        return OdcsQuality.builder()
-                .accuracy(accuracy.isEmpty() ? null : accuracy)
-                .freshness(freshness)
-                .completeness(completeness.isEmpty() ? null : completeness)
-                .build();
+        return completeness;
     }
 
     private List<OdcsSchema> buildSchemas(String groupId, String artifactId,

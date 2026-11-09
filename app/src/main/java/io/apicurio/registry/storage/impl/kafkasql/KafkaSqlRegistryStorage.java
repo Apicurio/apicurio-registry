@@ -314,46 +314,58 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                         .anyMatch(e -> snapshotsConsumer.position(e.getKey()) < e.getValue()));
 
         if (!snapshots.isEmpty()) {
-            log.info("Found {} total snapshots in the snapshots topic.", snapshots.size());
+            snapshotRecordKey = restoreMostRecentSnapshot(snapshots);
+        }
 
-            // sort snapshots by timestamp
-            snapshots.sort(Comparator.comparingLong(ConsumerRecord::timestamp));
+        return snapshotRecordKey;
+    }
 
-            Path mostRecentSnapshotPath = null;
-            for (ConsumerRecord<String, String> snapshotFound : snapshots) {
-                // Restore database from snapshot
-                try {
-                    String path = snapshotFound.value();
-                    if (null == path || path.isBlank()) {
-                        continue;
-                    }
-                    // Defense-in-depth: the path is read off the internal snapshots topic and drives
-                    // an H2 RUNSCRIPT at startup, so a value pointing outside the configured snapshot
-                    // store (absolute, or via "..") must not be used to load/execute an arbitrary
-                    // local SQL script.
-                    if (!isWithinSnapshotStore(configuration.getSnapshotStoreLocation(), path)) {
-                        log.warn("Snapshot with path {} ignored: it is outside the configured snapshot "
-                                + "store location {}.", path, configuration.getSnapshotStoreLocation());
-                        continue;
-                    }
-                    if (Files.exists(Path.of(path))) {
-                        log.debug("Snapshot with path {} found.", path);
-                        snapshotRecordKey = snapshotFound.key();
-                        mostRecentSnapshotPath = Path.of(path);
-                    }
-                } catch (IllegalArgumentException ex) {
-                    log.warn(
-                            "Snapshot with path {} ignored, the snapshot is likely invalid or cannot be found",
-                            snapshotFound.value());
+    /**
+     * Restores the internal database from the most recent usable snapshot.
+     *
+     * @return the key of the restored snapshot record, or {@code null} if none was usable
+     */
+    private String restoreMostRecentSnapshot(List<ConsumerRecord<String, String>> snapshots) {
+        String snapshotRecordKey = null;
+        log.info("Found {} total snapshots in the snapshots topic.", snapshots.size());
+
+        // sort snapshots by timestamp
+        snapshots.sort(Comparator.comparingLong(ConsumerRecord::timestamp));
+
+        Path mostRecentSnapshotPath = null;
+        for (ConsumerRecord<String, String> snapshotFound : snapshots) {
+            // Restore database from snapshot
+            try {
+                String path = snapshotFound.value();
+                if (null == path || path.isBlank()) {
+                    continue;
                 }
+                // Defense-in-depth: the path is read off the internal snapshots topic and drives
+                // an H2 RUNSCRIPT at startup, so a value pointing outside the configured snapshot
+                // store (absolute, or via "..") must not be used to load/execute an arbitrary
+                // local SQL script.
+                if (!isWithinSnapshotStore(configuration.getSnapshotStoreLocation(), path)) {
+                    log.warn("Snapshot with path {} ignored: it is outside the configured snapshot "
+                            + "store location {}.", path, configuration.getSnapshotStoreLocation());
+                    continue;
+                }
+                if (Files.exists(Path.of(path))) {
+                    log.debug("Snapshot with path {} found.", path);
+                    snapshotRecordKey = snapshotFound.key();
+                    mostRecentSnapshotPath = Path.of(path);
+                }
+            } catch (IllegalArgumentException ex) {
+                log.warn(
+                        "Snapshot with path {} ignored, the snapshot is likely invalid or cannot be found",
+                        snapshotFound.value());
             }
+        }
 
-            // Here we have the most recent snapshot that we can find, try to restore the internal database
-            // from it.
-            if (null != mostRecentSnapshotPath) {
-                log.info("Restoring snapshot {} to the internal database...", mostRecentSnapshotPath);
-                sqlStore.restoreFromSnapshot(mostRecentSnapshotPath.toString());
-            }
+        // Here we have the most recent snapshot that we can find, try to restore the internal database
+        // from it.
+        if (null != mostRecentSnapshotPath) {
+            log.info("Restoring snapshot {} to the internal database...", mostRecentSnapshotPath);
+            sqlStore.restoreFromSnapshot(mostRecentSnapshotPath.toString());
         }
 
         return snapshotRecordKey;
@@ -403,43 +415,7 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
                     final ConsumerRecords<KafkaSqlMessageKey, KafkaSqlMessage> records = consumer.poll(configuration.getPollTimeout());
                     if (records != null && !records.isEmpty()) {
                         log.debug("Consuming {} journal records.", records.count());
-
-                        if (null != snapshotId && !snapshotProcessed) {
-                            // If there is a snapshot key present, we process (and discard) all the messages
-                            // until we find the snapshot marker that corresponds to the snapshot key.
-                            Iterator<ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage>> it = records
-                                    .iterator();
-                            while (it.hasNext() && !snapshotProcessed) {
-                                ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
-                                if (processSnapshot(snapshotId, record)) {
-                                    log.debug(
-                                            "Snapshot marker found {} the new messages will be applied on top of the snapshot data.",
-                                            record.key());
-                                    snapshotProcessed = true;
-                                    break;
-                                } else {
-                                    log.debug(
-                                            "Discarding message with key {} as it was sent before a newer snapshot was created.",
-                                            record.key());
-                                }
-                            }
-
-                            // If the snapshot marker has not been found, continue with message skipping until
-                            // we find it.
-                            if (snapshotProcessed) {
-                                // Once the snapshot marker message has been found, we can process the rest of
-                                // the messages as usual, applying the new changes on top of the existing ones
-                                // in the snapshot.
-                                while (it.hasNext()) {
-                                    ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
-                                    processRecord(record, bootstrapId, bootstrapStart);
-                                }
-                            }
-                        } else {
-                            // If there is no snapshot, simply process the existing messages in the kafka
-                            // topic as usual.
-                            records.forEach(record -> processRecord(record, bootstrapId, bootstrapStart));
-                        }
+                        processRecords(records, snapshotId, bootstrapId, bootstrapStart);
                     }
                 }
             } catch (WakeupException e) {
@@ -463,6 +439,51 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
         thread.setName("KSQL Kafka Consumer Thread");
         consumerThread = thread;
         thread.start();
+    }
+
+    private void processRecords(ConsumerRecords<KafkaSqlMessageKey, KafkaSqlMessage> records, String snapshotId,
+            String bootstrapId, long bootstrapStart) {
+        if (null != snapshotId && !snapshotProcessed) {
+            processRecordsUntilSnapshot(records, snapshotId, bootstrapId, bootstrapStart);
+        } else {
+            // If there is no snapshot, simply process the existing messages in the kafka
+            // topic as usual.
+            records.forEach(record -> processRecord(record, bootstrapId, bootstrapStart));
+        }
+    }
+
+    private void processRecordsUntilSnapshot(ConsumerRecords<KafkaSqlMessageKey, KafkaSqlMessage> records,
+            String snapshotId, String bootstrapId, long bootstrapStart) {
+        // If there is a snapshot key present, we process (and discard) all the messages
+        // until we find the snapshot marker that corresponds to the snapshot key.
+        Iterator<ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage>> it = records
+                .iterator();
+        while (it.hasNext() && !snapshotProcessed) {
+            ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
+            if (processSnapshot(snapshotId, record)) {
+                log.debug(
+                        "Snapshot marker found {} the new messages will be applied on top of the snapshot data.",
+                        record.key());
+                snapshotProcessed = true;
+                break;
+            } else {
+                log.debug(
+                        "Discarding message with key {} as it was sent before a newer snapshot was created.",
+                        record.key());
+            }
+        }
+
+        // If the snapshot marker has not been found, continue with message skipping until
+        // we find it.
+        if (snapshotProcessed) {
+            // Once the snapshot marker message has been found, we can process the rest of
+            // the messages as usual, applying the new changes on top of the existing ones
+            // in the snapshot.
+            while (it.hasNext()) {
+                ConsumerRecord<KafkaSqlMessageKey, KafkaSqlMessage> record = it.next();
+                processRecord(record, bootstrapId, bootstrapStart);
+            }
+        }
     }
 
     private boolean processSnapshot(String snapshotId,

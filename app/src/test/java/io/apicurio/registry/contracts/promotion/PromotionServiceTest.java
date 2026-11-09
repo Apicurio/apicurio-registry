@@ -4,6 +4,7 @@ import io.apicurio.registry.storage.dto.PromotionStage;
 import jakarta.ws.rs.BadRequestException;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class PromotionServiceTest {
@@ -31,17 +32,17 @@ class PromotionServiceTest {
 
     @Test
     void testValidForwardPromotion() {
-        callValidate(PromotionStage.DEV, PromotionStage.STAGE, "DRAFT");
+        assertDoesNotThrow(() -> callValidate(PromotionStage.DEV, PromotionStage.STAGE, "DRAFT"));
     }
 
     @Test
     void testProdWithStable() {
-        callValidate(PromotionStage.STAGE, PromotionStage.PROD, "STABLE");
+        assertDoesNotThrow(() -> callValidate(PromotionStage.STAGE, PromotionStage.PROD, "STABLE"));
     }
 
     @Test
     void testFirstPromotion() {
-        callValidate(null, PromotionStage.DEV, null);
+        assertDoesNotThrow(() -> callValidate(null, PromotionStage.DEV, null));
     }
 
     private void callValidate(PromotionStage current, PromotionStage target,

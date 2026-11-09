@@ -26,6 +26,8 @@ import java.util.*;
  */
 public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
+    private static final String WAS_REMOVED = "' was removed";
+
     private static final String XSD_NS = "http://www.w3.org/2001/XMLSchema";
     private static final String ATTRIBUTE_LABEL = "Attribute '";
 
@@ -71,7 +73,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
                 // Element was removed - this is backward incompatible even if optional
                 // because old data may have this element
                 incompatibilities.add(new SimpleCompatibilityDifference(
-                    "Element '" + existingElement.getName() + "' was removed",
+                    "Element '" + existingElement.getName() + WAS_REMOVED,
                     "/element[" + existingElement.getName() + "]"
                 ));
             } else {
@@ -151,7 +153,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
                 // Attribute was removed - backward incompatible even if optional
                 // because old data may have this attribute
                 incompatibilities.add(new SimpleCompatibilityDifference(
-                    ATTRIBUTE_LABEL + existingAttr.getName() + "' was removed",
+                    ATTRIBUTE_LABEL + existingAttr.getName() + WAS_REMOVED,
                     "/attribute[" + existingAttr.getName() + "]"
                 ));
             } else {
@@ -205,7 +207,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
             
             if (proposedType == null) {
                 incompatibilities.add(new SimpleCompatibilityDifference(
-                    "Type '" + existingType.getName() + "' was removed",
+                    "Type '" + existingType.getName() + WAS_REMOVED,
                     "/type[" + existingType.getName() + "]"
                 ));
             } else {

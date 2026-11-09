@@ -32,16 +32,9 @@ public class OdcsRuleProjector {
         String rulePrefix = ODCS_RULE_PREFIX + contractId + ":";
         var existing = storage.getArtifactContractRuleset(groupId, artifactId);
 
-        List<ContractRuleDto> otherRules = new ArrayList<>();
-        if (existing != null && existing.getDomainRules() != null) {
-            for (ContractRuleDto rule : existing.getDomainRules()) {
-                if (!rule.getName().startsWith(rulePrefix)) {
-                    otherRules.add(rule);
-                }
-            }
-        }
+        List<ContractRuleDto> otherRules = nonOdcsRules(existing, rulePrefix);
 
-        String source = "odcs:" + contractId + ":"
+        String source = ODCS_RULE_PREFIX + contractId + ":"
                 + (contract.getInfo() != null && contract.getInfo().getVersion() != null
                         ? contract.getInfo().getVersion()
                         : "unknown");
@@ -80,6 +73,18 @@ public class OdcsRuleProjector {
                         .migrationRules(migration).build());
 
         return odcsRules.size();
+    }
+
+    private static List<ContractRuleDto> nonOdcsRules(ContractRuleSetDto existing, String rulePrefix) {
+        List<ContractRuleDto> otherRules = new ArrayList<>();
+        if (existing != null && existing.getDomainRules() != null) {
+            for (ContractRuleDto rule : existing.getDomainRules()) {
+                if (!rule.getName().startsWith(rulePrefix)) {
+                    otherRules.add(rule);
+                }
+            }
+        }
+        return otherRules;
     }
 
     static RuleAction mapThresholdToAction(double threshold) {

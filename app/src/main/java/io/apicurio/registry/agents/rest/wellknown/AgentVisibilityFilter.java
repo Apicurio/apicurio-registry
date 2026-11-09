@@ -80,29 +80,33 @@ public class AgentVisibilityFilter {
 
         List<SearchedArtifactDto> result = new ArrayList<>();
         for (SearchedArtifactDto artifact : artifacts) {
-            String visibility = resolveVisibility(artifact.getLabels());
-            if ("public".equals(visibility)) {
+            if (isVisible(artifact, isAdmin, canRead, currentUser)) {
                 result.add(artifact);
-            } else if ("entitled".equals(visibility)) {
-                if (canRead) {
-                    result.add(artifact);
-                }
-            } else if ("private".equals(visibility)) {
-                // Anonymous callers have no identity to match the owner, so never see private cards.
-                String owner = artifact.getOwner();
-                if (isAdmin || (owner != null && owner.equals(currentUser))) {
-                    result.add(artifact);
-                }
-            } else {
-                log.warn("Unrecognized visibility '{}' for artifact {}/{}, treating as private",
-                        visibility, artifact.getGroupId(), artifact.getArtifactId());
-                String owner = artifact.getOwner();
-                if (isAdmin || (owner != null && owner.equals(currentUser))) {
-                    result.add(artifact);
-                }
             }
         }
         return result;
+    }
+
+    private boolean isVisible(SearchedArtifactDto artifact, boolean isAdmin, boolean canRead,
+            String currentUser) {
+        String visibility = resolveVisibility(artifact.getLabels());
+        if ("public".equals(visibility)) {
+            return true;
+        } else if ("entitled".equals(visibility)) {
+            return canRead;
+        } else if ("private".equals(visibility)) {
+            // Anonymous callers have no identity to match the owner, so never see private cards.
+            return isOwnerOrAdmin(artifact, isAdmin, currentUser);
+        } else {
+            log.warn("Unrecognized visibility '{}' for artifact {}/{}, treating as private",
+                    visibility, artifact.getGroupId(), artifact.getArtifactId());
+            return isOwnerOrAdmin(artifact, isAdmin, currentUser);
+        }
+    }
+
+    private static boolean isOwnerOrAdmin(SearchedArtifactDto artifact, boolean isAdmin, String currentUser) {
+        String owner = artifact.getOwner();
+        return isAdmin || (owner != null && owner.equals(currentUser));
     }
 
     /**

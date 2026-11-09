@@ -163,29 +163,9 @@ final class DifferenceAttributor {
             BiFunction<JsonNode, JsonNode, Optional<Boolean>> accepts, List<CompatibilityReason> reasons) {
         JsonNode consumerAdditional = accepted.projected().path(ADDITIONAL_PROPERTIES);
         JsonNode producerAdditional = emitted.projected().path(ADDITIONAL_PROPERTIES);
-        if (consumerAdditional.isObject()) {
-            for (String name : emitted.propertyNames()) {
-                JsonNode value = emitted.projectedProperty(name);
-                if (accepted.declaresProperty(name) || BooleanNode.FALSE.equals(value)) {
-                    continue;
-                }
-                Optional<Boolean> decided = accepts.apply(value, consumerAdditional);
-                if (decided.isEmpty()) {
-                    return false;
-                }
-                if (!decided.get()) {
-                    reasons.add(propertyNotAccepted(emitted, accepted, name));
-                }
-            }
-            if (producerAdditional.isObject()) {
-                Optional<Boolean> decided = accepts.apply(producerAdditional, consumerAdditional);
-                if (decided.isEmpty()) {
-                    return false;
-                }
-                if (!decided.get()) {
-                    reasons.add(undeclaredPropertiesNotAccepted(emitted, accepted));
-                }
-            }
+        if (consumerAdditional.isObject() && !undeclaredPropertiesAccepted(emitted, accepted,
+                consumerAdditional, producerAdditional, accepts, reasons)) {
+            return false;
         }
         for (String name : accepted.propertyNames()) {
             if (emitted.declaresProperty(name)) {
@@ -201,6 +181,40 @@ final class DifferenceAttributor {
         return !emitted.projected().path(ITEMS).isObject() || !accepted.projected().path(ITEMS).isObject()
                 || undeclaredOutputNotAccepted(emitted.itemsSchema(), accepted.itemsSchema(), accepts,
                         reasons);
+    }
+
+    /**
+     * Compares the producer properties the consumer does not declare, and the producer's own
+     * {@code additionalProperties}, with the consumer {@code additionalProperties} schema.
+     *
+     * @return {@code false} when one of them cannot be compared
+     */
+    private static boolean undeclaredPropertiesAccepted(SchemaNode emitted, SchemaNode accepted,
+            JsonNode consumerAdditional, JsonNode producerAdditional,
+            BiFunction<JsonNode, JsonNode, Optional<Boolean>> accepts, List<CompatibilityReason> reasons) {
+        for (String name : emitted.propertyNames()) {
+            JsonNode value = emitted.projectedProperty(name);
+            if (accepted.declaresProperty(name) || BooleanNode.FALSE.equals(value)) {
+                continue;
+            }
+            Optional<Boolean> decided = accepts.apply(value, consumerAdditional);
+            if (decided.isEmpty()) {
+                return false;
+            }
+            if (!decided.get()) {
+                reasons.add(propertyNotAccepted(emitted, accepted, name));
+            }
+        }
+        if (producerAdditional.isObject()) {
+            Optional<Boolean> decided = accepts.apply(producerAdditional, consumerAdditional);
+            if (decided.isEmpty()) {
+                return false;
+            }
+            if (!decided.get()) {
+                reasons.add(undeclaredPropertiesNotAccepted(emitted, accepted));
+            }
+        }
+        return true;
     }
 
     /**

@@ -11,6 +11,8 @@ import org.junit.jupiter.api.TestMethodOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static io.apicurio.registry.cli.common.CliException.SERVER_ERROR_RETURN_CODE;
+import static io.apicurio.registry.cli.common.CliException.VALIDATION_ERROR_RETURN_CODE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
@@ -46,9 +48,11 @@ public class ImportExportCommandTest extends AbstractCLITest {
                 {"type": "string"}
                 """);
         try {
-            executeAndAssertSuccess("artifact", "create",
+            assertThat(cmd.execute("artifact", "create",
                     "--group", "default", "--type", "JSON",
-                    "--file", tempFile.toString(), "export-test-artifact");
+                    "--file", tempFile.toString(), "export-test-artifact"))
+                    .as(withCliOutput("Artifact creation should succeed"))
+                    .isZero();
         } finally {
             Files.deleteIfExists(tempFile);
         }
@@ -115,7 +119,9 @@ public class ImportExportCommandTest extends AbstractCLITest {
     public void testImportRequiresEmptyByDefault() {
         Assumptions.assumeTrue(exportFile != null, "Export file not available");
         out.getBuffer().setLength(0);
-        executeAndAssertFailure("admin", "import", "--file", exportFile.toString());
+        assertThat(cmd.execute("admin", "import", "--file", exportFile.toString()))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(SERVER_ERROR_RETURN_CODE);
     }
 
     @Test
@@ -147,25 +153,33 @@ public class ImportExportCommandTest extends AbstractCLITest {
     @Test
     @Order(7)
     public void testImportNonExistentFile() {
-        executeAndAssertFailure("admin", "import", "--file", "/tmp/nonexistent-file.zip");
+        assertThat(cmd.execute("admin", "import", "--file", "/tmp/nonexistent-file.zip"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(8)
     public void testExportInvalidDirectory() {
-        executeAndAssertFailure("admin", "export", "--file",
-                "/nonexistent/directory/export.zip");
+        assertThat(cmd.execute("admin", "export", "--file",
+                "/nonexistent/directory/export.zip"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(9)
     public void testExportMissingFile() {
-        executeAndAssertFailure("admin", "export");
+        assertThat(cmd.execute("admin", "export"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 
     @Test
     @Order(10)
     public void testImportMissingFile() {
-        executeAndAssertFailure("admin", "import");
+        assertThat(cmd.execute("admin", "import"))
+                .as(withCliOutput("Command should fail with the expected exit code"))
+                .isEqualTo(VALIDATION_ERROR_RETURN_CODE);
     }
 }

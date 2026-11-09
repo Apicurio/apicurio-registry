@@ -99,14 +99,7 @@ public class OdcsTagProjector {
     }
 
     private String resolveTargetVersion(OdcsSchema schema, String groupId, String artifactId) {
-        String versionExpression = null;
-        String location = schema.getLocation();
-        if (location != null && location.contains(":")) {
-            String afterColon = location.substring(location.indexOf(':') + 1);
-            if (!afterColon.isEmpty() && !afterColon.isBlank()) {
-                versionExpression = afterColon;
-            }
-        }
+        String versionExpression = versionExpressionOf(schema.getLocation());
 
         if (versionExpression != null && !versionExpression.isBlank()) {
             if (versionExpression.contains("=")) {
@@ -133,6 +126,17 @@ public class OdcsTagProjector {
         return (versions != null && !versions.isEmpty())
                 ? versions.get(versions.size() - 1)
                 : null;
+    }
+
+    private static String versionExpressionOf(String location) {
+        String versionExpression = null;
+        if (location != null && location.contains(":")) {
+            String afterColon = location.substring(location.indexOf(':') + 1);
+            if (!afterColon.isEmpty() && !afterColon.isBlank()) {
+                versionExpression = afterColon;
+            }
+        }
+        return versionExpression;
     }
 
     private int addTags(Map<String, String> labels, String tagPrefix, String fieldPath,

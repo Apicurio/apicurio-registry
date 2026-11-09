@@ -203,39 +203,47 @@ public class RegistryClientRequestAdapterFactory {
 
                     if (isRetryable(cause) && attempt < maxRetryAttempts) {
                         attempt++;
-                        long delayMs = calculateRetryDelay(attempt);
-                        log.log(Level.FINE,
-                                "Retryable registry HTTP failure on attempt {0}/{1} ({2}: {3}); sleeping {4}ms before retry",
-                                new Object[]{
-                                        attempt,
-                                        maxRetryAttempts,
-                                        cause.getClass().getName(),
-                                        cause.getMessage(),
-                                        delayMs
-                                });
-                        try {
-                            Thread.sleep(delayMs);
-                        } catch (InterruptedException interruptedException) {
-                            Thread.currentThread().interrupt();
-                            throw new RuntimeException("Retry interrupted", interruptedException);
-                        }
+                        sleepBeforeRetry(attempt, cause);
                     } else {
-                        if (isRetryable(cause) && attempt >= maxRetryAttempts) {
-                            String causeMessage = cause.getMessage() != null ? cause.getMessage() : "<no message>";
-                            log.log(Level.WARNING,
-                                    "Registry HTTP client exhausted {0} retry attempts due to {1}: {2}",
-                                    new Object[]{maxRetryAttempts, cause.getClass().getName(), causeMessage});
-                        }
-                        // Public behavior: throw the latest failure, not the first. Callers that
-                        // catch a specific type (e.g. HttpClosedException) may now see a later
-                        // type (e.g. ConnectException) with the first on getSuppressed().
-                        if (originalCause != null && originalCause != cause) {
-                            cause.addSuppressed(originalCause);
-                        }
-                        throw cause;
+                        throw prepareFinalFailure(cause, originalCause, attempt);
                     }
                 }
             }
+        }
+
+        private void sleepBeforeRetry(int attempt, Throwable cause) {
+            long delayMs = calculateRetryDelay(attempt);
+            log.log(Level.FINE,
+                    "Retryable registry HTTP failure on attempt {0}/{1} ({2}: {3}); sleeping {4}ms before retry",
+                    new Object[]{
+                            attempt,
+                            maxRetryAttempts,
+                            cause.getClass().getName(),
+                            cause.getMessage(),
+                            delayMs
+                    });
+            try {
+                Thread.sleep(delayMs);
+            } catch (InterruptedException interruptedException) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Retry interrupted", interruptedException);
+            }
+        }
+
+        private Throwable prepareFinalFailure(Throwable cause, Throwable originalCause, int attempt) {
+            if (isRetryable(cause) && attempt >= maxRetryAttempts) {
+                String causeMessage = cause.getMessage() != null ? cause.getMessage() : "<no message>";
+                log.log(Level.WARNING,
+                        "Registry HTTP client exhausted {0} retry attempts due to {1}: {2}",
+                        new Object[]{maxRetryAttempts, cause.getClass().getName(), causeMessage});
+            }
+            // Public behavior: throw the latest failure, not the first. Callers that
+            // catch a specific type (e.g. HttpClosedException) may now see a later
+            // type (e.g. ConnectException) with the first on getSuppressed().
+            if (originalCause != null && originalCause != cause) {
+                cause.addSuppressed(originalCause);
+            }
+            return cause;
         }
 
         private boolean isRetryable(Throwable cause) {
@@ -304,24 +312,26 @@ public class RegistryClientRequestAdapterFactory {
         }
 
         switch (version) {
-            case V3 -> {
-                if (options.getNormalizeRegistryUrl() && !REGISTRY_URL_V3_PATH_PATTERN.matcher(url).matches()) {
-                    if (!url.endsWith("/")) {
-                        url += "/";
-                    }
-                    url += "apis/registry/v3";
-                }
-            }
-            case V2 -> {
-                if (options.getNormalizeRegistryUrl() && !REGISTRY_URL_V2_PATH_PATTERN.matcher(url).matches()) {
-                    if (!url.endsWith("/")) {
-                        url += "/";
-                    }
-                    url += "apis/registry/v2";
-                }
-            }
+            case V3 -> url = appendApiPath(options, url, REGISTRY_URL_V3_PATH_PATTERN, "apis/registry/v3");
+            case V2 -> url = appendApiPath(options, url, REGISTRY_URL_V2_PATH_PATTERN, "apis/registry/v2");
         }
 
+        validateWellFormed(url);
+        return url;
+    }
+
+    private static String appendApiPath(RegistryClientOptions options, String url, Pattern pathPattern,
+            String apiPath) {
+        if (options.getNormalizeRegistryUrl() && !pathPattern.matcher(url).matches()) {
+            if (!url.endsWith("/")) {
+                url += "/";
+            }
+            url += apiPath;
+        }
+        return url;
+    }
+
+    private static void validateWellFormed(String url) {
         try {
             var uri = new URI(url);
             if (uri.getScheme() == null || uri.getHost() == null) {
@@ -336,8 +346,6 @@ public class RegistryClientRequestAdapterFactory {
         } catch (URISyntaxException ex) {
             throw new IllegalArgumentException("Registry API URL '" + url + "' is not well-formed: " + ex.getMessage());
         }
-
-        return url;
     }
 
     private static void validateAuth(RegistryClientOptions options) {

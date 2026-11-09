@@ -74,6 +74,7 @@ public class AbstractSqlRegistryStorageTest {
 
         @Override
         public void initialize() {
+            // No-op: this test stub requires no initialization.
         }
 
         @Override

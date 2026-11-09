@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 /**
@@ -249,7 +250,9 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
     }
 
     private void processArtifact(ProcessingState state, PollingDataFile artifactFile, Artifact artifact) {
-        boolean artifactImported = false;
+        // Shared across versions: once the artifact has been imported it must not be imported again,
+        // even when importing one of its versions later fails.
+        AtomicBoolean artifactImported = new AtomicBoolean(false);
 
         var group = processGroupRef(state, artifact.getGroupId());
         if (group != null) {
@@ -269,76 +272,8 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             for (int i = 0; i < versions.size(); i++) {
                 Version version = versions.get(i);
                 try {
-                    final VersionContentResult result = processVersionContent(state, artifactFile, version,
-                            yamlArtifactType);
-                    if (result == null) {
-                        state.recordError(artifactFile, "Could not import content for artifact version %s.",
-                                artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion());
-                        continue;
-                    }
-
-                    // When artifactType is not specified in the YAML, use the type resolved
-                    // from the first version's content detection. This also propagates to
-                    // PollingDataValidator which reads artifact.getArtifactType().
-                    if (artifact.getArtifactType() == null) {
-                        artifact.setArtifactType(result.resolvedArtifactType());
-                    } else if (yamlArtifactType == null
-                            && !artifact.getArtifactType().equals(result.resolvedArtifactType())) {
-                        state.recordError(artifactFile,
-                                "Version %s resolves to %s, but the artifact type is %s (from version 1); "
-                                + "set `artifactType` explicitly.",
-                                version.getVersion(), result.resolvedArtifactType(), artifact.getArtifactType());
-                        continue;
-                    }
-
-                    if (!artifactImported) {
-                        ArtifactEntity artifactEntity = new ArtifactEntity();
-                        artifactEntity.groupId = artifact.getGroupId();
-                        artifactEntity.artifactId = artifact.getArtifactId();
-                        artifactEntity.artifactType = artifact.getArtifactType();
-                        artifactEntity.name = artifact.getName();
-                        artifactEntity.description = artifact.getDescription();
-                        artifactEntity.labels = withSourceLabel(artifact.getLabels(), artifactFile.getSourceId());
-                        artifactEntity.owner = artifact.getOwner();
-                        artifactEntity.createdOn = TimestampParser.parse(artifact.getCreatedOn(), state.getCommitTime());
-                        artifactEntity.modifiedOn = TimestampParser.parse(artifact.getModifiedOn(), state.getCommitTime());
-                        state.getStorage().importArtifact(artifactEntity);
-                        state.incrementArtifactCount();
-                        artifactImported = true;
-                    }
-
-                    var e = new ArtifactVersionEntity();
-                    e.groupId = artifact.getGroupId();
-                    e.artifactId = artifact.getArtifactId();
-                    e.version = version.getVersion();
-                    e.versionOrder = i + 1;
-                    if (version.getGlobalId() != null) {
-                        e.globalId = version.getGlobalId();
-                    } else if (pollingConfig.isDeterministicIdGenerationEnabled()) {
-                        e.globalId = DeterministicIdGenerator.globalId(
-                                artifact.getGroupId(), artifact.getArtifactId(), version.getVersion());
-                    } else {
-                        state.recordError(artifactFile, "globalId is required for version %s (deterministic ID generation is disabled)",
-                                artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion());
-                        continue;
-                    }
-                    e.state = version.getState() != null
-                            ? VersionState.fromValue(version.getState())
-                            : VersionState.ENABLED;
-                    e.name = version.getName();
-                    e.description = version.getDescription();
-                    e.labels = version.getLabels();
-                    e.owner = version.getOwner();
-                    e.contentId = result.contentId();
-                    e.createdOn = TimestampParser.parse(version.getCreatedOn(), state.getCommitTime());
-                    e.modifiedOn = TimestampParser.parse(version.getModifiedOn(), state.getCommitTime());
-
-                    log.trace("Importing {}",e);
-                    state.getStorage().importArtifactVersion(e);
-                    if (e.state != VersionState.DRAFT) {
-                        publishedVersions.add(e.version);
-                    }
-                    state.incrementVersionCount();
+                    importVersion(state, artifactFile, artifact, version, i, yamlArtifactType, artifactImported,
+                            publishedVersions);
                 } catch (Exception ex) {
                     state.recordError(artifactFile, "Could not import artifact version '%s': %s",
                             artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion(),
@@ -357,6 +292,81 @@ public abstract class AbstractPollingDataSourceManager<MARKER extends SourceMark
             artifactFile.setProcessed(true);
         }
         // Note: if group is null, processGroupRef() already recorded the error
+    }
+
+    private void importVersion(ProcessingState state, PollingDataFile artifactFile, Artifact artifact,
+            Version version, int i, String yamlArtifactType, AtomicBoolean artifactImported,
+            List<String> publishedVersions) {
+        final VersionContentResult result = processVersionContent(state, artifactFile, version,
+                yamlArtifactType);
+        if (result == null) {
+            state.recordError(artifactFile, "Could not import content for artifact version %s.",
+                    artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion());
+            return;
+        }
+
+        // When artifactType is not specified in the YAML, use the type resolved
+        // from the first version's content detection. This also propagates to
+        // PollingDataValidator which reads artifact.getArtifactType().
+        if (artifact.getArtifactType() == null) {
+            artifact.setArtifactType(result.resolvedArtifactType());
+        } else if (yamlArtifactType == null
+                && !artifact.getArtifactType().equals(result.resolvedArtifactType())) {
+            state.recordError(artifactFile,
+                    "Version %s resolves to %s, but the artifact type is %s (from version 1); "
+                    + "set `artifactType` explicitly.",
+                    version.getVersion(), result.resolvedArtifactType(), artifact.getArtifactType());
+            return;
+        }
+
+        if (!artifactImported.get()) {
+            ArtifactEntity artifactEntity = new ArtifactEntity();
+            artifactEntity.groupId = artifact.getGroupId();
+            artifactEntity.artifactId = artifact.getArtifactId();
+            artifactEntity.artifactType = artifact.getArtifactType();
+            artifactEntity.name = artifact.getName();
+            artifactEntity.description = artifact.getDescription();
+            artifactEntity.labels = withSourceLabel(artifact.getLabels(), artifactFile.getSourceId());
+            artifactEntity.owner = artifact.getOwner();
+            artifactEntity.createdOn = TimestampParser.parse(artifact.getCreatedOn(), state.getCommitTime());
+            artifactEntity.modifiedOn = TimestampParser.parse(artifact.getModifiedOn(), state.getCommitTime());
+            state.getStorage().importArtifact(artifactEntity);
+            state.incrementArtifactCount();
+            artifactImported.set(true);
+        }
+
+        var e = new ArtifactVersionEntity();
+        e.groupId = artifact.getGroupId();
+        e.artifactId = artifact.getArtifactId();
+        e.version = version.getVersion();
+        e.versionOrder = i + 1;
+        if (version.getGlobalId() != null) {
+            e.globalId = version.getGlobalId();
+        } else if (pollingConfig.isDeterministicIdGenerationEnabled()) {
+            e.globalId = DeterministicIdGenerator.globalId(
+                    artifact.getGroupId(), artifact.getArtifactId(), version.getVersion());
+        } else {
+            state.recordError(artifactFile, "globalId is required for version %s (deterministic ID generation is disabled)",
+                    artifact.getGroupId() + ":" + artifact.getArtifactId() + ":" + version.getVersion());
+            return;
+        }
+        e.state = version.getState() != null
+                ? VersionState.fromValue(version.getState())
+                : VersionState.ENABLED;
+        e.name = version.getName();
+        e.description = version.getDescription();
+        e.labels = version.getLabels();
+        e.owner = version.getOwner();
+        e.contentId = result.contentId();
+        e.createdOn = TimestampParser.parse(version.getCreatedOn(), state.getCommitTime());
+        e.modifiedOn = TimestampParser.parse(version.getModifiedOn(), state.getCommitTime());
+
+        log.trace("Importing {}",e);
+        state.getStorage().importArtifactVersion(e);
+        if (e.state != VersionState.DRAFT) {
+            publishedVersions.add(e.version);
+        }
+        state.incrementVersionCount();
     }
 
     private void processArtifactRules(ProcessingState state, Artifact artifact) {

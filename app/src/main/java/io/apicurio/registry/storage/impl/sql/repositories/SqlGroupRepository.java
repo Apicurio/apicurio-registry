@@ -52,6 +52,7 @@ public class SqlGroupRepository {
 
     // Internal default group ID representation (duplicated from RegistryContentUtils for access)
     private static final String NULL_GROUP_ID = "__$GROUPID$__";
+    private static final String G_GROUP_ID = "g.groupId";
 
     private final Logger log;
     private final SqlStatements sqlStatements;
@@ -297,12 +298,12 @@ public class SqlGroupRepository {
                         });
                         break;
                     case groupId:
-                        buildWildcardClause(where, "g.groupId",
+                        buildWildcardClause(where, G_GROUP_ID,
                                 filter.getStringValue(), filter.isNot(), binders);
                         break;
                     case authorization:
                         SqlAuthorizationFilter.appendGroupCondition(where, binders,
-                                filter.getAuthorizationValue(), sqlStatements.dbType(), "g.groupId", "g.owner");
+                                filter.getAuthorizationValue(), sqlStatements.dbType(), G_GROUP_ID, "g.owner");
                         break;
                     case labels:
                         Pair<String, String> label = filter.getLabelFilterValue();
@@ -342,7 +343,7 @@ public class SqlGroupRepository {
                     orderByQuery.toString());
             Query groupsQuery = handle.createQuery(groupsQuerySql);
 
-            String countQuerySql = sqlStatements.selectCountTableTemplate("g.groupId", "groups", "g",
+            String countQuerySql = sqlStatements.selectCountTableTemplate(G_GROUP_ID, "groups", "g",
                     where.toString());
             Query countQuery = handle.createQuery(countQuerySql);
 

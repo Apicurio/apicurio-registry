@@ -24,7 +24,7 @@ public final class GraphQLImportLines {
      * {@code "from"} when the line uses the named-import form.
      */
     public static final Pattern IMPORT_LINE = Pattern
-            .compile("^(\\s*#\\s*import\\s+(?:.*?\\s+from\\s+)?\")([^\"]+)(\"\\s*)$",
+            .compile("^(\\s*+#\\s*+import\\s++(?:[^\"]*+(?<=\\sfrom\\s{1,32}))?\")([^\"]++)(\"\\s*+)$",
                     Pattern.CASE_INSENSITIVE);
 
     private static final Pattern TRIPLE_QUOTE = Pattern.compile("\"\"\"");

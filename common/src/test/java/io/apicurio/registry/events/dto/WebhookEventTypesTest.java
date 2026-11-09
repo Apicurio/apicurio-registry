@@ -22,18 +22,19 @@ public class WebhookEventTypesTest {
 
     @Test
     void testSupported_isExactlyTheFiveLifecycleTypes() {
+        Set<CloudEventType> actual = WebhookEventTypes.SUPPORTED;
         assertEquals(EnumSet.of(
                 CloudEventType.ARTIFACT_CREATED,
                 CloudEventType.ARTIFACT_UPDATED,
                 CloudEventType.ARTIFACT_DELETED,
                 CloudEventType.ARTIFACT_VERSION_PUBLISHED,
-                CloudEventType.ARTIFACT_VERSION_STATE_CHANGED), WebhookEventTypes.SUPPORTED);
+                CloudEventType.ARTIFACT_VERSION_STATE_CHANGED), actual);
     }
 
     @Test
     void testReserved_isDeprecatedAndRuleViolated() {
-        assertEquals(EnumSet.of(CloudEventType.ARTIFACT_DEPRECATED, CloudEventType.RULE_VIOLATED),
-                WebhookEventTypes.RESERVED);
+        Set<CloudEventType> actual = WebhookEventTypes.RESERVED;
+        assertEquals(EnumSet.of(CloudEventType.ARTIFACT_DEPRECATED, CloudEventType.RULE_VIOLATED), actual);
     }
 
     @Test
@@ -46,12 +47,13 @@ public class WebhookEventTypesTest {
 
     @Test
     void testSupportedValues_matchWireStringsInOrder() {
+        List<String> actual = WebhookEventTypes.SUPPORTED_VALUES;
         assertEquals(List.of(
                 "io.apicurio.registry.artifact.created",
                 "io.apicurio.registry.artifact.metadata.updated",
                 "io.apicurio.registry.artifact.deleted",
                 "io.apicurio.registry.artifact.version.created",
-                "io.apicurio.registry.artifact.version.state.changed"), WebhookEventTypes.SUPPORTED_VALUES);
+                "io.apicurio.registry.artifact.version.state.changed"), actual);
     }
 
     @Test

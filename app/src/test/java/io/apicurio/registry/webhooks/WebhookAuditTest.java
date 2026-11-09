@@ -17,7 +17,6 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -66,11 +65,11 @@ public class WebhookAuditTest {
 
         List<Map<String, String>> webhookEntries = auditLogService.getAuditLogs().stream()
                 .filter(entry -> entry.getOrDefault("action", "").contains("WebhookSubscription"))
-                .collect(Collectors.toList());
+                .toList();
         assertEquals(List.of("createWebhookSubscription:failure", "createWebhookSubscription:success",
                 "getWebhookSubscription:success"),
                 webhookEntries.stream().map(e -> e.get("action") + ":" + e.get("result"))
-                        .collect(Collectors.toList()));
+                        .toList());
 
         for (Map<String, String> entry : webhookEntries) {
             String logged = entry.toString();

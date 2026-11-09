@@ -317,6 +317,24 @@ public final class V3ApiUtil {
         return results;
     }
 
+    public static Peer dtoToPeer(PeerDto dto) {
+        Peer peer = new Peer();
+        peer.setPeerId(dto.getPeerId());
+        peer.setUrl(dto.getUrl());
+        peer.setName(dto.getName());
+        peer.setDescription(dto.getDescription());
+        peer.setEnabled(dto.isEnabled());
+        peer.setCredentialSecretRef(dto.getCredentialSecretRef());
+        return peer;
+    }
+
+    public static PeerSearchResults dtoToPeerSearchResults(PeerSearchResultsDto dto) {
+        PeerSearchResults results = new PeerSearchResults();
+        results.setCount((int) dto.getCount());
+        results.setPeers(dto.getPeers().stream().map(V3ApiUtil::dtoToPeer).collect(Collectors.toList()));
+        return results;
+    }
+
     public static WebhookSubscription dtoToWebhookSubscription(WebhookSubscriptionDto dto) {
         WebhookSubscription subscription = new WebhookSubscription();
         subscription.setSubscriptionId(dto.getSubscriptionId());

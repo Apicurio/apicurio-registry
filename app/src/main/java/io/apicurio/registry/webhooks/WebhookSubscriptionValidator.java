@@ -36,6 +36,13 @@ public final class WebhookSubscriptionValidator {
 
     private static final Pattern SIGNING_SECRET_REF_PATTERN = Pattern.compile("^[A-Za-z0-9._-]+$");
 
+    private static final String ENDPOINT_URL = "endpointUrl";
+    private static final String EVENT_TYPES = "eventTypes";
+    private static final String EXPECTED_REVISION = "expectedRevision";
+    private static final String IS_REQUIRED = "is required";
+    private static final String MUST_BE_AT_MOST = "must be at most ";
+    private static final String CHARACTERS = " characters";
+
     private WebhookSubscriptionValidator() {
     }
 
@@ -45,36 +52,36 @@ public final class WebhookSubscriptionValidator {
      */
     public static void validateEndpointUrl(String endpointUrl) {
         if (endpointUrl == null) {
-            throw invalid("endpointUrl", "is required");
+            throw invalid(ENDPOINT_URL, IS_REQUIRED);
         }
         if (endpointUrl.length() > MAX_ENDPOINT_URL_LENGTH) {
-            throw invalid("endpointUrl", "must be at most " + MAX_ENDPOINT_URL_LENGTH + " characters");
+            throw invalid(ENDPOINT_URL, MUST_BE_AT_MOST + MAX_ENDPOINT_URL_LENGTH + CHARACTERS);
         }
         URI uri;
         try {
             uri = new URI(endpointUrl);
         } catch (URISyntaxException e) {
-            throw invalid("endpointUrl", "must be a valid URL");
+            throw invalid(ENDPOINT_URL, "must be a valid URL");
         }
         if (!uri.isAbsolute() || !"https".equals(uri.getScheme())) {
-            throw invalid("endpointUrl", "must be an absolute https URL");
+            throw invalid(ENDPOINT_URL, "must be an absolute https URL");
         }
         if (uri.getHost() == null) {
-            throw invalid("endpointUrl", "must include a host");
+            throw invalid(ENDPOINT_URL, "must include a host");
         }
         // getPort() is -1 when the URL has no port, which means the https default.
         int port = uri.getPort();
         if (port != -1 && (port < MIN_PORT || port > MAX_PORT)) {
-            throw invalid("endpointUrl", "must use a port between " + MIN_PORT + " and " + MAX_PORT);
+            throw invalid(ENDPOINT_URL, "must use a port between " + MIN_PORT + " and " + MAX_PORT);
         }
         if (uri.getRawUserInfo() != null) {
-            throw invalid("endpointUrl", "must not contain user information");
+            throw invalid(ENDPOINT_URL, "must not contain user information");
         }
         if (uri.getRawFragment() != null) {
-            throw invalid("endpointUrl", "must not contain a fragment");
+            throw invalid(ENDPOINT_URL, "must not contain a fragment");
         }
         if (OutboundAddressPolicy.isForbiddenLiteral(uri.getHost())) {
-            throw invalid("endpointUrl", "must not point to a loopback, private, link-local or other internal address");
+            throw invalid(ENDPOINT_URL, "must not point to a loopback, private, link-local or other internal address");
         }
     }
 
@@ -85,27 +92,27 @@ public final class WebhookSubscriptionValidator {
     public static void validateResolvedEndpoint(String endpointUrl, HostResolver resolver) {
         String host = URI.create(endpointUrl).getHost();
         if (!OutboundAddressPolicy.allResolvedAddressesAllowed(host, resolver)) {
-            throw invalid("endpointUrl", "must resolve only to public addresses");
+            throw invalid(ENDPOINT_URL, "must resolve only to public addresses");
         }
     }
 
     public static void validateEventTypes(List<String> eventTypes) {
         if (eventTypes == null) {
-            throw invalid("eventTypes", "is required");
+            throw invalid(EVENT_TYPES, IS_REQUIRED);
         }
         if (eventTypes.size() > MAX_EVENT_TYPES) {
-            throw invalid("eventTypes", "must contain at most " + MAX_EVENT_TYPES + " values");
+            throw invalid(EVENT_TYPES, "must contain at most " + MAX_EVENT_TYPES + " values");
         }
         Set<String> seen = new HashSet<>();
         for (String eventType : eventTypes) {
             if (WebhookEventTypes.isReserved(eventType)) {
-                throw invalid("eventTypes", "contains an event type that is reserved and not supported yet");
+                throw invalid(EVENT_TYPES, "contains an event type that is reserved and not supported yet");
             }
             if (WebhookEventTypes.fromSupportedValue(eventType).isEmpty()) {
-                throw invalid("eventTypes", "contains an unsupported event type");
+                throw invalid(EVENT_TYPES, "contains an unsupported event type");
             }
             if (!seen.add(eventType)) {
-                throw invalid("eventTypes", "must not contain duplicates");
+                throw invalid(EVENT_TYPES, "must not contain duplicates");
             }
         }
     }
@@ -115,7 +122,7 @@ public final class WebhookSubscriptionValidator {
             return;
         }
         if (name.length() > MAX_NAME_LENGTH) {
-            throw invalid("name", "must be at most " + MAX_NAME_LENGTH + " characters");
+            throw invalid("name", MUST_BE_AT_MOST + MAX_NAME_LENGTH + CHARACTERS);
         }
         if (name.chars().anyMatch(Character::isISOControl)) {
             throw invalid("name", "must not contain control characters");
@@ -140,7 +147,7 @@ public final class WebhookSubscriptionValidator {
 
     public static void validateArtifactIdFilter(String artifactIdFilter) {
         if (artifactIdFilter != null && artifactIdFilter.length() > MAX_ARTIFACT_ID_FILTER_LENGTH) {
-            throw invalid("artifactIdFilter", "must be at most " + MAX_ARTIFACT_ID_FILTER_LENGTH + " characters");
+            throw invalid("artifactIdFilter", MUST_BE_AT_MOST + MAX_ARTIFACT_ID_FILTER_LENGTH + CHARACTERS);
         }
     }
 
@@ -167,26 +174,26 @@ public final class WebhookSubscriptionValidator {
 
     public static void validateEnabled(Boolean enabled) {
         if (enabled == null) {
-            throw invalid("enabled", "is required");
+            throw invalid("enabled", IS_REQUIRED);
         }
     }
 
     public static long validateExpectedRevision(Long expectedRevision) {
         if (expectedRevision == null) {
-            throw invalid("expectedRevision", "is required");
+            throw invalid(EXPECTED_REVISION, IS_REQUIRED);
         }
         if (expectedRevision < 1) {
-            throw invalid("expectedRevision", "must be at least 1");
+            throw invalid(EXPECTED_REVISION, "must be at least 1");
         }
         return expectedRevision;
     }
 
     public static long validateExpectedRevision(BigInteger expectedRevision) {
         if (expectedRevision == null) {
-            throw invalid("expectedRevision", "is required");
+            throw invalid(EXPECTED_REVISION, IS_REQUIRED);
         }
         if (expectedRevision.signum() < 1 || expectedRevision.bitLength() >= Long.SIZE) {
-            throw invalid("expectedRevision", "must be between 1 and " + Long.MAX_VALUE);
+            throw invalid(EXPECTED_REVISION, "must be between 1 and " + Long.MAX_VALUE);
         }
         return expectedRevision.longValueExact();
     }
@@ -220,7 +227,7 @@ public final class WebhookSubscriptionValidator {
     public static void validateOwnerId(String ownerId) {
         if (ownerId.length() > MAX_OWNER_ID_LENGTH) {
             throw invalid("ownerId", "the caller's principal name must be at most " + MAX_OWNER_ID_LENGTH
-                    + " characters");
+                    + CHARACTERS);
         }
     }
 

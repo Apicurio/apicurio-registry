@@ -86,7 +86,7 @@ public class WebhookSubscriptionOperations {
         requireWebhookStorage();
         checkRequestBody(data);
         validateEndpointUrl(data.getEndpointUrl());
-        validateEventTypes(data.getEventTypes());
+        validateEventTypes(eventTypesAsSent(data.getEventTypes()));
         validateName(data.getName());
         String groupFilter = normalizeGroupFilter(data.getGroupFilter());
         validateArtifactIdFilter(data.getArtifactIdFilter());
@@ -129,7 +129,7 @@ public class WebhookSubscriptionOperations {
         requireWebhookStorage();
         requireCanonicalId(subscriptionId);
         checkRequestBody(data);
-        validateEventTypes(data.getEventTypes());
+        validateEventTypes(eventTypesAsSent(data.getEventTypes()));
         validateEnabled(data.getEnabled());
         long expectedRevision = validateExpectedRevision(data.getExpectedRevision());
         validateName(data.getName());
@@ -185,6 +185,14 @@ public class WebhookSubscriptionOperations {
         if (!unrecognized.isEmpty()) {
             throw new WebhookSubscriptionValidationException("body: contains a field that is not allowed");
         }
+    }
+
+    /**
+     * The generated request beans start {@code eventTypes} as an empty list, which means "every type".
+     * Without this, a body that leaves the required field out would silently subscribe to everything.
+     */
+    private List<String> eventTypesAsSent(List<String> eventTypes) {
+        return bodyContext.getPresentFields().contains("eventTypes") ? eventTypes : null;
     }
 
     private void requireWebhookStorage() {

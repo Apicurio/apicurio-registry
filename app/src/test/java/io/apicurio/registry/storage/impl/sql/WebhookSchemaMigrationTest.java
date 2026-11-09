@@ -16,7 +16,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -267,7 +266,7 @@ public class WebhookSchemaMigrationTest {
             insertSubscription(conn, subId);
 
             // Payload with null byte, 0xFF, and invalid-UTF-8 sequence 0x80.
-            byte[] original = new byte[]{0x41, 0x00, (byte) 0xFF, (byte) 0x80, 0x42};
+            byte[] original = {0x41, 0x00, (byte) 0xFF, (byte) 0x80, 0x42};
             String eventRowId = UUID.randomUUID().toString();
             String hash = WebhookEventIdentity.computeHash("https://example.com", "evt-rt-1");
 
@@ -972,7 +971,7 @@ public class WebhookSchemaMigrationTest {
             }
         }
 
-        Collections.sort(descriptors);
+        descriptors.sort(null);
         return descriptors;
     }
 

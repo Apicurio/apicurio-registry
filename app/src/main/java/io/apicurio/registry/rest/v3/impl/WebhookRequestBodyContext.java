@@ -28,4 +28,12 @@ public class WebhookRequestBodyContext {
     @Getter
     @Setter
     private Set<String> unrecognizedFields = Set.of();
+
+    /**
+     * Top-level fields present in the body. The generated request beans start list fields as an empty
+     * list, so this is the only way to tell an omitted list from an empty one.
+     */
+    @Getter
+    @Setter
+    private Set<String> presentFields = Set.of();
 }

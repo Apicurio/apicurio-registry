@@ -30,11 +30,13 @@ public class WebhookManagementAuthorizationTest {
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     @WebhookManagementApiOperation
     private void webhookEndpoint() {
+        // Intentionally empty: the tests only read this method's annotations.
     }
 
     /** An ordinary admin operation, to show the gate does not change other endpoints. */
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Admin)
     private void ordinaryAdminEndpoint() {
+        // Intentionally empty: the tests only read this method's annotations.
     }
 
     // ---- deployment cannot identify an administrator: 403 for everyone ----

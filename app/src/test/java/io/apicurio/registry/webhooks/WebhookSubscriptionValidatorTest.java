@@ -320,9 +320,10 @@ class WebhookSubscriptionValidatorTest {
                 () -> WebhookSubscriptionValidator.normalizeGroupFilter(group));
         assertFalse(groupError.getMessage().contains("private-team-group"));
 
+        List<String> customEventTypes = List.of("my-custom-event");
         WebhookSubscriptionValidationException typeError = assertThrows(
                 WebhookSubscriptionValidationException.class,
-                () -> WebhookSubscriptionValidator.validateEventTypes(List.of("my-custom-event")));
+                () -> WebhookSubscriptionValidator.validateEventTypes(customEventTypes));
         assertFalse(typeError.getMessage().contains("my-custom-event"));
     }
 

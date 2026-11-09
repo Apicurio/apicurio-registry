@@ -316,7 +316,7 @@ public class GitOpsSmokeTest {
     }
 
     @Test
-    public void testWebhookManagementIsNotSupported() {
+    void testWebhookManagementIsNotSupported() {
         assertFalse(storage.isWebhookManagementSupported());
 
         // Reads reach the GitOps storage, which refuses them as unsupported.

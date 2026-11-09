@@ -130,6 +130,7 @@ import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ROLE_MAPPING;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_RULE_TYPE;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_SUBSCRIPTION_ID;
+import static io.apicurio.registry.rest.MethodParameterKeys.MPK_UPDATE_PEER;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_UPDATE_ROLE;
 import static io.apicurio.registry.utils.DtoUtil.appAuthPropertyToRegistry;
 import static io.apicurio.registry.utils.DtoUtil.registryAuthPropertyToApp;
@@ -197,6 +198,12 @@ public class AdminResourceImpl implements AdminResource {
 
     @Inject
     UsageAggregationJob usageAggregationJob;
+
+    @Inject
+    FederationConfig federationConfig;
+
+    @Inject
+    PeerAddressPolicy peerAddressPolicy;
 
     @Inject
     WebhookSubscriptionOperations webhookSubscriptions;

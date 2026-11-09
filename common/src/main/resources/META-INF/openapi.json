@@ -851,6 +851,89 @@
         }
       ]
     },
+    "/groups/{groupId}/artifacts/{artifactId}/mcp-import": {
+      "summary": "Import tool definitions from a live MCP server.",
+      "post": {
+        "tags": [
+          "Artifacts",
+          "AI"
+        ],
+        "requestBody": {
+          "description": "Where to reach the MCP server, and where to publish its tools.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/McpToolImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/McpToolImportResult"
+                }
+              }
+            },
+            "description": "The result of the import, for the server and for each tool."
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            },
+            "description": "The MCP server could not be reached, or its response could not be used."
+          }
+        },
+        "operationId": "importMcpTools",
+        "summary": "Import tools from an MCP server",
+        "description": "**Experimental.** Connects to a live MCP server over the Streamable HTTP transport, lists its tools with `tools/list`, and publishes each tool as an `MCP_TOOL` artifact. The artifact named in the path must be an `MCP_SERVER`; a new version of it references every imported tool whose definition is stored.\n\nEach tool is published like any other version: configured rules, such as `COMPATIBILITY`, apply, and a tool rejected by a rule is reported as `REJECTED` with the violations, without changing what is stored. A tool whose definition is unchanged is reported as `UNCHANGED`. A tool referenced by the previous `MCP_SERVER` version but no longer listed by the server is reported as `REMOVED`; its artifact is left as it is. With `dryRun`, nothing is written and the same report is returned.\n\nThe registry connects only to hosts in `apicurio.mcp-import.allowed-hosts`, never to loopback, link-local or cloud metadata addresses, and does not follow redirects. Headers in the request are sent to the MCP server only; they are not stored, returned or logged.\n\nThis operation can fail for the following reasons:\n\n* The import feature is disabled, or the storage is read-only (HTTP error `409`)\n* No artifact with this `artifactId` exists (HTTP error `404`)\n* The artifact is not an `MCP_SERVER`, or the URL or its host is not allowed (HTTP error `400`)\n* The MCP server could not be reached, timed out, sent a response that is too large or invalid, or listed too many tools (HTTP error `502`)\n* A server error occurred (HTTP error `500`)\n"
+      },
+      "parameters": [
+        {
+          "name": "groupId",
+          "description": "The artifact group ID.  Must be a string provided by the client, representing the name of the grouping of artifacts. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "in": "path",
+          "required": true
+        },
+        {
+          "name": "artifactId",
+          "description": "The artifact ID.  Can be a string (client-provided) or UUID (server-generated), representing the unique artifact identifier. Must follow the \".{1,512}\" pattern.",
+          "schema": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "in": "path",
+          "required": true
+        }
+      ]
+    },
     "/groups/{groupId}/artifacts/{artifactId}/rules": {
       "summary": "Manage the rules for a single artifact.",
       "get": {
@@ -7797,6 +7880,10 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/ResourcePermissions",
+            "description": "The operations the caller may perform on this resource. Present only when resource-based authorization is enabled."
           }
         },
         "example": {
@@ -7971,6 +8058,10 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/ResourcePermissions",
+            "description": "The operations the caller may perform on this resource. Present only when resource-based authorization is enabled."
           }
         },
         "example": {
@@ -8113,6 +8204,34 @@
           "value": "true"
         }
       },
+      "ResourcePermissions": {
+        "description": "The operations the caller may perform on a resource returned by a search or list operation. Each flag is true when a request at that level on the resource would be authorized.",
+        "required": [
+          "read",
+          "write",
+          "admin"
+        ],
+        "type": "object",
+        "properties": {
+          "read": {
+            "description": "Whether the caller may read the resource.",
+            "type": "boolean"
+          },
+          "write": {
+            "description": "Whether the caller may modify the resource.",
+            "type": "boolean"
+          },
+          "admin": {
+            "description": "Whether the caller may administer the resource.",
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "read": true,
+          "write": true,
+          "admin": false
+        }
+      },
       "SearchedGroup": {
         "description": "Models a single group from the result set returned when searching for groups.",
         "required": [
@@ -8153,6 +8272,10 @@
           "labels": {
             "$ref": "#/components/schemas/Labels",
             "description": ""
+          },
+          "permissions": {
+            "$ref": "#/components/schemas/ResourcePermissions",
+            "description": "The operations the caller may perform on this resource. Present only when resource-based authorization is enabled."
           }
         },
         "example": {
@@ -8641,6 +8764,10 @@
             "description": "",
             "type": "boolean"
           },
+          "mcpImport": {
+            "description": "Whether importing tools from live MCP servers is enabled. Experimental.",
+            "type": "boolean"
+          },
           "urlImportMaxContentLength": {
             "description": "Maximum content length (in bytes) for UI 'Import from URL' responses.",
             "type": "integer",
@@ -9102,6 +9229,109 @@
           "modifiedOn"
         ],
         "type": "string"
+      },
+      "McpToolImportRequest": {
+        "title": "Root Type for McpToolImportRequest",
+        "description": "Where to reach an MCP server, and where to publish its tools.",
+        "required": [
+          "url"
+        ],
+        "type": "object",
+        "properties": {
+          "url": {
+            "description": "The MCP server endpoint, for the Streamable HTTP transport. Its host must be allowed by `apicurio.mcp-import.allowed-hosts`.",
+            "type": "string"
+          },
+          "headers": {
+            "description": "HTTP headers to send to the MCP server, for example `Authorization`. Sent to the MCP server only: never stored, returned or logged.",
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "toolGroupId": {
+            "description": "The group to publish the `MCP_TOOL` artifacts in. Defaults to the group of the `MCP_SERVER` artifact.",
+            "type": "string"
+          },
+          "dryRun": {
+            "description": "When `true`, the server is contacted and the report is returned, but nothing is written.",
+            "type": "boolean"
+          }
+        },
+        "example": {
+          "url": "https://weather.apps.example.com/mcp",
+          "toolGroupId": "mcp-tools",
+          "dryRun": false
+        }
+      },
+      "McpToolImportStatus": {
+        "description": "The outcome of an MCP import for one artifact.\n\n* `CREATED` - a new artifact was created\n* `NEW_VERSION` - a new version was added to an existing artifact\n* `UNCHANGED` - the stored version already matches\n* `REJECTED` - a rule rejected the new definition; nothing was stored\n* `REMOVED` - the tool was referenced by the previous server version but is no longer listed; its artifact is left as it is\n",
+        "enum": [
+          "CREATED",
+          "NEW_VERSION",
+          "UNCHANGED",
+          "REJECTED",
+          "REMOVED"
+        ],
+        "type": "string"
+      },
+      "McpToolImportToolResult": {
+        "title": "Root Type for McpToolImportToolResult",
+        "description": "The outcome of the import for one tool.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "description": "The tool name, as listed by the MCP server.",
+            "type": "string"
+          },
+          "groupId": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "artifactId": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "version": {
+            "description": "The version that matches the tool's definition. Absent when the tool was rejected or removed, or when nothing was written.",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/McpToolImportStatus"
+          },
+          "causes": {
+            "description": "The rule violations, when the tool was rejected.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleViolationCause"
+            }
+          }
+        }
+      },
+      "McpToolImportResult": {
+        "title": "Root Type for McpToolImportResult",
+        "description": "The result of importing tools from an MCP server.",
+        "type": "object",
+        "properties": {
+          "groupId": {
+            "$ref": "#/components/schemas/GroupId"
+          },
+          "artifactId": {
+            "$ref": "#/components/schemas/ArtifactId"
+          },
+          "version": {
+            "description": "The `MCP_SERVER` version that references the imported tools. Absent when nothing was written.",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/McpToolImportStatus"
+          },
+          "tools": {
+            "description": "The outcome for each tool.",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/McpToolImportToolResult"
+            }
+          }
+        }
       },
       "RenderPromptRequest": {
         "title": "Root Type for RenderPromptRequest",

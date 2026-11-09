@@ -3,6 +3,8 @@ package io.apicurio.registry.extensions;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
 
+import java.util.Map;
+
 /**
  * Extension point that lets an optional module take part in artifact version writes made through the
  * v3 REST API, without the core REST layer knowing about the module's artifact types.
@@ -20,6 +22,13 @@ public interface ArtifactVersionWriteHook {
      * Called when an artifact is created with a first version and when a new version is created.
      * Drafts are included.
      * </p>
+     * <p>
+     * A hook that only rewrites content, without registering anything elsewhere, can implement this
+     * method. A hook that needs to write related artifacts or versions (for example, to register
+     * targets a rewritten {@code $ref} points at) must implement {@link #planContent} instead:
+     * writing here happens before rules and other hooks' {@link #beforePublish} can still reject the
+     * request, and nothing would undo it.
+     * </p>
      *
      * @param context the write being performed
      * @param content the content as submitted, or as rewritten by a previous hook
@@ -29,6 +38,24 @@ public interface ArtifactVersionWriteHook {
      */
     default ContentWrapperDto prepareContent(VersionWriteContext context, TypedContent content) {
         return null;
+    }
+
+    /**
+     * Stage 1, for hooks that write related artifacts or versions: plan the rewrite without writing
+     * anything, deferring the write to {@link ContentPlan#commit()}.
+     * <p>
+     * The default implementation calls {@link #prepareContent}, so a hook that only overrides that
+     * method keeps writing immediately, unchanged from before this method existed.
+     * </p>
+     *
+     * @param context the write being performed
+     * @param content the content as submitted, or as rewritten by a previous hook
+     * @return the plan, or {@code null} to leave the content unchanged
+     */
+    default ContentPlan planContent(VersionWriteContext context, TypedContent content) {
+        ContentWrapperDto prepared = prepareContent(context, content);
+        return prepared == null ? null : new ContentPlan(prepared, Map.of(), () -> {
+        });
     }
 
     /**

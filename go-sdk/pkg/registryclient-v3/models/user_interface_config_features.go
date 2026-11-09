@@ -22,6 +22,8 @@ type UserInterfaceConfigFeatures struct {
 	deleteVersion *bool
 	// The draftMutability property
 	draftMutability *bool
+	// Whether importing tools from live MCP servers is enabled. Experimental.
+	mcpImport *bool
 	// The readOnly property
 	readOnly *bool
 	// Why the registry is in read-only mode: storage (inherently read-only, e.g. GitOps), config (manual configuration), or absent when not read-only.
@@ -157,6 +159,16 @@ func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i8
 		}
 		return nil
 	}
+	res["mcpImport"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
+		val, err := n.GetBoolValue()
+		if err != nil {
+			return err
+		}
+		if val != nil {
+			m.SetMcpImport(val)
+		}
+		return nil
+	}
 	res["readOnly"] = func(n i878a80d2330e89d26896388a3f487eef27b0a0e6c010c493bf80be1452208f91.ParseNode) error {
 		val, err := n.GetBoolValue()
 		if err != nil {
@@ -228,6 +240,12 @@ func (m *UserInterfaceConfigFeatures) GetFieldDeserializers() map[string]func(i8
 		return nil
 	}
 	return res
+}
+
+// GetMcpImport gets the mcpImport property value. Whether importing tools from live MCP servers is enabled. Experimental.
+// returns a *bool when successful
+func (m *UserInterfaceConfigFeatures) GetMcpImport() *bool {
+	return m.mcpImport
 }
 
 // GetReadOnly gets the readOnly property value. The readOnly property
@@ -306,6 +324,12 @@ func (m *UserInterfaceConfigFeatures) Serialize(writer i878a80d2330e89d26896388a
 	}
 	{
 		err := writer.WriteBoolValue("draftMutability", m.GetDraftMutability())
+		if err != nil {
+			return err
+		}
+	}
+	{
+		err := writer.WriteBoolValue("mcpImport", m.GetMcpImport())
 		if err != nil {
 			return err
 		}
@@ -397,6 +421,11 @@ func (m *UserInterfaceConfigFeatures) SetDraftMutability(value *bool) {
 	m.draftMutability = value
 }
 
+// SetMcpImport sets the mcpImport property value. Whether importing tools from live MCP servers is enabled. Experimental.
+func (m *UserInterfaceConfigFeatures) SetMcpImport(value *bool) {
+	m.mcpImport = value
+}
+
 // SetReadOnly sets the readOnly property value. The readOnly property
 func (m *UserInterfaceConfigFeatures) SetReadOnly(value *bool) {
 	m.readOnly = value
@@ -441,6 +470,7 @@ type UserInterfaceConfigFeaturesable interface {
 	GetDeleteGroup() *bool
 	GetDeleteVersion() *bool
 	GetDraftMutability() *bool
+	GetMcpImport() *bool
 	GetReadOnly() *bool
 	GetReadOnlyReason() *UserInterfaceConfigFeatures_readOnlyReason
 	GetRoleManagement() *bool
@@ -454,6 +484,7 @@ type UserInterfaceConfigFeaturesable interface {
 	SetDeleteGroup(value *bool)
 	SetDeleteVersion(value *bool)
 	SetDraftMutability(value *bool)
+	SetMcpImport(value *bool)
 	SetReadOnly(value *bool)
 	SetReadOnlyReason(value *UserInterfaceConfigFeatures_readOnlyReason)
 	SetRoleManagement(value *bool)

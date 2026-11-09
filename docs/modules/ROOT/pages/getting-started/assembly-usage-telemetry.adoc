@@ -210,7 +210,7 @@ Returns global Active, Stale, and Dead counts across all tracked schema versions
 [role="_abstract"]
 Returns per-version usage metrics for a specific artifact, including fetch counts, client lists, and classification.
 
-`GET /admin/usage/artifacts/{groupId}/{artifactId}`
+`GET /admin/usage/artifacts/\{groupId}/\{artifactId}`
 
 [source,json]
 ----
@@ -240,7 +240,7 @@ Returns per-version usage metrics for a specific artifact, including fetch count
 [role="_abstract"]
 Returns a consumer version adoption grid showing which clients use which versions, with version drift detection.
 
-`GET /admin/usage/artifacts/{groupId}/{artifactId}/heatmap`
+`GET /admin/usage/artifacts/\{groupId}/\{artifactId}/heatmap`
 
 [source,json]
 ----
@@ -273,7 +273,7 @@ Returns a consumer version adoption grid showing which clients use which version
 [role="_abstract"]
 Returns which consumers are actively using a specific version and whether it is safe to deprecate.
 
-`GET /admin/usage/artifacts/{groupId}/{artifactId}/versions/{version}/deprecation-readiness`
+`GET /admin/usage/artifacts/\{groupId}/\{artifactId}/versions/\{version}/deprecation-readiness`
 
 [source,json]
 ----

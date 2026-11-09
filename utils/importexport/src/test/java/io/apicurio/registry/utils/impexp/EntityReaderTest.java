@@ -35,12 +35,27 @@ class EntityReaderTest {
         write("a.ArtifactVersion.json", "{\"globalId\":4294967296}");
         write("b.ArtifactVersion.json", "{\"globalId\":1}");
         write("readme.json", "{}");
+        write("custom.metadata.json", "{}");
+        write("backup.2026.01.json", "{}");
 
         EntityReader reader = new EntityReader(importDir);
 
         assertInstanceOf(ManifestEntity.class, reader.readNextEntity());
         assertEquals(1L, readGlobalId(reader));
         assertEquals(4294967296L, readGlobalId(reader));
+        assertNull(reader.readNextEntity());
+    }
+
+    @Test
+    void nonEntityFilesWithMultipleDotsAndDottedSubdirectoriesAreSkipped() throws IOException {
+        Path subDir = Files.createDirectories(importDir.resolve("v1.2.3.export"));
+        Files.writeString(subDir.resolve("00000.Manifest.json"), "{\"systemVersion\":\"3.0.0\"}", StandardCharsets.UTF_8);
+        Files.writeString(subDir.resolve("report.audit.json"), "{}", StandardCharsets.UTF_8);
+        Files.writeString(subDir.resolve("config.test.json"), "{}", StandardCharsets.UTF_8);
+
+        EntityReader reader = new EntityReader(importDir);
+
+        assertInstanceOf(ManifestEntity.class, reader.readNextEntity());
         assertNull(reader.readNextEntity());
     }
 }

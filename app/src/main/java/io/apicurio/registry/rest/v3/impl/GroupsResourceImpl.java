@@ -1,5 +1,8 @@
 package io.apicurio.registry.rest.v3.impl;
 
+import io.apicurio.registry.rest.v3.beans.McpToolImportResult;
+import io.apicurio.registry.rest.v3.beans.McpToolImportRequest;
+import io.apicurio.registry.extensions.McpToolImportHandler;
 import io.apicurio.registry.auth.Authorized;
 import io.apicurio.registry.auth.AuthorizedLevel;
 import io.apicurio.registry.auth.AuthorizedResource;
@@ -44,6 +47,7 @@ import io.apicurio.registry.rest.v3.impl.shared.ProtobufExporter;
 import io.apicurio.registry.rules.RuleApplicationType;
 import io.apicurio.registry.rules.RulesService;
 import io.apicurio.registry.extensions.ArtifactVersionWriteHook;
+import io.apicurio.registry.extensions.ContentPlan;
 import io.apicurio.registry.extensions.PromptRenderHandler;
 import io.apicurio.registry.extensions.VersionWriteContext;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
@@ -56,6 +60,7 @@ import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
+import io.apicurio.registry.references.AuthorizingReferenceLoader;
 import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.storage.impl.sql.RegistryStorageContentUtils;
 import io.apicurio.registry.types.ArtifactType;
@@ -102,6 +107,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_ARTIFACT_ID;
 import static io.apicurio.registry.rest.MethodParameterKeys.MPK_CANONICAL;
@@ -134,6 +140,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     RulesService rulesService;
+
+    @Inject
+    Instance<McpToolImportHandler> mcpToolImportHandler;
 
     @Inject
     OTelMetricsProvider otelMetrics;
@@ -202,6 +211,9 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     @Inject
     ISearchAuthorizer searchAuthorizer;
+
+    @Inject
+    SearchResultPermissions searchResultPermissions;
 
 
     /**
@@ -775,7 +787,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         GroupSearchResultsDto resultsDto = searchAuthorizer.searchGroups(filters, oBy, oDir,
                 offset.intValue(), limit.intValue());
-        return V3ApiUtil.dtoToSearchResults(resultsDto);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(resultsDto));
     }
 
     @Override
@@ -1397,7 +1409,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ArtifactSearchResultsDto resultsDto = searchAuthorizer.searchArtifacts(filters, oBy, oDir, offset.intValue(),
                 limit.intValue(), skipCount != null && skipCount);
-        return V3ApiUtil.dtoToSearchResults(resultsDto);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(resultsDto));
     }
 
     /**
@@ -1537,13 +1549,13 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             ContentHandle effectiveContent = content;
             String effectiveContentType = contentType;
             List<ArtifactReferenceDto> autoReferences = new ArrayList<>();
+            HookPlan hookPlan = null;
             if (content != null) {
-                ContentWrapperDto prepared = prepareContent(writeContext, content, contentType,
-                        toReferenceDtos(references));
-                if (prepared != null) {
-                    effectiveContent = prepared.getContent();
-                    effectiveContentType = prepared.getContentType();
-                    autoReferences.addAll(prepared.getReferences());
+                hookPlan = planContent(writeContext, content, contentType, toReferenceDtos(references));
+                if (hookPlan.content() != null) {
+                    effectiveContent = hookPlan.content().getContent();
+                    effectiveContentType = hookPlan.content().getContentType();
+                    autoReferences.addAll(hookPlan.content().getReferences());
                 }
             }
 
@@ -1572,9 +1584,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 firstVersionIsDraft = data.getFirstVersion().getIsDraft() != null
                         && data.getFirstVersion().getIsDraft();
 
-                // Try to resolve the references
+                // Try to resolve the references; a reference a hook planned but hasn't committed yet is
+                // seen through the plan rather than storage, which doesn't have it until commit() runs.
+                Function<ArtifactReferenceDto, ContentWrapperDto> loader = hookPlan == null
+                        ? accessGuard.referenceLoader() : hookPlan.loader(accessGuard.referenceLoader());
                 final Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                        .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
+                        .recursivelyResolveReferences(referencesAsDtos, loader);
 
                 // Apply any configured rules unless it is a DRAFT version (unless draft production mode is enabled)
                 TypedContent effectiveTypedContent = TypedContent.create(effectiveContent, effectiveContentType);
@@ -1591,12 +1606,19 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 }
             }
 
+            // Commit whatever a hook planned (e.g. register an extracted schema) only now that rules
+            // and beforePublish have passed, and never on a dry run: a predicted coordinate a hook
+            // reserved must not be written if the artifact itself is about to be rejected or not persisted.
+            if (hookPlan != null && isNotDryRun(dryRun)) {
+                hookPlan.commit();
+            }
+
             Pair<ArtifactMetaDataDto, ArtifactVersionMetaDataDto> storageResult = storage.createArtifact(
                     new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType, artifactMetaData,
                     firstVersion, firstVersionContent, firstVersionMetaData, firstVersionBranches,
                     firstVersionIsDraft, dryRun != null && dryRun, owner);
 
-            if (dryRun == null || !dryRun) {
+            if (isNotDryRun(dryRun)) {
                 String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
                 otelMetrics.recordArtifactCreated(rawGroupId, artifactType);
                 if (storageResult.getRight() != null) {
@@ -1648,7 +1670,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 SearchFilter.ofArtifactId(artifactId));
         VersionSearchResultsDto resultsDto = searchAuthorizer.searchVersions(filters, oBy, oDir, offset.intValue(),
                 limit.intValue(), skipCount != null && skipCount);
-        return V3ApiUtil.dtoToSearchResults(resultsDto);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(resultsDto));
     }
 
     @Override
@@ -1669,11 +1691,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             ParameterValidationUtils.requireParameter("body.content.content", data.getContent().getContent());
             ParameterValidationUtils.requireParameter("body.content.contentType", data.getContent().getContentType());
         } else {
-            if (data.getContent() == null) {
-                data.setContent(new VersionContent());
-            }
-            data.getContent().setContent("");
-            data.getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
+            defaultToEmptyContent(data);
         }
 
         ContentHandle content = ContentHandle.create(resolveContent(data.getContent()));
@@ -1692,12 +1710,11 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ContentHandle effectiveContent = content;
         String effectiveContentType = ct;
         List<ArtifactReferenceDto> autoReferences = new ArrayList<>();
-        ContentWrapperDto prepared = prepareContent(writeContext, content, ct,
-                toReferenceDtos(data.getContent().getReferences()));
-        if (prepared != null) {
-            effectiveContent = prepared.getContent();
-            effectiveContentType = prepared.getContentType();
-            autoReferences.addAll(prepared.getReferences());
+        HookPlan hookPlan = planContent(writeContext, content, ct, toReferenceDtos(data.getContent().getReferences()));
+        if (hookPlan.content() != null) {
+            effectiveContent = hookPlan.content().getContent();
+            effectiveContentType = hookPlan.content().getContentType();
+            autoReferences.addAll(hookPlan.content().getReferences());
         }
 
         // Transform the given references into dtos and merge with auto-extracted references
@@ -1707,20 +1724,20 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         // Apply rules unless the version is DRAFT (unless draft production mode is enabled)
         if (!isDraft || restConfig.isDraftProductionModeEnabled()) {
-            // Try to resolve the new artifact references and the nested ones (if any)
-            final Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                    .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
-
-            TypedContent typedContent = TypedContent.create(effectiveContent, effectiveContentType);
-            rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
-                    typedContent, RuleApplicationType.UPDATE, data.getContent().getReferences(),
-                    resolvedReferences);
+            applyUpdateRules(groupId, artifactId, artifactType, TypedContent.create(effectiveContent, effectiveContentType),
+                    data.getContent().getReferences(), referencesAsDtos, hookPlan);
         }
 
         // Let write hooks inspect the content BEFORE the version is persisted, so a hook rejection
         // fails this write exactly like any other content validation failure.
         List<Runnable> afterPublish = isDraft ? List.of()
                 : beforePublish(writeContext, TypedContent.create(effectiveContent, effectiveContentType));
+
+        // Commit whatever a hook planned only now that rules and beforePublish have passed, and never
+        // on a dry run.
+        if (isNotDryRun(dryRun)) {
+            hookPlan.commit();
+        }
 
         EditableVersionMetaDataDto metaDataDto = EditableVersionMetaDataDto.builder()
                 .description(data.getDescription()).name(data.getName()).labels(data.getLabels()).build();
@@ -1731,7 +1748,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 new GroupId(groupId).getRawGroupIdWithNull(), artifactId, data.getVersion(), artifactType,
                 contentDto, metaDataDto, data.getBranches(), isDraft, dryRun != null && dryRun, owner);
 
-        if (dryRun == null || !dryRun) {
+        if (isNotDryRun(dryRun)) {
             otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
             afterPublish.forEach(Runnable::run);
         }
@@ -1836,7 +1853,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         VersionSearchResultsDto results = storage.getBranchVersions(ga, bid, offset.intValue(),
                 limit.intValue());
-        return V3ApiUtil.dtoToSearchResults(results);
+        return searchResultPermissions.addTo(V3ApiUtil.dtoToSearchResults(results));
     }
 
     @Override
@@ -1940,8 +1957,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         switch (ifExists) {
             case CREATE_VERSION:
-                return updateArtifactInternal(groupId, artifactId, theVersion,
-                        prepareUpdateContent(groupId, artifactId, theVersion), dryRun);
+                UpdateContentPlan prepared = prepareUpdateContent(groupId, artifactId, theVersion);
+                return updateArtifactInternal(groupId, artifactId, theVersion, prepared, dryRun);
             case FIND_OR_CREATE_VERSION:
                 return handleIfExistsReturnOrUpdate(groupId, artifactId, theVersion, canonical, dryRun);
             default:
@@ -1953,13 +1970,15 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
             CreateVersion theVersion, boolean canonical, Boolean dryRun) {
         // Match against the content as it would be stored: write hooks may rewrite it (e.g. embedded
         // schemas replaced by $refs), so the submitted content would never match an existing version.
-        ContentWrapperDto prepared = prepareUpdateContent(groupId, artifactId, theVersion);
+        // Nothing a hook planned is committed here; if a match is found below, the plan is discarded
+        // without ever running its commit.
+        UpdateContentPlan prepared = prepareUpdateContent(groupId, artifactId, theVersion);
         try {
             // Find the version
-            TypedContent content = TypedContent.create(prepared.getContent(), prepared.getContentType());
+            TypedContent content = TypedContent.create(prepared.content().getContent(), prepared.content().getContentType());
             ArtifactVersionMetaDataDto vmdDto = this.storage.getArtifactVersionMetaDataByContent(
                     new GroupId(groupId).getRawGroupIdWithNull(), artifactId, canonical, content,
-                    prepared.getReferences());
+                    prepared.content().getReferences());
             VersionMetaData vmd = V3ApiUtil.dtoToVersionMetaData(vmdDto);
 
             // Need to also return the artifact metadata
@@ -1978,15 +1997,17 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * handling, the same way createArtifactVersion does.
      *
      * <p>
-     * Hooks may write to storage (e.g. registering extracted schemas), so this checks artifact-level write
-     * access first, like {@link #updateArtifactInternal} does: createArtifact itself only checks the group.
-     * Not private, so the authorization interceptor applies to this self-invocation.
+     * Hooks may plan to write to storage (e.g. registering extracted schemas), so this checks
+     * artifact-level write access first, like {@link #updateArtifactInternal} does: createArtifact
+     * itself only checks the group. Not private, so the authorization interceptor applies to this
+     * self-invocation.
      * </p>
      *
-     * @return the content, content type and references (submitted plus hook-added) to store
+     * @return the content, content type and references (submitted plus hook-added) to store, and the
+     *         hook plan to commit (or discard) once the caller decides whether to write a new version
      */
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
-    protected ContentWrapperDto prepareUpdateContent(String groupId, String artifactId, CreateVersion theVersion) {
+    protected UpdateContentPlan prepareUpdateContent(String groupId, String artifactId, CreateVersion theVersion) {
         ContentHandle content = ContentHandle.create(resolveContent(theVersion.getContent()));
         String contentType = theVersion.getContent().getContentType();
         // Transform the given references into dtos and set the contentId, this will also detect if any of the
@@ -1995,42 +2016,48 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         VersionWriteContext writeContext = new VersionWriteContext(VersionWriteContext.Operation.CREATE_VERSION,
                 storage, new GA(groupId, artifactId), lookupArtifactType(groupId, artifactId),
                 securityIdentity.getPrincipal().getName());
-        ContentWrapperDto prepared = prepareContent(writeContext, content, contentType, references);
-        if (prepared != null) {
-            content = prepared.getContent();
-            contentType = prepared.getContentType();
-            references.addAll(prepared.getReferences());
+        HookPlan hookPlan = planContent(writeContext, content, contentType, references);
+        if (hookPlan.content() != null) {
+            content = hookPlan.content().getContent();
+            contentType = hookPlan.content().getContentType();
+            references.addAll(hookPlan.content().getReferences());
         }
-        return ContentWrapperDto.builder().content(content).contentType(contentType).references(references)
-                .build();
+        ContentWrapperDto merged = ContentWrapperDto.builder().content(content).contentType(contentType)
+                .references(references).build();
+        return new UpdateContentPlan(merged, hookPlan);
+    }
+
+    /**
+     * @param content  the final content, content type and references (submitted plus hook-added) to store
+     * @param hookPlan the write hooks' plan for {@code content}; {@link HookPlan#commit()} must run before
+     *                 persisting a version built from it, and never if {@code content} is discarded instead
+     */
+    private record UpdateContentPlan(ContentWrapperDto content, HookPlan hookPlan) {
     }
 
     @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
     protected CreateArtifactResponse updateArtifactInternal(String groupId, String artifactId,
-            CreateVersion theVersion, ContentWrapperDto prepared, Boolean dryRun) {
+            CreateVersion theVersion, UpdateContentPlan prepared, Boolean dryRun) {
         String version = theVersion.getVersion();
         String name = theVersion.getName();
         String description = theVersion.getDescription();
         List<String> branches = theVersion.getBranches();
         Map<String, String> labels = theVersion.getLabels();
         List<ArtifactReference> references = theVersion.getContent().getReferences();
-        String contentType = prepared.getContentType();
-        ContentHandle content = prepared.getContent();
+        String contentType = prepared.content().getContentType();
+        ContentHandle content = prepared.content().getContent();
         boolean isDraftVersion = theVersion.getIsDraft() != null && theVersion.getIsDraft();
 
         String artifactType = lookupArtifactType(groupId, artifactId);
 
         final String owner = securityIdentity.getPrincipal().getName();
 
-        final List<ArtifactReferenceDto> referencesAsDtos = prepared.getReferences();
+        final List<ArtifactReferenceDto> referencesAsDtos = prepared.content().getReferences();
 
         // Apply rules only if not a draft version (unless draft production mode is enabled)
         if (!isDraftVersion || restConfig.isDraftProductionModeEnabled()) {
-            final Map<String, TypedContent> resolvedReferences = ReferenceResolution
-                    .recursivelyResolveReferences(referencesAsDtos, accessGuard.referenceLoader());
-            final TypedContent typedContent = TypedContent.create(content, contentType);
-            rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
-                    typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
+            applyUpdateRules(groupId, artifactId, artifactType, TypedContent.create(content, contentType),
+                    references, referencesAsDtos, prepared.hookPlan());
         }
 
         // Let write hooks inspect the content BEFORE the version is persisted, so a hook rejection
@@ -2039,6 +2066,12 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 : beforePublish(new VersionWriteContext(VersionWriteContext.Operation.CREATE_VERSION, storage,
                         new GA(groupId, artifactId), artifactType, owner), TypedContent.create(content, contentType));
 
+        // Commit whatever a hook planned only now that rules and beforePublish have passed, and never
+        // on a dry run.
+        if (isNotDryRun(dryRun)) {
+            prepared.hookPlan().commit();
+        }
+
         EditableVersionMetaDataDto metaData = EditableVersionMetaDataDto.builder().name(name)
                 .description(description).labels(labels).build();
         ContentWrapperDto contentDto = ContentWrapperDto.builder().contentType(contentType).content(content)
@@ -2046,7 +2079,7 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         ArtifactVersionMetaDataDto vmdDto = storage.createArtifactVersion(groupId, artifactId, version,
                 artifactType, contentDto, metaData, branches, isDraftVersion, dryRun != null && dryRun, owner);
 
-        if (dryRun == null || !dryRun) {
+        if (isNotDryRun(dryRun)) {
             otelMetrics.recordVersionCreated(new GroupId(groupId).getRawGroupIdWithNull(), artifactType);
             afterPublish.forEach(Runnable::run);
         }
@@ -2060,6 +2093,32 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return CreateArtifactResponse.builder().artifact(amd).version(vmd).build();
     }
 
+    /** Fills in the content of a version whose artifact type has no content (requires no body field). */
+    private static void defaultToEmptyContent(CreateVersion data) {
+        if (data.getContent() == null) {
+            data.setContent(new VersionContent());
+        }
+        data.getContent().setContent("");
+        data.getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
+    }
+
+    /** @return true unless {@code dryRun} is explicitly set */
+    private static boolean isNotDryRun(Boolean dryRun) {
+        return dryRun == null || !dryRun;
+    }
+
+    /**
+     * Resolves references (seeing a hook's planned, not-yet-persisted content through {@code hookPlan})
+     * and applies the configured rules for a version update.
+     */
+    private void applyUpdateRules(String groupId, String artifactId, String artifactType, TypedContent typedContent,
+            List<ArtifactReference> references, List<ArtifactReferenceDto> referencesAsDtos, HookPlan hookPlan) {
+        final Map<String, TypedContent> resolvedReferences = ReferenceResolution.recursivelyResolveReferences(
+                referencesAsDtos, hookPlan.loader(accessGuard.referenceLoader()));
+        rulesService.applyRules(new GroupId(groupId).getRawGroupIdWithNull(), artifactId, artifactType,
+                typedContent, RuleApplicationType.UPDATE, references, resolvedReferences);
+    }
+
     private List<ArtifactReferenceDto> toReferenceDtos(List<ArtifactReference> references) {
         if (references == null) {
             references = Collections.emptyList();
@@ -2067,6 +2126,24 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         return references.stream()
                 .peek(r -> r.setGroupId(new GroupId(r.getGroupId()).getRawGroupIdWithNull()))
                 .map(V3ApiUtil::referenceToDto).collect(toList());
+    }
+
+    /**
+     * @see io.apicurio.registry.rest.v3.GroupsResource#importMcpTools(java.lang.String, java.lang.String,
+     *      io.apicurio.registry.rest.v3.beans.McpToolImportRequest)
+     */
+    @Override
+    // The request body is not extracted: its headers may carry credentials for the MCP server.
+    @MethodMetadata(extractParameters = {"0", MPK_GROUP_ID, "1", MPK_ARTIFACT_ID})
+    @Audited
+    @Authorized(style = AuthorizedStyle.GroupAndArtifact, level = AuthorizedLevel.Write)
+    public McpToolImportResult importMcpTools(String groupId, String artifactId, McpToolImportRequest data) {
+        ParameterValidationUtils.requireParameter("groupId", groupId);
+        ParameterValidationUtils.requireParameter("artifactId", artifactId);
+        if (!mcpToolImportHandler.isResolvable()) {
+            throw new ConflictException("Importing tools from MCP servers is not available.");
+        }
+        return mcpToolImportHandler.get().importTools(groupId, artifactId, data);
     }
 
     /**
@@ -2101,25 +2178,32 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
     }
 
     /**
-     * Runs the {@link ArtifactVersionWriteHook#prepareContent} stage of every write hook, feeding each
+     * Runs the {@link ArtifactVersionWriteHook#planContent} stage of every write hook, feeding each
      * hook the output of the previous one.
      *
-     * <p>Hooks may write other artifacts (e.g. extracted schemas), so the submitted references are
-     * authorized first: a request that will be rejected for referencing an unreadable artifact must
+     * <p>Hooks may plan to write other artifacts (e.g. extracted schemas), so the submitted references
+     * are authorized first: a request that will be rejected for referencing an unreadable artifact must
      * not leave hook writes behind. This applies to drafts too, although they skip the rules.</p>
      *
-     * @return the combined rewrite, or {@code null} if no hook changed the content
+     * <p>Nothing a hook plans is written here: {@link HookPlan#commits()} must be run by the caller
+     * after rules and every hook's {@code beforePublish} have passed, and only outside a dry run. Until
+     * then, {@link HookPlan#plannedReferencedContent()} lets reference resolution and rules see content
+     * that is planned but not yet persisted.</p>
+     *
+     * @return the combined plan; {@link HookPlan#content()} is {@code null} if no hook changed the content
      */
-    private ContentWrapperDto prepareContent(VersionWriteContext context, ContentHandle content,
-            String contentType, List<ArtifactReferenceDto> submittedReferences) {
+    private HookPlan planContent(VersionWriteContext context, ContentHandle content, String contentType,
+            List<ArtifactReferenceDto> submittedReferences) {
         authorizeReferences(submittedReferences);
         ContentWrapperDto result = null;
+        Map<ArtifactReferenceDto, ContentWrapperDto> plannedReferencedContent = new HashMap<>();
+        List<Runnable> commits = new ArrayList<>();
         for (ArtifactVersionWriteHook hook : writeHooks) {
             ContentHandle currentContent = result != null ? result.getContent() : content;
             String currentContentType = result != null ? result.getContentType() : contentType;
-            ContentWrapperDto prepared = hook.prepareContent(context,
-                    TypedContent.create(currentContent, currentContentType));
-            if (prepared != null) {
+            ContentPlan plan = hook.planContent(context, TypedContent.create(currentContent, currentContentType));
+            if (plan != null) {
+                ContentWrapperDto prepared = plan.content();
                 List<ArtifactReferenceDto> references = new ArrayList<>();
                 if (result != null) {
                     references.addAll(result.getReferences());
@@ -2129,9 +2213,33 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
                 }
                 result = ContentWrapperDto.builder().content(prepared.getContent())
                         .contentType(prepared.getContentType()).references(references).build();
+                plannedReferencedContent.putAll(plan.plannedReferencedContent());
+                commits.add(plan.commit());
             }
         }
-        return result;
+        return new HookPlan(result, plannedReferencedContent, commits);
+    }
+
+    /**
+     * The result of running every write hook's {@link ArtifactVersionWriteHook#planContent}.
+     *
+     * @param content the combined rewrite, or {@code null} if no hook changed the content
+     * @param plannedReferencedContent content planned, but not yet persisted, for references the rewrite
+     *            introduced; merge into a reference loader before resolving references or applying rules
+     * @param commits writes whatever the plan depends on; run once, after rules and every hook's
+     *            {@code beforePublish} have passed, and only outside a dry run
+     */
+    private record HookPlan(ContentWrapperDto content, Map<ArtifactReferenceDto, ContentWrapperDto> plannedReferencedContent,
+            List<Runnable> commits) {
+
+        /** @return a reference loader that prefers planned content over loading it with {@code fallback} */
+        Function<ArtifactReferenceDto, ContentWrapperDto> loader(Function<ArtifactReferenceDto, ContentWrapperDto> fallback) {
+            return AuthorizingReferenceLoader.preferring(plannedReferencedContent, fallback);
+        }
+
+        void commit() {
+            commits.forEach(Runnable::run);
+        }
     }
 
     /**

@@ -673,6 +673,46 @@ $ acr admin import --file registry-export.zip
 Optional: To import into a registry that already contains data, use the `--no-require-empty` option. To let the server generate new global and content identifiers instead of preserving the exported ones, use the `--no-preserve-ids` option.
 
 
+[id="importing-mcp-tools-using-registry-cli_{context}"]
+== Importing tools from an MCP server using the CLI
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the CLI to import the tools of a running MCP server into an `MCP_SERVER` artifact. Each tool becomes an `MCP_TOOL` artifact, subject to the rules configured for it, and a new version of the `MCP_SERVER` artifact references the imported tools.
+
+IMPORTANT: This command is experimental and subject to backwards-incompatible change or removal.
+
+.Prerequisites
+* You have configured at least one CLI context.
+* The registry allows MCP imports from the server's host, as described in "Importing tools from a live MCP server" in xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool features].
+* An `MCP_SERVER` artifact exists for the server.
+
+.Procedure
+. Optional: Preview the import without writing anything:
++
+[source,bash]
+----
+$ acr mcp import weather --group my-servers --url https://weather.example.com/mcp --dry-run
+----
+. Import the tools:
++
+[source,bash]
+----
+$ acr mcp import weather --group my-servers --url https://weather.example.com/mcp --tool-group mcp-tools
+----
++
+The command prints the result for each tool (`CREATED`, `NEW_VERSION`, `UNCHANGED`, `REJECTED` or `REMOVED`) and the new version of the `MCP_SERVER` artifact. For a rejected tool, it also prints each rule violation. A rejected tool is a reported result, not a failure, so the command still exits with code 0.
+. Optional: Send HTTP headers to the MCP server, for example credentials. Header values are not accepted as plain command-line options, because they would be kept in your shell history. Read them from a file, with one `Name: value` per line, or from an environment variable:
++
+[source,bash]
+----
+$ acr mcp import weather --url https://weather.example.com/mcp --header-file mcp-headers.txt
+$ acr mcp import weather --url https://weather.example.com/mcp --header-env Authorization=MCP_AUTHORIZATION
+----
++
+Use `--header-file -` to read the headers from standard input. With `--verbose`, the CLI does not log this request, because its body carries the headers.
+
 [id="synchronizing-gitops-using-registry-cli_{context}"]
 == Checking and synchronizing GitOps storage using the CLI
 

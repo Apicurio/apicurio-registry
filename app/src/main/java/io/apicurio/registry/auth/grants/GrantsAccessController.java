@@ -1,8 +1,11 @@
 package io.apicurio.registry.auth.grants;
 
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -159,6 +162,46 @@ public class GrantsAccessController extends AbstractAccessController {
     }
 
     /**
+     * Evaluates grants for many artifacts or groups with a single access rules call, so that remote
+     * authorizers can batch them (Kroxylicious proposal 009). Same decisions as calling
+     * {@link #isAllowed} on each: resources are canonicalized to their stored IDs first, and every
+     * decision is recorded (metrics, and an audit entry for each denial), since this authorizes an
+     * access attempt. Owner bypass is not applied here, as in {@link #isAllowed}.
+     *
+     * @return true if {@code level} is allowed on every resource (vacuously true for none)
+     */
+    public boolean isAllowedForAll(AuthorizedLevel level, Collection<AuthorizedResource> resources) {
+        if (level == AuthorizedLevel.None || resources.isEmpty()) {
+            return true;
+        }
+        if (authorizer == null) {
+            LOG.error("Per-resource authorization is enabled but not initialized, denying access.");
+            return false;
+        }
+        // One action per distinct stored name: two spellings of one artifact are one decision
+        Map<Action, String> actions = new LinkedHashMap<>();
+        for (AuthorizedResource resource : resources) {
+            AuthorizedResource stored = canonical(resource);
+            switch (stored.kind()) {
+                case ARTIFACT -> actions.putIfAbsent(new Action(toArtifactOp(level),
+                        buildResourceName(stored.groupId(), stored.artifactId())), TYPE_ARTIFACT);
+                case GROUP -> actions.putIfAbsent(new Action(toGroupOp(level), normalizeGroup(stored.groupId())),
+                        TYPE_GROUP);
+                case CONTENT -> throw new IllegalArgumentException("Content is authorized through isAllowed");
+            }
+        }
+        AuthorizeResult result = authorize(currentSubject(), List.copyOf(actions.keySet()));
+        boolean allAllowed = true;
+        for (Map.Entry<Action, String> entry : actions.entrySet()) {
+            Action action = entry.getKey();
+            boolean allowed = result.decision(action.operation(), action.resourceName()) == Decision.ALLOW;
+            record(allowed, entry.getValue(), level, action.resourceName());
+            allAllowed &= allowed;
+        }
+        return allAllowed;
+    }
+
+    /**
      * Owner bypass of per-resource authorization, unless disabled by configuration.
      */
     @Override
@@ -187,6 +230,21 @@ public class GrantsAccessController extends AbstractAccessController {
                         || users.stream().anyMatch(this::isStrictOwner));
         record(allowed, TYPE_CONTENT, level, "content used by " + actions.size() + " artifact(s)");
         return allowed;
+    }
+
+    /**
+     * Evaluates the access rules for many actions in a single call, without recording the
+     * decisions: this reports what the caller may do (e.g. permissions in search results), it does
+     * not authorize an access attempt, so denials are neither audited nor counted. Resource names
+     * must already be the stored IDs (see {@link #canonical}).
+     *
+     * @return the allowed actions; none if per-resource authorization is not initialized
+     */
+    public Set<Action> allowedActions(List<Action> actions) {
+        if (authorizer == null || actions.isEmpty()) {
+            return Set.of();
+        }
+        return Set.copyOf(authorize(currentSubject(), actions).allowed());
     }
 
     private boolean decide(Subject subject, ResourceType<?> operation, String resourceType,
@@ -252,7 +310,8 @@ public class GrantsAccessController extends AbstractAccessController {
         return AuthorizationNames.group(groupId);
     }
 
-    private static Artifact toArtifactOp(AuthorizedLevel level) {
+    /** @return the access rules operation on an artifact required by {@code level} */
+    public static Artifact toArtifactOp(AuthorizedLevel level) {
         return switch (level) {
             case Read, None -> Artifact.READ;
             case Write -> Artifact.WRITE;
@@ -260,7 +319,8 @@ public class GrantsAccessController extends AbstractAccessController {
         };
     }
 
-    private static Group toGroupOp(AuthorizedLevel level) {
+    /** @return the access rules operation on a group required by {@code level} */
+    public static Group toGroupOp(AuthorizedLevel level) {
         return switch (level) {
             case Read, None -> Group.READ;
             case Write -> Group.WRITE;

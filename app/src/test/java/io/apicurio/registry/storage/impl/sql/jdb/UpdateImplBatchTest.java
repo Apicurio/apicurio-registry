@@ -82,4 +82,70 @@ class UpdateImplBatchTest {
         verify(next).setLong(1, 2L);
         verify(next, never()).setLong(1, 1L);
     }
+
+    /**
+     * A later row that skips a position would silently reuse the previous row's value, because a JDBC
+     * statement keeps it. Each malformed row shape is rejected in addBatch with a message naming the row.
+     */
+    @Test
+    void aLaterRowThatSkipsAPositionFails() {
+        UpdateImpl update = twoColumnInsert();
+        update.bind(0, 1L).bind(1, 10L).addBatch();
+        update.bind(0, 2L);
+        assertRejected(update, "Batch row 2 binds 1 parameters where the first row binds 2; the rows added before it were discarded too.");
+    }
+
+    @Test
+    void aLaterRowLongerThanTheFirstFails() {
+        UpdateImpl update = twoColumnInsert();
+        update.bind(0, 1L).bind(1, 10L).addBatch();
+        update.bind(0, 2L).bind(1, 20L).bind(2, 200L);
+        assertRejected(update, "Batch row 2 binds 3 parameters where the first row binds 2; the rows added before it were discarded too.");
+    }
+
+    @Test
+    void aFirstRowThatBindsAPositionTwiceFails() {
+        UpdateImpl update = twoColumnInsert();
+        update.bind(0, 1L).bind(0, 2L);
+        assertRejected(update, "Batch row 1 binds position 0 twice.");
+    }
+
+    @Test
+    void aRowWithAPositionOutsideItsWidthFails() {
+        UpdateImpl update = twoColumnInsert();
+        update.bind(0, 1L).bind(2, 10L);
+        assertRejected(update, "Batch row 1 binds position 2, outside 0 to 1.");
+
+        UpdateImpl negative = twoColumnInsert();
+        negative.bind(-1, 1L).bind(0, 10L);
+        assertRejected(negative, "Batch row 1 binds position -1, outside 0 to 1.");
+    }
+
+    @Test
+    void aRowThatBindsAPositionTwiceFailsAndTheNextBatchStartsClean() throws Exception {
+        Connection connection = mock(Connection.class);
+        PreparedStatement statement = mock(PreparedStatement.class);
+        when(connection.prepareStatement(anyString())).thenReturn(statement);
+        UpdateImpl update = new UpdateImpl(connection, "INSERT INTO t (a, b) VALUES (?, ?)");
+        update.bind(0, 1L).bind(1, 10L).addBatch();
+        update.bind(0, 2L).bind(0, 3L);
+        assertRejected(update, "Batch row 2 binds position 0 twice; the rows added before it were discarded too.");
+
+        update.bind(0, 4L).bind(1, 40L).addBatch();
+        update.executeBatch();
+        verify(statement, times(1)).addBatch();
+        verify(statement).setLong(1, 4L);
+        verify(statement).setLong(2, 40L);
+        verify(statement, never()).setLong(1, 1L);
+        verify(statement, never()).setLong(2, 10L);
+    }
+
+    private static UpdateImpl twoColumnInsert() {
+        return new UpdateImpl(mock(Connection.class), "INSERT INTO t (a, b) VALUES (?, ?)");
+    }
+
+    private static void assertRejected(UpdateImpl update, String message) {
+        IllegalStateException thrown = Assertions.assertThrows(IllegalStateException.class, update::addBatch);
+        Assertions.assertEquals(message, thrown.getMessage());
+    }
 }

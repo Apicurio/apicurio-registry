@@ -7,7 +7,9 @@ public interface Update extends Sql<Update> {
     public void executeNoUpdate();
 
     /**
-     * Adds the parameters bound so far as one row of a batch and clears them for the next row.
+     * Adds the parameters bound so far as one row of a batch and clears them for the next row. A row must
+     * bind positions 0 to n-1 exactly once each, with the same n as the first row; otherwise this throws
+     * {@link IllegalStateException} and discards every row added so far.
      */
     public Update addBatch();
 

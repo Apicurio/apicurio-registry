@@ -25,6 +25,11 @@ public class SqlParam {
         this.type = type;
     }
 
+    /** The zero-based position this parameter binds. */
+    int getPosition() {
+        return position;
+    }
+
     /**
      * Binds this SQL parameter to the given statement.
      * 

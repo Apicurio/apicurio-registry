@@ -34,8 +34,8 @@ public class RestMetricsConfig2Test extends AbstractRestMetricsTest {
 
         // NOTE: This relies on a specific tag ordering. If this starts to fail, figure out something better.
 
-        lineDoesMatch(".*path=\"\\(unspecified\\)\",status_code_group=\"1xx\".*0\\.0");
-        lineDoesNotMatch(".*method=\"(unspecified)\",.*path=\"\\(unspecified\\)\",status_code_group=\"1xx\".*0\\.0");
+        lineDoesMatch(".*path=\"other\",status_code_group=\"1xx\".*0\\.0");
+        lineDoesNotMatch(".*method=\"GET\",.*path=\"other\",status_code_group=\"1xx\".*0\\.0");
 
         lineDoesMatch(".*path=\"/apis/registry/v3/groups\",status_code_group=\"2xx\".*1\\.0");
         lineDoesNotMatch(".*method=\"GET\",path=\"/apis/registry/v3/groups\",status_code_group=\"2xx\".*1\\.0");

@@ -41,6 +41,18 @@ public final class Priorities {
     public static final class RequestResponseFilters {
 
         /**
+         * Priority for {@link io.apicurio.registry.metrics.RestMetricsResponseFilter}. Runs first, so the
+         * measured latency includes the work of every other filter.
+         */
+        public static final int METRICS_TIMER = 100;
+
+        /**
+         * Priority for {@link io.apicurio.registry.metrics.health.readiness.ResponseTimeoutReadinessCheck}.
+         * Runs right after the metrics timer, so it measures the same span of the request.
+         */
+        public static final int METRICS_READINESS = METRICS_TIMER + 1;
+
+        /**
          * Priority for {@link io.apicurio.registry.logging.audit.HttpRequestsAuditFilter}.
          */
         public static final int AUDIT = jakarta.ws.rs.Priorities.AUTHENTICATION - 100; // 900

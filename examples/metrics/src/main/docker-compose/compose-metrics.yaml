@@ -1,0 +1,71 @@
+services:
+
+  postgres:
+    image: postgres
+    environment:
+      POSTGRES_USER: apicurio-registry
+      POSTGRES_PASSWORD: password
+
+  app:
+    depends_on:
+      - postgres
+    image: quay.io/apicurio/apicurio-registry:latest-release
+    ports:
+      - 8080:8080
+    environment:
+      APICURIO_STORAGE_KIND: sql
+      APICURIO_STORAGE_SQL_KIND: postgresql
+      APICURIO_DATASOURCE_URL: jdbc:postgresql://postgres/apicurio-registry
+      APICURIO_DATASOURCE_USERNAME: apicurio-registry
+      APICURIO_DATASOURCE_PASSWORD: password
+
+  ui:
+    depends_on:
+      - app
+    image: quay.io/apicurio/apicurio-registry-ui:latest-release
+    ports:
+      - 8888:8080
+    environment:
+      REGISTRY_API_URL: "http://localhost:8080/apis/registry/v3"
+
+  prometheus:
+    depends_on:
+      - app
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    command:
+      - --config.file=/etc/config/prometheus.yaml
+    volumes:
+      - ./config:/etc/config:ro
+
+  grafana:
+    image: grafana/grafana
+    depends_on:
+      - prometheus
+    ports:
+      - 3000:3000
+    volumes:
+      - ./config:/etc/config:ro
+    environment:
+      GF_PATHS_CONFIG: /etc/config/grafana.ini
+      GF_PATHS_PROVISIONING: /etc/config/provisioning
+
+  alertmanager:
+    image: prom/alertmanager
+    command: |
+      --config.file=/etc/config/alertmanager.yml
+    depends_on:
+      - prometheus
+    ports:
+      - 9093:9093
+    volumes:
+      - ./config:/etc/config:ro
+
+  mailhog:
+    image: mailhog/mailhog
+    depends_on:
+      - alertmanager
+    ports:
+      - 1025:1025
+      - 8025:8025

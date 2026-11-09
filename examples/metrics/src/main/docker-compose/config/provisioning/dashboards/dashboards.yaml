@@ -1,0 +1,29 @@
+apiVersion: 1
+
+providers:
+  - name: Debug
+    folder: Debug
+    type: file
+    options:
+      path:
+        /etc/config/provisioning/dashboards/debug.json
+
+  - name: "Apicurio Registry :: Executive & Health Dashboard"
+    folder: Apicurio Registry
+    type: file
+    options:
+      path: "/etc/config/provisioning/dashboards/Apicurio-Registry--Executive-&-Health-Dashboard.json"
+
+  - name: Apicurio Registry prev metrics
+    folder: Apicurio Registry old
+    type: file
+    options:
+      path:
+        /etc/config/provisioning/dashboards/apicurio-registry.json
+
+  - name: Apicurio Registry pods metrics
+    folder: Apicurio Registry old
+    type: file
+    options:
+      path:
+        /etc/config/provisioning/dashboards/grafana-dashboard-apicurio-registry-pods-metrics.json

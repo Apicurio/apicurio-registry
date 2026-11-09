@@ -20,7 +20,7 @@ public interface MetricsConstants {
     String REST_REQUESTS_TAG_METHOD = "method";
     String REST_REQUESTS_TAG_STATUS_CODE_GROUP = "status.code.group";
 
-    String VALUE_UNSPECIFIED = "(unspecified)";
+    String VALUE_OTHER = "other";
 
     // Storage
 

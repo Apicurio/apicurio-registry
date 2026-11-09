@@ -40,12 +40,12 @@ public class RestMetricsConfig1Test extends AbstractRestMetricsTest {
 
         // NOTE: This relies on a specific tag ordering. If this starts to fail, figure out something better.
 
-        lineDoesMatch(".*method=\"\\(unspecified\\)\",path=\"\\(unspecified\\)\",status_code_group=\"1xx\".*0\\.0");
+        lineDoesMatch(".*method=\"GET\",path=\"other\",status_code_group=\"1xx\".*0\\.0");
         lineDoesMatch(".*method=\"GET\",path=\"/apis/registry/v3/groups\",status_code_group=\"2xx\".*1\\.0");
         lineDoesNotMatch(".*method=\"GET\",path=\"/apis/ccompat/v7/subjects\",status_code_group=\"2xx\".*1\\.0");
-        lineDoesMatch(".*method=\"\\(unspecified\\)\",path=\"\\(unspecified\\)\",status_code_group=\"3xx\".*0\\.0");
-        lineDoesMatch(".*method=\"\\(unspecified\\)\",path=\"\\(unspecified\\)\",status_code_group=\"401\".*0\\.0");
-        lineDoesMatch(".*method=\"\\(unspecified\\)\",path=\"\\(unspecified\\)\",status_code_group=\"4xx\".*0\\.0");
-        lineDoesMatch(".*method=\"\\(unspecified\\)\",path=\"\\(unspecified\\)\",status_code_group=\"5xx\".*0\\.0");
+        lineDoesMatch(".*method=\"GET\",path=\"other\",status_code_group=\"3xx\".*0\\.0");
+        lineDoesMatch(".*method=\"GET\",path=\"other\",status_code_group=\"401\".*0\\.0");
+        lineDoesMatch(".*method=\"GET\",path=\"other\",status_code_group=\"4xx\".*0\\.0");
+        lineDoesMatch(".*method=\"GET\",path=\"other\",status_code_group=\"5xx\".*0\\.0");
     }
 }

@@ -1,0 +1,275 @@
+# Recording rules to implement [Multiwindow, Multi-Burn-Rate Alerts](https://sre.google/workbook/alerting-on-slos):
+#
+#  - 5m + 1h widow
+#  - 30m + 6h window
+#  - 6h + 3d window
+#
+# NOTE: In this example, we're using the Prometheus "up" metric to calculate availability. In a production deployment,
+#       you might want to use a service proxy to record availability with each request (i.e. HTTP 503 code).
+#
+# # Computing error budgets:
+#
+# ## Variables:
+#
+#  - Burn rate is how fast, relative to the SLO, the service consumes the error budget.
+#    Burn rate of 1 means the service is consuming its error budget at the rate defined by the SLO,
+#    i.e. it will just meet the SLO if the current rate continues.
+#
+# ## Formulas:
+#
+# BurnRate = ErrorRate / (1 - SLO) <==> ErrorRate = BurnRate * (1 - SLO)
+#
+# ErrorBudget = BurnRate * (EvaluatedWindow / SLOWindow) <==> BurnRate = ErrorBudget * SLOWindow / EvaluatedWindow
+#
+# ExhaustWindow = SLOWindow / BurnRate
+#
+# ## Example:
+#
+# We have an SLO of 99% over a 30-day window, and want to alert when we burn >2% of our error budget in <1 hour:
+#
+# BurnRate = 0.02 * (30d / 1h) = 14.4
+#
+# ExhaustWindow = 30d / 14.4 = 2.08 days
+#
+# Which means that if the current error rate continues, we will exhaust our error budget in ~2 days.
+#
+# Our alert expression would then be:
+#
+# apicurio_registry:http_error_rate_including_availability_all_1h > 14.4 * (1 - 0.99)
+#
+groups:
+
+  - name: apicurio-registry
+    # Development value, adjust as needed:
+    interval: 9s
+    rules:
+
+      # AVAILABILITY SLO 99%
+
+      # Error rate for 5m window - all operations.
+
+      - record: apicurio_registry:availability_5m
+        expr: |
+          avg_over_time(
+            up{job="apicurio-registry"}[5m]
+          )  
+
+      - record: apicurio_registry:http_error_rate_all_5m
+        expr: |
+          sum(rate(rest_requests_seconds_count{job="apicurio-registry", status_code_group="5xx"}[5m]))
+          /
+          sum(rate(rest_requests_seconds_count{job="apicurio-registry"}[5m]))
+
+      - record: apicurio_registry:http_error_rate_including_availability_all_5m
+        expr: |
+          (1 - apicurio_registry:availability_5m)
+          +
+          (apicurio_registry:availability_5m * (apicurio_registry:http_error_rate_all_5m or vector(0)))
+
+      # Error rate for 30m window - all operations.
+
+      - record: apicurio_registry:availability_30m
+        expr: |
+          avg_over_time(
+            up{job="apicurio-registry"}[30m]
+          )  
+
+      - record: apicurio_registry:http_error_rate_all_30m
+        expr: |
+          sum(rate(rest_requests_seconds_count{job="apicurio-registry", status_code_group="5xx"}[30m]))
+          /
+          sum(rate(rest_requests_seconds_count{job="apicurio-registry"}[30m]))
+
+      - record: apicurio_registry:http_error_rate_including_availability_all_30m
+        expr: |
+          (1 - apicurio_registry:availability_30m)
+          +
+          (apicurio_registry:availability_30m * (apicurio_registry:http_error_rate_all_30m or vector(0)))
+
+      # Error rate for 1h window - all operations.
+
+      - record: apicurio_registry:availability_1h
+        expr: |
+          avg_over_time(
+            up{job="apicurio-registry"}[1h]
+          )  
+
+      - record: apicurio_registry:http_error_rate_all_1h
+        expr: |
+          sum(rate(rest_requests_seconds_count{job="apicurio-registry", status_code_group="5xx"}[1h]))
+          /
+          sum(rate(rest_requests_seconds_count{job="apicurio-registry"}[1h]))
+
+      - record: apicurio_registry:http_error_rate_including_availability_all_1h
+        expr: |
+          (1 - apicurio_registry:availability_1h)
+          +
+          (apicurio_registry:availability_1h * (apicurio_registry:http_error_rate_all_1h or vector(0)))
+
+      # Error rate for 6h window - all operations.
+
+      - record: apicurio_registry:availability_6h
+        expr: |
+          avg_over_time(
+            up{job="apicurio-registry"}[6h]
+          )  
+
+      - record: apicurio_registry:http_error_rate_all_6h
+        expr: |
+          sum(rate(rest_requests_seconds_count{job="apicurio-registry", status_code_group="5xx"}[6h]))
+          /
+          sum(rate(rest_requests_seconds_count{job="apicurio-registry"}[6h]))
+
+      - record: apicurio_registry:http_error_rate_including_availability_all_6h
+        expr: |
+          (1 - apicurio_registry:availability_6h)
+          +
+          (apicurio_registry:availability_6h * (apicurio_registry:http_error_rate_all_6h or vector(0)))
+
+      # Error rate for 3d window - all operations.
+
+      - record: apicurio_registry:availability_3d
+        expr: |
+          avg_over_time(
+            up{job="apicurio-registry"}[3d]
+          )  
+
+      - record: apicurio_registry:http_error_rate_all_3d
+        expr: |
+          sum(rate(rest_requests_seconds_count{job="apicurio-registry", status_code_group="5xx"}[3d]))
+          /
+          sum(rate(rest_requests_seconds_count{job="apicurio-registry"}[3d]))
+
+      - record: apicurio_registry:http_error_rate_including_availability_all_3d
+        expr: |
+          (1 - apicurio_registry:availability_3d)
+          +
+          (apicurio_registry:availability_3d * (apicurio_registry:http_error_rate_all_3d or vector(0)))
+
+      # Alerts
+
+      - alert: ApicurioRegistryAll1hHighErrorBudgetBurn
+        annotations:
+          message: "High 1h error budget burn for Apicurio Registry. Budget will be exhausted in less than 2.08 days."
+        expr: |
+          sum(apicurio_registry:http_error_rate_including_availability_all_5m) > (14.4 * (1 - 0.99))
+          and
+          sum(apicurio_registry:http_error_rate_including_availability_all_1h) > (14.4 * (1 - 0.99))
+        for: 5m
+        labels:
+          service: apicurio-registry
+          severity: critical
+
+      - alert: ApicurioRegistryAll6hHighErrorBudgetBurn
+        annotations:
+          message: "High 6h error budget burn for Apicurio Registry. Budget will be exhausted in less than 5 days."
+        expr: |
+          sum(apicurio_registry:http_error_rate_including_availability_all_30m) > (6 * (1 - 0.99))
+          and
+          sum(apicurio_registry:http_error_rate_including_availability_all_6h) > (6 * (1 - 0.99))
+        for: 5m
+        labels:
+          service: apicurio-registry
+          severity: critical
+
+      - alert: ApicurioRegistryAll3dHighErrorBudgetBurn
+        annotations:
+          message: "High 3d error budget burn for Apicurio Registry. Budget will be exhausted in less than 30 days."
+        expr: |
+          sum(apicurio_registry:http_error_rate_including_availability_all_6h) > (1 * (1 - 0.99))
+          and
+          sum(apicurio_registry:http_error_rate_including_availability_all_3d) > (1 * (1 - 0.99))
+        for: 5m
+        labels:
+          service: apicurio-registry
+          severity: high
+
+      # LATENCY SLO 99% <=1.0s
+
+      # Slow requests rate (>1.0s) for 5m window - all non-error operations.
+
+      - record: apicurio_registry:http_latency_error_rate_all_5m
+        expr: |
+          1 - (
+            sum(rate(rest_requests_seconds_bucket{job="apicurio-registry", status_code_group!="5xx", le="1.0"}[5m]))
+            /
+            sum(rate(rest_requests_seconds_count{job="apicurio-registry"}[5m]))
+          )
+
+      # Slow requests rate (>1.0s) for 30m window - all non-error operations.
+
+      - record: apicurio_registry:http_latency_error_rate_all_30m
+        expr: |
+          1 - (
+            sum(rate(rest_requests_seconds_bucket{job="apicurio-registry", status_code_group!="5xx", le="1.0"}[30m]))
+            /
+            sum(rate(rest_requests_seconds_count{job="apicurio-registry"}[30m]))
+          )
+
+      # Slow requests rate (>1.0s) for 1h window - all non-error operations.
+
+      - record: apicurio_registry:http_latency_error_rate_all_1h
+        expr: |
+          1 - (
+            sum(rate(rest_requests_seconds_bucket{job="apicurio-registry", status_code_group!="5xx", le="1.0"}[1h]))
+            /
+            sum(rate(rest_requests_seconds_count{job="apicurio-registry"}[1h]))
+          )
+
+      # Slow requests rate (>1.0s) for 6h window - all non-error operations.
+
+      - record: apicurio_registry:http_latency_error_rate_all_6h
+        expr: |
+          1 - (
+            sum(rate(rest_requests_seconds_bucket{job="apicurio-registry", status_code_group!="5xx", le="1.0"}[6h]))
+            /
+            sum(rate(rest_requests_seconds_count{job="apicurio-registry"}[6h]))
+          )
+
+      # Slow requests rate (>1.0s) for 3d window - all non-error operations.
+
+      - record: apicurio_registry:http_latency_error_rate_all_3d
+        expr: |
+          1 - (
+            sum(rate(rest_requests_seconds_bucket{job="apicurio-registry", status_code_group!="5xx", le="1.0"}[3d]))
+            /
+            sum(rate(rest_requests_seconds_count{job="apicurio-registry"}[3d]))
+          )
+
+      # Alerts
+
+      - alert: ApicurioRegistryAll1hHighLatencyBudgetBurn
+        annotations:
+          message: "High 1h latency budget burn for Apicurio Registry. Budget will be exhausted in less than 2.08 days."
+        expr: |
+          sum(apicurio_registry:http_latency_error_rate_all_5m) > (14.4 * (1 - 0.99))
+          and
+          sum(apicurio_registry:http_latency_error_rate_all_1h) > (14.4 * (1 - 0.99))
+        for: 5m
+        labels:
+          service: apicurio-registry
+          severity: critical
+
+      - alert: ApicurioRegistryAll6hHighLatencyBudgetBurn
+        annotations:
+          message: "High 6h latency budget burn for Apicurio Registry. Budget will be exhausted in less than 5 days."
+        expr: |
+          sum(apicurio_registry:http_latency_error_rate_all_30m) > (6 * (1 - 0.99))
+          and
+          sum(apicurio_registry:http_latency_error_rate_all_6h) > (6 * (1 - 0.99))
+        for: 5m
+        labels:
+          service: apicurio-registry
+          severity: critical
+
+      - alert: ApicurioRegistryAll3dHighLatencyBudgetBurn
+        annotations:
+          message: "High 3d latency budget burn for Apicurio Registry. Budget will be exhausted in less than 30 days."
+        expr: |
+          sum(apicurio_registry:http_latency_error_rate_all_6h) > (1 * (1 - 0.99))
+          and
+          sum(apicurio_registry:http_latency_error_rate_all_3d) > (1 * (1 - 0.99))
+        for: 5m
+        labels:
+          service: apicurio-registry
+          severity: high

@@ -1,0 +1,16 @@
+scrape_configs:
+  - job_name: apicurio-registry
+    scrape_interval: 3s # Development value, adjust as needed.
+    static_configs:
+      - targets:
+          - app:8080
+
+rule_files:
+  - /etc/config/prometheus-alerts.yaml
+
+alerting:
+  alertmanagers:
+    - scheme: http
+      static_configs:
+        - targets:
+            - alertmanager:9093

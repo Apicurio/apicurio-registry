@@ -1040,7 +1040,7 @@ The following {registry} configuration options are available for each component 
 |`3.1.1`
 |Add the unsubstituted path tag/label on REST API request metrics,
         e.g. `/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}`. You might disable this tag to reduce metrics cardinality. When an unsubstituted REST API resource path could not be determined,
-        the tag value will be `(unspecified)`.
+        the tag value will be `other`.
 |`quarkus.otel.enabled`
 |`boolean`
 |`true`

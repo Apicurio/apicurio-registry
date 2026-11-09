@@ -13,6 +13,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ContainerResponseFilter;
+import jakarta.ws.rs.container.PreMatching;
 import jakarta.ws.rs.ext.Provider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.health.HealthCheck;
@@ -26,11 +27,12 @@ import java.time.format.DateTimeParseException;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_HEALTH;
 
-@ApplicationScoped
-@Readiness
-@Default
 @Provider
-@Priority(Priorities.RequestResponseFilters.APPLICATION)
+@PreMatching
+@Priority(Priorities.RequestResponseFilters.METRICS_READINESS)
+@Readiness
+@ApplicationScoped
+@Default
 public class ResponseTimeoutReadinessCheck extends AbstractErrorCounterHealthCheck
         implements HealthCheck, ContainerRequestFilter, ContainerResponseFilter {
 

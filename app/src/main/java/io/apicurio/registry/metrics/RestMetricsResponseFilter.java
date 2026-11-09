@@ -18,7 +18,6 @@ import jakarta.ws.rs.container.PreMatching;
 import jakarta.ws.rs.container.ResourceInfo;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.ext.Provider;
-import org.apache.commons.lang3.stream.Streams;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
 
@@ -27,7 +26,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.stream.IntStream;
 
 import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_OBSERVABILITY;
 import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS;
@@ -35,18 +34,21 @@ import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_DESCRI
 import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_METHOD;
 import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_PATH;
 import static io.apicurio.registry.metrics.MetricsConstants.REST_REQUESTS_TAG_STATUS_CODE_GROUP;
-import static io.apicurio.registry.metrics.MetricsConstants.VALUE_UNSPECIFIED;
+import static io.apicurio.registry.metrics.MetricsConstants.VALUE_OTHER;
 import static java.lang.Boolean.TRUE;
+import static java.lang.Integer.parseInt;
 import static java.lang.String.format;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Stream.concat;
+import static java.util.stream.Stream.of;
 
 /**
  * Filters REST API requests and responses to report metrics about them.
  */
 @Provider
 @PreMatching
+@Priority(Priorities.RequestResponseFilters.METRICS_TIMER)
 @ApplicationScoped
-@Priority(Priorities.RequestResponseFilters.APPLICATION)
 public class RestMetricsResponseFilter implements ContainerRequestFilter, ContainerResponseFilter {
 
     private static final String TIMER_SAMPLE_CONTEXT_PROPERTY_NAME = "request-timer-sample";
@@ -79,7 +81,7 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
                     e.g. `/apis/registry/v3/groups/{groupId}/artifacts/{artifactId}`. \
                     You might disable this tag to reduce metrics cardinality. \
                     When an unsubstituted REST API resource path could not be determined,
-                    the tag value will be `(unspecified)`.
+                    the tag value will be `other`.
             """, category = CATEGORY_OBSERVABILITY, availableSince = "3.1.1")
     @ConfigProperty(name = "apicurio.metrics.rest.path-tag-enabled", defaultValue = "true")
     boolean pathTagEnabled;
@@ -92,7 +94,7 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
                     Each request will be counted only once, i.e. either as the specific status code or in the general category. \
             """, category = CATEGORY_OBSERVABILITY, availableSince = "3.1.1")
     @ConfigProperty(name = "apicurio.metrics.rest.explicit-status-codes-list", defaultValue = "401")
-    List<String> explicitStatusCodesRaw;
+    List<String> explicitStatusCodes;
 
     @Context
     ResourceInfo resourceInfo;
@@ -105,33 +107,47 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
 
     private Pattern pathFilterPattern;
 
-    private Set<Integer> explicitStatusCodes;
+    private Set<Integer> explicitStatusCodesInteger;
+
+    private final Set<String> defaultMethods = Set.of("DELETE", "GET", "PATCH", "POST", "PUT");
 
     @PostConstruct
     void init() {
         if (enabled) {
 
             pathFilterPattern = Pattern.compile(pathFilterPatternRaw);
-            explicitStatusCodes = explicitStatusCodesRaw.stream().map(Integer::valueOf).collect(Collectors.toSet());
+
+            if (!explicitStatusCodes.stream().allMatch(x -> {
+                try {
+                    var c = parseInt(x);
+                    return c >= 100 && c < 600;
+                } catch (Exception ex) {
+                    return false;
+                }
+            })) {
+                throw new IllegalArgumentException("Values of configuration property 'apicurio.metrics.rest.explicit-status-codes-list' must be integers >= 100 and < 600.");
+            }
+            explicitStatusCodesInteger = explicitStatusCodes.stream().map(Integer::valueOf).collect(Collectors.toSet());
 
             // See https://github.com/Apicurio/apicurio-registry/issues/6296
-            Stream.concat(
-                            Streams.of("1xx", "2xx", "3xx", "4xx", "5xx"),
-                            explicitStatusCodes.stream().map(x -> Integer.toString(x))
-                    )
+            concat(
+                    IntStream.rangeClosed(1, 5).mapToObj(i -> i + "xx"),
+                    explicitStatusCodes.stream())
                     .forEach(codeGroup -> {
-                        // NOTE: We have to include the empty tag values,
-                        // otherwise Micrometer will not create timers for the actual requests.
-                        var b = Timer.builder(REST_REQUESTS)
-                                .description(REST_REQUESTS_DESCRIPTION);
-                        if (methodTagEnabled) {
-                            b.tag(REST_REQUESTS_TAG_METHOD, VALUE_UNSPECIFIED);
-                        }
-                        if (pathTagEnabled) {
-                            b.tag(REST_REQUESTS_TAG_PATH, VALUE_UNSPECIFIED);
-                        }
-                        b.tag(REST_REQUESTS_TAG_STATUS_CODE_GROUP, codeGroup)
-                                .register(registry);
+                        concat(defaultMethods.stream(), of(VALUE_OTHER)).forEach(method -> {
+                            // NOTE: We have to include the empty tag values,
+                            // otherwise Micrometer will not create timers for the actual requests.
+                            var b = Timer.builder(REST_REQUESTS)
+                                    .description(REST_REQUESTS_DESCRIPTION);
+                            if (methodTagEnabled) {
+                                b.tag(REST_REQUESTS_TAG_METHOD, method);
+                            }
+                            if (pathTagEnabled) {
+                                b.tag(REST_REQUESTS_TAG_PATH, VALUE_OTHER);
+                            }
+                            b.tag(REST_REQUESTS_TAG_STATUS_CODE_GROUP, codeGroup)
+                                    .register(registry);
+                        });
                     });
         } else {
             log.debug("REST API metrics collection is disabled.");
@@ -155,7 +171,7 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
             var b = Timer.builder(REST_REQUESTS)
                     .description(REST_REQUESTS_DESCRIPTION);
             if (methodTagEnabled) {
-                b.tag(REST_REQUESTS_TAG_METHOD, requestContext.getMethod());
+                b.tag(REST_REQUESTS_TAG_METHOD, getMethod(requestContext.getMethod()));
             }
             if (pathTagEnabled) {
                 b.tag(REST_REQUESTS_TAG_PATH, getPath());
@@ -177,12 +193,16 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
         }
     }
 
+    private String getMethod(String rawMethod) {
+        return defaultMethods.contains(rawMethod) ? rawMethod : VALUE_OTHER;
+    }
+
     private String getStatusCodeGroup(int statusCode) {
-        if (explicitStatusCodes.contains(statusCode)) {
+        if (explicitStatusCodesInteger.contains(statusCode)) {
             return Integer.toString(statusCode);
         }
         if (statusCode < 100 || statusCode >= 600) {
-            return VALUE_UNSPECIFIED;
+            return VALUE_OTHER;
         }
         return format("%dxx", statusCode / 100);
     }
@@ -199,7 +219,7 @@ public class RestMetricsResponseFilter implements ContainerRequestFilter, Contai
                 .map(p -> p.startsWith("/") ? p : "/" + p);
 
         return path.map(p -> p + methodPath.orElse(""))
-                .orElse(methodPath.orElse(VALUE_UNSPECIFIED));
+                .orElse(methodPath.orElse(VALUE_OTHER));
     }
 
     /**

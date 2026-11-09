@@ -98,7 +98,7 @@ The rule is then executed by the executor for its type
 | Other state changes, metadata, labels | No |
 | Import | No |
 | Confluent-compatible registration | Yes (`CREATE` for a new subject, otherwise `UPDATE`) |
-| GitOps / KubernetesOps data load | Yes, in [`PollingDataValidator`](../app/src/main/java/io/apicurio/registry/storage/impl/polling/PollingDataValidator.java); failures are reported as load errors |
+| GitOps / KubernetesOps data load | Yes, with different version selection (see [storage variants](#behaviour-across-storage-variants)) |
 
 ### Compatibility
 
@@ -146,14 +146,14 @@ and [`CoreRegistryExceptionMapperService`](../app/src/main/java/io/apicurio/regi
 
 ### Behaviour across storage variants
 
-The engine reads rules and contents through the storage API only, so the semantics are the same on
-every variant.
+SQL and KafkaSQL apply rules on API writes with the same queries. GitOps and KubernetesOps have no
+API writes; they apply rules when they load data, with different version selection.
 
 | Variant | Behaviour |
 |---|---|
 | SQL | Rules and content IDs read in the same storage; the `DISABLED` filter is in `selectArtifactContentIds` |
 | KafkaSQL | Same queries against the local SQL view of the journal |
-| GitOps, KubernetesOps | Read-only through the API, so rules cannot be managed there; rules in the source data are applied when data is loaded (`PollingDataValidator`) |
+| GitOps, KubernetesOps | Read-only through the API, so rules cannot be managed there. When data is loaded, [`PollingDataValidator`](../app/src/main/java/io/apicurio/registry/storage/impl/polling/PollingDataValidator.java) checks each artifact's versions against **all preceding versions in the source, whatever their state** (a `DISABLED` version still counts under a transitive rule), and by default checks **only the last version**; the `validatedUpTo` field of the source file sets where checking starts. Failures are reported as load errors |
 
 ## Configuration
 
@@ -187,9 +187,11 @@ every variant.
 3. **No effective-rules view:** the API returns the rules of one scope; clients compute the
    effective set themselves.
 4. **Imported data is not checked**, and changing a rule never revalidates stored versions.
-5. **Types without a compatibility checker** accept any change under every compatibility level,
+5. **GitOps and KubernetesOps select versions differently** from API writes: all preceding versions
+   regardless of state, and by default only the last version is checked.
+6. **Types without a compatibility checker** accept any change under every compatibility level,
    without telling the client.
-6. **The OpenAPI description still documents 409** in some shared examples, although 400 is the
+7. **The OpenAPI description still documents 409** in some shared examples, although 400 is the
    default since 3.3.0.
 
 ## Alternatives

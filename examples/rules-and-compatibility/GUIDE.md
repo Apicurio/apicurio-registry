@@ -29,7 +29,8 @@ You need:
 - `curl` and `jq`;
 - a shell: bash or zsh;
 - a browser, for the UI;
-- for step 13 only: Java 17 or later, and the registry built from this checkout;
+- for step 13 only: JDK 21 or later and the registry built from this checkout, as described in
+  [DEVELOPING.md](../../DEVELOPING.md) (the client itself runs on Java 17);
 - free ports 8081 (Registry API) and 8888 (Registry UI). If they are in use, see
   [Using other ports](#using-other-ports).
 
@@ -73,7 +74,9 @@ source ./demo-env.sh
 ```
 
 `call` prints a response and `status` prints only its HTTP status. Paths are relative to
-`/apis/registry/v3`. The next steps use two more shell functions, to send a schema file:
+`/apis/registry/v3`. `demo.sh` has already made every change below; the commands in the steps
+use `dryRun=true` (step 8) or a separate artifact, so they show the same results however often you
+run them. The next steps use two more shell functions, to send a schema file:
 
 ```bash
 version() { jq -n --rawfile c "schemas/$1" '{content: {content: $c, contentType: "application/json"}}'; }
@@ -120,11 +123,15 @@ to get it.
 
 ## Step 5: BACKWARD: new readers must read old data
 
-`orders/order-placed` has one version with an `orderId`, and an artifact rule
-`COMPATIBILITY=BACKWARD`. Version 2 adds an `amount` with no default:
+`demo.sh` created `orders/order-placed` with one version, holding an `orderId`, and an artifact rule
+`COMPATIBILITY=BACKWARD`, then tried a version 2 that adds an `amount` with no default. To try it
+yourself, create the same starting point as `orders/order-placed-try` (a 409 just means it exists
+already):
 
 ```bash
-call POST /groups/orders/artifacts/order-placed/versions "$(version order-placed-v2-no-default.avsc)" \
+status POST /groups/orders/artifacts "$(artifact order-placed-try AVRO order-placed-v1.avsc)"
+status POST /groups/orders/artifacts/order-placed-try/rules '{"ruleType": "COMPATIBILITY", "config": "BACKWARD"}'
+call POST "/groups/orders/artifacts/order-placed-try/versions?dryRun=true" "$(version order-placed-v2-no-default.avsc)" \
   | jq -c '.ruleViolation'
 ```
 
@@ -136,7 +143,7 @@ A consumer using version 2 could not read an event written with version 1: it ha
 the new schema gives no default. With a default, the same change is accepted:
 
 ```bash
-status POST /groups/orders/artifacts/order-placed/versions "$(version order-placed-v2.avsc)"   # 200
+status POST "/groups/orders/artifacts/order-placed-try/versions?dryRun=true" "$(version order-placed-v2.avsc)"   # 200
 ```
 
 BACKWARD is what you want when consumers upgrade first: Kafka consumers on the new schema keep
@@ -153,8 +160,8 @@ without a default is now **accepted** (old consumers ignore the field), but remo
 consumers need is rejected:
 
 ```bash
-status POST /groups/orders/artifacts/order-cancelled/versions "$(version order-cancelled-add-field.avsc)"     # 200 (already done by demo.sh)
-status POST /groups/orders/artifacts/order-cancelled/versions "$(version order-cancelled-remove-field.avsc)"  # 400
+status POST "/groups/orders/artifacts/order-cancelled/versions?dryRun=true" "$(version order-cancelled-add-field.avsc)"     # 200
+status POST "/groups/orders/artifacts/order-cancelled/versions?dryRun=true" "$(version order-cancelled-remove-field.avsc)"  # 400
 ```
 
 FORWARD suits producers that upgrade first. `FULL` requires both directions. Each level has a
@@ -223,8 +230,8 @@ Which versions count? Every version that is **not `DISABLED`**. A `DEPRECATED` v
 deprecating version 1 does not let version 3 in. Disabling it does:
 
 ```bash
-call PUT /groups/orders/artifacts/customer/versions/1/state '{"state": "DISABLED"}'
-status POST /groups/orders/artifacts/customer/versions "$(version customer-v3.avsc)"   # 200 (already done by demo.sh)
+call GET /groups/orders/artifacts/customer/versions/1 | jq -r .state                                        # DISABLED (set by demo.sh)
+status POST "/groups/orders/artifacts/customer/versions?dryRun=true" "$(version customer-v3.avsc)"         # 200
 ```
 
 **In the UI:** open **Explore** > `orders` > `customer`. Version 1 is marked *Disabled*.

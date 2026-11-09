@@ -46,7 +46,7 @@ Rules are applied only when content is added to {registry}. This includes the fo
 * Publishing a draft version, that is, changing its state from `DRAFT`
 * Checking a change with `dryRun=true`, which applies the rules without saving the content
 
-Rules are not applied when a draft version is created or its content is edited, unless `apicurio.rest.draft.production-mode.enabled` is `true`. Rules are not applied to imported data, and changing a rule does not check the versions that are already stored.
+Rules are not applied when a draft version is created, unless `apicurio.rest.draft.production-mode.enabled` is `true`, and are never applied when the content of a draft version is edited; they are applied when the draft is published. Rules are not applied to imported data, and changing a rule does not check the versions that are already stored.
 
 If a rule is violated, {registry} returns HTTP error `400`, and does not store the content. The response body includes `ruleViolation.ruleType`, the violated rule, and `ruleViolation.causes`, a list of causes, each with a `description` and a `context` that shows what went wrong and where. To return HTTP error `409` instead, as before version 3.3.0, set `apicurio.rest.legacy-error-codes.enabled` to `true`.
 

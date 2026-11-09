@@ -29,6 +29,14 @@ This example application demonstrates the basics of using the registry in a very
 publish/subscribe application using Apache Avro as the schema technology used to serialize
 and deserialize message payloads.
 
+## Rules and Compatibility Example
+This example runs Apicurio Registry and its web console with Docker Compose and shows its content
+rules: validity, BACKWARD and FORWARD compatibility, which rule wins when rules are set globally, per
+group and per artifact, dry runs, transitive checks, drafts and integrity rules for references. A
+small Java client validates data against registered schemas with the client-side validation library.
+Its [step-by-step guide](rules-and-compatibility/GUIDE.md) walks through each rule in the REST API
+and the UI.
+
 ## Per-resource Authorization Example
 This example runs Apicurio Registry, its web console and Keycloak with Docker Compose, with
 per-resource authorization: an access rules file decides which groups and artifacts each user can

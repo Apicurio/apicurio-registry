@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.apicurio.registry.storage.impl.sql.RegistryContentUtils.normalizeGroupId;
-import static io.apicurio.registry.utils.StringUtil.asLowerCase;
 import static io.apicurio.registry.storage.impl.sql.StructuredContentIndexUtils.elementValue;
 
 /**
@@ -395,7 +394,7 @@ public class SqlSearchRepository {
                     "Structure filter value must not be blank. "
                             + STRUCTURE_FILTER_FORMAT_HELP);
         }
-        String[] structureParts = asLowerCase(rawStructureValue.trim()).split(":", 3);
+        String[] structureParts = rawStructureValue.trim().toLowerCase(Locale.ROOT).split(":", 3);
         for (String part : structureParts) {
             if (part.isBlank()) {
                 throw new IllegalArgumentException("Structure filter components must not be blank");

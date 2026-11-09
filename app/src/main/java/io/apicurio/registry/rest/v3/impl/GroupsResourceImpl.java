@@ -1569,32 +1569,14 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
     private void validateCreateArtifactData(CreateArtifact data) {
         if (data.getFirstVersion() != null) {
-            boolean contentRequired = true;
-            if (data.getArtifactType() != null) {
-                if (!factory.getAllArtifactTypes().contains(data.getArtifactType())) {
-                    throw new InvalidArtifactTypeException("Invalid or unknown artifact type: " + data.getArtifactType());
-                }
-                Set<String> contentTypes = factory.getArtifactTypeProvider(data.getArtifactType()).getContentTypes();
-                contentRequired = !contentTypes.isEmpty();
-            }
-            if (contentRequired) {
+            if (isFirstVersionContentRequired(data)) {
                 ParameterValidationUtils.requireParameter("body.firstVersion.content", data.getFirstVersion().getContent());
                 ParameterValidationUtils.requireParameter("body.firstVersion.content.content",
                         data.getFirstVersion().getContent().getContent());
                 ParameterValidationUtils.requireParameter("body.firstVersion.content.contentType",
                         data.getFirstVersion().getContent().getContentType());
             } else {
-                if (data.getFirstVersion().getContent() == null) {
-                    data.getFirstVersion().setContent(new VersionContent());
-                }
-                if (data.getFirstVersion().getContent().getContent() == null) {
-                    data.getFirstVersion().getContent().setContent("");
-                }
-                if (data.getFirstVersion().getContent().getContentType() == null) {
-                    data.getFirstVersion().getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
-                }
-                ParameterValidationUtils.requireParameterValue("body.firstVersion.content.contentType", ContentTypes.APPLICATION_EMPTY,
-                        data.getFirstVersion().getContent().getContentType());
+                applyEmptyFirstVersionContent(data);
             }
             if (data.getFirstVersion().getBranches() == null) {
                 data.getFirstVersion().setBranches(Collections.emptyList());
@@ -1602,6 +1584,31 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
         } else {
             ParameterValidationUtils.requireParameter("body.artifactType", data.getArtifactType());
         }
+    }
+
+    private boolean isFirstVersionContentRequired(CreateArtifact data) {
+        if (data.getArtifactType() == null) {
+            return true;
+        }
+        if (!factory.getAllArtifactTypes().contains(data.getArtifactType())) {
+            throw new InvalidArtifactTypeException("Invalid or unknown artifact type: " + data.getArtifactType());
+        }
+        Set<String> contentTypes = factory.getArtifactTypeProvider(data.getArtifactType()).getContentTypes();
+        return !contentTypes.isEmpty();
+    }
+
+    private static void applyEmptyFirstVersionContent(CreateArtifact data) {
+        if (data.getFirstVersion().getContent() == null) {
+            data.getFirstVersion().setContent(new VersionContent());
+        }
+        if (data.getFirstVersion().getContent().getContent() == null) {
+            data.getFirstVersion().getContent().setContent("");
+        }
+        if (data.getFirstVersion().getContent().getContentType() == null) {
+            data.getFirstVersion().getContent().setContentType(ContentTypes.APPLICATION_EMPTY);
+        }
+        ParameterValidationUtils.requireParameterValue("body.firstVersion.content.contentType", ContentTypes.APPLICATION_EMPTY,
+                data.getFirstVersion().getContent().getContentType());
     }
 
     private static void requireFirstVersionContent(CreateArtifact data, String contentType, ContentHandle content) {

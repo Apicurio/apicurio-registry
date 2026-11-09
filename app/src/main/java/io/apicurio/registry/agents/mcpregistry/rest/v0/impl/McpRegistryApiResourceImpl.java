@@ -238,8 +238,7 @@ public class McpRegistryApiResourceImpl implements ApisResource {
             for (SearchedArtifactDto artifact : results.getArtifacts()) {
                 McpServerName name = new McpServerName(artifact.getGroupId(), artifact.getArtifactId());
                 Server server = tryLoadServer(name, version, latestVersionOrNull(name, includeDeleted));
-                if (server != null && (includeDeleted || !isDeleted(server)) && matchesSearch(server, query)
-                        && (updatedSince == null || !updatedAt(server).isBefore(updatedSince.toInstant()))) {
+                if (isVisibleAtVersion(server, includeDeleted, query, updatedSince)) {
                     servers.add(server);
                 }
             }
@@ -258,6 +257,11 @@ public class McpRegistryApiResourceImpl implements ApisResource {
         int end = start + Math.min(pageSize, servers.size() - start);
         return buildServerList(new ArrayList<>(servers.subList(start, end)),
                 end < servers.size() ? end : -1, fingerprint);
+    }
+
+    private boolean isVisibleAtVersion(Server server, boolean includeDeleted, String query, Date updatedSince) {
+        return server != null && (includeDeleted || !isDeleted(server)) && matchesSearch(server, query)
+                && (updatedSince == null || !updatedAt(server).isBefore(updatedSince.toInstant()));
     }
 
     private ServerList listAllServerVersions(int offset, int pageSize, String fingerprint, String search,

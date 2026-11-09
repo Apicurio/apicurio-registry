@@ -707,14 +707,7 @@ public class AvroData {
         // This handles the inverting of a union which is held as a struct, where each field is
         // one of the union types.
         if (isUnionSchema(schema)) {
-            for (Field field : schema.fields()) {
-                Object object = ignoreDefaultForNullables ? struct.getWithoutDefault(field.name())
-                    : struct.get(field);
-                if (object != null) {
-                    return fromConnectData(field.schema(), avroSchema, object, false, true);
-                }
-            }
-            return fromConnectData(schema, avroSchema, null, false, true);
+            return fromConnectUnionStruct(schema, avroSchema, struct);
         } else {
             org.apache.avro.Schema underlyingAvroSchema = avroSchemaForUnderlyingTypeIfOptional(
                     schema, avroSchema, scrubInvalidNames);
@@ -730,6 +723,17 @@ public class AvroData {
             }
             return convertedBuilder.build();
         }
+    }
+
+    private Object fromConnectUnionStruct(Schema schema, org.apache.avro.Schema avroSchema, Struct struct) {
+        for (Field field : schema.fields()) {
+            Object object = ignoreDefaultForNullables ? struct.getWithoutDefault(field.name())
+                : struct.get(field);
+            if (object != null) {
+                return fromConnectData(field.schema(), avroSchema, object, false, true);
+            }
+        }
+        return fromConnectData(schema, avroSchema, null, false, true);
     }
 
     private GenericData.EnumSymbol enumSymbol(org.apache.avro.Schema avroSchema, Object value,

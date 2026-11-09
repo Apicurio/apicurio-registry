@@ -26,6 +26,7 @@ import io.apicurio.registry.rest.v3.beans.OdcsProjectionSummary;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.refs.ExternalReference;
 import io.apicurio.registry.content.refs.ReferenceFinder;
+import io.apicurio.registry.content.refs.ReferenceFinderException;
 import io.apicurio.registry.references.auto.ReferenceAutoMatchException;
 import io.apicurio.registry.references.auto.ReferenceMatch;
 import io.apicurio.registry.references.auto.ReferenceMatcher;
@@ -63,6 +64,7 @@ import io.apicurio.registry.storage.error.ContentNotFoundException;
 import io.apicurio.registry.storage.error.GroupNotFoundException;
 import io.apicurio.registry.storage.error.InvalidArtifactIdException;
 import io.apicurio.registry.storage.error.InvalidArtifactTypeException;
+import io.apicurio.registry.storage.error.InvalidContentException;
 import io.apicurio.registry.storage.error.InvalidGroupIdException;
 import io.apicurio.registry.storage.error.VersionNotFoundException;
 import io.apicurio.registry.references.AuthorizingReferenceLoader;
@@ -2150,11 +2152,20 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
      * @param existing the references already supplied (explicitly or by write hooks)
      * @return the matched references, to be added to {@code existing}
      * @throws ReferenceAutoMatchException if any reference cannot be matched or is ambiguous
+     * @throws InvalidContentException if the content cannot be parsed to detect its references
      */
     private List<ArtifactReferenceDto> autoMatchReferences(String groupId, String artifactType,
             ContentHandle content, String contentType, List<ArtifactReferenceDto> existing) {
         ReferenceFinder finder = factory.getArtifactTypeProvider(artifactType).getReferenceFinder();
-        Set<ExternalReference> found = finder.findExternalReferences(TypedContent.create(content, contentType));
+        Set<ExternalReference> found;
+        try {
+            found = finder.findExternalReferences(TypedContent.create(content, contentType));
+        } catch (ReferenceFinderException e) {
+            // Malformed content is a client error. Keep the parser's message out of the response.
+            log.debug("Unable to detect references for auto-matching", e);
+            throw new InvalidContentException("Unable to detect references: the content could not be parsed as "
+                    + artifactType + ".");
+        }
         Set<String> excluded = existing.stream().map(ArtifactReferenceDto::getName).collect(Collectors.toSet());
         ReferenceMatch match = referenceMatcher.match(groupId, artifactType, found, excluded);
         if (match.hasProblems()) {

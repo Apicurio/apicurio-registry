@@ -24,9 +24,9 @@ public interface ArtifactLookup {
      *
      * @param groupId the group id
      * @param structureFilters the structure filters, all of which must match
-     * @return the matching artifact ids
+     * @return the matching artifact ids, flagged as truncated if there were too many to collect them all
      */
-    List<String> searchByStructure(String groupId, List<String> structureFilters);
+    StructureSearchResult searchByStructure(String groupId, List<String> structureFilters);
 
     /**
      * Content of the latest version, empty if missing/unreadable.

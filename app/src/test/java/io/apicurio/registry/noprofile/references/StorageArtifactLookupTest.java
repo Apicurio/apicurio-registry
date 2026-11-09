@@ -3,6 +3,7 @@ package io.apicurio.registry.noprofile.references;
 import io.apicurio.registry.AbstractResourceTestBase;
 import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.references.auto.StorageArtifactLookup;
+import io.apicurio.registry.references.auto.StructureSearchResult;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.apicurio.registry.utils.tests.TestUtils;
@@ -12,8 +13,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 @QuarkusTest
 public class StorageArtifactLookupTest extends AbstractResourceTestBase {
@@ -34,9 +37,9 @@ public class StorageArtifactLookupTest extends AbstractResourceTestBase {
         Assertions.assertEquals(Optional.of("1"), lookup.latestVersion(groupId, "addr"));
         Assertions.assertEquals(Optional.empty(), lookup.latestVersion(groupId, "missing"));
         Assertions.assertEquals(Optional.empty(), lookup.latestContent(groupId, "missing"));
-        Assertions.assertEquals(List.of("addr"),
+        Assertions.assertEquals(StructureSearchResult.complete(List.of("addr")),
                 lookup.searchByStructure(groupId, List.of("avro:name:Address", "avro:namespace:com.acme")));
-        Assertions.assertEquals(List.of(),
+        Assertions.assertEquals(StructureSearchResult.complete(List.of()),
                 lookup.searchByStructure(groupId, List.of("avro:name:Other")));
 
         Optional<ContentHandle> content = lookup.latestContent(groupId, "addr");
@@ -57,7 +60,7 @@ public class StorageArtifactLookupTest extends AbstractResourceTestBase {
         createArtifact("default", artifactId, ArtifactType.AVRO, schema, ContentTypes.APPLICATION_JSON);
 
         Assertions.assertEquals(Optional.of("1"), lookup.latestVersion("default", artifactId));
-        Assertions.assertEquals(List.of(artifactId),
+        Assertions.assertEquals(StructureSearchResult.complete(List.of(artifactId)),
                 lookup.searchByStructure("default", List.of("avro:namespace:" + namespace)));
         Assertions.assertEquals(schema, lookup.latestContent("default", artifactId).get().content());
     }
@@ -70,9 +73,29 @@ public class StorageArtifactLookupTest extends AbstractResourceTestBase {
         createArtifact(wildcardGroup, "addr-star", ArtifactType.AVRO, ADDRESS_V1, ContentTypes.APPLICATION_JSON);
         createArtifact(otherGroup, "addr-other", ArtifactType.AVRO, ADDRESS_V1, ContentTypes.APPLICATION_JSON);
 
-        Assertions.assertEquals(List.of("addr-star"), lookup.searchByStructure(wildcardGroup,
-                List.of("avro:name:Address", "avro:namespace:com.acme")));
-        Assertions.assertEquals(List.of("addr-other"), lookup.searchByStructure(otherGroup,
-                List.of("avro:name:Address", "avro:namespace:com.acme")));
+        Assertions.assertEquals(StructureSearchResult.complete(List.of("addr-star")),
+                lookup.searchByStructure(wildcardGroup, List.of("avro:name:Address", "avro:namespace:com.acme")));
+        Assertions.assertEquals(StructureSearchResult.complete(List.of("addr-other")),
+                lookup.searchByStructure(otherGroup, List.of("avro:name:Address", "avro:namespace:com.acme")));
+    }
+
+    @Test
+    public void testSearchByStructurePagesAndReportsTruncation() throws Exception {
+        String groupId = TestUtils.generateGroupId();
+        List<String> filters = List.of("avro:name:Address", "avro:namespace:com.acme");
+        // Exactly one full page: every candidate is returned and the result is complete.
+        List<String> expected = IntStream.range(0, StorageArtifactLookup.MAX_CANDIDATES)
+                .mapToObj(i -> String.format(Locale.ROOT, "addr-%03d", i)).toList();
+        for (String artifactId : expected) {
+            createArtifact(groupId, artifactId, ArtifactType.AVRO, ADDRESS_V1, ContentTypes.APPLICATION_JSON);
+        }
+        Assertions.assertEquals(StructureSearchResult.complete(expected),
+                lookup.searchByStructure(groupId, filters));
+
+        // One more candidate than can be confirmed: the result is flagged as truncated.
+        String extra = String.format(Locale.ROOT, "addr-%03d", StorageArtifactLookup.MAX_CANDIDATES);
+        createArtifact(groupId, extra, ArtifactType.AVRO, ADDRESS_V1, ContentTypes.APPLICATION_JSON);
+        StructureSearchResult result = lookup.searchByStructure(groupId, filters);
+        Assertions.assertTrue(result.truncated());
     }
 }

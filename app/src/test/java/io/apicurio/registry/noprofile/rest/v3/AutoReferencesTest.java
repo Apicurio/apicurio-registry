@@ -178,6 +178,59 @@ public class AutoReferencesTest extends AbstractResourceTestBase {
     }
 
     @Test
+    public void findOrCreatePinsToCurrentLatestDependencyVersion() throws Exception {
+        String g = newGroup();
+        createArtifact(g, "com.acme.Address", ArtifactType.AVRO, ADDRESS, ContentTypes.APPLICATION_JSON);
+        String parent = order("com.acme", "com.acme.Address");
+        createAuto(g, "Order", ArtifactType.AVRO, parent);
+        createArtifactVersion(g, "com.acme.Address", ADDRESS.replace("[]",
+                "[{\"name\":\"street\",\"type\":\"string\",\"default\":\"\"}]"),
+                ContentTypes.APPLICATION_JSON);
+
+        // Same content, but the dependency's latest version moved: the references differ, so no existing
+        // version matches and a new one is created, pinned to the new dependency version.
+        CreateArtifact again = createRequest("Order", ArtifactType.AVRO, parent, ContentTypes.APPLICATION_JSON,
+                true);
+        CreateArtifactResponse response = clientV3.groups().byGroupId(g).artifacts().post(again,
+                config -> config.queryParameters.ifExists = IfArtifactExists.FIND_OR_CREATE_VERSION);
+
+        Assertions.assertEquals("2", response.getVersion().getVersion());
+        assertRefs(g, "Order", "1", List.of(ref("com.acme.Address", g, "com.acme.Address", "1")));
+        assertRefs(g, "Order", "2", List.of(ref("com.acme.Address", g, "com.acme.Address", "2")));
+    }
+
+    @Test
+    public void explicitResourceNameCoversFragmentReferences() throws Exception {
+        String g = newGroup();
+        String money = "{\"$defs\":{\"A\":{\"type\":\"string\"},\"B\":{\"type\":\"number\"}}}";
+        createArtifact(g, "money.json", ArtifactType.JSON, money, ContentTypes.APPLICATION_JSON);
+        createArtifact(g, "other-money", ArtifactType.JSON, money, ContentTypes.APPLICATION_JSON);
+        String invoice = "{\"type\":\"object\",\"properties\":{"
+                + "\"a\":{\"$ref\":\"money.json#/$defs/A\"},\"b\":{\"$ref\":\"money.json#/$defs/B\"}}}";
+
+        ArtifactReference explicit = ref("money.json", g, "other-money", "1");
+        createAuto(g, "invoice", ArtifactType.JSON, invoice, ContentTypes.APPLICATION_JSON, List.of(explicit),
+                null);
+
+        assertRefs(g, "invoice", "1", List.of(ref("money.json", g, "other-money", "1")));
+    }
+
+    @Test
+    public void malformedContentIsBadRequest() throws Exception {
+        String g = newGroup();
+
+        // The SDK deserializes every 400 from this endpoint as RuleViolationProblemDetails (per the OpenAPI).
+        RuleViolationProblemDetails error = Assertions.assertThrows(RuleViolationProblemDetails.class,
+                () -> createAuto(g, "Broken", ArtifactType.AVRO, "{\"type\":\"record\","));
+
+        Assertions.assertEquals(400, error.getStatus());
+        Assertions.assertEquals("InvalidContentException", error.getName());
+        Assertions.assertEquals("Unable to detect references: the content could not be parsed as AVRO.",
+                error.getTitle());
+        assertArtifactMissing(g, "Broken");
+    }
+
+    @Test
     public void createVersionEndpoint() throws Exception {
         String g = newGroup();
         createArtifact(g, "com.acme.Address", ArtifactType.AVRO, ADDRESS, ContentTypes.APPLICATION_JSON);

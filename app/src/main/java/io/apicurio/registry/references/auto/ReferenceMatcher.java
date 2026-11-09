@@ -18,8 +18,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Matches external references found in content to existing artifacts in the registry.
@@ -50,7 +52,10 @@ public class ReferenceMatcher {
      * @param groupId the group of the artifact being created
      * @param artifactType the artifact type
      * @param references the references found in the content
-     * @param excludedNames full reference names to skip (e.g. explicitly provided references)
+     * @param excludedNames names of references to skip (e.g. explicitly provided references). A detected
+     *        reference is skipped when one of these names equals its full reference, or when the resource part
+     *        of one of these names (everything before any {@code #} fragment) equals its resource. So an
+     *        explicit {@code money.json} covers {@code money.json#/defs/M}, and vice versa.
      * @return the matched references and the problems
      */
     public ReferenceMatch match(String groupId, String artifactType, Set<ExternalReference> references,
@@ -58,9 +63,14 @@ public class ReferenceMatcher {
         Context ctx = new Context();
         List<ArtifactReferenceDto> matched = new ArrayList<>();
         List<MatchProblem> problems = new ArrayList<>();
+        Set<String> excludedResources = excludedNames.stream()
+                .filter(Objects::nonNull)
+                .map(ReferenceMatcher::stripFragment)
+                .collect(Collectors.toSet());
         List<ExternalReference> sorted = references.stream()
                 .filter(r -> r.getResource() != null)
                 .filter(r -> !excludedNames.contains(r.getFullReference()))
+                .filter(r -> !excludedResources.contains(r.getResource()))
                 .sorted(Comparator.comparing(ExternalReference::getFullReference))
                 .toList();
         for (ExternalReference ref : sorted) {
@@ -86,8 +96,12 @@ public class ReferenceMatcher {
         String withoutFragment = stripFragment(resource);
         if (isAbsoluteUri(withoutFragment)) {
             if (ArtifactType.JSON.equals(artifactType)) {
-                List<String> ids = lookup.searchByStructure(groupId, List.of("json:id:" + withoutFragment));
-                return fromCandidates(ctx, groupId, ids);
+                StructureSearchResult result = lookup.searchByStructure(groupId,
+                        List.of("json:id:" + withoutFragment));
+                if (result.truncated()) {
+                    return tooManyCandidates(groupId);
+                }
+                return fromCandidates(ctx, groupId, result.artifactIds());
             }
             return Outcome.NOT_FOUND;
         }
@@ -127,10 +141,19 @@ public class ReferenceMatcher {
         if (ns != null) {
             filters.add("avro:namespace:" + ns);
         }
-        List<String> confirmed = lookup.searchByStructure(groupId, filters).stream()
+        StructureSearchResult result = lookup.searchByStructure(groupId, filters);
+        if (result.truncated()) {
+            return tooManyCandidates(groupId);
+        }
+        List<String> confirmed = result.artifactIds().stream()
                 .filter(a -> resource.equals(avroFullName(ctx.latestContent(groupId, a))))
                 .toList();
         return fromCandidates(ctx, groupId, confirmed);
+    }
+
+    private static Outcome tooManyCandidates(String groupId) {
+        return Outcome.problem("Too many candidate artifacts in group '" + groupId
+                + "' to match unambiguously. Provide an explicit reference.");
     }
 
     private Outcome fromCandidates(Context ctx, String groupId, List<String> artifactIds) {

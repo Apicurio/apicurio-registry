@@ -29,6 +29,7 @@ class ReferenceMatcherTest {
         final Map<String, String> versions = new HashMap<>();
         final Map<String, String> contents = new HashMap<>();
         final Map<String, Set<String>> structure = new HashMap<>();
+        boolean truncated;
 
         FakeLookup add(String g, String a, String version, String content, String... structureEntries) {
             versions.put(g + "/" + a, version);
@@ -43,10 +44,11 @@ class ReferenceMatcherTest {
         }
 
         @Override
-        public List<String> searchByStructure(String g, List<String> filters) {
-            return structure.entrySet().stream()
+        public StructureSearchResult searchByStructure(String g, List<String> filters) {
+            List<String> ids = structure.entrySet().stream()
                     .filter(e -> e.getKey().startsWith(g + "/") && e.getValue().containsAll(filters))
                     .map(e -> e.getKey().substring(g.length() + 1)).sorted().toList();
+            return new StructureSearchResult(ids, truncated);
         }
 
         @Override
@@ -139,7 +141,65 @@ class ReferenceMatcherTest {
         FakeLookup lookup = new FakeLookup();
         lookup.contents.put("g/x.proto", "x");
         ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.PROTOBUF, refs("x.proto"), Set.of());
-        assertEquals(1, m.problems().size());
+        assertEquals(List.of(new MatchProblem("x.proto", "No matching artifact found in group 'g'.")),
+                m.problems());
+    }
+
+    @Test
+    void explicitResourceNameExcludesFragmentReferences() {
+        FakeLookup lookup = new FakeLookup().add("g", "money.json", "1", "{}")
+                .add("g", "other.json", "2", "{}");
+        Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("money.json#/defs/A"),
+                new JsonPointerExternalReference("money.json#/defs/B"),
+                new JsonPointerExternalReference("other.json#/defs/C"));
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, Set.of("money.json"));
+        assertEquals(List.of(ArtifactReferenceDto.builder().name("other.json#/defs/C").groupId("g")
+                .artifactId("other.json").version("2").build()), m.matched());
+        assertEquals(List.of(), m.problems());
+    }
+
+    @Test
+    void explicitFragmentNameExcludesOtherReferencesToSameResource() {
+        FakeLookup lookup = new FakeLookup().add("g", "money.json", "1", "{}");
+        Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("money.json#/defs/A"),
+                new JsonPointerExternalReference("money.json#/defs/B"));
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r,
+                Set.of("money.json#/defs/A"));
+        assertEquals(List.of(), m.matched());
+        assertEquals(List.of(), m.problems());
+    }
+
+    @Test
+    void truncatedAvroSearchIsReportedInsteadOfPickingACandidate() {
+        FakeLookup lookup = new FakeLookup()
+                .add("orders", "addr", "2", avro("com.acme", "Address"), "avro:name:Address", "avro:namespace:com.acme");
+        lookup.truncated = true;
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("orders", ArtifactType.AVRO,
+                refs("com.acme.Address"), Set.of());
+        assertEquals(List.of(), m.matched());
+        assertEquals(List.of(new MatchProblem("com.acme.Address", "Too many candidate artifacts in group 'orders'"
+                + " to match unambiguously. Provide an explicit reference.")), m.problems());
+    }
+
+    @Test
+    void truncatedSearchWithoutConfirmedCandidateIsStillReported() {
+        FakeLookup lookup = new FakeLookup();
+        lookup.truncated = true;
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("orders", ArtifactType.AVRO,
+                refs("com.acme.Address"), Set.of());
+        assertEquals(List.of(new MatchProblem("com.acme.Address", "Too many candidate artifacts in group 'orders'"
+                + " to match unambiguously. Provide an explicit reference.")), m.problems());
+    }
+
+    @Test
+    void truncatedJsonIdSearchIsReportedInsteadOfPickingACandidate() {
+        FakeLookup lookup = new FakeLookup().add("g", "money", "7", "{}", "json:id:https://ex.com/money.json");
+        lookup.truncated = true;
+        Set<ExternalReference> r = Set.of(new JsonPointerExternalReference("https://ex.com/money.json"));
+        ReferenceMatch m = new ReferenceMatcher(lookup).match("g", ArtifactType.JSON, r, Set.of());
+        assertEquals(List.of(), m.matched());
+        assertEquals(List.of(new MatchProblem("https://ex.com/money.json", "Too many candidate artifacts in group"
+                + " 'g' to match unambiguously. Provide an explicit reference.")), m.problems());
     }
 
     @Test

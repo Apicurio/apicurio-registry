@@ -493,9 +493,17 @@ Any `#` fragment is ignored. Absolute URIs are matched only for JSON Schema.
 
 Each matched reference is pinned to the version that is currently the latest on the `latest` branch of the
 matched artifact; later versions of that artifact do not change the reference.
-References that you list explicitly in `references` take precedence and are not matched again.
+References that you list explicitly in `references` take precedence and are not matched again. An explicit
+reference also covers every reference in the content to the same resource, ignoring any `#` fragment: for
+example, an explicit `money.json` covers both `money.json#/$defs/A` and `money.json#/$defs/B`.
 Artifacts that you are not permitted to read are treated as not found.
-Matching also works with `dryRun=true` and with the `ifExists` parameter.
+Matching also works with `dryRun=true` and with the `ifExists` parameter. With
+`ifExists=FIND_OR_CREATE_VERSION`, an existing version is returned only if both its content and its references
+are the same. If a matched artifact has a new latest version since the existing version was created, the
+references differ, so {registry} creates a new version that references the new latest version.
+
+If a structure index search finds more candidates than {registry} can confirm, the reference is reported as
+having too many candidates instead of being matched. Provide an explicit reference in that case.
 
 If any reference has no match, or matches more than one artifact, {registry} stores nothing and returns a
 rule violation error. The status is `400`, or `409` when `apicurio.rest.legacy-error-codes.enabled` is set to

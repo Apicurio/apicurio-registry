@@ -9,7 +9,6 @@ import io.apicurio.registry.model.GroupId;
 import io.apicurio.registry.model.VersionExpressionParser;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
-import io.apicurio.registry.storage.dto.ArtifactSearchResultsDto;
 import io.apicurio.registry.storage.dto.OrderBy;
 import io.apicurio.registry.storage.dto.OrderDirection;
 import io.apicurio.registry.storage.dto.SearchFilter;
@@ -20,6 +19,7 @@ import io.apicurio.registry.storage.error.VersionNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -32,7 +32,12 @@ import java.util.Set;
 @ApplicationScoped
 public class StorageArtifactLookup implements ArtifactLookup {
 
-    private static final int MAX_SEARCH_RESULTS = 50;
+    /** Size of each storage search page. */
+    public static final int PAGE_SIZE = 50;
+    /** Readable candidates beyond this count make the result truncated. */
+    public static final int MAX_CANDIDATES = 50;
+    /** Total search hits (readable or not) scanned before giving up and reporting truncation. */
+    public static final int MAX_SCANNED = 1000;
 
     @Inject
     @Current
@@ -53,19 +58,37 @@ public class StorageArtifactLookup implements ArtifactLookup {
      * {@inheritDoc}
      */
     @Override
-    public List<String> searchByStructure(String groupId, List<String> structureFilters) {
+    public StructureSearchResult searchByStructure(String groupId, List<String> structureFilters) {
         Set<SearchFilter> filters = new HashSet<>();
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         filters.add(SearchFilter.ofGroupId(rawGroupId));
         structureFilters.forEach(f -> filters.add(SearchFilter.ofStructure(f)));
-        ArtifactSearchResultsDto results = storage.searchArtifacts(filters, OrderBy.artifactId,
-                OrderDirection.asc, 0, MAX_SEARCH_RESULTS, true);
-        // The groupId filter is a wildcard match ('*' is legal in group ids), so keep exact matches only.
-        return results.getArtifacts().stream()
-                .filter(artifact -> Objects.equals(rawGroupId, artifact.getGroupId()))
-                .map(SearchedArtifactDto::getArtifactId)
-                .filter(artifactId -> accessGuard.canRead(groupId, artifactId))
-                .toList();
+        // Page through every hit: the groupId filter is a wildcard match ('*' is legal in group ids) and
+        // some hits may be unreadable, so a single page could hide a readable candidate and turn an
+        // ambiguous match into a seemingly unique one. Stop (and report truncation) once there are more
+        // readable candidates than can be confirmed, or too many hits to scan.
+        List<String> readable = new ArrayList<>();
+        int offset = 0;
+        while (true) {
+            List<SearchedArtifactDto> page = storage.searchArtifacts(filters, OrderBy.artifactId,
+                    OrderDirection.asc, offset, PAGE_SIZE, true).getArtifacts();
+            for (SearchedArtifactDto artifact : page) {
+                if (Objects.equals(rawGroupId, artifact.getGroupId())
+                        && accessGuard.canRead(groupId, artifact.getArtifactId())) {
+                    readable.add(artifact.getArtifactId());
+                    if (readable.size() > MAX_CANDIDATES) {
+                        return new StructureSearchResult(List.copyOf(readable), true);
+                    }
+                }
+            }
+            offset += page.size();
+            if (page.size() < PAGE_SIZE) {
+                return StructureSearchResult.complete(List.copyOf(readable));
+            }
+            if (offset >= MAX_SCANNED) {
+                return new StructureSearchResult(List.copyOf(readable), true);
+            }
+        }
     }
 
     /**

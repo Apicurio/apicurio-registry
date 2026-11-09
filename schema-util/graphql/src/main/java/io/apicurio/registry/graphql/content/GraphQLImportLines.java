@@ -1,6 +1,5 @@
 package io.apicurio.registry.graphql.content;
 
-import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,15 +16,8 @@ import java.util.regex.Pattern;
  */
 public final class GraphQLImportLines {
 
-    /**
-     * Matches a full <code>#import "file"</code> or <code># import Foo, Bar from "file"</code> line.
-     * Group 1 is the prefix up to (and including) the opening quote, group 2 is the quoted file name,
-     * and group 3 is the trailing quote and whitespace. The prefix (group 1) contains the literal text
-     * {@code "from"} when the line uses the named-import form.
-     */
-    public static final Pattern IMPORT_LINE = Pattern
-            .compile("^(\\s*+#\\s*+import\\s++(?:[^\"]++(?<=\\sfrom\\s{1,32}))?\")([^\"]++)(\"\\s*+)$",
-                    Pattern.CASE_INSENSITIVE);
+    private static final String IMPORT_KEYWORD = "import";
+    private static final String FROM_KEYWORD = "from";
 
     private static final Pattern TRIPLE_QUOTE = Pattern.compile("\"\"\"");
 
@@ -41,19 +33,134 @@ public final class GraphQLImportLines {
     }
 
     /**
-     * Returns {@code true} if the given line, as matched by {@link #IMPORT_LINE}, uses the
-     * named-import form (<code># import Foo, Bar from "file"</code>) rather than a plain whole-file
-     * import (<code>#import "file"</code>).
+     * A full <code>#import "file"</code> or <code># import Foo, Bar from "file"</code> line.
+     *
+     * @param prefix the text up to (and including) the opening quote
+     * @param file the quoted file name
+     * @param suffix the closing quote and any trailing whitespace
+     * @param named {@code true} for the named-import form (<code># import Foo from "file"</code>),
+     *        {@code false} for a plain whole-file import (<code>#import "file"</code>)
      */
-    public static boolean isNamedImport(Matcher importLineMatcher) {
-        return importLineMatcher.group(1).toLowerCase(Locale.ROOT).contains("from");
+    public record ImportLine(String prefix, String file, String suffix, boolean named) {
+    }
+
+    /**
+     * Parses the given line as an <code>#import</code> directive. Equivalent to matching the whole line
+     * (case-insensitively) against <code>\s*#\s*import\s+(?:.*?\s+from\s+)?"([^"]+)"\s*</code>, but
+     * implemented as a linear scan so that no input can trigger regex backtracking, and without any limit
+     * on the amount of separator whitespace.
+     *
+     * @return the parsed import, or {@code null} if the line is not an import directive
+     */
+    public static ImportLine parse(String line) {
+        // The file name is the text between the last two quotes; only whitespace may follow.
+        int closeQuote = line.lastIndexOf('"');
+        if (closeQuote < 0 || !isBlank(line, closeQuote + 1, line.length())) {
+            return null;
+        }
+        int openQuote = line.lastIndexOf('"', closeQuote - 1);
+        if (openQuote < 0 || closeQuote - openQuote < 2) {
+            return null;
+        }
+        int afterKeyword = skipImportKeyword(line);
+        if (afterKeyword < 0 || afterKeyword >= openQuote || !isWhitespace(line.charAt(afterKeyword))) {
+            return null;
+        }
+        // Between the keyword and the opening quote: whitespace only (plain import), or
+        // whitespace + anything + whitespace + "from" + whitespace (named import).
+        boolean named;
+        if (isBlank(line, afterKeyword, openQuote)) {
+            named = false;
+        } else if (isNamedImportList(line, afterKeyword, openQuote)) {
+            named = true;
+        } else {
+            return null;
+        }
+        return new ImportLine(line.substring(0, openQuote + 1), line.substring(openQuote + 1, closeQuote),
+                line.substring(closeQuote), named);
+    }
+
+    /**
+     * Returns the index right after the <code>import</code> keyword of a line of the form
+     * <code>\s*#\s*import</code>, or {@code -1} if the line does not start that way.
+     */
+    private static int skipImportKeyword(String line) {
+        int i = skipWhitespace(line, 0);
+        if (i >= line.length() || line.charAt(i) != '#') {
+            return -1;
+        }
+        i = skipWhitespace(line, i + 1);
+        if (!line.regionMatches(true, i, IMPORT_KEYWORD, 0, IMPORT_KEYWORD.length())) {
+            return -1;
+        }
+        return i + IMPORT_KEYWORD.length();
+    }
+
+    /**
+     * Checks that {@code line[start, end)} is <code>\s+.*?\s+from\s+</code>, where {@code start} is
+     * known to be a whitespace character.
+     */
+    private static boolean isNamedImportList(String line, int start, int end) {
+        int fromEnd = trimTrailingWhitespace(line, start, end);
+        int fromStart = fromEnd - FROM_KEYWORD.length();
+        // Need trailing whitespace after "from", and at least two characters before it: the
+        // whitespace following "import" and the whitespace preceding "from".
+        return fromEnd < end && fromStart - start >= 2
+                && line.regionMatches(true, fromStart, FROM_KEYWORD, 0, FROM_KEYWORD.length())
+                && isWhitespace(line.charAt(fromStart - 1))
+                && !containsLineTerminator(line, skipWhitespace(line, start), trimTrailingWhitespace(line,
+                        start, fromStart - 1));
+    }
+
+    /**
+     * Checks {@code line[start, end)} for characters that the regex {@code .} does not match. The
+     * names listed before <code>from</code> may not contain them, but the whitespace around the list may.
+     */
+    private static boolean containsLineTerminator(String line, int start, int end) {
+        for (int i = start; i < end; i++) {
+            char c = line.charAt(i);
+            if (c == '\n' || c == '\r' || c == '\u0085' || c == '\u2028' || c == '\u2029') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int trimTrailingWhitespace(String line, int start, int end) {
+        int i = end;
+        while (i > start && isWhitespace(line.charAt(i - 1))) {
+            i--;
+        }
+        return i;
+    }
+
+    private static int skipWhitespace(String line, int from) {
+        int i = from;
+        while (i < line.length() && isWhitespace(line.charAt(i))) {
+            i++;
+        }
+        return i;
+    }
+
+    private static boolean isBlank(String line, int start, int end) {
+        for (int i = start; i < end; i++) {
+            if (!isWhitespace(line.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Same character set as the regex {@code \s} class. */
+    private static boolean isWhitespace(char c) {
+        return c == ' ' || c == '\t' || c == '\n' || c == '\u000B' || c == '\f' || c == '\r';
     }
 
     /**
      * Tracks whether each line of a GraphQL document falls inside a triple-quoted block-string
      * description. Call {@link #consume(String)} once per line, in order; the return value for a
      * given line indicates whether that line should be treated as (at least partially) block-string
-     * content, and therefore must not be matched against {@link #IMPORT_LINE}.
+     * content, and therefore must not be parsed with {@link #parse(String)}.
      */
     public static final class BlockStringTracker {
 

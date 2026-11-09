@@ -10,7 +10,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class ProtobufDereferencerTest {
+class ProtobufDereferencerTest {
 
     private final ProtobufDereferencer dereferencer = new ProtobufDereferencer();
 
@@ -19,7 +19,7 @@ public class ProtobufDereferencerTest {
     }
 
     @Test
-    public void testDereferenceServiceOnlyProto() {
+    void testDereferenceServiceOnlyProto() {
         String messageProto = """
                 syntax = "proto3";
                 package com.example;
@@ -53,7 +53,7 @@ public class ProtobufDereferencerTest {
     }
 
     @Test
-    public void testDereferenceEnumOnlyProto() {
+    void testDereferenceEnumOnlyProto() {
         String enumProto = """
                 syntax = "proto3";
                 package com.example;

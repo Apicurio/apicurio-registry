@@ -85,7 +85,7 @@ public class GrantsAccessControllerInitializer {
     private void logConfigurationWarnings() {
         if (authConfig.isAnonymousReadsEnabled()) {
             log.info("Anonymous read access is enabled: anonymous callers can read only what the access rules "
-                    + "allow to the role '{}'.", GrantsAccessController.ANONYMOUS_ROLE);
+                    + "allow to 'anonymous User'.");
         }
         if (authConfig.isAuthenticatedReadsEnabled()) {
             log.info("Authenticated read access is enabled: authenticated callers skip the RBAC check for "

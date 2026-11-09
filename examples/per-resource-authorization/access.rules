@@ -16,6 +16,6 @@ allow Role with name in {"sr-developer", "sr-readonly"} to READ Group with name 
 allow Role with name in {"sr-developer", "sr-readonly"} to READ Artifact with name like "shared/*";
 
 // unauthenticated callers can read one schema
-allow Role with name = "$anonymous" to READ Artifact with name = "shared/common-types";
+allow anonymous User to READ Artifact with name = "shared/common-types";
 
 otherwise deny;

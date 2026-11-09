@@ -34,8 +34,8 @@ import static org.hamcrest.Matchers.startsWith;
 /**
  * How per-resource authorization combines with the other authorization settings:
  * <ul>
- * <li>anonymous and authenticated read access skip RBAC but not grants (anonymous callers get the
- * {@value GrantsAccessController#ANONYMOUS_ROLE} role)</li>
+ * <li>anonymous and authenticated read access skip RBAC but not grants (anonymous callers match only
+ * {@code anonymous User} rules)</li>
  * <li>RBAC administrators bypass grants even when not listed in the grants file</li>
  * <li>the owner bypass can be disabled</li>
  * <li>registry-wide reports that cannot be filtered are limited to callers not restricted by grants</li>
@@ -52,7 +52,7 @@ public class GrantsInteractionsTest extends AbstractResourceTestBase {
     private static final String RULES = """
             from io.apicurio.authz import Artifact, Role;
             deny User with name = "rex" to * Artifact with name matching /%1$s.rex-secret-.*/;
-            allow Role with name = "$anonymous" to READ Artifact with name like "%1$s/public-*";
+            allow anonymous User to READ Artifact with name like "%1$s/public-*";
             allow User with name = "eve" to READ Artifact with name like "%1$s/eve-*";
             allow User with name = "bob" to READ Artifact with name like "%1$s/bob-*";
             allow User with name = "rex" to READ Artifact with name like "%1$s/rex-*";

@@ -407,8 +407,8 @@ Change the owner back to `admin` the same way, and the page is refused again.
 
 ## Step 12: Anonymous access is opt-in, resource by resource
 
-The example enables anonymous reads, but unauthenticated callers only get what the rules allow to
-the `$anonymous` role:
+The example enables anonymous reads, but unauthenticated callers only get what the
+`anonymous User` rules allow:
 
 ```bash
 status anonymous GET /groups/shared/artifacts/common-types

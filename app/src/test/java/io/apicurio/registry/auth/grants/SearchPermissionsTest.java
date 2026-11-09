@@ -59,7 +59,7 @@ public class SearchPermissionsTest extends AbstractResourceTestBase {
             allow User with name = "dev2" to READ Artifact with name like "%1$s/*";
             allow User with name = "reader" to WRITE Artifact with name like "%1$s/*";
             allow User with name = "reader" to READ Group with name = "%1$s";
-            allow Role with name = "$anonymous" to READ Artifact with name like "%1$s/read-*";
+            allow anonymous User to READ Artifact with name like "%1$s/read-*";
             otherwise deny;
             """.formatted(GROUP);
 

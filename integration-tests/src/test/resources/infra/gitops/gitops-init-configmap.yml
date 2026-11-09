@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: "apicurio-registry-e2e"
+  name: gitops-init-data
+data:
+  registry.registry.yaml: |
+    $type: registry-v0
+    registryId: e2e-test
+    globalRules:
+      - ruleType: VALIDITY
+        config: FULL
+    properties: []
+  group-foo.registry.yaml: |
+    $type: group-v0
+    registryIds: [e2e-test]
+    groupId: foo
+  artifact-petstore.registry.yaml: |
+    $type: artifact-v0
+    registryIds: [e2e-test]
+    groupId: foo
+    artifactId: petstore
+    artifactType: OPENAPI
+    versions:
+      - version: "1"
+        state: ENABLED
+        content: ./content/petstore-1.0.0.yaml
+    rules:
+      - ruleType: COMPATIBILITY
+        config: BACKWARD
+  petstore-1.0.0.yaml: |
+    openapi: "3.0.0"
+    info:
+      version: 1.0.0
+      title: Swagger Petstore
+    paths: {}
+  init-repo.sh: |
+    #!/bin/sh
+    set -e
+    REPO_DIR=/repos/default
+    mkdir -p "$REPO_DIR"
+    cd "$REPO_DIR"
+    git init --initial-branch=main
+    git config user.email "test@apicurio.io"
+    git config user.name "Test Init"
+    mkdir -p content
+    cp /init-data/registry.registry.yaml .
+    cp /init-data/group-foo.registry.yaml .
+    cp /init-data/artifact-petstore.registry.yaml .
+    cp /init-data/petstore-1.0.0.yaml content/petstore-1.0.0.yaml
+    git add .
+    git commit -m "Initial test data"
+    echo "Git repo initialized at $REPO_DIR on branch main"

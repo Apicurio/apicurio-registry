@@ -88,6 +88,7 @@ Both old and new consumers can read data that either the old or new version of t
 
 NOTE: The `BACKWARD` and `FORWARD` modes compare the proposed schema only with the most recently added version.
 The transitive modes (`BACKWARD_TRANSITIVE`, `FORWARD_TRANSITIVE`, and `FULL_TRANSITIVE`) compare the proposed schema against all existing versions, which provides stricter validation but restricts the changes you can make.
+In both cases, versions in the `DISABLED` state are not compared, and versions in the `DEPRECATED` state are. To stop an old version from restricting the changes you can make, disable it.
 
 
 // ref-registry-compatibility-avro

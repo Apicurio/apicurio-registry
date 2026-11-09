@@ -1,0 +1,11 @@
+// Registered in the registry as validation/order-protobuf; OrderPlaced messages validate against it.
+syntax = "proto3";
+package com.example.orders;
+
+option java_package = "io.apicurio.registry.examples.rules.proto";
+option java_multiple_files = true;
+
+message OrderPlaced {
+  string order_id = 1;
+  double amount = 2;
+}

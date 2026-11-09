@@ -203,3 +203,11 @@ jobs:
           # -Dassembly.skipAssembly=true: skip archive generation (not needed for example compilation)
           # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
           mvn -s ${{ github.workspace }}/.github/ci-settings.xml install -T 1 -DskipTests -Pexamples -Dassembly.skipAssembly=true -Daether.syncContext.named.factory=noop --no-transfer-progress
+
+      # The rules-and-compatibility example's client-side validation needs the in-repo validation
+      # library, which only this job builds; its demo.sh covers the server-side rules.
+      - name: Run the rules-and-compatibility validation client
+        run: |
+          mvn -s ${{ github.workspace }}/.github/ci-settings.xml exec:java --no-transfer-progress \
+            -f examples/rules-and-compatibility/validation-client \
+            -Dregistry.url=http://localhost:8080/apis/registry/v3

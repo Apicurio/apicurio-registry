@@ -1,0 +1,3 @@
+{"type": "record", "name": "OrderCancelled", "namespace": "com.example.orders",
+ "fields": [{"name": "orderId", "type": "string"},
+            {"name": "refunded", "type": "boolean"}]}

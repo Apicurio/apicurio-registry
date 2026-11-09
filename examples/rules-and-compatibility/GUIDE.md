@@ -291,8 +291,10 @@ rejects versions that are already stored.
 
 Rules check **schemas** when they are registered. To check **data** against a schema before sending
 it, use the client-side validation library: it fetches the schema from the registry, caches it, and
-validates payloads locally. [`validation-client/`](validation-client) registers a JSON Schema and an
-Avro schema in the group `validation` and validates a few payloads against them.
+validates payloads locally. [`validation-client/`](validation-client) registers a JSON Schema, an
+Avro schema and a Protobuf schema ([`order.proto`](validation-client/src/main/proto/order.proto)) in
+the group `validation`, and validates payloads against them: with a fixed artifact
+(`validateByArtifactReference`), and with the artifact chosen per record (`validate(record)`).
 
 It uses the library built from this checkout. Build it once, from the repository root:
 
@@ -311,13 +313,21 @@ JSON Schema (validation/order-json):
   ok    a valid order                                 valid
   ok    a quantity of 0 (minimum is 1)                invalid: $.quantity: must have a minimum value of 1
   ok    no quantity (required)                        invalid: $: required property 'quantity' not found
+  ok    a valid order, schema chosen per record       valid
 Avro (validation/order-avro):
   ok    a valid order                                 valid
   ok    an amount that is not a number                invalid: Expected double. Got END_OBJECT
+Protobuf (validation/order-protobuf):
+  ok    a valid OrderPlaced                           valid
+  ok    a ShipmentCreated (another message type)      invalid: Missing message type ShipmentCreated in the protobuf schema
+  ok    a valid OrderPlaced, schema chosen per record valid
 All validation checks passed.
 ```
 
-The library has modules for JSON Schema, Avro and Protobuf (`apicurio-registry-schema-validation-*`).
+For Protobuf, the message classes are generated from the same `.proto` files at build time, so a
+message is checked against the registered schema by type and fields. Choosing the schema per record
+needs `apicurio.registry.find-latest=true` for Protobuf for now
+([#11005](https://github.com/Apicurio/apicurio-registry/issues/11005)).
 
 ## Step 14: Clean up
 

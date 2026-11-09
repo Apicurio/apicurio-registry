@@ -216,7 +216,7 @@ API writes; they apply rules when they load data, with different version selecti
 - **Example:** [`examples/rules-and-compatibility`](../examples/rules-and-compatibility/):
   `docker compose up -d && ./demo.sh` checks validity, BACKWARD and FORWARD, precedence, dry run,
   transitive checks with deprecated and disabled versions, drafts and integrity; its
-  `validation-client` shows client-side data validation. Both run in CI against each pull request's
+  `validation-client` shows client-side data validation for JSON Schema, Avro and Protobuf. Both run in CI against each pull request's
   images.
 - **User documentation:**
   [`assembly-intro-to-registry-rules.adoc`](../docs/modules/ROOT/pages/getting-started/assembly-intro-to-registry-rules.adoc),

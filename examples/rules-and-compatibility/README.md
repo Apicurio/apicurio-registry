@@ -50,7 +50,7 @@ Stop and remove everything with `docker compose down -v`.
 | [`schemas/`](schemas) | The Avro and JSON schemas the steps register |
 | [`demo.sh`](demo.sh) | Creates the sample data and checks every rule behaviour |
 | [`demo-env.sh`](demo-env.sh) | Shell helpers (`status`, `call`) to call the API by hand |
-| [`validation-client/`](validation-client) | Java client validating JSON and Avro data with the client-side validation library (guide step 13) |
+| [`validation-client/`](validation-client) | Java client validating JSON Schema, Avro and Protobuf data with the client-side validation library (guide step 13) |
 
 ## Notes
 

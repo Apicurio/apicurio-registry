@@ -33,7 +33,8 @@ and deserialize message payloads.
 This example runs Apicurio Registry and its web console with Docker Compose and shows its content
 rules: validity, BACKWARD and FORWARD compatibility, which rule wins when rules are set globally, per
 group and per artifact, dry runs, transitive checks, drafts and integrity rules for references. A
-small Java client validates data against registered schemas with the client-side validation library.
+small Java client validates JSON Schema, Avro and Protobuf data against registered schemas with the
+client-side validation library.
 Its [step-by-step guide](rules-and-compatibility/GUIDE.md) walks through each rule in the REST API
 and the UI.
 

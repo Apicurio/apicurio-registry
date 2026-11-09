@@ -1,12 +1,18 @@
 package io.apicurio.registry.examples.rules;
 
+import io.apicurio.registry.examples.rules.proto.OrderPlaced;
+import io.apicurio.registry.examples.rules.proto.ShipmentCreated;
 import io.apicurio.registry.resolver.config.SchemaResolverConfig;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
+import io.apicurio.schema.validation.SchemaValidationMetadata;
+import io.apicurio.schema.validation.SchemaValidationRecord;
 import io.apicurio.schema.validation.ValidationResult;
 import io.apicurio.schema.validation.avro.AvroValidator;
 import io.apicurio.schema.validation.json.JsonValidator;
+import io.apicurio.schema.validation.protobuf.ProtobufValidator;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -49,6 +55,7 @@ public class ValidationClient {
         String registryUrl = args.length > 0 ? args[0] : "http://localhost:8081/apis/registry/v3";
         register(registryUrl, "order-json", "JSON", ORDER_JSON_SCHEMA);
         register(registryUrl, "order-avro", "AVRO", ORDER_AVRO_SCHEMA);
+        register(registryUrl, "order-protobuf", "PROTOBUF", resource("/order.proto"), "application/x-protobuf");
 
         System.out.println("JSON Schema (validation/order-json):");
         JsonValidator json = new JsonValidator(config(registryUrl), Optional.of(reference("order-json")));
@@ -58,6 +65,11 @@ public class ValidationClient {
                 Map.of("orderId", "o-2", "quantity", 0)));
         expect("no quantity (required)", false, json.validateByArtifactReference(
                 Map.of("orderId", "o-3")));
+        // validate(record) resolves the schema per record, here from the record's artifact reference
+        JsonValidator dynamicJson = new JsonValidator(config(registryUrl), Optional.empty());
+        expect("a valid order, schema chosen per record", true, dynamicJson.validate(
+                new SchemaValidationRecord<>(Map.of("orderId", "o-4", "quantity", 1),
+                        new SchemaValidationMetadata(reference("order-json")))));
 
         System.out.println("Avro (validation/order-avro):");
         AvroValidator avro = new AvroValidator(config(registryUrl), Optional.of(reference("order-avro")));
@@ -65,6 +77,21 @@ public class ValidationClient {
                 "{\"orderId\": \"o-1\", \"amount\": 9.5}"));
         expect("an amount that is not a number", false, avro.validateByArtifactReference(
                 "{\"orderId\": \"o-2\", \"amount\": \"lots\"}"));
+
+        System.out.println("Protobuf (validation/order-protobuf):");
+        ProtobufValidator protobuf = new ProtobufValidator(config(registryUrl), Optional.of(reference("order-protobuf")));
+        expect("a valid OrderPlaced", true, protobuf.validateByArtifactReference(
+                OrderPlaced.newBuilder().setOrderId("o-1").setAmount(9.5).build()));
+        expect("a ShipmentCreated (another message type)", false, protobuf.validateByArtifactReference(
+                ShipmentCreated.newBuilder().setShipmentId("s-1").setParcels(2).build()));
+        // find-latest: look the schema up by the record's coordinates. Without it, Protobuf lookups
+        // by content fail (https://github.com/Apicurio/apicurio-registry/issues/11005).
+        ProtobufValidator dynamicProtobuf = new ProtobufValidator(
+                Map.of(SchemaResolverConfig.REGISTRY_URL, registryUrl, SchemaResolverConfig.FIND_LATEST_ARTIFACT, true),
+                Optional.empty());
+        expect("a valid OrderPlaced, schema chosen per record", true, dynamicProtobuf.validate(
+                new SchemaValidationRecord<>(OrderPlaced.newBuilder().setOrderId("o-2").build(),
+                        new SchemaValidationMetadata(reference("order-protobuf")))));
 
         if (failures > 0) {
             System.out.println(failures + " check(s) failed.");
@@ -98,9 +125,14 @@ public class ValidationClient {
     /** Creates the artifact, or finds it when it already exists with the same content. */
     private static void register(String registryUrl, String artifactId, String type, String schema)
             throws IOException, InterruptedException {
+        register(registryUrl, artifactId, type, schema, "application/json");
+    }
+
+    private static void register(String registryUrl, String artifactId, String type, String schema,
+            String contentType) throws IOException, InterruptedException {
         String body = "{\"artifactId\": " + quote(artifactId) + ", \"artifactType\": " + quote(type)
                 + ", \"firstVersion\": {\"content\": {\"content\": " + quote(schema)
-                + ", \"contentType\": \"application/json\"}}}";
+                + ", \"contentType\": " + quote(contentType) + "}}}";
         HttpRequest request = HttpRequest.newBuilder(URI.create(registryUrl + "/groups/" + GROUP
                         + "/artifacts?ifExists=FIND_OR_CREATE_VERSION"))
                 .header("Content-Type", "application/json")
@@ -110,6 +142,16 @@ public class ValidationClient {
         if (response.statusCode() != 200) {
             throw new IllegalStateException("Registering " + artifactId + " failed: " + response.statusCode()
                     + " " + response.body());
+        }
+    }
+
+    /** The .proto files are packaged with the client, so the registered schema is the one compiled. */
+    private static String resource(String name) throws IOException {
+        try (InputStream in = ValidationClient.class.getResourceAsStream(name)) {
+            if (in == null) {
+                throw new IllegalStateException(name + " is not on the classpath");
+            }
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
 

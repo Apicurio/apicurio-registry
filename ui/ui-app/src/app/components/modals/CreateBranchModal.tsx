@@ -1,4 +1,4 @@
-import { FunctionComponent, useState } from "react";
+import { FunctionComponent, useEffect, useState } from "react";
 import {
     Button,
     Form,
@@ -27,6 +27,14 @@ export type CreateBranchModalProps = {
 export const CreateBranchModal: FunctionComponent<CreateBranchModalProps> = (props: CreateBranchModalProps) => {
     const [branchId, setBranchId] = useState("");
     const [description, setDescription] = useState("");
+
+    // Clear any values left over from a previous, cancelled open.
+    useEffect(() => {
+        if (props.isOpen) {
+            setBranchId("");
+            setDescription("");
+        }
+    }, [props.isOpen]);
 
     const onBranchIdChange = (_event: any, value: any): void => {
         setBranchId(value);

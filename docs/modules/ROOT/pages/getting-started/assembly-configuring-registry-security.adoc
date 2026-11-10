@@ -1107,9 +1107,7 @@ With OpenID Connect, users or API clients must obtain an access token to make au
 |`false`
 |===
 
-*{registry} HTTP basic client credentials cache expiry.* You can also configure the HTTP basic client credentials cache expiry time. By default, when you use HTTP basic authentication, {registry} caches JWT tokens and does not issue a new token when there is no need. You can configure the cache expiry time for JWT tokens, which is set to 10 mins by default.
-
-When you use {keycloak}, set this configuration to your {keycloak} JWT expiry time minus one minute. For example, if you have the expiry time set to `5` mins in {keycloak}, set the following configuration option to `4` mins:
+*{registry} HTTP basic client credentials cache expiry.* You can also configure the HTTP basic client credentials cache expiry time. By default, when you use HTTP basic authentication, {registry} caches JWT tokens and does not issue a new token when there is no need. A token is cached until it expires, minus `cache-expiration-offset` seconds, so you do not need to match the expiry time of your identity provider. `cache-expiration` is the lifetime in minutes used only when the expiry of a token cannot be read:
 
 .Configuration for HTTP basic client credentials cache expiry
 [%header,cols="4,4,1,1"]

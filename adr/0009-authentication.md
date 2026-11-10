@@ -61,7 +61,7 @@ provider as the single source of truth for credentials and roles, while those to
 
 | Mechanism | Enabled by (default off) | Identity | Notes |
 |---|---|---|---|
-| `oidc` | `quarkus.oidc.tenant-enabled` | Token subject, roles from the token | Signature and audience (`quarkus.oidc.client-id`) checked by Quarkus OIDC |
+| `oidc` | `quarkus.oidc.tenant-enabled` | Token subject, roles from the token | Signature, expiry and issuer checked by Quarkus OIDC; the audience only when `quarkus.oidc.token.audience` is set |
 | basic as client credentials | `apicurio.authn.basic-client-credentials.enabled` (with OIDC) | The service account | `Basic id:secret` exchanged with `grant_type=client_credentials` (`quarkus.oidc.token-path`); tokens cached until `exp` minus `cache-expiration-offset` (10 s), failures cached 60 s; concurrent requests share one fetch; retried on IdP errors |
 | basic, password grant | `quarkus.oidc.client-secret` set | The user | `Basic user:password` exchanged with `grant_type=password` |
 | `basic` | `quarkus.http.auth.basic` | A user of a Quarkus identity provider | For example `quarkus.security.users.embedded.*`: no identity provider needed |

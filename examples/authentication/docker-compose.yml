@@ -49,10 +49,12 @@ services:
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
-      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:${KAFKA_PORT:-9092}
+      # Two listeners: the host (the Java clients) and the container itself (demo.sh's cleanup)
+      KAFKA_LISTENERS: HOST://:9092,INTERNAL://:29092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: HOST://localhost:${KAFKA_PORT:-9092},INTERNAL://localhost:29092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,HOST:PLAINTEXT,INTERNAL:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
@@ -132,7 +134,9 @@ services:
   registry-proxy:
     image: *registry-image
     container_name: apicurio-registry-proxy-authn
-    # No ports: only the proxy can reach it, so nobody can send the identity headers directly
+    # No published ports, and only on a network shared with the proxy: nothing else (on the host or
+    # in Compose) can reach it, so nobody can send the identity headers directly
+    networks: [proxied]
     environment:
       APICURIO_AUTHN_PROXY_HEADER_ENABLED: "true"
       APICURIO_AUTHN_MECHANISM_PRIORITY: "proxy-header"
@@ -148,6 +152,7 @@ services:
     volumes:
       - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./proxy/htpasswd:/etc/nginx/htpasswd:ro
+    networks: [default, proxied]
     ports:
       - "${PROXY_PORT:-8083}:8080"
     depends_on:
@@ -210,6 +215,11 @@ services:
       k8s-setup:
         condition: service_completed_successfully
     healthcheck: *registry-health
+
+networks:
+  # Internal: no route outside it; only proxy and registry-proxy are attached
+  proxied:
+    internal: true
 
 volumes:
   k3s-output:

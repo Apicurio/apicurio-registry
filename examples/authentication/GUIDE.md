@@ -113,8 +113,10 @@ curl -H "Authorization: Bearer $TOKEN" localhost:8081/apis/registry/v3/groups
 | `developer` | 200 | 200 | 403 |
 | `user` | 200 | 403 | 403 |
 
-The registry checks the token's signature against Keycloak (`QUARKUS_OIDC_AUTH_SERVER_URL`) and its
-audience (`QUARKUS_OIDC_CLIENT_ID=registry-api`), and reads the roles from it. An invalid token is
+The registry checks the token's signature and expiry against Keycloak (`QUARKUS_OIDC_AUTH_SERVER_URL`),
+and reads the roles from it. It does not check the audience unless `QUARKUS_OIDC_TOKEN_AUDIENCE` is
+set: here any token of the realm is accepted, including the console's. In production, set it, so
+that tokens issued for other applications are refused. An invalid token is
 401. (The example relaxes the issuer check, `QUARKUS_OIDC_TOKEN_ISSUER=any`, because the browser and
 the containers reach Keycloak under different host names; do not do that in production.)
 
@@ -271,7 +273,7 @@ docker compose down -v
 
 | Symptom | What to do |
 |---|---|
-| Every call is 401 with a valid token | Check `QUARKUS_OIDC_AUTH_SERVER_URL` is reachable from the registry container, and the token's audience includes `registry-api`. |
+| Every call is 401 with a valid token | Check that `QUARKUS_OIDC_AUTH_SERVER_URL` is reachable from the registry container, and, if `QUARKUS_OIDC_TOKEN_AUDIENCE` is set, that the token's audience contains it. |
 | The console loops on the login page | `REGISTRY_AUTH_URL` must be the URL the browser uses for Keycloak. |
 | `registry-k8s` does not start | `docker logs k8s-setup-authn`; k3s needs a privileged container. On Podman, use a rootful machine. |
 | `build.sh failed` | JDK 21 or later is needed; run `./build.sh` to see the errors. |

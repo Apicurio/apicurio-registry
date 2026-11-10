@@ -75,7 +75,7 @@ done
 code "$REGISTRY" DELETE /groups/default/artifacts/greetings-value -H "$(bearer "$ADMIN")" > /dev/null
 for g in basic-admin basic-developer sdk-basic cli-basic; do code "$BASIC" DELETE "/groups/$g" -u admin:admin > /dev/null; done
 for g in proxy-alice; do code "$PROXY" DELETE "/groups/$g" -u alice:alice > /dev/null; done
-docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --delete \
+docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:29092 --delete \
   --if-exists --topic greetings > /dev/null 2>&1 || true
 
 # ------------------------------------------------------------------------------ step 4
@@ -120,13 +120,21 @@ check "a malformed basic header: 500 today, should be 401 (#11043)" 500 \
   "$(code "$REGISTRY" GET /groups -H 'Authorization: Basic !!!notbase64')"
 master=$(curl -s "$KEYCLOAK/realms/master/protocol/openid-connect/token" \
   -d 'grant_type=password&client_id=admin-cli&username=admin&password=admin' | jq -r .access_token)
+# logins: the number of CLIENT_LOGIN events of readonly-client, or "error" if Keycloak did not answer
 logins() {
-  curl -s -H "$(bearer "$master")" "$KEYCLOAK/admin/realms/registry/events?type=CLIENT_LOGIN&client=readonly-client&max=1000" | jq length
+  curl -s -H "$(bearer "$master")" "$KEYCLOAK/admin/realms/registry/events?type=CLIENT_LOGIN&client=readonly-client&max=1000" \
+    | jq -r 'if type == "array" then length else "error" end' 2>/dev/null || echo error
 }
-code "$REGISTRY" GET /groups -u readonly-client:test1 > /dev/null
+check "the first call with readonly-client:test1 succeeds" 200 "$(code "$REGISTRY" GET /groups -u readonly-client:test1)"
 before=$(logins)
-for _ in 1 2 3 4 5; do code "$REGISTRY" GET /groups -u readonly-client:test1 > /dev/null; done
-check "5 more calls with the same credentials: no new token requests (cached)" 0 "$(($(logins) - before))"
+statuses=$(for _ in 1 2 3 4 5; do code "$REGISTRY" GET /groups -u readonly-client:test1; echo; done | sort -u | tr -d '\n')
+after=$(logins)
+check "5 more calls with the same credentials all succeed" 200 "$statuses"
+if [[ "$before" =~ ^[0-9]+$ && "$after" =~ ^[0-9]+$ ]]; then
+  check "... and request no new token from Keycloak (cached)" 0 "$((after - before))"
+else
+  fail "could not read Keycloak's login events (before: $before, after: $after)"
+fi
 
 # ------------------------------------------------------------------------------ step 8
 part "Step 8: HTTP basic against users configured in the registry (registry-basic)"
@@ -183,20 +191,25 @@ fi
 check "its owner is developer-client" developer-client \
   "$(curl -s -H "$(bearer "$ADMIN")" "$REGISTRY$V3/groups/maven/artifacts/greeting" | jq -r .owner)"
 acr_home=$(mktemp -d)
+# Contexts are unique per run, and logged out at the end: credentials may land in the OS keychain,
+# keyed by context name, and must not overwrite or survive a user's own contexts
+run_id="authn-example-$$-$RANDOM"
 mkdir -p "$acr_home/current"
 echo '{}' > "$acr_home/current/config.json"
 acr() { ACR_HOME="$acr_home" ACR_CURRENT_HOME="$acr_home/current" java -jar ../../cli/target/quarkus-app/quarkus-run.jar "$@" 2>&1; }
-acr context create oidc "$REGISTRY" > /dev/null
+acr context create "$run_id-oidc" "$REGISTRY" > /dev/null
 acr login --client-id developer-client --client-secret test1 --token-endpoint "$TOKEN_URL" \
   --allow-unsafe-credential-storage > /dev/null
 acr group create cli-oauth2 > /dev/null || true
 check "CLI logged in with client credentials and created a group" 200 \
   "$(code "$REGISTRY" GET /groups/cli-oauth2 -H "$(bearer "$ADMIN")")"
-acr context create basic "$BASIC" > /dev/null
+acr context create "$run_id-basic" "$BASIC" > /dev/null
 acr login --username developer --password developer --allow-unsafe-credential-storage > /dev/null
 acr group create cli-basic > /dev/null || true
 check "CLI logged in with a user and password (registry-basic) and created a group" 200 \
   "$(code "$BASIC" GET /groups/cli-basic -u admin:admin)"
+acr logout > /dev/null || true
+acr context use "$run_id-oidc" > /dev/null 2>&1 && acr logout > /dev/null || true
 rm -rf "$acr_home"
 
 if [[ $failures -gt 0 ]]; then

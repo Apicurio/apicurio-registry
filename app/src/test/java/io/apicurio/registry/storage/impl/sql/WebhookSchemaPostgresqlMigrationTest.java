@@ -26,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.apicurio.registry.storage.impl.sql.jdb.HandleImpl;
+
 
 class WebhookSchemaPostgresqlMigrationTest {
 
@@ -46,7 +48,7 @@ class WebhookSchemaPostgresqlMigrationTest {
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
-            assertDbVersion(conn, 113);
+            assertDbVersion(conn, 114);
             assertConstraintInvariants(conn);
         } finally {
             pg.close();
@@ -54,10 +56,9 @@ class WebhookSchemaPostgresqlMigrationTest {
     }
 
     // ------------------------------------------------------------
-    // Upgrade: 111 → 112 → 113 from the real v111 schema with representative rows
+    // Upgrade: 111 → 112 → 113 → 114 from the real v111 schema with representative rows
     // ------------------------------------------------------------
 
-    
     @Test
     void upgrade_fromRealV111Schema_createsWebhookTablesAndPreservesRows() throws Exception {
         EmbeddedPostgres pg = EmbeddedPostgres.start();
@@ -66,7 +67,7 @@ class WebhookSchemaPostgresqlMigrationTest {
             applyDdlResource(conn, "pre-peers-schema/postgresql.ddl");
             assertDbVersion(conn, 110);
 
-            // Seed representative rows that must survive both upgrades.
+            // Seed representative rows that must survive all upgrades.
             try (Statement st = conn.createStatement()) {
                 st.execute("INSERT INTO global_rules (type, configuration) VALUES ('COMPATIBILITY', 'BACKWARD')");
                 st.execute("INSERT INTO apicurio (propName, propValue) VALUES ('extra_key', 'extra_value')");
@@ -77,9 +78,10 @@ class WebhookSchemaPostgresqlMigrationTest {
             assertDbVersion(conn, 111);
             assertTableExists(conn, "peers");
 
-            // Apply the drafts cleanup (111 → 112) and the webhook upgrade (112 → 113).
-            applyStatements(conn, new PostgreSQLSqlStatements().databaseUpgrade(111, 113));
-            assertDbVersion(conn, 113);
+            // Apply 111→112 (drafts cleanup), 112→113 (DuplicateVersionOrder + UQ_versions_3),
+            // and 113→114 (webhooks).
+            applyStatements(conn, new PostgreSQLSqlStatements().databaseUpgrade(111, 114));
+            assertDbVersion(conn, 114);
 
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
@@ -124,7 +126,73 @@ class WebhookSchemaPostgresqlMigrationTest {
         }
     }
 
-  
+    // ------------------------------------------------------------
+    // Real 113 → 114 upgrade test
+    // ------------------------------------------------------------
+
+    /**
+     * Loads the pinned v113 baseline (upstream/main DDL with UQ_versions_3), seeds representative
+     * rows, runs databaseUpgrade(113, 114), and asserts: db_version = 114; webhook tables present;
+     * seeded rows unchanged; schema parity with a fresh 114 install.
+     */
+    @Test
+    void upgrade_fromRealV113Schema_createsWebhookTablesAndPreservesRows() throws Exception {
+        EmbeddedPostgres pg = EmbeddedPostgres.start();
+        try (Connection conn = pgConnection(pg)) {
+            applyDdlResource(conn, "pre-webhook-schema-113/postgresql.ddl");
+            assertDbVersion(conn, 113);
+
+            // Seed representative rows.
+            try (Statement st = conn.createStatement()) {
+                st.execute("INSERT INTO apicurio (propName, propValue) VALUES ('v113_key', 'v113_value')");
+                st.execute("INSERT INTO global_rules (type, configuration) VALUES ('VALIDITY', 'FULL')");
+            }
+
+            // 114 script contains only plain SQL — no UPGRADER directive.
+            applyStatements(conn, new PostgreSQLSqlStatements().databaseUpgrade(113, 114));
+            assertDbVersion(conn, 114);
+
+            assertTableExists(conn, "webhook_subscriptions");
+            assertTableExists(conn, "webhook_events");
+            assertTableExists(conn, "webhook_delivery_logs");
+
+            // Seeded rows must be intact.
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT propValue FROM apicurio WHERE propName = 'v113_key'")) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "Seeded apicurio property must survive the 113→114 upgrade");
+                    assertEquals("v113_value", rs.getString(1));
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT configuration FROM global_rules WHERE type = 'VALIDITY'")) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "Seeded global_rules row must survive the 113→114 upgrade");
+                    assertEquals("FULL", rs.getString(1));
+                }
+            }
+
+            // Full webhook constraint invariant suite.
+            assertConstraintInvariants(conn);
+
+            // Schema parity with a fresh 114 install.
+            EmbeddedPostgres pgFresh = EmbeddedPostgres.start();
+            try (Connection fresh = pgConnection(pgFresh)) {
+                applyStatements(fresh, new PostgreSQLSqlStatements().databaseInitialization());
+                for (String table : List.of("webhook_subscriptions", "webhook_events", "webhook_delivery_logs")) {
+                    List<String> freshMeta = collectPgSchemaMeta(fresh, table);
+                    List<String> upgradedMeta = collectPgSchemaMeta(conn, table);
+                    assertEquals(freshMeta, upgradedMeta,
+                            "Schema parity (real v113 baseline) failed for table " + table);
+                }
+            } finally {
+                pgFresh.close();
+            }
+        } finally {
+            pg.close();
+        }
+    }
+
     @Test
     void pgSchemaParity_freshMatchesUpgraded() throws Exception {
         EmbeddedPostgres pgFresh = EmbeddedPostgres.start();
@@ -598,8 +666,8 @@ class WebhookSchemaPostgresqlMigrationTest {
         } else {
             applyDdlResource(conn, "pre-peers-schema/postgresql.ddl");
             applyStatements(conn, new PostgreSQLSqlStatements().databaseUpgrade(110, 111));
-            applyStatements(conn, new PostgreSQLSqlStatements().databaseUpgrade(111, 113));
-            assertDbVersion(conn, 113);
+            applyStatements(conn, new PostgreSQLSqlStatements().databaseUpgrade(111, 114));
+            assertDbVersion(conn, 114);
         }
     }
 
@@ -643,10 +711,15 @@ class WebhookSchemaPostgresqlMigrationTest {
         return DriverManager.getConnection(pg.getJdbcUrl("postgres", "postgres"), "postgres", "");
     }
 
-    private static void applyStatements(Connection conn, List<String> statements) throws SQLException {
+    private static void applyStatements(Connection conn, List<String> statements) throws Exception {
         for (String sql : statements) {
-            try (Statement st = conn.createStatement()) {
-                st.execute(sql);
+            if (sql.startsWith("UPGRADER:")) {
+                String className = sql.substring("UPGRADER:".length()).trim();
+                ((IDbUpgrader) Class.forName(className).getConstructor().newInstance()).upgrade(new HandleImpl(conn));
+            } else {
+                try (Statement st = conn.createStatement()) {
+                    st.execute(sql);
+                }
             }
         }
     }

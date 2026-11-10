@@ -8,6 +8,8 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mssqlserver.MSSQLServerContainer;
 
+import io.apicurio.registry.storage.impl.sql.jdb.HandleImpl;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
@@ -31,9 +33,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 /**
- * <strong>Isolated webhook migration smoketest</strong> for SQL Server (schema version 113).
+ * <strong>Isolated webhook migration smoketest</strong> for SQL Server (schema version 114).
  *
- * <p>Scope: verifies that the 112→113 upgrade DDL creates the three webhook tables with
+ * <p>Scope: verifies that the 113→114 upgrade DDL creates the three webhook tables with
  * correct constraints, that the upgrade is retry-safe (every {@code CREATE TABLE} is guarded
  * by {@code IF OBJECT_ID IS NULL} and every {@code CREATE INDEX} by a {@code sys.indexes}
  * lookup), and that a fresh install and an upgrade produce identical schemas.</p>
@@ -101,29 +103,29 @@ class WebhookSchemaMssqlMigrationTest {
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
-            assertDbVersion(conn, 113);
+            assertDbVersion(conn, 114);
         }
     }
 
     // ------------------------------------------------------------
-    // Upgrade: 112 → 113 from a minimal v112 state with representative rows
+    // Upgrade: 113 → 114 from a minimal v113 state with representative rows
     // ------------------------------------------------------------
 
     @Test
-    void upgrade_fromV112State_createsWebhookTablesAndPreservesRows() throws Exception {
+    void upgrade_fromV113State_createsWebhookTablesAndPreservesRows() throws Exception {
         try (Connection conn = openConnection()) {
-            // Create a minimal v112 state: just the apicurio table and an extra property.
-            // (A full v110 SQL Server DDL is not pinned in test resources; using the minimal
-            // apicurio table is sufficient to verify that the upgrade preserves existing rows.)
+            // Create a minimal v113 state: just the apicurio table and an extra property.
+            // (Using the minimal apicurio table is sufficient to verify that the upgrade
+            // preserves existing rows.)
             try (Statement st = conn.createStatement()) {
                 st.execute("CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL PRIMARY KEY, propValue NVARCHAR(512))");
-                st.execute("INSERT INTO apicurio VALUES ('db_version', '112')");
+                st.execute("INSERT INTO apicurio VALUES ('db_version', '113')");
                 st.execute("INSERT INTO apicurio VALUES ('extra_key', 'extra_value')");
             }
-            assertDbVersion(conn, 112);
-
-            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(112, 113));
             assertDbVersion(conn, 113);
+
+            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(113, 114));
+            assertDbVersion(conn, 114);
 
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
@@ -145,7 +147,7 @@ class WebhookSchemaMssqlMigrationTest {
     // ------------------------------------------------------------
 
     /**
-     * Two cut-point scenarios verify that the 113 upgrade script is fully retry-safe on SQL Server:
+     * Two cut-point scenarios verify that the 114 upgrade script is fully retry-safe on SQL Server:
      *
      * <ol>
      *   <li><strong>Pre-index cut</strong>: {@code webhook_subscriptions} table exists (no indexes
@@ -165,12 +167,12 @@ class WebhookSchemaMssqlMigrationTest {
     void upgrade_partialApplication_isRetryable() throws Exception {
         // --- Cut point 1: table present, no indexes ---
         try (Connection conn = openConnection()) {
-            // Minimal v112 state.
+            // Minimal v113 state.
             try (Statement st = conn.createStatement()) {
                 st.execute("CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL PRIMARY KEY, propValue NVARCHAR(512))");
-                st.execute("INSERT INTO apicurio VALUES ('db_version', '112')");
+                st.execute("INSERT INTO apicurio VALUES ('db_version', '113')");
             }
-            assertDbVersion(conn, 112);
+            assertDbVersion(conn, 113);
 
             // Simulate partial failure: webhook_subscriptions was committed but the script
             // died before its indexes, webhook_events, webhook_delivery_logs, and the version marker.
@@ -194,15 +196,15 @@ class WebhookSchemaMssqlMigrationTest {
                         + "PRIMARY KEY (subscriptionId)"
                         + ")");
             }
-            assertDbVersion(conn, 112);
+            assertDbVersion(conn, 113);
 
-            // Retry: the full 113 upgrade script must succeed without errors.
-            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(112, 113));
+            // Retry: the full 114 upgrade script must succeed without errors.
+            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(113, 114));
 
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
-            assertDbVersion(conn, 113);
+            assertDbVersion(conn, 114);
 
             // Verify constraints are intact after retry, not just that tables exist.
             assertConstraintInvariants(conn);
@@ -214,12 +216,12 @@ class WebhookSchemaMssqlMigrationTest {
             dropAllTables(conn);
         }
         try (Connection conn = openConnection()) {
-            // Minimal v112 state.
+            // Minimal v113 state.
             try (Statement st = conn.createStatement()) {
                 st.execute("CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL PRIMARY KEY, propValue NVARCHAR(512))");
-                st.execute("INSERT INTO apicurio VALUES ('db_version', '112')");
+                st.execute("INSERT INTO apicurio VALUES ('db_version', '113')");
             }
-            assertDbVersion(conn, 112);
+            assertDbVersion(conn, 113);
 
             // Simulate partial failure: webhook_subscriptions AND its two indexes were committed
             // but the script died before webhook_events. This exercises the sys.indexes guard.
@@ -245,16 +247,16 @@ class WebhookSchemaMssqlMigrationTest {
                 st.execute("CREATE INDEX IDX_whsubs_1 ON webhook_subscriptions(enabled, deletedOn)");
                 st.execute("CREATE INDEX IDX_whsubs_2 ON webhook_subscriptions(createdOn)");
             }
-            assertDbVersion(conn, 112);
+            assertDbVersion(conn, 113);
 
-            // Retry: the full 113 upgrade script must succeed — sys.indexes guards skip
+            // Retry: the full 114 upgrade script must succeed — sys.indexes guards skip
             // IDX_whsubs_1 and IDX_whsubs_2 that already exist.
-            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(112, 113));
+            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(113, 114));
 
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
             assertTableExists(conn, "webhook_delivery_logs");
-            assertDbVersion(conn, 113);
+            assertDbVersion(conn, 114);
 
             // Verify constraints are intact after retry.
             assertConstraintInvariants(conn);
@@ -318,18 +320,18 @@ class WebhookSchemaMssqlMigrationTest {
     /**
      * Loads the real v111 DDL from test resources, seeds representative rows
      * (an extra {@code apicurio} property, a group, an artifact, and a peers row),
-     * applies the 111 → 112 → 113 upgrades, then verifies:
+     * applies the 111 → 114 upgrades, then verifies:
      * <ul>
-     *   <li>db_version = 113</li>
+     *   <li>db_version = 114</li>
      *   <li>all three webhook tables are present</li>
      *   <li>every seeded row is unchanged</li>
      *   <li>the full constraint-invariant suite passes</li>
-     *   <li>the schema is identical to a fresh 113 install (parity check)</li>
+     *   <li>the schema is identical to a fresh 114 install (parity check)</li>
      * </ul>
      */
     @Test
     void upgrade_fromRealV111Baseline_preservesRepresentativeRowsAndPassesInvariants() throws Exception {
-        // Phase 1: capture fresh 113 metadata for parity comparison.
+        // Phase 1: capture fresh 114 metadata for parity comparison.
         Map<String, List<String>> freshMetaMap = new LinkedHashMap<>();
         try (Connection conn = openConnection()) {
             applyStatements(conn, new SQLServerSqlStatements().databaseInitialization());
@@ -344,7 +346,7 @@ class WebhookSchemaMssqlMigrationTest {
             executeDdlResource(conn, "pre-webhook-schema/mssql.ddl");
             assertDbVersion(conn, 111);
 
-            // Seed representative rows that must survive the 111→113 upgrade.
+            // Seed representative rows that must survive the 111→114 upgrade.
             try (Statement st = conn.createStatement()) {
                 st.execute("INSERT INTO apicurio (propName, propValue) VALUES ('extra_key', 'extra_value')");
             }
@@ -352,9 +354,9 @@ class WebhookSchemaMssqlMigrationTest {
             insertRealArtifact(conn, "test-group-v111", "test-artifact-v111");
             insertRealPeer(conn, "peer-v111-1");
 
-            // Apply 111 → 112 (drafts cleanup) → 113 (webhooks).
-            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(111, 113));
-            assertDbVersion(conn, 113);
+            // Apply 111 → 112 (drafts cleanup) → 113 (DuplicateVersionOrder + UQ_versions_3) → 114 (webhooks).
+            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(111, 114));
+            assertDbVersion(conn, 114);
 
             assertTableExists(conn, "webhook_subscriptions");
             assertTableExists(conn, "webhook_events");
@@ -364,7 +366,7 @@ class WebhookSchemaMssqlMigrationTest {
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT propValue FROM apicurio WHERE propName = 'extra_key'")) {
                 try (ResultSet rs = ps.executeQuery()) {
-                    assertTrue(rs.next(), "extra apicurio property must survive the 111→113 upgrade");
+                    assertTrue(rs.next(), "extra apicurio property must survive the 111→114 upgrade");
                     assertEquals("extra_value", rs.getString(1),
                             "extra apicurio property value must be unchanged after upgrade");
                 }
@@ -373,7 +375,7 @@ class WebhookSchemaMssqlMigrationTest {
                     "SELECT groupId FROM groups WHERE groupId = ?")) {
                 ps.setString(1, "test-group-v111");
                 try (ResultSet rs = ps.executeQuery()) {
-                    assertTrue(rs.next(), "seeded group must survive the 111→113 upgrade");
+                    assertTrue(rs.next(), "seeded group must survive the 111→114 upgrade");
                 }
             }
             try (PreparedStatement ps = conn.prepareStatement(
@@ -381,25 +383,91 @@ class WebhookSchemaMssqlMigrationTest {
                 ps.setString(1, "test-group-v111");
                 ps.setString(2, "test-artifact-v111");
                 try (ResultSet rs = ps.executeQuery()) {
-                    assertTrue(rs.next(), "seeded artifact must survive the 111→113 upgrade");
+                    assertTrue(rs.next(), "seeded artifact must survive the 111→114 upgrade");
                 }
             }
             try (PreparedStatement ps = conn.prepareStatement(
                     "SELECT peerId FROM peers WHERE peerId = ?")) {
                 ps.setString(1, "peer-v111-1");
                 try (ResultSet rs = ps.executeQuery()) {
-                    assertTrue(rs.next(), "seeded peers row must survive the 111→113 upgrade");
+                    assertTrue(rs.next(), "seeded peers row must survive the 111→114 upgrade");
                 }
             }
 
             // Full constraint invariant suite on the real-baseline-upgraded schema.
             assertConstraintInvariants(conn);
 
-            // Schema parity with fresh 113.
+            // Schema parity with fresh 114.
             for (String table : List.of("webhook_subscriptions", "webhook_events", "webhook_delivery_logs")) {
                 List<String> upgradedMeta = collectMssqlSchemaMeta(conn, table);
                 assertEquals(freshMetaMap.get(table), upgradedMeta,
                         "Schema parity (real v111 baseline) failed for table " + table
+                        + ". Fresh: " + freshMetaMap.get(table) + " Upgraded: " + upgradedMeta);
+            }
+        }
+    }
+
+    /**
+     * Loads the real v113 DDL (pinned from upstream/main at db_version=113, which includes
+     * UQ_versions_3) and verifies that the 113→114 upgrade creates all three webhook tables
+     * while preserving pre-existing rows and the UQ_versions_3 constraint.
+     */
+    @Test
+    void upgrade_fromRealV113Baseline_preservesUqVersions3AndWebhookTables() throws Exception {
+        // Phase 1: capture fresh 114 metadata for parity comparison.
+        Map<String, List<String>> freshMetaMap = new LinkedHashMap<>();
+        try (Connection conn = openConnection()) {
+            applyStatements(conn, new SQLServerSqlStatements().databaseInitialization());
+            for (String table : List.of("webhook_subscriptions", "webhook_events", "webhook_delivery_logs")) {
+                freshMetaMap.put(table, collectMssqlSchemaMeta(conn, table));
+            }
+            dropAllTables(conn);
+        }
+
+        // Phase 2: real v113 baseline → seed → upgrade → assert.
+        try (Connection conn = openConnection()) {
+            executeDdlResource(conn, "pre-webhook-schema-113/mssql.ddl");
+            assertDbVersion(conn, 113);
+
+            // Seed rows that must survive the 113→114 upgrade.
+            try (Statement st = conn.createStatement()) {
+                st.execute("INSERT INTO apicurio (propName, propValue) VALUES ('extra_key_113', 'extra_value_113')");
+            }
+            insertRealGroup(conn, "test-group-v113");
+            insertRealArtifact(conn, "test-group-v113", "test-artifact-v113");
+
+            // Apply 113 → 114 (webhooks only; UQ_versions_3 already exists in the v113 DDL).
+            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(113, 114));
+            assertDbVersion(conn, 114);
+
+            assertTableExists(conn, "webhook_subscriptions");
+            assertTableExists(conn, "webhook_events");
+            assertTableExists(conn, "webhook_delivery_logs");
+
+            // Seeded rows must be intact.
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT propValue FROM apicurio WHERE propName = 'extra_key_113'")) {
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "extra apicurio property must survive the 113→114 upgrade");
+                    assertEquals("extra_value_113", rs.getString(1));
+                }
+            }
+            try (PreparedStatement ps = conn.prepareStatement(
+                    "SELECT groupId FROM groups WHERE groupId = ?")) {
+                ps.setString(1, "test-group-v113");
+                try (ResultSet rs = ps.executeQuery()) {
+                    assertTrue(rs.next(), "seeded group must survive the 113→114 upgrade");
+                }
+            }
+
+            // Full constraint invariant suite.
+            assertConstraintInvariants(conn);
+
+            // Schema parity with fresh 114.
+            for (String table : List.of("webhook_subscriptions", "webhook_events", "webhook_delivery_logs")) {
+                List<String> upgradedMeta = collectMssqlSchemaMeta(conn, table);
+                assertEquals(freshMetaMap.get(table), upgradedMeta,
+                        "Schema parity (real v113 baseline) failed for table " + table
                         + ". Fresh: " + freshMetaMap.get(table) + " Upgraded: " + upgradedMeta);
             }
         }
@@ -857,13 +925,13 @@ class WebhookSchemaMssqlMigrationTest {
         if ("fresh".equals(scenario)) {
             applyStatements(conn, new SQLServerSqlStatements().databaseInitialization());
         } else {
-            // Minimal v112 state.
+            // Minimal v113 state.
             try (Statement st = conn.createStatement()) {
                 st.execute("CREATE TABLE apicurio (propName NVARCHAR(255) NOT NULL PRIMARY KEY, propValue NVARCHAR(512))");
-                st.execute("INSERT INTO apicurio VALUES ('db_version', '112')");
+                st.execute("INSERT INTO apicurio VALUES ('db_version', '113')");
             }
-            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(112, 113));
-            assertDbVersion(conn, 113);
+            applyStatements(conn, new SQLServerSqlStatements().databaseUpgrade(113, 114));
+            assertDbVersion(conn, 114);
         }
     }
 
@@ -924,10 +992,15 @@ class WebhookSchemaMssqlMigrationTest {
         }
     }
 
-    private static void applyStatements(Connection conn, List<String> statements) throws SQLException {
+    private static void applyStatements(Connection conn, List<String> statements) throws Exception {
         for (String sql : statements) {
-            try (Statement st = conn.createStatement()) {
-                st.execute(sql);
+            if (sql.startsWith("UPGRADER:")) {
+                String className = sql.substring("UPGRADER:".length()).trim();
+                ((IDbUpgrader) Class.forName(className).getConstructor().newInstance()).upgrade(new HandleImpl(conn));
+            } else {
+                try (Statement st = conn.createStatement()) {
+                    st.execute(sql);
+                }
             }
         }
     }

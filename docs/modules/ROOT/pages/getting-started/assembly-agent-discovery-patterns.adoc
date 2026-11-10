@@ -81,7 +81,7 @@ endif::[]
 
 The `/.well-known/agent.json` endpoint returns the {registry} instance agent card, which represents the registry itself as an A2A agent. This endpoint requires no authentication.
 
-The `/.well-known/agents` and `/.well-known/agents/\{groupId}/\{artifactId}` endpoints operate on agent cards that you store in {registry} as `AGENT_CARD` artifacts. The search endpoint requires no authentication. When OIDC or basic authentication is enabled, the search endpoint returns only the agent cards that the caller has permission to view, based on the `apicurio.agent.visibility` label. The `/.well-known/agents/\{groupId}/\{artifactId}` endpoint requires read-level authorization.
+The `/.well-known/agents` and `/.well-known/agents/\{groupId}/\{artifactId}` endpoints operate on agent cards that you store in {registry} as `AGENT_CARD` artifacts. The search endpoint requires no authentication. When any authentication mechanism (OIDC, basic, proxy header, Kubernetes, or form) is enabled, the search endpoint returns only the agent cards that the caller has permission to view, based on the `apicurio.agent.visibility` label. The `/.well-known/agents/\{groupId}/\{artifactId}` endpoint requires read-level authorization.
 
 The `/.well-known/mcp-tools`, `/.well-known/mcp-tools/\{groupId}/\{artifactId}`, `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatible`, and `/.well-known/mcp-tools/\{groupId}/\{artifactId}/compatibility` endpoints operate on MCP tool definitions that you store in {registry} as `MCP_TOOL` artifacts. These endpoints require read-level authorization and are available only when MCP tools support is enabled. {registry} also serves them under `/apis/registry/v3/well-known/mcp-tools`, which is where the generated SDK clients call them.
 
@@ -294,7 +294,7 @@ When you build multi-agent workflows, you must handle agent unavailability, vers
 
 |A2A support is disabled
 |404
-|Verify that `apicurio.a2a.enabled` is set to `true` in the {registry} configuration.
+|Verify that both `apicurio.a2a.enabled` and `apicurio.features.experimental.enabled` are `true` in the {registry} configuration. A2A support is experimental, and {registry} does not start with the A2A flag alone.
 
 |Agent card not found
 |404

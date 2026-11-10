@@ -461,6 +461,9 @@ Each KubernetesOps entity type (`registry-v0`, `group-v0`, `artifact-v0`, `conte
 |`peers`
 |list of peers
 |Peer registries for federated search. Each peer has `peerId` (required; lowercase letters, digits, `.`, `_`, and `-` only; must be unique and cannot be `local`, which is reserved), `url` (required), optional `name` and `description`, `enabled` (boolean, defaults to `true` when omitted), and an optional `credentialSecretRef` (a reference to a credential, never a secret value). The full list is replaced on every load: omitting the field, or setting it to an empty list, removes all previously loaded peers.
+ifndef::service-registry-downstream[]
+For the peer URL policy, the federation properties, and the peer management REST API, see xref:getting-started/assembly-a2a-features.adoc#a2a-peer-registries_{context}[Peer registries for federation].
+endif::[]
 |===
 
 .group-v0 fields

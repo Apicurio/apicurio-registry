@@ -55,7 +55,7 @@ You can enable each feature independently with its configuration property.
 
 |`apicurio.ai-catalog.enabled`
 |`false`
-|Whether to enable the `/.well-known/ai-catalog.json` and `/.well-known/ard.json` endpoints
+|Whether to enable the `/.well-known/ai-catalog.json` and `/.well-known/ard.json` endpoints (experimental)
 
 |`apicurio.ai-catalog.publisher-domain`
 |_Derived from request host_
@@ -72,14 +72,27 @@ If you do not configure this property, {registry} uses the `X-Forwarded-Host` he
 
 |`apicurio.ard.enabled`
 |`false`
-|Whether to enable the `POST /ard/search`, `GET /ard/agents`, and `POST /ard/explore` endpoints
+|Whether to enable the `POST /ard/search`, `GET /ard/agents`, and `POST /ard/explore` endpoints (experimental)
 
 |`apicurio.ard.federation.default`
 |`none`
 |Reserved for the ARD federation mode.
 {registry} implements only `none` (no federation) and does not include the value in any response.
 It accepts other values for compatibility with later versions, but these values do not change the behavior.
+
+|`apicurio.features.experimental.enabled`
+|`false`
+|Set to `true` to use experimental features such as AI Catalog publishing and ARD search
 |===
+
+`apicurio.ai-catalog.enabled` and `apicurio.ard.enabled` are experimental. Without `apicurio.features.experimental.enabled=true`, {registry} does not start. Set the three properties together:
+
+[source,properties]
+----
+apicurio.features.experimental.enabled=true
+apicurio.ai-catalog.enabled=true
+apicurio.ard.enabled=true
+----
 
 // ref-ai-catalog-publishing
 [id="ai-catalog-publishing_{context}"]
@@ -195,7 +208,7 @@ A crawler that retrieves only the static catalog can discover the search API fro
 Artifact visibility::
 {registry} filters Agent Card entries by the `apicurio.agent.visibility` label with the same rules as `/.well-known/agents`.
 MCP tool entries have no visibility label, so {registry} always includes them.
-When neither OpenID Connect (OIDC) nor basic authentication is configured, {registry} applies no visibility filtering.
+When no authentication mechanism (OIDC, basic, proxy header, Kubernetes, or form) is configured, {registry} applies no visibility filtering.
 
 Authorization::
 Both endpoints require read-level authorization when authentication is enabled.
@@ -275,8 +288,9 @@ The endpoint also accepts `orderBy`, `pageSize`, and `pageToken` parameters.
 {registry} accepts `orderBy` for compatibility with ARD clients, but the parameter has no effect.
 {registry} returns Agent Card entries before MCP tool entries and orders each group newest first.
 `pageSize` defaults to 20, and {registry} clamps larger values to 500.
-The endpoint returns an AI Catalog document.
-When more results remain, the response includes a `nextPageToken` value that you can use to request the next page.
+The response is an object with an `items` array and a `total` count. Each item has the same form as an entry of the catalog document. The `total` value counts all entries that match the filter.
+When more results remain, the response includes a `pageToken` value that you pass in the `pageToken` query parameter to request the next page.
+The last page has no `pageToken`.
 +
 .Example request
 [source,bash]
@@ -284,6 +298,27 @@ When more results remain, the response includes a `nextPageToken` value that you
 curl -G "http://localhost:8080/.well-known/ard/agents" \
   --data-urlencode "filter=type=application/a2a-agent-card+json" \
   --data-urlencode "pageSize=10"
+----
++
+.Example response
+[source,json]
+----
+{
+  "items": [
+    {
+      "identifier": "urn:air:registry.example.com:8080:ai-agents:translator-agent",
+      "displayName": "Translation Agent",
+      "type": "application/a2a-agent-card+json",
+      "url": "http://registry.example.com:8080/.well-known/agents/ai-agents/translator-agent",
+      "description": "Translates text between languages",
+      "capabilities": ["translation"],
+      "version": "1.0.0",
+      "updatedAt": "2026-09-01T10:15:30Z",
+      "tags": ["apicurio.agent.visibility=public", "department=localization"]
+    }
+  ],
+  "total": 1
+}
 ----
 
 `POST /ard/explore`::

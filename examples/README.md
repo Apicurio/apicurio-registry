@@ -39,6 +39,14 @@ graphs, dereferences, rewrites and hashes references, what integrity rules and d
 Kafka serializers register nested Avro types and Protobuf imports. Its
 [step-by-step guide](schema-references/GUIDE.md) explains each step.
 
+## Authentication Example
+This example runs Keycloak and four registries with Docker Compose, each authenticating callers
+differently: OIDC tokens for users and service accounts (with roles, basic credentials exchanged for
+tokens, and the web console login), HTTP basic against users configured in the registry, identity
+from an authenticating nginx proxy, and Kubernetes service account tokens checked against a k3s
+server. The Java SDK, Kafka serializers, the Maven plugin and the CLI authenticate too. Its
+[step-by-step guide](authentication/GUIDE.md) covers every mechanism, including the rejections.
+
 ## Rules and Compatibility Example
 This example runs Apicurio Registry and its web console with Docker Compose and shows its content
 rules: validity, BACKWARD and FORWARD compatibility, which rule wins when rules are set globally, per

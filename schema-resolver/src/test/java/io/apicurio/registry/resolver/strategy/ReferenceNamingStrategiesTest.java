@@ -7,7 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ReferenceNamingStrategiesTest {
 
     private static ReferenceNamingContext ctx(String name, String type, String defaultGroup, String namespace) {
-        return new ReferenceNamingContext(name, type, defaultGroup, "parent-group", "Parent", namespace, null);
+        return new ReferenceNamingContext(name, type, defaultGroup, namespace, null);
     }
 
     @Test
@@ -31,6 +31,16 @@ class ReferenceNamingStrategiesTest {
         ReferenceNamingStrategy s = new NamespaceGroupReferenceNamingStrategy();
         assertEquals(new ReferenceCoordinates("acme.common", "acme/address.proto"),
                 s.name(ctx("acme/address.proto", "PROTOBUF", "orders", "acme.common")));
+    }
+
+    @Test
+    void namespaceGroupNeverStripsPackagePrefixFromProtobufFileNames() {
+        ReferenceNamingStrategy s = new NamespaceGroupReferenceNamingStrategy();
+        // Two distinct files in package "acme" must stay two distinct artifacts.
+        assertEquals(new ReferenceCoordinates("acme", "acme.address.proto"),
+                s.name(ctx("acme.address.proto", "PROTOBUF", "orders", "acme")));
+        assertEquals(new ReferenceCoordinates("acme", "address.proto"),
+                s.name(ctx("address.proto", "PROTOBUF", "orders", "acme")));
     }
 
     @Test

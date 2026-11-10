@@ -19,9 +19,17 @@ public class MockSchemaParser implements SchemaParser<String, String> {
         this(null);
     }
 
+    private String artifactType = "Mock";
+
+    /** Sets the artifact type this parser reports. */
+    public MockSchemaParser withArtifactType(String artifactType) {
+        this.artifactType = artifactType;
+        return this;
+    }
+
     @Override
     public String artifactType() {
-        return "Mock";
+        return artifactType;
     }
 
     @Override

@@ -703,8 +703,10 @@ To register referenced schemas elsewhere, set `apicurio.registry.reference-namin
 `io.apicurio.registry.resolver.strategy.NamespaceGroupReferenceNamingStrategy` registers the Avro record
 `com.example.Address` as artifact `Address` in group `com.example`, and the Protobuf import
 `common/address.proto` with package `example.common` as artifact `common/address.proto` in group
-`example.common`. Schemas registered this way are also found when you create an artifact with
-`autoReferences` set to `true`.
+`example.common`. Avro schemas registered this way are also found when you create an artifact with
+`autoReferences` set to `true`, because {registry} also looks for an Avro reference in the group named after
+its namespace. Protobuf imports are matched only in the group of the artifact that you create, so for a
+Protobuf dependency in another group, list the reference explicitly.
 
 You can also implement `io.apicurio.registry.resolver.strategy.ReferenceNamingStrategy`:
 
@@ -1032,6 +1034,10 @@ COMMAND = 4;
 ----
 
 In this example, {registry} stores two Protobuf artifacts, one for `TableInfo` and one for `Mode`. However, because `Mode` is part of `TableInfo`, whenever `TableInfo` is fetched to check a message in the SerDes, `Mode` is also returned as an artifact referenced by `TableInfo`.
+
+To choose the group and artifact ID under which imported Protobuf files are registered, set
+`apicurio.registry.reference-naming-strategy`, as described for Avro in
+xref:registry-serdes-types-avro_{context}[] under "Choosing where referenced schemas are registered".
 
 [role="_additional-resources"]
 .Additional resources

@@ -41,7 +41,8 @@ class ReferenceNamingResolverTest {
 
     private static MockRegistryClientFacade resolve(Object strategy) {
         MockRegistryClientFacade facade = new MockRegistryClientFacade("x");
-        MockSchemaParser parser = new MockSchemaParser(schemas())
+        // Avro-style names: the namespace strategy strips the namespace prefix only for AVRO.
+        MockSchemaParser parser = new MockSchemaParser(schemas()).withArtifactType("AVRO")
                 .withNamespace("com.acme.Address", "com.acme")
                 .withNamespace("com.acme.geo.Point", "com.acme.geo");
         DefaultSchemaResolver<String, String> resolver = new DefaultSchemaResolver<>();
@@ -104,19 +105,24 @@ class ReferenceNamingResolverTest {
     }
 
     @Test
-    void strategyReceivesDirectParentCoordinates() {
+    void strategyReceivesReferenceContext() {
         List<String> seen = new ArrayList<>();
         ReferenceNamingStrategy recording = ctx -> {
-            seen.add(ctx.referenceName() + " parent=" + ctx.parentGroupId() + "/" + ctx.parentArtifactId()
-                    + " default=" + ctx.defaultGroupId() + " ns=" + ctx.namespace() + " type="
-                    + ctx.artifactType());
+            seen.add(ctx.referenceName() + " default=" + ctx.defaultGroupId() + " ns=" + ctx.namespace()
+                    + " type=" + ctx.artifactType() + " schema=" + ctx.schema().getParsedSchema());
             return new ReferenceCoordinates("refs", ctx.referenceName());
         };
         resolve(recording);
         assertEquals(List.of(
-                "com.acme.Address parent=orders/Order default=orders ns=com.acme type=Mock",
-                "com.acme.geo.Point parent=refs/com.acme.Address default=orders ns=com.acme.geo type=Mock"),
+                "com.acme.Address default=orders ns=com.acme type=AVRO schema=address",
+                "com.acme.geo.Point default=orders ns=com.acme.geo type=AVRO schema=point"),
                 seen);
+    }
+
+    @Test
+    void unconfiguredResolverUsesTheDefaultStrategy() {
+        DefaultSchemaResolver<String, String> resolver = new DefaultSchemaResolver<>();
+        assertEquals(DefaultReferenceNamingStrategy.class, resolver.referenceNamingStrategy.getClass());
     }
 
     @Test

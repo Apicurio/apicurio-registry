@@ -156,7 +156,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                 List<SchemaLookupResult<S>> schemaLookupResults = List.of();
                 if (parsedSchema.hasReferences()) {
                     // List of references lookup, to be used to create the references for the artifact
-                    schemaLookupResults = handleArtifactReferences(data, parsedSchema, artifactReference);
+                    schemaLookupResults = handleArtifactReferences(data, parsedSchema);
                 }
                 return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
 
@@ -190,14 +190,13 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                 artifactReference.getVersion());
     }
 
-    private List<SchemaLookupResult<S>> handleArtifactReferences(Record<T> data, ParsedSchema<S> parsedSchema,
-                                                                 ArtifactReference parent) {
+    private List<SchemaLookupResult<S>> handleArtifactReferences(Record<T> data,
+                                                                 ParsedSchema<S> parsedSchema) {
         final List<SchemaLookupResult<S>> referencesLookup = new ArrayList<>();
 
         for (ParsedSchema<S> referencedSchema : parsedSchema.getSchemaReferences()) {
-            ArtifactReference reference = resolveReferenceArtifactReference(data, referencedSchema, parent);
-            List<SchemaLookupResult<S>> nestedReferences = handleArtifactReferences(data, referencedSchema,
-                    reference);
+            ArtifactReference reference = resolveReferenceArtifactReference(data, referencedSchema);
+            List<SchemaLookupResult<S>> nestedReferences = handleArtifactReferences(data, referencedSchema);
             referencesLookup.add(handleAutoCreateArtifact(referencedSchema, reference, nestedReferences));
         }
         return referencesLookup;

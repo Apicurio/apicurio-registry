@@ -219,6 +219,8 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
      */
     @Override
     public String referenceNamespace(ParsedSchema<Schema> schema) {
+        // Only named types (records and enums) become references (see handleRecord and
+        // addComplexTypeSubSchema), so getNamespace() is safe here; it throws for unnamed types.
         String namespace = schema.getParsedSchema().getNamespace();
         return namespace == null || namespace.isBlank() ? null : namespace;
     }

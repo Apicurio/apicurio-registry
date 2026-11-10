@@ -26,6 +26,10 @@ import java.util.*;
  */
 public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<SimpleCompatibilityDifference> {
 
+    private static final String WAS_REMOVED = "' was removed";
+    private static final String ELEMENT_PREFIX = "Element '";
+    private static final String TYPE_PREFIX = "Type '";
+
     private static final String XSD_NS = "http://www.w3.org/2001/XMLSchema";
     private static final String ATTRIBUTE_LABEL = "Attribute '";
 
@@ -71,7 +75,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
                 // Element was removed - this is backward incompatible even if optional
                 // because old data may have this element
                 incompatibilities.add(new SimpleCompatibilityDifference(
-                    "Element '" + existingElement.getName() + "' was removed",
+                    ELEMENT_PREFIX + existingElement.getName() + WAS_REMOVED,
                     "/element[" + existingElement.getName() + "]"
                 ));
             } else {
@@ -99,7 +103,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
         // Check if minOccurs increased (making it more restrictive)
         if (proposed.getMinOccurs() > existing.getMinOccurs()) {
             incompatibilities.add(new SimpleCompatibilityDifference(
-                "Element '" + existing.getName() + "' minOccurs increased from " +
+                ELEMENT_PREFIX + existing.getName() + "' minOccurs increased from " +
                 existing.getMinOccurs() + " to " + proposed.getMinOccurs(),
                 elementPath
             ));
@@ -109,13 +113,13 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
         if (existing.getMaxOccurs() != -1 && proposed.getMaxOccurs() != -1 &&
             proposed.getMaxOccurs() < existing.getMaxOccurs()) {
             incompatibilities.add(new SimpleCompatibilityDifference(
-                "Element '" + existing.getName() + "' maxOccurs decreased from " +
+                ELEMENT_PREFIX + existing.getName() + "' maxOccurs decreased from " +
                 existing.getMaxOccurs() + " to " + proposed.getMaxOccurs(),
                 elementPath
             ));
         } else if (existing.getMaxOccurs() == -1 && proposed.getMaxOccurs() != -1) {
             incompatibilities.add(new SimpleCompatibilityDifference(
-                "Element '" + existing.getName() + "' maxOccurs changed from unbounded to " +
+                ELEMENT_PREFIX + existing.getName() + "' maxOccurs changed from unbounded to " +
                 proposed.getMaxOccurs(),
                 elementPath
             ));
@@ -124,7 +128,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
         // Check type compatibility (narrowing)
         if (!isTypeCompatible(existing.getType(), proposed.getType(), false)) {
             incompatibilities.add(new SimpleCompatibilityDifference(
-                "Element '" + existing.getName() + "' type changed from " +
+                ELEMENT_PREFIX + existing.getName() + "' type changed from " +
                 existing.getType() + " to " + proposed.getType() + " in an incompatible way",
                 elementPath
             ));
@@ -133,7 +137,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
         // Check if nillable was removed
         if (existing.isNillable() && !proposed.isNillable()) {
             incompatibilities.add(new SimpleCompatibilityDifference(
-                "Element '" + existing.getName() + "' is no longer nillable",
+                ELEMENT_PREFIX + existing.getName() + "' is no longer nillable",
                 elementPath
             ));
         }
@@ -151,7 +155,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
                 // Attribute was removed - backward incompatible even if optional
                 // because old data may have this attribute
                 incompatibilities.add(new SimpleCompatibilityDifference(
-                    ATTRIBUTE_LABEL + existingAttr.getName() + "' was removed",
+                    ATTRIBUTE_LABEL + existingAttr.getName() + WAS_REMOVED,
                     "/attribute[" + existingAttr.getName() + "]"
                 ));
             } else {
@@ -205,7 +209,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
             
             if (proposedType == null) {
                 incompatibilities.add(new SimpleCompatibilityDifference(
-                    "Type '" + existingType.getName() + "' was removed",
+                    TYPE_PREFIX + existingType.getName() + WAS_REMOVED,
                     "/type[" + existingType.getName() + "]"
                 ));
             } else {
@@ -237,7 +241,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
         if (existing.getMinInclusive() != null && proposed.getMinInclusive() != null) {
             if (compareNumeric(proposed.getMinInclusive(), existing.getMinInclusive()) > 0) {
                 incompatibilities.add(new SimpleCompatibilityDifference(
-                    "Type '" + typeName + "' minInclusive increased from " +
+                    TYPE_PREFIX + typeName + "' minInclusive increased from " +
                     existing.getMinInclusive() + " to " + proposed.getMinInclusive(),
                     context
                 ));
@@ -247,7 +251,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
         if (existing.getMaxInclusive() != null && proposed.getMaxInclusive() != null) {
             if (compareNumeric(proposed.getMaxInclusive(), existing.getMaxInclusive()) < 0) {
                 incompatibilities.add(new SimpleCompatibilityDifference(
-                    "Type '" + typeName + "' maxInclusive decreased from " +
+                    TYPE_PREFIX + typeName + "' maxInclusive decreased from " +
                     existing.getMaxInclusive() + " to " + proposed.getMaxInclusive(),
                     context
                 ));
@@ -258,7 +262,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
         if (proposed.getMinLength() != null && existing.getMinLength() != null &&
             proposed.getMinLength() > existing.getMinLength()) {
             incompatibilities.add(new SimpleCompatibilityDifference(
-                "Type '" + typeName + "' minLength increased from " +
+                TYPE_PREFIX + typeName + "' minLength increased from " +
                 existing.getMinLength() + " to " + proposed.getMinLength(),
                 context
             ));
@@ -268,7 +272,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
         if (proposed.getMaxLength() != null && existing.getMaxLength() != null &&
             proposed.getMaxLength() < existing.getMaxLength()) {
             incompatibilities.add(new SimpleCompatibilityDifference(
-                "Type '" + typeName + "' maxLength decreased from " +
+                TYPE_PREFIX + typeName + "' maxLength decreased from " +
                 existing.getMaxLength() + " to " + proposed.getMaxLength(),
                 context
             ));
@@ -279,7 +283,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
             !existing.getPattern().equals(proposed.getPattern())) {
             // Pattern change is incompatible unless we can prove new pattern is broader
             incompatibilities.add(new SimpleCompatibilityDifference(
-                "Type '" + typeName + "' pattern changed from '" +
+                TYPE_PREFIX + typeName + "' pattern changed from '" +
                 existing.getPattern() + "' to '" + proposed.getPattern() + "'",
                 context
             ));
@@ -294,7 +298,7 @@ public class XsdCompatibilityChecker extends AbstractCompatibilityChecker<Simple
         
         if (!removedValues.isEmpty()) {
             incompatibilities.add(new SimpleCompatibilityDifference(
-                "Type '" + typeName + "' enumeration values removed: " +
+                TYPE_PREFIX + typeName + "' enumeration values removed: " +
                 String.join(", ", removedValues),
                 context
             ));

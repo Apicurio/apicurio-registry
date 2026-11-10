@@ -186,7 +186,7 @@ After you establish shared types, choose strategies for evolving schemas safely 
 * {registry-overview}
 * {managing-registry-artifacts-api}
 * {managing-registry-artifacts-maven}
-* https://github.com/Apicurio/apicurio-registry/tree/main/examples/serdes-with-references[SerDes with references demonstration]
+* https://github.com/Apicurio/apicurio-registry/tree/main/examples/schema-references[Schema references demonstration]
 
 // ref-schema-evolution-strategies
 [id="schema-evolution-strategies_{context}"]

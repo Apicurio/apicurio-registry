@@ -17,6 +17,7 @@ public class RuleDefinition {
     private int orderIndex;
 
     public RuleDefinition() {
+        // Default constructor required for JSON deserialization.
     }
 
     public String getName() {

@@ -57,24 +57,12 @@ public class ProtobufTagExtractor implements TagExtractor {
     private void extractTagsFromMessage(MessageElement message, String pathPrefix,
             Map<String, Set<String>> result) {
         for (FieldElement field : message.getFields()) {
-            String fieldPath = pathPrefix.isEmpty() ? field.getName()
-                    : pathPrefix + "." + field.getName();
-
-            Set<String> tags = extractFieldTags(field);
-            if (!tags.isEmpty()) {
-                result.put(fieldPath, tags);
-            }
+            addFieldTags(field, pathPrefix, result);
         }
 
         for (OneOfElement oneOf : message.getOneOfs()) {
             for (FieldElement field : oneOf.getFields()) {
-                String fieldPath = pathPrefix.isEmpty() ? field.getName()
-                        : pathPrefix + "." + field.getName();
-
-                Set<String> tags = extractFieldTags(field);
-                if (!tags.isEmpty()) {
-                    result.put(fieldPath, tags);
-                }
+                addFieldTags(field, pathPrefix, result);
             }
         }
 
@@ -84,6 +72,16 @@ public class ProtobufTagExtractor implements TagExtractor {
                         : pathPrefix + "." + nested.getName();
                 extractTagsFromMessage(nested, nestedPrefix, result);
             }
+        }
+    }
+
+    private void addFieldTags(FieldElement field, String pathPrefix, Map<String, Set<String>> result) {
+        String fieldPath = pathPrefix.isEmpty() ? field.getName()
+                : pathPrefix + "." + field.getName();
+
+        Set<String> tags = extractFieldTags(field);
+        if (!tags.isEmpty()) {
+            result.put(fieldPath, tags);
         }
     }
 
@@ -118,15 +116,19 @@ public class ProtobufTagExtractor implements TagExtractor {
         }
         for (com.squareup.wire.schema.internal.parser.OptionElement option : options) {
             if (CONFLUENT_FIELD_META.equals(option.getName())) {
-                Object value = option.getValue();
-                if (value instanceof Map) {
-                    Object tagsList = ((Map<String, Object>) value).get("tags");
-                    if (tagsList instanceof List) {
-                        for (Object tag : (List<Object>) tagsList) {
-                            if (tag != null) {
-                                tags.add(tag.toString());
-                            }
-                        }
+                addTagsFromFieldMeta(option.getValue(), tags);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void addTagsFromFieldMeta(Object value, Set<String> tags) {
+        if (value instanceof Map) {
+            Object tagsList = ((Map<String, Object>) value).get("tags");
+            if (tagsList instanceof List) {
+                for (Object tag : (List<Object>) tagsList) {
+                    if (tag != null) {
+                        tags.add(tag.toString());
                     }
                 }
             }

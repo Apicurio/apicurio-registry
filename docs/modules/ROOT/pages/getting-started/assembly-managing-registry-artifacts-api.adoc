@@ -454,6 +454,116 @@ NOTE: {registry} stores circular references between artifact versions. Reference
 // Metadata created by nebel
 // ParentAssemblies: assemblies/getting-started/as_managing-registry-artifacts.adoc
 
+// proc-matching-references-using-rest-api
+[id="matching-references-using-rest-api_{context}"]
+== Matching references to existing artifacts
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+Instead of listing every reference mapping yourself, you can ask {registry} to match the references found in
+the content to artifacts that already exist. Set `autoReferences` to `true` in the version that you create,
+either in `firstVersion` when you create an artifact, or in the request body when you create an artifact
+version. The default is `false`. The property applies only to the request and is not stored.
+
+{registry} matches only in the group of the artifact that you create (and, for Avro, in the group named after
+the namespace of the reference):
+
+.Reference matching rules
+[%header,cols="1,3"]
+|===
+|Reference in the content
+|Matching order
+
+|Avro full name, for example `com.example.common.ItemId`
+|. An artifact whose ID is the full name in the target group.
+. An artifact in the group named after the namespace (`com.example.common`) whose ID is the simple name
+(`ItemId`).
+. A single artifact in the target group whose structure index has the same name and namespace (record, enum,
+or fixed), confirmed by the full name in the content of its latest version.
+
+|JSON Schema absolute `$id` (for example `https://example.com/address.json`)
+|A single JSON Schema artifact in the target group whose latest version has exactly that `$id` (case-sensitive),
+found through the structure index. Any `#` fragment is ignored. Absolute URIs are matched only for JSON Schema.
+
+|Relative path (for example `./common/address.json`)
+|. An artifact whose ID is the normalized path (`common/address.json`).
+. An artifact whose ID is the path exactly as written in the content.
+|===
+
+Each matched reference is pinned to the version that is currently the latest on the `latest` branch of the
+matched artifact; later versions of that artifact do not change the reference. When matching checks the
+content of a candidate, the version whose content was checked is the version that is pinned.
+Integrity rules, such as `ALL_REFS_MAPPED`, evaluate the matched references together with the references that
+you list explicitly.
+References that you list explicitly in `references` take precedence and are not matched again. An explicit
+reference also covers every reference in the content to the same resource, ignoring any `#` fragment: for
+example, if you map `money.json` explicitly, `money.json#/$defs/A` and `money.json#/$defs/B` are each mapped
+under their full name to the same artifact version, so that the `ALL_REFS_MAPPED` integrity rule is satisfied.
+If explicit references map the same resource to different artifact versions, the request fails.
+Artifacts that you are not permitted to read are treated as not found.
+Matching also works with `dryRun=true` and with the `ifExists` parameter. With
+`ifExists=FIND_OR_CREATE_VERSION`, an existing version is returned only if both its content and its references
+are the same. If a matched artifact has a new latest version since the existing version was created, the
+references differ, so {registry} creates a new version that references the new latest version.
+
+If a structure index search finds more candidates than {registry} can confirm, the reference is reported as
+having too many candidates instead of being matched. Provide an explicit reference in that case.
+
+If any reference has no match, or matches more than one artifact, {registry} stores nothing and returns a
+rule violation error. The status is `400`, or `409` when `apicurio.rest.legacy-error-codes.enabled` is set to
+`true`.
+
+.Prerequisites
+
+* {registry} is installed and running in your environment.
+* The `ItemId` schema artifact exists in the `my-group` group, as created in
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-managing-registry-artifacts-api.adoc#managing-artifact-references-using-rest-api_{context}[Managing schema and API artifact references using {registry} REST API commands].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:managing-artifact-references-using-rest-api_{context}[].
+endif::[]
+
+.Procedure
+. Create the `Item` schema artifact without listing its references, and set `autoReferences`:
++
+[source,bash]
+----
+$ curl -X POST MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts \
+   -H "Content-Type: application/json" \
+   -H "Authorization: Bearer $ACCESS_TOKEN" \
+   --data '{"artifactId":"Item","artifactType":"AVRO","firstVersion":{"autoReferences":true,"content":{"content":"{\"namespace\":\"com.example.common\",\"name\":\"Item\",\"type\":\"record\",\"fields\":[{\"name\":\"itemId\",\"type\":\"com.example.common.ItemId\"}]}","contentType":"application/json"}}}'
+----
+
+. Verify the stored references:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/registry/v3/groups/my-group/artifacts/Item/versions/branch=latest/references
+----
++
+[source,bash]
+----
+[{"groupId":"my-group","artifactId":"ItemId","version":"1.0.0","name":"com.example.common.ItemId"}]
+----
+
+. If a reference cannot be matched, the response lists every problem, sorted by reference name. For example:
++
+[source,json]
+----
+{
+  "name": "ReferenceAutoMatchException",
+  "title": "Some references could not be matched to existing artifacts.",
+  "status": 400,
+  "causes": [
+    {"context": "com.example.common.ItemId", "description": "No matching artifact found in group 'my-group'."}
+  ]
+}
+----
++
+An ambiguous reference has a description such as `Ambiguous: matches my-group/Address, my-group/com.example.Address.`
+
 // proc-inspecting-reference-graphs-using-rest-api
 [id="inspecting-reference-graphs-using-rest-api_{context}"]
 == Inspecting artifact reference graphs using the REST API

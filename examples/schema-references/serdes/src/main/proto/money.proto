@@ -1,0 +1,11 @@
+// Imported by shipment.proto; the Protobuf serializer registers it as a reference (step 13).
+syntax = "proto3";
+package com.example.common;
+
+option java_package = "io.apicurio.registry.examples.references.proto";
+option java_multiple_files = true;
+
+message Price {
+  double amount = 1;
+  string currency = 2;
+}

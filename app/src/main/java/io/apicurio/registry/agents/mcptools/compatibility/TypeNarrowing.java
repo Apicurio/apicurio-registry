@@ -83,17 +83,22 @@ final class TypeNarrowing {
             narrow(List.of(emitted.path(ITEMS)), (ObjectNode) accepted.get(ITEMS));
         }
         if (accepted.path(ADDITIONAL_PROPERTIES).isObject()) {
-            List<JsonNode> undeclared = new ArrayList<>();
-            for (Map.Entry<String, JsonNode> property : emittedProperties.properties()) {
-                if (!accepted.path(PROPERTIES).has(property.getKey())) {
-                    undeclared.add(property.getValue());
-                }
+            narrowAdditional(emittedProperties, emittedAdditional, accepted);
+        }
+    }
+
+    private static void narrowAdditional(JsonNode emittedProperties, JsonNode emittedAdditional,
+            ObjectNode accepted) {
+        List<JsonNode> undeclared = new ArrayList<>();
+        for (Map.Entry<String, JsonNode> property : emittedProperties.properties()) {
+            if (!accepted.path(PROPERTIES).has(property.getKey())) {
+                undeclared.add(property.getValue());
             }
-            undeclared.add(emittedAdditional);
-            List<String> undeclaredTypes = typesOf(undeclared);
-            if (undeclaredTypes != null) {
-                narrowType(undeclaredTypes, (ObjectNode) accepted.get(ADDITIONAL_PROPERTIES));
-            }
+        }
+        undeclared.add(emittedAdditional);
+        List<String> undeclaredTypes = typesOf(undeclared);
+        if (undeclaredTypes != null) {
+            narrowType(undeclaredTypes, (ObjectNode) accepted.get(ADDITIONAL_PROPERTIES));
         }
     }
 
@@ -111,13 +116,7 @@ final class TypeNarrowing {
         if (acceptedTypes.isEmpty()) {
             setTypes(accepted, emittedTypes);
         } else {
-            List<String> kept = new ArrayList<>();
-            for (String type : acceptedTypes) {
-                if (emittedTypes.contains(type) || (INTEGER.equals(type) && emittedTypes.contains(NUMBER))
-                        || (NUMBER.equals(type) && emittedTypes.contains(INTEGER))) {
-                    kept.add(type);
-                }
-            }
+            List<String> kept = keptTypes(acceptedTypes, emittedTypes);
             if (kept.isEmpty()) {
                 return;
             }
@@ -131,6 +130,17 @@ final class TypeNarrowing {
         if (!emittedTypes.contains(ARRAY)) {
             accepted.remove(ITEMS);
         }
+    }
+
+    private static List<String> keptTypes(List<String> acceptedTypes, List<String> emittedTypes) {
+        List<String> kept = new ArrayList<>();
+        for (String type : acceptedTypes) {
+            if (emittedTypes.contains(type) || (INTEGER.equals(type) && emittedTypes.contains(NUMBER))
+                    || (NUMBER.equals(type) && emittedTypes.contains(INTEGER))) {
+                kept.add(type);
+            }
+        }
+        return kept;
     }
 
     private static void setTypes(ObjectNode accepted, List<String> types) {

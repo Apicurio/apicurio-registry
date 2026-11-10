@@ -251,58 +251,80 @@ public class RegistryLimitsService {
      */
     protected void checkLabels(Map<String, String> labels, List<String> errorMessages) {
         if (labels != null) {
-            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactLabelsCount)
-                    && labels.size() > registryLimitsConfiguration.getMaxArtifactLabelsCount()) {
-                errorMessages.add(String.format(MAX_LABELS_EXCEEDED_MSG,
-                        registryLimitsConfiguration.getMaxArtifactLabelsCount(), labels.size()));
-            } else if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactPropertiesCount)
-                    && labels.size() > registryLimitsConfiguration.getMaxArtifactPropertiesCount()) {
+            checkLabelsCount(labels, errorMessages);
+            checkLabelSize(labels, errorMessages);
+            checkLabelKeyValueSizes(labels, errorMessages);
+        }
+    }
 
-                errorMessages.add(String.format(MAX_LABELS_EXCEEDED_MSG,
-                        registryLimitsConfiguration.getMaxArtifactPropertiesCount(), labels.size()));
-            }
+    private void checkLabelsCount(Map<String, String> labels, List<String> errorMessages) {
+        if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactLabelsCount)
+                && labels.size() > registryLimitsConfiguration.getMaxArtifactLabelsCount()) {
+            errorMessages.add(String.format(MAX_LABELS_EXCEEDED_MSG,
+                    registryLimitsConfiguration.getMaxArtifactLabelsCount(), labels.size()));
+        } else if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactPropertiesCount)
+                && labels.size() > registryLimitsConfiguration.getMaxArtifactPropertiesCount()) {
 
-            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxLabelSizeBytes)) {
-                long maxLabelBytes = registryLimitsConfiguration.getMaxLabelSizeBytes();
-                boolean exceeded = labels.entrySet().stream()
-                        .anyMatch(e -> utf8Length(e.getKey()) + utf8Length(e.getValue()) > maxLabelBytes);
-                if (exceeded) {
-                    errorMessages.add(String.format(MAX_LABEL_SIZE_EXCEEDED_MSG, maxLabelBytes));
-                }
-            }
+            errorMessages.add(String.format(MAX_LABELS_EXCEEDED_MSG,
+                    registryLimitsConfiguration.getMaxArtifactPropertiesCount(), labels.size()));
+        }
+    }
 
-            boolean checkKeySize = isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes);
-            boolean checkValueSize = isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes);
-
-            if (checkKeySize || checkValueSize) {
-                long maxKeyBytes = checkKeySize ? registryLimitsConfiguration.getMaxPropertyKeySizeBytes() : 0;
-                long maxValueBytes = checkValueSize ? registryLimitsConfiguration.getMaxPropertyValueSizeBytes() : 0;
-
-                boolean keySizeExceeded = false;
-                boolean valueSizeExceeded = false;
-
-                for (Map.Entry<String, String> entry : labels.entrySet()) {
-                    if (checkKeySize && !keySizeExceeded && exceedsByteSizeLimit(entry.getKey(), maxKeyBytes)) {
-                        keySizeExceeded = true;
-                    }
-                    if (checkValueSize && !valueSizeExceeded && exceedsByteSizeLimit(entry.getValue(), maxValueBytes)) {
-                        valueSizeExceeded = true;
-                    }
-                    if ((!checkKeySize || keySizeExceeded) && (!checkValueSize || valueSizeExceeded)) {
-                        break;
-                    }
-                }
-
-                if (keySizeExceeded) {
-                    errorMessages.add(String.format(MAX_LABEL_KEY_SIZE_EXCEEDED_MSG,
-                            registryLimitsConfiguration.getMaxPropertyKeySizeBytes()));
-                }
-                if (valueSizeExceeded) {
-                    errorMessages.add(String.format(MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG,
-                            registryLimitsConfiguration.getMaxPropertyValueSizeBytes()));
-                }
+    private void checkLabelSize(Map<String, String> labels, List<String> errorMessages) {
+        if (isLimitEnabled(RegistryLimitsConfiguration::getMaxLabelSizeBytes)) {
+            long maxLabelBytes = registryLimitsConfiguration.getMaxLabelSizeBytes();
+            boolean exceeded = labels.entrySet().stream()
+                    .anyMatch(e -> utf8Length(e.getKey()) + utf8Length(e.getValue()) > maxLabelBytes);
+            if (exceeded) {
+                errorMessages.add(String.format(MAX_LABEL_SIZE_EXCEEDED_MSG, maxLabelBytes));
             }
         }
+    }
+
+    private void checkLabelKeyValueSizes(Map<String, String> labels, List<String> errorMessages) {
+        boolean checkKeySize = isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes);
+        boolean checkValueSize = isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyValueSizeBytes);
+
+        if (checkKeySize || checkValueSize) {
+            long maxKeyBytes = checkKeySize ? registryLimitsConfiguration.getMaxPropertyKeySizeBytes() : 0;
+            long maxValueBytes = checkValueSize ? registryLimitsConfiguration.getMaxPropertyValueSizeBytes() : 0;
+
+            boolean[] exceeded = findExceededLabelSizes(labels, checkKeySize, maxKeyBytes, checkValueSize,
+                    maxValueBytes);
+            boolean keySizeExceeded = exceeded[0];
+            boolean valueSizeExceeded = exceeded[1];
+
+            if (keySizeExceeded) {
+                errorMessages.add(String.format(MAX_LABEL_KEY_SIZE_EXCEEDED_MSG,
+                        registryLimitsConfiguration.getMaxPropertyKeySizeBytes()));
+            }
+            if (valueSizeExceeded) {
+                errorMessages.add(String.format(MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG,
+                        registryLimitsConfiguration.getMaxPropertyValueSizeBytes()));
+            }
+        }
+    }
+
+    /**
+     * @return a two-element array: whether a key exceeded its limit, and whether a value exceeded its limit
+     */
+    private boolean[] findExceededLabelSizes(Map<String, String> labels, boolean checkKeySize, long maxKeyBytes,
+            boolean checkValueSize, long maxValueBytes) {
+        boolean keySizeExceeded = false;
+        boolean valueSizeExceeded = false;
+
+        for (Map.Entry<String, String> entry : labels.entrySet()) {
+            if (checkKeySize && !keySizeExceeded && exceedsByteSizeLimit(entry.getKey(), maxKeyBytes)) {
+                keySizeExceeded = true;
+            }
+            if (checkValueSize && !valueSizeExceeded && exceedsByteSizeLimit(entry.getValue(), maxValueBytes)) {
+                valueSizeExceeded = true;
+            }
+            if ((!checkKeySize || keySizeExceeded) && (!checkValueSize || valueSizeExceeded)) {
+                break;
+            }
+        }
+        return new boolean[] { keySizeExceeded, valueSizeExceeded };
     }
 
     private static long utf8Length(String str) {

@@ -25,6 +25,10 @@ import java.util.Set;
  */
 public class ModelSchemaContentValidator extends AbstractContentValidator {
 
+    private static final String MODEL_ID = "modelId";
+    private static final String INPUT = "input";
+    private static final String OUTPUT = "output";
+
     @Override
     public void validate(ValidityLevel level, TypedContent content,
             Map<String, TypedContent> resolvedReferences) throws RuleViolationException {
@@ -65,26 +69,26 @@ public class ModelSchemaContentValidator extends AbstractContentValidator {
     }
 
     private void validateRequiredFields(JsonNode tree, Set<RuleViolation> violations) {
-        if (!tree.has("modelId") || !tree.get("modelId").isTextual()
-                || tree.get("modelId").asText().trim().isEmpty()) {
+        if (!tree.has(MODEL_ID) || !tree.get(MODEL_ID).isTextual()
+                || tree.get(MODEL_ID).asText().trim().isEmpty()) {
             violations.add(new RuleViolation(
                     "Missing or invalid required field 'modelId'. Must be a non-empty string.",
                     "/modelId"));
         }
 
-        if (!tree.has("input") && !tree.has("output")) {
+        if (!tree.has(INPUT) && !tree.has(OUTPUT)) {
             violations.add(new RuleViolation(
                     "At least one of 'input' or 'output' schema must be defined.", "/"));
         }
     }
 
     private void validateFieldTypes(JsonNode tree, Set<RuleViolation> violations) {
-        if (tree.has("input") && !tree.get("input").isObject()) {
+        if (tree.has(INPUT) && !tree.get(INPUT).isObject()) {
             violations.add(new RuleViolation(
                     "Field 'input' must be an object (JSON Schema).", "/input"));
         }
 
-        if (tree.has("output") && !tree.get("output").isObject()) {
+        if (tree.has(OUTPUT) && !tree.get(OUTPUT).isObject()) {
             violations.add(new RuleViolation(
                     "Field 'output' must be an object (JSON Schema).", "/output"));
         }

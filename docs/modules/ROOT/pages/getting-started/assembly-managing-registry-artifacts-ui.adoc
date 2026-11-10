@@ -66,6 +66,8 @@ NOTE: The {operator} automatically configures the UI component with the REST API
 `REGISTRY_FEATURE_READ_ONLY`: Set to `true` to enable read-only mode. Defaults to `false`.
 +
 NOTE: Read-only mode disables all write operations in the {registry} web console. When enabled, users cannot create groups, create artifacts, upload new artifact versions, update artifact metadata, or delete artifacts.
++
+NOTE: The web console also enters read-only mode when the storage is read-only. The storage is read-only when {registry} uses a read-only storage variant such as GitOps or KubernetesOps storage, or when an administrator enables the *Storage read-only mode* setting. You do not need to set `REGISTRY_FEATURE_READ_ONLY` in these cases. The console shows a dismissible banner that says the registry is in read-only mode. With GitOps storage, the banner also tells users to update the source Git repository. When the storage rejects a write request, the console shows the *Read-Only Mode* page.
 
 
 

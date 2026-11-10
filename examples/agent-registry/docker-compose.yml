@@ -6,8 +6,8 @@
 # Keycloak, and the "open" Registry has no authentication at all.
 #
 # Two Registries, on purpose:
-#   - registry (port 8180) has no authentication. The Quarkus LangChain4j extensions cannot
-#     authenticate to a Registry yet (quarkiverse/quarkus-langchain4j#3142, #3143), so the
+#   - registry (port 8180) has no authentication. No released Quarkus LangChain4j extension can
+#     authenticate to a Registry yet (fix in review: quarkiverse/quarkus-langchain4j#3145), so the
 #     agents publish to and discover from this one. Most features are shown here.
 #   - registry-secured (port 8081) uses Keycloak. It shows what depends on who is asking:
 #     agent visibility, per-resource access rules, and the Registry MCP server over HTTP.
@@ -168,7 +168,7 @@ services:
         condition: service_healthy
 
   # ---------------------------------------------------------------- Quarkus LangChain4j apps
-  # Built from a pinned quarkus-langchain4j commit (see apps/Dockerfile). They use the open
+  # Built from the Quarkus LangChain4j 1.15.0 sample (see apps/Dockerfile). They use the open
   # Registry, and Ollama on the host.
   weather-server:
     image: agent-registry-demo-apps:dev

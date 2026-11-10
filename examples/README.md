@@ -24,10 +24,29 @@ Simply run `docker compose -f examples/tools/kafka-compose/kafka-compose.yaml up
 # List of Examples
 A list of examples is included below, with descriptions and explanations of each covered use-case.
 
-## Simple Avro Example
-This example application demonstrates the basics of using the registry in a very simple Kafka
-publish/subscribe application using Apache Avro as the schema technology used to serialize
-and deserialize message payloads.
+## Kafka Serdes Example
+This example runs Kafka, Apicurio Registry and its web console with Docker Compose, and a tour of
+Java producers and consumers using the Avro, JSON Schema and Protobuf serializers: auto-registration,
+the wire format and headers mode, generated and plain Java classes, naming strategies (built-in and
+custom), a custom resolver, schema evolution, a compatibility rule rejecting a schema, a schema
+registered by the Maven plugin, and Kafka Connect with the Apicurio converters. Its
+[step-by-step guide](kafka-serdes/GUIDE.md) explains each step.
+
+## Schema References Example
+This example registers Avro, JSON Schema and AsyncAPI schemas that reference each other with the
+Maven plugin (references spelled out and found automatically), and shows how the registry lists,
+graphs, dereferences, rewrites and hashes references, what integrity rules and deletion do, and how
+Kafka serializers register nested Avro types and Protobuf imports. Its
+[step-by-step guide](schema-references/GUIDE.md) explains each step.
+
+## Rules and Compatibility Example
+This example runs Apicurio Registry and its web console with Docker Compose and shows its content
+rules: validity, BACKWARD and FORWARD compatibility, which rule wins when rules are set globally, per
+group and per artifact, dry runs, transitive checks, drafts and integrity rules for references. A
+small Java client validates JSON Schema, Avro and Protobuf data against registered schemas with the
+client-side validation library.
+Its [step-by-step guide](rules-and-compatibility/GUIDE.md) walks through each rule in the REST API
+and the UI.
 
 ## Per-resource Authorization Example
 This example runs Apicurio Registry, its web console and Keycloak with Docker Compose, with
@@ -44,11 +63,12 @@ Quarkus LangChain4j agents publish their Agent Cards and discover each other and
 through the Registry. Its [step-by-step guide](agent-registry/GUIDE.md) walks through each feature,
 with screenshots, and works as a script for a team demo.
 
-## Simple JSON Schema Example
-This example application demonstrates the basics of using the registry in a very simple Kafka
-publish/subscribe application using JSON Schema to validate message payloads when both producing
-and consuming them.  JSON Schema is not a serialization technology, but rather is only used for
-validation. Therefore, it can be enabled or disabled in the serializer and deserializer.
+## ODCS Data Contracts Example
+This example runs Apicurio Registry, its web console and Kafka with Docker Compose, and governs an
+Avro schema with an Open Data Contract Standard (ODCS) contract: the registry projects the contract
+onto the schema as labels, field tags and rules, and the Kafka serializer enforces those rules
+before records are sent. Its [step-by-step guide](odcs-data-contracts/GUIDE.md) walks through each
+feature in the REST API and the UI, and works as a script for a team demo.
 
 ## Confluent Serdes Integration
 This example shows how Apicurio Registry serdes classes can be used along with Confluent serdes
@@ -58,35 +78,11 @@ can all work together seamlessly with just a little bit of extra configuration. 
 is essentially the same as the Simple Avro Example, but using a Confluent serializer with an
 Apicurio Registry deserializer.
 
-## Avro Bean Example
-This example demonstrates how to use Avro as the schema and serialization technology while
-using a Java Bean as the Kafka message payload.  This is essentially the same as the Simple
-Avro Example, but using a java bean instead of a `GenericRecord` as the message payload.
-
-## Custom ID Strategy Example
-This example demonstrates how to use a custom Global ID strategy.  The Global ID strategy is
-used by a producer (serializer) application to lookup (or create) the Schema it is using for
-serialization.  Apicurio Registry comes with some useful implementations of the Global ID
-strategy out of the box, but it is possible to create your own.  This example is essentially
-the same as the Simple Avro Example, except instead of using one of the default Apicurio
-Registry Global ID strategies, it uses a custom one.
-
-## Simple Avro Maven Example
-This example application demonstrates how to use the Apicurio Registry maven plugin to
-pre-register an Avro schema so that it does not need to be embedded within the producer
-application.  Note that this example will fail unless the maven plugin is executed before
-the Java application. See the javadoc in the example for details.
-
 ## Rest Client example
 This example application demonstrates how to use the Apicurio Registry rest client to create,
 delete, or fetch schemas. This example contains two basic java application, one showing how to
 improve the logs by logging all the request and response headers and a basic example on how to
 use the client.
-
-## Mix Avro Schemas Example
-This example application showcases an scenario where Apache Avro messages are published to the same
-Kafka topic using different Avro schemas. This example uses the Apicurio Registry serdes classes to serialize
-and deserialize Apache Avro messages using different schemas, even if received in the same Kafka topic.
 
 ## LLM/AI Model Schema Artifact Types
 This example demonstrates the built-in AI/ML artifact types for managing LLM schemas and prompt templates:

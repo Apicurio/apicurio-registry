@@ -1,0 +1,6 @@
+{
+  "$id": "country.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "string",
+  "enum": ["ES", "FR", "US"]
+}

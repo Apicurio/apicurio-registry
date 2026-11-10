@@ -33,12 +33,6 @@
   <modules>
     <module>confluent-serdes</module>
     <module>rest-client</module>
-    <module>serdes-with-references</module>
-    <module>avro-maven-with-references</module>
-    <module>json-maven-with-references</module>
-    <module>avro-maven-with-references-auto</module>
-    <module>asyncapi-avro-maven-with-references-auto</module>
-    <module>json-maven-with-references-auto</module>
     <module>docker-compose</module>
     <module>openshift-template</module>
     <module>mtls-minikube/client</module>
@@ -54,6 +48,8 @@
     <module>rules-and-compatibility/validation-client</module>
     <module>kafka-serdes/tour</module>
     <module>kafka-serdes/connect-plugin</module>
+    <module>schema-references/registration</module>
+    <module>schema-references/serdes</module>
   </modules>
 
   <scm>

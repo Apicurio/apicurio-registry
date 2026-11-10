@@ -16,6 +16,9 @@
 
   <properties>
     <projectRoot>${project.basedir}/../../..</projectRoot>
+    <!-- The protobuf runtime the converters were built against, not the older one examples/pom.xml
+         pins for other examples (ProtobufConverter would fail to load generated classes) -->
+    <protobuf.version>4.36.2</protobuf.version>
   </properties>
 
   <dependencies>

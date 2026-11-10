@@ -114,7 +114,7 @@ jobs:
         run: |
           # Every line except comments and the CI_* runner settings becomes job environment.
           if [ -f ci.env ]; then
-            grep -vE '^\s*(#|$)|^CI_' ci.env | tee -a "$GITHUB_ENV"
+            sed -E '/^[[:space:]]*(#|$)/d; /^CI_/d' ci.env | tee -a "$GITHUB_ENV"
           fi
 
       - name: Check that the stack runs this commit's images

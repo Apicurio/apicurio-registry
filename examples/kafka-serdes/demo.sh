@@ -3,6 +3,7 @@
 # Usage: ./demo.sh   (after `docker compose up -d`; requires curl, jq and JDK 21 or later)
 # Prints one ok/FAIL line per check, ends with "All checks passed." and exits non-zero on failure.
 # Safe to run again: it starts by deleting the example's topics, connectors and artifacts.
+# SKIP_TOUR_CHECKS=1 ./demo.sh only resets the data (for running single tour steps, GUIDE.md step 3).
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -85,6 +86,11 @@ if ! out=$(mvn "io.apicurio:apicurio-registry-maven-plugin:$version:register" -D
   echo "$out" | tail -20
   echo "The Maven plugin could not register greeting.avsc" >&2
   exit 1
+fi
+
+if [ -n "${SKIP_TOUR_CHECKS:-}" ]; then
+  echo "Reset done (SKIP_TOUR_CHECKS is set): run single tour steps as in GUIDE.md step 3."
+  exit 0
 fi
 
 # ------------------------------------------------------------------------------ steps 4 to 12

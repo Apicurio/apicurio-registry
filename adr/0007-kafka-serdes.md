@@ -43,8 +43,9 @@ converter.
    schemas registered by someone else (a build, an administrator) unless configured otherwise.
 5. **The registry enforces rules, not the client:** an auto-registered schema goes through the same
    rules as any other write, and a rejection fails `send()`.
-6. **Lookups are cached** with a time-based expiry; IDs, which never change meaning, are cached
-   without one in the deserializer's fast path.
+6. **Lookups are cached.** The deserializer's lookups by ID never expire. The resolver's entries,
+   which the serializer uses, expire after `check-period-ms` (30 s): after that, a refresh needs the
+   registry, unless `fault-tolerant-refresh` keeps serving the stale entry.
 7. **Kafka Connect uses the same serdes** through converters.
 
 ### Why the content ID by default
@@ -82,8 +83,9 @@ layout.
 
 1. The strategy, then any explicit `apicurio.registry.artifact.group-id` / `.artifact-id` /
    `.version`, give the artifact reference; the cache is checked.
-2. With `auto-register=true`, the schema (derived from the data for Avro and Protobuf, read from
-   `apicurio.registry.artifact.schema.location` for JSON Schema) is created with
+2. With `auto-register=true`, the schema (derived from the data for Avro and Protobuf; for JSON Schema read from
+   `apicurio.registry.artifact.schema.location`, or taken from the record's headers with
+   `use-schema-from-headers`) is created with
    `ifExists=FIND_OR_CREATE_VERSION` (`apicurio.registry.auto-register.if-exists`), references first.
 3. Otherwise, with `find-latest=true` or an explicit version, the version is looked up by coordinates.
 4. Otherwise the schema derived from the data is searched by content in the artifact; JSON Schema,
@@ -115,7 +117,7 @@ JSON Schema returns a `JsonNode` unless a return class is set. An optional fallb
 | JSON Schema data invalid (`validation-enabled`, default `true`) | `send()` throws an `UncheckedIOException` naming the failing field |
 | No schema found by content | `RuntimeException("Could not resolve artifact reference by content ...")` |
 | Unknown first byte | `IllegalStateException("Unknown magic byte!")` |
-| Registry unreachable | Cached schemas keep working; new lookups fail after the configured retries |
+| Registry unreachable | Consumers keep decoding IDs they have seen. Producers fail once their entries expire (`check-period-ms`) and the retries are exhausted, unless `apicurio.registry.fault-tolerant-refresh=true`, which keeps serving the stale entry |
 
 ### Behaviour across storage variants
 
@@ -165,7 +167,7 @@ Main properties (prefix `apicurio.registry.`); the configuration docs list them 
 3. Headers mode must be enabled on the consumer as well; a consumer without it fails with an
    unhelpful error.
 4. Protobuf framing is not Confluent-compatible without four extra settings.
-5. JSON Schema cannot auto-register without a schema location.
+5. JSON Schema cannot derive a schema from data: auto-registration needs a schema location, or a schema in Kafka headers (`headers.enabled` with `use-schema-from-headers`).
 
 ## Alternatives
 

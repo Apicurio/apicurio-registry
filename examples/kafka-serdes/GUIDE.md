@@ -79,7 +79,16 @@ To rerun a single step of the tour:
 
 Steps are `avro`, `headers`, `json`, `protobuf`, `protobuf-find-latest`, `reflect`,
 `record-strategy`, `evolution`, `rules`, `custom-strategy`, `custom-resolver` and `preregistered`.
-A step expects the topic as `demo.sh` left it: to start again from scratch, run `./demo.sh`.
+Steps append to their topics, and their checks count the records from the start of the topic, so a
+step checks reliably only on the data `demo.sh` starts from. Run it after a reset:
+
+```bash
+SKIP_TOUR_CHECKS=1 ./demo.sh > /dev/null   # resets the topics and artifacts, and registers greetings/greeting
+../../mvnw -q -f tour exec:java -Dtour.steps=avro
+```
+
+Steps that read records written by earlier steps (`evolution` reads `avro`'s orders, `rules` uses
+`orders-value`) need those steps first, in the same order: `-Dtour.steps=avro,evolution,rules`.
 
 ## Step 4: Avro: the producer registers, the consumer looks up
 
@@ -147,7 +156,8 @@ prefix and fails.
 ## Step 6: JSON Schema from a file
 
 A JSON Schema cannot be derived from a Java object, so the serializer needs to be told which schema
-to register: [`shipment.json`](tour/src/main/resources/shipment.json), from the classpath.
+to register: here [`shipment.json`](tour/src/main/resources/shipment.json), from the classpath. (It
+can also take the schema from Kafka headers, with `apicurio.registry.use-schema-from-headers`.)
 
 ```properties
 value.serializer=io.apicurio.registry.serde.jsonschema.JsonSchemaKafkaSerializer
@@ -329,8 +339,9 @@ docker compose --profile connect down -v
   - *Can Confluent clients read these messages?* Avro and JSON Schema: yes, the framing is the same,
     through the registry's Confluent-compatible API. Protobuf needs extra settings; see the
     configuration docs.
-  - *What if the registry is down?* Cached schemas keep working; new lookups fail after the
-    configured retries.
+  - *What if the registry is down?* Consumers keep decoding the IDs they have seen. Producers fail
+    once their cached entries expire (30 seconds) and the retries are exhausted, unless
+    `apicurio.registry.fault-tolerant-refresh=true`, which keeps using the stale schema.
 - **To reset between runs:** `./demo.sh` resets the data itself.
 
 ## Troubleshooting

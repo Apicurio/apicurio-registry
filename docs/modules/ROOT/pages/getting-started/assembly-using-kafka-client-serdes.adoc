@@ -186,7 +186,7 @@ When using the `DefaultSchemaResolver`, you can configure its behavior using app
 
 |`apicurio.registry.auto-register`
 |`boolean`
-|Specify whether the serializer tries to create an artifact in the registry. The JSON Schema serializer supports this only when `apicurio.registry.artifact.schema.location` is set, because a JSON Schema cannot be derived from the data.
+|Specify whether the serializer tries to create an artifact in the registry. Because a JSON Schema cannot be derived from the data, the JSON Schema serializer supports this only when it has an explicit schema: from `apicurio.registry.artifact.schema.location`, or from Kafka headers when `apicurio.registry.headers.enabled` and `apicurio.registry.use-schema-from-headers` are `true`.
 |`false`
 
 |`apicurio.registry.check-period-ms`

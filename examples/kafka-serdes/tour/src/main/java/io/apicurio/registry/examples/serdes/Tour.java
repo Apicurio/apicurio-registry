@@ -88,7 +88,7 @@ public final class Tour {
         // after an unexpected error, and demo.sh would wait forever
         try {
             run(args);
-        } catch (Throwable t) {
+        } catch (Exception | Error t) {
             System.out.println("  FAIL  the tour stopped: " + describe(t));
             System.exit(1);
         }
@@ -305,6 +305,9 @@ public final class Tour {
         try (KafkaProducer<String, V> producer = new KafkaProducer<>(producerConfig(serializer, serdeConfig))) {
             producer.send(new ProducerRecord<>(topic, "rejected", value)).get();
             return null;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return e;
         } catch (Exception e) {
             return e;
         }
@@ -336,10 +339,10 @@ public final class Tour {
             consumer.subscribe(List.of(topic));
             long deadline = System.currentTimeMillis() + 30_000;
             while (values.size() < expected && System.currentTimeMillis() < deadline) {
-                for (ConsumerRecord<String, Object> record : consumer.poll(Duration.ofMillis(500))) {
-                    values.add((V) record.value());
+                for (ConsumerRecord<String, Object> consumed : consumer.poll(Duration.ofMillis(500))) {
+                    values.add((V) consumed.value());
                     if (onRecord != null) {
-                        onRecord.accept(record);
+                        onRecord.accept(consumed);
                     }
                 }
             }
@@ -347,9 +350,9 @@ public final class Tour {
         return values;
     }
 
-    private static Set<String> headerNames(ConsumerRecord<String, Object> record) {
+    private static Set<String> headerNames(ConsumerRecord<String, Object> consumed) {
         Set<String> names = new TreeSet<>();
-        for (Header header : record.headers()) {
+        for (Header header : consumed.headers()) {
             names.add(header.key());
         }
         return names;
@@ -388,10 +391,10 @@ public final class Tour {
     }
 
     private static GenericRecord order(Schema schema, String orderId, Object amount) {
-        GenericRecord record = new GenericData.Record(schema);
-        record.put("orderId", orderId);
-        record.put("amount", amount);
-        return record;
+        GenericRecord order = new GenericData.Record(schema);
+        order.put("orderId", orderId);
+        order.put("amount", amount);
+        return order;
     }
 
     private static String ids(List<GenericRecord> records, String field) {

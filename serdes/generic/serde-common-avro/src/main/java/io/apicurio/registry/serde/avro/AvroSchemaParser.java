@@ -213,4 +213,13 @@ public class AvroSchemaParser<U> implements SchemaParser<Schema, U> {
         return type == Schema.Type.ARRAY || type == Schema.Type.MAP || type == Schema.Type.RECORD
                 || type == Schema.Type.ENUM || type == Schema.Type.UNION;
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String referenceNamespace(ParsedSchema<Schema> schema) {
+        String namespace = schema.getParsedSchema().getNamespace();
+        return namespace == null || namespace.isBlank() ? null : namespace;
+    }
 }

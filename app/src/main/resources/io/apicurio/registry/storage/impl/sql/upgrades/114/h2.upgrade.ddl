@@ -12,7 +12,6 @@
 -- again in full on the next application start.
 -- *********************************************************************
 
--- serves: SELECT ... WHERE enabled = TRUE AND deletedOn IS NULL (recorder hot path)
 CREATE TABLE IF NOT EXISTS webhook_subscriptions (
   subscriptionId     VARCHAR(36)   NOT NULL,
   name               VARCHAR(512),
@@ -30,6 +29,7 @@ CREATE TABLE IF NOT EXISTS webhook_subscriptions (
   modifiedOn         BIGINT        NOT NULL,
   PRIMARY KEY (subscriptionId)
 );
+-- serves: SELECT ... WHERE enabled = TRUE AND deletedOn IS NULL (recorder hot path)
 CREATE INDEX IF NOT EXISTS IDX_whsubs_1 ON webhook_subscriptions(enabled, deletedOn);
 CREATE INDEX IF NOT EXISTS IDX_whsubs_2 ON webhook_subscriptions(createdOn);
 

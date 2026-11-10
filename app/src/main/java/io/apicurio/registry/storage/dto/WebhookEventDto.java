@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.ToString.Exclude;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -24,6 +25,7 @@ public class WebhookEventDto {
     private String identityHash;
     private String eventType;
     /** Serialized CloudEvent bytes; stored and resent verbatim on retry. */
+    @Exclude
     private byte[] payload;
     private long createdOn;
 }

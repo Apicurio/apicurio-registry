@@ -343,7 +343,7 @@ class WebhookSchemaMssqlMigrationTest {
 
         // Phase 2: real v111 baseline → seed → upgrade → assert.
         try (Connection conn = openConnection()) {
-            executeDdlResource(conn, "pre-webhook-schema/mssql.ddl");
+            executeDdlResource(conn, "pre-webhook-schema-111/mssql.ddl");
             assertDbVersion(conn, 111);
 
             // Seed representative rows that must survive the 111→114 upgrade.

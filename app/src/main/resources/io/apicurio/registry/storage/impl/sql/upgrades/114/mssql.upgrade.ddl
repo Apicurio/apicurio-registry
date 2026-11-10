@@ -33,6 +33,7 @@ IF OBJECT_ID(N'webhook_subscriptions', N'U') IS NULL CREATE TABLE webhook_subscr
   modifiedOn         BIGINT         NOT NULL,
   PRIMARY KEY (subscriptionId)
 );
+-- serves: SELECT ... WHERE enabled = TRUE AND deletedOn IS NULL (recorder hot path)
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IDX_whsubs_1' AND object_id = OBJECT_ID(N'webhook_subscriptions')) CREATE INDEX IDX_whsubs_1 ON webhook_subscriptions(enabled, deletedOn);
 IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IDX_whsubs_2' AND object_id = OBJECT_ID(N'webhook_subscriptions')) CREATE INDEX IDX_whsubs_2 ON webhook_subscriptions(createdOn);
 

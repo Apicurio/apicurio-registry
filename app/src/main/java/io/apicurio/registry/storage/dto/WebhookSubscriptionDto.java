@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
+import lombok.ToString.Exclude;
 
 
 @NoArgsConstructor
@@ -21,6 +22,7 @@ public class WebhookSubscriptionDto {
     private String subscriptionId;
     private String name;
     private String ownerId;
+    @Exclude
     private String endpointUrl;
     /** JSON array of event type strings; empty array means all supported types. */
     private String eventTypes;

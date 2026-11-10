@@ -290,7 +290,7 @@ class WebhookSchemaMysqlMigrationTest {
 
         // Phase 2: real v111 baseline → seed → upgrade → assert.
         try (Connection conn = openConnection()) {
-            executeDdlResource(conn, "pre-webhook-schema/mysql.ddl");
+            executeDdlResource(conn, "pre-webhook-schema-111/mysql.ddl");
             assertDbVersion(conn, 111);
 
             // Seed representative rows that must survive the 111→114 upgrade.
@@ -888,14 +888,7 @@ class WebhookSchemaMysqlMigrationTest {
         if ("fresh".equals(scenario)) {
             applyStatements(conn, new MySQLSqlStatements().databaseInitialization());
         } else {
-            // Minimal v113 state: only the apicurio table (MySQL has no full pre-peers DDL in
-            // test resources, so we use the minimal approach: create the apicurio table with
-            // version 113 to simulate a post-v113 state before the webhook upgrade).
-            try (Statement st = conn.createStatement()) {
-                st.execute("CREATE TABLE apicurio (propName VARCHAR(255) NOT NULL PRIMARY KEY, propValue VARCHAR(512))");
-                st.execute("INSERT INTO apicurio VALUES ('db_version', '113')");
-            }
-            assertDbVersion(conn, 113);
+            executeDdlResource(conn, "pre-webhook-schema-113/mysql.ddl");
             applyStatements(conn, new MySQLSqlStatements().databaseUpgrade(113, 114));
             assertDbVersion(conn, 114);
         }

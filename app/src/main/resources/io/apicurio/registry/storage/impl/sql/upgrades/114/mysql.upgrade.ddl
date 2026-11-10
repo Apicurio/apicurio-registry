@@ -18,7 +18,6 @@
 -- be maintained by the application layer.
 -- *********************************************************************
 
--- serves: SELECT ... WHERE enabled = TRUE AND deletedOn IS NULL (recorder hot path)
 CREATE TABLE IF NOT EXISTS webhook_subscriptions (
     subscriptionId     VARCHAR(36)   NOT NULL,
     name               VARCHAR(512)  CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
@@ -35,6 +34,7 @@ CREATE TABLE IF NOT EXISTS webhook_subscriptions (
     createdOn          BIGINT        NOT NULL,
     modifiedOn         BIGINT        NOT NULL,
     PRIMARY KEY (subscriptionId),
+    -- serves: SELECT ... WHERE enabled = TRUE AND deletedOn IS NULL (recorder hot path)
     INDEX IDX_whsubs_1 (enabled, deletedOn),
     INDEX IDX_whsubs_2 (createdOn)
 ) DEFAULT CHARACTER SET ascii COLLATE ascii_general_ci;

@@ -227,7 +227,7 @@ endif::[]
 .Additional resources
 * {managing-registry-artifacts-api}
 * {managing-registry-artifacts-maven}
-* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/serdes-with-references[Apicurio Registry SerDes with references demonstration]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/schema-references[Apicurio Registry schema references demonstration]
 
 // Metadata created by nebel
 

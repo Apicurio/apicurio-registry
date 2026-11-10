@@ -32,6 +32,13 @@ custom), a custom resolver, schema evolution, a compatibility rule rejecting a s
 registered by the Maven plugin, and Kafka Connect with the Apicurio converters. Its
 [step-by-step guide](kafka-serdes/GUIDE.md) explains each step.
 
+## Schema References Example
+This example registers Avro, JSON Schema and AsyncAPI schemas that reference each other with the
+Maven plugin (references spelled out and found automatically), and shows how the registry lists,
+graphs, dereferences, rewrites and hashes references, what integrity rules and deletion do, and how
+Kafka serializers register nested Avro types and Protobuf imports. Its
+[step-by-step guide](schema-references/GUIDE.md) explains each step.
+
 ## Rules and Compatibility Example
 This example runs Apicurio Registry and its web console with Docker Compose and shows its content
 rules: validity, BACKWARD and FORWARD compatibility, which rule wins when rules are set globally, per

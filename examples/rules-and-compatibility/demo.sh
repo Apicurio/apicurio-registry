@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Creates the sample data and checks every rule behaviour shown in GUIDE.md, against the running example.
-# Usage: ./demo.sh   (after `docker compose up -d`; requires curl and jq)
+# Usage: ./demo.sh   (after `docker compose up -d`; requires curl, jq and JDK 21+)
+#        SKIP_JAVA=1 ./demo.sh   skips step 13, the Java validation client (then no JDK is needed)
 # Prints one ok/FAIL line per check, ends with "All checks passed." and exits non-zero on failure.
 # Safe to run again: it starts by deleting the example's groups and global rules.
 set -euo pipefail
@@ -183,6 +184,25 @@ call GET /admin/rules
 check "global rules" "COMPATIBILITY,VALIDITY" "$(jq -r 'sort | join(",")' <<< "$body")"
 call GET /groups/orders/rules
 check "group orders rules" "INTEGRITY" "$(jq -r 'sort | join(",")' <<< "$body")"
+
+# ------------------------------------------------------------------------------ step 13
+part "Step 13: validating data on the client"
+if [ -n "${SKIP_JAVA:-}" ]; then
+  echo "  skip  the validation client (SKIP_JAVA is set)"
+else
+  if [ ! -d validation-client/target/classes ]; then
+    echo "  building the validation client (first run only, a few minutes)..."
+    log=$(mktemp)
+    ./build.sh > "$log" 2>&1 || { tail -40 "$log"; echo "build.sh failed; full log: $log" >&2; exit 1; }
+  fi
+  if out=$(../../mvnw -q exec:java -f validation-client -Dregistry.url="$V3" 2>&1); then
+    grep -E '^  ok ' <<< "$out" | sed 's/^  ok    /  ok    client: /'
+    ok "the validation client's checks passed"
+  else
+    grep -E '^  (ok|FAIL) ' <<< "$out" || tail -20 <<< "$out"
+    fail "the validation client's checks failed"
+  fi
+fi
 
 if [[ $failures -gt 0 ]]; then
   echo

@@ -14,11 +14,13 @@ and in the UI, with commands, expected output and screenshots, in about 30 minut
 
 ## Quick start
 
-Requires Docker (or Podman) with Compose v2, `curl` and `jq`.
+Requires Docker (or Podman) with Compose v2, `curl`, `jq` and JDK 21 or later (or set `SKIP_JAVA=1`
+to skip the Java validation client).
 
 ```bash
 docker compose up -d     # starts the Registry and its UI
 ./demo.sh                # creates sample data, then checks every rule behaviour
+                         # (its first run builds the validation client: a few minutes)
 ```
 
 `demo.sh` prints one line per check and ends with `All checks passed.` (it exits non-zero if a check
@@ -50,6 +52,7 @@ Stop and remove everything with `docker compose down -v`.
 | [`schemas/`](schemas) | The Avro and JSON schemas the steps register |
 | [`demo.sh`](demo.sh) | Creates the sample data and checks every rule behaviour |
 | [`demo-env.sh`](demo-env.sh) | Shell helpers (`status`, `call`) to call the API by hand |
+| [`build.sh`](build.sh) | Builds the validation client from this checkout; `demo.sh` runs it when needed |
 | [`validation-client/`](validation-client) | Java client validating JSON Schema, Avro and Protobuf data with the client-side validation library (guide step 13) |
 
 ## Notes
@@ -59,8 +62,8 @@ Stop and remove everything with `docker compose down -v`.
   build it (`./mvnw install -pl distro/docker -am -DskipTests`), build
   `distro/docker/target/docker/Dockerfile.jvm` as an image, and start the example with
   `REGISTRY_IMAGE=<that image> docker compose up -d`.
-- **Validation client:** it needs the validation library built from this checkout (guide step 13).
-  CI runs it in the *Compile Java Examples* job; `demo.sh` covers the server-side rules.
+- **Validation client:** it uses the validation library built from this checkout, which `build.sh`
+  builds (snapshots are not published). `demo.sh` runs it as its last step, also in CI.
 - **Known issues:** publishing a draft under a non-transitive rule compares it with itself
   ([#11001](https://github.com/Apicurio/apicurio-registry/issues/11001)); an invalid rule config is
   accepted and then breaks writes ([#11000](https://github.com/Apicurio/apicurio-registry/issues/11000)).

@@ -61,7 +61,7 @@ public class SerdeConfig {
 
 [source,java,subs="+quotes,attributes"]
 ----
-public class SerdeBasedConverter<S, T> extends SchemaResolverConfigurer<S, T> implements Converter, Closeable {
+public class SerdeBasedConverter<S, T> implements Converter, Closeable {
 
    public static final String REGISTRY_CONVERTER_SERIALIZER_PARAM = "apicurio.registry.converter.serializer";
    public static final String REGISTRY_CONVERTER_DESERIALIZER_PARAM = "apicurio.registry.converter.deserializer";
@@ -404,7 +404,7 @@ The `DefaultSchemaResolver` uses the following properties to configure how artif
 |`apicurio.registry.headers.handler`
 |Used by serializers and deserializers. Fully qualified Java class name that implements `HeadersHandler` and writes and reads the artifact identifier to and from the Kafka message headers.
 |`String`
-|`io.apicurio.registry.serde.headers.DefaultHeadersHandler`
+|`io.apicurio.registry.serde.kafka.headers.DefaultHeadersHandler`
 |`ID_HANDLER`
 |`apicurio.registry.id-handler`
 |Used by serializers and deserializers. Fully qualified Java class name of a class that implements `IdHandler` and writes and reads the artifact identifier to and from the message payload. Defaults to a 4-byte format that includes the `contentId` in the message payload.
@@ -541,9 +541,9 @@ private static KafkaConsumer<Long, GenericRecord> createKafkaConsumer() {
     // Configure the {registry} location
     props.putIfAbsent(SerdeConfig.REGISTRY_URL, REGISTRY_URL);
 
-    // No other configuration needed because the schema globalId the deserializer uses is sent
-    // in the payload. The deserializer extracts the globalId and uses it to look up the schema
-    // from the registry.
+    // No other configuration needed because the schema ID the deserializer uses (the content ID by
+    // default) is sent in the payload. The deserializer extracts the ID and uses it to look up the
+    // schema from the registry.
 
     // Create the Kafka consumer
     KafkaConsumer<Long, GenericRecord> consumer = new KafkaConsumer<>(props);
@@ -595,10 +595,9 @@ The property name is `apicurio.registry.headers.enabled`.
 
 You can customize how the SerDes encode the schema ID when they pass it in the Kafka message body. Set the `apicurio.registry.id-handler` configuration property to a class that implements the `io.apicurio.registry.serde.IdHandler` interface. {registry} provides the following implementations:
 
-* `io.apicurio.registry.serde.Default4ByteIdHandler`: Stores the ID as a 4-byte integer
-* `io.apicurio.registry.serde.Legacy8ByteIdHandler`: Stores the ID as an 8-byte long
-
-{registry} represents the schema ID as a long, but for legacy reasons, or for compatibility with other registries or SerDe classes, you might want to use 4 bytes when sending the ID.
+* `io.apicurio.registry.serde.Default4ByteIdHandler`: Stores the ID as a 4-byte integer. This is the default, and the format used by Confluent SerDe classes.
+* `io.apicurio.registry.serde.Legacy8ByteIdHandler`: Stores the ID as an 8-byte long, as {registry} 2.x did by default.
+* `io.apicurio.registry.serde.OptimisticFallbackIdHandler`: Writes 4 bytes, and reads both 4-byte and 8-byte IDs. Use it in consumers while producers move from 8-byte to 4-byte IDs.
 
 **Avro datum provider**
 

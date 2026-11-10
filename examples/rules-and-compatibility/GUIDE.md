@@ -29,8 +29,8 @@ You need:
 - `curl` and `jq`;
 - a shell: bash or zsh;
 - a browser, for the UI;
-- for step 13 only: JDK 21 or later and the registry built from this checkout, as described in
-  [DEVELOPING.md](../../DEVELOPING.md) (the client itself runs on Java 17);
+- JDK 21 or later, for step 13: `demo.sh` builds the Java validation client from this checkout
+  (see [DEVELOPING.md](../../DEVELOPING.md)); set `SKIP_JAVA=1` to skip it;
 - free ports 8081 (Registry API) and 8888 (Registry UI). If they are in use, see
   [Using other ports](#using-other-ports).
 
@@ -296,13 +296,8 @@ Avro schema and a Protobuf schema ([`order.proto`](validation-client/src/main/pr
 the group `validation`, and validates payloads against them: with a fixed artifact
 (`validateByArtifactReference`), and with the artifact chosen per record (`validate(record)`).
 
-It uses the library built from this checkout. Build it once, from the repository root:
-
-```bash
-../../mvnw install -Pexamples -pl examples/rules-and-compatibility/validation-client -am -DskipTests -f ../../pom.xml
-```
-
-Then run it:
+It uses the library built from this checkout; `demo.sh` built it on its first run with
+[`build.sh`](build.sh), and checked its result. To run it yourself:
 
 ```bash
 ../../mvnw -q exec:java -f validation-client -Dregistry.url=http://localhost:8081/apis/registry/v3
@@ -363,7 +358,7 @@ docker compose down -v
 | `demo.sh` times out waiting for the Registry | Check `docker logs apicurio-registry-api-rules`. Usually a port conflict: see [Using other ports](#using-other-ports). |
 | Helper commands print nothing, or `jq: error` | Check that `curl` and `jq` are installed, and that you ran `source ./demo-env.sh` in the current shell. |
 | Every write to an artifact returns 500 after changing a rule | The rule config is not a valid level, and is not checked when saved: [#11000](https://github.com/Apicurio/apicurio-registry/issues/11000). Set a valid value. |
-| Step 13 cannot find `apicurio-registry-schema-validation-*` | Build it first, from the repository root (step 13). |
+| Step 13 cannot find `apicurio-registry-schema-validation-*` | Run `./build.sh`. |
 
 ## Using other ports
 

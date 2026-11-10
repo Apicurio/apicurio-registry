@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 
 import org.awaitility.core.ConditionFactory;
@@ -429,7 +430,9 @@ public class UpgradeOLMITTest implements OperatorTestContext {
                 "${PLACEHOLDER_UPGRADE_START_CSV}", "");
         var raw = loadRawResource("olmv0/subscription-upgrade.yaml");
         var subscriptionYaml = replaceVars(raw, namespace, extraVars)
-                .replaceAll("\\R?+[ \\t]*+startingCSV:[^\\r\\n]*+", "");
+                .lines()
+                .filter(line -> !line.strip().startsWith("startingCSV:"))
+                .collect(Collectors.joining("\n"));
         client.resource(subscriptionYaml).create();
 
         verifyUpgradeTo(minorHeadVersion);

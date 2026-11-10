@@ -25,7 +25,9 @@ public class AuthorizedInterceptorTest {
 
     /** Carries the {@code @Authorized} annotation looked up by the interceptor. */
     @Authorized(style = AuthorizedStyle.None, level = AuthorizedLevel.Write)
-    private void writeEndpoint() {}
+    private void writeEndpoint() {
+        // Intentionally empty: only the @Authorized annotation is inspected.
+    }
 
     @Test
     void rbacDenial_forbiddenMessageContainsNoPrincipalName() throws Exception {

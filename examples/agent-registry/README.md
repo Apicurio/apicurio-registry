@@ -62,10 +62,12 @@ Every port is bound to `localhost`.
 
 ### Why two Registries
 
-The Quarkus LangChain4j Registry extensions cannot authenticate to a Registry yet
-([quarkiverse/quarkus-langchain4j#3142](https://github.com/quarkiverse/quarkus-langchain4j/issues/3142),
-[#3143](https://github.com/quarkiverse/quarkus-langchain4j/issues/3143)), so the applications use the
-open Registry. The features that depend on who is asking (agent visibility, access rules, and the
+The Quarkus LangChain4j Registry extensions cannot authenticate to a Registry in any released
+version, so the applications use the open Registry. Registry authentication for both extensions
+([quarkiverse/quarkus-langchain4j#3145](https://github.com/quarkiverse/quarkus-langchain4j/pull/3145))
+and credentials for discovered A2A agents
+([#3157](https://github.com/quarkiverse/quarkus-langchain4j/pull/3157)) are in review. Once they are
+released, the applications will use the secured Registry. The features that depend on who is asking (agent visibility, access rules, and the
 Registry MCP server's token forwarding) are shown on the secured one.
 
 ## Users
@@ -91,7 +93,7 @@ Users of the secured Registry, from the shared example realm. Passwords equal th
 | [`demo-env.sh`](demo-env.sh) | Shell helpers to call the Registries and the MCP server as any user |
 | [`content/`](content) | The Agent Cards, tools, servers, prompt and OpenAPI document the demo publishes |
 | [`authz/access.rules`](authz/access.rules) | Access rules of the secured Registry; edits apply within seconds |
-| [`apps/Dockerfile`](apps/Dockerfile) | Builds the Quarkus applications from a pinned Quarkus LangChain4j commit |
+| [`apps/Dockerfile`](apps/Dockerfile) | Builds the Quarkus applications from the Quarkus LangChain4j 1.15.0 sample |
 | [`keycloak/`](keycloak) | Adds the `apicurio-mcp` client, used by the Registry MCP server, to the realm |
 | [`capture-screenshots.cjs`](capture-screenshots.cjs) | Refreshes the guide's screenshots in [`images/`](images) |
 
@@ -101,9 +103,8 @@ Users of the secured Registry, from the shared example realm. Passwords equal th
   (MCP tool import, the MCP Registry API, references between agent types, Agent Cards from OpenAPI)
   are not in a released version yet. Override the images with `REGISTRY_IMAGE`, `REGISTRY_UI_IMAGE` and
   `MCP_SERVER_IMAGE`.
-- **Quarkus LangChain4j:** built from commit `63d6530546` (the merge of the sample), because the
-  latest release, 2.0.0.Beta2, predates MCP server discovery in the MCP Registry extension.
-  Update `QL4J_REF` in `apps/Dockerfile` to a release that has it.
+- **Quarkus LangChain4j:** the sample and extensions from release 1.15.0. Change `QL4J_VERSION` in
+  `apps/Dockerfile` to use another release.
 
 ## Notes
 

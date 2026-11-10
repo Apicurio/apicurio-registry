@@ -80,32 +80,22 @@ public class MessageIndexesUtil {
     }
 
     static int readUnsignedVarInt(InputStream in) throws IOException {
-        byte tmp = readByte(in);
-        if (tmp >= 0) {
-            return tmp;
-        } else {
-            int result = tmp & 127;
-            if ((tmp = readByte(in)) >= 0) {
-                result |= tmp << 7;
-            } else {
-                result |= (tmp & 127) << 7;
-                if ((tmp = readByte(in)) >= 0) {
-                    result |= tmp << 14;
-                } else {
-                    result |= (tmp & 127) << 14;
-                    if ((tmp = readByte(in)) >= 0) {
-                        result |= tmp << 21;
-                    } else {
-                        result |= (tmp & 127) << 21;
-                        result |= (tmp = readByte(in)) << 28;
-                        if (tmp < 0) {
-                            throw illegalVarintException(result);
-                        }
-                    }
-                }
+        int result = 0;
+        // The first four bytes each carry 7 bits; a clear continuation (sign) bit ends the varint
+        for (int shift = 0; shift < 28; shift += 7) {
+            byte tmp = readByte(in);
+            if (tmp >= 0) {
+                return result | (tmp << shift);
             }
-            return result;
+            result |= (tmp & 127) << shift;
         }
+        // The fifth byte must not have its continuation bit set
+        byte tmp = readByte(in);
+        result |= tmp << 28;
+        if (tmp < 0) {
+            throw illegalVarintException(result);
+        }
+        return result;
     }
 
     public static int readVarInt(InputStream in) throws IOException {

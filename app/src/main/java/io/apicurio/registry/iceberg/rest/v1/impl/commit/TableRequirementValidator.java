@@ -96,7 +96,6 @@ public final class TableRequirementValidator {
         }
     }
 
-    @SuppressWarnings("unchecked")
     private static void assertRefSnapshotId(Map<String, Object> req, Map<String, Object> currentMetadata,
             String groupId, String artifactId) {
         requireMetadataExists(currentMetadata, groupId, artifactId, "assert-ref-snapshot-id");
@@ -111,31 +110,37 @@ public final class TableRequirementValidator {
                                 + expectedSnapshotId + " but was " + actualSnapshotId);
             }
         } else {
-            Map<String, Object> refs = (Map<String, Object>) currentMetadata.get("refs");
-            if (refs == null) {
-                if (expectedSnapshotId != null && expectedSnapshotId != -1) {
-                    throw new CommitFailedException(groupId, artifactId,
-                            "Requirement failed: assert-ref-snapshot-id - ref '" + refName
-                                    + "' does not exist");
-                }
-                return;
-            }
+            assertNonMainRefSnapshotId(currentMetadata, refName, expectedSnapshotId, groupId, artifactId);
+        }
+    }
 
-            Map<String, Object> refData = (Map<String, Object>) refs.get(refName);
-            if (refData == null) {
-                if (expectedSnapshotId != null && expectedSnapshotId != -1) {
-                    throw new CommitFailedException(groupId, artifactId,
-                            "Requirement failed: assert-ref-snapshot-id - ref '" + refName
-                                    + "' does not exist");
-                }
-            } else {
-                Long actualSnapshotId = toLong(refData.get("snapshot-id"));
-                if (!equalsLong(expectedSnapshotId, actualSnapshotId)) {
-                    throw new CommitFailedException(groupId, artifactId,
-                            "Requirement failed: assert-ref-snapshot-id for ref '" + refName
-                                    + "' - expected " + expectedSnapshotId + " but was "
-                                    + actualSnapshotId);
-                }
+    @SuppressWarnings("unchecked")
+    private static void assertNonMainRefSnapshotId(Map<String, Object> currentMetadata, String refName,
+            Long expectedSnapshotId, String groupId, String artifactId) {
+        Map<String, Object> refs = (Map<String, Object>) currentMetadata.get("refs");
+        if (refs == null) {
+            if (expectedSnapshotId != null && expectedSnapshotId != -1) {
+                throw new CommitFailedException(groupId, artifactId,
+                        "Requirement failed: assert-ref-snapshot-id - ref '" + refName
+                                + "' does not exist");
+            }
+            return;
+        }
+
+        Map<String, Object> refData = (Map<String, Object>) refs.get(refName);
+        if (refData == null) {
+            if (expectedSnapshotId != null && expectedSnapshotId != -1) {
+                throw new CommitFailedException(groupId, artifactId,
+                        "Requirement failed: assert-ref-snapshot-id - ref '" + refName
+                                + "' does not exist");
+            }
+        } else {
+            Long actualSnapshotId = toLong(refData.get("snapshot-id"));
+            if (!equalsLong(expectedSnapshotId, actualSnapshotId)) {
+                throw new CommitFailedException(groupId, artifactId,
+                        "Requirement failed: assert-ref-snapshot-id for ref '" + refName
+                                + "' - expected " + expectedSnapshotId + " but was "
+                                + actualSnapshotId);
             }
         }
     }

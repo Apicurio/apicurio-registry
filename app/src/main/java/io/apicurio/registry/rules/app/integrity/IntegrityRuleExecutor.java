@@ -3,6 +3,12 @@ package io.apicurio.registry.rules.app.integrity;
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.logging.Logged;
+import io.apicurio.registry.model.GAV;
+import io.apicurio.registry.references.ReferenceGraphWalker;
+import io.apicurio.registry.references.ReferenceLoader;
+import io.apicurio.registry.references.ReferenceNode;
+import io.apicurio.registry.references.ReferenceResolutionConfig;
+import io.apicurio.registry.references.ResolvedReferences;
 import io.apicurio.registry.rest.v3.beans.ArtifactReference;
 import io.apicurio.registry.rules.RuleContext;
 import io.apicurio.registry.rules.RuleExecutor;
@@ -21,11 +27,14 @@ import io.apicurio.registry.types.provider.ArtifactTypeUtilProviderFactory;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @ApplicationScoped
 @Logged
@@ -170,9 +179,12 @@ public class IntegrityRuleExecutor implements RuleExecutor {
     /**
      * Checks if adding the references to the current artifact would create a circular dependency. A circular
      * dependency occurs when following the reference chain leads to a cycle. Since the version being created
-     * does not yet exist in storage, no existing version can reference it, so we only need to check:
-     * 1. Direct self-references (a version referencing itself)
-     * 2. Cycles within the existing reference graph that would be introduced by the new references
+     * does not yet exist in storage, no existing version can reference it, so we only need to check for
+     * cycles within the existing reference graph that would be introduced by the new references.
+     * <p>
+     * Each declared reference is checked independently (its own walk, its own cycle search), so a cycle
+     * reachable from more than one of them is still reported once per offending reference, matching the
+     * granularity callers already see from {@link RuleViolation#getContext()}.
      */
     private void checkForCircularReferences(RuleContext context) throws RuleViolationException {
         List<ArtifactReference> references = context.getReferences();
@@ -184,18 +196,13 @@ public class IntegrityRuleExecutor implements RuleExecutor {
         Set<RuleViolation> causes = new HashSet<>();
 
         for (ArtifactReference ref : references) {
-            // Track visited versions to detect cycles in the reference graph
-            Set<String> visited = new HashSet<>();
+            Optional<List<GAV>> cycle = findCycleInReferenceGraph(storageToUse, ref);
 
-            // Check if following this reference leads to a cycle in the existing reference graph
-            List<String> cyclePath = findCycleInReferenceGraph(storageToUse, ref.getGroupId(),
-                    ref.getArtifactId(), ref.getVersion(), visited);
-
-            if (cyclePath != null) {
+            if (cycle.isPresent()) {
                 RuleViolation violation = new RuleViolation();
                 violation.setContext(ref.getName());
                 violation.setDescription(String.format("Circular reference detected in reference graph: %s",
-                        String.join(" -> ", cyclePath)));
+                        renderCycle(cycle.get())));
                 causes.add(violation);
             }
         }
@@ -207,55 +214,63 @@ public class IntegrityRuleExecutor implements RuleExecutor {
     }
 
     /**
-     * Recursively follows references from the given artifact version to detect if there is a cycle in the
-     * reference graph.
+     * Walks the reference graph reachable from {@code ref} via the shared {@link ReferenceGraphWalker}
+     * (the same traversal every other reference consumer uses, per the milestone epic #10635) and looks
+     * for a cycle in it.
+     * <p>
+     * The loader treats a missing referenced artifact/version ({@link ArtifactNotFoundException} or
+     * {@link VersionNotFoundException}) as "not found" — recorded by the walker, not a cycle, and not an
+     * error. Any other storage failure propagates out of {@link ReferenceLoader#loadBatch}, out of
+     * {@link ReferenceGraphWalker#walk}, and ultimately out of this rule's execution, instead of being
+     * reported as "no cycle" (#9095).
      *
-     * @return the cycle path if a cycle is found, null otherwise
+     * @return the cycle, if one exists, as the coordinates on its path (see
+     *         {@link ResolvedReferences#findCycle()})
      */
-    private List<String> findCycleInReferenceGraph(RegistryStorage storageToUse, String groupId,
-            String artifactId, String version, Set<String> visited) {
-        String currentVersionKey = createVersionKey(groupId, artifactId, version);
+    private Optional<List<GAV>> findCycleInReferenceGraph(RegistryStorage storageToUse, ArtifactReference ref) {
+        ReferenceLoader loader = coordinates -> loadBatch(storageToUse, coordinates);
+        ArtifactReferenceDto rootReference = ArtifactReferenceDto.builder().groupId(ref.getGroupId())
+                .artifactId(ref.getArtifactId()).version(ref.getVersion()).name(ref.getName()).build();
+        ResolvedReferences resolved = ReferenceGraphWalker.walk(List.of(rootReference), loader,
+                ReferenceResolutionConfig.maxDepth());
+        return resolved.findCycle();
+    }
 
-        // If we've already visited this version, we've found a cycle
-        if (visited.contains(currentVersionKey)) {
-            List<String> path = new java.util.ArrayList<>();
-            path.add(formatArtifactRef(groupId, artifactId, version) + " (cycle)");
-            return path;
-        }
-
-        visited.add(currentVersionKey);
-
-        try {
-            StoredArtifactVersionDto content = storageToUse.getArtifactVersionContent(groupId, artifactId,
-                    version);
-            List<ArtifactReferenceDto> refs = content.getReferences();
-
-            if (refs != null) {
-                for (ArtifactReferenceDto ref : refs) {
-                    List<String> cyclePath = findCycleInReferenceGraph(storageToUse, ref.getGroupId(),
-                            ref.getArtifactId(), ref.getVersion(), visited);
-                    if (cyclePath != null) {
-                        cyclePath.add(0, formatArtifactRef(groupId, artifactId, version));
-                        return cyclePath;
-                    }
-                }
+    private Map<GAV, ReferenceNode> loadBatch(RegistryStorage storageToUse, Collection<GAV> coordinates) {
+        Map<GAV, ReferenceNode> loaded = new LinkedHashMap<>();
+        for (GAV coordinate : coordinates) {
+            StoredArtifactVersionDto content;
+            try {
+                content = storageToUse.getArtifactVersionContent(coordinate.getRawGroupIdWithNull(),
+                        coordinate.getRawArtifactId(), coordinate.getRawVersionId());
+            } catch (ArtifactNotFoundException | VersionNotFoundException e) {
+                // The referenced artifact/version doesn't exist (yet): no cycle possible through this
+                // path. Any other failure (e.g. a storage outage) is not caught here - see below.
+                continue;
             }
-        } catch (Exception e) {
-            // Artifact/version doesn't exist yet or is inaccessible, no cycle possible through this path
+            loaded.put(coordinate,
+                    ReferenceNode.builder().coordinates(coordinate).references(content.getReferences())
+                            .build());
         }
-
-        // Remove from visited for other paths (backtracking)
-        visited.remove(currentVersionKey);
-
-        return null;
+        return loaded;
     }
 
-    private String createVersionKey(String groupId, String artifactId, String version) {
-        return (groupId != null ? groupId : "default") + "/" + artifactId + "@" + version;
+    /**
+     * Renders a cycle the same way the walker-based cycle check used to, before it moved onto
+     * {@link GAV}: {@code group/artifact@version}, chained with {@code " -> "}, with the closing node
+     * (which repeats the one the path returns to) suffixed {@code " (cycle)"}.
+     */
+    private String renderCycle(List<GAV> cycle) {
+        List<String> rendered = cycle.stream().map(IntegrityRuleExecutor::formatArtifactRef)
+                .collect(Collectors.toCollection(java.util.ArrayList::new));
+        int lastIndex = rendered.size() - 1;
+        rendered.set(lastIndex, rendered.get(lastIndex) + " (cycle)");
+        return String.join(" -> ", rendered);
     }
 
-    private String formatArtifactRef(String groupId, String artifactId, String version) {
-        return (groupId != null ? groupId : "default") + "/" + artifactId + "@" + version;
+    private static String formatArtifactRef(GAV gav) {
+        return gav.getRawGroupIdWithDefaultString() + "/" + gav.getRawArtifactId() + "@"
+                + gav.getRawVersionId();
     }
 
     /**

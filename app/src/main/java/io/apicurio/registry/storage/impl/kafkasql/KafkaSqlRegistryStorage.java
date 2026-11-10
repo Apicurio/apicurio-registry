@@ -290,6 +290,10 @@ public class KafkaSqlRegistryStorage extends ReadOnlyDelegatingStorage implement
             snapshotsConsumer.poll(configuration.getPollTimeout());
             assigned = snapshotsConsumer.assignment();
         }
+        // The polls above may already have returned, and moved past, the snapshot records, so
+        // rewind before collecting them. The seek is lazy: it takes effect on the next poll and
+        // does not affect the end offsets read below.
+        snapshotsConsumer.seekToBeginning(assigned);
 
         // Record the current end offsets so we stop there, even if other pods produce new snapshots
         var endOffsets = snapshotsConsumer.endOffsets(assigned);

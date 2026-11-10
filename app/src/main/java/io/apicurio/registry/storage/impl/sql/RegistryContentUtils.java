@@ -7,6 +7,7 @@ import io.apicurio.registry.content.ContentHandle;
 import io.apicurio.registry.content.TypedContent;
 import io.apicurio.registry.content.dereference.DereferencingNotSupportedException;
 import io.apicurio.registry.content.refs.JsonPointerExternalReference;
+import io.apicurio.registry.references.AuthorizingReferenceLoader;
 import io.apicurio.registry.references.ReferenceResolution;
 import io.apicurio.registry.storage.dto.ArtifactReferenceDto;
 import io.apicurio.registry.storage.dto.ContentWrapperDto;
@@ -76,9 +77,13 @@ public class RegistryContentUtils {
             List<ArtifactReferenceDto> references, Function<ArtifactReferenceDto, ContentWrapperDto> loader,
             Map<String, String> referencesRewrites) {
         if (references != null && !references.isEmpty()) {
+            // The siblings at once, before loading any: one authorizer call per document. Skipped if any
+            // is invalid, so that the loop below still reports it as before.
+            if (references.stream().allMatch(RegistryContentUtils::isValidReference)) {
+                AuthorizingReferenceLoader.authorizeAll(loader, references);
+            }
             for (ArtifactReferenceDto reference : references) {
-                if (reference.getArtifactId() == null || reference.getName() == null
-                        || reference.getVersion() == null) {
+                if (!isValidReference(reference)) {
                     throw new IllegalStateException("Invalid reference: " + reference);
                 } else {
                     String refName = reference.getName();
@@ -126,6 +131,10 @@ public class RegistryContentUtils {
         TypedContent rewrittenContent = rewriteReferencesIfSupported(typeUtilProvider, mainContent,
                 referencesRewrites);
         return new RewrittenContentHolder(rewrittenContent, partialRecursivelyResolvedReferences);
+    }
+
+    private static boolean isValidReference(ArtifactReferenceDto reference) {
+        return reference.getArtifactId() != null && reference.getName() != null && reference.getVersion() != null;
     }
 
     /**

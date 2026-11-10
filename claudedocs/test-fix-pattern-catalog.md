@@ -79,7 +79,7 @@ await().untilAsserted(() -> {
 
 **Twin test**: Same Byteman rule with the fix applied must make the forced interleaving harmless.
 
-**Infrastructure**: Maven `-Pbyteman` profile, `@EnabledIfSystemProperty(named="byteman.agent")`, configurable script path via `-Dbyteman.script=byteman/<name>.btm`.
+**Infrastructure**: Maven `-Pconcurrency-tests` profile, `@EnabledIfSystemProperty(named="byteman.agent")`, configurable script path via `-Dbyteman.script=byteman/<name>.btm`.
 
 **Key traps**:
 - BYTEMAN-38: `signalWake` before `waitFor` loses the signal. Always use `waitFor(key, TIMEOUT)`.
@@ -636,7 +636,7 @@ These are not patterns per se but infrastructure decisions that enabled the fixe
 | Investment | What it enables | PR |
 |---|---|---|
 | JUnit 5 class-level parallelism | Patterns 1, 5, 6, 7 | #9757 |
-| Byteman `-Pbyteman` profile | Pattern 3 | #9789 |
+| Byteman `-Pconcurrency-tests` profile | Pattern 3 | #9789 |
 | mock-oauth2-server | Pattern 10 | #9790 |
 | Awaitility everywhere | Patterns 2, 4, 9 | #8651, #8388 |
 | Surefire `rerunFailingTestsCount` | Pattern 8 (safety net) | #8388 |

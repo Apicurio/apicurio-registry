@@ -41,8 +41,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *   <li>{@code REGISTRY_URL} - base URL of the registry REST API
  *   <li>{@code KAFKA_BOOTSTRAP_SERVERS} - Kafka bootstrap servers
  *   <li>{@code AUTH_TOKEN_ENDPOINT} / {@code AUTH_CLIENT_ID} / {@code AUTH_CLIENT_SECRET} - OAuth2
- *       client-credentials used by the serde to authenticate to the registry (same mechanism as
- *       {@code examples/simple-json})
+ *       client-credentials used by the serde to authenticate to the registry
  *   <li>{@code PERF_DURATION_SECONDS} - how long to run before shutting down (default 120)
  *   <li>{@code PERF_PRODUCE_RATE_PER_SEC} - target produce rate (default 20)
  * </ul>

@@ -1,6 +1,7 @@
 import { FunctionComponent, useEffect, useState } from "react";
 import "./ArtifactPage.css";
 import { LoaderGuard, newLoaderGuard } from "@utils/loader.utils.ts";
+import { SubmittedContent, toSubmittedContent } from "@utils/ruleViolation.utils.ts";
 import { Breadcrumb, BreadcrumbItem, PageSection, Tab, Tabs } from "@patternfly/react-core";
 import { Link, useMatch, useParams } from "react-router";
 import { EXPLORE_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
@@ -10,6 +11,7 @@ import {
     CreateBranchModal,
     CreateVersionModal,
     EditMetaDataModal,
+    ImportMcpToolsModal,
     IfFeature,
     InvalidContentModal,
     MetaData,
@@ -56,12 +58,14 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
     const [isAddVersionToBranchModalOpen, setIsAddVersionToBranchModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isChangeOwnerModalOpen, setIsChangeOwnerModalOpen] = useState(false);
+    const [isImportMcpToolsModalOpen, setIsImportMcpToolsModalOpen] = useState(false);
     const [isPleaseWaitModalOpen, setIsPleaseWaitModalOpen] = useState(false);
     const [pleaseWaitMessage, setPleaseWaitMessage] = useState("");
     const [rules, setRules] = useState<Rule[]>([]);
     const [ruleActionError, setRuleActionError] = useState<string>();
     const [pendingRuleType, setPendingRuleType] = useState<string>();
     const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [invalidContent, setInvalidContent] = useState<SubmittedContent>();
     const [isInvalidContentModalOpen, setIsInvalidContentModalOpen] = useState(false);
     const [versionToDelete, setVersionToDelete] = useState<SearchedVersion>();
     const [versionDeleteSuccessCallback, setVersionDeleteSuccessCallback] = useState<() => void>();
@@ -325,9 +329,10 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         });
     };
 
-    const handleInvalidContentError = (error: any): void => {
+    const handleInvalidContentError = (error: any, content?: SubmittedContent): void => {
         logger.info("INVALID CONTENT ERROR", error);
         setInvalidContentError(error);
+        setInvalidContent(content);
         setIsInvalidContentModalOpen(true);
     };
 
@@ -346,7 +351,7 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
         }).catch( error => {
             pleaseWait(false);
             if (error && (error.status === 400 || error.status === 409)) {
-                handleInvalidContentError(error);
+                handleInvalidContentError(error, toSubmittedContent(data.content));
             } else {
                 setPageError(toPageError(error, "Error creating artifact version."));
             }
@@ -373,6 +378,14 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 setPageError(toPageError(error, "Error creating artifact branch."));
             }
         });
+    };
+
+    const onImportMcpToolsModalClose = (imported: boolean): void => {
+        setIsImportMcpToolsModalOpen(false);
+        if (imported) {
+            // The import added a version of this artifact; load the page again to show it.
+            setLoaders(createLoaders(newLoaderGuard()));
+        }
     };
 
     const pleaseWait = (isOpen: boolean, message: string = ""): void => {
@@ -455,7 +468,8 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 <PageSection hasBodyWrapper={false} className="ps_artifact-version-header" >
                     <ArtifactPageHeader
                         artifact={artifact as ArtifactMetaData}
-                        onDeleteArtifact={onDeleteArtifact} />
+                        onDeleteArtifact={onDeleteArtifact}
+                        onImportMcpTools={() => setIsImportMcpToolsModalOpen(true)} />
                 </PageSection>
                 <PageSection hasBodyWrapper={false}  isFilled={true} padding={{ default: "noPadding" }} className="artifact-details-main">
                     <Tabs className="artifact-page-tabs"
@@ -506,6 +520,13 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
                 onClose={() => setIsCreateBranchModalOpen(false)}
                 onCreate={doCreateArtifactBranch}
             />
+            <ImportMcpToolsModal
+                isOpen={isImportMcpToolsModalOpen}
+                groupId={gid}
+                artifactId={artifactId as string}
+                onClose={onImportMcpToolsModalClose}
+                onImport={data => groups.importMcpTools(groupId as string, artifactId as string, data)}
+            />
             <ChangeOwnerModal isOpen={isChangeOwnerModalOpen}
                 onClose={onChangeOwnerModalClose}
                 currentOwner={artifact?.owner || ""}
@@ -520,6 +541,10 @@ export const ArtifactPage: FunctionComponent<PageProperties> = () => {
             <PleaseWaitModal message={pleaseWaitMessage}
                 isOpen={isPleaseWaitModalOpen} />
             <InvalidContentModal error={invalidContentError}
+                content={invalidContent?.content}
+                contentType={invalidContent?.contentType}
+                groupId={groupId}
+                artifactId={artifactId}
                 isOpen={isInvalidContentModalOpen}
                 onClose={() => {setIsInvalidContentModalOpen(false);}} />
         </PageErrorHandler>

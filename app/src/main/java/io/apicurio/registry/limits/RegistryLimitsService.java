@@ -39,6 +39,8 @@ public class RegistryLimitsService {
             "Maximum label key size exceeded (limit: %d bytes)";
     private static final String MAX_LABEL_VALUE_SIZE_EXCEEDED_MSG =
             "Maximum label value size exceeded (limit: %d bytes)";
+    private static final String MAX_LABEL_SIZE_EXCEEDED_MSG =
+            "Maximum label size, key plus value, exceeded (limit: %d bytes)";
 
     @Inject
     Logger log;
@@ -249,11 +251,24 @@ public class RegistryLimitsService {
      */
     protected void checkLabels(Map<String, String> labels, List<String> errorMessages) {
         if (labels != null) {
-            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactPropertiesCount)
+            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactLabelsCount)
+                    && labels.size() > registryLimitsConfiguration.getMaxArtifactLabelsCount()) {
+                errorMessages.add(String.format(MAX_LABELS_EXCEEDED_MSG,
+                        registryLimitsConfiguration.getMaxArtifactLabelsCount(), labels.size()));
+            } else if (isLimitEnabled(RegistryLimitsConfiguration::getMaxArtifactPropertiesCount)
                     && labels.size() > registryLimitsConfiguration.getMaxArtifactPropertiesCount()) {
 
                 errorMessages.add(String.format(MAX_LABELS_EXCEEDED_MSG,
                         registryLimitsConfiguration.getMaxArtifactPropertiesCount(), labels.size()));
+            }
+
+            if (isLimitEnabled(RegistryLimitsConfiguration::getMaxLabelSizeBytes)) {
+                long maxLabelBytes = registryLimitsConfiguration.getMaxLabelSizeBytes();
+                boolean exceeded = labels.entrySet().stream()
+                        .anyMatch(e -> utf8Length(e.getKey()) + utf8Length(e.getValue()) > maxLabelBytes);
+                if (exceeded) {
+                    errorMessages.add(String.format(MAX_LABEL_SIZE_EXCEEDED_MSG, maxLabelBytes));
+                }
             }
 
             boolean checkKeySize = isLimitEnabled(RegistryLimitsConfiguration::getMaxPropertyKeySizeBytes);
@@ -288,6 +303,10 @@ public class RegistryLimitsService {
                 }
             }
         }
+    }
+
+    private static long utf8Length(String str) {
+        return str == null ? 0 : str.getBytes(StandardCharsets.UTF_8).length;
     }
 
     private boolean exceedsByteSizeLimit(String str, long maxBytes) {

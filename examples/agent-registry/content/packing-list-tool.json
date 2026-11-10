@@ -1,0 +1,12 @@
+{
+  "name": "packing_list",
+  "description": "Suggest what to pack for the forecast weather",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "temperature": { "type": "number" },
+      "conditions": { "type": "string" }
+    },
+    "required": ["temperature", "conditions"]
+  }
+}

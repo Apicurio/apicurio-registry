@@ -33,14 +33,27 @@ minikube start
 
 ### 2. Install Apicurio Registry Operator
 
+The example deploys an `ApicurioRegistry3` custom resource, so it needs the Apicurio
+Registry 3 operator. The operator install bundle is published with each Apicurio Registry
+release:
+
 ```bash
-kubectl apply -f https://github.com/Apicurio/apicurio-registry-operator/releases/latest/download/install.yaml
+export REGISTRY_VERSION=3.3.3
+export OPERATOR_NAMESPACE=apicurio-operator
+
+curl -sSL -o operator.tar.gz \
+  "https://github.com/Apicurio/apicurio-registry/releases/download/${REGISTRY_VERSION}/apicurio-registry-operator-${REGISTRY_VERSION}.tar.gz"
+tar xzf operator.tar.gz
+
+kubectl create namespace "${OPERATOR_NAMESPACE}"
+sed "s/PLACEHOLDER_NAMESPACE/${OPERATOR_NAMESPACE}/g" install/install.yaml \
+  | kubectl apply -n "${OPERATOR_NAMESPACE}" -f -
 ```
 
 Wait for the operator to be ready:
 
 ```bash
-kubectl wait --for=condition=ready pod -l name=apicurio-registry-operator -n apicurio-registry-operator-namespace --timeout=300s
+kubectl -n "${OPERATOR_NAMESPACE}" rollout status deployment --timeout=300s
 ```
 
 ### 3. Deploy the Registry with mTLS
@@ -64,7 +77,7 @@ This script will:
 In a separate terminal, forward the registry port to localhost:
 
 ```bash
-kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 8443:8443
+kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 8443:443
 ```
 
 ### 5. Run the Client Demo
@@ -127,14 +140,28 @@ kubectl logs -n apicurio-mtls -l app.kubernetes.io/name=apicurio-registry-mtls -
 
 ### Server Configuration
 
-The registry is configured with the following Quarkus properties (via environment variables):
+In the released Apicurio Registry images, `quarkus.http.ssl.client-auth` is a
+build-time-fixed Quarkus property (fixed to `NONE`). Setting
+`QUARKUS_HTTP_SSL_CLIENT_AUTH=required` at runtime is ignored (the registry logs
+`Build time property cannot be changed at runtime`), so the registry container
+cannot require client certificates by itself.
 
-```yaml
-QUARKUS_HTTP_SSL_CLIENT_AUTH: "required"  # Require client certificates
-QUARKUS_HTTP_SSL_CERTIFICATE_KEY_STORE_FILE: "/deployments/certs/server-keystore.p12"
-QUARKUS_HTTP_SSL_CERTIFICATE_TRUST_STORE_FILE: "/deployments/certs/server-truststore.p12"
-QUARKUS_HTTP_INSECURE_REQUESTS: "disabled"  # Force HTTPS only
+This example therefore enforces mTLS with an nginx sidecar in the registry pod,
+without changing the registry image:
+
 ```
+client --mTLS--> Service :443 --> pod :8443 [mtls-proxy sidecar] --HTTP (loopback)--> 127.0.0.1:8080 [registry]
+```
+
+- `spec.app.tls` makes the operator expose Service port 443 -> container port 8443
+  and restrict the NetworkPolicy to port 8443 (plus 9000 for management).
+- The `mtls-proxy` sidecar listens on 8443, presents the server certificate, and
+  rejects any request without a client certificate signed by `ca-cert.pem`
+  (`ssl_verify_client on`).
+- The registry listens on plain HTTP bound to `127.0.0.1` only
+  (`QUARKUS_HTTP_HOST=127.0.0.1`), so it cannot be reached from outside the pod.
+
+See `k8s/apicurio-registry-mtls.yaml` for the full configuration.
 
 ### Client Configuration
 
@@ -179,8 +206,16 @@ curl -v --cert client-cert-and-key.pem \
 
 **Solution**: Ensure port forwarding is active:
 ```bash
-kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 8443:8443
+kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 8443:443
 ```
+
+### HTTP 400 "No required SSL certificate was sent"
+
+**Problem**: The request is rejected by the `mtls-proxy` sidecar with HTTP 400.
+
+**Solution**: This is the expected mTLS rejection. Send a client certificate signed by
+the example CA (for example `--cert certs/client-cert.pem --key certs/client-key.pem`
+with curl).
 
 ### Certificate Errors
 
@@ -221,7 +256,7 @@ kubectl port-forward -n apicurio-mtls svc/apicurio-registry-mtls-app-service 844
 
 3. Check operator status:
    ```bash
-   kubectl get pods -n apicurio-registry-operator-namespace
+   kubectl get pods -n apicurio-operator
    ```
 
 ### Client Connection Fails
@@ -297,7 +332,7 @@ This example is intended for **development and testing only**. For production us
 
 - [Quarkus Mutual TLS Guide](https://quarkus.io/blog/quarkus-mutual-tls/)
 - [Apicurio Registry Documentation](https://www.apicur.io/registry/docs/)
-- [Apicurio Registry Operator](https://github.com/Apicurio/apicurio-registry-operator)
+- [Apicurio Registry Operator](https://github.com/Apicurio/apicurio-registry/tree/main/operator)
 
 ## Issue Reference
 

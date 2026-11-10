@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-This chapter provides reference information on the supported artifact types, states, and metadata that are stored in {registry}.
+Look up the artifact types that {registry} supports, including AI/ML types, the states that artifact versions move through, and the metadata that {registry} stores for groups, artifacts, and artifact versions.
 
 [role="_additional-resources"]
 .Additional resources
@@ -108,20 +108,24 @@ type.
 |`AVRO`
 |Yes
 |Yes
-|Yes
-|References are named types (for example `com.example.Foo`) found in named-type fields.
+|No (returns HTTP `400`)
+|References are named types (for example `com.example.Foo`) found in named-type fields. `REWRITE`
+fails with `DereferencingNotSupportedException`. Use `DEREFERENCE` instead.
 
 |`PROTOBUF`
 |Yes
 |Yes
-|Yes
-|References are resolved from `import` statements.
+|No (returns HTTP `400`)
+|{registry} finds references in `import` statements. `REWRITE` fails with
+`DereferencingNotSupportedException`. Use `DEREFERENCE` instead.
 
 |`JSON`
 |Yes
 |Yes
 |Yes
-|References are `$ref` pointers to external documents.
+|References are `$ref` pointers to external documents. The reference name is the literal `$ref` value.
+{registry} also matches a reference that is registered under the URI that the `$ref` value resolves to against the
+enclosing `$id`.
 
 |`OPENAPI`
 |Yes
@@ -191,7 +195,9 @@ named-import form (`# import Foo, Bar from "other.graphql"`) is recognized for r
 and `REWRITE`, but is intentionally left unresolved on `DEREFERENCE` (the directive is left
 unchanged), since inlining the whole referenced file would ignore the requested name list and
 risks introducing conflicting or duplicate type definitions. Text that merely resembles an
-`#import` line inside a `"""..."""` block-string description is never treated as a directive.
+`#import` line inside a `"""..."""` block-string description is never treated as a directive. The
+`INTEGRITY` rule does not detect unmapped `#import` directives, so the `ALL_REFS_MAPPED` level has no effect
+for GraphQL.
 
 |`XML`
 |No
@@ -227,20 +233,44 @@ risks introducing conflicting or duplicate type definitions. Text that merely re
 |No
 |No
 |No
-|`server.json` has no reference fields; there is nothing in the content to map to a reference.
+|`server.json` has no reference fields, so there is nothing in the content to map to a reference. You can add
+explicit references to `MCP_TOOL` artifacts. See
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-a2a-features.adoc#a2a-artifact-references_{context}[References between agents, MCP servers, and tools].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:a2a-artifact-references_{context}[].
+endif::[]
 
 |`AGENT_CARD`
 |No
 |No
 |No
-|Agent card content has no defined reference mechanism in {registry}.
+|Agent card content has no defined reference mechanism in {registry}. You can add explicit references to
+the allowed artifact types. See
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-a2a-features.adoc#a2a-artifact-references_{context}[References between agents, MCP servers, and tools].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:a2a-artifact-references_{context}[].
+endif::[]
 
 |`THRIFT`
+|Yes
 |No
 |No
-|No
-|Not currently implemented.
+|References are `include "shared.thrift"` directives. {registry} ignores `cpp_include` directives. This type
+has no dereferencer, so `DEREFERENCE` and `REWRITE` return the content unchanged.
 |===
+
+When you create a version, you can set `autoReferences` to `true` so that {registry} matches the references
+in the content to existing artifacts instead of requiring explicit mappings. For the matching rules, see
+ifndef::service-registry-downstream[]
+xref:getting-started/assembly-managing-registry-artifacts-api.adoc#matching-references-using-rest-api_{context}[Matching references to existing artifacts].
+endif::[]
+ifdef::service-registry-downstream[]
+xref:matching-references-using-rest-api_{context}[].
+endif::[]
 
 // ref-registry-ai-ml-artifact-types
 [id="registry-ai-ml-artifact-types_{context}"]
@@ -482,7 +512,7 @@ Replace the URL and artifact coordinates with values from your deployment, and s
 
 Compatibility APIs::
 When no explicit parameter is supplied, the v2 API treats a configured `DEREFERENCE` value as `dereference=true`.
-The Confluent-compatible API applies its resolved format to supported Avro and Protobuf responses when this default is `DEREFERENCE`.
+When this default is `DEREFERENCE`, `GET /apis/ccompat/v7/schemas/ids/\{id}` and its `/apis/ccompat/v8` equivalent return Avro schemas in the `resolved` format.
 Without the property, each API retains its existing default behavior.
 
 [role="_additional-resources"]
@@ -580,7 +610,9 @@ For more details, see the `/groups/\{groupId\}/artifacts/\{artifactId\}` endpoin
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-When an artifact version is added to a {registry} artifact, a set of metadata properties is created and stored along with the artifact version content. This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact version is created.
+When you add a new version to an artifact, {registry} creates a set of metadata properties and stores them along with the artifact version content.
+
+This metadata consists of system-generated or user-generated properties that are read-only, and editable properties that you can update after the artifact version is created.
 
 .{registry} system-generated metadata
 [.table-expandable,width="100%",cols="1,1,2",options="header"]

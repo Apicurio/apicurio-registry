@@ -14,7 +14,7 @@ import {
     FolderOpenIcon
 } from "@patternfly/react-icons";
 import { DASHBOARD_PAGE_IDX, PageDataLoader, PageError, PageErrorHandler, PageProperties, toPageError } from "@app/pages";
-import { CreateArtifactModal, RootPageHeader } from "@app/components";
+import { CreateArtifactModal, InvalidContentModal, RootPageHeader } from "@app/components";
 import { AppNavigation, useAppNavigation } from "@services/useAppNavigation.ts";
 import { SearchService, useSearchService } from "@services/useSearchService.ts";
 import {
@@ -23,11 +23,13 @@ import {
     GroupSortByObject,
     SearchedArtifact,
     SortOrderObject,
-    VersionSortByObject
+    VersionSortByObject,
+    RuleViolationProblemDetails
 } from "@sdk/lib/generated-client/models";
 import { StatsCard, QuickActions, RecentArtifacts, UsageSummaryCard } from "./components";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { UsageService, useUsageService } from "@services/useUsageService.ts";
+import { isRuleViolation, SubmittedContent, toSubmittedContent } from "@utils/ruleViolation.utils.ts";
 import { UsageSummary } from "@sdk/lib/generated-client/models";
 
 interface RegistryStats {
@@ -51,6 +53,8 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
     const [recentArtifacts, setRecentArtifacts] = useState<SearchedArtifact[]>([]);
     const [recentArtifactsError, setRecentArtifactsError] = useState<string | null>(null);
     const [isCreateArtifactModalOpen, setIsCreateArtifactModalOpen] = useState<boolean>(false);
+    const [invalidContentError, setInvalidContentError] = useState<RuleViolationProblemDetails>();
+    const [invalidContent, setInvalidContent] = useState<SubmittedContent>();
     const [usageSummary, setUsageSummary] = useState<UsageSummary | null>(null);
 
     const appNavigation: AppNavigation = useAppNavigation();
@@ -138,7 +142,14 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
                 appNavigation.navigateTo(`/explore/${gid}/${aid}`);
             })
             .catch((error) => {
-                setPageError(toPageError(error, "Error creating artifact."));
+                // Only rule violations go to the dialog; anything else (an existing artifact, a bad id)
+                // keeps the page error these pages have always shown.
+                if (isRuleViolation(error)) {
+                    setInvalidContentError(error);
+                    setInvalidContent(toSubmittedContent(data.firstVersion?.content));
+                } else {
+                    setPageError(toPageError(error, "Error creating artifact."));
+                }
             });
     };
 
@@ -224,6 +235,15 @@ export const DashboardPage: FunctionComponent<PageProperties> = () => {
                 onClose={() => setIsCreateArtifactModalOpen(false)}
                 onCreate={doCreateArtifact}
             />
+            <InvalidContentModal
+                error={invalidContentError}
+                content={invalidContent?.content}
+                contentType={invalidContent?.contentType}
+                isOpen={invalidContentError !== undefined}
+                onClose={() => {
+                    setInvalidContentError(undefined);
+                    setInvalidContent(undefined);
+                }} />
         </PageErrorHandler>
     );
 };

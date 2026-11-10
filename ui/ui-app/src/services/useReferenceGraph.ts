@@ -1,23 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Node, Edge } from "@xyflow/react";
-import { ReferenceType, ReferenceTypeObject, ReferenceGraphDirectionObject } from "@sdk/lib/generated-client/models";
+import { ReferenceGraph, ReferenceGraphDirection } from "@sdk/lib/generated-client/models";
 import { GroupsService, useGroupsService } from "@services/useGroupsService.ts";
 import { LoggerService, useLoggerService } from "@services/useLoggerService.ts";
+import { expansionDirection, FlowGraph, mergeExpansion, ReferenceNodeData, toFlowGraph } from "@utils/referenceGraph.utils.ts";
 
-/**
- * Data stored in each graph node
- */
-export interface ReferenceNodeData extends Record<string, unknown> {
-    groupId: string;
-    artifactId: string;
-    version: string;
-    name: string;
-    isRoot: boolean;
-    globalId?: number;
-    depth: number;
-    isCycleNode?: boolean;
-    artifactType?: string | null;
-}
+export type { ReferenceNodeData } from "@utils/referenceGraph.utils.ts";
 
 /**
  * Result of the useReferenceGraph hook
@@ -33,11 +21,37 @@ export interface ReferenceGraphResult {
 }
 
 /**
+ * Result of the useReferenceGraph hook, including on-demand expansion of single nodes.
+ */
+export interface ExpandableReferenceGraphResult extends ReferenceGraphResult {
+    /**
+     * Fetches the references of one node, one level deep, and adds them to the graph.
+     */
+    expandNode: (nodeId: string) => void;
+    /**
+     * Ids of the nodes that have been expanded since the graph was last loaded.
+     */
+    expandedNodeIds: ReadonlySet<string>;
+    /**
+     * Ids of expanded nodes whose expansion added nothing new to the graph.
+     */
+    exhaustedNodeIds: ReadonlySet<string>;
+    /**
+     * Id of the node currently being expanded, if any.
+     */
+    expandingNodeId?: string;
+    expandErrorMessage?: string;
+}
+
+/**
  * Configuration options for the graph
  */
 export interface ReferenceGraphOptions {
+    /**
+     * Maximum depth to load; 0 loads the whole graph.
+     */
     maxDepth?: number;
-    referenceType?: ReferenceType;
+    direction?: ReferenceGraphDirection;
 }
 
 /**
@@ -51,58 +65,31 @@ export interface ArtifactCoordinates {
 
 const DEFAULT_MAX_DEPTH = 3;
 
-const NODE_WIDTH = 200;
-const NODE_HEIGHT = 80;
-const HORIZONTAL_SPACING = 80;
-const VERTICAL_SPACING = 100;
+const EMPTY_GRAPH: FlowGraph = { nodes: [], edges: [], hasCycles: false };
 
 /**
- * Calculates node positions using a hierarchical layout
- */
-const calculateLayout = (
-    nodes: Map<string, Node<ReferenceNodeData>>
-): void => {
-    // Group nodes by depth
-    const nodesByDepth = new Map<number, Node<ReferenceNodeData>[]>();
-    nodes.forEach((node) => {
-        const depth = node.data.depth;
-        if (!nodesByDepth.has(depth)) {
-            nodesByDepth.set(depth, []);
-        }
-        nodesByDepth.get(depth)!.push(node);
-    });
-
-    // Position nodes at each depth level
-    nodesByDepth.forEach((nodesAtDepth, depth) => {
-        const totalWidth = nodesAtDepth.length * (NODE_WIDTH + HORIZONTAL_SPACING) - HORIZONTAL_SPACING;
-        const startX = -totalWidth / 2;
-        const y = depth * (NODE_HEIGHT + VERTICAL_SPACING);
-
-        nodesAtDepth.forEach((node, index) => {
-            node.position = {
-                x: startX + index * (NODE_WIDTH + HORIZONTAL_SPACING),
-                y: y
-            };
-        });
-    });
-};
-
-/**
- * Hook for building a reference graph for an artifact using the new backend endpoint
+ * Hook for building a reference graph for an artifact version from the backend graph endpoint.
+ * Nodes at the depth limit can be expanded one level at a time; changing the artifact, the depth
+ * or the direction reloads the graph and discards those expansions.
  */
 export const useReferenceGraph = (
     coordinates: ArtifactCoordinates | undefined,
     options: ReferenceGraphOptions = {}
-): ReferenceGraphResult => {
-    const { maxDepth = DEFAULT_MAX_DEPTH, referenceType = ReferenceTypeObject.OUTBOUND } = options;
+): ExpandableReferenceGraphResult => {
+    const { maxDepth = DEFAULT_MAX_DEPTH, direction = "OUTBOUND" } = options;
 
-    const [nodes, setNodes] = useState<Node<ReferenceNodeData>[]>([]);
-    const [edges, setEdges] = useState<Edge[]>([]);
+    const [graph, setGraph] = useState<FlowGraph>(EMPTY_GRAPH);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isError, setIsError] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string | undefined>();
-    const [hasCycles, setHasCycles] = useState<boolean>(false);
     const [refetchTrigger, setRefetchTrigger] = useState<number>(0);
+    const [expandedNodeIds, setExpandedNodeIds] = useState<ReadonlySet<string>>(new Set());
+    const [exhaustedNodeIds, setExhaustedNodeIds] = useState<ReadonlySet<string>>(new Set());
+    const [expandingNodeId, setExpandingNodeId] = useState<string | undefined>();
+    const [expandErrorMessage, setExpandErrorMessage] = useState<string | undefined>();
+    // Incremented on every reload, so responses for a graph that has since been replaced (a slow
+    // load, or an expansion of a node that is no longer shown) are ignored.
+    const generation = useRef<number>(0);
 
     const groups: GroupsService = useGroupsService();
     const logger: LoggerService = useLoggerService();
@@ -112,135 +99,86 @@ export const useReferenceGraph = (
     }, []);
 
     useEffect(() => {
+        const current: number = ++generation.current;
+        setExpandedNodeIds(new Set());
+        setExhaustedNodeIds(new Set());
+        setExpandingNodeId(undefined);
+        setExpandErrorMessage(undefined);
+
         if (!coordinates || !coordinates.artifactId || !coordinates.version) {
-            setNodes([]);
-            setEdges([]);
+            setGraph(EMPTY_GRAPH);
             return;
         }
 
-        const buildGraph = async (): Promise<void> => {
-            setIsLoading(true);
-            setIsError(false);
-            setErrorMessage(undefined);
-
-            try {
-                // Map ReferenceType to ReferenceGraphDirection
-                const direction = referenceType === ReferenceTypeObject.INBOUND
-                    ? ReferenceGraphDirectionObject.INBOUND
-                    : ReferenceGraphDirectionObject.OUTBOUND;
-
-                // Fetch the graph from the backend
-                const graph = await groups.getArtifactVersionReferencesGraph(
-                    coordinates.groupId,
-                    coordinates.artifactId,
-                    coordinates.version,
-                    direction,
-                    maxDepth
-                );
-
-                // Convert backend response to React Flow nodes and edges
-                const nodesMap = new Map<string, Node<ReferenceNodeData>>();
-                const edgesList: Edge[] = [];
-
-                // Calculate depth for each node based on edges
-                const nodeDepths = new Map<string, number>();
-                const rootId = graph.root?.id;
-                if (rootId) {
-                    nodeDepths.set(rootId, 0);
-                }
-
-                // BFS to calculate depths
-                if (graph.edges && graph.edges.length > 0) {
-                    const queue = [rootId];
-                    while (queue.length > 0) {
-                        const currentId = queue.shift();
-                        if (!currentId) continue;
-                        const currentDepth = nodeDepths.get(currentId) || 0;
-
-                        for (const edge of graph.edges) {
-                            const sourceId = referenceType === ReferenceTypeObject.OUTBOUND
-                                ? edge.sourceNodeId
-                                : edge.targetNodeId;
-                            const targetId = referenceType === ReferenceTypeObject.OUTBOUND
-                                ? edge.targetNodeId
-                                : edge.sourceNodeId;
-
-                            if (sourceId === currentId && targetId && !nodeDepths.has(targetId)) {
-                                nodeDepths.set(targetId, currentDepth + 1);
-                                queue.push(targetId);
-                            }
-                        }
-                    }
-                }
-
-                // Process nodes
-                if (graph.nodes) {
-                    for (const node of graph.nodes) {
-                        if (!node.id) continue;
-
-                        const depth = nodeDepths.get(node.id) || 0;
-                        nodesMap.set(node.id, {
-                            id: node.id,
-                            type: "referenceNode",
-                            position: { x: 0, y: 0 },
-                            data: {
-                                groupId: node.groupId || "default",
-                                artifactId: node.artifactId || "",
-                                version: node.version || "",
-                                name: node.name || node.artifactId || "",
-                                isRoot: node.isRoot || false,
-                                isCycleNode: node.isCycleNode || false,
-                                artifactType: node.artifactType,
-                                depth: depth
-                            }
-                        });
-                    }
-                }
-
-                // Process edges
-                if (graph.edges) {
-                    for (const edge of graph.edges) {
-                        if (!edge.sourceNodeId || !edge.targetNodeId) continue;
-
-                        const edgeId = `${edge.sourceNodeId}->${edge.targetNodeId}`;
-                        edgesList.push({
-                            id: edgeId,
-                            source: edge.sourceNodeId,
-                            target: edge.targetNodeId,
-                            animated: false,
-                            style: { stroke: "#6a6e73" },
-                            label: edge.name
-                        });
-                    }
-                }
-
-                // Calculate layout
-                calculateLayout(nodesMap);
-
-                // Update state
-                setNodes(Array.from(nodesMap.values()));
-                setEdges(edgesList);
-                setHasCycles(graph.metadata?.hasCycles || false);
-            } catch (error: unknown) {
+        setIsLoading(true);
+        setIsError(false);
+        setErrorMessage(undefined);
+        groups.getArtifactVersionReferencesGraph(
+            coordinates.groupId, coordinates.artifactId, coordinates.version, direction, maxDepth
+        ).then((result: ReferenceGraph) => {
+            if (current === generation.current) {
+                setGraph(toFlowGraph(result, direction));
+            }
+        }).catch((error: unknown) => {
+            if (current === generation.current) {
                 logger.error("Error fetching reference graph:", error);
                 setIsError(true);
                 setErrorMessage(error instanceof Error ? error.message : "Failed to load reference graph");
-            } finally {
+            }
+        }).finally(() => {
+            if (current === generation.current) {
                 setIsLoading(false);
             }
-        };
+        });
+    }, [coordinates?.groupId, coordinates?.artifactId, coordinates?.version, maxDepth, direction, refetchTrigger]);
 
-        buildGraph();
-    }, [coordinates?.groupId, coordinates?.artifactId, coordinates?.version, maxDepth, referenceType, refetchTrigger]);
+    const expandNode = useCallback((nodeId: string): void => {
+        const target: Node<ReferenceNodeData> | undefined = graph.nodes.find((n) => n.id === nodeId);
+        if (!target) {
+            return;
+        }
+        const current: number = generation.current;
+        setExpandingNodeId(nodeId);
+        setExpandErrorMessage(undefined);
+        groups.getArtifactVersionReferencesGraph(
+            target.data.groupId, target.data.artifactId, target.data.version, expansionDirection(target), 1
+        ).then((result: ReferenceGraph) => {
+            if (current !== generation.current) {
+                return;
+            }
+            setGraph((prev) => {
+                const merged: FlowGraph = mergeExpansion(prev, nodeId, result);
+                if (merged.nodes.length === prev.nodes.length && merged.edges.length === prev.edges.length) {
+                    setExhaustedNodeIds((ids) => new Set(ids).add(nodeId));
+                }
+                return merged;
+            });
+            setExpandedNodeIds((ids) => new Set(ids).add(nodeId));
+        }).catch((error: unknown) => {
+            if (current === generation.current) {
+                logger.error("Error expanding reference graph node:", error);
+                setExpandErrorMessage(error instanceof Error ? error.message : "Failed to load references");
+            }
+        }).finally(() => {
+            if (current === generation.current) {
+                setExpandingNodeId(undefined);
+            }
+        });
+    }, [graph, groups, logger]);
 
     return {
-        nodes,
-        edges,
+        nodes: graph.nodes,
+        edges: graph.edges,
         isLoading,
         isError,
         errorMessage,
-        hasCycles,
-        refetch
+        hasCycles: graph.hasCycles,
+        refetch,
+        expandNode,
+        expandedNodeIds,
+        exhaustedNodeIds,
+        expandingNodeId,
+        expandErrorMessage
     };
 };
 

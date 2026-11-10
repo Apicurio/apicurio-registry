@@ -1,0 +1,226 @@
+name: Examples
+
+# Runs every runnable example against the images built for this commit, and compiles the Java
+# examples. Called from verify.yaml when Decide sets run-examples.
+#
+# A runnable example is examples/<name>/ with an executable demo.sh and a Compose file
+# (.github/scripts/discover-examples.sh lists them). For each one, in its own job:
+#   docker compose up -d   (images missing locally are pulled, with retries)
+#   ./demo.sh              must exit 0
+#   ./demo.sh              again: an example must be safe to run twice
+#   docker compose down -v
+# Compose files select the images under test through REGISTRY_IMAGE, REGISTRY_UI_IMAGE and
+# MCP_SERVER_IMAGE (UI_IMAGE is also set for older examples), defaulting to latest-snapshot for
+# local runs. Every Apicurio Registry image an example runs must be one built for this commit: the
+# job fails if the stack would use any other (for example a published snapshot).
+# Optional per-example settings live in examples/<name>/ci.env; see examples/TEMPLATE.md. With
+# CI_NEEDS_BUILD=true the job also sets up a JDK and the Maven cache and runs the example's
+# build.sh, so demo.sh can run Java clients built from this commit (snapshots are not published).
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        type: string
+        default: '21'
+      image-tag:
+        type: string
+        required: true
+        description: 'Docker image tag to test (commit SHA)'
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    name: Discover Examples
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      examples: ${{ steps.discover.outputs.examples }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: List runnable examples
+        id: discover
+        run: |
+          examples=$(.github/scripts/discover-examples.sh)
+          echo "Examples: $examples"
+          echo "examples=$examples" >> "$GITHUB_OUTPUT"
+
+  run:
+    name: Example ${{ matrix.example.name }}
+    needs: discover
+    if: needs.discover.outputs.examples != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.example.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        example: ${{ fromJSON(needs.discover.outputs.examples) }}
+    defaults:
+      run:
+        working-directory: examples/${{ matrix.example.name }}
+    env:
+      REGISTRY_IMAGE: apicurio/apicurio-registry:${{ inputs.image-tag }}
+      REGISTRY_UI_IMAGE: apicurio/apicurio-registry-ui:${{ inputs.image-tag }}
+      UI_IMAGE: apicurio/apicurio-registry-ui:${{ inputs.image-tag }}
+      MCP_SERVER_IMAGE: apicurio/apicurio-registry-mcp-server:${{ inputs.image-tag }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
+        with:
+          artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
+          image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
+          image-name: apicurio/apicurio-registry
+          tag: ${{ inputs.image-tag }}
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
+        with:
+          artifact-name: apicurio-registry-ui-${{ inputs.image-tag }}.tar
+          image-file: /tmp/apicurio-registry-ui-${{ inputs.image-tag }}.tar
+          image-name: apicurio/apicurio-registry-ui
+          tag: ${{ inputs.image-tag }}
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
+        with:
+          artifact-name: apicurio-registry-mcp-server-${{ inputs.image-tag }}.tar
+          image-file: /tmp/apicurio-registry-mcp-server-${{ inputs.image-tag }}.tar
+          image-name: apicurio/apicurio-registry-mcp-server
+          tag: ${{ inputs.image-tag }}
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        if: matrix.example.build
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+
+      - name: Restore Maven cache
+        if: matrix.example.build
+        uses: ./.github/actions/setup-maven-cache
+
+      - name: Build the example's Java parts (build.sh)
+        if: matrix.example.build
+        env:
+          # Maven 3.9+ reads MAVEN_ARGS: the CI mirrors and quieter output
+          MAVEN_ARGS: -s ${{ github.workspace }}/.github/ci-settings.xml --no-transfer-progress
+        run: ./build.sh
+
+      - name: Apply ci.env
+        run: |
+          # Every line except comments and the CI_* runner settings becomes job environment.
+          if [ -f ci.env ]; then
+            sed -E '/^[[:space:]]*(#|$)/d; /^CI_/d' ci.env | tee -a "$GITHUB_ENV"
+          fi
+
+      - name: Check that the stack runs this commit's images
+        env:
+          TAG: ${{ inputs.image-tag }}
+        run: |
+          # An Apicurio Registry image with any other tag (latest-snapshot, a release) would test
+          # published code instead of this commit's, and pass while the change is broken.
+          images=$(docker compose config --images)
+          echo "$images"
+          stale=$(echo "$images" | grep -E '(^|/)apicurio-registry[a-z-]*:' | grep -v ":$TAG\$" || true)
+          if [ -n "$stale" ]; then
+            echo "::error::these images are not built from this commit; select them with REGISTRY_IMAGE, REGISTRY_UI_IMAGE or MCP_SERVER_IMAGE (see examples/TEMPLATE.md):"
+            echo "$stale"
+            exit 1
+          fi
+
+      - name: Start the stack
+        run: |
+          # Images not built here (Keycloak, Varnish, ...) come from public registries, which can
+          # rate-limit or fail transiently; retry before failing the example.
+          for attempt in 1 2 3; do
+            if docker compose up -d --pull missing; then exit 0; fi
+            echo "::warning::docker compose up failed (attempt $attempt of 3); retrying in 20s"
+            sleep 20
+          done
+          echo "::error::the stack did not start"
+          exit 1
+
+      - name: Run demo.sh
+        run: ./demo.sh
+
+      - name: Run demo.sh again (must be safe to repeat)
+        run: ./demo.sh
+
+      # Also on cancelled(): a job that reaches its timeout is cancelled, not failed, and a hang is
+      # exactly when the logs are needed.
+      - name: Stack logs
+        if: failure() || cancelled()
+        run: docker compose logs --no-color > "$RUNNER_TEMP/compose.log" 2>&1; tail -300 "$RUNNER_TEMP/compose.log"
+
+      - name: Upload stack logs
+        if: failure() || cancelled()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: example-logs-${{ matrix.example.name }}
+          path: ${{ runner.temp }}/compose.log
+
+      - name: Stop the stack
+        if: always()
+        run: docker compose down -v
+
+  compile-java:
+    name: Compile Java Examples
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # longest green run of the former build-examples job, week to 2026-10-01: 13 min
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Set up JDK ${{ inputs.java-version }}
+        uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: 'temurin'
+
+      - name: Restore Maven cache
+        uses: ./.github/actions/setup-maven-cache
+
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          name: build-artifacts-${{ inputs.image-tag }}
+          path: .
+
+      - name: Restore executable permissions
+        run: |
+          # GitHub Actions artifact upload/download doesn't preserve executable permissions
+          # Restore execute permission on protoc binaries
+          find . -name "protoc-*" -type f -exec chmod +x {} \; 2>/dev/null || true
+          find . -name "*.exe" -path "*/protoc-plugins/*" -type f -exec chmod +x {} \; 2>/dev/null || true
+
+      - uses: apicurio/apicurio-github-actions/load-docker-image@bd19cbe33797325a571cd7ffd58f639b62e128a2 # v2
+        with:
+          artifact-name: apicurio-registry-${{ inputs.image-tag }}.tar
+          image-file: /tmp/apicurio-registry-${{ inputs.image-tag }}.tar
+          image-name: apicurio/apicurio-registry
+          tag: ${{ inputs.image-tag }}
+
+      # The *-maven-with-references examples register their schemas with the Maven plugin
+      # during the build, against this registry on localhost:8080.
+      - name: Run Apicurio Registry application
+        run: |
+          docker run -d -p 8080:8080 apicurio/apicurio-registry:${{ inputs.image-tag }}
+          for _ in $(seq 1 60); do
+            curl -sf http://localhost:8080/apis/registry/v3/system/info > /dev/null && exit 0
+            sleep 2
+          done
+          echo "::error::the registry did not start"
+          exit 1
+
+      - name: Build Apicurio Registry with Examples
+        run: |
+          # -T 1: single-threaded (overrides .mvn/maven.config's -T 1C to prevent module ordering issues with examples)
+          # -Pexamples: activates the examples profile (builds example applications)
+          # -Dassembly.skipAssembly=true: skip archive generation (not needed for example compilation)
+          # -Daether.syncContext.named.factory=noop: prevent Maven 3.9+ resolver lock deadlocks under -T
+          mvn -s ${{ github.workspace }}/.github/ci-settings.xml install -T 1 -DskipTests -Pexamples -Dassembly.skipAssembly=true -Daether.syncContext.named.factory=noop --no-transfer-progress
+

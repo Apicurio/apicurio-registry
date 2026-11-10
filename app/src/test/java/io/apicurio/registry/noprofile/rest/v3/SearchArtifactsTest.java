@@ -410,4 +410,24 @@ public class SearchArtifactsTest extends AbstractResourceTestBase {
                 .body("count", equalTo(3)).body("artifacts.size()", equalTo(3));
     }
 
+
+    /** Without per-resource authorization, search results carry no permissions field at all. */
+    @Test
+    public void testSearchResultsOmitPermissionsWithoutResourceBasedAuthorization() throws Exception {
+        String group = UUID.randomUUID().toString();
+        this.createArtifact(group, "no-permissions", ArtifactType.JSON, "{}", ContentTypes.APPLICATION_JSON);
+
+        Map<String, Object> artifact = given().when().queryParam("groupId", group)
+                .get("/registry/v3/search/artifacts").then().statusCode(200).body("count", equalTo(1))
+                .extract().jsonPath().getMap("artifacts[0]");
+        Assertions.assertEquals("no-permissions", artifact.get("artifactId"));
+        Assertions.assertFalse(artifact.containsKey("permissions"));
+
+        Map<String, Object> version = given().when().queryParam("groupId", group)
+                .get("/registry/v3/search/versions").then().statusCode(200).body("count", equalTo(1))
+                .extract().jsonPath()
+                .getMap("versions[0]");
+        Assertions.assertEquals("no-permissions", version.get("artifactId"));
+        Assertions.assertFalse(version.containsKey("permissions"));
+    }
 }

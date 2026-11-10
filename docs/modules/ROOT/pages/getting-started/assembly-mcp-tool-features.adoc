@@ -286,7 +286,7 @@ curl "http://localhost:8080/.well-known/mcp-tools?parameter=location"
 }
 ----
 
-The `GET /.well-known/mcp-tools/{groupId}/{artifactId}` endpoint retrieves a specific registered MCP tool definition. It accepts the following path parameters:
+The `GET /.well-known/mcp-tools/\{groupId}/\{artifactId}` endpoint retrieves a specific registered MCP tool definition. It accepts the following path parameters:
 
 `groupId`:: The group containing the tool definition
 `artifactId`:: The artifact ID of the tool definition
@@ -378,21 +378,185 @@ IMPORTANT: If you already use the `FULL` validity level for MCP tool definitions
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-When you version MCP tool definitions, {registry} checks for breaking changes based on compatibility rules.
+When a `COMPATIBILITY` rule is configured, {registry} compares the `inputSchema` and optional `outputSchema` of successive `MCP_TOOL` versions with the same Apitomy Data Models checker used for JSON Schema artifacts.
+The two schemas have opposite directions:
 
-The following changes are compatible and are allowed:
+* `BACKWARD`: the new tool accepts every input allowed by the old input schema, and every output allowed by the new output schema satisfies the old output schema.
+* `FORWARD`: the old tool accepts every input allowed by the new input schema, and every output allowed by the old output schema satisfies the new output schema.
+* `FULL`: both conditions hold.
+* The `_TRANSITIVE` modes check every earlier version rather than only the latest. `NONE` disables compatibility checking. With no previous version, there is no compatibility comparison; configure a `VALIDITY` rule for initial content validation.
 
-* Adding optional input parameters
-* Changing name, title, or description
-* Changing annotations
-* Adding or modifying outputSchema
+.MCP tool schema evolution rules
+[%header,cols="3,1,1,1,1"]
+|===
+|Change (old to new)
+|Input BACKWARD
+|Input FORWARD
+|Output BACKWARD
+|Output FORWARD
 
-The following changes are incompatible and might break clients:
+|Make a required property optional, keeping its schema
+|Yes |No |No |Yes
 
-* Removing input parameters from inputSchema.properties
-* Adding new required parameters
-* Removing required parameters
-* Changing the inputSchema type
+|Make an optional property required
+|No |Yes |Yes |No
+
+|Add a typed optional property to a closed object (`additionalProperties: false`)
+|Yes |No |No |Yes
+
+|Add a typed optional property to an open object (absent or `true` additionalProperties)
+|No |Yes |Yes |No
+
+|Remove an optional property declaration from a closed object
+|No |Yes |Yes |No
+
+|Remove an optional property constraint from an open object
+|Yes |No |No |Yes
+
+|Widen `type`, including nested properties and array items (`integer` to `number`, or `string` to `["string", "null"]`)
+|Yes |No |No |Yes
+
+|Change between disjoint types (`string` to `integer`)
+|No |No |No |No
+
+|Expand `enum`, remove `const`, or relax `multipleOf` from 4 to 2
+|Yes |No |No |Yes
+
+|Lower `minimum`, `exclusiveMinimum`, `minLength`, `minItems`, or `minProperties`; raise the corresponding maximum
+|Yes |No |No |Yes
+
+|Allow additional properties, widen their schema, or relax `uniqueItems` from `true` to `false`
+|Yes |No |No |Yes
+|===
+
+The table assumes a strict change in accepted values with other constraints unchanged. Reverse a widening change to reverse its results. A property declaration is a constraint, not a guarantee that the property exists: use `required` for that guarantee. A required output can become optional only with a forward-compatible change; adding a required output can be backward compatible if the old schema already allowed that property and its values.
+
+Adding an `outputSchema` where none existed is backward compatible but not forward compatible. Removing it loses the declared output guarantee and is backward incompatible but forward compatible. Changing the tool's name, title, description, or annotations does not affect this schema comparison; that does not establish that a renamed tool or changed implementation is safe for callers.
+
+=== Supported schema subset and limits
+
+The publication rule supports recursive `properties`, schema-valued or boolean `additionalProperties`, homogeneous `items`, boolean subschemas, `type` (including unions), `required`, `enum`, `const`, numeric bounds and `multipleOf`, string length bounds, array size and uniqueness, and object property counts. It recognizes drafts 4, 6, 7, 2019-09, and 2020-12; absent `$schema` uses draft 7. Keywords must be valid for the declared draft. In draft 4, `const` (which draft 4 does not define) and the boolean `exclusiveMinimum` and `exclusiveMaximum` modifiers are outside the supported subset. The checker compares most numbers as 64-bit floating-point values, so numbers must be exactly representable at that precision, such as `0.1` or integers up to 2^53^. A value such as `9007199254740993.0`, or an integer above 2^53^ in a numeric bound or `multipleOf`, is outside the supported subset and returns HTTP 422 rather than comparing equal to a neighboring value. Integers of any size inside `enum` and `const` values are compared exactly.
+
+Schema annotations (`title`, `description`, `default`, `examples`, `$comment`, `deprecated`, `readOnly`, and `writeOnly`) do not enforce compatibility constraints. Default values do not fill missing inputs.
+
+References (`$ref`, `$dynamicRef`, `$recursiveRef`, identifiers and definition containers), composition (`allOf`, `anyOf`, `oneOf`, `not`), conditionals, dependencies, tuple schemas, `prefixItems`, `contains`, `unevaluated*`, `pattern`, `patternProperties`, `format`, and other unlisted keywords are outside this publication rule's supported subset. They are not silently discarded. If either compared schema uses one, even unchanged, the comparison fails with HTTP 422. No reference is fetched or resolved. This deliberately narrower contract does not change the JSON artifact checker or cross-tool chaining endpoint.
+
+A known incompatible change returns HTTP 400 with a rule-violation context prefixed by `/inputSchema` or `/outputSchema`. For example, narrowing an input string reports `/inputSchema/properties/query/maxLength`. Input BACKWARD contexts point into the new schema; output BACKWARD contexts point into the old schema because its accepted outputs are the comparison target. FORWARD reverses those locations; FULL can report both. Invalid or unsupported schemas return HTTP 422. Neither rejection creates the candidate version or changes previously accepted content.
+
+The engine can conservatively reject changes that accept the same values, especially when several constraints interact. A passing schema check is not proof of behavioral equivalence, runtime conformance, successful invocation, or compatibility between two different tools.
+
+=== Upgrade and sample guidance
+
+Earlier MCP tool checking compared only top-level input types, property names, and requiredness; output changes and nested constraint changes were unchecked. Version 3.4 checks the supported subset above and changes those results. Making an input optional is now backward compatible. Adding a typed optional input to an open schema is no longer automatically accepted. Stored versions are not rewritten; unsupported schemas in existing versions can prevent subsequent publication under an enabled compatibility rule.
+
+For a release-safety demonstration, publish a tool whose input `query` is a string with `maxLength: 10`, enable `BACKWARD`, and propose `maxLength: 5`. Expect HTTP 400 and unchanged old content. Propose `maxLength: 20` and expect acceptance. For an output schema, the direction is reversed. Use a disposable registry and retain the rule configuration, exact versions, responses, and retrieved content as evidence for the agent-registry graduation work (#10294). This demonstrates publication-time schema enforcement only; it is not evidence of runtime admission, authenticated invocation, or full feature graduation.
+
+// proc-mcp-importing-tools
+[id="mcp-importing-tools_{context}"]
+== Importing tools from a live MCP server
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+{registry} can connect to a running MCP server, list its tools with `tools/list`, and publish each tool as an `MCP_TOOL` artifact, so that you do not need to write one artifact per tool by hand. Importing again after the server is redeployed shows which tool contracts changed, and configured rules reject changes that break them.
+
+IMPORTANT: This feature is experimental. The registry makes outbound connections to the URL in the request, so it is disabled by default and connects only to hosts that you allow.
+
+.Prerequisites
+* Experimental features are enabled: `apicurio.features.experimental.enabled=true`.
+* MCP import is enabled: `apicurio.mcp-import.enabled=true`.
+* The MCP server host is listed in `apicurio.mcp-import.allowed-hosts`. When this list is empty, which is the default, every host is refused.
+* An `MCP_SERVER` artifact exists for the server, and you have write access to it and to the group that the tools are published to.
+* The MCP server supports the Streamable HTTP transport. The `sse` and `stdio` transports are not supported.
+
+.Procedure
+. Import the tools:
++
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/registry/v3/groups/my-servers/artifacts/weather/mcp-import \
+  -H "Content-Type: application/json" \
+  -d '{
+        "url": "https://weather.apps.example.com/mcp",
+        "headers": { "Authorization": "Bearer <token>" },
+        "toolGroupId": "mcp-tools",
+        "dryRun": false
+      }'
+----
++
+* `url`: the MCP server endpoint. Required.
+* `headers`: HTTP headers to send to the MCP server, for example credentials. They are sent to the MCP server only, and are never stored, returned, logged, or audited. Headers that the transport sets itself, such as `Host`, `Content-Type`, `Accept`, and `Mcp-Session-Id`, are refused.
+* `toolGroupId`: the group for the `MCP_TOOL` artifacts. Defaults to the group of the `MCP_SERVER` artifact.
+* `dryRun`: when `true`, the server is contacted and the report is returned, but nothing is written.
+
+. Read the report. For example:
++
+[source,json]
+----
+{
+  "groupId": "my-servers",
+  "artifactId": "weather",
+  "status": "NEW_VERSION",
+  "version": "2",
+  "tools": [
+    { "name": "getWeather", "groupId": "mcp-tools", "artifactId": "weather.getWeather",
+      "version": "1", "status": "CREATED" }
+  ]
+}
+----
+
+.Verification
+* Each tool is stored as an `MCP_TOOL` artifact with the ID `<server artifact ID>.<tool name>`.
+* The new `MCP_SERVER` version references the tools, with each reference named after its tool.
+
+[id="mcp-importing-tools-results_{context}"]
+=== Import results
+
+Each tool, and the `MCP_SERVER` artifact, has one of the following statuses:
+
+[%header,cols="1,3"]
+|===
+|Status |Meaning
+
+|`CREATED`
+|A new `MCP_TOOL` artifact was created.
+
+|`NEW_VERSION`
+|The tool's definition changed, and a new version was added. For the server, a new version with different references was added.
+
+|`UNCHANGED`
+|A stored version already matches the tool's definition. For the server, the latest version already has the same references, so no version was added.
+
+|`REJECTED`
+|A rule, such as `COMPATIBILITY`, rejected the new definition, and the causes list the violations. Nothing was written for the tool, and the new server version does not reference it, because no stored version matches what the server offers. A tool is also rejected when an artifact with its ID exists and is not an `MCP_TOOL`.
+
+|`REMOVED`
+|The previous server version referenced the tool, but the server no longer lists it. The tool's artifact is not changed or deleted, and the new server version does not reference it.
+|===
+
+Each tool is published like any other version: rules, write hooks, authorization, and auditing apply to each tool. Before any tool is written, the import checks that the server lists no tool name twice and that you can write every existing tool artifact, so these failures leave nothing imported. A rule rejecting one tool does not stop the others. Tools are otherwise not imported atomically: if another error occurs partway through, tools that were already accepted stay stored. In a dry run, the report states whether a new server version would be added, but the server version is not checked against rules, because the tools it would reference do not exist yet.
+
+The new server version references exactly the imported tools. References that you added to an earlier version by hand are not carried over.
+
+[id="mcp-importing-tools-security_{context}"]
+=== Outbound connection security
+
+The registry applies the following restrictions before and while it connects to the MCP server:
+
+* The URL must use HTTPS, unless `apicurio.mcp-import.insecure-http.enabled=true`, and must not contain user information.
+* The host must be allowed by `apicurio.mcp-import.allowed-hosts`. Each entry is a hostname (`mcp.example.com`), a domain wildcard (`*.example.com`, which does not match `example.com`), `*` for any host, an IP address, or a CIDR range (`10.0.0.0/8`). A CIDR entry allows a host when every address the host resolves to is in a listed range.
+* Every address that the host resolves to must not be a loopback, link-local, unspecified, multicast, reserved, or cloud metadata address, even when the allow-list permits the host. Loopback is allowed only with `apicurio.mcp-import.loopback.enabled=true`, for development and tests.
+* Redirects are never followed.
+* Each request times out after `apicurio.mcp-import.timeout.seconds`. Each message is limited to `apicurio.mcp-import.response.max-size` bytes, and the number of tools to `apicurio.mcp-import.tools.max-size`.
+
+Every refused host gets the same error message, so the endpoint does not reveal which hosts exist or resolve. A refused URL returns HTTP 400. An MCP server that cannot be reached, times out, sends a response that is too large or invalid, or lists too many tools returns HTTP 502. Read-only storage, such as GitOps or KubernetesOps, returns HTTP 409 before any connection is made, as does an import when the feature is disabled.
+
+NOTE: The HTTP client resolves the host again when it connects, so a host whose DNS answer changes between the check and the connection (DNS rebinding) is not detected. To limit this, allow hostnames whose DNS you control, or CIDR ranges.
+
+The registry records the following Micrometer counters. They have no URL, host, or header values as tags, and dry runs are not counted in `apicurio.mcp.import.tools`.
+
+* `apicurio.mcp.import.tools`, tagged `result` (`created`, `new-version`, `unchanged`, `rejected`, `removed`).
+* `apicurio.mcp.import.failures`, tagged `reason` (`host-denied`, `timeout`, `oversize`, `too-many-tools`, `protocol`).
 
 // ref-mcp-automatic-label-extraction
 [id="mcp-automatic-label-extraction_{context}"]

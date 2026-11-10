@@ -1,0 +1,43 @@
+# An ODCS v3.1 data contract for the OrderEvent schema.
+# Submit it with: POST /apis/registry/v3/groups/orders/contracts (Content-Type: application/x-yaml)
+apiVersion: v3.1.0
+kind: DataContract
+id: orders-contract
+info:
+  title: Orders Data Contract
+  version: 1.0.0
+  description: Order events published to the orders topic.
+  status: active
+  dataClassification: confidential
+team:
+  name: orders-team
+  domain: commerce
+  contact: orders-team@example.com
+schemas:
+  # [groupId/]artifactId[:version]. Without a version, field tags go on the latest version.
+  - name: OrderEvent
+    type: avro
+    location: orders/OrderEvent
+    fields:
+      orderId:
+        description: Unique order identifier
+        pii: false
+      customerEmail:
+        description: Customer email address
+        pii: true
+        tags:
+          - EMAIL
+      totalAmount:
+        description: Total order amount
+        pii: false
+quality:
+  accuracy:
+    - name: positive-amount
+      expression: totalAmount > 0
+      threshold: 1.0
+  freshness:
+    maxStaleness: PT5M
+serviceLevel:
+  availability: 0.999
+  latency:
+    p99: PT1S

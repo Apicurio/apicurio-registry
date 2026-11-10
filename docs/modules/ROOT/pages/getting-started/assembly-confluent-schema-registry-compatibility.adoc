@@ -6,7 +6,7 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-{registry} provides a compatibility API layer so that applications with Confluent Schema Registry clients can work with {registry}. Review the supported features, behavioral differences, unsupported features, and migration considerations.
+{registry} provides a compatibility API layer so that applications with Confluent Schema Registry clients can work with {registry}. Review the supported and unsupported features, behavioral differences, and migration considerations, and migrate schemas with the export utility.
 
 [id="ccompat-overview_{context}"]
 == Overview of the compatibility API
@@ -56,10 +56,10 @@ schema.registry.url=http://my-registry:8080/apis/ccompat/v7
 |Description
 
 |*Schemas API*
-|Full support for schema management including `GET /schemas`, `GET /schemas/ids/{id}`, `GET /schemas/types`, `GET /schemas/ids/{id}/subjects`, `GET /schemas/ids/{id}/versions`, and `GET /schemas/ids/{id}/schema`. Includes pagination with `offset` and `limit` parameters.
+|Full support for schema management including `GET /schemas`, `GET /schemas/ids/\{id}`, `GET /schemas/types`, `GET /schemas/ids/\{id}/subjects`, `GET /schemas/ids/\{id}/versions`, and `GET /schemas/ids/\{id}/schema`. Includes pagination with `offset` and `limit` parameters.
 
 |*Subjects API*
-|Complete create, retrieve, update, and delete operations for subjects including listing, registration, lookup by content (`POST /subjects/{subject}`), lookup by version (`POST /subjects/{subject}/versions/{version}`), and deletion. Supports pagination with `offset`, `limit`, `deleted`, and `deletedOnly` parameters.
+|Complete create, retrieve, update, and delete operations for subjects including listing, registration, lookup by content (`POST /subjects/\{subject}`), lookup by version (`POST /subjects/\{subject}/versions/\{version}`), and deletion. Supports pagination with `offset`, `limit`, `deleted`, and `deletedOnly` parameters.
 
 |*Compatibility API*
 |Schema compatibility checking against specific versions or all versions. Supports `verbose` and `normalize` parameters. Defaults to `BACKWARD` compatibility when you do not configure an explicit rule, matching the Confluent behavior.
@@ -127,6 +127,40 @@ The `apicurio.ccompat.legacy-id-mode.enabled` configuration property controls th
 
 For most use cases, use the default content ID mode, because it matches the Confluent behavior where identical schemas share the same ID across subjects.
 
+**Schema format parameter**
+
+The `format` query parameter selects how the following operations return a schema, in both `/apis/ccompat/v7` and `/apis/ccompat/v8`:
+
+* `GET /schemas/ids/\{id}`
+* `GET /schemas/ids/\{id}/schema`
+* `POST /subjects/\{subject}` (lookup by content)
+* `GET /subjects/\{subject}/versions/\{version}`
+* `GET /subjects/\{subject}/versions/\{version}/schema`
+
+.Supported format values
+[%header,cols="1,1,3"]
+|===
+|Value
+|Schema type
+|Effect
+
+|`resolved`
+|Avro
+|Inlines the referenced schemas. For a schema without references, the API returns the schema as re-serialized by the Avro parser.
+
+|`ignore_extensions`
+|Protobuf
+|Removes the extension declarations from the schema.
+
+|`serialized`
+|Protobuf
+|Returns the schema as a serialized Protobuf `FileDescriptor`.
+|===
+
+Any other value for an Avro or Protobuf schema returns HTTP `400`, and the error message lists the valid values. For JSON Schema, {registry} ignores the parameter.
+
+When `apicurio.rest.artifact.references.default-handling` is `DEREFERENCE` and the request has no `format` parameter, `GET /schemas/ids/\{id}` returns Avro schemas in the `resolved` format.
+
 **Configuration properties**
 
 .Confluent compatibility API configuration
@@ -177,13 +211,13 @@ This normalization applies only to ccompat API responses (`/apis/ccompat/*`). Th
 
 **Default compatibility level**
 
-When you do not configure an explicit compatibility rule at the artifact, group, or global level, the ccompat compatibility check endpoint (`POST /compatibility/subjects/{subject}/versions/{version}`) defaults to `BACKWARD` compatibility. This matches the default behavior of Confluent Schema Registry.
+When you do not configure an explicit compatibility rule at the artifact, group, or global level, the ccompat compatibility check endpoint (`POST /compatibility/subjects/\{subject}/versions/\{version}`) defaults to `BACKWARD` compatibility. This matches the default behavior of Confluent Schema Registry.
 
-NOTE: This default only applies to the compatibility _check_ endpoint. Schema registration does not enforce this default unless you explicitly configure a compatibility rule by using `PUT /config` or `PUT /config/{subject}`.
+NOTE: This default only applies to the compatibility _check_ endpoint. Schema registration does not enforce this default unless you explicitly configure a compatibility rule by using `PUT /config` or `PUT /config/\{subject}`.
 
 **Config response format**
 
-The `PUT /config` and `PUT /config/{subject}` endpoints return a response with the following fields:
+The `PUT /config` and `PUT /config/\{subject}` endpoints return a response with the following fields:
 
 [source,json]
 ----
@@ -246,7 +280,7 @@ Error responses use Confluent-compatible error codes and message formats:
 
 **Sorted results**
 
-List endpoints (`GET /subjects`, `GET /schemas/ids/{id}/subjects`, `GET /schemas/ids/{id}/versions`) return results in sorted order (alphabetical for subjects, numerical for versions).
+List endpoints (`GET /subjects`, `GET /schemas/ids/\{id}/subjects`, `GET /schemas/ids/\{id}/versions`) return results in sorted order (alphabetical for subjects, numerical for versions).
 
 [id="ccompat-unsupported-features_{context}"]
 == Unsupported features
@@ -329,6 +363,9 @@ When you migrate from Confluent Schema Registry to {registry}, consider the foll
 |*Basic operations*
 |Schema registration, retrieval, and compatibility checks work identically. No changes required.
 
+|*Existing schemas*
+|Export subjects, schema versions, references, and compatibility levels from Confluent Schema Registry with the export utility, and then import the ZIP file into {registry}.
+
 |*Client configuration*
 |Update `schema.registry.url` to point to the {registry} ccompat endpoint.
 
@@ -374,7 +411,163 @@ props.put("schema.registry.url", "http://apicurio-registry:8080/apis/ccompat/v7"
 
 [role="_additional-resources"]
 .Additional resources
+* xref:migrating-schemas-using-confluent-export-utility_{context}[]
 * {registry-rest-api}
 * link:https://docs.confluent.io/platform/current/schema-registry/develop/api.html[Confluent Schema Registry API Reference]
 * link:https://docs.confluent.io/platform/current/schema-registry/fundamentals/data-contracts.html[Confluent Data Contracts Documentation]
 * link:https://docs.confluent.io/platform/current/schema-registry/schema-linking-cp.html[Confluent Schema Linking Documentation]
+
+[id="confluent-export-utility-data-mapping_{context}"]
+== Confluent Schema Registry export utility data mapping
+
+:_mod-docs-content-type: REFERENCE
+
+[role="_abstract"]
+The Confluent Schema Registry export utility reads a Confluent Schema Registry through its REST API and writes the data as a ZIP file in the {registry} import format. Review how the utility maps Confluent Schema Registry data to {registry} before you migrate.
+
+.Confluent Schema Registry data in the export file
+[%header,cols="1,2"]
+|===
+|Confluent Schema Registry data
+|{registry} equivalent
+
+|Subject
+|Artifact in the default group, with the subject name as the artifact ID. The artifact type is `AVRO`, `JSON`, or `PROTOBUF`, matching the Confluent schema type.
+
+|Schema version
+|Artifact version that keeps the Confluent version number, so clients can continue to request the same version numbers through the ccompat API.
+
+|Schema ID
+|Content ID. By default, the ccompat API returns content IDs as schema IDs, so existing clients can continue to resolve the schema IDs that are embedded in serialized messages.
+
+|Schema reference
+|Artifact reference to the referenced subject and version.
+
+|Subject compatibility level
+|`COMPATIBILITY` rule on the artifact, written only for subjects that set their own level.
+
+|Global compatibility level
+|Global `COMPATIBILITY` rule.
+|===
+
+The export file also contains a global `VALIDITY` rule set to `SYNTAX_ONLY`. After the import, {registry} applies this rule to every artifact in the target instance that does not define its own validity rule.
+
+The utility exports only active subjects and versions. It does not export soft-deleted subjects or versions, subject modes, registration timestamps, or the metadata, tags, and rulesets of Confluent Data Contracts.
+
+[id="migrating-schemas-using-confluent-export-utility_{context}"]
+== Migrating schemas from Confluent Schema Registry by using the export utility
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can copy subjects, schema versions, references, and compatibility levels from Confluent Schema Registry into {registry} by using the Confluent Schema Registry export utility. The utility writes a ZIP file that you import through the {registry} admin API.
+
+The export utility is a command-line tool from the {registry} project. Each {registry} release publishes it to Maven Central.
+
+.Prerequisites
+* You have Java 17 or later on a machine that can reach the Confluent Schema Registry REST API and the {registry} API.
+* If the Confluent Schema Registry requires authentication, you have credentials for it.
+* You have administrator access to the target {registry} instance.
+* You have an empty target {registry} instance, or you plan to import with new identifiers.
+
+.Procedure
+. Download the `apicurio-registry-utils-exportConfluent` archive from Maven Central:
++
+[source,bash]
+----
+$ curl -LO https://repo1.maven.org/maven2/io/apicurio/apicurio-registry-utils-exportConfluent/VERSION/apicurio-registry-utils-exportConfluent-VERSION.tar.gz
+----
++
+Replace `VERSION` with the version of your {registry} instance, for example `3.3.3`. Use version 3.3.0 or later. Archives for earlier versions extract into a `quarkus-app` directory, so run the launcher from that directory instead.
++
+NOTE: To build the utility from source instead, run `./mvnw -Dfull -pl utils/exportConfluent -am -DskipTests package` in the {registry} source repository with JDK 21 or later. The build creates the launcher at `utils/exportConfluent/target/quarkus-app/quarkus-run.jar`.
+
+. Extract the archive into an empty directory:
++
+[source,bash]
+----
+$ mkdir confluent-export
+$ tar -xzf apicurio-registry-utils-exportConfluent-VERSION.tar.gz -C confluent-export
+$ cd confluent-export
+----
++
+The directory contains the `quarkus-run.jar` launcher with its `lib`, `app`, and `quarkus` directories.
+
+. Export the Confluent Schema Registry data:
++
+[source,bash]
+----
+$ java -jar quarkus-run.jar MY-CONFLUENT-URL --output confluent-schema-registry-export.zip
+----
++
+`MY-CONFLUENT-URL` is the URL of the Confluent Schema Registry REST API. For example: `\http://my-confluent:8081`. The URL must be the first argument. The utility prints `Export successfully done.` when it finishes. If the export fails, the utility exits with status `1` and leaves an incomplete ZIP file that you must not import.
++
+The following options are available:
++
+`--output` or `-o`:: The name of the ZIP file. The default is `confluent-schema-registry-export.zip` in the current directory.
+`--insecure`:: Accepts any TLS certificate and host name when the URL uses HTTPS. Use this option only for testing, and do not combine it with `--client-props`, because the client properties restore the default Java trust store. For a certificate from a private certificate authority, pass a trust store as client properties instead: `schema.registry.ssl.truststore.location` and `schema.registry.ssl.truststore.password`.
+`--client-props`:: Passes Confluent client properties as `key=value` pairs, for example, to authenticate. Place this option last, because the utility reads every remaining argument as a property. The utility splits each argument at the first `=` and silently truncates a value that contains another `=`.
++
+IMPORTANT: The utility prints the parsed client properties, including any credentials, to the console.
++
+For example, to export from a Confluent Schema Registry that requires basic authentication:
++
+[source,bash]
+----
+$ java -jar quarkus-run.jar MY-CONFLUENT-URL --output confluent-schema-registry-export.zip \
+  --client-props basic.auth.credentials.source=USER_INFO basic.auth.user.info=MY-USER:MY-PASSWORD
+----
++
+For Confluent Cloud, use the Schema Registry API key as `MY-USER` and the API secret as `MY-PASSWORD`.
+
+. Import the ZIP file into the target {registry} instance:
++
+[source,bash]
+----
+$ curl -X POST "MY-REGISTRY-URL/apis/registry/v3/admin/import" \
+  -H "Content-Type: application/zip" -H "Authorization: Bearer $ACCESS_TOKEN" \
+  --data-binary @confluent-schema-registry-export.zip
+----
++
+`MY-REGISTRY-URL` is the URL of the target {registry} instance. For example: `\http://my-registry:8080`. Omit the `Authorization` header if authentication is disabled. You can also import the file by using the web console or the CLI. If the import fails with HTTP `400` because the file exceeds the ZIP import limits, raise `apicurio.import.zip.max-entry-count` on the target instance and retry. The default is `10000` entries.
++
+By default, the import requires an empty registry and keeps the content IDs and global IDs from the file, so the schema IDs that are embedded in existing Kafka messages stay valid. The file numbers global IDs from `1`, so they collide with data that the target registry already holds. To import into a registry that already contains data, add the `requireEmptyRegistry=false` query parameter and set the `X-Registry-Preserve-GlobalId` and `X-Registry-Preserve-ContentId` headers to `false`, so that {registry} assigns new identifiers:
++
+[source,bash]
+----
+$ curl -X POST "MY-REGISTRY-URL/apis/registry/v3/admin/import?requireEmptyRegistry=false" \
+  -H "Content-Type: application/zip" -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "X-Registry-Preserve-GlobalId: false" -H "X-Registry-Preserve-ContentId: false" \
+  --data-binary @confluent-schema-registry-export.zip
+----
++
+New content IDs change the schema IDs that the ccompat API returns. Consumers of messages that were produced before the migration can then no longer resolve the embedded Confluent schema IDs through {registry}. Import into an empty registry whenever those messages must remain readable.
+
+.Verification
+* List the migrated subjects through the ccompat API and compare the list with the output of `GET /subjects` on the Confluent Schema Registry. The endpoint returns at most `apicurio.ccompat.max-subjects` subjects, `1000` by default:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/ccompat/v7/subjects
+----
+* Retrieve a schema by its original Confluent schema ID:
++
+[source,bash]
+----
+$ curl -H "Authorization: Bearer $ACCESS_TOKEN" MY-REGISTRY-URL/apis/ccompat/v7/schemas/ids/1
+----
+* Check the {registry} server log for import warnings. The import skips an entity that it cannot store, such as a version with a duplicate global ID, and still returns HTTP `204`.
+
+.Next steps
+* Update the `schema.registry.url` property of your Kafka clients to the ccompat API endpoint. See xref:ccompat-migration-considerations_{context}[].
+
+[role="_additional-resources"]
+.Additional resources
+* xref:confluent-export-utility-data-mapping_{context}[]
+* {registry-rest-api}
+ifndef::service-registry-downstream[]
+* xref:getting-started/assembly-managing-registry-artifacts-api.adoc#exporting-importing-using-rest-api_{context}[Exporting and importing registry data using {registry} REST API commands]
+* xref:getting-started/assembly-managing-registry-artifacts-ui.adoc#exporting-importing-using-web-console_{context}[Exporting and importing data using the {registry} web console]
+* xref:getting-started/assembly-managing-registry-artifacts-cli.adoc#exporting-importing-registry-data-using-registry-cli_{context}[Exporting and importing data using the CLI]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/utils/exportConfluent[Confluent Schema Registry export utility source]
+endif::[]

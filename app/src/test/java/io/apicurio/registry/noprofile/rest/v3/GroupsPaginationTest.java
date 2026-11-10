@@ -6,13 +6,17 @@ import io.apicurio.registry.rest.v3.beans.EditableContractMetadata;
 import io.apicurio.registry.types.ArtifactType;
 import io.apicurio.registry.types.ContentTypes;
 import io.quarkus.test.junit.QuarkusTest;
+import io.restassured.path.json.JsonPath;
 import io.restassured.specification.RequestSpecification;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * Regression tests for issue #9268: the v3 GroupsResource list endpoints must normalize negative
@@ -42,7 +46,12 @@ public class GroupsPaginationTest extends AbstractResourceTestBase {
                 .body("groups.size()", equalTo(1));
         given().queryParam("offset", OVER_INT_MAX).get(path).then().statusCode(200)
                 .body("groups.size()", equalTo(0));
-        given().queryParam("limit", OVER_INT_MAX).get(path).then().statusCode(200);
+        // An overflowing limit is clamped, so every group comes back in a single page.
+        JsonPath page = given().queryParam("limit", OVER_INT_MAX).get(path).then().statusCode(200).extract()
+                .jsonPath();
+        int returned = page.getList("groups").size();
+        assertEquals(page.getInt("count"), returned);
+        assertThat(returned, greaterThanOrEqualTo(2));
     }
 
     @Test
@@ -106,6 +115,8 @@ public class GroupsPaginationTest extends AbstractResourceTestBase {
                 .body("size()", equalTo(1));
         given().pathParam("groupId", groupId).queryParam("offset", -1).get(path).then().statusCode(200)
                 .body("size()", equalTo(2));
+        given().pathParam("groupId", groupId).queryParam("limit", 0).get(path).then().statusCode(200)
+                .body("size()", equalTo(0));
     }
 
     @Test

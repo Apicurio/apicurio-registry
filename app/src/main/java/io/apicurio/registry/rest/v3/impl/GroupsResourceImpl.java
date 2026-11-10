@@ -2663,8 +2663,8 @@ public class GroupsResourceImpl extends AbstractResourceImpl implements GroupsRe
 
         ParameterValidationUtils.requireParameter("groupId", groupId);
 
-        int effectiveLimit = limit != null ? Math.min(normalizeLimitUnbounded(BigInteger.valueOf(limit)), 500) : 20;
-        int effectiveOffset = offset != null ? normalizeOffset(BigInteger.valueOf(offset)) : 0;
+        int effectiveLimit = limit != null ? (limit < 0 ? 1 : Math.min(limit, 500)) : 20;
+        int effectiveOffset = offset != null ? Math.max(0, offset) : 0;
 
         String rawGroupId = new GroupId(groupId).getRawGroupIdWithNull();
         Set<SearchFilter> filters = Set.of(

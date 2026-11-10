@@ -1,8 +1,12 @@
 package io.apicurio.registry.contracts.odcs;
 
 import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
+import io.apicurio.registry.storage.error.RegistryStorageException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -17,9 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -40,6 +46,15 @@ class OdcsTagProjectorTest {
         Field storageField = OdcsTagProjector.class.getDeclaredField("storage");
         storageField.setAccessible(true);
         storageField.set(projector, storage);
+        // Versions have no labels unless a test says otherwise
+        when(storage.getArtifactVersionMetaData(any(), any(), any()))
+                .thenReturn(ArtifactVersionMetaDataDto.builder().labels(Map.of()).build());
+    }
+
+    /** The latest version of an artifact is the tip of its "latest" branch. */
+    private void latestVersion(String groupId, String artifactId, String version) {
+        when(storage.getBranchTip(eq(new GA(groupId, artifactId)), eq(BranchId.LATEST), any()))
+                .thenReturn(new GAV(groupId, artifactId, version));
     }
 
     @Test
@@ -122,8 +137,8 @@ class OdcsTagProjectorTest {
 
     @Test
     void projectAppliesOnlyMatchingSchemaFieldTags() {
-        when(storage.getArtifactVersions("orders", "OrderEvent")).thenReturn(List.of("1"));
-        when(storage.getArtifactVersions("shared", "Address")).thenReturn(List.of("2"));
+        latestVersion("orders", "OrderEvent", "1");
+        latestVersion("shared", "Address", "2");
 
         OdcsSchema order = OdcsSchema.builder()
                 .name("OrderEvent")
@@ -176,8 +191,6 @@ class OdcsTagProjectorTest {
 
     @Test
     void projectUsesVersionFromMatchingSchemaNotFirstEntry() {
-        when(storage.getArtifactVersionMetaData("shared", "Address", "2")).thenReturn(null);
-        when(storage.getArtifactVersions("shared", "Address")).thenReturn(List.of("2"));
 
         OdcsSchema order = OdcsSchema.builder()
                 .name("OrderEvent")
@@ -229,7 +242,7 @@ class OdcsTagProjectorTest {
 
     @Test
     void projectWithNullFieldsReturnsZeroWithoutMergingLabels() {
-        when(storage.getArtifactVersions("orders", "OrderEvent")).thenReturn(List.of("1"));
+        latestVersion("orders", "OrderEvent", "1");
 
         OdcsSchema order = OdcsSchema.builder()
                 .name("OrderEvent")
@@ -248,7 +261,9 @@ class OdcsTagProjectorTest {
 
     @Test
     void projectTreatsEmptyVersionSuffixAsLatestVersion() {
-        when(storage.getArtifactVersions("orders", "OrderEvent")).thenReturn(List.of("3"));
+        // The version list is unordered on purpose: the latest version comes from the latest branch
+        when(storage.getArtifactVersions("orders", "OrderEvent")).thenReturn(List.of("3", "1"));
+        latestVersion("orders", "OrderEvent", "1");
 
         OdcsSchema order = OdcsSchema.builder()
                 .name("OrderEvent")
@@ -263,8 +278,38 @@ class OdcsTagProjectorTest {
 
         assertEquals(1, count);
         verify(storage).mergeVersionLabels(
-                eq("orders"), eq("OrderEvent"), eq("3"),
+                eq("orders"), eq("OrderEvent"), eq("1"),
                 eq("field-tag.contract-1:"), any());
-        verify(storage, never()).getBranchTip(any(), any(), any());
+    }
+
+    @Test
+    void projectReportsAMissingVersionAsAWarning() {
+        when(storage.getArtifactVersionMetaData("orders", "OrderEvent", "9"))
+                .thenThrow(new VersionNotFoundException("orders", "OrderEvent", "9"));
+        when(storage.getBranchTip(any(), eq(new BranchId("9")), any()))
+                .thenThrow(new VersionNotFoundException("orders", "OrderEvent", "9"));
+        OdcsContract contract = OdcsContract.builder().schemas(List.of(OdcsSchema.builder()
+                .location("orders/OrderEvent:9")
+                .fields(Map.of("orderId", OdcsFieldMetadata.builder().pii(true).build()))
+                .build())).build();
+        List<String> warnings = new ArrayList<>();
+
+        assertEquals(0, projector.project(contract, "contract-1", "orders", "OrderEvent", warnings));
+        assertEquals(List.of("Version not found for orders/OrderEvent:9. Field tags skipped."), warnings);
+    }
+
+    @Test
+    void projectPropagatesStorageFailuresSoTheContractIsRolledBack() {
+        latestVersion("orders", "OrderEvent", "1");
+        doThrow(new RegistryStorageException("disk full")).when(storage)
+                .mergeVersionLabels(any(), any(), any(), any(), any());
+        OdcsContract contract = OdcsContract.builder().schemas(List.of(OdcsSchema.builder()
+                .location("orders/OrderEvent")
+                .fields(Map.of("orderId", OdcsFieldMetadata.builder().pii(true).build()))
+                .build())).build();
+
+        RegistryStorageException e = assertThrows(RegistryStorageException.class,
+                () -> projector.project(contract, "contract-1", "orders", "OrderEvent", new ArrayList<>()));
+        assertEquals("disk full", e.getMessage());
     }
 }

@@ -1206,42 +1206,30 @@ public abstract class AbstractSqlRegistryStorage implements RegistryStorage {
     @Override
     public void mergeVersionLabels(String groupId, String artifactId, String version,
             String prefix, Map<String, String> labels) throws RegistryStorageException {
+        for (String key : labels.keySet()) {
+            if (key.length() > SqlVersionRepository.MAX_LABEL_KEY_LENGTH) {
+                throw new RegistryStorageException("Label key exceeds maximum length ("
+                        + SqlVersionRepository.MAX_LABEL_KEY_LENGTH + "): " + key);
+            }
+        }
         String normalizedGroup = normalizeGroupId(groupId);
-        var versionMeta = versionRepository.getArtifactVersionMetaData(
-                normalizedGroup, artifactId, version);
-        long globalId = versionMeta.getGlobalId();
-        handles.withHandleNoException(
-                (io.apicurio.registry.storage.impl.sql.jdb.HandleAction<RegistryStorageException>) handle -> {
-                    handle.createUpdate(sqlStatements.deleteVersionLabelsByPrefix())
-                            .bind(0, globalId).bind(1, prefix + "%").execute();
-                    for (Map.Entry<String, String> entry : labels.entrySet()) {
-                        String key = entry.getKey().toLowerCase(java.util.Locale.ROOT);
-                        if (key.length() > 256) {
-                            throw new RegistryStorageException(
-                                    "Label key exceeds maximum length (256): " + key);
-                        }
-                        handle.createUpdate(sqlStatements.insertVersionLabel())
-                                .bind(0, globalId)
-                                .bind(1, key)
-                                .bind(2, limitStr(entry.getValue(), 512)).execute();
-                    }
-                    handle.createUpdate(sqlStatements.updateVersionLabels())
-                            .bind(0, RegistryContentUtils.serializeLabels(
-                                    rebuildVersionLabels(handle, globalId)))
-                            .bind(1, globalId).execute();
-                });
-    }
-
-    private Map<String, String> rebuildVersionLabels(
-            io.apicurio.registry.storage.impl.sql.jdb.Handle handle, long globalId) {
-        Map<String, String> result = new java.util.LinkedHashMap<>();
-        handle.createQuery(sqlStatements.selectVersionLabels())
-                .bind(0, globalId)
-                .map(rs -> {
-                    result.put(rs.getString("labelKey"), rs.getString("labelValue"));
-                    return null;
-                }).list();
-        return result;
+        long globalId = versionRepository.getArtifactVersionMetaData(normalizedGroup, artifactId, version)
+                .getGlobalId();
+        handles.withHandleNoException(handle -> {
+            // Lock the version row first, as mergeArtifactLabels does for the artifact row, so that
+            // concurrent label writers cannot clobber unrelated keys. Then merge into the stored
+            // labels, which keep the case of their keys (only the search index is lower-cased).
+            handle.createUpdate("UPDATE versions SET modifiedOn = modifiedOn WHERE globalId = ?")
+                    .bind(0, globalId).execute();
+            var existing = versionRepository.getArtifactVersionMetaData(normalizedGroup, artifactId, version)
+                    .getLabels();
+            Map<String, String> merged = existing == null ? new HashMap<>() : new HashMap<>(existing);
+            merged.keySet().removeIf(key -> key.startsWith(prefix));
+            merged.putAll(labels);
+            versionRepository.updateArtifactVersionMetaData(groupId, artifactId, version,
+                    EditableVersionMetaDataDto.builder().labels(merged).build());
+            return null;
+        });
     }
 
     @Override

@@ -1,70 +1,61 @@
 package io.apicurio.registry.contracts.promotion;
 
+import io.apicurio.registry.storage.dto.ContractStatus;
 import io.apicurio.registry.storage.dto.PromotionStage;
 import jakarta.ws.rs.BadRequestException;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class PromotionServiceTest {
 
+    private final PromotionService service = new PromotionService();
+
     @Test
     void testBackwardPromotionThrows() {
-        assertThrows(BadRequestException.class, () -> {
-            callValidate(PromotionStage.PROD, PromotionStage.DEV, "STABLE");
-        });
+        assertThrows(BadRequestException.class, () -> service.validateTransition(PromotionStage.PROD,
+                PromotionStage.DEV, ContractStatus.STABLE));
     }
 
     @Test
     void testSkipStageThrows() {
-        assertThrows(BadRequestException.class, () -> {
-            callValidate(PromotionStage.DEV, PromotionStage.PROD, "STABLE");
-        });
+        BadRequestException e = assertThrows(BadRequestException.class, () -> service.validateTransition(
+                PromotionStage.DEV, PromotionStage.PROD, ContractStatus.STABLE));
+        assertEquals("Cannot skip stages. Promote to STAGE first.", e.getMessage());
     }
 
     @Test
     void testProdWithoutStableThrows() {
-        assertThrows(BadRequestException.class, () -> {
-            callValidate(PromotionStage.STAGE, PromotionStage.PROD, "DRAFT");
-        });
+        assertThrows(BadRequestException.class, () -> service.validateTransition(PromotionStage.STAGE,
+                PromotionStage.PROD, ContractStatus.DRAFT));
     }
 
     @Test
     void testValidForwardPromotion() {
-        assertDoesNotThrow(() -> callValidate(PromotionStage.DEV, PromotionStage.STAGE, "DRAFT"));
+        assertDoesNotThrow(() -> service.validateTransition(PromotionStage.DEV, PromotionStage.STAGE,
+                ContractStatus.DRAFT));
     }
 
     @Test
     void testProdWithStable() {
-        assertDoesNotThrow(() -> callValidate(PromotionStage.STAGE, PromotionStage.PROD, "STABLE"));
+        assertDoesNotThrow(() -> service.validateTransition(PromotionStage.STAGE, PromotionStage.PROD,
+                ContractStatus.STABLE));
     }
 
     @Test
     void testFirstPromotion() {
-        assertDoesNotThrow(() -> callValidate(null, PromotionStage.DEV, null));
+        assertDoesNotThrow(() -> service.validateTransition(null, PromotionStage.DEV, null));
     }
 
-    private void callValidate(PromotionStage current, PromotionStage target,
-            String status) {
-        try {
-            var method = PromotionService.class.getDeclaredMethod(
-                    "validateTransition", PromotionStage.class, PromotionStage.class,
-                    java.util.Map.class, String.class);
-            method.setAccessible(true);
-            java.util.Map<String, String> labels = new java.util.HashMap<>();
-            String prefix = "contract.test.";
-            if (status != null) {
-                labels.put(prefix + "status", status);
-            }
-            method.invoke(new PromotionService(), current, target, labels, prefix);
-        } catch (java.lang.reflect.InvocationTargetException e) {
-            if (e.getCause() instanceof BadRequestException) {
-                throw (BadRequestException) e.getCause();
-            }
-            throw new RuntimeException(e.getCause());
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+    @Test
+    void testFirstPromotionCannotSkipDev() {
+        BadRequestException toStage = assertThrows(BadRequestException.class,
+                () -> service.validateTransition(null, PromotionStage.STAGE, ContractStatus.STABLE));
+        assertEquals("Cannot skip stages. Promote to DEV first.", toStage.getMessage());
+        BadRequestException toProd = assertThrows(BadRequestException.class,
+                () -> service.validateTransition(null, PromotionStage.PROD, ContractStatus.STABLE));
+        assertEquals("Cannot skip stages. Promote to DEV first.", toProd.getMessage());
     }
 }

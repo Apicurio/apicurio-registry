@@ -7,66 +7,128 @@ import io.apicurio.registry.model.GAV;
 import io.apicurio.registry.model.VersionId;
 import io.apicurio.registry.storage.RegistryStorage;
 import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
+import io.apicurio.registry.storage.error.NotFoundException;
+import io.apicurio.registry.storage.error.VersionNotFoundException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 @ApplicationScoped
 public class OdcsTagProjector {
 
-    private static final Logger log = LoggerFactory.getLogger(OdcsTagProjector.class);
     static final String FIELD_TAG_PREFIX = "field-tag.";
-    private static final int MAX_LABEL_KEY_LENGTH = 512;
+    /** The longest label key every storage variant accepts. */
+    static final int MAX_LABEL_KEY_LENGTH = 256;
 
     @Inject
     @Current
     RegistryStorage storage;
 
+    /**
+     * Replaces the contract's field tags on the version the schema's location names. Missing
+     * versions and branches are reported as warnings; any other failure propagates, so that the
+     * caller can roll the contract back.
+     *
+     * @return the number of tags projected
+     */
     public int project(OdcsContract contract, String contractId, String groupId,
             String artifactId, List<String> warnings) {
         if (contract.getSchemas() == null || contract.getSchemas().isEmpty()) {
             return 0;
         }
-        try {
-            OdcsSchema matchingSchema = findMatchingSchema(contract.getSchemas(), groupId, artifactId);
-            if (matchingSchema == null) {
-                return 0;
-            }
-
-            String targetVersion = resolveTargetVersion(matchingSchema, groupId, artifactId);
-            if (targetVersion == null) {
-                warnings.add("No versions found for " + groupId + "/" + artifactId);
-                return 0;
-            }
-
-            String tagPrefix = FIELD_TAG_PREFIX + contractId + ":";
-
-            var labels = new LinkedHashMap<String, String>();
-            int count = 0;
-            if (matchingSchema.getFields() != null) {
-                for (var entry : matchingSchema.getFields().entrySet()) {
-                    count += addTags(labels, tagPrefix, entry.getKey(),
-                            entry.getValue(), warnings);
-                }
-            }
-
-            if (count > 0) {
-                storage.mergeVersionLabels(groupId, artifactId, targetVersion,
-                        tagPrefix, labels);
-            }
-            return count;
-        } catch (Exception e) {
-            warnings.add("Failed to project field tags: " + e.getMessage());
-            log.warn("Failed to project field tags for {}/{}", groupId, artifactId, e);
+        OdcsSchema matchingSchema = findMatchingSchema(contract.getSchemas(), groupId, artifactId);
+        if (matchingSchema == null) {
             return 0;
         }
+
+        String targetVersion;
+        try {
+            targetVersion = resolveTargetVersion(matchingSchema, groupId, artifactId);
+        } catch (NotFoundException e) {
+            warnings.add("Version not found for " + matchingSchema.getLocation() + ". Field tags skipped.");
+            return 0;
+        }
+
+        String tagPrefix = tagPrefix(contractId);
+        var labels = new LinkedHashMap<String, String>();
+        int count = 0;
+        if (matchingSchema.getFields() != null) {
+            for (var entry : matchingSchema.getFields().entrySet()) {
+                count += addTags(labels, tagPrefix, entry.getKey(), entry.getValue(), warnings);
+            }
+        }
+        // Also written when there are no tags, to clear the tags of an earlier projection
+        replaceTags(contractId, groupId, artifactId, targetVersion, labels);
+        return count;
+    }
+
+    /**
+     * Removes the contract's field tags from every version of the artifact.
+     */
+    public void remove(String contractId, String groupId, String artifactId) {
+        for (String version : storage.getArtifactVersions(groupId, artifactId, Set.of())) {
+            replaceTags(contractId, groupId, artifactId, version, Map.of());
+        }
+    }
+
+    /**
+     * The contract's field tags on every version of the artifact, keyed by version, including tags
+     * written in lower case before label keys kept their case. Versions without tags are omitted.
+     */
+    public Map<String, Map<String, String>> tagsByVersion(String contractId, String groupId,
+            String artifactId) {
+        Map<String, Map<String, String>> result = new LinkedHashMap<>();
+        for (String version : storage.getArtifactVersions(groupId, artifactId, Set.of())) {
+            Map<String, String> tags = new LinkedHashMap<>();
+            versionLabels(groupId, artifactId, version).forEach((key, value) -> {
+                if (isTagOf(contractId, key)) {
+                    tags.put(key, value);
+                }
+            });
+            if (!tags.isEmpty()) {
+                result.put(version, tags);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Replaces the contract's field tags on one version with the given ones. Tags written before
+     * label keys kept their case are under a lower-cased prefix, and are removed too.
+     */
+    public void replaceTags(String contractId, String groupId, String artifactId, String version,
+            Map<String, String> tags) {
+        String prefix = tagPrefix(contractId);
+        String legacyPrefix = prefix.toLowerCase(Locale.ROOT);
+        Map<String, String> current = versionLabels(groupId, artifactId, version);
+        if (!legacyPrefix.equals(prefix)
+                && current.keySet().stream().anyMatch(key -> key.startsWith(legacyPrefix))) {
+            storage.mergeVersionLabels(groupId, artifactId, version, legacyPrefix, Map.of());
+        }
+        if (!tags.isEmpty() || current.keySet().stream().anyMatch(key -> key.startsWith(prefix))) {
+            storage.mergeVersionLabels(groupId, artifactId, version, prefix, tags);
+        }
+    }
+
+    private static String tagPrefix(String contractId) {
+        return FIELD_TAG_PREFIX + contractId + ":";
+    }
+
+    private static boolean isTagOf(String contractId, String key) {
+        String prefix = tagPrefix(contractId);
+        return key.startsWith(prefix) || key.startsWith(prefix.toLowerCase(Locale.ROOT));
+    }
+
+    private Map<String, String> versionLabels(String groupId, String artifactId, String version) {
+        Map<String, String> labels = storage.getArtifactVersionMetaData(groupId, artifactId, version)
+                .getLabels();
+        return labels != null ? labels : Map.of();
     }
 
     /**
@@ -113,8 +175,8 @@ public class OdcsTagProjector {
                     storage.getArtifactVersionMetaData(groupId, artifactId,
                             versionExpression);
                     return versionExpression;
-                } catch (Exception e) {
-                    // Not a real version — try as branch name
+                } catch (VersionNotFoundException e) {
+                    // Not a version: try it as a branch name
                 }
             }
             GAV gav = storage.getBranchTip(new GA(groupId, artifactId),
@@ -122,10 +184,9 @@ public class OdcsTagProjector {
             return gav.getRawVersionId();
         }
 
-        var versions = storage.getArtifactVersions(groupId, artifactId);
-        return (versions != null && !versions.isEmpty())
-                ? versions.get(versions.size() - 1)
-                : null;
+        // No version given: the latest version (the order of getArtifactVersions is not defined)
+        return storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST,
+                RetrievalBehavior.SKIP_DISABLED_LATEST).getRawVersionId();
     }
 
     private static String versionExpressionOf(String location) {

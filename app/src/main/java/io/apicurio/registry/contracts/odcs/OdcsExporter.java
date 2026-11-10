@@ -2,7 +2,10 @@ package io.apicurio.registry.contracts.odcs;
 
 import io.apicurio.registry.cdi.Current;
 import io.apicurio.registry.contracts.ContractLabels;
+import io.apicurio.registry.model.BranchId;
+import io.apicurio.registry.model.GA;
 import io.apicurio.registry.storage.RegistryStorage;
+import io.apicurio.registry.storage.RegistryStorage.RetrievalBehavior;
 import io.apicurio.registry.storage.dto.ArtifactMetaDataDto;
 import io.apicurio.registry.storage.dto.ArtifactVersionMetaDataDto;
 import io.apicurio.registry.storage.dto.ContractRuleDto;
@@ -172,12 +175,9 @@ public class OdcsExporter {
 
     private List<OdcsSchema> buildSchemas(String groupId, String artifactId,
             ArtifactMetaDataDto meta, String contractId) {
-        List<String> versions = storage.getArtifactVersions(groupId, artifactId);
-        if (versions == null || versions.isEmpty()) {
-            return List.of();
-        }
-
-        String latest = versions.get(versions.size() - 1);
+        // The order of getArtifactVersions is not defined: resolve the latest version explicitly
+        String latest = storage.getBranchTip(new GA(groupId, artifactId), BranchId.LATEST,
+                RetrievalBehavior.SKIP_DISABLED_LATEST).getRawVersionId();
         ArtifactVersionMetaDataDto vMeta = storage.getArtifactVersionMetaData(
                 groupId, artifactId, latest);
         Map<String, String> vLabels = vMeta.getLabels() != null
@@ -185,9 +185,11 @@ public class OdcsExporter {
                 : Map.of();
 
         String tagPrefix = FIELD_TAG_PREFIX + contractId + ":";
+        String legacyTagPrefix = tagPrefix.toLowerCase(Locale.ROOT);
         Map<String, OdcsFieldMetadata> fields = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : vLabels.entrySet()) {
-            if (!entry.getKey().startsWith(tagPrefix)) {
+            // Tags written before label keys kept their case are under a lower-cased prefix
+            if (!entry.getKey().startsWith(tagPrefix) && !entry.getKey().startsWith(legacyTagPrefix)) {
                 continue;
             }
             String remainder = entry.getKey().substring(tagPrefix.length());
@@ -200,9 +202,10 @@ public class OdcsExporter {
 
             OdcsFieldMetadata field = fields.computeIfAbsent(fieldPath,
                     k -> OdcsFieldMetadata.builder().tags(new ArrayList<>()).build());
-            if ("PII".equals(tagName)) {
+            // Case-insensitive: tags projected before label keys kept their case are lower-case
+            if ("PII".equalsIgnoreCase(tagName)) {
                 field.setPii(true);
-            } else if (tagName.startsWith("CLASSIFICATION:")) {
+            } else if (tagName.regionMatches(true, 0, "CLASSIFICATION:", 0, "CLASSIFICATION:".length())) {
                 field.setClassification(tagName.substring("CLASSIFICATION:".length())
                         .toLowerCase(Locale.ROOT));
             } else {

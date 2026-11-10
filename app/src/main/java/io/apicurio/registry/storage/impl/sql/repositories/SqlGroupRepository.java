@@ -136,6 +136,12 @@ public class SqlGroupRepository {
             handle.createUpdate(sqlStatements.deleteArtifactRulesByGroupId())
                     .bind(0, normalizeGroupId(groupId)).execute();
 
+            // Delete artifact-level contract rules and contract audit entries
+            handle.createUpdate(sqlStatements.deleteContractRulesByGroupId())
+                    .bind(0, normalizeGroupId(groupId)).execute();
+            handle.createUpdate(sqlStatements.deleteContractAuditEntriesByGroupId())
+                    .bind(0, normalizeGroupId(groupId)).execute();
+
             // Delete all artifacts in the group
             handle.createUpdate(sqlStatements.deleteArtifactsByGroupId()).bind(0, normalizeGroupId(groupId))
                     .execute();

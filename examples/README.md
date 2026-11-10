@@ -29,6 +29,15 @@ This example application demonstrates the basics of using the registry in a very
 publish/subscribe application using Apache Avro as the schema technology used to serialize
 and deserialize message payloads.
 
+## Rules and Compatibility Example
+This example runs Apicurio Registry and its web console with Docker Compose and shows its content
+rules: validity, BACKWARD and FORWARD compatibility, which rule wins when rules are set globally, per
+group and per artifact, dry runs, transitive checks, drafts and integrity rules for references. A
+small Java client validates JSON Schema, Avro and Protobuf data against registered schemas with the
+client-side validation library.
+Its [step-by-step guide](rules-and-compatibility/GUIDE.md) walks through each rule in the REST API
+and the UI.
+
 ## Per-resource Authorization Example
 This example runs Apicurio Registry, its web console and Keycloak with Docker Compose, with
 per-resource authorization: an access rules file decides which groups and artifacts each user can
@@ -43,6 +52,13 @@ running MCP server; agent visibility and access rules with Keycloak; and the Reg
 Quarkus LangChain4j agents publish their Agent Cards and discover each other and an MCP server
 through the Registry. Its [step-by-step guide](agent-registry/GUIDE.md) walks through each feature,
 with screenshots, and works as a script for a team demo.
+
+## ODCS Data Contracts Example
+This example runs Apicurio Registry, its web console and Kafka with Docker Compose, and governs an
+Avro schema with an Open Data Contract Standard (ODCS) contract: the registry projects the contract
+onto the schema as labels, field tags and rules, and the Kafka serializer enforces those rules
+before records are sent. Its [step-by-step guide](odcs-data-contracts/GUIDE.md) walks through each
+feature in the REST API and the UI, and works as a script for a team demo.
 
 ## Simple JSON Schema Example
 This example application demonstrates the basics of using the registry in a very simple Kafka

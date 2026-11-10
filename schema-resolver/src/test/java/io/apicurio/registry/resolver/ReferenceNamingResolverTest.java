@@ -96,6 +96,14 @@ class ReferenceNamingResolverTest {
     }
 
     @Test
+    void blankGroupFromStrategyMeansDefaultGroup() {
+        ReferenceNamingStrategy blank = ctx -> new ReferenceCoordinates("  ", ctx.referenceName());
+        MockRegistryClientFacade facade = resolve(blank);
+        assertEquals(List.of("default/com.acme.geo.Point", "default/com.acme.Address", "orders/Order"),
+                new ArrayList<>(facade.getCreated().keySet()));
+    }
+
+    @Test
     void strategyReceivesDirectParentCoordinates() {
         List<String> seen = new ArrayList<>();
         ReferenceNamingStrategy recording = ctx -> {

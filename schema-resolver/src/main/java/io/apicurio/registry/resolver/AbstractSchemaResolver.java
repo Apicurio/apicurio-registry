@@ -189,7 +189,9 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
             throw new IllegalStateException("Reference naming strategy " + referenceNamingStrategy.getClass()
                     .getName() + " returned no artifact ID for reference '" + referenceName + "'.");
         }
-        return ArtifactReference.builder().groupId(coordinates.groupId()).artifactId(coordinates.artifactId())
+        String groupId = coordinates.groupId() == null || coordinates.groupId().isBlank() ? null
+                : coordinates.groupId();
+        return ArtifactReference.builder().groupId(groupId).artifactId(coordinates.artifactId())
                 .version(defaults.getVersion()).build();
     }
 

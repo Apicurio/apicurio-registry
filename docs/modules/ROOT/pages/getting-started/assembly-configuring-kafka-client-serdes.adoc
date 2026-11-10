@@ -694,9 +694,10 @@ When you use these schemas with Avro SerDes, {registry} creates two artifacts, o
 **Choosing where referenced schemas are registered**
 
 When a serializer auto-registers a schema that references other schemas, it also registers the referenced
-schemas. By default, each referenced schema is registered in the same group as the schema that the artifact
-resolver strategy chooses, and its artifact ID is the reference name, for example `com.example.Address` for an
-Avro record or `common/address.proto` for a Protobuf import.
+schemas. By default, each referenced schema is registered in the group that the artifact resolver strategy
+chooses for it, or in the group set by `apicurio.registry.artifact.group-id`, and its artifact ID is the
+reference name, for example `com.example.Address` for an Avro record or `common/address.proto` for a Protobuf
+import.
 
 To register referenced schemas elsewhere, set `apicurio.registry.reference-naming-strategy`. For example,
 `io.apicurio.registry.resolver.strategy.NamespaceGroupReferenceNamingStrategy` registers the Avro record

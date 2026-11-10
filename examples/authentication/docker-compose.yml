@@ -1,0 +1,216 @@
+# Authentication example: one Keycloak, and four registries that authenticate callers in different
+# ways. See README.md; run ./demo.sh to verify.
+#
+#   registry          OIDC bearer tokens (users and service accounts), basic credentials exchanged
+#                     for tokens (client credentials), role-based authorization; with its UI
+#   registry-basic    HTTP basic against users configured in the registry itself (no Keycloak)
+#   registry-proxy    identity from headers set by an authenticating reverse proxy (proxy)
+#   registry-k8s      Kubernetes service account tokens, checked with the TokenReview API of k3s
+#
+# For local demonstration only: Keycloak runs in development mode over HTTP, the token issuer check
+# is relaxed so the browser and the containers can share one Keycloak, secrets are in plain text,
+# and k3s runs privileged with TLS verification skipped.
+#
+# Host ports default to 8080 (Keycloak), 8081 (registry), 8888 (UI), 8082 (registry-basic),
+# 8083 (proxy) and 8084 (registry-k8s); override them with KEYCLOAK_PORT, REGISTRY_PORT, UI_PORT,
+# BASIC_PORT, PROXY_PORT and K8S_PORT; Kafka is on 9092 (KAFKA_PORT).
+x-registry-image: &registry-image ${REGISTRY_IMAGE:-apicurio/apicurio-registry:latest-snapshot}
+x-registry-health: &registry-health
+  # Health is on the management port, 9000
+  test: ["CMD-SHELL", "curl -sf http://localhost:9000/health/ready > /dev/null"]
+  interval: 5s
+  timeout: 5s
+  retries: 40
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2
+    container_name: keycloak-authn
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+    command: ["start-dev", "--import-realm", "--hostname-strict=false"]
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+    volumes:
+      # This example's realm: users, confidential clients with service accounts, and login events
+      - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/localhost/9000 && printf 'GET /health/ready HTTP/1.0\\r\\n\\r\\n' >&3 && grep -q UP <&3"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
+  # Kafka, for the serializers authenticating to the registry (step 11)
+  kafka:
+    image: apache/kafka:3.8.1
+    container_name: kafka-authn
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:${KAFKA_PORT:-9092}
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+    ports:
+      - "${KAFKA_PORT:-9092}:9092"
+
+  # ------------------------------------------------------------------------------------------ OIDC
+  registry:
+    image: *registry-image
+    container_name: apicurio-registry-api-authn
+    environment:
+      # Bearer tokens issued by Keycloak's realm "registry", for the audience registry-api
+      QUARKUS_OIDC_TENANT_ENABLED: "true"
+      QUARKUS_OIDC_AUTH_SERVER_URL: "http://keycloak:8080/realms/registry"
+      QUARKUS_OIDC_CLIENT_ID: "registry-api"
+      # Tokens the browser gets from localhost:8080 have another issuer than keycloak:8080
+      QUARKUS_OIDC_TOKEN_ISSUER: "any"
+      # Authorization: Basic <client id>:<secret> is exchanged for a token (client credentials)
+      APICURIO_AUTHN_BASIC_CLIENT_CREDENTIALS_ENABLED: "true"
+      # Roles sr-admin, sr-developer and sr-readonly, from the token
+      APICURIO_AUTH_ROLE_BASED_AUTHORIZATION: "true"
+      # The web console's OIDC client (public, authorization code flow)
+      APICURIO_UI_AUTH_OIDC_CLIENT_ID: "apicurio-registry"
+      APICURIO_UI_AUTH_OIDC_REDIRECT_URI: "http://localhost:${UI_PORT:-8888}/"
+      # Let demo.sh delete its data and change dynamic settings
+      APICURIO_REST_DELETION_GROUP_ENABLED: "true"
+      APICURIO_REST_DELETION_ARTIFACT_ENABLED: "true"
+      QUARKUS_HTTP_CORS_ORIGINS: "*"
+    ports:
+      - "${REGISTRY_PORT:-8081}:8080"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    healthcheck: *registry-health
+
+  registry-ui:
+    image: ${REGISTRY_UI_IMAGE:-apicurio/apicurio-registry-ui:latest-snapshot}
+    container_name: apicurio-registry-ui-authn
+    environment:
+      REGISTRY_API_URL: "http://localhost:${REGISTRY_PORT:-8081}/apis/registry/v3"
+      REGISTRY_AUTH_TYPE: "oidc"
+      # The browser reaches Keycloak on localhost, not on the Compose network
+      REGISTRY_AUTH_URL: "http://localhost:${KEYCLOAK_PORT:-8080}/realms/registry"
+      REGISTRY_AUTH_CLIENT_ID: "apicurio-registry"
+      REGISTRY_AUTH_REDIRECT_URL: "http://localhost:${UI_PORT:-8888}/"
+      REGISTRY_AUTH_RBAC_ENABLED: "true"
+    ports:
+      - "${UI_PORT:-8888}:8080"
+    depends_on:
+      registry:
+        condition: service_healthy
+
+  # ----------------------------------------------------------------------------------- native basic
+  registry-basic:
+    image: *registry-image
+    container_name: apicurio-registry-basic-authn
+    environment:
+      # HTTP basic against users defined right here, with their roles; no identity provider
+      QUARKUS_HTTP_AUTH_BASIC: "true"
+      QUARKUS_SECURITY_USERS_EMBEDDED_PLAIN_TEXT: "true"
+      QUARKUS_SECURITY_USERS_EMBEDDED_USERS_ADMIN: "admin"
+      QUARKUS_SECURITY_USERS_EMBEDDED_ROLES_ADMIN: "sr-admin"
+      QUARKUS_SECURITY_USERS_EMBEDDED_USERS_DEVELOPER: "developer"
+      QUARKUS_SECURITY_USERS_EMBEDDED_ROLES_DEVELOPER: "sr-developer"
+      QUARKUS_SECURITY_USERS_EMBEDDED_USERS_READONLY: "readonly"
+      QUARKUS_SECURITY_USERS_EMBEDDED_ROLES_READONLY: "sr-readonly"
+      APICURIO_AUTH_ROLE_BASED_AUTHORIZATION: "true"
+      # Let demo.sh delete the groups it creates
+      APICURIO_REST_DELETION_GROUP_ENABLED: "true"
+    ports:
+      - "${BASIC_PORT:-8082}:8080"
+    healthcheck: *registry-health
+
+  # ----------------------------------------------------------------------------------- proxy header
+  registry-proxy:
+    image: *registry-image
+    container_name: apicurio-registry-proxy-authn
+    # No ports: only the proxy can reach it, so nobody can send the identity headers directly
+    environment:
+      APICURIO_AUTHN_PROXY_HEADER_ENABLED: "true"
+      APICURIO_AUTHN_MECHANISM_PRIORITY: "proxy-header"
+      # X-Forwarded-Groups becomes the caller's roles
+      APICURIO_AUTH_ROLE_BASED_AUTHORIZATION: "true"
+      # Let demo.sh delete the groups it creates
+      APICURIO_REST_DELETION_GROUP_ENABLED: "true"
+    healthcheck: *registry-health
+
+  proxy:
+    image: nginx:1.27-alpine
+    container_name: proxy-authn
+    volumes:
+      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./proxy/htpasswd:/etc/nginx/htpasswd:ro
+    ports:
+      - "${PROXY_PORT:-8083}:8080"
+    depends_on:
+      registry-proxy:
+        condition: service_healthy
+
+  # ------------------------------------------------------------------------------------- Kubernetes
+  k3s:
+    image: rancher/k3s:v1.31.4-k3s1
+    container_name: k3s-authn
+    # A single-node Kubernetes API server; only its TokenReview API is used
+    privileged: true
+    command: ["server", "--disable=traefik,metrics-server,local-storage,servicelb,coredns", "--tls-san=k3s"]
+    environment:
+      K3S_KUBECONFIG_OUTPUT: /output/kubeconfig.yaml
+      K3S_KUBECONFIG_MODE: "644"
+    volumes:
+      - k3s-output:/output
+    healthcheck:
+      test: ["CMD-SHELL", "kubectl get --raw /readyz > /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
+  k8s-setup:
+    image: rancher/k3s:v1.31.4-k3s1
+    container_name: k8s-setup-authn
+    entrypoint: ["/bin/sh", "/setup/setup.sh"]
+    volumes:
+      - k3s-output:/output
+      - k8s-shared:/shared
+      - ./k8s/setup.sh:/setup/setup.sh:ro
+    depends_on:
+      k3s:
+        condition: service_healthy
+
+  registry-k8s:
+    image: *registry-image
+    container_name: apicurio-registry-k8s-authn
+    environment:
+      # Bearer tokens are Kubernetes tokens, checked with the API server's TokenReview API.
+      # Kubernetes authentication is experimental: it needs the experimental features gate.
+      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
+      APICURIO_AUTHN_KUBERNETES_ENABLED: "true"
+      APICURIO_AUTHN_MECHANISM_PRIORITY: "kubernetes"
+      # The API server and the registry's own credentials (written by k8s-setup)
+      KUBECONFIG: /shared/kubeconfig
+      # Roles from the caller's Kubernetes groups: one namespace's service accounts per role
+      APICURIO_AUTH_ROLE_BASED_AUTHORIZATION: "true"
+      APICURIO_AUTH_ROLE_SOURCE: "kubernetes"
+      APICURIO_AUTH_ROLE_SOURCE_KUBERNETES_GROUP_MAPPING_DEVELOPER: "system:serviceaccounts:payments"
+      APICURIO_AUTH_ROLE_SOURCE_KUBERNETES_GROUP_MAPPING_READONLY: "system:serviceaccounts:auditors"
+      # Let demo.sh delete the groups it creates
+      APICURIO_REST_DELETION_GROUP_ENABLED: "true"
+    volumes:
+      - k8s-shared:/shared:ro
+    ports:
+      - "${K8S_PORT:-8084}:8080"
+    depends_on:
+      k8s-setup:
+        condition: service_completed_successfully
+    healthcheck: *registry-health
+
+volumes:
+  k3s-output:
+  k8s-shared:

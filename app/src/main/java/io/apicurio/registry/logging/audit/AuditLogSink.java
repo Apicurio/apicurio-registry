@@ -16,13 +16,13 @@ import static io.apicurio.common.apps.config.ConfigPropertyCategory.CATEGORY_LOG
  * {@value #LOGGER_NAME} logger.
  */
 @ApplicationScoped
+@SuppressWarnings("java:S9436") // two loggers on purpose, see the comment on the fields
 public class AuditLogSink {
 
     public static final String LOGGER_NAME = "io.apicurio.registry.audit.events";
 
     // Two loggers on purpose: AUDIT is the event stream and must carry nothing but the JSON events,
     // while LOG reports this sink's own failures. Sharing AUDIT would put non-JSON lines in the stream.
-    @SuppressWarnings("java:S9436")
     private static final Logger AUDIT = LoggerFactory.getLogger(LOGGER_NAME);
     private static final Logger LOG = LoggerFactory.getLogger(AuditLogSink.class);
 

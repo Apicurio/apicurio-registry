@@ -156,7 +156,7 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                 List<SchemaLookupResult<S>> schemaLookupResults = List.of();
                 if (parsedSchema.hasReferences()) {
                     // List of references lookup, to be used to create the references for the artifact
-                    schemaLookupResults = handleArtifactReferences(data, parsedSchema);
+                    schemaLookupResults = handleArtifactReferences(data, parsedSchema, artifactReference);
                 }
                 return handleAutoCreateArtifact(parsedSchema, artifactReference, schemaLookupResults);
 
@@ -190,17 +190,15 @@ public class DefaultSchemaResolver<S, T> extends AbstractSchemaResolver<S, T> {
                 artifactReference.getVersion());
     }
 
-    private List<SchemaLookupResult<S>> handleArtifactReferences(Record<T> data,
-                                                                 ParsedSchema<S> parsedSchema) {
+    private List<SchemaLookupResult<S>> handleArtifactReferences(Record<T> data, ParsedSchema<S> parsedSchema,
+                                                                 ArtifactReference parent) {
         final List<SchemaLookupResult<S>> referencesLookup = new ArrayList<>();
 
         for (ParsedSchema<S> referencedSchema : parsedSchema.getSchemaReferences()) {
-
-            List<SchemaLookupResult<S>> nestedReferences = handleArtifactReferences(data, referencedSchema);
-
-            referencesLookup.add(handleAutoCreateArtifact(referencedSchema,
-                    resolveArtifactReference(data, referencedSchema, true, referencedSchema.referenceName()),
-                    nestedReferences));
+            ArtifactReference reference = resolveReferenceArtifactReference(data, referencedSchema, parent);
+            List<SchemaLookupResult<S>> nestedReferences = handleArtifactReferences(data, referencedSchema,
+                    reference);
+            referencesLookup.add(handleAutoCreateArtifact(referencedSchema, reference, nestedReferences));
         }
         return referencesLookup;
     }

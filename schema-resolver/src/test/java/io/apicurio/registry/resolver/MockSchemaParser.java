@@ -3,11 +3,13 @@ package io.apicurio.registry.resolver;
 import io.apicurio.registry.resolver.data.Record;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 
 public class MockSchemaParser implements SchemaParser<String, String> {
     private ParsedSchema<String> dataSchema;
     private String parsedSchema;
+    private final Map<String, String> namespaces = new HashMap<>();
 
     public MockSchemaParser(ParsedSchema<String> dataSchema) {
         this.dataSchema = dataSchema;
@@ -47,5 +49,16 @@ public class MockSchemaParser implements SchemaParser<String, String> {
     @Override
     public boolean supportsExtractSchemaFromData() {
         return dataSchema != null;
+    }
+
+    /** Sets the namespace returned for the referenced schema with the given reference name. */
+    public MockSchemaParser withNamespace(String referenceName, String namespace) {
+        namespaces.put(referenceName, namespace);
+        return this;
+    }
+
+    @Override
+    public String referenceNamespace(ParsedSchema<String> schema) {
+        return namespaces.get(schema.referenceName());
     }
 }

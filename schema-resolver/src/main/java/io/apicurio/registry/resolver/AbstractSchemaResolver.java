@@ -11,6 +11,9 @@ import io.apicurio.registry.resolver.data.Record;
 import io.apicurio.registry.resolver.strategy.ArtifactCoordinates;
 import io.apicurio.registry.resolver.strategy.ArtifactReference;
 import io.apicurio.registry.resolver.strategy.ArtifactReferenceResolverStrategy;
+import io.apicurio.registry.resolver.strategy.ReferenceCoordinates;
+import io.apicurio.registry.resolver.strategy.ReferenceNamingContext;
+import io.apicurio.registry.resolver.strategy.ReferenceNamingStrategy;
 import io.apicurio.registry.resolver.utils.Utils;
 import io.apicurio.registry.utils.IoUtil;
 
@@ -37,6 +40,7 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
     protected SchemaParser<S, T> schemaParser;
     protected RegistryClientFacade clientFacade;
     protected ArtifactReferenceResolverStrategy<S, T> artifactResolverStrategy;
+    protected ReferenceNamingStrategy referenceNamingStrategy;
 
     protected String explicitArtifactGroupId;
     protected String explicitArtifactId;
@@ -55,6 +59,8 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
 
         Object ais = config.getArtifactResolverStrategy();
         Utils.instantiate(ArtifactReferenceResolverStrategy.class, ais, this::setArtifactResolverStrategy);
+        Utils.instantiate(ReferenceNamingStrategy.class, config.getReferenceNamingStrategy(),
+                this::setReferenceNamingStrategy);
 
         schemaCache.configureLifetime(config.getCheckPeriod());
         schemaCache.configureRetryBackoff(config.getRetryBackoff());
@@ -158,6 +164,33 @@ public abstract class AbstractSchemaResolver<S, T> implements SchemaResolver<S, 
         } else {
             return this.explicitArtifactId == null ? artifactId : this.explicitArtifactId;
         }
+    }
+
+    /**
+     * @param referenceNamingStrategy the strategy naming auto-registered referenced schemas
+     */
+    public void setReferenceNamingStrategy(ReferenceNamingStrategy referenceNamingStrategy) {
+        this.referenceNamingStrategy = referenceNamingStrategy;
+    }
+
+    /**
+     * Coordinates for a schema referenced by {@code parent}: today's coordinates, with the group and artifact
+     * ID replaced by the reference naming strategy's choice. The version is not affected.
+     */
+    protected ArtifactReference resolveReferenceArtifactReference(Record<T> data, ParsedSchema<S> referencedSchema,
+            ArtifactReference parent) {
+        String referenceName = referencedSchema.referenceName();
+        ArtifactReference defaults = resolveArtifactReference(data, referencedSchema, true, referenceName);
+        ReferenceNamingContext context = new ReferenceNamingContext(referenceName, schemaParser.artifactType(),
+                defaults.getGroupId(), parent.getGroupId(), parent.getArtifactId(),
+                schemaParser.referenceNamespace(referencedSchema), referencedSchema);
+        ReferenceCoordinates coordinates = referenceNamingStrategy.name(context);
+        if (coordinates == null || coordinates.artifactId() == null || coordinates.artifactId().isBlank()) {
+            throw new IllegalStateException("Reference naming strategy " + referenceNamingStrategy.getClass()
+                    .getName() + " returned no artifact ID for reference '" + referenceName + "'.");
+        }
+        return ArtifactReference.builder().groupId(coordinates.groupId()).artifactId(coordinates.artifactId())
+                .version(defaults.getVersion()).build();
     }
 
     protected SchemaLookupResult<S> resolveSchemaByGlobalId(long globalId) {

@@ -27,7 +27,9 @@ Install {registry} on OpenShift Container Platform.
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can install the {operator} on your OpenShift cluster from the OperatorHub. The OperatorHub is available from the OpenShift Container Platform web console and provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
+You can install the {operator} on your OpenShift cluster from the OperatorHub, which is available from the OpenShift Container Platform web console.
+
+The OperatorHub provides an interface for cluster administrators to discover and install Operators. For more details, see link:{LinkOpenShiftIntroOperator}[{NameOpenShiftIntroOperator}].
 
 NOTE: You can install more than one replica of {registry} depending on your environment. The number of replicas depends on the number and type of artifacts stored in {registry} and on your chosen storage option.
 

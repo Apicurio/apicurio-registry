@@ -20,7 +20,9 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-To govern the evolution of artifact content added to {registry}, you can configure optional rules. All configured global rules, group-specific rules, or artifact-specific rules must pass before a new artifact version can be added to {registry}. Configured artifact-specific rules override any configured group-specific rules, which in turn override any configured global rules.
+To govern the evolution of artifact content added to {registry}, you can configure optional rules. All configured global rules, group-specific rules, or artifact-specific rules must pass before a new artifact version can be added to {registry}.
+
+Configured artifact-specific rules override any configured group-specific rules, which in turn override any configured global rules.
 
 The goal of these rules is to prevent invalid content from being added to {registry} and to control the evolution of an artifact (by e.g. checking the compatibility of a new artifact version against previous versions). For example, content can be invalid for the following reasons:
 
@@ -39,10 +41,14 @@ You can enable optional content rules using the {registry} web console, REST API
 [role="_abstract"]
 Rules are applied only when content is added to {registry}. This includes the following REST operations:
 
-* Adding an artifact
-* Adding an artifact version
+* Adding an artifact with a first version
+* Adding an artifact version, including with `ifExists=CREATE_VERSION`
+* Publishing a draft version, that is, changing its state from `DRAFT`
+* Checking a change with `dryRun=true`, which applies the rules without saving the content
 
-If a rule is violated, {registry} returns an HTTP error. The response body includes the violated rule and a message showing what went wrong.
+Rules are not applied when a draft version is created, unless `apicurio.rest.draft.production-mode.enabled` is `true`, and are never applied when the content of a draft version is edited; they are applied when the draft is published. Rules are not applied to imported data, and changing a rule does not check the versions that are already stored.
+
+If a rule is violated, {registry} returns HTTP error `400`, and does not store the content. The response body includes `ruleViolation.ruleType`, the violated rule, and `ruleViolation.causes`, a list of causes, each with a `description` and a `context` that shows what went wrong and where. To return HTTP error `409` instead, as before version 3.3.0, set `apicurio.rest.legacy-error-codes.enabled` to `true`.
 
 [id="registry-rules-precedence_{context}"]
 == Order of precedence of rules
@@ -54,7 +60,10 @@ The order of precedence for artifact-specific and global rules is as follows:
 
 * Artifact-specific rules have the highest priority
 * Group-specific rules have the next highest priority
-* Global rules have the lowest priority
+* Global rules have the next highest priority
+* Default global rules, configured with the `apicurio.rules.global.*` application properties, have the lowest priority
+
+{registry} evaluates this order separately for each rule type. When an artifact is created, it has no artifact-specific rules yet, so its first version is checked against the group-specific, global, and default global rules.
 
 NOTE: If a rule is configured at a higher level (e.g. at the global level), but you want that rule to be disabled at a lower level, you must configure the same rule (so that it overrides it) at the lower level and set its rules value to `NONE`.
 
@@ -66,7 +75,7 @@ NOTE: If a rule is configured at a higher level (e.g. at the global level), but 
 [role="_abstract"]
 Each rule has a name and configuration information. {registry} maintains the list of rules for each artifact, each group, and the list of global rules. Each rule in the list consists of a name and configuration for the rule implementation.
 
-When a rule is executed, it is provided with the content of the current version of the artifact (if one exists) and the new version of the artifact being added. The rule implementation returns either passes or fails depending on whether the artifact passes the rule. If not, {registry} reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
+When a rule is executed, it is provided with the content of the existing versions of the artifact (if any exist) and the new version of the artifact being added. Versions in the `DISABLED` state are not provided; versions in the `DEPRECATED` state are. The rule implementation returns either passes or fails depending on whether the artifact passes the rule. If not, {registry} reports the reason why in an HTTP error response. Some rules might not use the previous version of the content. For example, compatibility rules use previous versions, but syntax or semantic validity rules do not.
 
 [role="_additional-resources"]
 .Additional resources

@@ -5,6 +5,7 @@ import io.apicurio.registry.agents.a2a.A2AConstants;
 import io.apicurio.registry.auth.AdminOverride;
 import io.apicurio.registry.auth.AuthConfig;
 import io.apicurio.registry.auth.ReadAccessChecker;
+import io.apicurio.registry.auth.RoleBasedAccessController;
 import io.apicurio.registry.storage.dto.SearchedArtifactDto;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -39,6 +40,9 @@ public class AgentVisibilityFilter {
     @Inject
     ReadAccessChecker readAccess;
 
+    @Inject
+    RoleBasedAccessController rbac;
+
     /**
      * Same notion of "authentication enabled" as the authorization interceptor: any mechanism (OIDC,
      * basic, proxy header, Kubernetes, form). Checking only OIDC and basic auth skipped visibility
@@ -62,7 +66,10 @@ public class AgentVisibilityFilter {
         }
 
         boolean isAuthenticated = !securityIdentity.isAnonymous();
-        boolean isAdmin = isAuthenticated && adminOverride.isAdmin();
+        // An administrator is one by RBAC or by admin override, as for every other authorization check
+        // (AuthorizedInterceptor).
+        boolean isAdmin = isAuthenticated
+                && ((authConfig.isRbacEnabled() && rbac.isAdmin()) || adminOverride.isAdmin());
         // "entitled" means entitled to read the card. The discovery endpoint itself is open to
         // anonymous callers (for public cards), so the read check other endpoints get from
         // @Authorized(level = Read) is applied here, through the same shared rules. That includes
@@ -73,29 +80,33 @@ public class AgentVisibilityFilter {
 
         List<SearchedArtifactDto> result = new ArrayList<>();
         for (SearchedArtifactDto artifact : artifacts) {
-            String visibility = resolveVisibility(artifact.getLabels());
-            if ("public".equals(visibility)) {
+            if (isVisible(artifact, isAdmin, canRead, currentUser)) {
                 result.add(artifact);
-            } else if ("entitled".equals(visibility)) {
-                if (canRead) {
-                    result.add(artifact);
-                }
-            } else if ("private".equals(visibility)) {
-                // Anonymous callers have no identity to match the owner, so never see private cards.
-                String owner = artifact.getOwner();
-                if (isAdmin || (owner != null && owner.equals(currentUser))) {
-                    result.add(artifact);
-                }
-            } else {
-                log.warn("Unrecognized visibility '{}' for artifact {}/{}, treating as private",
-                        visibility, artifact.getGroupId(), artifact.getArtifactId());
-                String owner = artifact.getOwner();
-                if (isAdmin || (owner != null && owner.equals(currentUser))) {
-                    result.add(artifact);
-                }
             }
         }
         return result;
+    }
+
+    private boolean isVisible(SearchedArtifactDto artifact, boolean isAdmin, boolean canRead,
+            String currentUser) {
+        String visibility = resolveVisibility(artifact.getLabels());
+        if ("public".equals(visibility)) {
+            return true;
+        } else if ("entitled".equals(visibility)) {
+            return canRead;
+        } else if ("private".equals(visibility)) {
+            // Anonymous callers have no identity to match the owner, so never see private cards.
+            return isOwnerOrAdmin(artifact, isAdmin, currentUser);
+        } else {
+            log.warn("Unrecognized visibility '{}' for artifact {}/{}, treating as private",
+                    visibility, artifact.getGroupId(), artifact.getArtifactId());
+            return isOwnerOrAdmin(artifact, isAdmin, currentUser);
+        }
+    }
+
+    private static boolean isOwnerOrAdmin(SearchedArtifactDto artifact, boolean isAdmin, String currentUser) {
+        String owner = artifact.getOwner();
+        return isAdmin || (owner != null && owner.equals(currentUser));
     }
 
     /**

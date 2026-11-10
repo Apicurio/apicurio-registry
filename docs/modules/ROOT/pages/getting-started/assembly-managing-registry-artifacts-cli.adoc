@@ -244,7 +244,7 @@ Optional: To delete all contexts, use the `--all` option.
 You can log in to the {registry} instance of your current CLI context by using basic authentication or OAuth2 client credentials. The CLI stores secrets in the operating system keychain, and stores non-secret authentication settings in the context.
 
 .Prerequisites
-* You have configured a CLI context for a {registry} instance that requires authentication.
+* You have configured a CLI context for an instance of {registry} that requires authentication.
 * On Linux, the `secret-tool` utility (libsecret) is available for keychain storage. On macOS, the CLI uses the built-in keychain. On Windows, the CLI uses the built-in Credential Manager, which stores a secret of up to 2560 bytes.
 
 .Procedure
@@ -601,7 +601,7 @@ For the valid rule types and configuration values, see the rule types table in t
 You can use the CLI to assign {registry} roles to principals, such as user accounts or service accounts, when role-based authorization is enabled on the registry.
 
 .Prerequisites
-* You have configured a CLI context for a {registry} instance with role-based authorization enabled.
+* You have configured a CLI context for an instance of {registry} with role-based authorization enabled.
 * You are authenticated as a user with permission to manage role mappings.
 
 .Procedure
@@ -673,6 +673,46 @@ $ acr admin import --file registry-export.zip
 Optional: To import into a registry that already contains data, use the `--no-require-empty` option. To let the server generate new global and content identifiers instead of preserving the exported ones, use the `--no-preserve-ids` option.
 
 
+[id="importing-mcp-tools-using-registry-cli_{context}"]
+== Importing tools from an MCP server using the CLI
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can use the CLI to import the tools of a running MCP server into an `MCP_SERVER` artifact. Each tool becomes an `MCP_TOOL` artifact, subject to the rules configured for it, and a new version of the `MCP_SERVER` artifact references the imported tools.
+
+IMPORTANT: This command is experimental and subject to backwards-incompatible change or removal.
+
+.Prerequisites
+* You have configured at least one CLI context.
+* The registry allows MCP imports from the server's host, as described in "Importing tools from a live MCP server" in xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool features].
+* An `MCP_SERVER` artifact exists for the server.
+
+.Procedure
+. Optional: Preview the import without writing anything:
++
+[source,bash]
+----
+$ acr mcp import weather --group my-servers --url https://weather.example.com/mcp --dry-run
+----
+. Import the tools:
++
+[source,bash]
+----
+$ acr mcp import weather --group my-servers --url https://weather.example.com/mcp --tool-group mcp-tools
+----
++
+The command prints the result for each tool (`CREATED`, `NEW_VERSION`, `UNCHANGED`, `REJECTED` or `REMOVED`) and the new version of the `MCP_SERVER` artifact. For a rejected tool, it also prints each rule violation. A rejected tool is a reported result, not a failure, so the command still exits with code 0.
+. Optional: Send HTTP headers to the MCP server, for example credentials. Header values are not accepted as plain command-line options, because they would be kept in your shell history. Read them from a file, with one `Name: value` per line, or from an environment variable:
++
+[source,bash]
+----
+$ acr mcp import weather --url https://weather.example.com/mcp --header-file mcp-headers.txt
+$ acr mcp import weather --url https://weather.example.com/mcp --header-env Authorization=MCP_AUTHORIZATION
+----
++
+Use `--header-file -` to read the headers from standard input. With `--verbose`, the CLI does not log this request, because its body carries the headers.
+
 [id="synchronizing-gitops-using-registry-cli_{context}"]
 == Checking and synchronizing GitOps storage using the CLI
 
@@ -682,7 +722,7 @@ Optional: To import into a registry that already contains data, use the `--no-re
 You can inspect GitOps storage status and request an immediate synchronization from the configured Git repositories.
 
 .Prerequisites
-* Your CLI context points to a {registry} instance that uses GitOps storage.
+* Your CLI context points to an instance of {registry} that uses GitOps storage.
 * You have read access to view status and administrator access to request synchronization when authorization is enabled.
 
 .Procedure
@@ -731,7 +771,7 @@ endif::[]
 You can validate the content of a Git revision before merging a change. Validation does not change the live registry content.
 
 .Prerequisites
-* Your CLI context points to a {registry} instance that uses GitOps storage.
+* Your CLI context points to an instance of {registry} that uses GitOps storage.
 * The server has `apicurio.gitops.validate.enabled=true`.
 * The repository ID is configured on the server, and the server can fetch the Git revision.
 * You have administrator access when authorization is enabled.
@@ -899,7 +939,7 @@ Category overrides apply only when you use `--verbose`.
 :_mod-docs-content-type: REFERENCE
 
 [role="_abstract"]
-The following tables describe CLI global options, exit codes, available commands, rule types, and CLI configuration properties.
+Look up the {registry} CLI global options, exit codes, available commands, supported rule types, and CLI configuration properties.
 
 The following options are available for most CLI commands:
 

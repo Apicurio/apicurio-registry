@@ -7,7 +7,12 @@ include::{mod-loc}shared/all-attributes.adoc[]
 :_mod-docs-content-type: ASSEMBLY
 
 [role="_abstract"]
-You can use {registry} as a central registry for AI agents, prompt templates, and model schemas. You start {registry} with agent features enabled, register an agent card, discover agents by skill, and connect Claude Desktop to {registry} by using the Model Context Protocol (MCP).
+ifndef::service-registry-downstream[]
+You can use {registry} as a central registry for AI agents, MCP servers and tools, and prompt templates. In about five minutes, you start {registry} with a demo catalog, discover agents and tools, connect an AI assistant by using the Model Context Protocol (MCP), and see a compatibility rule reject an incompatible tool change.
+endif::[]
+ifdef::service-registry-downstream[]
+You can use {registry} as a central registry for AI agents, prompt templates, and model schemas. You start {registry} with agent features enabled, register an agent card, discover agents by skill, and connect Claude Desktop by using the Model Context Protocol (MCP).
+endif::[]
 
 ifdef::service-registry-downstream[]
 WARNING: This section describes Developer Preview features. Developer Preview features are not supported by Red Hat in any way and are not functionally complete or production-ready. Do not use Developer Preview features for production or business-critical workloads. Developer Preview features provide early access to functionality in advance of possible inclusion in a Red Hat product offering. Customers can use these features to test functionality and provide feedback during the development process. Developer Preview features might not have any documentation, are subject to change or removal at any time, and have received limited testing. Red Hat might provide ways to submit feedback on Developer Preview features without an associated SLA. For more information about the support scope of Red Hat Developer Preview features, see {dp-support-scope}.
@@ -20,7 +25,9 @@ endif::[]
 :_mod-docs-content-type: CONCEPT
 
 [role="_abstract"]
-{registry} functions as both an A2A (Agent-to-Agent) agent and an agent registry. As an A2A agent, {registry} exposes its own capabilities, such as schema validation, artifact management, and agent discovery. As an agent registry, {registry} stores and serves agent cards that other AI agents publish for discovery.
+{registry} functions as both an A2A (Agent-to-Agent) agent that exposes its own capabilities and an agent registry that stores and serves the agent cards that other AI agents publish for discovery.
+
+As an A2A agent, {registry} exposes capabilities such as schema validation, artifact management, and agent discovery.
 
 The A2A protocol is a standard that AI agents use to discover and communicate with each other through well-known endpoints. MCP (Model Context Protocol) is a standard that LLM-powered tools such as Claude Desktop use to interact with external services and data sources.
 
@@ -30,86 +37,214 @@ The A2A protocol is a standard that AI agents use to discover and communicate wi
 * `PROMPT_TEMPLATE`: versioned prompt template with variable substitution for LLM interactions
 * `MODEL_SCHEMA`: input and output schema definition for an AI or ML model
 * `MCP_TOOL`: MCP tool definition that describes a tool, its input parameters, and its output schema
+* `MCP_SERVER`: MCP server definition that references the `MCP_TOOL` artifacts of the tools it provides
 
 ifndef::service-registry-downstream[]
-// proc-starting-registry-with-agent-features
-[id="starting-registry-with-agent-features_{context}"]
-== Starting {registry} with agent features
+// proc-starting-the-agent-registry-quickstart
+[id="starting-agent-registry-quickstart_{context}"]
+== Starting the agent registry quick start
 
 :_mod-docs-content-type: PROCEDURE
 
 [role="_abstract"]
-You can start {registry} with agent features enabled by using Docker Compose. Because A2A support is an experimental feature, you must enable the experimental features flag and the A2A flag.
+You can start {registry} with the agent features enabled, the web console, and a demo catalog by using one Docker Compose command. The stack stores its data in PostgreSQL, so the catalog survives a restart.
+
+IMPORTANT: The quick start stack is for local evaluation only. It has no authentication, and its database password is a fixed demo value. The agent features are experimental, and the stack uses the `latest-snapshot` images, which contain the most recent development build.
 
 .Prerequisites
-* Docker and Docker Compose are installed
-* `curl` is installed
+* Docker with Docker Compose v2 is installed
+* `git` and `curl` are installed
 
 .Procedure
-. Create a `docker-compose.yml` file with the following content:
-+
-[source,yaml]
-----
-version: '3.8'
-
-services:
-  apicurio-registry:
-    image: quay.io/apicurio/apicurio-registry:latest
-    container_name: agent-registry
-    ports:
-      - "8080:8080"
-    environment:
-      APICURIO_FEATURES_EXPERIMENTAL_ENABLED: "true"
-      APICURIO_A2A_ENABLED: "true"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/health/live"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
-  apicurio-registry-ui:
-    image: quay.io/apicurio/apicurio-registry-ui:latest
-    container_name: agent-registry-ui
-    ports:
-      - "8888:8080"
-    environment:
-      REGISTRY_API_URL: "http://localhost:8080/apis/registry/v3"
-    depends_on:
-      apicurio-registry:
-        condition: service_healthy
-----
-+
-NOTE: The `latest` tag refers to the most recent stable release. For development builds, use the `latest-snapshot` tag. For a specific version, use the version number as the tag, for example `{registry-release}`.
-+
-. Start the services:
+. Clone the {registry} repository and change to its directory:
 +
 [source,bash]
 ----
-docker compose up -d
+git clone https://github.com/Apicurio/apicurio-registry.git
+cd apicurio-registry
 ----
 +
-. Wait for the services to start.
+. Start the stack:
++
+[source,bash]
+----
+docker compose -f distro/docker-compose/ai-agent-registry/docker-compose.yml up -d
+----
++
+The stack starts PostgreSQL, {registry} with the agent features enabled, and the web console. A `seed` container then loads the demo catalog into the `demo` group and exits.
 
 .Verification
-. Verify that {registry} is running:
+. Check that the demo catalog is loaded:
 +
 [source,bash]
 ----
-curl http://localhost:8080/apis/registry/v3/system/info
+docker compose -f distro/docker-compose/ai-agent-registry/docker-compose.yml logs seed
 ----
 +
-. Verify that the A2A endpoint is active by retrieving the {registry} agent card:
+The output ends with `Demo catalog ready in group 'demo'.` The catalog contains the following artifacts:
 +
-[source,bash]
-----
-curl http://localhost:8080/.well-known/agent.json
-----
+* `weather`: an `MCP_SERVER` that references its `get_forecast` tool
+* `weather.get_forecast`: an `MCP_TOOL` with a `BACKWARD` compatibility rule
+* `translator-agent` and `sentiment-agent`: `AGENT_CARD` artifacts
+* `support-reply`: a `PROMPT_TEMPLATE`
 +
-The response contains the agent card for the {registry} instance, including its built-in skills such as `schema-validation`, `schema-search`, `artifact-management`, `compatibility-check`, and `agent-discovery`.
+The seed container loads only the artifacts that do not exist yet, so restarting the stack does not change the catalog.
++
+. Open the web console at `http://localhost:8888` and browse the `demo` group. The *Agents* tab lists the two agent cards.
 
+// proc-exploring-the-demo-catalog
+[id="exploring-demo-catalog_{context}"]
+== Discovering agents and tools in the demo catalog
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+AI agents and orchestrators find agents and tools in {registry} through well-known discovery endpoints, without knowing the group or artifact ID in advance.
+
+.Prerequisites
+* The quick start stack is running
+
+.Procedure
+. Find the agents that have a translation skill:
++
+[source,bash]
+----
+curl "http://localhost:8080/.well-known/agents?skill=translation"
+----
++
+The response lists the `translator-agent` agent card.
++
+. Retrieve the Agentic Resource Discovery (ARD) catalog, which lists every agent and tool that {registry} publishes:
++
+[source,bash]
+----
+curl http://localhost:8080/.well-known/ard.json
+----
++
+. Search the catalog by name:
++
+[source,bash]
+----
+curl -X POST http://localhost:8080/.well-known/ard/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": {"text": "transla"}}'
+----
++
+The `results` list contains the *Translation Agent*.
++
+. List the tools that the `weather` MCP server provides:
++
+[source,bash]
+----
+curl http://localhost:8080/apis/registry/v3/groups/demo/artifacts/weather/versions/1/references
+----
++
+The server version references `weather.get_forecast` version `1`.
+
+// proc-connecting-an-ai-assistant-by-using-mcp
+[id="connecting-ai-assistant-via-mcp_{context}"]
+== Connecting an AI assistant by using MCP
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+You can connect an MCP client, such as Claude Desktop or an IDE assistant, to the {registry} MCP server. The MCP server runs as a container that the client starts and talks to over standard input and output, and it reaches {registry} through the Docker network of the quick start stack.
+
+.Prerequisites
+* The quick start stack is running
+* An MCP client that can start a local command, such as Claude Desktop
+
+.Procedure
+. Add the {registry} MCP server to the MCP configuration of your client. In Claude Desktop, open *Settings* > *Developer* > *Edit Config*:
++
+[source,json]
+----
+{
+  "mcpServers": {
+    "apicurio-registry": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "--network", "ai-agent-registry_default",
+        "-e", "REGISTRY_URL=http://apicurio-registry:8080",
+        "-e", "QUARKUS_OIDC_TENANT_ENABLED=false",
+        "quay.io/apicurio/apicurio-registry-mcp-server:latest-snapshot"
+      ]
+    }
+  }
+}
+----
++
+. Restart the client.
+
+.Verification
+* Ask the assistant a question about the catalog, for example: "Which agents in Apicurio Registry can translate?"
++
+The assistant uses the MCP server tools, such as `search_artifacts`, and answers with the Translation Agent.
+
+// proc-rejecting-an-incompatible-tool-change
+[id="rejecting-incompatible-tool-change_{context}"]
+== Seeing a compatibility rule reject an incompatible tool change
+
+:_mod-docs-content-type: PROCEDURE
+
+[role="_abstract"]
+A registry is more than a catalog: rules decide which changes are accepted. The demo `weather.get_forecast` tool has a `BACKWARD` compatibility rule, so a new version must accept every call that the previous version accepted. In this procedure, you try to make a new parameter required, which would break existing callers.
+
+.Prerequisites
+* The quick start stack is running
+* You are in the root directory of the {registry} repository
+
+.Procedure
+* Try to create version `2` of the tool, which adds a required `units` parameter:
++
+[source,bash]
+----
+curl -X POST http://localhost:8080/apis/registry/v3/groups/demo/artifacts/weather.get_forecast/versions \
+  -H "Content-Type: application/json" \
+  -d @distro/docker-compose/ai-agent-registry/test/get-forecast-v2-incompatible.json
+----
+
+.Verification
+. {registry} rejects the version with HTTP status `400`. The response names each incompatible change, including `A property was made 'required'.` at `/inputSchema/required/1`.
+. Check that the accepted version is unchanged:
++
+[source,bash]
+----
+curl http://localhost:8080/apis/registry/v3/groups/demo/artifacts/weather.get_forecast/versions
+----
++
+The tool has only version `1`. Agents that use this tool keep getting the definition that they were built against.
+
+// con-importing-tools-from-a-running-mcp-server
+[id="importing-tools-from-running-mcp-server_{context}"]
+== Importing tools from a running MCP server
+
+:_mod-docs-content-type: CONCEPT
+
+[role="_abstract"]
+Instead of writing `MCP_TOOL` artifacts by hand, you can import the tools of a running MCP server, and import them again when the server changes. The same compatibility rules apply, so an incompatible tool change is rejected on import.
+
+NOTE: Importing tools from a running MCP server is planned for {registry} 3.4 and is not available in released versions. For the planned behavior, see xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features].
+
+// proc-stopping-the-agent-registry-quickstart
+[id="stopping-agent-registry-quickstart_{context}"]
+== Stopping the quick start stack
+
+:_mod-docs-content-type: PROCEDURE
+
+.Procedure
+* Stop the stack and keep the catalog:
++
+[source,bash]
+----
+docker compose -f distro/docker-compose/ai-agent-registry/docker-compose.yml down
+----
++
+To also delete the catalog, add the `-v` option. The next `up` loads the demo catalog again.
 endif::[]
 
+ifdef::service-registry-downstream[]
 // proc-registering-an-agent-card
 [id="registering-an-agent-card_{context}"]
 == Registering an agent card
@@ -254,6 +389,7 @@ Replace `<registry-url>` with the URL of your {registry} instance. For local dev
 . Verify the connection by asking Claude a question about {registry}, for example: "What groups are present in {registry}?"
 +
 The MCP server provides tools for working with groups, artifacts, versions, and configuration properties in {registry}.
+endif::[]
 
 [role="_additional-resources"]
 .Additional resources
@@ -261,4 +397,5 @@ The MCP server provides tools for working with groups, artifacts, versions, and 
 * xref:getting-started/assembly-llm-artifact-types-implementation.adoc[LLM artifact types]
 ifndef::service-registry-downstream[]
 * xref:getting-started/assembly-mcp-tool-features.adoc[MCP tool definition features]
+* link:https://github.com/Apicurio/apicurio-registry/tree/main/examples/agent-registry[AI agent registry demo], which runs every agent registry feature with Docker Compose, together with Quarkus LangChain4j agents, and includes a step-by-step guide
 endif::[]

@@ -33,6 +33,14 @@ import static io.gatling.javaapi.http.HttpDsl.status;
 
 public class ConfluentApiSimulation extends Simulation {
 
+    private static final String SUBJECTS_PATH = "/subjects/";
+    private static final String VERSIONS_PATH = "/versions";
+    private static final String SCHEMA_ID = "schemaId";
+    private static final String SUBJECT = "subject";
+    private static final String OP_REGISTER_NEW_VERSION = "REGISTER_NEW_VERSION";
+    private static final String SCHEMA = "schema";
+    private static final String COMPATIBLE_SCHEMA = "compatibleSchema";
+
     private static final String URL = env("SCHEMA_REGISTRY_URL", "http://localhost:8081");
     private static final String OPERATION = env("PERF_OPERATION", "READ_ID");
     private static final int USERS = integer("PERF_USERS", 100);
@@ -52,7 +60,7 @@ public class ConfluentApiSimulation extends Simulation {
 
     {
         verifyConformance();
-        if (OPERATION.equals("REGISTER_NEW_VERSION")) {
+        if (OPERATION.equals(OP_REGISTER_NEW_VERSION)) {
             requireSuccess(send("PUT", "/config", "{\"compatibility\":\"NONE\"}"),
                     "disable compatibility for unconstrained version throughput");
         }
@@ -76,13 +84,13 @@ public class ConfluentApiSimulation extends Simulation {
             case "READ_VERSION" -> feed(feeder).exec(http(phase + " READ_VERSION")
                     .get("/subjects/#{subject}/versions/#{version}").check(status().is(200)));
             case "REGISTER_IDEMPOTENT" -> feed(feeder).exec(http(phase + " REGISTER_IDEMPOTENT")
-                    .post("/subjects/#{subject}/versions").body(StringBody(session -> body((String) session.get("schema"))))
+                    .post("/subjects/#{subject}/versions").body(StringBody(session -> body((String) session.get(SCHEMA))))
                     .asJson().check(status().is(200)));
             case "COMPATIBILITY" -> feed(feeder).exec(http(phase + " COMPATIBILITY")
                     .post("/compatibility/subjects/#{subject}/versions/latest")
-                    .body(StringBody(session -> body((String) session.get("compatibleSchema")))).asJson()
+                    .body(StringBody(session -> body((String) session.get(COMPATIBLE_SCHEMA)))).asJson()
                     .check(status().is(200), regex("\\\"is_compatible\\\"\\s*:\\s*true").exists()));
-            case "REGISTER_NEW_VERSION" -> feed(feeder).exec(http(phase + " REGISTER_NEW_VERSION")
+            case OP_REGISTER_NEW_VERSION -> feed(feeder).exec(http(phase + " REGISTER_NEW_VERSION")
                     .post("/subjects/#{subject}/versions")
                     .body(StringBody(session -> body(uniqueSchema(COUNTER.incrementAndGet())))).asJson()
                     .check(status().is(200)));
@@ -112,41 +120,41 @@ public class ConfluentApiSimulation extends Simulation {
         for (int i = 0; i < SEED_SCHEMAS; i++) {
             String subject = "bench-" + RUN_ID + "-seed-" + i;
             String schema = uniqueSchema(i);
-            HttpResponse<String> response = send("POST", "/subjects/" + subject + "/versions", body(schema));
+            HttpResponse<String> response = send("POST", SUBJECTS_PATH + subject + VERSIONS_PATH, body(schema));
             Matcher matcher = ID_PATTERN.matcher(response.body());
             if (response.statusCode() / 100 != 2 || !matcher.find()) {
                 throw new IllegalStateException("Seed failed: HTTP " + response.statusCode() + " " + response.body());
             }
-            result.add(Map.of("subject", subject, "version", 1, "schemaId", matcher.group(1), "schema", schema,
-                    "compatibleSchema", compatibleSchema(i)));
+            result.add(Map.of(SUBJECT, subject, "version", 1, SCHEMA_ID, matcher.group(1), SCHEMA, schema,
+                    COMPATIBLE_SCHEMA, compatibleSchema(i)));
         }
         return result;
     }
 
     private void verifyConformance() {
         Map<String, Object> sample = seeds.get(0);
-        requireSuccess(send("GET", "/schemas/ids/" + sample.get("schemaId"), null), "ID lookup");
-        requireSuccess(send("GET", "/subjects/" + sample.get("subject") + "/versions/1", null), "version lookup");
-        HttpResponse<String> compatibility = send("POST", "/compatibility/subjects/" + sample.get("subject")
-                + "/versions/latest", body((String) sample.get("compatibleSchema")));
+        requireSuccess(send("GET", "/schemas/ids/" + sample.get(SCHEMA_ID), null), "ID lookup");
+        requireSuccess(send("GET", SUBJECTS_PATH + sample.get(SUBJECT) + "/versions/1", null), "version lookup");
+        HttpResponse<String> compatibility = send("POST", "/compatibility/subjects/" + sample.get(SUBJECT)
+                + "/versions/latest", body((String) sample.get(COMPATIBLE_SCHEMA)));
         requireSuccess(compatibility, "compatibility");
         if (!compatibility.body().contains("true")) {
             throw new IllegalStateException("Compatibility response was not true: " + compatibility.body());
         }
         if (OPERATION.equals("REGISTER_IDEMPOTENT")) {
-            HttpResponse<String> response = send("POST", "/subjects/" + sample.get("subject") + "/versions",
-                    body((String) sample.get("schema")));
+            HttpResponse<String> response = send("POST", SUBJECTS_PATH + sample.get(SUBJECT) + VERSIONS_PATH,
+                    body((String) sample.get(SCHEMA)));
             requireSuccess(response, "idempotent registration");
-            if (!response.body().contains(sample.get("schemaId").toString())) {
+            if (!response.body().contains(sample.get(SCHEMA_ID).toString())) {
                 throw new IllegalStateException("Idempotent registration returned a different schema ID: "
                         + response.body());
             }
-        } else if (OPERATION.equals("REGISTER_NEW_VERSION")) {
-            requireSuccess(send("POST", "/subjects/" + sample.get("subject") + "/versions",
+        } else if (OPERATION.equals(OP_REGISTER_NEW_VERSION)) {
+            requireSuccess(send("POST", SUBJECTS_PATH + sample.get(SUBJECT) + VERSIONS_PATH,
                     body(uniqueSchema(COUNTER.incrementAndGet()))), "new-version registration");
         } else if (OPERATION.equals("REGISTER_NEW_SUBJECT")) {
             long id = COUNTER.incrementAndGet();
-            requireSuccess(send("POST", "/subjects/bench-" + RUN_ID + "-conformance-" + id + "/versions",
+            requireSuccess(send("POST", "/subjects/bench-" + RUN_ID + "-conformance-" + id + VERSIONS_PATH,
                     body(uniqueSchema(id))), "new-subject registration");
         }
     }

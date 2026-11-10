@@ -1,0 +1,4 @@
+{"type": "record", "name": "Order", "namespace": "com.example.orders",
+ "fields": [{"name": "orderId", "type": "string"},
+            {"name": "total", "type": "com.example.common.Money"},
+            {"name": "shipTo", "type": "com.example.common.Address"}]}

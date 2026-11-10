@@ -24,7 +24,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static io.apicurio.registry.operator.Tags.OLM;
 import static io.apicurio.registry.operator.it.ITBase.MEDIUM_DURATION;
-import static io.apicurio.registry.operator.it.ITBase.SHORT_DURATION;
 import static io.apicurio.registry.operator.it.ITBase.setDefaultAwaitilityTimings;
 import static io.apicurio.registry.operator.it.OLMTestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -145,8 +144,10 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
 
     // ClusterExtension/ClusterCatalog/ClusterRole(Binding) are cluster-scoped with fixed names, so the
     // next test's setup would collide with a still-terminating resource from this one unless we wait.
+    // The ClusterCatalog finalizer (olm.operatorframework.io/delete-server-cache) can take well over
+    // SHORT_DURATION on remote clusters, hence MEDIUM_DURATION.
     private void waitForClusterScopedDeleted(String kind, String name) {
-        await().atMost(SHORT_DURATION).ignoreExceptions().until(() -> client
+        await().atMost(MEDIUM_DURATION).ignoreExceptions().until(() -> client
                 .genericKubernetesResources("olm.operatorframework.io/v1", kind)
                 .inNamespace(namespace).withName(name).get() == null);
     }
@@ -519,6 +520,10 @@ public class UpgradeOLMv1ITTest implements OperatorTestContext {
      */
     private void deployClusterExtension(String channel, Semver version) throws Exception {
         try {
+            // Tear-down swallows cleanup timeouts, so a previous test's ClusterExtension/ClusterCatalog may
+            // still be terminating. Creating them again would fail with 409 "object is being deleted".
+            waitForClusterScopedDeleted("ClusterExtension", CLUSTER_EXTENSION_NAME);
+            waitForClusterScopedDeleted("ClusterCatalog", CATALOG_NAME);
             createResource(client, namespace, "olmv1/cluster-catalog.yaml");
             waitForClusterCatalogServing(client, namespace, CATALOG_NAME);
             createResource(client, namespace, "olmv1/service-account.yaml");

@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -32,6 +33,8 @@ public class ChannelValidationOLMITTest extends OLMITBase {
     @Override
     @AfterEach
     public void afterEach() {
+        // Intentionally empty: this test only reads catalog metadata and creates no resources,
+        // so the base class cleanup must be skipped.
     }
 
     @RetryTest
@@ -91,8 +94,8 @@ public class ChannelValidationOLMITTest extends OLMITBase {
             assertThat(rollingHead).as("Rolling channel head should be an apicurio-registry CSV")
                     .startsWith(PACKAGE_NAME + ".v");
 
-            var expectedMinorPrefix = PACKAGE_NAME + ".v"
-                    + projectVersion.toLowerCase().replaceAll("(\\d++\\.\\d++)\\..*", "$1.");
+            var versionParts = projectVersion.toLowerCase(Locale.ROOT).split("\\.", 3);
+            var expectedMinorPrefix = PACKAGE_NAME + ".v" + versionParts[0] + "." + versionParts[1] + ".";
             assertThat(minorHead)
                     .as("Minor channel " + minorChannel + " head should be from the "
                             + minorChannel + " stream")

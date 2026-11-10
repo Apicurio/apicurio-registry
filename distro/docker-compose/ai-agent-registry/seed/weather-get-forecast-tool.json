@@ -1,0 +1,13 @@
+{
+  "name": "get_forecast",
+  "title": "Get forecast",
+  "description": "Daily weather forecast for a city, using fictional data.",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "city": { "type": "string", "description": "City name, for example Madrid" },
+      "days": { "type": "integer", "minimum": 1, "maximum": 7, "description": "Number of days" }
+    },
+    "required": ["city"]
+  }
+}

@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>io.apicurio</groupId>
+    <artifactId>apicurio-registry-examples</artifactId>
+    <version>3.4.0-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
+  </parent>
+
+  <artifactId>apicurio-registry-examples-kafka-serdes-tour</artifactId>
+  <packaging>jar</packaging>
+  <name>Registry :: Examples :: Kafka Serdes :: Tour</name>
+
+  <properties>
+    <projectRoot>${project.basedir}/../../..</projectRoot>
+    <!-- Override on the command line: -Dregistry.url=... -Dkafka.bootstrap=... -Dtour.steps=... -->
+    <registry.url>http://localhost:8081/apis/registry/v3</registry.url>
+    <kafka.bootstrap>localhost:9092</kafka.bootstrap>
+    <tour.steps>all</tour.steps>
+    <!-- The serdes' protobuf dependencies (proto-google-common-protos) need the registry's protobuf
+         runtime, not the older one examples/pom.xml pins for other examples -->
+    <protobuf.version>4.36.2</protobuf.version>
+  </properties>
+
+  <dependencies>
+    <!-- The Kafka serdes, built from this repository -->
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-avro-serde-kafka</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-jsonschema-serde-kafka</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.apicurio</groupId>
+      <artifactId>apicurio-registry-protobuf-serde-kafka</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.kafka</groupId>
+      <artifactId>kafka-clients</artifactId>
+      <version>${kafka.version}</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <resources>
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+      <!-- refund.proto is registered by the tour itself (step 7), as compiled -->
+      <resource>
+        <directory>src/main/proto</directory>
+      </resource>
+    </resources>
+    <plugins>
+      <!-- Generates the Java classes for src/main/proto -->
+      <plugin>
+        <groupId>io.github.ascopes</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <version>${proto-plugin.version}</version>
+        <executions>
+          <execution>
+            <id>gencode</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <protoc>${protobuf.version}</protoc>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- mvn exec:java runs the tour (demo.sh does this) -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <configuration>
+          <mainClass>io.apicurio.registry.examples.serdes.Tour</mainClass>
+          <systemProperties>
+            <!-- Avro only reads and writes Java classes from trusted packages (tour step 8) -->
+            <systemProperty>
+              <key>org.apache.avro.SERIALIZABLE_PACKAGES</key>
+              <value>io.apicurio.registry.examples.serdes</value>
+            </systemProperty>
+          </systemProperties>
+          <arguments>
+            <argument>${registry.url}</argument>
+            <argument>${kafka.bootstrap}</argument>
+            <argument>${tour.steps}</argument>
+          </arguments>
+        </configuration>
+      </plugin>
+      <!-- Not bound to the build: demo.sh runs `mvn apicurio-registry:register` before the tour, to
+           register greeting.avsc ahead of time, as a CI pipeline would (tour step 12) -->
+      <plugin>
+        <groupId>io.apicurio</groupId>
+        <artifactId>apicurio-registry-maven-plugin</artifactId>
+        <version>${project.version}</version>
+        <configuration>
+          <registryUrl>${registry.url}</registryUrl>
+          <artifacts>
+            <artifact>
+              <groupId>greetings</groupId>
+              <artifactId>greeting</artifactId>
+              <artifactType>AVRO</artifactType>
+              <file>${project.basedir}/src/main/resources/greeting.avsc</file>
+              <ifExists>FIND_OR_CREATE_VERSION</ifExists>
+            </artifact>
+          </artifacts>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

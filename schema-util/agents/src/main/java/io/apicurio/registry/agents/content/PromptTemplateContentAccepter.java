@@ -17,6 +17,8 @@ import java.util.Map;
  */
 public class PromptTemplateContentAccepter implements ContentAccepter {
 
+    private static final String SCHEMA_KEY = "$schema";
+
     @Override
     public boolean acceptsContent(TypedContent content, Map<String, TypedContent> resolvedReferences) {
         try {
@@ -31,8 +33,8 @@ public class PromptTemplateContentAccepter implements ContentAccepter {
                 return false;
             }
 
-            if (tree.has("$schema") && tree.get("$schema").isTextual()
-                    && tree.get("$schema").asText().contains("prompt-template")) {
+            if (tree.has(SCHEMA_KEY) && tree.get(SCHEMA_KEY).isTextual()
+                    && tree.get(SCHEMA_KEY).asText().contains("prompt-template")) {
                 return true;
             }
 
